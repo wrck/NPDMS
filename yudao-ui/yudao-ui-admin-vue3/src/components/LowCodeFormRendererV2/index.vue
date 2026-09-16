@@ -2,27 +2,8 @@
 /**
  * 低代码表单渲染引擎 V2（FormCreate 实现）。
  *
- * <p>V2 与 V1（{@code LowCodeFormRenderer}）保持完全相同的对外契约：</p>
- * <ul>
- *   <li>props：config（FormConfig）、modelValue（v-model）、disabled、
- *       componentRegistry、eventHandlers</li>
- *   <li>emits：update:modelValue / submit / validate-fail / field-change</li>
- *   <li>expose：validate / submit / resetFields / clearValidate / getFormData / formApi</li>
- *   <li>渲染能力：grid / tabs / collapse 三种布局；18 种字段类型 + custom
- *       自定义组件；required 校验合并；disabled / readonly / hidden 字段</li>
- * </ul>
- *
- * <p>差异仅在渲染底层：V1 直接以 Element Plus 组件渲染；
- * V2 将 {@link FormConfig} 翻译为 form-create（@form-create/element-ui）的
- * Rule[] 后交给 {@code <form-create>} 渲染，复用 yudao 底座统一的
- * form-create 渲染与校验体系。V1 原样保留，消费方可按需选择 V1 / V2。</p>
- *
- * <p>字段类型 → form-create rule.type 映射（与 @form-create/element-ui 内置组件名一致）：
- * input / textarea（input + type=textarea）/ number（inputNumber）/ password
- * （input + type=password）/ select / radio（radioGroup）/ checkbox（checkboxGroup）/
- * date / datetime / daterange（datePicker + type）/ switch / rate / slider（slider）/
- * cascader / upload；divider / title 为布局节点；custom 通过 form-create
- * component 注册（{@link registerCustomComponents}）。</p>
+ * V2 复用 V1 的 FormConfig、props、emits 与公开方法契约，只替换渲染底层。
+ * V1 保持原样；V2 负责将 FormConfig 翻译为 @form-create/element-ui Rule[]。
  */
 import { computed, reactive, ref, watch, type Component } from 'vue'
 import {
@@ -34,18 +15,12 @@ import {
 } from '@/api/lowcode'
 import formCreate, { type Api as FormCreateApi, type Rule } from '@form-create/element-ui'
 
-/** Props 定义（与 V1 完全一致） */
 const props = withDefaults(
   defineProps<{
-    /** 表单配置（解析后的 FormConfig 对象） */
     config: FormConfig
-    /** 表单数据对象（v-model） */
     modelValue?: Record<string, unknown>
-    /** 是否禁用整个表单 */
     disabled?: boolean
-    /** 自定义组件注册表：key 为 props.componentName，value 为组件定义 */
     componentRegistry?: Record<string, Component>
-    /** 事件处理器映射：key 为 field.events.change 值，value 为回调函数 */
     eventHandlers?: Record<string, (...args: unknown[]) => void>
   }>(),
   {
@@ -55,7 +30,6 @@ const props = withDefaults(
   }
 )
 
-/** Emits 定义（与 V1 完全一致） */
 const emit = defineEmits<{
   (e: 'update:modelValue', value: Record<string, unknown>): void
   (e: 'submit', value: Record<string, unknown>): void
@@ -63,7 +37,12 @@ const emit = defineEmits<{
   (e: 'field-change', field: FormFieldConfig, value: unknown): void
 }>()
 
-/** form-create v-model 绑定（读写代理到 formData，保持 V1 的数据流向） */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const formData = reactive<Record<string, any>>({ ...(props.modelValue || {}) })
+const formApi = ref<FormCreateApi>()
+/** V1 兼容别名。底层对象在 V2 中仍是 FormCreate Api。 */
+const formRef = formApi
+
 const values = computed<Record<string, unknown>>({
   get: () => formData,
   set: (val) => {
@@ -76,20 +55,6 @@ const values = computed<Record<string, unknown>>({
   }
 })
 
-/** form-create 实例（validate / resetFields / getValue 等通过 api 调用） */
-const formApi = ref<FormCreateApi>()
-
-/** 内部维护的表单数据（响应式，与 V1 相同的初始化语义） */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const formData = reactive<Record<string, any>>({ ...(props.modelValue || {}) })
-
-/** 已注册到 form-create 的自定义组件名集合（避免重复注册） */
-const registeredCustomComponents = new Set<string>()
-
-/**
- * 初始化字段默认值：将 config.fields 中的 defaultValue 写入未提供的字段。
- * （与 V1 语义完全一致）
- */
 function initDefaults() {
   for (const field of props.config.fields || []) {
     if (!(field.prop in formData)) {
@@ -104,14 +69,12 @@ function initDefaults() {
   }
 }
 
-// 监听 config 变化时重新初始化默认值
 watch(
   () => props.config,
   () => initDefaults(),
   { immediate: true, deep: false }
 )
 
-// 监听外部 modelValue 变化，同步到内部 formData（与 V1 相同：不在此处回传，避免循环）
 watch(
   () => props.modelValue,
   (val) => {
@@ -125,7 +88,6 @@ watch(
   { deep: true }
 )
 
-// 内部数据变化时回传父组件
 watch(
   formData,
   (val) => {
@@ -134,43 +96,45 @@ watch(
   { deep: true }
 )
 
-/** 可见字段（过滤 hidden=true，与 V1 相同） */
-const visibleFields = computed(() =>
-  (props.config.fields || []).filter((f) => !f.hidden)
-)
+const visibleFields = computed(() => (props.config.fields || []).filter((f) => !f.hidden))
 
 /**
- * 将 type=custom 字段的自定义组件注册到 form-create 全局组件。
- *
- * <p>form-create 的 rule.type 既可指向全局注册的组件名；自定义组件在
- * 注册后即可被 rule.type 引用。与 V1 的 componentRegistry 解析语义一致：
- * 优先取 field.props.componentName，回退到 field.componentName。</p>
+ * 记录已注册组件实例。Registry 被替换或同名组件更新时允许重新注册，
+ * 与 V1 每次从 componentRegistry 解析组件的动态语义保持一致。
  */
+const registeredCustomComponents = new Map<string, Component>()
+
+function customComponentName(field: FormFieldConfig): string {
+  return (field.props?.componentName as string) || field.componentName || ''
+}
+
 function registerCustomComponents() {
   for (const field of props.config.fields || []) {
     if (field.type !== FieldType.CUSTOM) continue
-    const name = (field.props?.componentName as string) || field.componentName || ''
-    if (!name || registeredCustomComponents.has(name)) continue
+    const name = customComponentName(field)
+    if (!name) continue
     const comp = props.componentRegistry[name]
     if (!comp) {
       console.warn(`[LowCodeFormRendererV2] 未注册的自定义组件: ${name}`)
       continue
     }
+    if (registeredCustomComponents.get(name) === comp) continue
     formCreate.component(name, comp)
-    registeredCustomComponents.add(name)
+    registeredCustomComponents.set(name, comp)
   }
 }
 
-// 监听 config / componentRegistry 变化时重新注册自定义组件
 watch(
-  () => [props.config, props.componentRegistry],
+  () => props.config,
   () => registerCustomComponents(),
-  { immediate: true }
+  { immediate: true, deep: false }
+)
+watch(
+  () => props.componentRegistry,
+  () => registerCustomComponents(),
+  { immediate: true, deep: true }
 )
 
-/**
- * 生成字段对应的 change 事件处理（与 V1 相同：emit + eventHandlers 回调）。
- */
 function handleFieldChange(field: FormFieldConfig, value: unknown) {
   emit('field-change', field, value)
   const handlerName = field.events?.change
@@ -179,16 +143,30 @@ function handleFieldChange(field: FormFieldConfig, value: unknown) {
   }
 }
 
-/**
- * 将 FormFieldConfig 翻译为 form-create Rule。
- *
- * <p>校验规则：required 合并为 form-create 的 validate 数组，
- * 自定义 rules（el-form rules 格式）按 validateField 语义合并到
- * rule.validate。change 事件通过 form-create 的 emit 配置接入
- * {@link handleFieldChange}。</p>
- */
+function buildValidate(field: FormFieldConfig): Array<Record<string, unknown>> {
+  const list: Array<Record<string, unknown>> = []
+  if (field.required) {
+    list.push({
+      required: true,
+      message: field.placeholder || `请填写${field.label}`,
+      trigger: ['blur', 'change']
+    })
+  }
+  if (field.rules && Array.isArray(field.rules)) {
+    for (const rule of field.rules) {
+      list.push({ ...rule })
+    }
+  }
+  return list
+}
+
+function dateType(field: FormFieldConfig): 'date' | 'datetime' | 'daterange' {
+  if (field.type === FieldType.DATETIME) return 'datetime'
+  if (field.type === FieldType.DATERANGE) return 'daterange'
+  return 'date'
+}
+
 function toRule(field: FormFieldConfig): Rule {
-  // ---- 布局节点：divider / title 不渲染 form-item ----
   if (field.type === FieldType.DIVIDER) {
     return {
       type: 'el-divider',
@@ -201,24 +179,26 @@ function toRule(field: FormFieldConfig): Rule {
     }
   }
   if (field.type === FieldType.TITLE) {
-    return { type: 'h3', class: ['form-title'], style: { fontSize: '16px' }, children: [field.label] }
+    return {
+      type: 'h3',
+      class: ['form-title'],
+      style: { fontSize: '16px' },
+      children: [field.label]
+    }
   }
 
-  // ---- 布局/数据节点公共属性 ----
-  // 值不在 rule 上声明：与 V1 相同，值统一由 formData（v-model）流向渲染层，
-  // 避免 rule.value 依赖 formData 导致每次键入触发 rule 重算与值回设。
   const common = {
     field: field.prop,
     title: field.label,
     props: {
       placeholder: field.placeholder,
       disabled: field.disabled,
+      readonly: field.readonly,
       clearable: field.clearable,
       ...(field.props || {})
     } as Record<string, unknown>,
     validate: buildValidate(field),
     emit: ['change'],
-    // change 事件回调：value 与 field 透传给 handleFieldChange（与 V1 相同）
     on: {
       change: (value: unknown) => handleFieldChange(field, value)
     }
@@ -238,7 +218,11 @@ function toRule(field: FormFieldConfig): Rule {
         }
       }
     case FieldType.PASSWORD:
-      return { ...common, type: 'input', props: { ...common.props, type: 'password' } }
+      return {
+        ...common,
+        type: 'input',
+        props: { ...common.props, type: 'password' }
+      }
     case FieldType.NUMBER:
       return { ...common, type: 'inputNumber' }
     case FieldType.SELECT: {
@@ -246,7 +230,7 @@ function toRule(field: FormFieldConfig): Rule {
       return {
         ...common,
         type: 'select',
-        options: options.map((opt) => ({ label: opt.label, value: opt.value }))
+        options: options.map((option) => ({ label: option.label, value: option.value }))
       }
     }
     case FieldType.RADIO: {
@@ -254,7 +238,7 @@ function toRule(field: FormFieldConfig): Rule {
       return {
         ...common,
         type: 'radioGroup',
-        options: options.map((opt) => ({ label: opt.label, value: opt.value }))
+        options: options.map((option) => ({ label: option.label, value: option.value }))
       }
     }
     case FieldType.CHECKBOX: {
@@ -262,7 +246,7 @@ function toRule(field: FormFieldConfig): Rule {
       return {
         ...common,
         type: 'checkboxGroup',
-        options: options.map((opt) => ({ label: opt.label, value: opt.value }))
+        options: options.map((option) => ({ label: option.label, value: option.value }))
       }
     }
     case FieldType.DATE:
@@ -300,7 +284,11 @@ function toRule(field: FormFieldConfig): Rule {
         }
       }
     case FieldType.CUSTOM: {
-      const name = (field.props?.componentName as string) || field.componentName || ''
+      const name = customComponentName(field)
+      const comp = name ? props.componentRegistry[name] : undefined
+      if (!name || !comp) {
+        return { ...common, type: 'input' }
+      }
       return { ...common, type: name, field: field.prop }
     }
     default:
@@ -308,40 +296,6 @@ function toRule(field: FormFieldConfig): Rule {
   }
 }
 
-/**
- * 生成字段的校验规则数组（form-create 的 rule.validate 格式）。
- *
- * <p>required 与 V1 相同：message 取 placeholder 或 `请填写${label}`，
- * trigger 为 blur + change；自定义 rules（el-form rules 格式）按
- * 顺序合并（不降低任何校验）。</p>
- */
-function buildValidate(field: FormFieldConfig): Array<Record<string, unknown>> {
-  const list: Array<Record<string, unknown>> = []
-  if (field.required) {
-    list.push({
-      required: true,
-      message: field.placeholder || `请填写${field.label}`,
-      trigger: ['blur', 'change']
-    })
-  }
-  if (field.rules && Array.isArray(field.rules)) {
-    for (const r of field.rules) {
-      list.push({ ...r })
-    }
-  }
-  return list
-}
-
-/** 获取日期选择器的 type 属性（与 V1 相同） */
-function dateType(field: FormFieldConfig): 'date' | 'datetime' | 'daterange' {
-  if (field.type === FieldType.DATETIME) return 'datetime'
-  if (field.type === FieldType.DATERANGE) return 'daterange'
-  return 'date'
-}
-
-/**
- * 解析栅格 span 为 form-create col 绑定属性（与 V1 相同的兼容语义）。
- */
 function colProps(span: number | ResponsiveSpan | undefined): Record<string, number> {
   if (span === undefined || typeof span === 'number') {
     return { span: span ?? 24 }
@@ -355,10 +309,7 @@ function colProps(span: number | ResponsiveSpan | undefined): Record<string, num
   return result
 }
 
-/** 布局配置 */
 const layout = computed(() => props.config.layout || { type: LayoutType.GRID, gutter: 16 })
-
-/** tabs / collapse 默认激活项（与 V1 相同） */
 const activeTab = ref<string>('')
 const activeCollapse = ref<string[]>([])
 
@@ -369,38 +320,32 @@ watch(
       activeTab.value = val.tabs[0].name || val.tabs[0].title
     }
     if (val.type === LayoutType.COLLAPSE && val.collapse && val.collapse.length > 0) {
-      activeCollapse.value = val.collapse.map((c, i) => c.name || String(i))
+      activeCollapse.value = val.collapse.map((item, index) => item.name || String(index))
     }
   },
   { immediate: true }
 )
 
-/** 将字段 id 列表转为字段对象列表（过滤 hidden，与 V1 相同） */
 function resolveFields(ids: string[]): FormFieldConfig[] {
   const map = new Map<string, FormFieldConfig>()
-  for (const f of props.config.fields || []) {
-    map.set(f.id, f)
+  for (const field of props.config.fields || []) {
+    map.set(field.id, field)
   }
-  return ids.map((id) => map.get(id)).filter((f): f is FormFieldConfig => !!f && !f.hidden)
+  return ids
+    .map((id) => map.get(id))
+    .filter((field): field is FormFieldConfig => !!field && !field.hidden)
 }
 
 /**
- * 按字段列表构建 rule 数组（row + col 包裹，与 V1 的 grid 布局语义一致）。
+ * V1 的 grid/tabs/collapse 都先用 el-col 包裹字段；布局字段也遵循 span。
+ * V2 保持同一结构，避免 divider/title 在切换渲染器后改变宽度语义。
  */
 function buildFieldRules(fields: FormFieldConfig[]): Rule[] {
-  const children: Rule[] = []
-  for (const field of fields) {
-    if (field.type === FieldType.DIVIDER || field.type === FieldType.TITLE) {
-      // 布局节点：不占栅格，直接追加
-      children.push(toRule(field))
-      continue
-    }
-    children.push({
-      type: 'col',
-      props: colProps(field.span) as unknown as Record<string, unknown>,
-      children: [toRule(field)]
-    })
-  }
+  const children: Rule[] = fields.map((field) => ({
+    type: 'col',
+    props: colProps(field.span) as unknown as Record<string, unknown>,
+    children: [toRule(field)]
+  }))
   return [
     {
       type: 'row',
@@ -410,15 +355,13 @@ function buildFieldRules(fields: FormFieldConfig[]): Rule[] {
   ]
 }
 
-/** form-create rule 数组（grid 布局：全部可见字段） */
-const rule = computed<Rule[]>(() => {
+const gridRule = computed<Rule[]>(() => {
   if (!layout.value.type || layout.value.type === LayoutType.GRID) {
     return buildFieldRules(visibleFields.value)
   }
   return []
 })
 
-/** form-create option（关闭内置 submitBtn / resetBtn，由消费方自行控制提交） */
 const option = computed<Record<string, unknown>>(() => ({
   form: {
     labelWidth: props.config.labelWidth ?? 100,
@@ -429,7 +372,6 @@ const option = computed<Record<string, unknown>>(() => ({
   resetBtn: false
 }))
 
-/** form-create tabs 布局 rule（el-tabs + el-tab-pane + row/col 包裹；点击切换回写 activeTab） */
 const tabsRule = computed<Rule[]>(() => {
   if (layout.value.type !== LayoutType.TABS) return []
   return [
@@ -453,7 +395,6 @@ const tabsRule = computed<Rule[]>(() => {
   ]
 })
 
-/** form-create collapse 布局 rule（el-collapse + el-collapse-item + row/col 包裹；展开/收起回写 activeCollapse） */
 const collapseRule = computed<Rule[]>(() => {
   if (layout.value.type !== LayoutType.COLLAPSE) return []
   return [
@@ -465,11 +406,11 @@ const collapseRule = computed<Rule[]>(() => {
           activeCollapse.value = value
         }
       },
-      children: (layout.value.collapse || []).map((group, idx) => ({
+      children: (layout.value.collapse || []).map((group, index) => ({
         type: 'el-collapse-item',
         props: {
           title: group.title,
-          name: group.name || String(idx)
+          name: group.name || String(index)
         } as unknown as Record<string, unknown>,
         children: buildFieldRules(resolveFields(group.fields))
       }))
@@ -477,14 +418,12 @@ const collapseRule = computed<Rule[]>(() => {
   ]
 })
 
-/** form-create 最终 rule（按布局类型合并；custom 组件已由 watch 统一注册） */
 const finalRule = computed<Rule[]>(() => {
   if (layout.value.type === LayoutType.TABS) return tabsRule.value
   if (layout.value.type === LayoutType.COLLAPSE) return collapseRule.value
-  return rule.value
+  return gridRule.value
 })
 
-/** 表单校验（通过 form-api validate，与 V1 相同：失败 emit validate-fail） */
 async function validate(): Promise<boolean> {
   if (!formApi.value) return false
   try {
@@ -496,7 +435,6 @@ async function validate(): Promise<boolean> {
   }
 }
 
-/** 提交表单：先校验，通过后 emit submit（与 V1 相同） */
 async function submit(): Promise<void> {
   const ok = await validate()
   if (ok) {
@@ -504,7 +442,6 @@ async function submit(): Promise<void> {
   }
 }
 
-/** 重置表单到初始值（与 V1 相同：重置默认值） */
 function resetFields(): void {
   formApi.value?.resetFields()
   for (const field of props.config.fields || []) {
@@ -516,18 +453,17 @@ function resetFields(): void {
   }
 }
 
-/** 清除校验状态 */
 function clearValidate(): void {
   formApi.value?.clearValidateState()
 }
 
-// 暴露方法供父组件通过 ref 调用（formApi 对应 V1 的 formRef）
 defineExpose({
   validate,
   submit,
   resetFields,
   clearValidate,
   getFormData: () => ({ ...formData }),
+  formRef,
   formApi
 })
 </script>
