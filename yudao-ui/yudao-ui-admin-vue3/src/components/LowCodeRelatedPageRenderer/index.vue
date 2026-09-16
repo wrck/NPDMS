@@ -45,20 +45,15 @@ import {
 import { useUserStore } from '@/stores/user'
 
 /** 异步加载子页面渲染器，避免循环依赖 */
-const LowCodeFormRenderer = defineAsyncComponent(() => import('@/components/LowCodeFormRenderer/index.vue'))
+const LowCodeFormRenderer = defineAsyncComponent(() => import('@/components/LowCodeFormRendererFacade/index.vue'))
 const LowCodeListRenderer = defineAsyncComponent(() => import('@/components/LowCodeListRenderer/index.vue'))
 const LowCodeTabRenderer = defineAsyncComponent(() => import('@/components/LowCodeTabRenderer/index.vue'))
 
-/** Props 定义 */
 const props = withDefaults(
   defineProps<{
-    /** 关联页配置（解析后的 RelatedPageConfig 对象） */
     config: RelatedPageConfig
-    /** 上下文数据（用于 props 解析与 visible 表达式求值） */
     contextData?: Record<string, unknown>
-    /** 设计器预览使用的子页面配置（pageCode → config） */
     previewConfigs?: Record<string, unknown>
-    /** 设计器预览时允许引用尚未发布的草稿配置 */
     allowDraft?: boolean
   }>(),
   {
@@ -68,7 +63,6 @@ const props = withDefaults(
   }
 )
 
-/** Emits 定义 */
 const emit = defineEmits<{
   (e: 'section-change', section: RelatedPageSectionConfig): void
   (e: 'navigate', url: string, section: RelatedPageSectionConfig): void
@@ -79,9 +73,6 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-/**
- * 排序+过滤后的区块列表：按 order 升序，相同 order 按数组顺序；过滤 visible=false 的区块。
- */
 const visibleSections = computed<RelatedPageSectionConfig[]>(() => {
   const list = normalizeRelatedPageConfig(props.config).sections
     .filter((s) => evalVisible(s))
@@ -94,18 +85,9 @@ const visibleSections = computed<RelatedPageSectionConfig[]>(() => {
   return list
 })
 
-/** 布局类型（默认 grid） */
 const layout = computed(() => normalizeRelatedPageConfig(props.config).layout || RelatedPageLayout.GRID)
-
-/** 栅格间距（默认 16） */
 const gutter = computed(() => normalizeRelatedPageConfig(props.config).gutter ?? 16)
 
-/**
- * 解析 section.span 为 el-col 绑定属性。
- *
- * <p>向后兼容：span 为数字或缺省时按 :span= 渲染（缺省 24）；
- * span 为响应式断点对象时按 :xs= :sm= :md= :lg= :xl= 渲染。</p>
- */
 function colProps(span: number | ResponsiveSpan | undefined): Record<string, number> {
   if (span === undefined || typeof span === 'number') {
     return { span: span ?? 24 }
@@ -119,11 +101,9 @@ function colProps(span: number | ResponsiveSpan | undefined): Record<string, num
   return result
 }
 
-/** tabs/collapse 模式下当前激活项 */
 const activeTab = ref<string>('')
 const activeCollapse = ref<string[]>([])
 
-// 初始化 tabs/collapse 激活第一项
 watch(
   visibleSections,
   (sections) => {
@@ -136,9 +116,6 @@ watch(
   { immediate: true }
 )
 
-/**
- * 求值 visible 显示条件表达式。
- */
 function evalVisible(section: RelatedPageSectionConfig): boolean {
   const expr = section.visible
   if (!expr || !expr.trim()) return true
@@ -155,9 +132,6 @@ function evalVisible(section: RelatedPageSectionConfig): boolean {
   }
 }
 
-/**
- * 解析 props 模板变量。
- */
 function resolveProps(section: RelatedPageSectionConfig): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   const src = section.props || {}
@@ -175,10 +149,8 @@ function resolveProps(section: RelatedPageSectionConfig): Record<string, unknown
   return result
 }
 
-/** 模板变量正则：匹配 ${...} */
 const TEMPLATE_RE = /\$\{\s*([^}]+?)\s*\}/g
 
-/** 解析单个字符串中的模板变量 */
 function resolveTemplate(tpl: string, ctx: Record<string, unknown>): string {
   return tpl.replace(TEMPLATE_RE, (_, expr: string) => {
     try {
@@ -193,20 +165,10 @@ function resolveTemplate(tpl: string, ctx: Record<string, unknown>): string {
   })
 }
 
-// ===================== 子页面配置加载 =====================
-
-/** 已加载的子页面配置缓存：key 为 section.id */
 const pageConfigCache = ref<Record<string, unknown>>({})
-
-/** 各 section 加载状态 */
 const loadingMap = ref<Record<string, boolean>>({})
-
-/** 各 section 加载错误信息 */
 const errorMap = ref<Record<string, string>>({})
 
-/**
- * 加载指定 section 引用的子页面配置。
- */
 async function loadPageConfig(section: RelatedPageSectionConfig): Promise<void> {
   if (!section.pageCode) {
     return
@@ -262,7 +224,6 @@ async function loadPageConfig(section: RelatedPageSectionConfig): Promise<void> 
   }
 }
 
-/** 可见区块变化时主动加载所有区块配置 */
 watch(
   visibleSections,
   (sections) => {
@@ -273,7 +234,6 @@ watch(
   { immediate: true }
 )
 
-/** tabs 模式切换 */
 function handleTabChange(tabId: string) {
   const section = visibleSections.value.find((s) => s.id === tabId)
   if (section) {
@@ -281,7 +241,6 @@ function handleTabChange(tabId: string) {
   }
 }
 
-/** collapse 模式切换 */
 function handleCollapseChange(activeNames: string | string[]) {
   const arr = Array.isArray(activeNames) ? activeNames : [activeNames]
   if (arr.length > 0) {
@@ -292,7 +251,6 @@ function handleCollapseChange(activeNames: string | string[]) {
   }
 }
 
-/** custom 类型 section 跳转 */
 function handleCustomNavigate(section: RelatedPageSectionConfig) {
   if (!section.pageUrl) {
     ElMessage.warning('自定义页面未配置 pageUrl')
@@ -317,7 +275,6 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
 
 <template>
   <div class="low-code-related-page-renderer">
-    <!-- ============ Grid 布局（默认） ============ -->
     <el-row v-if="layout === 'grid'" :gutter="gutter">
       <el-col
         v-for="section in visibleSections"
@@ -333,21 +290,18 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
               <el-alert :title="`加载失败：${errorMap[section.id]}`" type="error" :closable="false" />
             </div>
 
-            <!-- 表单 -->
             <LowCodeFormRenderer
               v-else-if="section.type === 'form' && pageConfigCache[section.pageCode ?? '']"
               :config="pageConfigCache[section.pageCode ?? ''] as FormConfig"
               :model-value="resolveProps(section)"
             />
 
-            <!-- 列表 -->
             <LowCodeListRenderer
               v-else-if="section.type === 'list' && pageConfigCache[section.pageCode ?? '']"
               :config="pageConfigCache[section.pageCode ?? ''] as ListConfig"
               :auto-fetch="true"
             />
 
-            <!-- 标签页 -->
             <LowCodeTabRenderer
               v-else-if="section.type === 'tab' && pageConfigCache[section.pageCode ?? '']"
               :config="pageConfigCache[section.pageCode ?? ''] as TabConfig"
@@ -355,7 +309,6 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
               :context-data="resolveProps(section)"
             />
 
-            <!-- 自定义 -->
             <div v-else-if="section.type === 'custom'" class="custom-section">
               <iframe
                 v-if="section.pageUrl && section.pageUrl.startsWith('http')"
@@ -385,7 +338,6 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
       </el-col>
     </el-row>
 
-    <!-- ============ Tabs 布局 ============ -->
     <el-tabs v-else-if="layout === 'tabs'" v-model="activeTab" type="border-card" @tab-change="handleTabChange">
       <el-tab-pane
         v-for="section in visibleSections"
@@ -436,7 +388,6 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
       </el-tab-pane>
     </el-tabs>
 
-    <!-- ============ Collapse 布局 ============ -->
     <el-collapse v-else-if="layout === 'collapse'" v-model="activeCollapse" @change="handleCollapseChange">
       <el-collapse-item
         v-for="section in visibleSections"
@@ -487,7 +438,6 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
       </el-collapse-item>
     </el-collapse>
 
-    <!-- 未知布局 -->
     <el-empty v-else :description="`未知的布局类型: ${layout}`" :image-size="80" />
   </div>
 </template>
