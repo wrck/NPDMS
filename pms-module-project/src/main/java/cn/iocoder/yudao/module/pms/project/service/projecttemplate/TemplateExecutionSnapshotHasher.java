@@ -96,6 +96,9 @@ final class TemplateExecutionSnapshotHasher {
         map.put("approvalDefinitionKey", row.getApprovalDefinitionKey());
         map.put("parameters", row.getParameters());
         map.put("businessViewSnapshot", row.getBusinessViewSnapshot());
+        if (row.getOperationContract() != null)
+            map.put("operationContract", cn.iocoder.yudao.module.pms.project.domain.template.operation.TemplateOperationContractJson
+                    .semanticValue(row.getOperationContract()));
         return map;
     }
 

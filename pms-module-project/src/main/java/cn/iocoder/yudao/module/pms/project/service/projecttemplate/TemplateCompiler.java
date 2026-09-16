@@ -25,6 +25,9 @@ public class TemplateCompiler {
     private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler ruleCompiler =
             new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler();
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemplateOperationCompilation operationCompilation;
+
     public record Compilation(TemplateExecutionSnapshot snapshot, String snapshotHash, List<Issue> issues) {
         public boolean valid() { return issues.isEmpty(); }
     }
@@ -52,9 +55,19 @@ public class TemplateCompiler {
         validateRules(source, issues);
         validateBindings(source, issues);
         validateGateReferences(source, issues);
+        TemplateOperationCompilation.Result operations = TemplateOperationCompilation.Result.empty();
+        if (TemplateOperationCompilation.hasContracts(source)) {
+            if (operationCompilation == null) {
+                issues.add(new Issue("operationContract", "OPERATION_CATALOG_UNAVAILABLE", "操作编译能力未装配"));
+            } else {
+                operations = operationCompilation.compile(source);
+                issues.addAll(operations.issues());
+            }
+        }
         if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
 
         TemplateExecutionSnapshot snapshot = buildSnapshot(source);
+        operations.install(snapshot);
         return new Compilation(snapshot, TemplateExecutionSnapshotHasher.hash(snapshot), List.of());
     }
 

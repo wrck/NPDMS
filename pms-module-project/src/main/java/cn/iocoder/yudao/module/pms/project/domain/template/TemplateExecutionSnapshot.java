@@ -95,6 +95,9 @@ public class TemplateExecutionSnapshot {
         private String approvalDefinitionKey;
         private JsonNode parameters;
         private JsonNode businessViewSnapshot;
+        /** Optional operation sub-contract; absent legacy snapshots remain byte-compatible. */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode operationContract;
         private Long sourceRevisionId;
     }
 

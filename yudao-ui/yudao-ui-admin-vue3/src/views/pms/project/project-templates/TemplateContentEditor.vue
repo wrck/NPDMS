@@ -202,6 +202,14 @@
             <p v-if="pendingBindings.has(runtimeNode.nodeKey)" class="field-hint"
               >保存时完成业务绑定；若完成条件原先共享，将为当前节点保留独立修改，不影响其他节点。</p
             >
+            <OperationContractEditor
+              v-if="runtimeNode.workBinding && ['BUSINESS_OBJECT', 'BUSINESS_COMPONENT'].includes(runtimeNode.workBinding.type)"
+              :key="`operations-${runtimeNode.nodeKey}`"
+              :binding="runtimeNode.workBinding"
+              :document="content"
+              :readonly="nodeReadonly || pendingBindings.has(runtimeNode.nodeKey)"
+              @update:binding="setOperationBinding"
+            />
             <RuleSlotEditor
               v-model="runtimeNode.admissionRuleKey"
               :document="content"
@@ -338,6 +346,9 @@ import {
 } from './templateCanvasModel'
 import { constantRule, copyVersionRule, createVersionRule, ruleUsedForMatching, ruleUses } from './versionRuleModel'
 import RuleSlotEditor from './RuleSlotEditor.vue'
+import OperationContractEditor from './OperationContractEditor.vue'
+import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templates/operations'
+import { readOperationContract, withOperationContract } from './operationContract'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
 import DecisionTableEditor from './DecisionTableEditor.vue'
 import { newDecisionTable } from './decisionTableModel'
@@ -578,6 +589,19 @@ const openReferenceOwner = () => {
       : props.content.stages.find((stage) => stage.code === ownerStageCode)?.nodeKey
   if (owner) stageKey.value = owner
 }
+const setOperationBinding = (binding: OperationWorkBindingSpec) => {
+  const node = runtimeNode.value
+  if (!node || nodeReadonly.value || pendingBindings.has(node.nodeKey)) return
+  node.workBinding = binding
+  emit('dirty-change', true)
+}
+const hasOperationContract = (node: DesignerStageNode | DesignerTaskNode) =>
+  (node.workBinding as OperationWorkBindingSpec | undefined)?.operationContract !== undefined
+const requireOperationRemoval = (node: DesignerStageNode | DesignerTaskNode): boolean => {
+  if (!hasOperationContract(node)) return true
+  failure.value = '请先明确移除业务操作子契约，再切换为其他办理类型；不会静默丢弃前后置规则。'
+  return false
+}
 const setBinding = (value: BindingSelection | undefined) => {
   if (runtimeNode.value && !nodeReadonly.value) {
     if (value) pendingBindings.set(runtimeNode.value.nodeKey, value)
@@ -588,6 +612,7 @@ const setApprovalBinding = async (definition: ApprovalDefinitionChoice) => {
   const authorized = () => !nodeReadonly.value && hasPermission([props.bindingPermission ?? 'pms:project-template:update'])
   if (!authorized() || selected.value?.kind !== 'TASK') return
   const document = props.content, task = selected.value.node as DesignerTaskNode
+  if (!requireOperationRemoval(task)) return
   const replacing = task.workBinding.type !== 'APPROVAL' || pendingBindings.has(task.nodeKey)
   try {
     await ElMessageBox.confirm(replacing
@@ -612,6 +637,7 @@ const setApprovalBinding = async (definition: ApprovalDefinitionChoice) => {
 }
 const setStageHandling = (value: 'NONE' | 'MANUAL') => {
   if (nodeReadonly.value || selected.value?.kind !== 'STAGE' || !runtimeNode.value) return
+  if (!requireOperationRemoval(runtimeNode.value)) return
   pendingBindings.delete(runtimeNode.value.nodeKey)
   businessOpen.value = false
   if (value === 'NONE') {
@@ -626,6 +652,7 @@ const setTaskManualHandling = async () => {
   if (nodeReadonly.value || selected.value?.kind !== 'TASK') return
   const document = props.content
   const task = selected.value.node as DesignerTaskNode
+  if (!requireOperationRemoval(task)) return
   try {
     await ElMessageBox.confirm(
       `“${task.name}”将切换为手工办理，整个完成条件替换为本轮真实提交；准入、退出和节点权限保留。原完成规则如被其他节点共享，不受影响。保存草稿不会推进运行，项目改版仍须通过生效校验。`,
@@ -817,6 +844,8 @@ const prepareSave = async () => {
   await strategyEditor.value?.flush()
   assertCurrent()
   const document: TemplateDesignerDocument = JSON.parse(JSON.stringify(source))
+  for (const node of [...document.stages, ...document.tasks])
+    readOperationContract((node.workBinding as OperationWorkBindingSpec | undefined)?.operationContract)
   for (const [key, selection] of [...pendingBindings]) {
     const node = [...document.stages, ...document.tasks].find((item) => item.nodeKey === key)
     if (!node) continue
@@ -827,7 +856,13 @@ const prepareSave = async () => {
       props.bindingPermission === 'pms:project-plan:manage' ? 'PROJECT_PLAN' : 'TEMPLATE'
     )
     assertCurrent()
-    node.workBinding = prepared.workBinding
+    const previous = node.workBinding as OperationWorkBindingSpec | undefined
+    const operationContract = readOperationContract(previous?.operationContract)
+    if (operationContract && (previous?.targetContextCode !== prepared.workBinding.targetContextCode
+      || previous?.targetObjectType !== prepared.workBinding.targetObjectType))
+      throw new Error('新业务类型与已有操作子契约不一致，请先明确移除操作配置；原草稿未被覆盖。')
+    node.workBinding = operationContract
+      ? withOperationContract(prepared.workBinding, operationContract) : prepared.workBinding
     node.permission = prepared.permission
     node.source = prepared.source
     let rule = document.rules?.find((item) => item.key === node.completionRuleKey)

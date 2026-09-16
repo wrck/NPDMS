@@ -125,11 +125,13 @@ public final class TemplateRuleCollection {
             if (node == null) continue;
             for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
                 use(rules, owners, key, "stage:" + node.getNodeKey());
+            operationUses(node.getWorkBinding(), rules, owners, "stage:" + node.getNodeKey());
         }
         if (document.getTasks() != null) for (var node : document.getTasks()) {
             if (node == null) continue;
             for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
                 use(rules, owners, key, "task:" + node.getNodeKey());
+            operationUses(node.getWorkBinding(), rules, owners, "task:" + node.getNodeKey());
         }
         if (document.getTransitions() != null) for (var edge : document.getTransitions())
             if (edge != null) use(rules, owners, edge.getConditionRuleKey(), "edge:" + edge.getEdgeKey());
@@ -137,6 +139,17 @@ public final class TemplateRuleCollection {
             if (users.size() > 1 && !rules.get(key).shared())
                 throw new IllegalArgumentException("多个节点使用同一规则必须显式共享: " + key + " " + users);
         });
+    }
+
+    private static void operationUses(TemplateDesignerDocument.WorkBindingSpec binding,
+            Map<String, VersionRule> rules, Map<String, Set<String>> owners, String owner) {
+        if (binding == null || binding.getOperationContract() == null) return;
+        var contract = cn.iocoder.yudao.module.pms.project.domain.template.operation.TemplateOperationContractJson
+                .readAuthoring(binding.getOperationContract());
+        for (var operation : contract.operations()) {
+            if ("RULE".equals(operation.pre().mode())) use(rules, owners, operation.pre().ruleKey(), owner);
+            if ("RULE".equals(operation.post().mode())) use(rules, owners, operation.post().ruleKey(), owner);
+        }
     }
 
     private static void use(Map<String, VersionRule> rules, Map<String, Set<String>> owners, String key, String owner) {

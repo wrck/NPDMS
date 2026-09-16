@@ -31,6 +31,8 @@ public class TemplateDesignerDependencyValidator {
 
     private final BusinessViewQueryApi businessViewQueryApi;
     private final ProjectStageGateProcessOwnerApi processes;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemplateOperationPublicationValidator operationPublications;
 
     /** Existing project bindings retain their frozen reference. Only additions/changes create new references. */
     public List<Issue> validateProjectChanges(TemplateDesignerDocument effective, TemplateDesignerDocument submitted, boolean lockForPublish) {
@@ -55,11 +57,23 @@ public class TemplateDesignerDependencyValidator {
                     for (int i = 0; i < node.getReferences().size(); i++)
                         if (previous.getReferences().contains(node.getReferences().get(i))) node.getReferences().set(i, null);
             }
-        return validate(changes, lockForPublish);
+        var issues = new ArrayList<>(validate(changes, lockForPublish));
+        if (lockForPublish && TemplateOperationCompilation.hasContracts(submitted)) {
+            var all = operationPublications == null
+                    ? List.of(new Issue("operationContract", "OPERATION_RUNTIME_NOT_INSTALLED", "操作运行适配尚未装配"))
+                    : operationPublications.validate(submitted);
+            for (var issue : all) if (!issues.contains(issue)) issues.add(issue);
+        }
+        return List.copyOf(issues);
     }
 
     public List<Issue> validate(TemplateDesignerDocument designer, boolean lockForPublish) {
         List<Issue> issues = new ArrayList<>();
+        if (lockForPublish && TemplateOperationCompilation.hasContracts(designer)) {
+            if (operationPublications == null)
+                issues.add(new Issue("operationContract", "OPERATION_RUNTIME_NOT_INSTALLED", "操作发布校验未装配"));
+            else issues.addAll(operationPublications.validate(designer));
+        }
         if (designer != null && designer.getGates() != null)
             for (int i = 0; i < designer.getGates().size(); i++) {
                 var gate = designer.getGates().get(i);

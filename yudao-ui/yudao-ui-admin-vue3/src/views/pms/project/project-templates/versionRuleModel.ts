@@ -1,5 +1,6 @@
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import type { VersionRule } from '@/api/pms/project/project-templates/rules'
+import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templates/operations'
 import type { ComputedRef, InjectionKey } from 'vue'
 
 export const ruleCreationOnlyKey: InjectionKey<ComputedRef<boolean>> = Symbol('rule-creation-only')
@@ -98,6 +99,11 @@ export function ruleUses(document: TemplateDesignerDocument, key: string): strin
     reference(node.admissionRuleKey, `${label} · 准入`)
     reference(node.completionRuleKey, `${label} · 完成`)
     reference(node.exitRuleKey, `${label} · 退出`)
+    const contract = (node.workBinding as OperationWorkBindingSpec | undefined)?.operationContract
+    if (Array.isArray(contract?.operations)) for (const operation of contract.operations) {
+      if (operation?.pre?.mode === 'RULE') reference(operation.pre.ruleKey, `${label} · ${operation.operationCode} · 前置`)
+      if (operation?.post?.mode === 'RULE') reference(operation.post.ruleKey, `${label} · ${operation.operationCode} · 后置`)
+    }
   }
   for (const edge of document.transitions)
     reference(edge.conditionRuleKey, `${edge.code} · 依赖条件`)
