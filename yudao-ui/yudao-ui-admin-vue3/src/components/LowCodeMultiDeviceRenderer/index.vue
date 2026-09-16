@@ -106,7 +106,7 @@
  * </pre>
  */
 import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent, type Component } from 'vue'
-import LowCodeFormRenderer from '@/components/LowCodeFormRenderer/index.vue'
+import LowCodeFormRenderer from '@/components/LowCodeFormRendererFacade/index.vue'
 import {
   getDeviceByWidth,
   type DeviceType
