@@ -24,6 +24,7 @@ export interface ProjectMasterVO {
   customerCode?: string
   customerName?: string
   managerName?: string
+  managerId?: number
   companyId?: number
   companyCode?: string
   companyName?: string
@@ -48,6 +49,9 @@ export interface ProjectMasterVO {
   lifecycleStatus?: string
   currentStage?: string
   assignmentStatus?: string
+  serviceManagerAssigned?: boolean
+  projectManagerAssigned?: boolean
+  activeStageNames?: string[]
   version?: number
   progress?: number
   aggregationWeight?: number

@@ -42,6 +42,9 @@ public class ProjectRespVO {
     @Schema(description = "负责人姓名")
     private String managerName;
 
+    @Schema(description = "主项目经理用户ID（项目实施经理）")
+    private Long managerId;
+
     @Schema(description = "下单公司稳定ID")
     private Long companyId;
 
@@ -113,6 +116,13 @@ public class ProjectRespVO {
 
     @Schema(description = "主责指派状态")
     private String assignmentStatus;
+
+    @Schema(description = "当前是否已有有效主责服务经理")
+    private Boolean serviceManagerAssigned;
+    @Schema(description = "当前是否已有有效主项目经理")
+    private Boolean projectManagerAssigned;
+    @Schema(description = "当前正在进行的阶段名称，按阶段顺序排列")
+    private java.util.List<String> activeStageNames;
 
     @Schema(description = "Project乐观锁版本")
     private Integer version;

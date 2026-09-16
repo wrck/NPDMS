@@ -17,6 +17,17 @@ import java.util.List;
 @Mapper
 public interface ProjectStageInstanceMapper extends BaseMapperX<ProjectStageInstanceDO> {
 
+    default List<ProjectStageInstanceDO> selectActiveForStatus(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery query) {
+        if (query.projectIds().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<ProjectStageInstanceDO>()
+                .eq(ProjectStageInstanceDO::getTenantId, query.tenantId())
+                .in(ProjectStageInstanceDO::getProjectId, query.projectIds())
+                .eq(ProjectStageInstanceDO::getStatus, "ACTIVE")
+                .orderByAsc(ProjectStageInstanceDO::getSortOrder)
+                .orderByAsc(ProjectStageInstanceDO::getId));
+    }
+
     /**
      * 按项目查询阶段实例（阶段顺序升序）
      */
