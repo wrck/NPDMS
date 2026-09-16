@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>项目详情页 · 阶段视图界面设计稿 · NPDMS</title>
+<style>
+  :root {
+    --paper: #f6f3ec;
+    --panel: #fffdf8;
+    --panel-2: #fbf8f1;
+    --ink: #221d15;
+    --ink-2: #665d4d;
+    --ink-3: #9c9284;
+    --line: #e6dfd0;
+    --line-strong: #d5cab5;
+    --accent: #b5432c;
+    --accent-soft: #f6e3dd;
+    --teal: #2c6e63;
+    --teal-soft: #e2ede9;
+    --amber: #a8752c;
+    --amber-soft: #f3ead8;
+    --done: #3f6b4f;
+    --done-soft: #e4ecdf;
+    --serif: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
+    --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.6;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, rgba(168,117,44,.06), transparent 60%),
+      radial-gradient(900px 420px at -10% 30%, rgba(44,110,99,.05), transparent 55%),
+      var(--paper);
+    min-height: 100vh;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; z-index: 9;
+    opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  }
+  .page { max-width: 1560px; margin: 0 auto; padding: 22px 30px 60px; }
+
+  /* ============ 设计稿标注条 ============ */
+  .design-note {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    border: 1px dashed var(--line-strong);
+    background: repeating-linear-gradient(-45deg, rgba(181,67,44,.035) 0 10px, transparent 10px 20px);
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 12px; color: var(--ink-2); margin-bottom: 18px;
+  }
+  .design-note b { color: var(--accent); font-weight: 600; }
+  .design-note .chip {
+    border: 1px solid var(--line-strong); border-radius: 99px;
+    padding: 1px 10px; font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    background: var(--panel);
+  }
+
+  /* ============ 顶部项目档案 ============ */
+  .hero {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 26px 20px;
+    box-shadow: 0 1px 0 rgba(34,29,21,.04), 0 12px 32px -24px rgba(34,29,21,.35);
+    display: flex; justify-content: space-between; gap: 24px;
+    position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--teal), var(--amber) 55%, var(--accent));
+  }
+  .hero-code {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
+    color: var(--ink-3); margin-bottom: 2px;
+  }
+  .hero-title-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .hero-name {
+    font-family: var(--serif); font-size: 27px; font-weight: 700; letter-spacing: .01em;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; letter-spacing: .08em;
+    border-radius: 99px; padding: 3px 12px; white-space: nowrap;
+  }
+  .pill--teal  { background: var(--teal-soft);  color: var(--teal); }
+  .pill--done  { background: var(--done-soft);  color: var(--done); }
+  .pill--amber { background: var(--amber-soft); color: var(--amber); }
+  .pill--muted { background: #efece4; color: var(--ink-3); }
+  .pill--warn  { background: var(--accent-soft); color: var(--accent); }
+  .pill--ink   { background: var(--ink); color: var(--paper); }
+  .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+  .hero-meta span b { color: var(--ink); font-weight: 600; }
+  .hero-side { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .hero-side .switcher {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+    border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel-2);
+    padding: 7px 14px; min-width: 250px; text-align: left;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    border-radius: 9px; padding: 8px 18px; cursor: pointer;
+    border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -8px rgba(34,29,21,.5); }
+  .btn--ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn--ghost:hover { border-color: var(--ink); box-shadow: none; }
+
+  /* ============ 主体布局 ============ */
+  .layout { display: grid; grid-template-columns: 264px 1fr; gap: 18px; margin-top: 18px; align-items: start; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(34,29,21,.03), 0 10px 28px -24px rgba(34,29,21,.3);
+  }
+  .card + .card { margin-top: 18px; }
+  .card-pad { padding: 18px 22px; }
+
+  /* 左侧导轨 */
+  .rail { padding: 16px 14px 20px; position: sticky; top: 16px; }
+  .rail-stage-title {
+    font-size: 11px; font-weight: 700; letter-spacing: .3em; color: var(--ink-3);
+    margin: 14px 8px 8px;
+  }
+  .rail-stage-title:first-child { margin-top: 0; }
+  .rail-item {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    border: none; background: transparent; cursor: pointer; text-align: left;
+    padding: 7px 10px; border-radius: 9px; font-size: 13px; color: var(--ink-2);
+    font-family: var(--sans); position: relative;
+    transition: background .12s ease, color .12s ease;
+  }
+  .rail-item:hover { background: var(--panel-2); color: var(--ink); }
+  .rail-item--active { background: var(--ink); color: var(--paper); font-weight: 600; }
+  .rail-item--active .rail-no { color: rgba(246,243,236,.55); }
+  .rail-no { font-family: var(--mono); font-size: 11px; color: var(--ink-3); width: 16px; }
+  .rail-item--parallel { font-size: 12.5px; padding-left: 26px; }
+  .rail-item--parallel::before {
+    content: ""; width: 14px; height: 0; border-top: 1px dashed var(--line-strong);
+    position: absolute; left: 8px;
+  }
+  .rail-phase-dot { width: 7px; height: 7px; border-radius: 99px; background: var(--line-strong); flex: none; }
+  .rail-phase-dot--done { background: var(--done); }
+  .rail-phase-dot--run  { background: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+  .rail-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-phase-pct { margin-left: auto; flex: none; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .rail-item--active .rail-phase-pct { color: rgba(246,243,236,.7); }
+  .rail-divider { border: 0; border-top: 1px dashed var(--line-strong); margin: 10px 6px; }
+  .rail-divider-label { font-size: 10.5px; letter-spacing: .2em; color: var(--ink-3); margin: 0 8px 4px; }
+
+  /* 阶段步进条 */
+  .stage-strip { display: flex; align-items: stretch; padding: 20px 26px 16px; gap: 0; overflow-x: auto; }
+  .strip-node {
+    flex: 1; min-width: 132px; position: relative; text-align: left;
+    background: none; border: none; cursor: pointer; font-family: var(--sans);
+    padding: 0 14px 0 26px;
+  }
+  .strip-node::before {
+    content: ""; position: absolute; top: 15px; left: 0; right: 0; height: 1px; background: var(--line-strong);
+  }
+  .strip-node:first-child::before { left: 50%; }
+  .strip-node:last-child::before { right: 50%; }
+  .strip-dot {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 15px; height: 15px; border-radius: 99px;
+    background: var(--panel); border: 1.5px solid var(--line-strong); z-index: 1;
+  }
+  .strip-node--done .strip-dot { background: var(--done); border-color: var(--done); }
+  .strip-node--done .strip-dot::after {
+    content: ""; position: absolute; left: 4px; top: 1.5px;
+    width: 3px; height: 6px; border: solid var(--panel); border-width: 0 1.5px 1.5px 0;
+    transform: rotate(42deg);
+  }
+  .strip-node--run .strip-dot { background: var(--teal); border-color: var(--teal); box-shadow: 0 0 0 4px var(--teal-soft); }
+  .strip-code {
+    display: block; margin-top: 26px; font-family: var(--mono); font-size: 12px;
+    letter-spacing: .12em; color: var(--ink-3);
+  }
+  .strip-name { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink-2); margin-top: 1px; }
+  .strip-node--run .strip-name { color: var(--teal); }
+  .strip-node--active .strip-name { color: var(--accent); }
+  .strip-node--active .strip-dot { border-color: var(--accent); background: var(--accent-soft); }
+  .strip-node--run .strip-code, .strip-node--active .strip-code { color: var(--ink); }
+  .strip-pct { display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 1px; }
+
+  .panel-title {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--serif); font-size: 17px; font-weight: 700; letter-spacing: .02em;
+  }
+  .panel-title::before { content: ""; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .link { color: var(--teal); font-size: 12.5px; text-decoration: none; border-bottom: 1px dashed currentColor; }
+
+  /* ============ 阶段头部 ============ */
+  .stage-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .stage-badge {
+    font-family: var(--serif); font-weight: 700; font-size: 46px; line-height: 1;
+    color: var(--ink); letter-spacing: -0.02em;
+    padding-right: 20px; border-right: 1px solid var(--line);
+  }
+  .stage-head-main { flex: 1; min-width: 280px; }
+  .stage-name { font-family: var(--serif); font-size: 21px; font-weight: 700; }
+  .stage-sub { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); }
+  .stage-sub .mono { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: .08em; }
+  .stage-owner { text-align: right; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; }
+  .stage-owner b { color: var(--ink); font-size: 14px; }
+  .avatar {
+    display: inline-flex; width: 34px; height: 34px; border-radius: 99px; vertical-align: middle;
+    background: linear-gradient(135deg, var(--teal), var(--ink)); color: var(--paper);
+    align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    margin-left: 10px; box-shadow: 0 4px 10px -6px rgba(34,29,21,.5);
+  }
+
+  /* ============ 三层时间对齐带（核心） ============ */
+  .timeband-wrap { margin-top: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); padding: 18px 20px 14px; }
+  .timeband-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .timeband-title { font-size: 12px; font-weight: 700; letter-spacing: .22em; color: var(--ink-3); }
+  .legend { display: flex; gap: 16px; font-size: 11.5px; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 18px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .lg-suggest { border: 1.5px dashed var(--amber); background: var(--amber-soft); }
+  .lg-plan { background: var(--teal); opacity: .85; }
+  .lg-actual { background: var(--ink); }
+  .lg-dev { background: repeating-linear-gradient(-45deg, var(--accent) 0 3px, transparent 3px 6px); border: 1px solid var(--accent); }
+  .axis { position: relative; height: 18px; margin-left: 64px; }
+  .axis span { position: absolute; transform: translateX(-50%); font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+  .axis::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; border-bottom: 1px solid var(--line-strong); }
+  .tb-row { display: flex; align-items: center; margin-top: 10px; }
+  .tb-label { width: 64px; flex: none; font-size: 12px; color: var(--ink-2); font-weight: 600; letter-spacing: .06em; }
+  .tb-track { flex: 1; position: relative; height: 22px; }
+  .tb-track::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100%/6 - 1px), var(--line) calc(100%/6 - 1px) calc(100%/6)); border-radius: 4px; }
+  .tb-bar { position: absolute; top: 3px; height: 16px; border-radius: 4px; }
+  .bar-suggest { border: 1.5px dashed var(--amber); background: rgba(243,234,216,.6); }
+  .bar-plan { background: var(--teal); opacity: .88; }
+  .bar-actual { background: var(--ink); }
+  .bar-dev {
+    background: repeating-linear-gradient(-45deg, rgba(181,67,44,.85) 0 3px, rgba(181,67,44,.25) 3px 6px);
+    border: 1px solid var(--accent); border-radius: 4px;
+  }
+  .bar-tag {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    font-family: var(--mono); font-size: 10px; letter-spacing: .04em;
+    color: var(--paper); background: rgba(34,29,21,.82); padding: 1px 7px; border-radius: 99px; white-space: nowrap;
+    pointer-events: none;
+  }
+  .bar-tag--light { background: rgba(255,253,248,.9); color: var(--ink-2); border: 1px solid var(--line-strong); }
+  .bar-tag--warn { background: var(--accent); }
+  .timeband-wrap { position: relative; }
+  .today-line { position: absolute; top: 58px; bottom: 12px; width: 0; border-left: 1.5px dashed var(--accent); z-index: 2; }
+  .today-flag {
+    position: absolute; top: -17px; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 10px; color: var(--accent); white-space: nowrap;
+  }
+
+  /* 偏差注记 */
+  .dev-note {
+    margin-top: 14px; display: flex; gap: 10px; align-items: flex-start;
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 0 9px 9px 0; padding: 10px 14px; font-size: 12.5px; color: #7c3221;
+  }
+  .dev-note--closed { border-left-color: var(--done); background: var(--done-soft); color: #35543f; }
+  .dev-note b { font-weight: 700; }
+
+  /* 准入/准出 */
+  .criteria { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  .criteria-card { border: 1px solid var(--line); border-radius: 11px; padding: 13px 16px; background: var(--panel); }
+  .criteria-card h4 {
+    font-size: 11.5px; letter-spacing: .24em; font-weight: 700; color: var(--ink-3); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .criteria-card h4::before { content: ""; width: 14px; height: 1.5px; background: currentColor; }
+  .criteria-card--in h4 { color: var(--teal); }
+  .criteria-card--out h4 { color: var(--amber); }
+  .criteria-card p { font-size: 13px; color: var(--ink-2); }
+
+  /* 任务表 */
+  .task-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+  .task-table th {
+    text-align: left; font-size: 11px; letter-spacing: .18em; color: var(--ink-3); font-weight: 700;
+    border-bottom: 1.5px solid var(--line-strong); padding: 8px 10px;
+  }
+  .task-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+  .task-table tr:hover td { background: var(--panel-2); }
+  .task-name { color: var(--ink); font-weight: 600; }
+  .task-indent { display: inline-block; width: 18px; }
+  .mono { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .prog { display: flex; align-items: center; gap: 8px; }
+  .prog-track { flex: 1; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 99px; background: var(--teal); }
+  .prog-fill--done { background: var(--done); }
+  .avatar-sm {
+    display: inline-flex; width: 24px; height: 24px; border-radius: 99px;
+    background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(168,117,44,.3);
+    align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700;
+  }
+
+  .stage-actions { display: flex; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line-strong); align-items: center; }
+  .stage-actions .hint { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+
+  .fieldmap { margin-top: 26px; border-top: 1.5px solid var(--line-strong); padding-top: 14px; }
+  .fieldmap-title { font-size: 11px; letter-spacing: .3em; color: var(--ink-3); font-weight: 700; margin-bottom: 10px; }
+  .fieldmap-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fchip {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    border: 1px solid var(--line-strong); background: var(--panel); border-radius: 99px; padding: 3px 11px;
+  }
+  .fchip--new { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 设计稿标注 -->
+  <div class="design-note">
+    <b>界面设计稿</b><span>项目详情页 · 阶段视图 · 专项任务 2026-09-15</span>
+    <span class="chip">阶段字段借鉴旧阶段数据模型 pms_project_phase</span>
+    <span class="chip">建议起止时间为新增展示字段</span>
+    <span class="chip">点击左侧/顶部阶段可切换预览</span>
+  </div>
+
+  <!-- 顶部项目档案 -->
+  <header class="hero">
+    <div>
+      <div class="hero-code">PMS-2026-0187 · 华东区 · 重大项目</div>
+      <div class="hero-title-row">
+        <span class="hero-name">华东智能制造园区数字化平台建设项目</span>
+        <span class="pill pill--teal">进行中</span>
+        <span class="pill pill--warn">S2 方案设计</span>
+      </div>
+      <div class="hero-meta">
+        <span>客户 <b>华东智造控股集团</b></span>
+        <span>项目经理 <b>陈晓峰</b></span>
+        <span>类型 <b>软件开发实施</b></span>
+        <span>立项 <b>2026-06-30</b></span>
+        <span>生命周期 <b class="mono">S0 → S6 · 当前 S2</b></span>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="switcher">切换项目… &nbsp;▾</div>
+      <button class="btn btn--ghost">← 返回列表</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- 左侧导轨 -->
+    <aside class="card rail" id="rail">
+      <div class="rail-stage-title">项目概览</div>
+      <button class="rail-item"><span class="rail-no">1</span>项目主数据</button>
+      <button class="rail-item"><span class="rail-no">2</span>项目属性</button>
+      <button class="rail-item"><span class="rail-no">3</span>团队成员</button>
+      <button class="rail-item"><span class="rail-no">4</span>客户信息</button>
+      <button class="rail-item"><span class="rail-no">5</span>治理授权</button>
+
+      <div class="rail-stage-title">项目阶段</div>
+      <div id="railPhases"></div>
+
+      <hr class="rail-divider" />
+      <div class="rail-divider-label">业务中心</div>
+      <button class="rail-item"><span class="rail-no">6</span>需求分析</button>
+      <button class="rail-item"><span class="rail-no">7</span>计划管理</button>
+      <button class="rail-item"><span class="rail-no">8</span>变更管理</button>
+      <div class="rail-divider-label" style="margin-top:8px">并行事项</div>
+      <button class="rail-item rail-item--parallel">风险登记</button>
+      <button class="rail-item rail-item--parallel">满意度调查</button>
+      <button class="rail-item rail-item--parallel">验收管理</button>
+      <button class="rail-item rail-item--parallel">项目归档</button>
+    </aside>
+
+    <!-- 右侧内容区 -->
+    <main>
+      <!-- 阶段步进条 -->
+      <div class="card">
+        <div class="stage-strip" id="strip"></div>
+      </div>
+
+      <!-- 阶段详情 -->
+      <div class="card card-pad" style="margin-top:18px">
+        <div class="panel-head">
+          <span class="panel-title">阶段详情</span>
+          <a class="link" href="#">前往阶段管理 →</a>
+        </div>
+        <div id="stageDetail"></div>
+      </div>
+
+      <!-- 字段对照注记 -->
+      <div class="fieldmap">
+        <div class="fieldmap-title">阶段字段 · 借鉴旧阶段数据模型 pms_project_phase</div>
+        <div class="fieldmap-chips">
+          <span class="fchip">name 阶段名称</span>
+          <span class="fchip">code 阶段编码</span>
+          <span class="fchip">sort 排序</span>
+          <span class="fchip">status 状态</span>
+          <span class="fchip--new">suggested_start_time 建议开始（新增展示）</span>
+          <span class="fchip--new">suggested_end_time 建议结束（新增展示）</span>
+          <span class="fchip">plan_start_time / plan_end_time 计划起止</span>
+          <span class="fchip">actual_start_time / actual_end_time 实际起止</span>
+          <span class="fchip">deviation_reason 偏差原因</span>
+          <span class="fchip">entry_criteria 准入条件</span>
+          <span class="fchip">exit_criteria 准出条件</span>
+          <span class="fchip">responsible_role 负责角色</span>
+          <span class="fchip">responsible_user_id 负责人</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // 时间轴范围（设计稿演示数据）
+  var AX_MIN = new Date('2026-07-01').getTime();
+  var AX_MAX = new Date('2027-01-31').getTime();
+  var TODAY = new Date('2026-09-15').getTime();
+  function pct(d) { return ((new Date(d).getTime() - AX_MIN) / (AX_MAX - AX_MIN)) * 100; }
+  function days(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+
+  var STAGES = [
+    { code:'S0', sort:1, name:'项目启动', status:'DONE', statusLabel:'已完成',
+      suggestedStart:'2026-07-01', suggestedEnd:'2026-07-10', planStart:'2026-07-01', planEnd:'2026-07-10',
+      actualStart:'2026-07-01', actualEnd:'2026-07-09', progress:100,
+      entryCriteria:'项目立项完成，合同与章程生效', exitCriteria:' kickoff 会完成，干系人清单冻结',
+      role:'项目经理', owner:'陈晓峰', ownerInitial:'陈', deviation:null, devClosed:null,
+      tasks:[ {name:'召开项目启动会', code:'S0-T01', status:'DONE', progress:100, owner:'陈晓峰'} ] },
+    { code:'S1', sort:2, name:'需求确认', status:'DONE', statusLabel:'已完成',
+      suggestedStart:'2026-07-06', suggestedEnd:'2026-07-24', planStart:'2026-07-06', planEnd:'2026-07-28',
+      actualStart:'2026-07-08', actualEnd:'2026-07-30', progress:100,
+      entryCriteria:'需求调研排期确认，业务接口人到位', exitCriteria:'需求规格说明书评审通过并冻结',
+      role:'需求分析师', owner:'林悦', ownerInitial:'林',
+      deviation:{ label:'开始晚于计划 2 天', from:'2026-07-06', to:'2026-07-08' },
+      devClosed:'需求评审追加一轮，收尾顺延 2 天（已闭合）',
+      tasks:[
+        {name:'需求调研与访谈', code:'S1-T01', status:'DONE', progress:100, owner:'林悦'},
+        {name:'需求规格说明书编制', code:'S1-T02', status:'DONE', progress:100, owner:'林悦'},
+        {name:'需求评审会', code:'S1-T03', status:'DONE', progress:100, owner:'陈晓峰'} ] },
+    { code:'S2', sort:3, name:'方案设计', status:'RUN', statusLabel:'进行中',
+      suggestedStart:'2026-08-03', suggestedEnd:'2026-09-04', planStart:'2026-08-03', planEnd:'2026-09-11',
+      actualStart:'2026-08-05', actualEnd:null, progress:68,
+      entryCriteria:'需求规格说明书已冻结', exitCriteria:'总体方案与接口设计评审通过',
+      role:'系统架构师', owner:'周明远', ownerInitial:'周',
+      deviation:{ label:'开始晚于计划 2 天', from:'2026-08-03', to:'2026-08-05' },
+      devForecast:{ label:'预计收尾超计划 4 天', from:'2026-09-15', to:'2026-09-11', flip:true },
+      tasks:[
+        {name:'总体架构设计', code:'S2-T01', status:'RUN', progress:90, owner:'周明远'},
+        {name:'数据库与接口设计', code:'S2-T02', status:'RUN', progress:75, owner:'周明远'},
+        {name:'  ├ 中心库表结构设计', code:'S2-T02-1', status:'RUN', progress:80, owner:'高静'},
+        {name:'  └ 外部接口清单', code:'S2-T02-2', status:'RUN', progress:70, owner:'高静'},
+        {name:'部署方案设计', code:'S2-T03', status:'TODO', progress:30, owner:'吴凯'} ] },
+    { code:'S3', sort:4, name:'开发实施', status:'PENDING', statusLabel:'未开始',
+      suggestedStart:'2026-09-14', suggestedEnd:'2026-11-20', planStart:'2026-09-14', planEnd:'2026-11-27',
+      actualStart:null, actualEnd:null, progress:0,
+      entryCriteria:'总体方案评审通过，开发环境就绪', exitCriteria:'功能开发完成并通过迭代验收',
+      role:'开发负责人', owner:'吴凯', ownerInitial:'吴', deviation:null, devClosed:null,
+      tasks:[ {name:'开发计划编制', code:'S3-T01', status:'TODO', progress:0, owner:'吴凯'} ] },
+    { code:'S4', sort:5, name:'测试验证', status:'PENDING', statusLabel:'未开始',
+      suggestedStart:'2026-11-23', suggestedEnd:'2026-12-18', planStart:'2026-11-23', planEnd:'2026-12-25',
+      actualStart:null, actualEnd:null, progress:0,
+      entryCriteria:'迭代验收通过', exitCriteria:'回归测试通过，缺陷清零',
+      role:'测试负责人', owner:'高静', ownerInitial:'高', deviation:null, devClosed:null, tasks:[] },
+    { code:'S5', sort:6, name:'上线试运行', status:'PENDING', statusLabel:'未开始',
+      suggestedStart:'2026-12-21', suggestedEnd:'2027-01-15', planStart:'2026-12-21', planEnd:'2027-01-22',
+      actualStart:null, actualEnd:null, progress:0,
+      entryCriteria:'回归测试通过', exitCriteria:'试运行期满，运行报告签署',
+      role:'项目经理', owner:'陈晓峰', ownerInitial:'陈', deviation:null, devClosed:null, tasks:[] },
+    { code:'S6', sort:7, name:'验收交付', status:'PENDING', statusLabel:'未开始',
+      suggestedStart:'2027-01-18', suggestedEnd:'2027-01-29', planStart:'2027-01-18', planEnd:'2027-01-29',
+      actualStart:null, actualEnd:null, progress:0,
+      entryCriteria:'试运行报告签署', exitCriteria:'验收报告签署，项目关闭',
+      role:'项目经理', owner:'陈晓峰', ownerInitial:'陈', deviation:null, devClosed:null, tasks:[] }
+  ];
+
+  var STATUS_PILL = { DONE:'pill--done', RUN:'pill--teal', PENDING:'pill--muted' };
+  var TASK_PILL = { DONE:['pill--done','已完成'], RUN:['pill--teal','进行中'], TODO:['pill--muted','未开始'] };
+
+  function monthTicks() {
+    var out = '';
+    for (var m = 6; m <= 12; m++) {
+      var d = '2026-' + (m < 10 ? '0' + m : m) + '-01';
+      out += '<span style="left:' + pct(d).toFixed(2) + '%">' + m + '月</span>';
+    }
+    out += '<span style="left:' + pct('2027-01-01').toFixed(2) + '%">1月</span>';
+    return out;
+  }
+  function bar(row, from, to, cls, tag, tagCls) {
+    var l = pct(from), w = pct(to) - l;
+    var h = '<div class="tb-bar ' + cls + '" style="left:' + l.toFixed(2) + '%;width:' + w.toFixed(2) + '%">';
+    if (tag) h += '<span class="bar-tag ' + (tagCls || '') + '" style="left:50%">' + tag + '</span>';
+    return h + '</div>';
+  }
+  function timeband(s) {
+    var rows = '';
+    rows += '<div class="tb-row"><span class="tb-label">建议</span><div class="tb-track">' +
+      bar('', s.suggestedStart, s.suggestedEnd, 'bar-suggest',
+          s.suggestedStart.slice(5) + ' → ' + s.suggestedEnd.slice(5), 'bar-tag--light') + '</div></div>';
+    rows += '<div class="tb-row"><span class="tb-label">计划</span><div class="tb-track">' +
+      bar('', s.planStart, s.planEnd, 'bar-plan',
+          s.planStart.slice(5) + ' → ' + s.planEnd.slice(5)) + '</div></div>';
+    var actual = '';
+    if (s.actualStart) {
+      var end = s.actualEnd || null;
+      actual += bar('', s.actualStart, end || '2026-09-15', 'bar-actual',
+        s.actualEnd ? (s.actualStart.slice(5) + ' → ' + s.actualEnd.slice(5)) : ('进行至 ' + s.progress + '%'));
+    } else {
+      actual += '<span class="mono" style="position:absolute;left:0;top:3px;line-height:16px">— 未开始</span>';
+    }
+    if (s.deviation) actual += bar('', s.deviation.from, s.deviation.to, 'bar-dev', null);
+    if (s.devForecast) actual += bar('', s.devForecast.to, s.devForecast.from, 'bar-dev');
+    rows += '<div class="tb-row"><span class="tb-label">实际</span><div class="tb-track">' + actual + '</div></div>';
+    var today = '<div class="today-line" style="left:calc(84px + (100% - 104px) * ' + (pct('2026-09-15')/100).toFixed(4) + ')"><span class="today-flag">今日 09-15</span></div>';
+    var forecast = s.devForecast ? '<div class="dev-note"><span><b>预计偏差</b> ' + s.devForecast.label +
+      '（当前进度 ' + s.progress + '%，按节奏推算收尾约 ' + s.devForecast.from + '，晚于计划收尾 ' + s.devForecast.to + '）</span></div>' : '';
+    var closed = s.devClosed ? '<div class="dev-note dev-note--closed"><span><b>偏差已闭合</b> ' + s.devClosed + '</span></div>' : '';
+    return '<div class="timeband-wrap"><div class="timeband-head"><span class="timeband-title">三层时间对齐带</span>' +
+      '<span class="legend"><span><i class="lg-suggest"></i>建议（模板冻结）</span><span><i class="lg-plan"></i>计划</span>' +
+      '<span><i class="lg-actual"></i>实际</span><span><i class="lg-dev"></i>偏差</span></span></div>' +
+      '<div class="axis" style="position:relative">' + monthTicks() + '</div>' + rows + today + forecast + closed + '</div>';
+  }
+  function tasksTable(s) {
+    if (!s.tasks.length) return '<p style="margin-top:14px;font-size:12.5px;color:var(--ink-3)">该阶段下暂无任务（实例化后按模板任务冻结生成）</p>';
+    var rows = s.tasks.map(function (t) {
+      var tp = TASK_PILL[t.status];
+      return '<tr><td class="task-name"><span class="task-indent"></span>' + t.name + '</td>' +
+        '<td class="mono">' + t.code + '</td>' +
+        '<td><span class="pill ' + tp[0] + '">' + tp[1] + '</span></td>' +
+        '<td style="width:170px"><span class="prog"><span class="prog-track"><span class="prog-fill' + (t.progress === 100 ? ' prog-fill--done' : '') + '" style="width:' + t.progress + '%"></span></span><span class="mono">' + t.progress + '%</span></span></td>' +
+        '<td style="width:90px"><span class="avatar-sm">' + t.owner[0] + '</span> <span style="font-size:12.5px">' + t.owner + '</span></td></tr>';
+    }).join('');
+    return '<table class="task-table"><thead><tr><th>任务名称</th><th>编码</th><th>状态</th><th>进度</th><th>负责人</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  function renderStage(s) {
+    var devCell = s.deviation || s.devClosed ? '' : '';
+    return '<div class="stage-head">' +
+        '<span class="stage-badge">' + s.code + '</span>' +
+        '<div class="stage-head-main"><div class="stage-name">' + s.name + '</div>' +
+        '<div class="stage-sub"><span class="pill ' + STATUS_PILL[s.status] + '">' + s.statusLabel + '</span>' +
+        '<span class="mono">排序 ' + s.sort + ' / 7 · 阶段进度 ' + s.progress + '%</span></div></div>' +
+        '<div class="stage-owner">负责角色 <b>' + s.role + '</b><br>负责人 <b>' + s.owner + '</b><span class="avatar">' + s.ownerInitial + '</span></div>' +
+      '</div>' + timeband(s) +
+      '<div class="criteria"><div class="criteria-card criteria-card--in"><h4>准入条件</h4><p>' + s.entryCriteria + '</p></div>' +
+      '<div class="criteria-card criteria-card--out"><h4>准出条件</h4><p>' + s.exitCriteria + '</p></div></div>' +
+      '<h4 style="margin-top:20px;font-size:12px;letter-spacing:.22em;color:var(--ink-3)">阶段任务</h4>' + tasksTable(s) +
+      '<div class="stage-actions">' +
+        (s.status === 'RUN' || s.status === 'PENDING' ? '<button class="btn">完成阶段</button>' : '') +
+        '<button class="btn btn--ghost">管理任务</button>' +
+        '<span class="hint">时间与偏差数据来源：pms_project_phase · 建议时间继承自阶段模板</span>' +
+      '</div>';
+  }
+
+  function renderStrip(active) {
+    document.getElementById('strip').innerHTML = STAGES.map(function (s) {
+      var cls = s.status === 'DONE' ? 'strip-node--done' : s.status === 'RUN' ? 'strip-node--run' : '';
+      if (s.code === active) cls += ' strip-node--active';
+      return '<button class="strip-node ' + cls + '" data-code="' + s.code + '">' +
+        '<span class="strip-dot"></span><span class="strip-code">' + s.code + '</span>' +
+        '<span class="strip-name">' + s.name + '</span>' +
+        '<span class="strip-pct">' + (s.status === 'DONE' ? '已完成' : s.progress + '%') + '</span></button>';
+    }).join('');
+  }
+  function renderRail(active) {
+    document.getElementById('railPhases').innerHTML = STAGES.map(function (s) {
+      var dot = s.status === 'DONE' ? 'rail-phase-dot--done' : s.status === 'RUN' ? 'rail-phase-dot--run' : '';
+      var act = s.code === active ? ' rail-item--active' : '';
+      return '<button class="rail-item' + act + '" data-code="' + s.code + '">' +
+        '<span class="rail-phase-dot ' + dot + '"></span><span class="rail-label">' + s.code + ' ' + s.name + '</span>' +
+        '<span class="rail-phase-pct">' + s.progress + '%</span></button>';
+    }).join('');
+  }
+  var current = 'S2';
+  function renderAll() {
+    renderStrip(current); renderRail(current);
+    var s = STAGES.find(function (x) { return x.code === current; });
+    document.getElementById('stageDetail').innerHTML = renderStage(s);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-code]'), function (b) {
+      b.onclick = function () { current = b.getAttribute('data-code'); renderAll(); };
+    });
+  }
+  renderAll();
+</script>
+</body>
+</html>

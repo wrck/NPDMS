@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>项目详情页 · 完整界面设计 · NPDMS /pms-inheritance/project-detail</title>
+<style>
+  :root {
+    --paper: #f5f2ea; --panel: #fffdf8; --panel-2: #faf7ef;
+    --ink: #201b13; --ink-2: #635a49; --ink-3: #9a9080;
+    --line: #e5ddcc; --line-strong: #d3c8b0;
+    --accent: #b5432c; --accent-soft: #f6e3dd;
+    --teal: #2c6e63; --teal-soft: #e2ede9;
+    --amber: #a8752c; --amber-soft: #f3ead8;
+    --done: #3f6b4f; --done-soft: #e4ecdf;
+    --serif: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
+    --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    font-family: var(--sans); color: var(--ink); font-size: 14px; line-height: 1.6;
+    background:
+      radial-gradient(1100px 460px at 90% -8%, rgba(44,110,99,.06), transparent 60%),
+      radial-gradient(860px 400px at -8% 40%, rgba(181,67,44,.045), transparent 55%),
+      var(--paper);
+    min-height: 100vh;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9; opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  }
+  .page { max-width: 1600px; margin: 0 auto; padding: 20px 28px 60px; }
+
+  .design-note {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    border: 1px dashed var(--line-strong); border-radius: 8px; padding: 8px 14px; margin-bottom: 16px;
+    font-size: 12px; color: var(--ink-2);
+    background: repeating-linear-gradient(-45deg, rgba(44,110,99,.04) 0 10px, transparent 10px 20px);
+  }
+  .design-note b { color: var(--teal); font-weight: 700; }
+  .chip { border: 1px solid var(--line-strong); border-radius: 99px; padding: 1px 10px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); background: var(--panel); }
+
+  .hero {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px 26px 18px; box-shadow: 0 1px 0 rgba(32,27,19,.04), 0 12px 30px -24px rgba(32,27,19,.35);
+    display: flex; justify-content: space-between; gap: 20px; position: relative; overflow: hidden;
+  }
+  .hero::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--teal), var(--amber) 55%, var(--accent)); }
+  .hero-code { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; color: var(--ink-3); margin-bottom: 2px; }
+  .hero-title-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .hero-name { font-family: var(--serif); font-size: 26px; font-weight: 700; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: .08em; border-radius: 99px; padding: 3px 12px; white-space: nowrap; }
+  .pill--teal { background: var(--teal-soft); color: var(--teal); }
+  .pill--done { background: var(--done-soft); color: var(--done); }
+  .pill--muted { background: #efece2; color: var(--ink-3); }
+  .pill--warn { background: var(--accent-soft); color: var(--accent); }
+  .pill--ink { background: var(--ink); color: var(--paper); }
+  .pill--outline { border: 1px solid var(--line-strong); color: var(--ink-2); background: var(--panel-2); }
+  .hero-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+  .hero-meta b { color: var(--ink); font-weight: 600; }
+  .hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; letter-spacing: .04em; border-radius: 9px; padding: 8px 18px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); transition: transform .12s ease, box-shadow .12s ease; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -8px rgba(32,27,19,.5); }
+  .btn--ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn--teal { background: var(--teal); border-color: var(--teal); }
+  .btn--sm { padding: 5px 13px; font-size: 12px; }
+
+  .layout { display: grid; grid-template-columns: 288px 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 1px 0 rgba(32,27,19,.03), 0 10px 26px -24px rgba(32,27,19,.3); }
+  .card-pad { padding: 18px 22px; }
+  /* 面板切换 */
+  .panel { display: none; }
+  .panel--active { display: block; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .panel-title { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 17px; font-weight: 700; }
+  .panel-title::before { content: ""; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }
+  .panel-title--teal::before { background: var(--teal); }
+  .link { color: var(--teal); font-size: 12.5px; text-decoration: none; border-bottom: 1px dashed currentColor; cursor: pointer; }
+  .section-cap { font-size: 11px; font-weight: 700; letter-spacing: .24em; color: var(--ink-3); margin: 22px 0 10px; display: flex; align-items: center; gap: 8px; }
+  .section-cap:first-child { margin-top: 0; }
+  .section-cap::before { content: ""; width: 7px; height: 7px; background: var(--accent); transform: rotate(45deg); }
+  .section-cap--teal::before { background: var(--teal); }
+
+  /* 左侧导轨 */
+  .rail { padding: 14px 12px 18px; position: sticky; top: 14px; max-height: calc(100vh - 30px); overflow-y: auto; }
+  .rail-stage-title { font-size: 11px; font-weight: 700; letter-spacing: .3em; color: var(--ink-3); margin: 14px 8px 7px; }
+  .rail-stage-title:first-child { margin-top: 0; }
+  .rail-item { display: flex; align-items: center; gap: 9px; width: 100%; border: none; background: transparent; cursor: pointer; text-align: left; padding: 6px 10px; border-radius: 8px; font-size: 13px; color: var(--ink-2); font-family: var(--sans); transition: background .12s ease, color .12s ease; }
+  .rail-item:hover { background: var(--panel-2); color: var(--ink); }
+  .rail-item--active { background: var(--ink); color: var(--paper); font-weight: 600; }
+  .rail-no { font-family: var(--mono); font-size: 11px; color: var(--ink-3); width: 15px; flex: none; }
+  .rail-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-ico { width: 14px; text-align: center; flex: none; font-size: 12px; color: var(--ink-3); }
+  .rail-item--active .rail-ico { color: rgba(245,242,234,.65); }
+  .flow-tree { margin: 2px 0 4px; }
+  .flow-node { display: flex; align-items: center; gap: 7px; width: 100%; border: none; background: transparent; cursor: pointer; text-align: left; padding: 5px 8px 5px 14px; border-radius: 8px; font-size: 12.5px; color: var(--ink-2); font-family: var(--sans); }
+  .flow-node:hover { background: var(--panel-2); }
+  .flow-node--stage { font-weight: 600; color: var(--ink); }
+  .flow-node--task { padding-left: 34px; font-weight: 400; font-size: 12px; color: var(--ink-2); position: relative; }
+  .flow-node--task::before { content: ""; position: absolute; left: 20px; top: 0; height: 50%; width: 0; border-left: 1px dashed var(--line-strong); border-bottom: 1px dashed var(--line-strong); }
+  .flow-node--active { background: var(--teal); color: #fff !important; }
+  .flow-caret { width: 12px; flex: none; font-size: 10px; color: var(--ink-3); font-family: var(--mono); }
+  .flow-code { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); flex: none; width: 22px; }
+  .flow-node--active .flow-code { color: rgba(255,255,255,.75); }
+  .flow-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--line-strong); flex: none; }
+  .flow-dot--done { background: var(--done); }
+  .flow-dot--run { background: var(--teal); box-shadow: 0 0 0 2.5px var(--teal-soft); }
+  .flow-count { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+
+  /* 工作台头部与时间带 */
+  .wb-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .wb-badge { font-family: var(--serif); font-weight: 700; font-size: 42px; line-height: 1; letter-spacing: -.02em; padding-right: 18px; border-right: 1px solid var(--line); }
+  .wb-badge--task { font-size: 30px; color: var(--teal); }
+  .wb-main { flex: 1; min-width: 260px; }
+  .wb-name { font-family: var(--serif); font-size: 20px; font-weight: 700; }
+  .wb-sub { display: flex; align-items: center; gap: 9px; margin-top: 6px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); }
+  .wb-sub .mono, .mono { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: .06em; }
+  .wb-owner { text-align: right; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; }
+  .wb-owner b { color: var(--ink); font-size: 14px; }
+  .avatar { display: inline-flex; width: 34px; height: 34px; border-radius: 99px; vertical-align: middle; background: linear-gradient(135deg, var(--teal), var(--ink)); color: var(--paper); align-items: center; justify-content: center; font-size: 13px; font-weight: 700; margin-left: 10px; box-shadow: 0 4px 10px -6px rgba(32,27,19,.5); }
+  .avatar--amber { background: linear-gradient(135deg, var(--amber), var(--ink)); }
+  .avatar-sm { display: inline-flex; width: 23px; height: 23px; border-radius: 99px; vertical-align: middle; background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(168,117,44,.3); align-items: center; justify-content: center; font-size: 10px; font-weight: 700; margin-right: 6px; }
+
+  .timeband { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); padding: 16px 18px 12px; position: relative; }
+  .tb-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .tb-title { font-size: 12px; font-weight: 700; letter-spacing: .22em; color: var(--ink-3); }
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 17px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .lg-suggest { border: 1.5px dashed var(--amber); background: var(--amber-soft); }
+  .lg-plan { background: var(--teal); opacity: .85; }
+  .lg-actual { background: var(--ink); }
+  .lg-dev { background: repeating-linear-gradient(-45deg, var(--accent) 0 3px, transparent 3px 6px); border: 1px solid var(--accent); }
+  .axis { position: relative; height: 17px; margin-left: 64px; }
+  .axis span { position: absolute; transform: translateX(-50%); font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+  .axis::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; border-bottom: 1px solid var(--line-strong); }
+  .tb-row { display: flex; align-items: center; margin-top: 9px; }
+  .tb-label { width: 64px; flex: none; font-size: 12px; color: var(--ink-2); font-weight: 600; letter-spacing: .06em; }
+  .tb-track { flex: 1; position: relative; height: 21px; }
+  .tb-track::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100%/6 - 1px), var(--line) calc(100%/6 - 1px) calc(100%/6)); border-radius: 4px; }
+  .tb-bar { position: absolute; top: 3px; height: 15px; border-radius: 4px; }
+  .bar-suggest { border: 1.5px dashed var(--amber); background: rgba(243,234,216,.6); }
+  .bar-plan { background: var(--teal); opacity: .88; }
+  .bar-actual { background: var(--ink); }
+  .bar-dev { background: repeating-linear-gradient(-45deg, rgba(181,67,44,.85) 0 3px, rgba(181,67,44,.25) 3px 6px); border: 1px solid var(--accent); border-radius: 4px; }
+  .bar-tag { position: absolute; top: 50%; transform: translate(-50%, -50%); font-family: var(--mono); font-size: 10px; color: var(--paper); background: rgba(32,27,19,.82); padding: 1px 7px; border-radius: 99px; white-space: nowrap; pointer-events: none; }
+  .bar-tag--light { background: rgba(255,253,248,.92); color: var(--ink-2); border: 1px solid var(--line-strong); }
+  .today-line { position: absolute; top: 54px; bottom: 12px; width: 0; border-left: 1.5px dashed var(--accent); z-index: 2; }
+  .today-flag { position: absolute; top: -16px; transform: translateX(-50%); font-family: var(--mono); font-size: 10px; color: var(--accent); white-space: nowrap; }
+  .dev-note { margin-top: 12px; display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 9px 9px 0; padding: 9px 14px; color: #7c3221; }
+  .dev-note--closed { border-left-color: var(--done); background: var(--done-soft); color: #35543f; }
+  /* 三联卡与业务办理 */
+  .tri-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mini-card { border: 1px solid var(--line); border-radius: 11px; padding: 12px 15px; background: var(--panel); }
+  .mini-card h4 { font-size: 11px; letter-spacing: .22em; font-weight: 700; color: var(--ink-3); margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
+  .mini-card h4::before { content: ""; width: 13px; height: 1.5px; background: currentColor; }
+  .mini-card--in h4 { color: var(--teal); }
+  .mini-card--out h4 { color: var(--amber); }
+  .mini-card--gate h4 { color: var(--accent); }
+  .mini-card p { font-size: 12.5px; color: var(--ink-2); }
+  .gate-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); padding: 3px 0; }
+  .gate-state { font-family: var(--mono); font-size: 10px; padding: 1px 8px; border-radius: 99px; flex: none; }
+  .gate-state--pass { background: var(--done-soft); color: var(--done); }
+  .gate-state--todo { background: #efece2; color: var(--ink-3); }
+  .gate-state--fail { background: var(--accent-soft); color: var(--accent); }
+  .biz-host { border: 1.5px solid var(--line-strong); border-radius: 12px; background: repeating-linear-gradient(-45deg, rgba(44,110,99,.028) 0 12px, transparent 12px 24px), var(--panel); padding: 16px 18px; }
+  .biz-host-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .biz-host-head .t { font-weight: 700; font-size: 13.5px; }
+  .biz-host-head .hint { margin-left: auto; font-size: 11.5px; color: var(--ink-3); }
+  .biz-skeleton { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .biz-field { border: 1px dashed var(--line-strong); border-radius: 8px; background: rgba(255,253,248,.7); padding: 8px 12px; font-size: 12px; }
+  .biz-field b { display: block; font-size: 10.5px; letter-spacing: .16em; color: var(--ink-3); font-weight: 700; margin-bottom: 2px; }
+  .biz-field span { color: var(--ink-2); }
+
+  /* 数据表 */
+  .dtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dtable th { text-align: left; font-size: 11px; letter-spacing: .18em; color: var(--ink-3); font-weight: 700; border-bottom: 1.5px solid var(--line-strong); padding: 7px 10px; }
+  .dtable td { padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+  .dtable tbody tr:hover td { background: var(--panel-2); }
+  .dtable .em { color: var(--ink); font-weight: 600; }
+  .prog { display: flex; align-items: center; gap: 8px; }
+  .prog-track { flex: 1; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 99px; background: var(--teal); }
+  .prog-fill--done { background: var(--done); }
+  .wb-actions { display: flex; gap: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--line-strong); align-items: center; }
+  .wb-actions .hint, .hint { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+
+  /* 信息组（基本信息等） */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .info-group { border: 1px solid var(--line); border-radius: 11px; background: var(--panel); padding: 13px 16px 8px; }
+  .info-group > h5 { font-size: 11px; letter-spacing: .24em; font-weight: 700; color: var(--ink-3); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+  .info-row { display: flex; padding: 4px 0; font-size: 13px; border-bottom: 1px dotted var(--line); }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .k { width: 110px; flex: none; color: var(--ink-3); }
+  .info-row .v { flex: 1; color: var(--ink); }
+  .info-row .v.sub { color: var(--ink-2); }
+
+  /* 时间线（匹配历史） */
+  .tl { position: relative; padding-left: 26px; }
+  .tl::before { content: ""; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 0; border-left: 1.5px solid var(--line-strong); }
+  .tl-item { position: relative; padding: 0 0 18px 12px; }
+  .tl-item::before { content: ""; position: absolute; left: -22px; top: 5px; width: 9px; height: 9px; border-radius: 99px; background: var(--panel); border: 2px solid var(--teal); }
+  .tl-item--miss::before { border-color: var(--line-strong); }
+  .tl-time { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .tl-title { font-weight: 700; font-size: 13.5px; margin: 2px 0 4px; }
+  .tl-body { font-size: 12.5px; color: var(--ink-2); }
+
+  /* 步骤条（拆分向导） */
+  .steps { display: flex; gap: 0; margin: 6px 0 4px; }
+  .step { flex: 1; text-align: center; position: relative; padding-top: 26px; font-size: 12px; color: var(--ink-3); }
+  .step::before { content: ""; position: absolute; top: 9px; left: 0; right: 0; height: 1.5px; background: var(--line-strong); }
+  .step:first-child::before { left: 50%; }
+  .step:last-child::before { right: 50%; }
+  .step i { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; border-radius: 99px; background: var(--panel); border: 1.5px solid var(--line-strong); font-style: normal; font-family: var(--mono); font-size: 9.5px; line-height: 12px; color: var(--ink-3); z-index: 1; }
+  .step--done i { background: var(--done); border-color: var(--done); color: var(--panel); }
+  .step--done::before { background: var(--done); }
+  .step--run { color: var(--teal); font-weight: 700; }
+  .step--run i { background: var(--teal); border-color: var(--teal); color: var(--panel); box-shadow: 0 0 0 3px var(--teal-soft); }
+
+  /* 统计卡 */
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat { border: 1px solid var(--line); border-radius: 11px; background: var(--panel); padding: 12px 16px; }
+  .stat .n { font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .stat .n small { font-size: 13px; color: var(--ink-3); font-family: var(--sans); font-weight: 400; margin-left: 2px; }
+  .stat .l { font-size: 11.5px; color: var(--ink-3); letter-spacing: .1em; margin-top: 2px; }
+  .stat--teal .n { color: var(--teal); }
+  .stat--warn .n { color: var(--accent); }
+  .stat--amber .n { color: var(--amber); }
+
+  .fieldmap { margin-top: 24px; border-top: 1.5px solid var(--line-strong); padding-top: 13px; }
+  .fieldmap-title { font-size: 11px; letter-spacing: .3em; color: var(--ink-3); font-weight: 700; margin-bottom: 9px; }
+  .fieldmap-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fchip { font-family: var(--mono); font-size: 11px; color: var(--ink-2); border: 1px solid var(--line-strong); background: var(--panel); border-radius: 99px; padding: 3px 11px; }
+  .fchip--new { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="design-note">
+    <b>界面设计稿 · 完整版</b><span>/pms-inheritance/project-detail 全部 16 个内容面板 · 专项任务 2026-09-15</span>
+    <span class="chip">V1 / V2 阶段视图设计稿保留</span>
+    <span class="chip">阶段字段借鉴旧阶段数据模型 pms_project_phase</span>
+    <span class="chip">点击左侧导轨切换面板 · 交付流程支持阶段/任务双态</span>
+  </div>
+
+  <header class="hero">
+    <div>
+      <div class="hero-code">PMS-2026-0213 · 父项目 #1024 · 结构深度 2 · 业务层级 省级核心</div>
+      <div class="hero-title-row">
+        <span class="hero-name">智算中心网络集成交付项目（二期）</span>
+        <span class="pill pill--teal">实施中</span>
+        <span class="pill pill--outline">模板 #12 · v3</span>
+        <span class="pill pill--warn">S2 方案设计</span>
+      </div>
+      <div class="hero-meta">
+        <span>客户 <b>云枢数字科技集团</b></span>
+        <span>签约方式 <b>框架合同</b></span>
+        <span>项目类别 <b>集成实施</b></span>
+        <span>实施方式 <b>自营</b></span>
+        <span>创建 <b>2026-07-21</b></span>
+        <span>工勘要求竣工 <b>2027-02-10</b></span>
+      </div>
+    </div>
+    <div class="hero-side">
+      <button class="btn btn--ghost">← 返回列表</button>
+      <span class="mono" style="font-size:11px">主联系人 高静 · 138****2210</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="card rail">
+      <div class="rail-stage-title">项目概览</div>
+      <button class="rail-item" data-panel="base"><span class="rail-no">1</span><span class="rail-ico">▣</span><span class="rail-label">基本信息</span></button>
+      <button class="rail-item" data-panel="customer"><span class="rail-no">2</span><span class="rail-ico">☎</span><span class="rail-label">客户信息</span></button>
+
+      <div class="rail-stage-title">交付流程</div>
+      <div class="flow-tree" id="flowTree"></div>
+
+      <div class="rail-stage-title">项目档案</div>
+      <button class="rail-item" data-panel="attributes"><span class="rail-no">3</span><span class="rail-ico">✎</span><span class="rail-label">属性判定</span></button>
+      <button class="rail-item" data-panel="match-history"><span class="rail-no">4</span><span class="rail-ico">◷</span><span class="rail-label">匹配历史</span></button>
+      <button class="rail-item" data-panel="instances"><span class="rail-no">5</span><span class="rail-ico">≡</span><span class="rail-label">生命周期实例</span></button>
+
+      <div class="rail-stage-title">交付准备</div>
+      <button class="rail-item" data-panel="contacts"><span class="rail-no">6</span><span class="rail-ico">✆</span><span class="rail-label">用户联系人</span></button>
+      <button class="rail-item" data-panel="duration"><span class="rail-no">7</span><span class="rail-ico">▦</span><span class="rail-label">项目工期</span></button>
+      <button class="rail-item" data-panel="preparation"><span class="rail-no">8</span><span class="rail-ico">◉</span><span class="rail-label">工勘准备</span></button>
+      <button class="rail-item" data-panel="requirement"><span class="rail-no">9</span><span class="rail-ico">✐</span><span class="rail-label">需求分析</span></button>
+
+      <div class="rail-stage-title">验收交维</div>
+      <button class="rail-item" data-panel="satisfaction"><span class="rail-no">10</span><span class="rail-ico">❖</span><span class="rail-label">满意度</span></button>
+      <button class="rail-item" data-panel="acceptance"><span class="rail-no">11</span><span class="rail-ico">☑</span><span class="rail-label">验收报告</span></button>
+
+      <div class="rail-stage-title">项目拆分</div>
+      <button class="rail-item" data-panel="split"><span class="rail-no">12</span><span class="rail-ico">⑂</span><span class="rail-label">拆分方案</span></button>
+
+      <div class="rail-stage-title">进度汇总</div>
+      <button class="rail-item" data-panel="progress"><span class="rail-no">13</span><span class="rail-ico">◔</span><span class="rail-label">进度汇总</span></button>
+      <button class="rail-item" data-panel="closure"><span class="rail-no">14</span><span class="rail-ico">✓</span><span class="rail-label">闭环守卫</span></button>
+
+      <div class="rail-stage-title">异常治理</div>
+      <button class="rail-item" data-panel="governance"><span class="rail-no">15</span><span class="rail-ico">⚠</span><span class="rail-label">异常治理</span></button>
+
+      <div class="rail-stage-title">项目权限</div>
+      <button class="rail-item" data-panel="authorization"><span class="rail-no">16</span><span class="rail-ico">⚿</span><span class="rail-label">项目授权</span></button>
+    </aside>
+
+    <main class="card card-pad" style="min-height:640px">
+      <!-- ① 基本信息 -->
+      <section class="panel panel--active" id="panel-base">
+        <div class="panel-head"><span class="panel-title">基本信息</span><span class="hint">旧链数据只读 · F-PM01 冻结编辑</span></div>
+        <div class="info-grid">
+          <div class="info-group"><h5>编码与命名空间</h5>
+            <div class="info-row"><span class="k">项目编码</span><span class="v mono">PMS-2026-0213</span></div>
+            <div class="info-row"><span class="k">编码命名空间</span><span class="v sub">根 #1024 · 序号 13 · 规则 v2</span></div>
+            <div class="info-row"><span class="k">项目名称</span><span class="v">智算中心网络集成交付项目（二期）</span></div>
+          </div>
+          <div class="info-group"><h5>维度与层级</h5>
+            <div class="info-row"><span class="k">签约方式 / 类别 / 实施</span><span class="v sub">框架合同 / 集成实施 / 自营</span></div>
+            <div class="info-row"><span class="k">重大项目级别</span><span class="v">省级重点</span></div>
+            <div class="info-row"><span class="k">业务层级 / 深度</span><span class="v sub">省级核心 · 2</span></div>
+            <div class="info-row"><span class="k">父项目</span><span class="v mono">#1024 智算中心网络集成交付项目（一期）</span></div>
+          </div>
+          <div class="info-group"><h5>客户与合同</h5>
+            <div class="info-row"><span class="k">客户</span><span class="v">云枢数字科技集团（YS-DIGI-001）</span></div>
+            <div class="info-row"><span class="k">合同号</span><span class="v mono">HT-2026-0871</span></div>
+            <div class="info-row"><span class="k">实施地点</span><span class="v sub">合肥高新区 · 数据中心园区</span></div>
+            <div class="info-row"><span class="k">项目主联系人</span><span class="v">高静 · 138****2210</span></div>
+          </div>
+          <div class="info-group"><h5>状态与来源</h5>
+            <div class="info-row"><span class="k">状态</span><span class="v"><span class="pill pill--teal">实施中</span></span></div>
+            <div class="info-row"><span class="k">创建来源 / 原因</span><span class="v sub">手工创建 · 二期扩建立项</span></div>
+            <div class="info-row"><span class="k">创建时间</span><span class="v mono">2026-07-21 10:24</span></div>
+            <div class="info-row"><span class="k">工勘要求竣工</span><span class="v mono">2027-02-10</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ② 客户信息 -->
+      <section class="panel" id="panel-customer">
+        <div class="panel-head"><span class="panel-title">客户信息</span><a class="link">前往客户管理 →</a></div>
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="n">3</div><div class="l">项目联系人</div></div>
+          <div class="stat stat--teal"><div class="n">1</div><div class="l">主联系人</div></div>
+          <div class="stat stat--amber"><div class="n">2</div><div class="l">待补全联系方式</div></div>
+        </div>
+        <div class="section-cap">联系人</div>
+        <table class="dtable"><thead><tr><th>姓名</th><th>客户角色</th><th>电话</th><th>邮箱</th><th>备注</th></tr></thead><tbody>
+          <tr><td class="em"><span class="pill pill--warn" style="margin-right:6px">主</span>高静</td><td>机房负责人</td><td class="mono">138****2210</td><td class="mono">gaojing@ys-digi.cn</td><td>门禁与动环对接</td></tr>
+          <tr><td class="em">李振宇</td><td>网络运维</td><td class="mono">139****7754</td><td>—</td><td>割接窗口协调</td></tr>
+          <tr><td class="em">王倩</td><td>商务接口</td><td class="mono">137****0032</td><td class="mono">wangq@ys-digi.cn</td><td>验收签章</td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ③ 交付流程（双态工作台，JS 渲染） -->
+      <section class="panel" id="panel-flow"><div id="workbench"></div></section>
+
+      <!-- ④ 属性判定 -->
+      <section class="panel" id="panel-attributes">
+        <div class="panel-head"><span class="panel-title">属性判定</span><button class="btn btn--sm btn--teal">修订判定</button></div>
+        <div class="info-grid">
+          <div class="info-group"><h5>判定快照（V3 · 生效）</h5>
+            <div class="info-row"><span class="k">重大项目</span><span class="v">是 · 省级重点<span class="mono" style="margin-left:8px">依据：合同额 ≥ 500 万</span></span></div>
+            <div class="info-row"><span class="k">业务层级</span><span class="v sub">省级核心<span class="mono" style="margin-left:8px">依据：客户等级 A1</span></span></div>
+            <div class="info-row"><span class="k">结构深度</span><span class="v sub">2<span class="mono" style="margin-left:8px">依据：拆分方案 V1</span></span></div>
+          </div>
+          <div class="info-group"><h5>修订待生效</h5>
+            <div class="info-row"><span class="k">实施方式</span><span class="v">自营 → 自营+分包<span class="mono" style="margin-left:8px">待修订审批 R4</span></span></div>
+            <div class="info-row"><span class="k">修订原因</span><span class="v sub">无线侧分包引入</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑤ 匹配历史 -->
+      <section class="panel" id="panel-match-history">
+        <div class="panel-head"><span class="panel-title">模板匹配历史</span><a class="link">查看匹配诊断 →</a></div>
+        <div class="tl">
+          <div class="tl-item">
+            <div class="tl-time">2026-07-21 10:31 · 自动匹配 + 人工确认</div>
+            <div class="tl-title">模板 #12 智算中心交付模板 · v3 <span class="pill pill--teal" style="margin-left:6px">命中 86%</span></div>
+            <div class="tl-body">精确命中：签约方式=框架合同、项目类别=集成实施；部分限定让位：业务层级按省级核心取分支；诊断：无停用引用，实例化冻结 S0~S6 + 44 任务 + 9 里程碑 + 18 交付件 + 5 门禁。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-time">2026-07-21 10:29 · 自动匹配候选</div>
+            <div class="tl-title">模板 #8 网络集成通用模板 · v2 <span class="pill pill--outline" style="margin-left:6px">候选让位</span></div>
+            <div class="tl-body">优先级低于 #12（类别精确命中让位于双精确命中），未采用。</div>
+          </div>
+          <div class="tl-item tl-item--miss">
+            <div class="tl-time">2026-07-21 10:28 · 首次尝试</div>
+            <div class="tl-title">模板 #15 5G 专网交付模板 · v1 <span class="pill pill--muted" style="margin-left:6px">未命中</span></div>
+            <div class="tl-body">签约方式不匹配（要求单价合同），无匹配回退未触发。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑥ 生命周期实例 -->
+      <section class="panel" id="panel-instances">
+        <div class="panel-head"><span class="panel-title">生命周期实例（阶段 / 任务 / 里程碑 / 交付件 / 门禁）</span><span class="hint">实例化冻结自模板 #12 v3</span></div>
+        <table class="dtable"><thead><tr><th>阶段</th><th>任务</th><th>里程碑</th><th>交付件</th><th>门禁</th><th>状态</th></tr></thead><tbody>
+          <tr><td class="em mono">S0 项目启动</td><td class="mono">3</td><td class="mono">1</td><td class="mono">2</td><td class="mono">2</td><td><span class="pill pill--done">已完成</span></td></tr>
+          <tr><td class="em mono">S1 需求与工勘</td><td class="mono">6</td><td class="mono">2</td><td class="mono">4</td><td class="mono">2</td><td><span class="pill pill--done">已完成</span></td></tr>
+          <tr><td class="em mono">S2 方案设计</td><td class="mono">8</td><td class="mono">2</td><td class="mono">4</td><td class="mono">3</td><td><span class="pill pill--teal">进行中</span></td></tr>
+          <tr><td class="em mono">S3 开发实施</td><td class="mono">12</td><td class="mono">2</td><td class="mono">5</td><td class="mono">1</td><td><span class="pill pill--muted">未开始</span></td></tr>
+          <tr><td class="em mono">S4 测试验证</td><td class="mono">5</td><td class="mono">1</td><td class="mono">2</td><td class="mono">1</td><td><span class="pill pill--muted">未开始</span></td></tr>
+          <tr><td class="em mono">S5 上线试运行</td><td class="mono">4</td><td class="mono">1</td><td class="mono">1</td><td class="mono">1</td><td><span class="pill pill--muted">未开始</span></td></tr>
+          <tr><td class="em mono">S6 验收交维</td><td class="mono">6</td><td class="mono">2</td><td class="mono">4</td><td class="mono">1</td><td><span class="pill pill--muted">未开始</span></td></tr>
+        </tbody></table>
+      </section>
+      <!-- ⑦ 用户联系人 -->
+      <section class="panel" id="panel-contacts">
+        <div class="panel-head"><span class="panel-title">用户联系人</span><button class="btn btn--sm btn--teal">新增联系人</button></div>
+        <table class="dtable"><thead><tr><th>姓名</th><th>所属单位</th><th>职务</th><th>电话</th><th>邮箱</th><th>状态</th><th>操作</th></tr></thead><tbody>
+          <tr><td class="em">高静</td><td>云枢数字 · 信息技术部</td><td>机房负责人</td><td class="mono">138****2210</td><td class="mono">gaojing@ys-digi.cn</td><td><span class="pill pill--teal">生效</span></td><td><a class="link">编辑</a></td></tr>
+          <tr><td class="em">李振宇</td><td>云枢数字 · 网络运维中心</td><td>运维工程师</td><td class="mono">139****7754</td><td>—</td><td><span class="pill pill--teal">生效</span></td><td><a class="link">编辑</a></td></tr>
+          <tr><td class="em">王倩</td><td>云枢数字 · 商务部</td><td>商务经理</td><td class="mono">137****0032</td><td class="mono">wangq@ys-digi.cn</td><td><span class="pill pill--teal">生效</span></td><td><a class="link">编辑</a></td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑧ 项目工期 -->
+      <section class="panel" id="panel-duration">
+        <div class="panel-head"><span class="panel-title">项目工期</span><button class="btn btn--sm btn--teal">发起工期调整</button></div>
+        <div class="stat-row">
+          <div class="stat"><div class="n">V2</div><div class="l">当前版本</div></div>
+          <div class="stat stat--teal"><div class="n">2026-08-03</div><div class="l">计划开始</div></div>
+          <div class="stat stat--amber"><div class="n">2027-03-12</div><div class="l">计划结束</div></div>
+          <div class="stat"><div class="n">221<small>天</small></div><div class="l">自然日工期</div></div>
+        </div>
+        <div class="section-cap">调整历史</div>
+        <table class="dtable"><thead><tr><th>版本</th><th>原计划</th><th>新计划</th><th>计算口径</th><th>原因</th><th>生效时间</th></tr></thead><tbody>
+          <tr><td class="em mono">V2</td><td class="mono">2026-08-03 → 2027-03-05</td><td class="mono">2026-08-03 → 2027-03-12</td><td>自然日（含节假日）</td><td>需求追加无线侧覆盖</td><td class="mono">2026-08-30 15:02</td></tr>
+          <tr><td class="mono">V1</td><td class="mono">2026-08-03 → 2027-03-05</td><td class="mono">2026-08-03 → 2027-03-05</td><td>自然日（含节假日）</td><td>初始冻结</td><td class="mono">2026-07-21 10:40</td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑨ 工勘准备 -->
+      <section class="panel" id="panel-preparation">
+        <div class="panel-head"><span class="panel-title">工勘准备</span><span class="hint">就绪前不得进入 S3 开发实施</span></div>
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat stat--teal"><div class="n">4<small>/ 6</small></div><div class="l">工勘项已确认</div></div>
+          <div class="stat stat--warn"><div class="n">1</div><div class="l">不适用待豁免</div></div>
+          <div class="stat"><div class="n">1</div><div class="l">待确认</div></div>
+        </div>
+        <div class="section-cap">工勘项</div>
+        <table class="dtable"><thead><tr><th>工勘项</th><th>适用 / 确认</th><th>负责人</th><th>来源事实</th><th>操作</th></tr></thead><tbody>
+          <tr><td class="em">机房动力与环境勘查</td><td><span class="pill pill--done">已确认</span></td><td><span class="avatar-sm">吴</span>吴凯</td><td class="sub">工勘报告 S1-T01 附件 #3</td><td><a class="link">详情</a></td></tr>
+          <tr><td class="em">传输资源与路由核查</td><td><span class="pill pill--done">已确认</span></td><td><span class="avatar-sm">吴</span>吴凯</td><td class="sub">传输科表 2026-08 导出</td><td><a class="link">详情</a></td></tr>
+          <tr><td class="em">现有网络割接条件</td><td><span class="pill pill--done">已确认</span></td><td><span class="avatar-sm">周</span>周明远</td><td class="sub">割接窗口备忘 09-02</td><td><a class="link">详情</a></td></tr>
+          <tr><td class="em">无线点位普查</td><td><span class="pill pill--done">已确认</span></td><td><span class="avatar-sm">高</span>高静</td><td class="sub">点位清册 V2</td><td><a class="link">详情</a></td></tr>
+          <tr><td class="em">跨区专线开通</td><td><span class="pill pill--muted">待确认</span></td><td><span class="avatar-sm">陈</span>陈晓峰</td><td class="sub">待运营商反馈</td><td><a class="link">登记</a></td></tr>
+          <tr><td class="em">旧设备回收勘查</td><td><span class="pill pill--warn">不适用</span></td><td>—</td><td class="sub">二期为新建，无旧设备</td><td><a class="link">豁免申请</a></td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑩ 需求分析 -->
+      <section class="panel" id="panel-requirement">
+        <div class="panel-head"><span class="panel-title">需求分析</span><button class="btn btn--sm btn--teal">新建草稿</button></div>
+        <table class="dtable"><thead><tr><th>业务版本</th><th>版本类型</th><th>内容版本</th><th>状态</th><th>完成时间</th><th>操作</th></tr></thead><tbody>
+          <tr><td class="em mono">V3</td><td><span class="pill pill--amber">当前草稿</span></td><td class="mono">C7</td><td>编制中</td><td class="mono">—</td><td><a class="link">继续编辑</a> · <a class="link">对比 V2</a></td></tr>
+          <tr><td class="em mono">V2</td><td><span class="pill pill--teal">当前有效完成版</span></td><td class="mono">C5</td><td>已完成</td><td class="mono">2026-09-06 18:12</td><td><a class="link">查看</a></td></tr>
+          <tr><td class="mono">V1</td><td><span class="pill pill--muted">历史版本</span></td><td class="mono">C2</td><td>已作废</td><td class="mono">2026-08-12 11:05</td><td><a class="link">查看</a></td></tr>
+        </tbody></table>
+        <div class="section-cap">当前查看 · V2（模板修订 R3）</div>
+        <div class="info-grid">
+          <div class="info-group"><h5>版本事实</h5>
+            <div class="info-row"><span class="k">业务 / 内容版本</span><span class="v mono">V2 · C5</span></div>
+            <div class="info-row"><span class="k">版本关系</span><span class="v sub">V1 的修订版（变更：无线覆盖范围）</span></div>
+            <div class="info-row"><span class="k">完成时间</span><span class="v mono">2026-09-06 18:12</span></div>
+          </div>
+          <div class="info-group"><h5>动态表单要点</h5>
+            <div class="info-row"><span class="k">覆盖范围</span><span class="v sub">核心机房 2 栋 + 园区室外 12 点位</span></div>
+            <div class="info-row"><span class="k">验收口径</span><span class="v sub">SLA 99.95% · 试运行 30 天</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑪ 满意度 -->
+      <section class="panel" id="panel-satisfaction">
+        <div class="panel-head"><span class="panel-title">满意度</span><button class="btn btn--sm btn--teal">发起问卷</button></div>
+        <div class="grid-2">
+          <div class="mini-card mini-card--in"><h4>适用时点一 · 试运行期满</h4><p>S5 上线试运行报告签署后 5 个工作日内发起 · 当前未到时点</p></div>
+          <div class="mini-card mini-card--out"><h4>适用时点二 · 终验通过</h4><p>S6 验收报告签署后发起 · 当前未到时点</p></div>
+        </div>
+        <div class="section-cap">问卷记录</div>
+        <table class="dtable"><thead><tr><th>问卷</th><th>时点</th><th>状态</th><th>得分</th><th>回收</th></tr></thead><tbody>
+          <tr><td class="em">中期服务满意度（S2 节点抽测）</td><td class="mono">S2</td><td><span class="pill pill--teal">收集中</span></td><td class="mono">—</td><td class="mono">2 / 3</td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑫ 验收报告 -->
+      <section class="panel" id="panel-acceptance">
+        <div class="panel-head"><span class="panel-title">验收报告</span><a class="link">前往验收管理 →</a></div>
+        <table class="dtable"><thead><tr><th>报告</th><th>类型</th><th>版本</th><th>状态</th><th>审批节点</th><th>更新时间</th></tr></thead><tbody>
+          <tr><td class="em">阶段验收 · S1 需求与工勘</td><td>阶段验收</td><td class="mono">V1</td><td><span class="pill pill--done">已批准</span></td><td class="sub">项目经理 → 需求方会签</td><td class="mono">2026-09-11</td></tr>
+          <tr><td class="em">初验报告（草拟中）</td><td>初验</td><td class="mono">V0 草稿</td><td><span class="pill pill--amber">编制中</span></td><td class="sub">—</td><td class="mono">2026-09-14</td></tr>
+        </tbody></table>
+      </section>
+      <!-- ⑬ 拆分方案 -->
+      <section class="panel" id="panel-split">
+        <div class="panel-head"><span class="panel-title">拆分方案</span><button class="btn btn--sm btn--teal">发起拆分</button></div>
+        <div class="steps">
+          <div class="step step--done"><i>✓</i>选择拆分模式</div>
+          <div class="step step--done"><i>✓</i>子项目规划</div>
+          <div class="step step--run"><i>3</i>子项目模板匹配确认</div>
+          <div class="step"><i>4</i>提交审批</div>
+        </div>
+        <div class="section-cap">子项目草稿</div>
+        <table class="dtable"><thead><tr><th>子项目</th><th>范围</th><th>匹配模板</th><th>子阶段</th><th>状态</th></tr></thead><tbody>
+          <tr><td class="em">核心机房网络集成</td><td class="sub">S2~S4 全部任务</td><td class="sub">#12 v3（继承父项目）</td><td class="mono">S2~S6</td><td><span class="pill pill--teal">模板已确认</span></td></tr>
+          <tr><td class="em">园区无线覆盖</td><td class="sub">无线点位 12 项</td><td class="sub">#15 v1（独立匹配 74%）</td><td class="mono">S2~S6</td><td><span class="pill pill--amber">待人工确认</span></td></tr>
+        </tbody></table>
+        <div class="hint" style="margin-top:10px">子项目独立选择冻结模板：父项目匹配结果仅作默认值，子项目可改选（V245 能力）。</div>
+      </section>
+
+      <!-- ⑭ 进度汇总 -->
+      <section class="panel" id="panel-progress">
+        <div class="panel-head"><span class="panel-title">进度汇总</span><a class="link">前往进度管理 →</a></div>
+        <div class="stat-row">
+          <div class="stat stat--teal"><div class="n">64<small>%</small></div><div class="l">本项目整体进度</div></div>
+          <div class="stat"><div class="n">2</div><div class="l">子项目</div></div>
+          <div class="stat stat--amber"><div class="n">权重归一</div><div class="l">聚合策略 · V2</div></div>
+          <div class="stat"><div class="n">09-15</div><div class="l">最近重算（每日 02:00）</div></div>
+        </div>
+        <div class="section-cap">子项目贡献</div>
+        <table class="dtable"><thead><tr><th>子项目</th><th>进度</th><th>归一化权重</th><th>贡献值</th><th>待计算原因</th></tr></thead><tbody>
+          <tr><td class="em">#1031 核心机房网络集成</td><td style="width:180px"><span class="prog"><span class="prog-track"><span class="prog-fill" style="width:58%"></span></span><span class="mono">58%</span></span></td><td class="mono">0.62</td><td class="mono">+35.96%</td><td>—</td></tr>
+          <tr><td class="em">#1032 园区无线覆盖</td><td style="width:180px"><span class="prog"><span class="prog-track"><span class="prog-fill" style="width:45%"></span></span><span class="mono">45%</span></span></td><td class="mono">0.38</td><td class="mono">+28.04%</td><td>—</td></tr>
+        </tbody></table>
+        <div class="section-cap">策略历史</div>
+        <table class="dtable"><thead><tr><th>版本</th><th>类型</th><th>状态</th><th>生效时间</th><th>操作</th></tr></thead><tbody>
+          <tr><td class="em mono">R2</td><td>权重归一</td><td><span class="pill pill--teal">生效中</span></td><td class="mono">2026-08-30 15:02</td><td><a class="link">详情</a></td></tr>
+          <tr><td class="mono">R1</td><td>权重归一</td><td><span class="pill pill--muted">已替代</span></td><td class="mono">2026-07-21 10:40</td><td><a class="link">详情</a></td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑮ 闭环守卫 -->
+      <section class="panel" id="panel-closure">
+        <div class="panel-head"><span class="panel-title">闭环守卫</span><button class="btn btn--sm btn--teal">立即检查</button></div>
+        <div class="info-grid">
+          <div class="info-group"><h5>最近检查（2026-09-15 02:00）</h5>
+            <div class="info-row"><span class="k">检查项目版本</span><span class="v mono">#18</span></div>
+            <div class="info-row"><span class="k">完整树版本</span><span class="v mono">#41</span></div>
+            <div class="info-row"><span class="k">提供方事实</span><span class="v sub">6 个 · 全部一致</span></div>
+          </div>
+          <div class="info-group"><h5>结论</h5>
+            <div class="info-row"><span class="k">守卫状态</span><span class="v"><span class="pill pill--done">通过 · 可正常推进闭环</span></span></div>
+            <div class="info-row"><span class="k">阻断项</span><span class="v sub">无</span></div>
+          </div>
+        </div>
+        <div class="section-cap">提供方事实</div>
+        <table class="dtable"><thead><tr><th>提供方</th><th>对象类型</th><th>编号</th><th>状态</th><th>处理提示</th></tr></thead><tbody>
+          <tr><td>工期</td><td>工期版本</td><td class="mono">V2</td><td><span class="pill pill--done">一致</span></td><td>—</td></tr>
+          <tr><td>需求分析</td><td>完成版</td><td class="mono">V2</td><td><span class="pill pill--done">一致</span></td><td>—</td></tr>
+          <tr><td>工勘准备</td><td>就绪快照</td><td class="mono">#3</td><td><span class="pill pill--done">一致</span></td><td>—</td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑯ 异常治理 -->
+      <section class="panel" id="panel-governance">
+        <div class="panel-head"><span class="panel-title">异常治理</span><button class="btn btn--sm" style="background:var(--accent);border-color:var(--accent)">发起异常关闭</button></div>
+        <div class="info-grid">
+          <div class="info-group"><h5>治理概览</h5>
+            <div class="info-row"><span class="k">生命周期</span><span class="v">S0~S6 · 模板 #12 v3</span></div>
+            <div class="info-row"><span class="k">当前阶段</span><span class="v sub">S2 方案设计（进行中）</span></div>
+            <div class="info-row"><span class="k">指派状态 / 版本</span><span class="v sub">正常 · 项目版本 #18</span></div>
+          </div>
+          <div class="info-group"><h5>异常状态</h5>
+            <div class="info-row"><span class="k">当前异常</span><span class="v"><span class="pill pill--done">无</span></span></div>
+            <div class="info-row"><span class="k">历史异常关闭</span><span class="v sub">1 次（快照 #2）</span></div>
+          </div>
+        </div>
+        <div class="section-cap">状态快照历史</div>
+        <table class="dtable"><thead><tr><th>快照</th><th>动作</th><th>状态变化</th><th>原因编码</th><th>操作者</th><th>操作时间</th><th>详情</th></tr></thead><tbody>
+          <tr><td class="mono">#2</td><td>异常关闭</td><td class="sub">异常处理中 → 实施中</td><td class="mono">PROVIDER_BLOCK</td><td><span class="avatar-sm">陈</span>陈晓峰</td><td class="mono">2026-08-19 09:40</td><td><a class="link">查看</a></td></tr>
+          <tr><td class="mono">#1</td><td>异常挂起</td><td class="sub">实施中 → 异常处理中</td><td class="mono">PROVIDER_BLOCK</td><td>系统守卫</td><td class="mono">2026-08-18 22:10</td><td><a class="link">查看</a></td></tr>
+        </tbody></table>
+      </section>
+
+      <!-- ⑰ 项目授权 -->
+      <section class="panel" id="panel-authorization">
+        <div class="panel-head"><span class="panel-title">项目授权</span><button class="btn btn--sm btn--teal">新增授权</button></div>
+        <table class="dtable"><thead><tr><th>被授权对象</th><th>权限范围</th><th>数据范围</th><th>生效期</th><th>授予依据</th><th>操作</th></tr></thead><tbody>
+          <tr><td class="em">陈晓峰</td><td class="sub">项目管理 · 全部阶段办理</td><td class="sub">本项目 + 直接子项目</td><td class="mono">2026-07-21 ~ 长期</td><td class="sub">任命任务书 #7</td><td><a class="link">调整</a></td></tr>
+          <tr><td class="em">周明远</td><td class="sub">S2 阶段办理 · 设计交付件提交</td><td class="sub">本项目</td><td class="mono">2026-09-01 ~ 2026-10-31</td><td class="sub">阶段负责人指派</td><td><a class="link">调整</a></td></tr>
+          <tr><td class="em">高静</td><td class="sub">只读 · 进度与交付件查看</td><td class="sub">本项目</td><td class="mono">长期</td><td class="sub">项目成员默认授权</td><td><a class="link">调整</a></td></tr>
+        </tbody></table>
+      </section>
+    </main>
+  </div>
+
+  <div class="fieldmap">
+    <div class="fieldmap-title">设计覆盖与字段借鉴 · 交付流程阶段工作台借鉴旧阶段数据模型 pms_project_phase（当前页面阶段视图仅展示 状态/准入/准出）</div>
+    <div class="fieldmap-chips">
+      <span class="fchip--new">suggested_start_time / suggested_end_time 建议起止（新增展示）</span>
+      <span class="fchip--new">plan_start_time / plan_end_time 计划起止（新增展示）</span>
+      <span class="fchip--new">actual_start_time / actual_end_time 实际起止（新增展示）</span>
+      <span class="fchip--new">deviation_reason 偏差原因（新增展示）</span>
+      <span class="fchip--new">responsible_role / responsible_user_id 负责角色 / 负责人（新增展示）</span>
+      <span class="fchip">status / entry_criteria / exit_criteria / sort / code / name（既有，重组呈现）</span>
+      <span class="fchip">其余 15 面板字段取自真实组件（ProjectProgressPanel / ProjectGovernancePanel / ProjectDurationPanel / ProjectPreparationPanel / ProjectRequirementAnalysisPanel 等）</span>
+    </div>
+  </div>
+<script>
+  var AX_MIN = new Date('2026-08-01').getTime();
+  var AX_MAX = new Date('2027-02-28').getTime();
+  var TODAY = '2026-09-15';
+  function pct(d) { return ((new Date(d).getTime() - AX_MIN) / (AX_MAX - AX_MIN)) * 100; }
+
+  var STAGES = [
+    { code:'S0', name:'项目启动', status:'DONE', statusLabel:'已完成', taskCount:3, sort:1,
+      role:'项目经理', owner:'陈晓峰', initial:'陈', progress:100,
+      suggestedStart:'2026-08-03', suggestedEnd:'2026-08-12', planStart:'2026-08-03', planEnd:'2026-08-12',
+      actualStart:'2026-08-03', actualEnd:'2026-08-11',
+      entry:'项目任务书下达，项目经理任命', exit:'启动会完成，干系人清单冻结',
+      gates:[['启动会纪要归档','PASS'],['干系人清单冻结','PASS']],
+      binding:'STAGE_NATIVE', dev:null, devClosed:null,
+      tasks:[ {id:1,name:'项目启动会',code:'S0-T01',status:'DONE',progress:100,owner:'陈晓峰',children:[]} ] },
+    { code:'S1', name:'需求与工勘', status:'DONE', statusLabel:'已完成', taskCount:6, sort:2,
+      role:'需求分析师', owner:'林悦', initial:'林', progress:100,
+      suggestedStart:'2026-08-13', suggestedEnd:'2026-09-04', planStart:'2026-08-13', planEnd:'2026-09-08',
+      actualStart:'2026-08-15', actualEnd:'2026-09-10',
+      entry:'启动会完成，工勘排期确认', exit:'需求规格与工勘报告评审通过',
+      gates:[['需求规格评审','PASS'],['工勘报告评审','PASS']],
+      binding:'APPROVAL',
+      dev:{ from:'2026-08-13', to:'2026-08-15' },
+      devClosed:'现场进场延迟 2 天，收尾顺延 2 天（已闭合）',
+      tasks:[ {id:2,name:'现场工勘',code:'S1-T01',status:'DONE',progress:100,owner:'吴凯',children:[]},
+              {id:3,name:'需求规格说明书',code:'S1-T02',status:'DONE',progress:100,owner:'林悦',children:[]} ] },
+    { code:'S2', name:'方案设计', status:'RUN', statusLabel:'进行中', taskCount:8, sort:3,
+      role:'系统架构师', owner:'周明远', initial:'周', progress:64,
+      suggestedStart:'2026-09-07', suggestedEnd:'2026-10-09', planStart:'2026-09-07', planEnd:'2026-10-16',
+      actualStart:'2026-09-09', actualEnd:null,
+      entry:'需求规格说明书已冻结', exit:'总体方案与接口设计评审通过',
+      gates:[['总体方案评审','TODO'],['接口清单冻结','TODO'],['安全设计评审','FAIL']],
+      binding:'BUSINESS_VIEW',
+      dev:{ from:'2026-09-07', to:'2026-09-09' },
+      devForecast:{ forecastEnd:'2026-10-21' },
+      tasks:[ {id:4,name:'总体架构设计',code:'S2-T01',status:'RUN',progress:85,owner:'周明远',children:[]},
+              {id:5,name:'网络拓扑与接口设计',code:'S2-T02',status:'RUN',progress:70,owner:'周明远',children:[
+                {id:51,name:'中心库表结构设计',code:'S2-T02-1',status:'RUN',progress:80,owner:'高静',children:[]},
+                {id:52,name:'外部接口清单',code:'S2-T02-2',status:'RUN',progress:60,owner:'高静',children:[]}]},
+              {id:6,name:'部署与容量方案',code:'S2-T03',status:'TODO',progress:25,owner:'吴凯',children:[]} ] },
+    { code:'S3', name:'开发实施', status:'PENDING', statusLabel:'未开始', taskCount:12, sort:4,
+      role:'开发负责人', owner:'吴凯', initial:'吴', progress:0,
+      suggestedStart:'2026-10-12', suggestedEnd:'2026-12-18', planStart:'2026-10-19', planEnd:'2027-01-08',
+      actualStart:null, actualEnd:null,
+      entry:'总体方案评审通过，开发环境就绪', exit:'功能开发完成并通过迭代验收',
+      gates:[['迭代验收','TODO']], binding:'STAGE_NATIVE', dev:null, devClosed:null,
+      tasks:[ {id:7,name:'开发计划编制',code:'S3-T01',status:'TODO',progress:0,owner:'吴凯',children:[]} ] },
+    { code:'S4', name:'测试验证', status:'PENDING', statusLabel:'未开始', taskCount:5, sort:5,
+      role:'测试负责人', owner:'高静', initial:'高', progress:0,
+      suggestedStart:'2026-12-21', suggestedEnd:'2027-01-15', planStart:'2027-01-11', planEnd:'2027-02-05',
+      actualStart:null, actualEnd:null,
+      entry:'迭代验收通过', exit:'回归测试通过，缺陷清零',
+      gates:[['回归测试报告','TODO']], binding:'STAGE_NATIVE', dev:null, devClosed:null, tasks:[] },
+    { code:'S5', name:'上线试运行', status:'PENDING', statusLabel:'未开始', taskCount:4, sort:6,
+      role:'项目经理', owner:'陈晓峰', initial:'陈', progress:0,
+      suggestedStart:'2027-01-18', suggestedEnd:'2027-02-05', planStart:'2027-02-08', planEnd:'2027-02-26',
+      actualStart:null, actualEnd:null,
+      entry:'回归测试通过', exit:'试运行期满，运行报告签署',
+      gates:[['试运行报告','TODO']], binding:'APPROVAL', dev:null, devClosed:null, tasks:[] },
+    { code:'S6', name:'验收交维', status:'PENDING', statusLabel:'未开始', taskCount:6, sort:7,
+      role:'项目经理', owner:'陈晓峰', initial:'陈', progress:0,
+      suggestedStart:'2027-02-08', suggestedEnd:'2027-02-10', planStart:'2027-03-01', planEnd:'2027-03-12',
+      actualStart:null, actualEnd:null,
+      entry:'试运行报告签署', exit:'验收报告签署，项目关闭',
+      gates:[['终验报告','TODO']], binding:'APPROVAL', dev:null, devClosed:null, tasks:[] }
+  ];
+  var BINDING_LABEL = { STAGE_NATIVE:'原生办理', APPROVAL:'阶段审批', BUSINESS_VIEW:'外部业务视图' };
+  var STATUS_PILL = { DONE:'pill--done', RUN:'pill--teal', PENDING:'pill--muted' };
+  var TASK_PILL = { DONE:['pill--done','已完成'], RUN:['pill--teal','进行中'], TODO:['pill--muted','未开始'] };
+  var GATE_CLS = { PASS:'gate-state--pass', TODO:'gate-state--todo', FAIL:'gate-state--fail' };
+  var GATE_TXT = { PASS:'通过', TODO:'待办理', FAIL:'未通过' };
+
+  function monthTicks() {
+    var out = '';
+    [['2026-08-01','8月'],['2026-09-01','9月'],['2026-10-01','10月'],['2026-11-01','11月'],['2026-12-01','12月'],['2027-01-01','1月'],['2027-02-01','2月']].forEach(function (m) {
+      out += '<span style="left:' + pct(m[0]).toFixed(2) + '%">' + m[1] + '</span>';
+    });
+    return out;
+  }
+  function bar(from, to, cls, tag, tagCls) {
+    var l = pct(from), w = pct(to) - l;
+    return '<div class="tb-bar ' + cls + '" style="left:' + l.toFixed(2) + '%;width:' + w.toFixed(2) + '%">' +
+      (tag ? '<span class="bar-tag ' + (tagCls || '') + '" style="left:50%">' + tag + '</span>' : '') + '</div>';
+  }
+  function timeband(s) {
+    var rows = '<div class="tb-row"><span class="tb-label">建议</span><div class="tb-track">' +
+      bar(s.suggestedStart, s.suggestedEnd, 'bar-suggest', s.suggestedStart.slice(5) + ' → ' + s.suggestedEnd.slice(5), 'bar-tag--light') + '</div></div>';
+    rows += '<div class="tb-row"><span class="tb-label">计划</span><div class="tb-track">' +
+      bar(s.planStart, s.planEnd, 'bar-plan', s.planStart.slice(5) + ' → ' + s.planEnd.slice(5)) + '</div></div>';
+    var actual = '';
+    if (s.actualStart) {
+      actual += bar(s.actualStart, s.actualEnd || TODAY, 'bar-actual',
+        s.actualEnd ? (s.actualStart.slice(5) + ' → ' + s.actualEnd.slice(5)) : (s.progress + '%'));
+    } else {
+      actual += '<span class="mono" style="position:absolute;left:0;top:3px;line-height:15px">— 未开始</span>';
+    }
+    if (s.dev) actual += bar(s.dev.from, s.dev.to, 'bar-dev');
+    if (s.devForecast) actual += bar(TODAY, s.devForecast.forecastEnd, 'bar-dev');
+    rows += '<div class="tb-row"><span class="tb-label">实际</span><div class="tb-track">' + actual + '</div></div>';
+    var today = '<div class="today-line" style="left:calc(82px + (100% - 100px) * ' + (pct(TODAY)/100).toFixed(4) + ')"><span class="today-flag">今日 09-15</span></div>';
+    var forecast = s.devForecast ? '<div class="dev-note"><span><b>预计偏差</b> 预计收尾超计划 ' +
+      days(s.planEnd, s.devForecast.forecastEnd) + ' 天（进度 ' + s.progress + '%，按当前节奏推算收尾约 ' + s.devForecast.forecastEnd + '，晚于计划收尾 ' + s.planEnd + '）</span></div>' : '';
+    var closed = s.devClosed ? '<div class="dev-note dev-note--closed"><span><b>偏差已闭合</b> ' + s.devClosed + '</span></div>' : '';
+    return '<div class="section-cap section-cap--teal">三层时间对齐带</div>' +
+      '<div class="timeband"><div class="tb-head"><span class="tb-title">建议 → 计划 → 实际</span>' +
+      '<span class="legend"><span><i class="lg-suggest"></i>建议（模板冻结）</span><span><i class="lg-plan"></i>计划</span>' +
+      '<span><i class="lg-actual"></i>实际</span><span><i class="lg-dev"></i>偏差</span></span></div>' +
+      '<div class="axis">' + monthTicks() + '</div>' + rows + today + forecast + closed + '</div>';
+  }
+  function days(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+  function stageWorkbench(s) {
+    var gates = s.gates.map(function (g) {
+      return '<div class="gate-row"><span class="gate-state ' + GATE_CLS[g[1]] + '">' + GATE_TXT[g[1]] + '</span>' + g[0] + '</div>';
+    }).join('');
+    var biz = '';
+    if (s.binding === 'BUSINESS_VIEW') {
+      biz = '<div class="section-cap">阶段业务办理 · 外部业务视图</div>' +
+        '<div class="biz-host"><div class="biz-host-head"><span class="t">视图：实施方案登记</span>' +
+        '<span class="pill pill--teal">可办理</span><span class="hint">BusinessViewHost 容器 · 提交后触发阶段进度重算</span></div>' +
+        '<div class="biz-skeleton">' +
+        '<div class="biz-field"><b>方案文档编号</b><span>SOL-2026-0213-02</span></div>' +
+        '<div class="biz-field"><b>接口设计完成度</b><span>70%</span></div>' +
+        '<div class="biz-field"><b>评审状态</b><span>待提交评审</span></div></div></div>';
+    } else if (s.binding === 'APPROVAL') {
+      biz = '<div class="section-cap">阶段业务办理 · 阶段审批</div>' +
+        '<div class="biz-host"><div class="biz-host-head"><span class="t">提交阶段审批</span>' +
+        '<span class="pill pill--outline">审批流 APPR-STAGE-012</span><span class="hint">审批通过后进入准出判定</span></div>' +
+        '<div class="biz-skeleton"><div class="biz-field"><b>当前节点</b><span>项目经理复核</span></div>' +
+        '<div class="biz-field"><b>待办人</b><span>陈晓峰</span></div><div class="biz-field"><b>发起时间</b><span>—</span></div></div></div>';
+    } else {
+      biz = '<div class="section-cap">阶段业务办理 · 原生办理</div>' +
+        '<div class="biz-host"><div class="biz-host-head"><span class="t">按阶段自身完成与门禁规则判定</span>' +
+        '<span class="pill pill--muted">无挂载页面</span></div></div>';
+    }
+    var rows = s.tasks.length ? s.tasks.map(function (t) {
+      var tp = TASK_PILL[t.status];
+      return '<tr data-task="' + t.id + '" data-stage="' + s.code + '"><td class="em">' + t.name + '</td><td class="mono">' + t.code + '</td>' +
+        '<td><span class="avatar-sm">' + t.owner[0] + '</span>' + t.owner + '</td>' +
+        '<td><span class="pill ' + tp[0] + '">' + tp[1] + '</span></td>' +
+        '<td style="width:150px"><span class="prog"><span class="prog-track"><span class="prog-fill' + (t.progress === 100 ? ' prog-fill--done' : '') + '" style="width:' + t.progress + '%"></span></span><span class="mono">' + t.progress + '%</span></span></td>' +
+        '<td class="mono">' + (t.children.length ? t.children.length + ' 个子任务' : '—') + '</td></tr>';
+    }).join('') : '<tr><td colspan="6" style="color:var(--ink-3)">该阶段暂无任务（实例化后按模板任务冻结生成）</td></tr>';
+    return '<div class="wb-head"><span class="wb-badge">' + s.code + '</span>' +
+      '<div class="wb-main"><div class="wb-name">' + s.name + '</div>' +
+      '<div class="wb-sub"><span class="pill ' + STATUS_PILL[s.status] + '">' + s.statusLabel + '</span>' +
+      '<span class="pill pill--outline">绑定：' + BINDING_LABEL[s.binding] + '</span>' +
+      '<span class="mono">排序 ' + s.sort + ' / 7 · 阶段进度 ' + s.progress + '% · 任务 ' + s.taskCount + ' 项</span></div></div>' +
+      '<div class="wb-owner">负责角色 <b>' + s.role + '</b><br>负责人 <b>' + s.owner + '</b><span class="avatar">' + s.initial + '</span></div></div>' +
+      timeband(s) +
+      '<div class="section-cap">准入 · 准出 · 门禁</div>' +
+      '<div class="tri-grid"><div class="mini-card mini-card--in"><h4>准入条件</h4><p>' + s.entry + '</p></div>' +
+      '<div class="mini-card mini-card--out"><h4>准出条件</h4><p>' + s.exit + '</p></div>' +
+      '<div class="mini-card mini-card--gate"><h4>门禁结果</h4>' + gates + '</div></div>' + biz +
+      '<div class="section-cap">阶段任务</div>' +
+      '<table class="dtable"><thead><tr><th>任务名称</th><th>编码</th><th>负责人</th><th>状态</th><th>进度</th><th>子任务</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="wb-actions">' + (s.status !== 'DONE' ? '<button class="btn btn--teal">完成阶段</button>' : '') +
+      '<button class="btn btn--ghost">管理任务</button><span class="hint">时间与偏差来源：阶段实例（借鉴 pms_project_phase 字段语义）· 建议时间继承自阶段模板</span></div>';
+  }
+  function taskWorkbench(s, t) {
+    var tp = TASK_PILL[t.status];
+    return '<div class="wb-head"><span class="wb-badge wb-badge--task">' + t.code.split('-').slice(0, 2).join('-') + '</span>' +
+      '<div class="wb-main"><div class="wb-name">' + t.name + '</div>' +
+      '<div class="wb-sub"><span class="pill ' + tp[0] + '">' + tp[1] + '</span>' +
+      '<span class="mono">所属阶段 ' + s.code + ' ' + s.name + ' · 进度 ' + t.progress + '%</span></div></div>' +
+      '<div class="wb-owner">负责人 <b>' + t.owner + '</b><span class="avatar avatar--amber">' + t.owner[0] + '</span></div></div>' +
+      '<div class="section-cap">任务档案（双态工作台 · 任务态保持既有字段）</div>' +
+      '<div class="tri-grid">' +
+      '<div class="mini-card"><h4>计划起止</h4><p class="mono">09-09 → 10-16</p></div>' +
+      '<div class="mini-card"><h4>实际起止</h4><p class="mono">' + (t.status === 'TODO' ? '—' : '09-11 → 进行中') + '</p></div>' +
+      '<div class="mini-card"><h4>业务层级 / 版本</h4><p class="mono">L2 · v3</p></div></div>' +
+      '<div class="wb-actions"><button class="btn btn--teal">任务办理</button><button class="btn btn--ghost" data-back="1">返回阶段 ' + s.code + '</button>' +
+      '<span class="hint">任务态字段保持现状，本次重设计聚焦阶段态</span></div>';
+  }
+
+  var sel = { kind: 'stage', stage: STAGES[2], task: null };
+  function renderTree() {
+    document.getElementById('flowTree').innerHTML = STAGES.map(function (s) {
+      var dot = s.status === 'DONE' ? 'flow-dot--done' : s.status === 'RUN' ? 'flow-dot--run' : '';
+      var act = sel.kind === 'stage' && sel.stage === s ? ' flow-node--active' : '';
+      var h = '<button class="flow-node flow-node--stage' + act + '" data-gstage="' + s.code + '">' +
+        '<span class="flow-caret">▸</span><span class="flow-dot ' + dot + '"></span>' +
+        '<span class="flow-code">' + s.code + '</span><span class="rail-label">' + s.name + '</span>' +
+        '<span class="flow-count">' + s.taskCount + '</span></button>';
+      if (s.code === 'S2') {
+        h += s.tasks.map(function (t) {
+          var row = '<button class="flow-node flow-node--task" data-gtask="' + t.id + '" data-gstage="' + s.code + '">' +
+            '<span class="rail-label">' + t.name + '</span></button>';
+          (t.children || []).forEach(function (c) {
+            row += '<button class="flow-node flow-node--task" data-gtask="' + c.id + '" data-gstage="' + s.code + '">' +
+              '<span class="rail-label">' + c.name + '</span></button>';
+          });
+          return row;
+        }).join('');
+      }
+      return h;
+    }).join('');
+  }
+  function findTask(s, id) {
+    var found = null;
+    s.tasks.forEach(function (t) {
+      if (String(t.id) === id) found = t;
+      (t.children || []).forEach(function (c) { if (String(c.id) === id) found = c; });
+    });
+    return found;
+  }
+  function renderWB() {
+    document.getElementById('workbench').innerHTML = sel.kind === 'stage'
+      ? stageWorkbench(sel.stage) : taskWorkbench(sel.stage, sel.task);
+  }
+  function activatePanel(key) {
+    Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (p) {
+      p.classList.toggle('panel--active', p.id === 'panel-' + key);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.rail-item'), function (b) {
+      b.classList.toggle('rail-item--active', b.getAttribute('data-panel') === key);
+    });
+  }
+  function bindAll() {
+    Array.prototype.forEach.call(document.querySelectorAll('.rail-item'), function (b) {
+      b.onclick = function () { activatePanel(b.getAttribute('data-panel')); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-gstage]'), function (b) {
+      b.onclick = function () {
+        var s = STAGES.find(function (x) { return x.code === b.getAttribute('data-gstage'); });
+        var tid = b.getAttribute('data-gtask');
+        sel = tid ? { kind: 'task', stage: s, task: findTask(s, tid) } : { kind: 'stage', stage: s, task: null };
+        activatePanel('flow'); renderTree(); renderWB(); bindAll();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#workbench [data-task]'), function (b) {
+      b.onclick = function () {
+        sel = { kind: 'task', stage: sel.stage, task: findTask(sel.stage, b.getAttribute('data-task')) };
+        renderTree(); renderWB(); bindAll();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#workbench [data-back]'), function (b) {
+      b.onclick = function () { sel = { kind: 'stage', stage: sel.stage, task: null }; renderTree(); renderWB(); bindAll(); };
+    });
+  }
+  renderTree(); renderWB(); bindAll();
+</script>
+</div>
+</body>
+</html>

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>项目详情页 · 工作区界面设计 · v1 重建稿 · NPDMS</title>
+<style>
+  :root {
+    --page: #f2f4f8; --surface: #ffffff; --surface-2: #f7f9fc;
+    --line: #e4e7ed; --line-weak: #ebeef5;
+    --ink: #303133; --ink-2: #606266; --ink-3: #909399;
+    --primary: #409eff; --primary-dark: #337ecc;
+    --primary-l3: #79bbff; --primary-l5: #a0cfff; --primary-l7: #c6e2ff; --primary-l8: #d9ecff; --primary-l9: #ecf5ff;
+    --success: #67c23a; --success-bg: #f0f9eb;
+    --warning: #e6a23c; --warning-bg: #fdf6ec;
+    --danger: #f56c6c; --danger-bg: #fef0f0;
+    --info: #909399; --info-bg: #f4f4f5;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: var(--page); }
+  body {
+    font-family: "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--ink); font-size: 14px; line-height: 1.6; min-height: 100vh;
+  }
+  button { font-family: inherit; }
+  .code { font-family: var(--mono); font-size: 12px; letter-spacing: .02em; color: var(--ink-2); }
+  .num { font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 16px 24px 56px; }
+
+  /* 设计稿说明条（过程稿标记） */
+  .mnote {
+    border: 1px dashed #c0c4cc; border-radius: 4px; background: var(--surface);
+    padding: 8px 14px; margin-bottom: 14px; font-size: 12px; color: var(--ink-2);
+  }
+  .mnote b { color: var(--primary-dark); }
+
+  .crumbs { font-size: 12px; color: var(--ink-3); margin: 0 2px 8px; }
+  .crumbs b { color: var(--ink-2); font-weight: 600; }
+
+  /* ===== 横带（对应 ContentWrap：白底、描边、无阴影、4px 圆角） ===== */
+  .band { background: var(--surface); border: 1px solid var(--line-weak); border-radius: 4px; }
+  .band + .band { margin-top: 12px; }
+
+  /* ===== 项目身份头（重建块：原稿 CSS 未留存，按 v1 标记结构重写） ===== */
+  .phead { padding: 16px 20px 18px; }
+  .phead-row1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 18px; flex-wrap: wrap; }
+  .phead-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .phead-name { font-size: 17px; font-weight: 600; }
+  .phead-sub { display: flex; flex-wrap: wrap; margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+  .phead-sub span { padding: 0 10px; border-left: 1px solid var(--line-weak); line-height: 1.6; }
+  .phead-sub span:first-child { padding-left: 0; border-left: none; }
+  .phead-sub b { color: var(--ink-2); font-weight: 600; }
+  .phead-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .phead-stats { display: flex; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-weak); }
+  .stat { flex: 1; min-width: 0; padding: 0 16px; border-left: 1px solid var(--line-weak); }
+  .stat:first-child { padding-left: 0; border-left: none; }
+  .stat-label { font-size: 11.5px; color: var(--ink-3); }
+  .stat-value { margin-top: 3px; font-size: 18px; font-weight: 600; color: var(--ink); }
+  .stat-value small { font-size: 11.5px; font-weight: 400; color: var(--ink-3); margin-left: 6px; }
+  .stat-bar { margin-top: 6px; height: 6px; border-radius: 3px; background: var(--line-weak); overflow: hidden; }
+  .stat-bar i { display: block; height: 100%; width: 42%; background: var(--primary); border-radius: 3px; }
+
+  /* 标签 */
+  .tag { display: inline-block; font-size: 12px; line-height: 20px; padding: 0 8px; border-radius: 2px; white-space: nowrap; }
+  .tag--primary { background: var(--primary-l9); color: var(--primary); }
+  .tag--success { background: var(--success-bg); color: var(--success); }
+  .tag--warning { background: var(--warning-bg); color: var(--warning); }
+  .tag--danger  { background: var(--danger-bg);  color: var(--danger); }
+  .tag--info    { background: var(--info-bg);    color: var(--info); }
+  .tag--outline { background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); }
+
+  /* 按钮（Element Plus 语义） */
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #dcdfe6; background: var(--surface);
+         color: var(--ink-2); border-radius: 4px; padding: 7px 15px; font-size: 13px; cursor: pointer;
+         transition: color .12s ease, border-color .12s ease, background .12s ease; }
+  .btn:hover { color: var(--primary); border-color: var(--primary-l7); background: var(--primary-l9); }
+  .btn--primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn--primary:hover { background: var(--primary-l3); border-color: var(--primary-l3); color: #fff; }
+  .btn--sm { padding: 4px 11px; font-size: 12px; }
+  .btn:disabled { background: var(--surface); border-color: var(--line); color: #c0c4cc; cursor: not-allowed; }
+  .btn--primary:disabled { background: var(--primary-l5); border-color: var(--primary-l5); color: #fff; }
+
+  /* ===== 阶段推进轨（签名元素） ===== */
+  .rail-band { padding: 20px 20px 12px; }
+  .rail-scroll { overflow-x: auto; }
+  .rail { display: flex; align-items: flex-start; min-width: 960px; padding-bottom: 4px; }
+  .station { flex: 1 1 0; min-width: 0; background: none; border: none; cursor: pointer; text-align: center; padding: 0 4px; }
+  .st-dot-wrap { height: 18px; display: flex; align-items: center; justify-content: center; }
+  .st-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--line); border: 2px solid var(--line); }
+  .station.done .st-dot { background: var(--success); border-color: var(--success); }
+  .station.cur .st-dot { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-l8); }
+  .station.overdue .st-dot { background: var(--danger); border-color: var(--danger); box-shadow: 0 0 0 4px var(--danger-bg); }
+  .st-code { display: block; margin-top: 7px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .st-name { display: block; margin-top: 1px; font-size: 13px; color: var(--ink-2); position: relative; padding-bottom: 5px; }
+  .station:hover .st-name { color: var(--primary); }
+  .station.cur .st-name { color: var(--primary-dark); font-weight: 600; }
+  .station.cur .st-name::after { content: ""; position: absolute; left: 25%; right: 25%; bottom: 0; height: 2px; border-radius: 1px; background: var(--primary); }
+  .st-date { display: block; margin-top: 1px; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .st-over { display: inline-block; margin-top: 3px; font-size: 10.5px; line-height: 16px; padding: 0 6px; border-radius: 2px; background: var(--danger-bg); color: var(--danger); }
+  .st-done-at { display: inline-block; margin-top: 3px; font-size: 10.5px; line-height: 16px; padding: 0 6px; border-radius: 2px; background: var(--success-bg); color: var(--success); }
+
+  .gate-seg { flex: 0 0 64px; position: relative; height: 18px; margin-top: 4px; }
+  .gate-wire { position: absolute; top: 7px; left: -3px; right: -3px; border-top: 2px dashed #dcdfe6; }
+  .gate-seg.passed .gate-wire { border-top-style: solid; border-top-color: var(--primary); transform-origin: left center; animation: draw .5s ease both; }
+  @keyframes draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .gate-node { position: absolute; top: 2px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 10px; height: 10px;
+               background: var(--surface); border: 2px solid #c0c4cc; }
+  .gate-seg.passed .gate-node { background: var(--success); border-color: var(--success); }
+  .gate-seg.next .gate-node { border-color: var(--primary); }
+  .gate-label { position: absolute; top: 26px; left: -16px; right: -16px; font-size: 11px; color: var(--ink-3); text-align: center; line-height: 1.3; }
+  .rail-foot { margin-top: 36px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .rail-hint { font-size: 11.5px; color: var(--ink-3); }
+  .rail-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-3); align-items: center; }
+  .lg { display: inline-flex; align-items: center; gap: 5px; }
+  .lg i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .lg .lg-done { background: var(--success); }
+  .lg .lg-cur { background: var(--primary); }
+  .lg .lg-todo { background: var(--line); border: 1px solid #c0c4cc; }
+  .lg .lg-over { background: var(--danger); }
+  .lg .lg-gate { width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid #c0c4cc; background: var(--surface); border-radius: 1px; }
+  .lg .lg-gate-pass { background: var(--success); border-color: var(--success); }
+
+  /* ===== 模式切换（项目概览 / 阶段工作区） ===== */
+  .modebar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; flex-wrap: wrap; }
+  .mode-btn { padding: 6px 18px; border: 1px solid transparent; border-radius: 4px; background: none; font-size: 14px;
+              color: var(--ink-2); cursor: pointer; transition: background .12s ease, color .12s ease; }
+  .mode-btn:hover { color: var(--primary); }
+  .mode-btn.active { background: var(--primary); color: #fff; font-weight: 600; }
+  .mode-ctx { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+
+  /* ===== 项目概览：六页签 ===== */
+  .ov-tabs { display: flex; gap: 26px; border-bottom: 1px solid var(--line); padding: 0 20px; overflow-x: auto; }
+  .ov-tab { padding: 12px 2px; font-size: 14px; color: var(--ink); background: none; border: none; cursor: pointer; position: relative; white-space: nowrap; }
+  .ov-tab:hover { color: var(--primary); }
+  .ov-tab.active { color: var(--primary); font-weight: 600; }
+  .ov-tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--primary); }
+  .ov-panel { padding: 18px 20px; }
+  .ov-panel[hidden] { display: none; }
+  .ov-hint { font-size: 12px; color: var(--ink-3); margin-top: 12px; }
+
+  /* 描述列表（对应 el-descriptions） */
+  .desc { display: grid; grid-template-columns: 168px 1fr 168px 1fr; border-top: 1px solid var(--line-weak); }
+  .desc dt { padding: 9px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line-weak); font-size: 13px; color: var(--ink-3); }
+  .desc dd { padding: 9px 14px; border-bottom: 1px solid var(--line-weak); font-size: 13px; color: var(--ink); }
+  .desc dd.desc-wide { grid-column: 1 / -1; }
+
+  /* 表格（对应 el-table） */
+  .tbl-wrap { overflow-x: auto; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .tbl th { background: var(--surface-2); color: var(--ink-2); font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 8px 12px; border-bottom: 1px solid var(--line-weak); color: var(--ink); vertical-align: top; }
+  .tbl tbody tr:hover td { background: #f5f7fa; }
+  .td-sub { font-size: 12px; color: var(--ink-3); }
+  .lv1 { padding-left: 12px !important; }
+  .lv2 { padding-left: 40px !important; }
+  .lv3 { padding-left: 68px !important; }
+  .branch { color: #c0c4cc; margin-right: 6px; }
+
+  /* ===== 阶段工作区（v1：左导航 + 右工作台双栏） ===== */
+  .ws { display: grid; grid-template-columns: 280px minmax(0,1fr); align-items: stretch; }
+  .wtree { border-right: 1px solid var(--line-weak); background: #fbfcfe; padding: 14px 10px 18px; }
+  .wtree-cap { font-size: 12px; font-weight: 600; color: var(--ink-3); padding: 0 8px 8px; }
+  .stg-item { display: flex; align-items: center; gap: 8px; width: 100%; border: none; background: none; cursor: pointer;
+              text-align: left; padding: 7px 10px; border-radius: 4px; font-size: 13px; color: var(--ink-2); }
+  .stg-item:hover { background: var(--primary-l9); color: var(--primary-dark); }
+  .stg-item.active { background: var(--primary-l9); color: var(--primary-dark); font-weight: 600; }
+  .stg-item .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--line); border: 1px solid #c0c4cc; }
+  .stg-item .dot.done { background: var(--success); border-color: var(--success); }
+  .stg-item .dot.cur { background: var(--primary); border-color: var(--primary); }
+  .stg-item .dot.over { background: var(--danger); border-color: var(--danger); }
+  .stg-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stg-prog { font-size: 11px; color: var(--ink-3); flex: none; font-variant-numeric: tabular-nums; }
+  .stg-caret { width: 14px; flex: none; font-size: 10px; color: var(--ink-3); border: none; background: none; cursor: pointer; }
+  .tk { display: flex; align-items: center; gap: 8px; width: 100%; border: none; background: none; cursor: pointer; text-align: left;
+        padding: 5px 10px 5px 34px; font-size: 12.5px; color: var(--ink-2); border-radius: 4px; }
+  .tk:hover { background: var(--primary-l9); }
+  .tk.active { background: var(--primary-l9); color: var(--primary-dark); font-weight: 600; }
+  .tk .code { font-size: 11px; color: var(--ink-3); flex: none; }
+  .tk .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--line); border: 1px solid #c0c4cc; }
+  .tk .dot.done { background: var(--success); border-color: var(--success); }
+  .tk .dot.run { background: var(--primary); border-color: var(--primary); }
+  .tk-owner { margin-left: auto; font-size: 11px; color: var(--ink-3); flex: none; }
+  .tk-sub { padding-left: 58px; }
+  [hidden] { display: none !important; }
+
+  .wb { padding: 16px 20px 20px; min-width: 0; }
+  .wb-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start;
+             padding-bottom: 14px; border-bottom: 1px solid var(--line-weak); }
+  .wb-stagecode { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--primary-dark);
+                  background: var(--primary-l9); border: 1px solid var(--primary-l8); border-radius: 4px; padding: 3px 10px; line-height: 1.3; }
+  .wb-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .wb-name { font-size: 16px; font-weight: 600; }
+  .wb-meta { display: flex; flex-wrap: wrap; margin-top: 7px; font-size: 12.5px; color: var(--ink-2); }
+  .wb-meta span { padding: 0 12px; border-left: 1px solid var(--line-weak); line-height: 1.6; }
+  .wb-meta span:first-child { padding-left: 0; border-left: none; }
+  .wb-meta b { color: var(--ink); font-weight: 600; }
+  .wb-side { text-align: right; font-size: 12.5px; color: var(--ink-2); }
+  .wb-side b { color: var(--ink); }
+
+  .wb-sec { margin-top: 20px; }
+  .wb-sec h3 { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+  .wb-sec h3 small { font-size: 11.5px; font-weight: 400; color: var(--ink-3); margin-left: 8px; }
+
+  .kv { display: grid; grid-template-columns: 96px 1fr 96px 1fr; font-size: 13px; }
+  .kv dt { padding: 7px 0; color: var(--ink-3); }
+  .kv dd { padding: 7px 0; color: var(--ink); }
+  .kv dd .ok { color: var(--success); font-weight: 600; }
+  .kv dd .no { color: var(--danger); font-weight: 600; }
+
+  .mini-list { font-size: 13px; }
+  .mini-list li { list-style: none; padding: 7px 0; border-bottom: 1px dashed var(--line-weak); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .mini-list li:last-child { border-bottom: none; }
+  .mini-list .grow { flex: 1; min-width: 160px; }
+
+  /* 执行区 */
+  .exec { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .exec-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface-2);
+               padding: 9px 14px; border-bottom: 1px solid var(--line-weak); }
+  .exec-body { padding: 12px 14px 14px; }
+  .exec-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  .exec-note { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
+
+  /* 门禁卡（重建块：工作区内嵌宽表，v2 起被右栏紧凑卡替代） */
+  .gate-card { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .gate-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+               padding: 9px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line-weak); font-size: 13px; }
+  .gate-target { padding: 8px 14px; font-size: 12.5px; color: var(--ink-2); border-bottom: 1px dashed var(--line-weak); }
+  .gate-target b { color: var(--ink); }
+  .ref-list { font-size: 12.5px; }
+  .ref-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line-weak); flex-wrap: wrap; }
+  .ref-no { flex: none; width: 18px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .ref-type { flex: none; padding: 0 6px; border-radius: 2px; font-size: 11px; line-height: 18px; }
+  .ref-type--task { background: var(--primary-l9); color: var(--primary-dark); }
+  .ref-type--milestone { background: var(--warning-bg); color: var(--warning); }
+  .ref-type--deliverable { background: #e8f3fd; color: #2f7bbf; }
+  .ref-type--process { background: #f1eafc; color: #7c5cd6; }
+  .ref-obj { flex: 1; min-width: 180px; color: var(--ink); }
+  .ref-obj small { font-size: 11px; color: var(--ink-3); margin-left: 4px; }
+  .ref-status { flex: none; width: 88px; color: var(--ink-2); }
+  .ref-outcome { flex: none; width: 76px; }
+  .ref-act { flex: none; width: 128px; text-align: right; }
+  .ref-defhint { flex-basis: 100%; font-size: 11.5px; color: var(--ink-3); background: #fbfcfe; padding: 6px 10px; border-radius: 3px; margin: 2px 0; }
+  .gate-sum { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+              padding: 10px 14px; background: #fbfcfe; border-top: 1px solid var(--line-weak); font-size: 12.5px; }
+  .gate-sum-txt b.no { color: var(--danger); }
+  .gate-advance { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .gate-warn { font-size: 11.5px; color: var(--ink-3); }
+  .spec-entry { margin-top: 12px; border: 1px dashed var(--warning); background: var(--warning-bg);
+                border-radius: 4px; padding: 10px 12px; font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  /* 空态/锁定态 */
+  .wb-empty { border: 1px dashed var(--line); border-radius: 4px; padding: 26px 18px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .wb-empty b { display: block; font-size: 14px; color: var(--ink-2); margin-bottom: 6px; }
+
+  /* 设计说明脚注 */
+  .notes { padding: 18px 20px 22px; }
+  .notes h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .notes h3 { font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 16px 0 8px; }
+  .notes p, .notes li { font-size: 12.5px; color: var(--ink-2); }
+  .notes ul { padding-left: 18px; }
+  .notes li { margin: 3px 0; }
+  .notes .code { font-size: 11.5px; }
+
+
+  /* ===== 响应式（重建块：按 v1 双栏结构适配） ===== */
+  @media (max-width: 1280px) {
+    .gate-seg { flex-basis: 52px; }
+    .ws { grid-template-columns: 240px minmax(0,1fr); }
+    .desc { grid-template-columns: 150px 1fr 150px 1fr; }
+  }
+  @media (max-width: 1024px) {
+    .ws { display: block; }
+    .wtree { border-right: none; border-bottom: 1px solid var(--line-weak); max-height: 240px; overflow: auto; }
+    .desc { grid-template-columns: 140px 1fr; }
+    .kv { grid-template-columns: 96px 1fr; }
+    .phead-stats { flex-wrap: wrap; row-gap: 12px; }
+    .stat { flex: 1 1 42%; border-left: none; padding: 0; }
+  }
+  @media (max-width: 768px) {
+    .wrap { padding: 12px 12px 40px; }
+    .phead { padding: 14px; }
+    .desc { grid-template-columns: 110px 1fr; }
+    .desc dt, .desc dd { padding-top: 7px; padding-bottom: 7px; }
+    .ov-panel { padding: 14px; }
+    .wb { padding: 14px; }
+    .wb-side { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mnote">
+    <span class="tag tag--outline">设计过程稿 · 非正式基线</span>
+    目标页面：<b>项目详情（项目概览 + 阶段工作区）</b>，宿主 <b>yudao-ui-admin-vue3 + Element Plus</b>。依据：F-PROJ-007 §6、F-PROJ-008 §7、PRD v1.8 §3.1 与 §4.2.9（PM-11）、PM-02。
+    可交互：模式切换、阶段节点、概览页签、任务选择。相对同日前稿（stage-design / stage-design-v2 / full-design）：改为规格对齐的六页签+工作区结构，弃用米色纸感主题，改用 EP 主题语言。
+    【重建稿】原 v1 文件在 v2 修订时被就地覆盖且当时无版本留存，未能恢复；本文件由留存的逐字正文/脚本片段与轨道·门禁原版 CSS 重建（重建块已在 CSS 注释标明），非原始文件。
+  </div>
+
+  <div class="crumbs">项目管理 / 项目列表 / <b>核心机房网络割接实施</b></div>
+
+  <!-- ===== 项目身份头 ===== -->
+  <section class="band">
+    <div class="phead">
+      <div class="phead-row1">
+        <div>
+          <div class="phead-title">
+            <span class="tag tag--primary">进行中</span>
+            <span class="phead-name">北京华盛 · 核心机房网络割接实施</span>
+            <span class="tag tag--warning">重大项目</span>
+            <span class="tag tag--outline">网络集成实施</span>
+          </div>
+          <div class="phead-sub">
+            <span>项目编码 <b class="code">NP-2026-0148-02</b></span>
+            <span>主项目 <b>北京华盛金融核心网络集成</b></span>
+            <span>客户 <b>北京华盛集团</b></span>
+            <span>项目经理 <b>王磊</b></span>
+          </div>
+        </div>
+        <div class="phead-actions">
+          <button class="btn">切换项目</button>
+          <button class="btn btn--primary">编辑项目</button>
+          <button class="btn">更多</button>
+        </div>
+      </div>
+      <div class="phead-stats">
+        <div class="stat">
+          <div class="stat-label">总体进度</div>
+          <div class="stat-value num">42%<small>按冻结工时口径</small></div>
+          <div class="stat-bar"><i></i></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">当前阶段</div>
+          <div class="stat-value">S2 施工计划 <span class="tag tag--danger">超期 5 天</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">项目任务</div>
+          <div class="stat-value num">12 / 28 <small>已完成</small></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">未关闭风险</div>
+          <div class="stat-value num">3 <small>项，其中高 1 项</small></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">交付模板</div>
+          <div class="stat-value">网络集成实施 v3 <small>已冻结</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 阶段推进轨（一级导航 + 门禁检查点） ===== -->
+  <section class="band rail-band">
+    <div class="rail-scroll">
+      <div class="rail" role="tablist" aria-label="项目阶段">
+        <button class="station done" data-stage="S0">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S0</span><span class="st-name">立项与指派</span>
+          <span class="st-date num">07-01 ~ 07-18</span><span class="st-done-at">07-18 完成</span>
+        </button>
+        <div class="gate-seg passed"><i class="gate-wire"></i><i class="gate-node"></i></div>
+        <button class="station done" data-stage="S1">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S1</span><span class="st-name">工前准备</span>
+          <span class="st-date num">07-21 ~ 08-24</span><span class="st-done-at">08-24 完成</span>
+        </button>
+        <div class="gate-seg passed"><i class="gate-wire"></i><i class="gate-node"></i></div>
+        <button class="station cur overdue" data-stage="S2">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S2</span><span class="st-name">施工计划</span>
+          <span class="st-date num">08-25 ~ 09-10</span><span class="st-over">超期 5 天</span>
+        </button>
+        <div class="gate-seg next"><i class="gate-wire"></i><i class="gate-node"></i><span class="gate-label">计划审批</span></div>
+        <button class="station" data-stage="S3">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S3</span><span class="st-name">实施方案编审</span>
+          <span class="st-date num">计划 09-11 起</span>
+        </button>
+        <div class="gate-seg"><i class="gate-wire"></i><i class="gate-node"></i><span class="gate-label">方案审核</span></div>
+        <button class="station" data-stage="S4">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S4</span><span class="st-name">实施部署</span>
+          <span class="st-date">待排期</span>
+        </button>
+        <div class="gate-seg"><i class="gate-wire"></i><i class="gate-node"></i><span class="gate-label">割接门禁</span></div>
+        <button class="station" data-stage="S5">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S5</span><span class="st-name">验收交维</span>
+          <span class="st-date">待排期</span>
+        </button>
+        <div class="gate-seg"><i class="gate-wire"></i><i class="gate-node"></i></div>
+        <button class="station" data-stage="S6">
+          <span class="st-dot-wrap"><i class="st-dot"></i></span>
+          <span class="st-code">S6</span><span class="st-name">项目闭环</span>
+          <span class="st-date">待排期</span>
+        </button>
+        <div class="gate-seg"><i class="gate-wire"></i><i class="gate-node"></i><span class="gate-label">闭环审核</span></div>
+        <span class="st-dot-wrap" style="flex:0 0 22px" aria-hidden="true"><i class="st-dot" style="width:8px;height:8px;background:var(--line);border-color:#c0c4cc"></i></span>
+      </div>
+    </div>
+    <div class="rail-foot">
+      <span class="rail-hint">阶段推进目标由冻结模板图唯一解析（PRD §3.1.8 控制点：计划审批、方案审核、割接门禁、闭环审核）；阶段超期在列表、详情、任务同步标红。</span>
+      <span class="rail-legend">
+        <span class="lg"><i class="lg-done"></i>已完成</span>
+        <span class="lg"><i class="lg-cur"></i>进行中</span>
+        <span class="lg"><i class="lg-over"></i>超期</span>
+        <span class="lg"><i class="lg-todo"></i>未开始</span>
+        <span class="lg"><i class="lg-gate lg-gate-pass"></i>门禁已通过</span>
+        <span class="lg"><i class="lg-gate"></i>门禁待评估</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- ===== 模式切换 ===== -->
+  <section class="band modebar">
+    <button class="mode-btn active" id="mode-overview">项目概览</button>
+    <button class="mode-btn" id="mode-workspace">阶段工作区</button>
+    <span class="mode-ctx" id="mode-ctx">项目级信息入口，独立于阶段导航（规则 14）</span>
+  </section>
+
+  <!-- ===== 项目概览：六页签（F-PROJ-007 §6） ===== -->
+  <section class="band" id="band-overview">
+    <div class="ov-tabs" role="tablist" aria-label="项目概览页签">
+      <button class="ov-tab active" data-ov="base" role="tab" aria-selected="true">基本信息</button>
+      <button class="ov-tab" data-ov="tree" role="tab" aria-selected="false">项目树</button>
+      <button class="ov-tab" data-ov="team" role="tab" aria-selected="false">团队成员</button>
+      <button class="ov-tab" data-ov="tasks" role="tab" aria-selected="false">项目任务</button>
+      <button class="ov-tab" data-ov="equipment" role="tab" aria-selected="false">设备清单</button>
+      <button class="ov-tab" data-ov="scope" role="tab" aria-selected="false">实施范围</button>
+    </div>
+
+    <div class="ov-panel" data-panel="base">
+      <dl class="desc">
+        <dt>项目名称</dt><dd>北京华盛 · 核心机房网络割接实施</dd>
+        <dt>项目编码</dt><dd class="code">NP-2026-0148-02</dd>
+        <dt>项目类型</dt><dd>网络集成实施</dd>
+        <dt>所属主项目</dt><dd>北京华盛金融核心网络集成（NP-2026-0148）</dd>
+        <dt>客户</dt><dd>北京华盛集团</dd>
+        <dt>交付模板</dt><dd>网络集成实施模板 v3（冻结快照）</dd>
+        <dt>服务经理</dt><dd>陈静</dd>
+        <dt>项目经理</dt><dd>王磊</dd>
+        <dt>计划周期</dt><dd class="num">2026-07-01 ~ 2026-12-20</dd>
+        <dt>当前阶段</dt><dd>S2 施工计划（<span class="tag tag--danger">超期 5 天</span>）</dd>
+        <dt>创建时间</dt><dd class="num">2026-07-01 08:00</dd>
+        <dt>项目状态</dt><dd><span class="tag tag--primary">进行中</span></dd>
+        <dt>项目描述</dt><dd class="desc-wide">对北京华盛数据中心核心机房现有网络进行升级改造并完成割接，覆盖核心交换、接入汇聚与安全边界，割接窗口安排在业务低峰时段，完成后进入验收交维。</dd>
+      </dl>
+    </div>
+
+    <div class="ov-panel" data-panel="tree" hidden>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>项目</th><th>状态</th><th>当前阶段</th><th>进度</th><th>项目经理</th><th>计划周期</th></tr></thead>
+          <tbody>
+            <tr><td class="lv1"><span class="tag tag--outline">主项目</span> 北京华盛金融核心网络集成 <span class="code">NP-2026-0148</span></td><td><span class="tag tag--primary">进行中</span></td><td>S3 实施方案编审</td><td class="num">38%</td><td>王磊</td><td class="num">2026-07-01 ~ 2026-12-20</td></tr>
+            <tr><td class="lv2"><span class="branch">├</span><span class="tag tag--primary">本项目</span> 核心机房网络割接实施 <span class="code">NP-2026-0148-02</span></td><td><span class="tag tag--primary">进行中</span></td><td>S2 施工计划 <span class="tag tag--danger">超期</span></td><td class="num">42%</td><td>王磊</td><td class="num">2026-07-01 ~ 2026-12-20</td></tr>
+            <tr><td class="lv2"><span class="branch">├</span>分支行接入改造 <span class="code">NP-2026-0148-03</span></td><td><span class="tag tag--primary">进行中</span></td><td>S1 工前准备</td><td class="num">21%</td><td>刘成</td><td class="num">2026-08-01 ~ 2026-11-30</td></tr>
+            <tr><td class="lv2"><span class="branch">└</span>灾备线路扩容 <span class="code">NP-2026-0148-04</span></td><td><span class="tag tag--info">未开始</span></td><td>S0 立项与指派</td><td class="num">5%</td><td>刘成</td><td class="num">2026-09-15 ~ 2026-12-20</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ov-hint">主子项目为独立父子树模型；主项目详情页汇总各子项目进度与整体进度（PM-02）。</p>
+    </div>
+
+    <div class="ov-panel" data-panel="team" hidden>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>成员</th><th>项目角色</th><th>责任范围</th><th>责任区间</th><th>联系方式</th></tr></thead>
+          <tbody>
+            <tr><td>王磊</td><td><span class="tag tag--primary">项目经理</span></td><td>项目整体推进、阶段门禁与交付</td><td class="num">2026-07-01 至今</td><td>139****0148</td></tr>
+            <tr><td>陈静</td><td><span class="tag tag--success">服务经理</span></td><td>跨区域责任协调（MANAGE 范围内）</td><td class="num">2026-07-01 至今</td><td>137****2201</td></tr>
+            <tr><td>李明</td><td><span class="tag tag--info">实施工程师</span></td><td>核心机房现场实施、资源计划</td><td class="num">2026-07-15 至今</td><td>150****3320</td></tr>
+            <tr><td>张倩</td><td><span class="tag tag--info">实施工程师</span></td><td>施工计划编制、文档交付</td><td class="num">2026-07-15 至今</td><td>186****8842</td></tr>
+            <tr><td>赵强</td><td><span class="tag tag--info">实施工程师</span></td><td>备份支持（割接窗口值班）</td><td class="num">2026-09-01 至今</td><td>131****9077</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ov-panel" data-panel="tasks" hidden>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>阶段</th><th>任务（按需展开，任意深度）</th><th>状态</th><th>负责人</th><th>计划时间</th><th>进度</th></tr></thead>
+          <tbody>
+            <tr><td class="code">S1</td><td class="lv1">现场工勘 <span class="code">TASK-121-01</span></td><td><span class="tag tag--success">已完成</span></td><td>李明</td><td class="num">07-21 ~ 07-28</td><td class="num">100%</td></tr>
+            <tr><td class="code">S1</td><td class="lv2"><span class="branch">└</span>交底确认 <span class="code">TASK-121-02</span></td><td><span class="tag tag--success">已完成</span></td><td>王磊</td><td class="num">07-29 ~ 08-02</td><td class="num">100%</td></tr>
+            <tr><td class="code">S2</td><td class="lv1">施工计划编制 <span class="code">TASK-204-01</span></td><td><span class="tag tag--success">已完成</span></td><td>张倩</td><td class="num">08-25 ~ 08-30</td><td class="num">100%</td></tr>
+            <tr><td class="code">S2</td><td class="lv2"><span class="branch">└</span>资源清单核对 <span class="code">TASK-204-01-01</span></td><td><span class="tag tag--success">已完成</span></td><td>张倩</td><td class="num">08-28 ~ 08-30</td><td class="num">100%</td></tr>
+            <tr><td class="code">S2</td><td class="lv1">资源计划确认 <span class="code">TASK-204-02</span></td><td><span class="tag tag--primary">进行中</span></td><td>李明</td><td class="num">09-01 ~ 09-08</td><td class="num">65%</td></tr>
+            <tr><td class="code">S2</td><td class="lv1">工期倒排确认 <span class="code">TASK-204-03</span></td><td><span class="tag tag--info">待指派</span></td><td>未指派</td><td class="num">09-05 ~ 09-09</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ov-hint">任务以 <span class="code">proj_project_task</span> 为唯一当前真值；执行、指派与状态流转在「阶段工作区」进行，旧 V1.7「任务WBS」入口已退役（F-PROJ-007）。</p>
+    </div>
+
+    <div class="ov-panel" data-panel="equipment" hidden>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>名称</th><th>规格</th><th>数量</th><th>来源</th><th>到货状态</th><th>安装状态</th></tr></thead>
+          <tbody>
+            <tr><td>标准机柜</td><td>42U</td><td class="num">4 台</td><td class="code">SURVEY-001 工勘</td><td><span class="tag tag--success">已到货</span></td><td><span class="tag tag--primary">安装中</span></td></tr>
+            <tr><td>接入交换机</td><td>24口千兆</td><td class="num">8 台</td><td class="code">SURVEY-001 工勘</td><td><span class="tag tag--success">已到货</span></td><td><span class="tag tag--info">待安装</span></td></tr>
+            <tr><td>单模光纤</td><td>12 芯</td><td class="num">1 批</td><td class="code">SURVEY-001 工勘</td><td><span class="tag tag--warning">部分到货</span></td><td><span class="tag tag--info">待安装</span></td></tr>
+            <tr><td>光模块</td><td>万兆单模</td><td class="num">12 个</td><td class="code">SURVEY-001 工勘</td><td><span class="tag tag--warning">部分到货</span></td><td><span class="tag tag--info">待安装</span></td></tr>
+            <tr><td>六类网线</td><td>305 米/箱</td><td class="num">1 箱</td><td class="code">SURVEY-001 工勘</td><td><span class="tag tag--success">已到货</span></td><td><span class="tag tag--primary">安装中</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ov-hint">【待确认】设备清单字段与状态值域以设备清单所属 Feature Spec 为准，本页签为占位结构。</p>
+    </div>
+
+    <div class="ov-panel" data-panel="scope" hidden>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>范围项</th><th>内容</th><th>确认状态</th></tr></thead>
+          <tbody>
+            <tr><td>站点范围</td><td>北京华盛数据中心 A1 机房（3 层，42U 机柜 ×4，双路市电 + UPS）</td><td><span class="tag tag--success">已确认</span></td></tr>
+            <tr><td>网络范围</td><td>核心交换、接入汇聚、安全边界策略调整</td><td><span class="tag tag--success">已确认</span></td></tr>
+            <tr><td>割接窗口</td><td>业务低峰时段（与客户运维约定，P1~P6 割接计划内）</td><td><span class="tag tag--warning">待确认</span></td></tr>
+            <tr><td>排除事项</td><td>灾备线路扩容由兄弟项目 NP-2026-0148-04 承接</td><td><span class="tag tag--success">已确认</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ov-hint">【待确认】实施范围的数据结构与确认流程以对应 Feature Spec 为准，本页签为占位结构。</p>
+    </div>
+  </section>
+
+  <!-- ===== 阶段工作区（F-PROJ-007 §6 / F-PROJ-008 §7 / PRD §4.2.9） ===== -->
+  <section class="band" id="band-workspace" hidden>
+    <div class="ws">
+      <!-- 左：Stage 一级导航 + 任务树按需展开 -->
+      <aside class="wtree" aria-label="阶段与任务导航">
+        <div class="wtree-cap">阶段导航（Stage 一级 · 任务树按需展开）</div>
+        <button class="stg-item" data-stage="S0"><i class="stg-caret" data-caret aria-hidden="true">▸</i><i class="dot done"></i><span class="stg-name">S0 立项与指派</span><span class="stg-prog">100%</span></button>
+        <div class="tk-list" data-children="S0" hidden>
+          <button class="tk" data-task="t-arch"><span class="code">TASK-011-01</span><i class="dot done"></i>立项资料归档<span class="tk-owner">王磊</span></button>
+          <button class="tk" data-task="t-assign"><span class="code">TASK-011-02</span><i class="dot done"></i>项目经理指派<span class="tk-owner">系统</span></button>
+        </div>
+        <button class="stg-item" data-stage="S1"><i class="stg-caret" data-caret aria-hidden="true">▸</i><i class="dot done"></i><span class="stg-name">S1 工前准备</span><span class="stg-prog">100%</span></button>
+        <div class="tk-list" data-children="S1" hidden>
+          <button class="tk" data-task="t-survey"><span class="code">TASK-121-01</span><i class="dot done"></i>现场工勘<span class="tk-owner">李明</span></button>
+          <button class="tk" data-task="t-brief"><span class="code">TASK-121-02</span><i class="dot done"></i>交底确认<span class="tk-owner">王磊</span></button>
+        </div>
+        <button class="stg-item active" data-stage="S2"><i class="stg-caret" data-caret aria-hidden="true">▾</i><i class="dot over"></i><span class="stg-name">S2 施工计划</span><span class="stg-prog">42%</span></button>
+        <div class="tk-list" data-children="S2">
+          <button class="tk" data-task="t-plan"><span class="code">TASK-204-01</span><i class="dot done"></i>施工计划编制<span class="tk-owner">张倩</span></button>
+          <button class="tk tk-sub" data-task="t-check"><span class="code">…01-01</span><i class="dot done"></i>资源清单核对<span class="tk-owner">张倩</span></button>
+          <button class="tk active" data-task="t-res"><span class="code">TASK-204-02</span><i class="dot run"></i>资源计划确认<span class="tk-owner">李明</span></button>
+          <button class="tk" data-task="t-sched"><span class="code">TASK-204-03</span><i class="dot"></i>工期倒排确认<span class="tk-owner">未指派</span></button>
+        </div>
+        <button class="stg-item" data-stage="S3"></i><i class="dot"></i><span class="stg-name">S3 实施方案编审</span><span class="stg-prog">—</span></button>
+        <button class="stg-item" data-stage="S4"></i><i class="dot"></i><span class="stg-name">S4 实施部署</span><span class="stg-prog">—</span></button>
+        <button class="stg-item" data-stage="S5"></i><i class="dot"></i><span class="stg-name">S5 验收交维</span><span class="stg-prog">—</span></button>
+        <button class="stg-item" data-stage="S6"></i><i class="dot"></i><span class="stg-name">S6 项目闭环</span><span class="stg-prog">—</span></button>
+      </aside>
+
+      <!-- 右：阶段工作台 -->
+      <div class="wb">
+        <!-- 变体：S2 进行中（默认） -->
+        <div data-wb="S2">
+          <div class="wb-head">
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <span class="wb-stagecode">S2</span>
+              <div>
+                <div class="wb-title-row">
+                  <span class="wb-name">施工计划</span>
+                  <span class="tag tag--primary">进行中</span>
+                  <span class="tag tag--danger">超期 5 天</span>
+                </div>
+                <div class="wb-meta">
+                  <span>计划 <b class="num">08-25 ~ 09-10</b></span>
+                  <span>进度 <b class="num">42%</b></span>
+                  <span>任务 <b class="num">2 / 3</b> 已完成</span>
+                </div>
+              </div>
+            </div>
+            <div class="wb-side">阶段负责人 <b>王磊</b><br><small class="td-sub">由冻结模板阶段定义生成</small></div>
+          </div>
+
+          <div class="wb-sec">
+            <h3>阶段通用信息</h3>
+            <dl class="kv">
+              <dt>前置阶段</dt><dd><span class="ok">✓</span> S1 工前准备（08-24 已过出口门禁）</dd>
+              <dt>后继阶段</dt><dd>S3 实施方案编审（目标由冻结图解析）</dd>
+              <dt>准入条件</dt><dd><span class="ok">✓</span> 全部满足（模板定义 3 项）</dd>
+              <dt>出口门禁</dt><dd><span class="no">✗</span> 未全部满足，暂不可推进</dd>
+            </dl>
+            <ul class="mini-list" style="margin-top:8px">
+              <li><span class="tag tag--outline">阶段交付件</span><span class="grow">施工计划文档（要求：<b>ACCEPTED</b>，由 ACC 交付件统一 Provider 锁定重验）</span><span class="tag tag--danger">待提交</span></li>
+            </ul>
+          </div>
+
+          <div class="wb-sec">
+            <h3>执行区 <small>WorkBinding：TASK_NATIVE 直接显示通用执行表单；非原生绑定按受信任注册结果装载，未注册时失败关闭</small></h3>
+            <div class="exec">
+              <div class="exec-head">
+                <span class="code" id="exec-code">TASK-204-02</span>
+                <b id="exec-name">资源计划确认</b>
+                <span class="tag tag--primary" id="exec-status">进行中</span>
+                <span class="td-sub" style="margin-left:auto" id="exec-owner">负责人 李明</span>
+              </div>
+              <div class="exec-body">
+                <dl class="kv" id="exec-kv">
+                  <dt>当前状态</dt><dd>IN_PROGRESS（核心状态机）</dd>
+                  <dt>计划时间</dt><dd class="num">09-01 ~ 09-08（已超期）</dd>
+                  <dt>实际开始</dt><dd class="num">09-01 09:12</dd>
+                  <dt>进度</dt><dd class="num">65%</dd>
+                  <dt>前置依赖</dt><dd>TASK-204-01 施工计划编制（FINISH_TO_START，已完成）</dd>
+                  <dt>完成规则</dt><dd>冻结完成规则 v1（任务 DONE 判定）</dd>
+                </dl>
+                <div class="exec-actions">
+                  <button class="btn" disabled>指派</button>
+                  <button class="btn" disabled>开始</button>
+                  <button class="btn btn--primary">提交验收</button>
+                  <button class="btn" disabled>完成</button>
+                  <button class="btn">移动</button>
+                  <button class="btn">编辑</button>
+                </div>
+                <p class="exec-note">动作由任务状态机与数据范围共同开放；完成判定按冻结规则追加事实，通知送达不等于业务完成。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="wb-sec">
+            <h3>出口门禁与推进 <small>展示冻结图解析目标与有序 Reference 结果；前端状态不作授权真值</small></h3>
+            <div class="gate-card">
+              <div class="gate-head">
+                <b>出口门禁（模板 G-S2-EXIT）</b>
+                <span class="td-sub">模板快照：网络集成实施 v3 · 冻结</span>
+              </div>
+              <div class="gate-target">推进目标：<b>S3 实施方案编审</b>（目标来自冻结阶段图，不按 S 编号递增推导）</div>
+              <div class="ref-list">
+                <div class="ref-row">
+                  <span class="ref-no">1</span><span class="ref-type ref-type--task">TASK</span>
+                  <span class="ref-obj">施工计划编制 <small class="code">TASK-204-01</small></span>
+                  <span class="ref-status">DONE</span><span class="ref-outcome"><span class="tag tag--success">满足</span></span><span class="ref-act"></span>
+                </div>
+                <div class="ref-row">
+                  <span class="ref-no">2</span><span class="ref-type ref-type--task">TASK</span>
+                  <span class="ref-obj">资源计划确认 <small class="code">TASK-204-02</small></span>
+                  <span class="ref-status">IN_PROGRESS</span><span class="ref-outcome"><span class="tag tag--danger">未满足</span></span><span class="ref-act"></span>
+                </div>
+                <div class="ref-row">
+                  <span class="ref-no">3</span><span class="ref-type ref-type--milestone">MILESTONE</span>
+                  <span class="ref-obj">资源计划冻结 <small class="code">MS-204-01</small></span>
+                  <span class="ref-status">未达成</span><span class="ref-outcome"><span class="tag tag--danger">未满足</span></span><span class="ref-act"></span>
+                </div>
+                <div class="ref-row">
+                  <span class="ref-no">4</span><span class="ref-type ref-type--deliverable">DELIVERABLE</span>
+                  <span class="ref-obj">施工计划文档 <small>ACC 交付件根，锁定重验</small></span>
+                  <span class="ref-status">待提交</span><span class="ref-outcome"><span class="tag tag--danger">未满足</span></span><span class="ref-act"></span>
+                </div>
+                <div class="ref-row">
+                  <span class="ref-no">5</span><span class="ref-type ref-type--process">PROCESS</span>
+                  <span class="ref-obj">计划审批 <small class="code">pms-gate-s2-plan-approval</small></span>
+                  <span class="ref-status">未启动</span><span class="ref-outcome"><span class="tag tag--danger">未满足</span></span>
+                  <span class="ref-act">
+                    <button class="btn btn--primary btn--sm">发起审批</button>
+                  </span>
+                  <span class="ref-defhint" style="flex-basis:100%">项目经理可见：默认使用最新生效流程定义，也可从当前门禁可选列表选择历史定义（If-Match + Idempotency-Key 提交）。</span>
+                </div>
+              </div>
+              <div class="gate-sum">
+                <span class="gate-sum-txt">readiness 摘要：满足 <b class="num">1 / 5</b>；业务未满足 <b class="no num">4</b> 项（含未启动流程 1 项）；依赖不可判定 <b class="num">0</b> 项</span>
+                <span class="gate-advance">
+                  <button class="btn btn--primary" disabled>推进至 S3 实施方案编审</button>
+                  <span class="gate-warn">存在未满足 Reference，推进按钮保持禁用；点击后服务端仍会锁定重验。</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="wb-sec">
+            <h3>阶段历史</h3>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>时间</th><th>阶段变更</th><th>门禁结论</th><th>快照 / 操作人</th></tr></thead>
+                <tbody>
+                  <tr><td class="num">2026-08-24 14:32</td><td>S1 工前准备 → S2 施工计划</td><td><span class="tag tag--success">全部满足</span></td><td>快照 #217 · 王磊</td></tr>
+                  <tr><td class="num">2026-08-02 09:10</td><td>S0 立项与指派 → S1 工前准备</td><td><span class="tag tag--success">全部满足</span></td><td>快照 #176 · 王磊</td></tr>
+                  <tr><td class="num">2026-07-01 08:00</td><td>项目创建，激活 S0</td><td>模板 v3 实例化</td><td>快照 #001 · 系统</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+  <!-- 变体：S4 实施部署（专用入口提示） -->
+  <div data-wb="S4" hidden>
+    <div class="wb-head">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <span class="wb-stagecode">S4</span>
+        <div>
+          <div class="wb-title-row"><span class="wb-name">实施部署</span><span class="tag tag--primary">进行中</span></div>
+          <div class="wb-meta"><span>计划 <b class="num">10-08 ~ 11-02</b></span><span>进度 <b class="num">71%</b></span></div>
+        </div>
+      </div>
+      <div class="wb-side">阶段负责人 <b>王磊</b></div>
+    </div>
+    <div class="wb-sec">
+      <h3>出口门禁与推进 <small>割接门禁（PRD §3.1.8 控制点）</small></h3>
+      <div class="gate-card">
+        <div class="gate-head"><b>出口门禁（模板 G-S4-EXIT · 割接门禁）</b><span class="td-sub">模板快照：网络集成实施 v3 · 冻结</span></div>
+        <div class="gate-target">推进目标：<b>S5 验收交维</b>（目标来自冻结阶段图）</div>
+        <div class="ref-list">
+          <div class="ref-row">
+            <span class="ref-no">1</span><span class="ref-type ref-type--task">TASK</span>
+            <span class="ref-obj">割接实施与验证 <small class="code">TASK-402-01</small></span>
+            <span class="ref-status">DONE</span><span class="ref-outcome"><span class="tag tag--success">满足</span></span><span class="ref-act"></span>
+          </div>
+          <div class="ref-row">
+            <span class="ref-no">2</span><span class="ref-type ref-type--deliverable">DELIVERABLE</span>
+            <span class="ref-obj">割接报告 <small>ACC 交付件根，锁定重验</small></span>
+            <span class="ref-status">ACCEPTED</span><span class="ref-outcome"><span class="tag tag--success">满足</span></span><span class="ref-act"></span>
+          </div>
+          <div class="ref-row">
+            <span class="ref-no">3</span><span class="ref-type ref-type--process">PROCESS</span>
+            <span class="ref-obj">割接门禁审批 <small class="code">pms-gate-s4-cutover</small></span>
+            <span class="ref-status">运行中</span><span class="ref-outcome"><span class="tag tag--warning">未满足</span></span>
+            <span class="ref-act"><button class="btn btn--sm">查看流程实例</button></span>
+          </div>
+        </div>
+        <div class="gate-sum">
+          <span class="gate-sum-txt">readiness 摘要：满足 <b class="num">2 / 3</b>；业务未满足 <b class="no num">1</b> 项；依赖不可判定 <b class="num">0</b> 项</span>
+          <span class="gate-advance"><span class="gate-warn">通用推进对 S4 明确拒绝，不触发、补建或反推验收范围绑定（AC-FPROJ008-006）。</span></span>
+        </div>
+      </div>
+      <div class="spec-entry">
+        <span>S4 推进使用专用入口（F-COM-001），割接门禁批准后开放：</span>
+        <button class="btn btn--primary" disabled>进入验收阶段</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 变体：已完成阶段（S0 / S1 共用） -->
+  <div data-wb="done" hidden>
+    <div class="wb-head">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <span class="wb-stagecode" style="color:var(--success);background:var(--success-bg);border-color:#e1f0d9">✓</span>
+        <div>
+          <div class="wb-title-row"><span class="wb-name" id="done-name">工前准备</span><span class="tag tag--success">已完成</span></div>
+          <div class="wb-meta"><span>完成于 <b class="num" id="done-date">2026-08-24</b></span><span>出口门禁 <b>全部满足</b></span></div>
+        </div>
+      </div>
+      <div class="wb-side"><button class="btn btn--sm">查看阶段快照</button></div>
+    </div>
+    <div class="wb-sec">
+      <div class="wb-empty">
+        <b>该阶段已完结</b>
+        阶段任务与门禁结果已固化进不可变快照；此处保留只读回看，历史快照不可覆盖。
+      </div>
+    </div>
+  </div>
+
+  <!-- 变体：未激活阶段（S3 / S5 / S6 共用） -->
+  <div data-wb="locked" hidden>
+    <div class="wb-head">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <span class="wb-stagecode" style="color:var(--ink-3);background:var(--info-bg);border-color:var(--line-weak)" id="lock-code">S3</span>
+        <div>
+          <div class="wb-title-row"><span class="wb-name" id="lock-name">实施方案编审</span><span class="tag tag--info">未激活</span></div>
+          <div class="wb-meta"><span>激活条件 <b>完成当前阶段出口门禁</b></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="wb-sec">
+      <div class="wb-empty">
+        <b>阶段尚未激活</b>
+        目标与门禁组合由冻结模板图定义；当前阶段的出口门禁全部满足后自动激活，不生成虚假阶段，也无需人工预建。
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+</section>
+
+  <!-- ===== 设计说明（过程稿脚注） ===== -->
+  <section class="band notes">
+    <h2>设计说明（过程稿 · 不作为正式基线）</h2>
+    <h3>规格映射</h3>
+    <ul>
+      <li><span class="code">F-PROJ-007 §6</span>：项目概览固定「基本信息、项目树、团队成员、项目任务、设备清单、实施范围」六页签；Stage 为一级导航、任务树按需展开、右侧工作台按受信任绑定装载；窄屏抽屉/分段切换（本稿以折叠区示意）。</li>
+      <li><span class="code">F-PROJ-008 §7</span>：当前 Stage 区域展示冻结图解析目标、EXIT Gate 与有序 Reference；PROCESS/APPROVAL 未启动时对有权项目经理显示「发起审批」，运行中显示流程实例入口；仅 readiness 全部满足且有权时显示推进按钮；S4 只保留「进入验收阶段」专用入口。</li>
+      <li><span class="code">PRD §3.1.8 / §4.2.9</span>：四个控制点标注于轨上门禁（计划审批、方案审核、割接门禁、闭环审核）；阶段工作台含通用信息、前后置关系、准入准出、阶段交付件与 WorkBinding 执行区；阶段超期在轨道同步标红。</li>
+      <li><span class="code">PM-02 / 规则14</span>：项目树页签呈现主子项目父子树与整体进度；概览为独立项目级入口，不混入阶段导航。</li>
+    </ul>
+    <h3>视觉与实现约定</h3>
+    <ul>
+      <li>视觉锚定宿主 Element Plus 主题（主色 <span class="code">#409eff</span>、标准状态色、4px 圆角、无阴影描边面板，对应 ContentWrap <span class="code">shadow="never"</span>），实现时使用主题变量，减少内联样式。</li>
+      <li>签名元素唯一：阶段推进轨（节点 + 门禁菱形 + 超期红标）；其余区块保持克制，装饰性编号、全大写字距标签、图标堆砌均不使用；等宽字体仅用于真实编码（阶段码、任务码、流程 key）。</li>
+      <li>组件映射：页签 <span class="code">el-tabs</span>；描述列表 <span class="code">el-descriptions</span>；导航树 <span class="code">el-tree</span>；表格 <span class="code">el-table</span>；门禁 Reference 列表可用 <span class="code">el-table</span> 或自定义列表；readiness 摘要 <span class="code">el-alert / el-progress</span>。</li>
+      <li>权限标注：编辑项目、发起审批、推进按钮均受功能权限与数据范围约束；前端禁用态仅为引导，授权以服务端重验为准。</li>
+      <li>响应式：≥1280 完整双栏；≤1024 左导航折叠为顶部滚动区（实现为抽屉/分段切换）；≤768 统计项换行、描述列表降列；阶段轨在窄屏内横向滚动，页面级无横向溢出。</li>
+    </ul>
+    <h3>【待确认】与示例数据边界</h3>
+    <ul>
+      <li>设备清单、实施范围两页签的字段与状态值域未在已读规格中定义，本稿为占位结构，以对应 Feature Spec 为准。</li>
+      <li>门禁 Reference 的排序、编号与文案以 readiness 接口返回为准（接口返回有序 Gate/Ref 结果）；示例数据（项目、人员、编码、日期）仅作演示，不代表真实数据。</li>
+      <li>非原生 WorkBinding 的失败关闭展示、租户扩展任务状态的展示样式，留待对应 Feature 落地时补充。</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var modeOv = document.getElementById('mode-overview');
+    var modeWs = document.getElementById('mode-workspace');
+    var bandOv = document.getElementById('band-overview');
+    var bandWs = document.getElementById('band-workspace');
+    var modeCtx = document.getElementById('mode-ctx');
+    var ctxOverview = '项目级信息入口，独立于阶段导航（规则 14）';
+    var ctxWorkspace = '当前阶段：S2 施工计划 · 导航仅由 ProjectStage 与 ProjectTask 实例投影';
+
+    function setMode(ws) {
+      modeOv.classList.toggle('active', !ws);
+      modeWs.classList.toggle('active', ws);
+      bandOv.hidden = ws;
+      bandWs.hidden = !ws;
+      modeCtx.textContent = ws ? ctxWorkspace : ctxOverview;
+      modeOv.setAttribute('aria-pressed', String(!ws));
+      modeWs.setAttribute('aria-pressed', String(ws));
+    }
+    modeOv.addEventListener('click', function () { setMode(false); });
+    modeWs.addEventListener('click', function () { setMode(true); });
+
+    // 概览六页签
+    var ovTabs = document.querySelectorAll('.ov-tab');
+    var ovPanels = document.querySelectorAll('.ov-panel');
+    ovTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        ovTabs.forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+        ovPanels.forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== tab.getAttribute('data-ov'); });
+      });
+    });
+
+    // 工作台变体切换（阶段轨 + 左导航共用）
+    var stations = document.querySelectorAll('.station');
+    var stgItems = document.querySelectorAll('.stg-item');
+    var wbVariants = document.querySelectorAll('[data-wb]');
+    var doneName = { S0: ['立项与指派', '2026-07-18'], S1: ['工前准备', '2026-08-24'] };
+    var lockName = { S3: ['S3', '实施方案编审'], S5: ['S5', '验收交维'], S6: ['S6', '项目闭环'] };
+
+    function showStage(code) {
+      wbVariants.forEach(function (v) { v.hidden = true; });
+      var target;
+      if (code === 'S2' || code === 'S4') {
+        target = document.querySelector('[data-wb="' + code + '"]');
+      } else if (doneName[code]) {
+        target = document.querySelector('[data-wb="done"]');
+        document.getElementById('done-name').textContent = doneName[code][0];
+        document.getElementById('done-date').textContent = doneName[code][1];
+      } else if (lockName[code]) {
+        target = document.querySelector('[data-wb="locked"]');
+        document.getElementById('lock-code').textContent = lockName[code][0];
+        document.getElementById('lock-name').textContent = lockName[code][1];
+      }
+      if (target) { target.hidden = false; }
+      stations.forEach(function (s) { s.classList.toggle('cur', s.getAttribute('data-stage') === code && (code === 'S2' || code === 'S4')); });
+      stgItems.forEach(function (s) { s.classList.toggle('active', s.getAttribute('data-stage') === code); });
+    }
+    stations.forEach(function (s) { s.addEventListener('click', function () { setMode(true); showStage(s.getAttribute('data-stage')); }); });
+    stgItems.forEach(function (s) { s.addEventListener('click', function () { showStage(s.getAttribute('data-stage')); }); });
+
+    // 任务树按需展开
+    document.querySelectorAll('[data-caret]').forEach(function (caret) {
+      caret.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var code = caret.closest('.stg-item').getAttribute('data-stage');
+        var list = document.querySelector('[data-children="' + code + '"]');
+        if (list) { list.hidden = !list.hidden; caret.textContent = list.hidden ? '▸' : '▾'; }
+      });
+    });
+
+    // 任务选择 → 执行区内容切换
+    // 重建标注：t-plan 为留存逐字片段；t-res 与正文静态执行区（留存）逐字段对齐；
+    // t-sched 无留存原文，按最小字段重建，不虚构状态机文案。
+    var execData = {
+      't-plan': { code: 'TASK-204-01', name: '施工计划编制', status: '已完成', cls: 'tag--success', owner: '负责人 张倩',
+        kv: '<dt>当前状态</dt><dd>DONE（核心状态机）</dd><dt>计划时间</dt><dd class="num">08-25 ~ 08-30</dd><dt>实际完成</dt><dd class="num">08-30 18:20</dd><dt>进度</dt><dd class="num">100%</dd><dt>完成判定</dt><dd>按冻结规则追加事实 #88</dd>',
+        actions: '<button class="btn" disabled>指派</button><button class="btn" disabled>开始</button><button class="btn" disabled>提交验收</button><button class="btn" disabled>完成</button><button class="btn">查看执行历史</button>' },
+      't-res': { code: 'TASK-204-02', name: '资源计划确认', status: '进行中', cls: 'tag--primary', owner: '负责人 李明',
+        kv: '<dt>当前状态</dt><dd>IN_PROGRESS（核心状态机）</dd><dt>计划时间</dt><dd class="num">09-01 ~ 09-08（已超期）</dd><dt>实际开始</dt><dd class="num">09-01 09:12</dd><dt>进度</dt><dd class="num">65%</dd><dt>前置依赖</dt><dd>TASK-204-01 施工计划编制（FINISH_TO_START，已完成）</dd><dt>完成规则</dt><dd>冻结完成规则 v1（任务 DONE 判定）</dd>',
+        actions: '<button class="btn" disabled>指派</button><button class="btn" disabled>开始</button><button class="btn btn--primary">提交验收</button><button class="btn" disabled>完成</button><button class="btn">移动</button><button class="btn">编辑</button>' },
+      't-sched': { code: 'TASK-204-03', name: '工期倒排确认', status: '待指派', cls: 'tag--info', owner: '负责人 未指派',
+        kv: '<dt>计划时间</dt><dd class="num">09-05 ~ 09-09</dd>',
+        actions: '<button class="btn btn--primary">指派</button><button class="btn" disabled>开始</button><button class="btn" disabled>提交验收</button><button class="btn" disabled>完成</button>' }
+    };
+    var tkBtns = document.querySelectorAll('.tk');
+    tkBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var data = execData[btn.getAttribute('data-task')];
+        if (!data) { return; }
+        tkBtns.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('exec-code').textContent = data.code;
+        document.getElementById('exec-name').textContent = data.name;
+        var st = document.getElementById('exec-status');
+        st.textContent = data.status; st.className = 'tag ' + data.cls;
+        document.getElementById('exec-owner').textContent = data.owner;
+        document.getElementById('exec-kv').innerHTML = data.kv;
+        document.querySelector('.exec-actions').innerHTML = data.actions;
+        setMode(true); showStage('S2');
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
