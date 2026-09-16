@@ -72,12 +72,6 @@
             <artifactId>pms-module-project-api</artifactId>
             <version>${revision}</version>
         </dependency>
-        <!-- OA 待办端口适配（OaTodoPortAdapter 实现 workflow 模块声明的 OaTodoPort 扩展点） -->
-        <dependency>
-            <groupId>cn.iocoder.boot</groupId>
-            <artifactId>pms-module-workflow</artifactId>
-            <version>${revision}</version>
-        </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>yudao-spring-boot-starter-biz-tenant</artifactId>

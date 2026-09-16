@@ -1,19 +1,17 @@
 package cn.iocoder.yudao.module.pms.integration.extsystem.service;
 
 import cn.iocoder.yudao.module.pms.integration.extsystem.model.oa.OaTodoRequest;
-import cn.iocoder.yudao.module.pms.workflow.spi.OaTodoPort;
-import cn.iocoder.yudao.module.pms.workflow.spi.dto.OaTodoCommand;
+import cn.iocoder.yudao.module.pms.platform.api.spi.OaTodoPort;
+import cn.iocoder.yudao.module.pms.platform.api.spi.dto.OaTodoCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * OA 待办端口适配 Bean（实现 pms-module-workflow 声明的 {@link OaTodoPort} 扩展点，
- * 委托到本模块 {@link OaIntegrationService}）。
+ * OA 待办端口适配器。
  *
- * <p>源工程 pms-workflow 直接依赖 pms-integration 的 Service，目标体系下改为
- * 依赖倒置：workflow 声明 OaTodoPort，本模块实现并注册为 Spring Bean。
- * 独立 Bean 委托到既有 {@code OaIntegrationService}（旧接口与原有功能保持不变），
- * 字段转换保持 OaTodoCommand → OaTodoRequest 一一映射。</p>
+ * <p>实现 platform-api 声明的稳定跨模块端口，并委托既有 {@link OaIntegrationService}
+ * 完成实际 OA 调用。字段转换保持 OaTodoCommand → OaTodoRequest 一一映射，旧 OA
+ * 集成功能与接口不变。</p>
  */
 @Component
 @RequiredArgsConstructor

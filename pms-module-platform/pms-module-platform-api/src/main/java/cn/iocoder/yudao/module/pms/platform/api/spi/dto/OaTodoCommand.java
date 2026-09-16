@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.workflow.spi.dto;
+package cn.iocoder.yudao.module.pms.platform.api.spi.dto;
 
 import lombok.Builder;
 import lombok.Data;
@@ -7,8 +7,10 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * OA 待办命令（本模块 SPI 配套，迁移自源工程 pms-integration com.dp.plat.integration.model.oa.OaTodoRequest
- * 在 OaTaskListener 场景下使用的字段）。
+ * OA 待办命令。
+ *
+ * <p>仅包含 workflow 发布待办意图与 integration 执行 OA 适配共同需要的稳定字段，
+ * 不暴露任一实现模块的内部模型。</p>
  */
 @Data
 @Builder
@@ -29,12 +31,12 @@ public class OaTodoCommand implements Serializable {
     /** 流程实例 ID。 */
     private String processInstanceId;
 
-    /** 业务键（Flowable 场景下为任务 ID）。 */
+    /** 业务键。 */
     private String businessKey;
 
     /** 流程详情 URL。 */
     private String processUrl;
 
-    /** 业务类型（Flowable 场景下为流程定义 ID）。 */
+    /** 业务类型。 */
     private String businessType;
 }
