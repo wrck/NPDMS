@@ -7,7 +7,7 @@
  * 业务模块感知具体渲染引擎。
  */
 import { computed, onMounted, ref, shallowRef, type Component } from 'vue'
-import { FieldType, type FormFieldConfig } from '@/api/lowcode'
+import type { FormFieldConfig } from '@/api/lowcode'
 import LowCodeFormRenderer from '@/components/LowCodeFormRenderer/index.vue'
 import LowCodeFormRendererV2 from '@/components/LowCodeFormRendererV2/index.vue'
 import {
@@ -19,6 +19,7 @@ import {
   resolveLowCodeFormRendererVersion,
   type VersionedFormConfig
 } from '@/components/LowCodeFormRenderer/rendererVersion'
+import { normalizeRendererConfig } from './compat'
 
 interface RendererExpose {
   validate?: () => Promise<boolean>
@@ -59,30 +60,10 @@ const rendererRef = ref<RendererExpose | null>(null)
 const runtimeComponentRegistry = shallowRef<Record<string, Component>>(componentMap())
 
 /**
- * 兼容当前设计器的顶层 field.componentName 与 V1 历史的 props.componentName。
- * 仅在传给渲染器时创建浅拷贝，不修改持久化 config，确保 V1 历史 Schema 不被迁移。
+ * 仅在运行时做 Schema 兼容，不迁移持久化配置。
+ * 历史 V1 和当前设计器产出的 custom 字段都从同一 Facade 进入。
  */
-const rendererConfig = computed<VersionedFormConfig>(() => {
-  let changed = false
-  const fields = (props.config.fields || []).map((field) => {
-    if (
-      field.type !== FieldType.CUSTOM ||
-      !field.componentName ||
-      field.props?.componentName
-    ) {
-      return field
-    }
-    changed = true
-    return {
-      ...field,
-      props: {
-        ...(field.props || {}),
-        componentName: field.componentName
-      }
-    }
-  })
-  return changed ? { ...props.config, fields } : props.config
-})
+const rendererConfig = computed<VersionedFormConfig>(() => normalizeRendererConfig(props.config))
 
 const effectiveComponentRegistry = computed<Record<string, Component>>(() =>
   Object.keys(props.componentRegistry).length > 0
