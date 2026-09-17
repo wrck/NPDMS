@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.operation;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -47,7 +48,7 @@ public class ProjectOperationResultFanout {
         var scope = new ProjectPlanScopeQuery(source.tenantId(),source.projectId());
         var plan = plans.selectEffective(scope);
         if (plan == null || !Objects.equals(plan.getId(),project.getActivePlanVersionId())) return new Receipt(List.of());
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(),TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var receipts = new ArrayList<String>();
         for (var round : nodes.selectCurrent(scope)) {
             if (!Objects.equals(source.tenantId(),round.getTenantId()) || !Objects.equals(plan.getId(),round.getPlanVersionId())) continue;

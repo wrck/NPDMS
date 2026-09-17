@@ -1,42 +1,58 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 
-/**
- * Reads an explicitly versioned snapshot without recompiling or resolving live definitions.
- * Publication metadata and legacy hash verification remain the publication owner's responsibility.
- */
+/** 统一格式分派；旧摘要由发布Owner验证，新格式只检查冻结结构，不重新编译历史。 */
 public final class TemplateExecutionSnapshotReader {
 
     private TemplateExecutionSnapshotReader() { }
 
     public static TemplateExecutionSnapshot read(String json) {
-        requireSupportedDocument(JsonUtils.parseObject(json, JsonNode.class));
-        // Bind the original text: a tree round-trip can normalize decimals used by the legacy hash.
-        return JsonUtils.parseObject(json, TemplateExecutionSnapshot.class);
+        if (json == null || json.isBlank()) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
+        JsonNode document = JsonUtils.getObjectMapper().readerFor(JsonNode.class)
+                .with(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY, DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                .readValue(json);
+        int version = requireSupportedDocument(document);
+        // 绑定原文，不能通过JSON树重序列化改变小数精度及旧Hash。
+        if (version == TemplateExecutionSnapshot.SCHEMA_VERSION) return JsonUtils.parseObject(json, TemplateExecutionSnapshot.class);
+        TemplateVersionSnapshot.requireDocument(document);
+        TemplateExecutionSnapshot snapshot = JsonUtils.getObjectMapper().readerFor(TemplateExecutionSnapshot.class)
+                .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                .without(DeserializationFeature.ACCEPT_FLOAT_AS_INT).readValue(json);
+        TemplateVersionSnapshot.validate(snapshot);
+        return snapshot;
     }
 
     public static TemplateExecutionSnapshot read(JsonNode document) {
         requireSupportedDocument(document);
-        return JsonUtils.parseObject(JsonUtils.toJsonString(document), TemplateExecutionSnapshot.class);
+        return read(JsonUtils.toJsonString(document));
     }
 
-    private static void requireSupportedDocument(JsonNode document) {
-        // Check the stored token before data binding can supply defaults or coerce strings/numbers.
-        if (document == null || !document.isObject()) {
-            throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
-        }
+    private static int requireSupportedDocument(JsonNode document) {
+        if (document == null || !document.isObject()) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
         JsonNode schema = document.get("executionSchemaVersion");
-        if (schema == null || !schema.isIntegralNumber()
-                || !Integer.toString(TemplateExecutionSnapshot.SCHEMA_VERSION).equals(schema.asText())) {
+        if (schema == null || !schema.isIntegralNumber() || !schema.canConvertToInt()) {
             throw new IllegalArgumentException("EXECUTION_SNAPSHOT_SCHEMA_UNSUPPORTED");
         }
+        int version = schema.intValue();
+        requireSupportedVersion(version);
+        return version;
     }
 
     public static void requireSupportedVersion(Integer version) {
-        if (!Integer.valueOf(TemplateExecutionSnapshot.SCHEMA_VERSION).equals(version)) {
+        if (!Integer.valueOf(TemplateExecutionSnapshot.SCHEMA_VERSION).equals(version)
+                && !Integer.valueOf(TemplateVersionSnapshot.SCHEMA_VERSION).equals(version)) {
             throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
+        }
+    }
+
+    public static void validate(TemplateExecutionSnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
+        requireSupportedVersion(snapshot.getExecutionSchemaVersion());
+        if (Integer.valueOf(TemplateVersionSnapshot.SCHEMA_VERSION).equals(snapshot.getExecutionSchemaVersion())) {
+            TemplateVersionSnapshot.validate(snapshot);
         }
     }
 }

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -71,7 +72,7 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
         var plan = plans.selectEffective(scope);
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || plan == null
                 || !Objects.equals(project.getActivePlanVersionId(), plan.getId())) throw exception(PROJECT_TASK_COMMAND_INVALID);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var candidates = new ArrayList<ProjectNodeExecutionDO>();
         for (var node : nodes.selectCurrent(scope)) {
             if (!Objects.equals(node.getPlanVersionId(), plan.getId()) || !"ACTIVE".equals(node.getStatus())) continue;

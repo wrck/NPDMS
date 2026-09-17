@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -72,7 +73,7 @@ public class ProjectStageAdmissionService {
         var plan = plans.selectEffective(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(tenantId, projectId));
         if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId()))
             return List.of(new StageAdmission(null, null, RuleEvaluation.Outcome.UNKNOWN, "PROJECT_PLAN_VERSION_UNAVAILABLE", false));
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var query = new ProjectRuntimeGraphQuery(tenantId, projectId);
         var nodes = graph.selectStagesForUpdate(query);
         var contracts = graph.selectContracts(query);
@@ -170,7 +171,7 @@ public class ProjectStageAdmissionService {
             if (!Objects.equals(contract.getGraphVersion(), parent.getGraphVersion()) || contract.getEffectiveTo() != null) return admissionUnavailable();
             var plan = plans.selectEffective(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(project.getTenantId(), project.getId()));
             if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return admissionUnavailable();
-            var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+            var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
             var definitions = snapshot.getTasks().stream().filter(node -> taskContract.getSourceNodeKey().equals(node.getNodeKey())
                     && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
             if (definitions.size() != 1) return admissionUnavailable();

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -15,7 +16,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectR
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,7 +48,7 @@ public class ProjectRuleClosureService {
         var scope = new ProjectPlanScopeQuery(tenantId, projectId);
         var plan = plans.selectEffective(scope);
         if (plan == null) return new Closure(false, true);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         String key = snapshot.getClosureRuleKey();
         if (key == null || key.isBlank()) return new Closure(false, false); // No implicit terminal-stage closure or approval.
         var query = new ProjectRuntimeGraphQuery(tenantId, projectId);

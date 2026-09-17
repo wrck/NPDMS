@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
@@ -15,7 +15,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectR
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -69,7 +68,7 @@ public class ProjectGateRuleService {
             var plan = plans.selectEffective(new ProjectPlanScopeQuery(tenantId, projectId));
             if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId()))
                 throw new IllegalStateException("PROJECT_PLAN_VERSION_UNAVAILABLE");
-            var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+            var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
             var definitions = snapshot.getGates().stream().filter(g -> gateCode.equals(g.getCode())).toList();
             if (definitions.size() != 1) throw new IllegalStateException("GATE_PLAN_DEFINITION_UNAVAILABLE");
             var definition = definitions.getFirst();

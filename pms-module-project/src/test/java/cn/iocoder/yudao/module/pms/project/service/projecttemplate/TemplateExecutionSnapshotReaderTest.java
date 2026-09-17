@@ -30,7 +30,7 @@ class TemplateExecutionSnapshotReaderTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(ints = {-1, 0, 1, 3, Integer.MAX_VALUE})
+    @ValueSource(ints = {-1, 0, 1, 4, Integer.MAX_VALUE})
     void rejectsUnsupportedTypedVersion(Integer version) {
         assertThrows(IllegalArgumentException.class,
                 () -> TemplateExecutionSnapshotReader.requireSupportedVersion(version));

@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * PM-01/PM-03 runtime graph freezer for newly created projects.
  *
- * <p>New writes are interpreted only from the immutable V2 {@link TemplateExecutionSnapshot}.
+ * <p>New writes use only explicitly supported immutable {@link TemplateExecutionSnapshot} formats.
  * The TemplateDefinitionContent overloads are temporary in-process adapters for unchanged Project
  * instantiation code and only unwrap the embedded execution snapshot; they never read legacy
  * DefinitionRevision/definitionSnapshot data. Historical legacy projects are read from their
@@ -43,14 +43,14 @@ public class ProjectRuntimeGraphFreezer {
     private final ProjectRuntimeGraphMapper graphMapper;
     private final ProjectStageExecutionContractMapper contractMapper;
 
-    /** Compatibility overload: accepts only a V2 runtime projection carrying the full immutable snapshot. */
+    /** Compatibility overload: accepts only a supported projection carrying the full immutable snapshot. */
     public void validate(TemplateDefinitionContent content) {
         validate(requireExecutionSnapshot(content));
     }
 
     public void validate(TemplateExecutionSnapshot snapshot) {
         if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
-        TemplateExecutionSnapshotReader.requireSupportedVersion(snapshot.getExecutionSchemaVersion());
+        TemplateExecutionSnapshotReader.validate(snapshot);
         if (snapshot.getStages() == null || snapshot.getTasks() == null || snapshot.getTransitions() == null) {
             throw new IllegalArgumentException("COMPILED_TEMPLATE_COLLECTION_REQUIRED");
         }
@@ -91,7 +91,7 @@ public class ProjectRuntimeGraphFreezer {
         }
     }
 
-    /** Compatibility overload: verifies the stored schema before unwrapping and freezing the V2 snapshot. */
+    /** Compatibility overload: verifies the stored schema before unwrapping and freezing the snapshot. */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<ProjectStageExecutionContractDO> freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateDefinitionContent content,
                        List<ProjectStageInstanceDO> stages, LocalDateTime now) {

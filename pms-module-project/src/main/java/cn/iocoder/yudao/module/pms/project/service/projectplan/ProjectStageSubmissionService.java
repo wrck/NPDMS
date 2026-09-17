@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -11,7 +12,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVers
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class ProjectStageSubmissionService {
         var scope = new ProjectPlanScopeQuery(tenantId, projectId);
         var plan = plans.selectEffective(scope);
         if (plan == null) return List.of();
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var project = projectRows.selectById(projectId);
         boolean editable = project != null && "ACTIVE".equals(project.getLifecycleStatus())
                 && permissions.hasAnyPermissions(actorId, "pms:project-task:execute")
@@ -92,7 +92,7 @@ public class ProjectStageSubmissionService {
         if (plan == null || !plan.getId().equals(round.getPlanVersionId()) || !"STAGE".equals(round.getNodeKind())
                 || !"ACTIVE".equals(round.getStatus()) || round.getSubmittedAt() != null || !Objects.equals(round.getVersion(), command.expectedVersion()))
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var definition = snapshot.getStages().stream().filter(node -> round.getNodeKey().equals(node.getNodeKey())).findFirst()
                 .orElseThrow(() -> exception(PROJECT_TASK_COMMAND_INVALID));
         if (definition.getBinding() == null || !"STAGE_NATIVE".equals(definition.getBinding().getType()))

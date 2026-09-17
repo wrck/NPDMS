@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -81,7 +81,7 @@ public class ProjectOperationContextResolver {
                 || !plan.getId().equals(round.getPlanVersionId()) || round.getContractId() == null)
             return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
         try {
-            var frozen = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+            var frozen = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
             var bindings = "TASK".equals(kind) ? frozen.getTasks().stream()
                     .filter(node -> Objects.equals(node.getNodeKey(), round.getNodeKey()) && summary.code().equals(node.getCode()))
                     .map(TemplateExecutionSnapshot.TaskContract::getBinding).toList()

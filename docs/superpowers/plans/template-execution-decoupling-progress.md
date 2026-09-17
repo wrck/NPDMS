@@ -11,7 +11,8 @@
 - P1.02.1实现提交：65ec5445fc59ac13c2b81a875806936b790107f5。
 - P1.02.2实现提交：3cba4ac7bfcb59ddc319827b39f9f674044fe198。
 - P1-V1验证入口提交：4811a1a08c4c7e972a4c32092298cc08fc1c372d。
-- 本次为P1-V2真实构建缺口修复提交；自身SHA由Git历史定位，下一环节补记真实引用。
+- P1-V2依赖修复提交：8053868b017252d88bd520602138cd35f2144df9。
+- 本次为P1.02.3新格式闭包与读取接线提交；自身SHA由Git历史定位，下一环节补记真实引用。
 - 最新约束：版本优先、不新增多层Hash、权限码选择动作、复用业务输入、pageUrl仅展示。
 
 ## 阶段状态
@@ -19,7 +20,7 @@
 | 阶段 | 状态 | 下一环节 |
 |---|---|---|
 | P0 | COMMITTED_PENDING_VERIFICATION（准备文档完成） | [范围与来源](template-execution-decoupling-p0.md)；对应真实验证在各改动阶段执行 |
-| P1 | IMPLEMENTING | P1.01、P1.02.1～P1.02.2代码/测试源码齐备；P1.02完整版本冻结仍未完成，下一项新格式冻结与发布接线；P1.03/P1.04未完成 |
+| P1 | IMPLEMENTING | P1.01、P1.02.1～P1.02.3已交付增量；P1.02.3定向153项测试通过；下一项新格式发布与不可变写保护；P1.03/P1.04未完成 |
 | P2 | PLANNED | 逐业务审计配置与独立路径 |
 | P3 | PLANNED | 权威结果及条件性能力 |
 | P4 | PLANNED | 独立订阅及有界恢复 |
@@ -123,3 +124,22 @@ ProjectPlanInitializationService回读项目指定的已发布模板版本，比
 修复：project-api显式声明仓库已管理版本的tools.jackson.core:jackson-databind，保持原DTO、权限和运行语义不变，采用与platform-api相同的依赖方式。为后续独立复现，定向工作流仅在提交显式含[离线复现]时归档JDK、Maven bin/boot/lib及repository；不归档Maven settings/toolchains、Git配置、Runner配置或环境转储，产物仅保留1天。
 
 本地POM/XML、工作流YAML、Shell及Python语法检查通过；此修复尚待新HEAD真实构建。已通过源码归档获得4811a1a0完整工作树，本地Git tree与远端e46835e19b4fabbee87d81c85b99a81ab338c092一致；后续直接对准确源码实施，不凭片段猜测。P1.02生产出口及P2～P9仍未完成，不覆盖前述FAIL。
+
+
+## P1.02.3 完整冻结格式与直接消费者统一读取
+
+基准：8053868b017252d88bd520602138cd35f2144df9。对应PM-03及PM-01/PM-11直接消费者。先补SDS04a第14节与F-PROJ-009格式兼容说明，原Feature状态不晋级。
+
+新增TemplateVersionSnapshot格式3结构校验，复用完整ExecutionSnapshot模型，不新增Hash。校验全部根集合、节点/关系/规则身份与引用、条件叶子与冻结表达式对应、规则/程序精确集合、决策表完整内联、操作PRE/POST程序与模板版本内规则一致。Reader严格区分格式2/3，原文绑定保留小数精度；拒绝重复JSON字段、尾随文档、未知新格式字段、缺失闭包及类型降级，不在读取时重新编译、求值或回查最新配置。
+
+18个直接消费文件的20处原始快照绑定统一接入Reader，覆盖计划/执行历史、准入、完成、收口、门禁、返工、定时器、业务上下文和结果分派；Freezer和定时器的类型化入口也校验格式3，不能绕过原始读取。原Owner授权、业务命令、锁序和正式状态Writer不变。本轮不改TemplateCompiler、ProjectTemplateV2ServiceImpl发布方法、旧Hasher、历史Resolver或数据库；格式3发布仍未启用。
+
+新增TemplateVersionSnapshotTest、TemplateSnapshotConsumersTest共53个参数展开用例；保留旧读取断言，并将明确未知的类型化版本改为4。扩大直接消费者回归时发现ProjectRuleTimerTest缺少现有生命周期依赖，补齐真实任务准入服务的测试装配，验证未知/不满足时不启动、满足时只调用现有startAdmittedTask且保持同一事件ID；没有修改生产准入逻辑或删除旧负向断言。
+
+### 实际验证与剩余限制
+
+从本仓库CI的离线复现包取得JDK25.0.4.1/Maven3.9.16及真实依赖，当前容器现可执行离线Maven，不再沿用“只能语法解析”的旧限制。最新定向命令在完整28模块依赖反应堆执行test，真实编译生产和测试源码，8组153项测试通过，0失败、0错误、0跳过：TemplateExecutionSnapshotReaderTest(31)、ProjectTemplatePublishedSnapshotBoundaryTest(19)、TemplateVersionSnapshotTest(45)、TemplateSnapshotConsumersTest(8)、ProjectRuleTimerTest(11)、ProjectRuntimeGraphSnapshotFormatTest(12)、ProjectExecutionHistoryServiceTest(8)、ProjectStageGateProcessContextResolverTest(19)。日志为本轮容器npdms-p1023-focused-r3.log及对应Surefire XML；提交树逐文件与该源码Git Blob核对，git diff --check通过。
+
+定向通过不代表全套通过：8053868b的真实CI run35256618711为FAIL，437项中1项旧Controller权限契约断言失败、4项MySQL用例因未提供环境跳过；未覆盖这些缺口。当前定向测试使用持久化替身，不计为MySQL事务/并发、浏览器或业务验收。之前本地测试夹具的集合修改异常、定时器装配和事件ID断言失败已修复后重跑；只以上述最新153项计PASS，不覆盖既有FAIL历史。
+
+下一项P1.02.4：新格式Compiler/发布/匹配/复制/计划写入，以及数据库可空约束和已发布不可覆盖保护。未全部接通前不产生格式3发布数据；P1仍为IMPLEMENTING，P1.03/P1.04及P2～P9尚未完成。没有部署、迁移、服务重启或旧实例切换。
