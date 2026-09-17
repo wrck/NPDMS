@@ -319,8 +319,7 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
                   user: (userStore.userInfo as Record<string, unknown>) || {}
                 })"
                 frameborder="0"
-                class="custom-iframe"
-              />
+                class="custom-iframe"></iframe>
               <div v-else-if="section.pageUrl" class="custom-router">
                 <el-button type="primary" @click="handleCustomNavigate(section)">打开页面</el-button>
                 <span class="custom-router-tip">{{ section.pageUrl }}</span>
@@ -375,8 +374,7 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
                 user: (userStore.userInfo as Record<string, unknown>) || {}
               })"
               frameborder="0"
-              class="custom-iframe"
-            />
+              class="custom-iframe"></iframe>
             <div v-else-if="section.pageUrl" class="custom-router">
               <el-button type="primary" @click="handleCustomNavigate(section)">打开页面</el-button>
               <span class="custom-router-tip">{{ section.pageUrl }}</span>
@@ -425,8 +423,7 @@ function handleCustomNavigate(section: RelatedPageSectionConfig) {
                 user: (userStore.userInfo as Record<string, unknown>) || {}
               })"
               frameborder="0"
-              class="custom-iframe"
-            />
+              class="custom-iframe"></iframe>
             <div v-else-if="section.pageUrl" class="custom-router">
               <el-button type="primary" @click="handleCustomNavigate(section)">打开页面</el-button>
               <span class="custom-router-tip">{{ section.pageUrl }}</span>

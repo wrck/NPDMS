@@ -192,6 +192,10 @@ async function load() {
         `/api/lowcode/data/${encodeURIComponent(entityCode.value)}/${encodeURIComponent(id)}`
       )
       if (sequence !== loadSequence) return
+      if (!data) {
+        state.value = 'not-found'
+        return
+      }
       formDataModel.value = data
     }
     state.value = 'done'

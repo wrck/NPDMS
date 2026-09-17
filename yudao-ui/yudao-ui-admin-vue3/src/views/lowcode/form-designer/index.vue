@@ -14,7 +14,7 @@
  * <p>使用原生 HTML5 拖拽 API（draggable + dragstart/dragover/drop）实现，
  * 避免引入额外依赖；字段排序通过上移/下移按钮 + 拖拽两种方式。</p>
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ElMessage,
@@ -51,6 +51,7 @@ import LowCodeComponentRegistry, {
 } from '@/components/LowCodeComponentRegistry'
 import type { ComponentMeta } from '@/components/LowCodeComponentRegistry/types'
 import { useUndoRedo } from '@/composables/useUndoRedo'
+import { createPreviewData, uniqueCopyProp } from './designerState'
 import {
   BREAKPOINT_ORDER,
   BREAKPOINT_PREVIEW_WIDTH,
@@ -212,7 +213,8 @@ const loading = ref(false)
 /** 预览模式 */
 const previewMode = ref(false)
 /** 预览表单数据 */
-const previewData = reactive<Record<string, unknown>>({})
+const previewData = ref<Record<string, unknown>>({})
+const previewRendererRef = ref<InstanceType<typeof LowCodeFormRendererFacade>>()
 
 // ===================== 字段操作 =====================
 
@@ -363,7 +365,9 @@ const previewRows = computed(() => {
  * 创建一个新字段对象。
  */
 function createField(type: string, label: string, extraProps: Record<string, unknown> = {}): FormFieldConfig {
-  fieldSeq++
+  do {
+    fieldSeq++
+  } while (formConfig.fields.some((field) => field.id === `field_${fieldSeq}` || field.prop === `field${fieldSeq}`))
   const id = `field_${fieldSeq}`
   const prop = `field${fieldSeq}`
   return {
@@ -412,7 +416,7 @@ function duplicateField(id: string) {
   fieldSeq++
   const copy: FormFieldConfig = JSON.parse(JSON.stringify(src))
   copy.id = `field_${fieldSeq}`
-  copy.prop = `${src.prop}_copy`
+  copy.prop = uniqueCopyProp(src.prop, formConfig.fields)
   copy.label = `${src.label}_副本`
   const idx = formConfig.fields.findIndex((f) => f.id === id)
   formConfig.fields.splice(idx + 1, 0, copy)
@@ -860,12 +864,8 @@ async function handleImport() {
 /** 进入预览模式 */
 function handlePreview() {
   syncFormConfigToStr()
-  // 清空预览数据
-  for (const k of Object.keys(previewData)) delete previewData[k]
-  // 写入默认值
-  for (const f of formConfig.fields) {
-    previewData[f.prop] = f.defaultValue ?? ''
-  }
+  // A fresh model isolates editable values from the saved schema/default arrays.
+  previewData.value = createPreviewData(formConfig.fields)
   previewMode.value = true
 }
 
@@ -877,9 +877,9 @@ function exitPreview() {
 /** 预览提交 */
 function handlePreviewSubmit(val: Record<string, unknown>) {
   ElMessageBox.alert(
-    `<pre style="max-height:400px;overflow:auto;">${JSON.stringify(val, null, 2)}</pre>`,
+    h('pre', { class: 'max-h-400px overflow-auto whitespace-pre-wrap' }, JSON.stringify(val, null, 2)),
     '提交数据预览',
-    { dangerouslyUseHTMLString: true, confirmButtonText: '关闭' }
+    { confirmButtonText: '关闭' }
   )
 }
 
@@ -1019,7 +1019,7 @@ onBeforeUnmount(() => {
           <div class="comp-items">
             <div
               v-for="comp in group.items"
-              :key="comp.type"
+              :key="comp.componentName || comp.type"
               class="comp-item"
               draggable="true"
               @dragstart="onDragStart($event, comp)"
@@ -1137,7 +1137,7 @@ onBeforeUnmount(() => {
                   <el-button-group size="small">
                     <el-button :icon="'Top'" :disabled="idx === 0" @click.stop="moveUp(field.id)" />
                     <el-button :icon="'Bottom'" :disabled="idx === formConfig.fields.length - 1" @click.stop="moveDown(field.id)" />
-                    <el-button :icon="'CopyDocument'" @click.stop="duplicateField(field.id)" />
+                    <el-button aria-label="复制字段" :icon="'CopyDocument'" @click.stop="duplicateField(field.id)" />
                     <el-button :icon="'Delete'" type="danger" @click.stop="removeField(field.id)" />
                   </el-button-group>
                 </div>
@@ -1339,10 +1339,12 @@ onBeforeUnmount(() => {
       <template #header>
         <div class="preview-header">
           <span class="panel-title">表单预览：{{ formConfig.title || metaForm.name }}</span>
+          <el-button type="primary" @click="previewRendererRef?.submit()">校验并预览数据</el-button>
           <el-button :icon="'Back'" @click="exitPreview">退出预览</el-button>
         </div>
       </template>
       <LowCodeFormRendererFacade
+        ref="previewRendererRef"
         :config="formConfig"
         v-model="previewData"
         @submit="handlePreviewSubmit"

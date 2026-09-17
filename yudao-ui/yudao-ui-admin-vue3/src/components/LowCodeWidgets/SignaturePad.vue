@@ -1,6 +1,6 @@
 <template>
   <div class="widget-placeholder signature-pad">
-    <canvas ref="canvasRef" :width="width" :height="height" style="border: 1px solid #dcdfe6; background: #fafafa" />
+    <canvas ref="canvasRef" :width="width" :height="height" style="border: 1px solid #dcdfe6; background: #fafafa"></canvas>
     <div style="margin-top: 8px"><el-button size="small" @click="clear">清空</el-button></div>
   </div>
 </template>

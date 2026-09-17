@@ -71,8 +71,7 @@ const previewUrl = computed(() => {
           height: deviceSize.height + 'px',
           border: '1px solid #dcdfe6',
           transformOrigin: 'top left'
-        }"
-      />
+        }"></iframe>
     </div>
   </div>
 </template>

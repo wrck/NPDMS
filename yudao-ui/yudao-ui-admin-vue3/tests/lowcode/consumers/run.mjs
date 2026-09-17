@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
+import { runRegressionScenarios, REGRESSION_SCENARIOS } from './regressions.mjs'
 const root = process.env.PLAYWRIGHT_PACKAGE_ROOT
 if (!root) throw new Error('Set PLAYWRIGHT_PACKAGE_ROOT')
 const { chromium } = createRequire(`${root}/package.json`)('playwright')
@@ -27,13 +28,13 @@ const server = await createServer({ configFile: fileURLToPath(new URL('./vite.co
       let text = ''
       for await (const chunk of req) text += chunk
       const body = text ? JSON.parse(text) : undefined
-      const entry = { method: req.method, path: url.pathname, body, headers: req.headers }
+      const entry = { method: req.method, path: url.pathname, query: Object.fromEntries(url.searchParams), body, headers: req.headers }
       store.requests.push(entry)
       const send = (data, code = 0, msg = '') => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ code, msg, data })) }
       if (req.headers.authorization !== 'Bearer consumer-fixture' || req.headers['tenant-id'] !== '7') return send(null, 401, 'Wrong project login/tenant')
       if (url.pathname.startsWith('/collaboration/')) return send(req.method === 'GET' ? [] : null)
-      if (url.pathname === '/permission/check') return send(store.permission)
-      if (store.failWrite && ['POST', 'PUT'].includes(req.method)) { store.failWrite = false; return send(null, 409, 'fixture-write-rejected') }
+      if (url.pathname === '/permission/check') return store.failPermission ? send(null, 503, 'fixture-permission-unavailable') : send(store.permission)
+      if (store.failWrite && ['POST', 'PUT', 'DELETE'].includes(req.method)) { store.failWrite = false; return send(null, 409, 'fixture-write-rejected') }
       if (url.pathname === '/form' && req.method === 'POST') {
         const id = store.nextFormId++
         const form = { ...body, id, version: 1, status: 'DRAFT' }
@@ -51,17 +52,30 @@ const server = await createServer({ configFile: fileURLToPath(new URL('./vite.co
         form.status = 'PUBLISHED'; form.version++; return send(null)
       }
       if (url.pathname.startsWith('/form/code/')) return send(Object.values(store.forms).find((form) => form.status === 'PUBLISHED' && form.code === decodeURIComponent(url.pathname.slice(11))) || null)
-      if (url.pathname.startsWith('/list/code/')) return send({ name: 'Devices', listConfig: JSON.stringify({ entityCode: 'device', formCode: store.forms[1].code, columns: [ { prop: 'name', label: 'Name', type: 'text' } ], toolbar: [ { label: '新增', action: 'create', type: 'primary' } ], operations: [ { label: '编辑', action: 'edit' }, { label: '详情', action: 'view' } ] }) })
+      if (url.pathname.startsWith('/list/code/')) return send({ name: 'Devices', listConfig: JSON.stringify({ entityCode: 'device', formCode: store.forms[1].code, columns: [ { prop: 'name', label: 'Name', type: 'text' } ], toolbar: [ { label: '新增', action: 'create', type: 'primary' } ], operations: [ { label: '编辑', action: 'edit' }, { label: '详情', action: 'view' } ], ...store.listConfig }) })
+      if (url.pathname === '/export/device') return send(null, 409, 'fixture-export-rejected')
       if (url.pathname === '/data/device') {
         if (req.method === 'POST') { const id = store.nextId++; store.records[id] = { ...body, id }; return send(id) }
-        return send({ records: Object.values(store.records), total: Object.keys(store.records).length })
+        const state = store
+        const records = Object.values(state.records).filter((row) => !url.searchParams.get('name') || row.name.includes(url.searchParams.get('name')))
+        const size = Number(url.searchParams.get('size') || 20)
+        const page = Number(url.searchParams.get('page') || url.searchParams.get('current') || 1)
+        const result = JSON.parse(JSON.stringify({ records: records.slice((page - 1) * size, page * size), total: records.length }))
+        const reject = state.failNextList
+        state.failNextList = false
+        if (state.deferNextList) {
+          state.deferNextList = false
+          await new Promise((resolve) => { state.releaseList = resolve })
+        }
+        return reject ? send(null, 409, 'fixture-list-rejected') : send(result)
       }
       const record = /^\/data\/device\/(\d+)$/.exec(url.pathname)
       if (record) {
         const id = Number(record[1]); const state = store
         if (state.delayId && id === 1 && req.method === 'GET') await new Promise((r) => setTimeout(r, 250))
+        if (req.method === 'DELETE') { delete state.records[id]; return send(null) }
         if (req.method === 'PUT') state.records[id] = { ...state.records[id], ...body, id }
-        return send(req.method === 'PUT' ? null : state.records[id])
+        return send(req.method === 'PUT' ? null : state.records[id] ?? null)
       }
       return send(null, 404, `Unexpected fixture endpoint: ${req.method} ${url.pathname}`)
     })
@@ -70,7 +84,7 @@ const server = await createServer({ configFile: fileURLToPath(new URL('./vite.co
 await server.listen()
 const browser = await chromium.launch({ headless: true })
 const results = []
-const writes = () => store.requests.filter((r) => ['POST', 'PUT'].includes(r.method) && !r.path.startsWith('/collaboration/'))
+const writes = () => store.requests.filter((r) => ['POST', 'PUT', 'DELETE'].includes(r.method) && !r.path.startsWith('/collaboration/'))
 async function open(page, path) {
   await page.goto(`http://127.0.0.1:4174/tests/lowcode/consumers/index.html#${path}`)
   await page.waitForFunction(() => !!window.consumerRouter)
@@ -95,6 +109,7 @@ async function scenario(name, version, fn) {
     await page.screenshot({ path: `${artifacts}/${name}.png`, fullPage: true })
     console.error((await page.locator('main').innerText().catch(() => '')).slice(0, 2500))
   } finally {
+    store.releaseList?.()
     await context.tracing.stop(failed ? { path: `${artifacts}/${name}.zip` } : {})
     await context.close()
   }
@@ -189,9 +204,10 @@ try {
     await page.getByText('无访问权限', { exact: true }).waitFor()
     assert.deepEqual(store.requests.map((r) => r.path), ['/permission/check'])
   })
+  await runRegressionScenarios({ scenario, open, getStore: () => store, writes })
 } finally {
   await writeFile(`${artifacts}/results.json`, JSON.stringify(results, null, 2))
   await browser.close(); await server.close()
 }
 console.log(`${results.filter((r) => r.status === 'passed').length}/${results.length} consumer scenarios passed`)
-if (results.length !== 8 || results.some((r) => r.status !== 'passed')) process.exitCode = 1
+if (results.length !== 8 + REGRESSION_SCENARIOS || results.some((r) => r.status !== 'passed')) process.exitCode = 1

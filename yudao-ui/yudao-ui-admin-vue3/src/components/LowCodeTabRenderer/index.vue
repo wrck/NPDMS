@@ -351,8 +351,7 @@ function handleCustomNavigate(tab: TabItemConfig) {
                 user: (userStore.userInfo as Record<string, unknown>) || {}
               })"
               frameborder="0"
-              class="custom-iframe"
-            />
+              class="custom-iframe"></iframe>
             <div v-else class="custom-router">
               <el-button type="primary" @click="handleCustomNavigate(tab)">打开页面</el-button>
               <span class="custom-router-tip">{{ tab.pageUrl }}</span>

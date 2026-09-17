@@ -202,7 +202,7 @@ describe('SOL site-survey shared project and standalone context', () => {
     state.form.extensionValues = { note: 'retained' }
     input.allowedActions = ['QUERY']
     await flush()
-    expect(state.readonly).toBe(true)
+    expect(state.formReadonly).toBe(true)
     state.updateDynamicForm({ name: 'bad' })
     expect(state.form.name).toBe('local')
     expect(exposed.isDirty()).toBe(true)

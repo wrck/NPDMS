@@ -1145,7 +1145,7 @@ void getExecutionLogs
           class="canvas-container"
           @drop="onCanvasDrop"
           @dragover.prevent
-        />
+        ></div>
       </div>
 
       <!-- 右栏：属性面板 -->

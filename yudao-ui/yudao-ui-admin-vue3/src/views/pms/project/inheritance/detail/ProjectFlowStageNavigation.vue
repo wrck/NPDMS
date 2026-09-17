@@ -11,7 +11,7 @@
         <div class="flow-row">
           <button v-if="mayHaveChildren(row.node)" type="button" class="flow-toggle" :aria-label="`展开或收起${row.node.name || '受限层级'}`"
             :aria-expanded="openTasks.has(row.node.taskId)" @click="toggleTask(row.node)">{{ openTasks.has(row.node.taskId) ? '▾' : '▸' }}</button>
-          <span v-else class="flow-toggle" />
+          <span v-else class="flow-toggle"></span>
           <button type="button" class="flow-label" :disabled="row.node.placeholder" :class="{ active: selection?.taskId === row.node.taskId }"
             @click="emit('select', { kind: 'task', stageCode: stage.stageCode, taskId: row.node.taskId })">{{ row.node.placeholder ? '受限层级' : row.node.name || row.node.taskCode }}</button>
         </div>

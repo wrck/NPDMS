@@ -18,7 +18,7 @@
  * 事件，方便业务层介入。同时通过 defineExpose 暴露 refresh / getSelection /
  * getFilters / exportData 方法供父组件通过 ref 调用。</p>
  */
-import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
@@ -33,7 +33,7 @@ import {
   type ResponsiveSpan
 } from '@/api/lowcode'
 import { getDictPage, getDictItems, type SysDictItem } from '@/api/system'
-import { TOKEN_KEY, get, post } from '@/utils/request'
+import request, { TOKEN_KEY, get, post } from '@/utils/request'
 import { lowcodeSessionHeaders } from '@/utils/lowcodeSession'
 import { triggerBlobDownload } from '@/api/excel'
 import type { EpTagType } from '@/types'
@@ -59,7 +59,6 @@ const props = withDefaults(
   }>(),
   {
     loading: false,
-    pageSize: 20,
     dictMap: () => ({}),
     autoFetch: true
   }
@@ -83,12 +82,15 @@ const router = useRouter()
 const innerData = ref<Array<Record<string, unknown>>>([])
 /** 内部加载状态 */
 const innerLoading = ref(false)
+let fetchSequence = 0
+const pendingDeletes = new Set<string>()
+onBeforeUnmount(() => { fetchSequence++ })
 /** 内部分页总条数 */
 const innerTotal = ref(0)
 /** 当前页码 */
 const currentPage = ref(1)
 /** 每页条数 */
-const pageSizeRef = ref(props.pageSize || props.config.pageSize || 20)
+const pageSizeRef = ref(props.pageSize ?? props.config.pageSize ?? 20)
 /** 当前选中行 */
 const selection = ref<Array<Record<string, unknown>>>([])
 
@@ -470,10 +472,30 @@ async function handleRowClick(
         try {
           const url = resolveLinkUrl(op.api, actualRow)
           const method = (op.method || 'DELETE').toUpperCase()
-          const token = localStorage.getItem(TOKEN_KEY) || ''
-          await axios.request({ url, method, headers: url.startsWith('/api/lowcode/') ? lowcodeSessionHeaders() : { Authorization: `Bearer ${token}` } })
-          ElMessage.success('删除成功')
-          fetchData()
+          const key = `${method}:${url}`
+          if (pendingDeletes.has(key)) return
+          pendingDeletes.add(key)
+          try {
+            if (url.startsWith('/api/lowcode/')) {
+              await request.request({ url, method })
+            } else {
+              const token = localStorage.getItem(TOKEN_KEY) || ''
+              try {
+                const response = await axios.request({ url, method, headers: { Authorization: `Bearer ${token}` } })
+                const payload = response.data
+                if (payload && typeof payload.code === 'number' && payload.code !== 0 && payload.code !== 200) {
+                  throw new Error(payload.msg || payload.message || '删除失败')
+                }
+              } catch (error) {
+                ElMessage.error(error instanceof Error ? error.message : '删除失败')
+                throw error
+              }
+            }
+            ElMessage.success('删除成功')
+            await fetchData()
+          } finally {
+            pendingDeletes.delete(key)
+          }
         } catch {
           /* handled by interceptor */
         }
@@ -569,6 +591,7 @@ function buildQuery(): Record<string, unknown> {
 
 /** 按 searchApi 拉取数据 */
 async function fetchData(): Promise<void> {
+  const sequence = ++fetchSequence
   const api = effectiveSearchApi.value
   if (!api) return
   innerLoading.value = true
@@ -591,16 +614,18 @@ async function fetchData(): Promise<void> {
       }
       page = payload?.data ?? payload
     }
+    if (sequence !== fetchSequence) return
     innerData.value = page?.records ?? page?.list ?? (Array.isArray(page) ? page : [])
     innerTotal.value = page?.total ?? innerData.value.length
     emit('data-loaded', innerData.value, innerTotal.value)
   } catch (e) {
+    if (sequence !== fetchSequence) return
     innerData.value = []
     innerTotal.value = 0
     // 不弹错（拦截器已处理），仅在控制台留痕
     console.warn('[LowCodeListRenderer] 加载数据失败', e)
   } finally {
-    innerLoading.value = false
+    if (sequence === fetchSequence) innerLoading.value = false
   }
 }
 
@@ -626,10 +651,16 @@ async function exportData(): Promise<void> {
       headers: exp.api.startsWith('/api/lowcode/') ? lowcodeSessionHeaders() : { Authorization: `Bearer ${token}` }
     })
     const fileName = exp.fileName ? `${exp.fileName}-${Date.now()}.xlsx` : `export-${Date.now()}.xlsx`
-    triggerBlobDownload(response.data, fileName)
+    // JSON business errors must never be downloaded as a successful workbook.
+    const blob = response.data as Blob
+    if (blob.type.toLowerCase().includes('json')) {
+      const payload = JSON.parse(await blob.text())
+      throw new Error(payload?.msg || payload?.message || '导出未返回有效文件')
+    }
+    triggerBlobDownload(blob, fileName)
     ElMessage.success('导出成功')
   } catch (e) {
-    console.warn('[LowCodeListRenderer] 导出失败', e)
+    ElMessage.error(e instanceof Error ? e.message : '导出失败')
   }
 }
 
@@ -660,6 +691,10 @@ onMounted(() => {
 watch(
   effectiveSearchApi,
   (api) => {
+    fetchSequence++
+    innerLoading.value = false
+    innerData.value = []
+    innerTotal.value = 0
     if (props.autoFetch && api) {
       currentPage.value = 1
       fetchData()
@@ -751,7 +786,7 @@ watch(
 
     <!-- ============ 工具栏 ============ -->
     <div
-      v-if="config.toolbar && config.toolbar.length"
+      v-if="config.toolbar?.length || config.export?.enabled"
       class="list-toolbar"
     >
       <el-button

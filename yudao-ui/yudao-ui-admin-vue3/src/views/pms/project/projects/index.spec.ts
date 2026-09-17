@@ -99,8 +99,8 @@ describe('F-PROJ-001 creation submission state', () => {
     // immutable confirmed/rejected/archived records, not absence of all CRUD.
     assert.ok(surveySource.includes('detailReadonly.value = view || (!!row && row.status !== 0)'))
     assert.ok(surveySource.includes("detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE')"))
-    assert.match(surveySource, /:disabled="readonly \|\| saving"/)
-    assert.match(surveySource, /v-if="!readonly" type="primary" :loading="saving" @click="save"/)
+    assert.match(surveySource, /:disabled="formReadonly \|\| saving"/)
+    assert.match(surveySource, /v-if="!formReadonly" type="primary" :loading="saving" @click="save"/)
     assert.match(surveySource, /props\.allowedActions\.includes\(action\)/)
     assert.match(installationSource, /locationMaintenance/)
     assert.match(installationSource, /getEquipmentVersionList/)

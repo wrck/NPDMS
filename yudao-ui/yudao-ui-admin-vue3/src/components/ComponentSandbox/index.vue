@@ -29,8 +29,7 @@
       :style="iframeStyle"
       frameborder="0"
       :allow="allowFeatures"
-      @load="onIframeLoad"
-    />
+      @load="onIframeLoad"></iframe>
     <div v-else class="component-sandbox__error">
       <el-alert
         :title="errorMessage"
