@@ -80,13 +80,13 @@ public class SpringJdbcStreamingReader {
         }
         String sql="SELECT * FROM ("+base.sql()+") sync_source";
         if(!predicates.isEmpty())sql+=" WHERE "+String.join(" AND ",predicates);
-        if(checkpointed)sql+=" ORDER BY "+key;
+        // Stable source-key ordering keeps duplicate detection O(1) and makes chunk boundaries deterministic.
+        sql+=" ORDER BY "+key;
         final String query=sql;
         final List<Object> args=List.copyOf(values);
         final int fetchSize=jdbcFetchSize(connection,definition.effectiveFetchSize());
         final int chunkSize=definition.effectiveChunkSize();
         final long maxBytes=definition.maxBytes();
-        final Set<String> seen=checkpointed?null:new HashSet<>();
         final String[] previous={checkpoint==null?null:checkpoint.toString()};
         jdbc.execute(con->{
             PreparedStatement ps=con.prepareStatement(query,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
@@ -114,10 +114,8 @@ public class SpringJdbcStreamingReader {
                     if(rawKey==null||rawKey.toString().isBlank()||rawKey.toString().length()>128)
                         throw new IllegalArgumentException("来源主键缺失或无效: "+source.object());
                     String sourceKey=rawKey.toString();
-                    if(checkpointed) {
-                        if(Objects.equals(previous[0],sourceKey))throw new IllegalArgumentException("来源主键重复: "+source.object());
-                        previous[0]=sourceKey;
-                    } else if(!seen.add(sourceKey)) throw new IllegalArgumentException("来源主键重复: "+source.object());
+                    if(Objects.equals(previous[0],sourceKey))throw new IllegalArgumentException("来源主键重复: "+source.object());
+                    previous[0]=sourceKey;
                     if("INCREMENTAL".equals(definition.mode()) && row.get(source.updatedAt())==null)
                         throw new IllegalArgumentException("增量时间字段不可为空");
                     long rowBytes=estimateBytes(row);
@@ -182,7 +180,7 @@ public class SpringJdbcStreamingReader {
         }
     }
     private static LocalDateTime currentTime(JdbcTemplate jdbc) {
-        return Objects.requireNonNull(jdbc.queryForObject("SELECT CURRENT_TIMESTAMP",(rs,rowNum)->rs.getTimestamp(1).toLocalDateTime()));
+        return Objects.requireNonNull(jdbc.queryForObject("SELECT CURRENT_TIMESTAMP(6)",(rs,rowNum)->rs.getTimestamp(1).toLocalDateTime()));
     }
 
     private static void verifyTransactionalTables(Connection connection,String sql,Set<String> visited)throws SQLException {
