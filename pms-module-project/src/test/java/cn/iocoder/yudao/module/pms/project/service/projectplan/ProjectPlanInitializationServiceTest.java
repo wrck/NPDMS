@@ -27,6 +27,9 @@ class ProjectPlanInitializationServiceTest {
         when(plans.attachInitialPlan(any())).thenReturn(1); when(rounds.insert(any(ProjectNodeExecutionDO.class))).thenReturn(1);
         var snapshot = new TemplateExecutionSnapshot(); var node = new TemplateExecutionSnapshot.StageContract(); node.setNodeKey("stage:one"); snapshot.setStages(List.of(node));
         var contract = new ProjectStageExecutionContractDO(); contract.setId(31L); contract.setStageId(11L); contract.setSourceNodeKey("stage:one");
+        contract.setTenantId(7L); contract.setProjectId(9L);
+        when(templates.getExecutionSnapshot(100L, 2)).thenReturn(
+                JsonUtils.parseObject(JsonUtils.toJsonString(snapshot), TemplateExecutionSnapshot.class));
         var service = new ProjectPlanInitializationService(plans, rounds, templates,
                 mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
         service.initialize(project, snapshot, List.of(contract), List.of());
@@ -40,5 +43,6 @@ class ProjectPlanInitializationServiceTest {
         assertNull(execution.getValue().getSubmittedAt()); assertEquals(31L, execution.getValue().getContractId());
         assertThrows(IllegalArgumentException.class, () -> service.initialize(project, snapshot, List.of(contract), List.of()));
         verify(templates).getRevisionById(102L);
+        verify(templates).getExecutionSnapshot(100L, 2);
     }
 }
