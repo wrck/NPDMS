@@ -15,6 +15,22 @@
 - API 版本只处理兼容演进，不用于绕过 Requirement 变更。
 - V3 和 OUT_OF_SCOPE 能力不得通过隐藏接口提前发布。
 
+### 1.1 领域模块路径与命名规范
+
+新增 PMS Business API 固定使用物理前缀 `/api/v1/pms/{业务实体}`（实体复数、kebab-case；状态命令遵循第3节 `POST /{resource}/{id}/actions/{command}`），与工程基线的 V2 规范一致。
+
+存量旧链 `/pms/*` 为冻结兼容入口，不新增；同一物理模块内的旧链路径、菜单权限标识和表名必须使用一致的领域前缀，迁移或归属修正调整时同步对齐（示例 V253）：
+
+| 物理模块 | 旧链 URL 前缀 | 旧链权限前缀 | 表名前缀 |
+|---|---|---|---|
+| pms-module-project | `/pms/*`（存量无前缀） | `pms:{实体}:{动作}` | `proj_*`（新表）/`pms_*`（存量旧链冻结） |
+| pms-module-engineering | `/pms/eng-*` | `pms:eng-*:*` | `pms_eng_*` |
+| pms-module-acceptance | `/pms/acc-*` | `pms:acc-*:*` | `acc_*`（新表）/`pms_acc_*`（存量旧链冻结） |
+| pms-module-cutover | `/pms/cut-*` | `pms:cut-*:*` | `cut_*` |
+| pms-module-customer | `/pms/customers`（存量无前缀冻结） | `pms:{实体}:{动作}` | `cus_*` |
+
+冻结旧链表与旧功能不改名、不改语义（见 09 分册存量结论）；领域归属修正迁移的代码必须落入目标模块后立即按本表对齐三项前缀，不得保留源模块命名。新链表名按 09 分册各 Context 目标表组命名（`acc_/cut_/cus_/imp_/srv_/com_/plt_/proj_`）。
+
 ## 2. 通用请求与响应
 
 ### 2.1 请求头
