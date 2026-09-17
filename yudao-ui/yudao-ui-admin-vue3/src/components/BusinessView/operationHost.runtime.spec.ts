@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, shallowRef } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
+import request from '@/config/axios'
 import { editingTargetKey, useOperationHost } from './operationHost'
 import { selectionClient } from './operationClient'
 import type { BusinessViewTarget } from './registry'
 
 vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
 vi.mock('@/config/axios', () => ({ default: { post: vi.fn() } }))
+vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } } }))
 const selection = (round = '90') => ({ task: { projectId: '1', taskId: '2', executionContractId: '3',
   contractVersion: 1, planVersionId: '4', executionId: round, executionVersion: 1 }, stage: null })
 const target = () => ({ registration: { id: '7', componentKey: 'SOL_SITE_SURVEY', componentVersion: '1',
@@ -69,8 +71,15 @@ describe('retained Owner view and execution routing', () => {
     vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability(null, '91') as never)
     await view.state.refresh()
     expect(old.matches(selection())).toBe(false)
-    expect(view.state.client.value).not.toBe(old)
+    expect(view.state.client.value).toBe(old)
+    expect(view.state.requiresReopen.value).toBe(true)
+    expect(view.state.allowedActions.value).toEqual(['QUERY'])
+    expect(view.state.decorated.value.taskExecution?.executionId).toBe('90')
     expect(editingTargetKey(view.active.value)).toBe(key)
+    await view.state.reopen()
+    expect(view.state.requiresReopen.value).toBe(false)
+    expect(view.state.client.value).not.toBe(old)
+    expect(view.state.decorated.value.taskExecution?.executionId).toBe('91')
     view.wrapper.unmount()
   })
   it('does not infer file write permission from business operations', async () => {
@@ -88,6 +97,59 @@ describe('retained Owner view and execution routing', () => {
     expect(view.state.client.value).toBe(client)
     expect(view.state.mode.value).toBe('CONTROLLED')
     expect(view.state.allowedActions.value).toEqual(['QUERY'])
+    view.wrapper.unmount()
+  })
+
+  it('does not rotate a client when only an observation version changes', async () => {
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+    const view = harness(); await flushPromises()
+    const old = view.state.client.value
+    const next = capability(); next.execution.task.executionVersion = 2
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(next as never)
+    await view.state.refresh()
+    expect(view.state.client.value).toBe(old)
+    expect(view.state.requiresReopen.value).toBe(false)
+    expect(view.state.decorated.value.taskExecution?.executionVersion).toBe(2)
+    view.wrapper.unmount()
+  })
+  it('preserves the last routed identity when execution temporarily disappears', async () => {
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+    const view = harness(); await flushPromises()
+    const old = view.state.client.value
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue({ ...capability(), execution: null } as never)
+    await view.state.refresh()
+    expect(view.state.client.value).toBe(old)
+    expect(view.state.requiresReopen.value).toBe(true)
+    expect(view.state.decorated.value.taskExecution?.executionId).toBe('90')
+    view.wrapper.unmount()
+  })
+  it('recovers an uncertain command after rework without adopting the new round', async () => {
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+    vi.mocked(request.post).mockRejectedValueOnce(new Error('connection lost'))
+    const view = harness(); await flushPromises()
+    const old = view.state.client.value!
+    await expect(old.execute({ operationCode: 'SOL.SITE_SURVEY.CREATE', input: { name: 'draft' } })).rejects.toThrow('connection lost')
+    const sent = vi.mocked(request.post).mock.calls[0][0]
+    expect(view.state.uncertain.value).toBe(true)
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability(null, '91') as never)
+    await view.state.refresh()
+    await view.state.reopen()
+    expect(view.state.client.value).toBe(old)
+    expect(view.state.requiresReopen.value).toBe(true)
+    const result = { ownerContext: 'SOL', objectType: 'SITE_SURVEY', objectId: '88', objectVersion: 1,
+      businessFactVersion: 'v1', resultCode: 'SURVEY_DRAFT_SAVED', response: { id: '88' }, replayed: true }
+    vi.mocked(request.post).mockResolvedValueOnce(result as never)
+    await view.state.recover()
+    const replay = vi.mocked(request.post).mock.calls[1][0]
+    expect(replay.data).toEqual(sent.data)
+    expect(replay.headers).toEqual(sent.headers)
+    expect(replay.data.execution.task.executionId).toBe('90')
+    expect(view.state.uncertain.value).toBe(false)
+    expect(view.state.receipt.value).toEqual(result)
+    expect(view.state.requiresReopen.value).toBe(true)
+    await view.state.reopen()
+    expect(view.state.client.value).not.toBe(old)
+    expect(view.state.decorated.value.taskExecution?.executionId).toBe('91')
     view.wrapper.unmount()
   })
 })

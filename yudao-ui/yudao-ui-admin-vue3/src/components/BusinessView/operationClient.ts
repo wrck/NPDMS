@@ -18,6 +18,7 @@ export interface Transport {
   submit(code: string, command: Command, key: string): Promise<Result>
   newKey(): string
   submitted?(result: Result): void
+  pendingChanged?(uncertain: boolean): void
 }
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 export function selectionIdentity(selection: Selection | null | undefined): string {
@@ -36,12 +37,31 @@ export function stableJson(value: unknown): string {
   }
   return JSON.stringify(normalize(value))
 }
-/** One mounted node/round owns a client. Editing buffers can retain an invalidated old client, never a new round. */
+/** A parsed, definite server refusal is different from a lost response. Unknown errors stay recoverable. */
+export class OperationRejected extends Error {
+  readonly code: number
+  constructor(code: number, message: string) { super(message); this.name = 'OperationRejected'; this.code = code }
+}
+/** Append after the existing Axios JSON transforms; do not replace Snowflake-safe decoding. */
+export function captureOperationResponse(value: unknown): unknown {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const data = value as { code?: unknown; msg?: unknown }
+    if (typeof data.code === 'number' && Number.isInteger(data.code) && typeof data.msg === 'string'
+      && ![0, 200, 401, 408, 429, 500, 501, 502, 503, 504, 901].includes(data.code)
+      && !/IN_PROGRESS|in progress/i.test(data.msg)) throw new OperationRejected(data.code, data.msg)
+  }
+  return value
+}
+interface Pending {
+  code: string; fingerprint: string; key: string; implicit: boolean; sent: boolean
+  command?: Command; result?: Result; promise?: Promise<Result>
+}
+/** One editing session pins a round. Retiring it forbids new work, not recovery of an already sent command. */
 export class OperationClient {
   private readonly anchor: string
   private live = true
   private inFlight = 0
-  private readonly pending = new Map<string, { fingerprint: string; key: string; command?: Command; result?: Result; promise?: Promise<Result> }>()
+  private readonly pending = new Map<string, Pending>()
   readonly target: Target
   private readonly transport: Transport
   constructor(target: Target, selection: Selection, transport: Transport) {
@@ -57,8 +77,15 @@ export class OperationClient {
   }
   invalidate(): void { this.live = false }
   isBusy(): boolean { return this.inFlight > 0 }
+  hasUncertain(): boolean { return [...this.pending.values()].some(entry => entry.sent && !entry.result) }
+  async retryPending(): Promise<Result[]> {
+    const results: Result[] = []
+    for (const [index, entry] of [...this.pending]) {
+      if (entry.sent && !entry.result) results.push(await this.run(index, entry))
+    }
+    return results
+  }
   async execute(intent: Intent): Promise<Result> {
-    if (!this.live) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
     if (!intent.operationCode || !intent.input || Array.isArray(intent.input)) throw new Error('OPERATION_INPUT_INVALID')
     if ('execution' in intent.input || 'tenantId' in intent.input || 'actorId' in intent.input) throw new Error('UNTRUSTED_EXECUTION_INPUT')
     const input = copy(intent.input)
@@ -67,32 +94,54 @@ export class OperationClient {
     const index = intent.key ? `key:${intent.operationCode}:${intent.key}` : fingerprint
     let entry = this.pending.get(index)
     if (entry && entry.fingerprint !== fingerprint) throw new Error('OPERATION_KEY_CONFLICT')
-    if (entry?.promise) return entry.promise
-    if (!entry) { entry = { fingerprint, key: intent.key || this.transport.newKey() }; this.pending.set(index, entry) }
-    const selected = entry
+    if (!entry && this.hasUncertain()) throw new Error('OPERATION_RESULT_UNCERTAIN_RETRY_REQUIRED')
+    if (!this.live && !entry?.sent) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
+    if (!entry) {
+      entry = { code: intent.operationCode, fingerprint, key: intent.key || this.transport.newKey(), implicit: !intent.key, sent: false }
+      this.pending.set(index, entry)
+    }
+    return this.run(index, entry, async () => {
+      const expectedVersion = typeof intent.expectedBusinessVersion === 'function'
+        ? await intent.expectedBusinessVersion() : intent.expectedBusinessVersion
+      const capability = await this.transport.inspect({ ...this.target, objectId: intent.objectId == null ? undefined : String(intent.objectId) })
+      if (!this.live || !this.matches(capability.execution)) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
+      if (String(capability.node.projectId) !== String(this.target.projectId) || String(capability.node.id) !== String(this.target.nodeId)
+        || capability.node.kind !== this.target.nodeKind) throw new Error('EXECUTION_CONTEXT_MISMATCH')
+      const actions = capability.actions.filter(action => action.operationCode === intent.operationCode && action.operationVersion === 1)
+      if (capability.reason || actions.length !== 1 || !actions[0].allowed) throw new Error(capability.reason || actions[0]?.reason || 'OPERATION_NOT_ALLOWED')
+      if (intent.objectId != null && (!Number.isInteger(expectedVersion) || Number(expectedVersion) < 0 || !capability.ownerFactVersion)) throw new Error('BUSINESS_VERSION_REQUIRED')
+      return { ...this.target, execution: copy(capability.execution!), objectId: intent.objectId == null ? undefined : String(intent.objectId),
+        expectedBusinessVersion: expectedVersion, expectedObjectFactVersion: capability.ownerFactVersion, input }
+    })
+  }
+  private run(index: string, entry: Pending, prepare?: () => Promise<Command>): Promise<Result> {
+    if (entry.promise) return entry.promise
+    const recovery = entry.sent
     this.inFlight++
-    selected.promise = (async () => {
-      if (!selected.command) {
-        const expectedVersion = typeof intent.expectedBusinessVersion === 'function'
-          ? await intent.expectedBusinessVersion() : intent.expectedBusinessVersion
-        const capability = await this.transport.inspect({ ...this.target, objectId: intent.objectId == null ? undefined : String(intent.objectId) })
-        if (!this.live || !this.matches(capability.execution)) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
-        if (String(capability.node.projectId) !== String(this.target.projectId) || String(capability.node.id) !== String(this.target.nodeId)
-          || capability.node.kind !== this.target.nodeKind) throw new Error('EXECUTION_CONTEXT_MISMATCH')
-        const actions = capability.actions.filter(action => action.operationCode === intent.operationCode && action.operationVersion === 1)
-        if (capability.reason || actions.length !== 1 || !actions[0].allowed) throw new Error(capability.reason || actions[0]?.reason || 'OPERATION_NOT_ALLOWED')
-        if (intent.objectId != null && (!Number.isInteger(expectedVersion) || Number(expectedVersion) < 0 || !capability.ownerFactVersion)) throw new Error('BUSINESS_VERSION_REQUIRED')
-        selected.command = { ...this.target, execution: copy(capability.execution!), objectId: intent.objectId == null ? undefined : String(intent.objectId),
-          expectedBusinessVersion: expectedVersion, expectedObjectFactVersion: capability.ownerFactVersion, input }
+    entry.promise = (async () => {
+      if (!entry.command) {
+        if (!this.live || !prepare) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
+        entry.command = await prepare()
       }
-      if (!this.live) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
-      // Once sent, an uncertain result is retried with this exact envelope and key, without a new capability check.
-      const result = await this.transport.submit(intent.operationCode, copy(selected.command), selected.key)
-      selected.result = copy(result)
-      if (this.live) { try { this.transport.submitted?.(result) } catch { /* Metadata refresh cannot turn a committed command into a failure. */ } }
+      if (!this.live && !entry.sent) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
+      // Retried requests never acquire a new key, context, payload or capability observation.
+      entry.sent = true
+      const result = await this.transport.submit(entry.code, copy(entry.command), entry.key)
+      entry.result = copy(result)
+      // A later identical click without an explicit key is a new business intent, not a permanent replay.
+      if (entry.implicit) this.pending.delete(index)
+      try { this.transport.submitted?.(result) } catch { /* Projection failure cannot undo a committed command. */ }
       return result
-    })().finally(() => { selected.promise = undefined; this.inFlight-- })
-    return selected.promise
+    })().catch(error => {
+      // A rejection of a recovery request cannot disprove that the earlier attempt committed.
+      if (!recovery && error instanceof OperationRejected) this.pending.delete(index)
+      throw error
+    }).finally(() => {
+      entry.promise = undefined; this.inFlight--
+      if (!entry.sent) this.pending.delete(index)
+      try { this.transport.pendingChanged?.(this.hasUncertain()) } catch { /* Metadata only. */ }
+    })
+    return entry.promise
   }
 }
 /** Enumerable symbols survive object spread, but JSON never transmits this local routing reference. */

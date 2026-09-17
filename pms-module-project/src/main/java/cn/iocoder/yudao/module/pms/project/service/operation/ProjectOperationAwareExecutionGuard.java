@@ -12,8 +12,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Objects;
 
-/** Legacy calls delegate unchanged. Only a verified, exact controlled invocation replaces the view-based guard. */
+/** Legacy calls delegate unchanged. Only an exact operation, object and execution can reuse PRE. */
 @Service
 @Primary
 @RequiredArgsConstructor
@@ -23,13 +24,18 @@ public class ProjectOperationAwareExecutionGuard implements ProjectBusinessExecu
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockForWrite(WriteRequest request) {
-        if (request != null && ProjectVerifiedOperationScope.matches(TenantContextHolder.getRequiredTenantId(),
-                SecurityFrameworkUtils.getLoginUserId(), request.projectId(), request.ownerContext(), request.objectType(), request.selection())) {
-            // The common executor already checked the actual operation/Owner and PRE in this transaction.
-            // Recheck the execution identity; registry page enablement is no longer an extra business authority.
+        var frame = ProjectVerifiedOperationScope.current();
+        if (frame != null && request != null && ProjectVerifiedOperationScope.matches(TenantContextHolder.getRequiredTenantId(),
+                SecurityFrameworkUtils.getLoginUserId(), request.projectId(), request.ownerContext(), request.objectType(),
+                request.selection(), request.operationCode(), request.operationVersion(), request.objectId())) {
             if (request.selection().task() != null) executions.lockAndRevalidate(request.selection().task());
             else executions.lockAndRevalidateStage(request.selection().stage());
             return;
+        }
+        if (frame != null && request != null && Objects.equals(frame.ownerContext(), request.ownerContext())
+                && Objects.equals(frame.objectType(), request.objectType())) {
+            // A nested same-Owner write must enter its own verified command, not downgrade to the legacy guard.
+            throw new IllegalStateException("CONTROLLED_OPERATION_SCOPE_MISMATCH");
         }
         legacy.getObject().lockForWrite(request);
     }

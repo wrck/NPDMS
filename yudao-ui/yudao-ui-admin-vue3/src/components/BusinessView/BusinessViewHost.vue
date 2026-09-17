@@ -6,6 +6,8 @@
       <el-alert v-if="operation.receipt.value"
         :title="`业务已提交：${operation.receipt.value.resultCode}；节点当前状态：${operation.observation.value?.node.status || '待刷新'}。业务提交不等于节点完成。`"
         type="info" :closable="false" />
+      <el-alert v-if="operation.uncertain.value" title="上次操作响应未确认，请先用原请求确认结果；不要重新填写并重复提交。" type="warning" :closable="false" />
+      <el-button v-if="operation.uncertain.value" :loading="operation.recovering.value" @click="operation.recover()">用原请求确认提交结果</el-button>
       <el-button v-if="operation.requiresReopen.value" @click="retry">处理未保存内容并重新进入</el-button>
       <el-button :loading="operation.checking.value" @click="operation.refresh()">刷新执行状态（不重载业务表单）</el-button>
       <el-table v-if="operation.observation.value?.actions.length" :data="operation.observation.value.actions" size="small" aria-label="操作权限与规则">
@@ -50,6 +52,10 @@ const ownerChanged = () => { emit('changed'); void operation.refresh(true) }
 let leaving: Promise<boolean> | undefined
 const requestLeave = (): Promise<boolean> => {
   if (operation.client.value?.isBusy()) return Promise.resolve(false)
+  if (operation.client.value?.hasUncertain()) {
+    message.warning('上次操作响应未确认，请先用原请求确认提交结果，再切换或重新进入。')
+    return Promise.resolve(false)
+  }
   if (leaving) return leaving
   leaving = (async () => {
     if (contentRef.value?.requestLeave) return await contentRef.value.requestLeave()
@@ -76,9 +82,9 @@ const retry = async () => {
   loadError.value = ''; retryNo.value++
   await operation.reopen()
 }
-onErrorCaptured(() => { loadError.value = '业务组件暂不可用；未创建对象或改变业务状态，请重试。'; return false })
+onErrorCaptured(() => { loadError.value = '业务组件暂不可用；请先确认已提交操作的结果，再重试装载。'; return false })
 onBeforeRouteLeave(requestLeave)
-defineExpose({ requestLeave, isDirty: () => dirty.value || !!operation.client.value?.isBusy() })
+defineExpose({ requestLeave, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain() })
 </script>
 <style scoped>
 .business-view-host { min-width: 0; }

@@ -24,12 +24,20 @@ public class SiteSurveyEntityWriteAccess {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void lock(Long projectId, String permission, ProjectBusinessExecutionSelection selection) {
+        lock(projectId, permission, selection, null, null);
+    }
+
+    /** Operation and object come from the actual Owner method, never from form metadata. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void lock(Long projectId, String permission, ProjectBusinessExecutionSelection selection,
+                     String operationCode, Long objectId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
         if (projectId == null || projectId <= 0 || actorId == null || !permissions.hasAnyPermissions(actorId, permission))
             throw exception(FORBIDDEN);
         var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_MANAGE));
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
-        executions.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(projectId, "SOL", "SITE_SURVEY", selection));
+        executions.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(projectId, "SOL", "SITE_SURVEY", selection,
+                operationCode, operationCode == null ? null : 1, objectId == null ? null : objectId.toString()));
     }
 }

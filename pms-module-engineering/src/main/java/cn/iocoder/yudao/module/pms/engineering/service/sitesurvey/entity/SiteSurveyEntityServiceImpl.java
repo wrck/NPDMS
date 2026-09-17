@@ -48,7 +48,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSiteSurveyEntity(SiteSurveyEntitySaveReqVO createReqVO) {
-        writeAccess.lock(createReqVO.getProjectId(), "pms:eng-site-survey:create", createReqVO.getExecution());
+        writeAccess.lock(createReqVO.getProjectId(), "pms:eng-site-survey:create", createReqVO.getExecution(), "SOL.SITE_SURVEY.CREATE", null);
         validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         SiteSurveyEntityDO survey = BeanUtils.toBean(createReqVO, SiteSurveyEntityDO.class);
         survey.setId(null);
@@ -69,7 +69,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Transactional(rollbackFor = Exception.class)
     public void updateSiteSurveyEntity(SiteSurveyEntitySaveReqVO updateReqVO) {
         SiteSurveyEntityDO existing = validateSiteSurveyEntityExists(updateReqVO.getId());
-        writeAccess.lock(existing.getProjectId(), "pms:eng-site-survey:update", updateReqVO.getExecution());
+        writeAccess.lock(existing.getProjectId(), "pms:eng-site-survey:update", updateReqVO.getExecution(), "SOL.SITE_SURVEY.UPDATE", existing.getId());
         validateStatus(existing, 0);
         if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
                 || !Objects.equals(existing.getCode(), updateReqVO.getCode())) throw exception(SITE_SURVEY_FORM_INVALID);
@@ -94,7 +94,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteSiteSurveyEntity(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyEntityDO existing = validateSiteSurveyEntityExists(id);
-        writeAccess.lock(existing.getProjectId(), "pms:eng-site-survey:delete", execution);
+        writeAccess.lock(existing.getProjectId(), "pms:eng-site-survey:delete", execution, "SOL.SITE_SURVEY.DELETE", existing.getId());
         validateStatus(existing, 0);
         if (existing.getOutsourceRequestId() != null) throw exception(SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED);
         if (siteSurveyEntityMapper.deleteDraft(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityMutation(
@@ -130,7 +130,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Transactional(rollbackFor = Exception.class)
     public void confirmSiteSurveyEntity(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(id);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution, "SOL.SITE_SURVEY.CONFIRM", survey.getId());
         validateStatus(survey, 0); // 草稿 → 已确认
         validateForm(survey, false);
         updateStatus(survey, 1);
@@ -140,7 +140,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Transactional(rollbackFor = Exception.class)
     public void rejectSiteSurveyEntity(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(id);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution, "SOL.SITE_SURVEY.REJECT", survey.getId());
         validateStatus(survey, 0); // 草稿 → 已驳回
         updateStatus(survey, 2);
     }
@@ -149,7 +149,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Transactional(rollbackFor = Exception.class)
     public void archiveSiteSurveyEntity(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(id);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution, "SOL.SITE_SURVEY.ARCHIVE", survey.getId());
         validateStatus(survey, 1); // 已确认 → 已归档
         updateStatus(survey, 3);
     }

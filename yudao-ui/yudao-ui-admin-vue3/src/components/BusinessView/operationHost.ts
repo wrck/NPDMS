@@ -1,7 +1,8 @@
 import { computed, inject, markRaw, onBeforeUnmount, shallowRef, watch, type InjectionKey, type ShallowRef } from 'vue'
 import { inspectOperationCapabilities, type OperationCapabilities, type CapabilityQuery } from '@/api/pms/project/execution-operations'
 import request from '@/config/axios'
-import { OperationClient, routeSelection, type Result, type Selection } from './operationClient'
+import { service } from '@/config/axios/service'
+import { OperationClient, routeSelection, captureOperationResponse, type Result, type Selection } from './operationClient'
 import type { BusinessViewTarget } from './registry'
 
 export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
@@ -28,6 +29,9 @@ export function editingTargetKey(target: BusinessViewTarget): string {
 export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed: () => void) {
   const observation = shallowRef<OperationCapabilities>()
   const client = shallowRef<OperationClient>()
+  const routingExecution = shallowRef<Selection>()
+  const uncertain = shallowRef(false)
+  const recovering = shallowRef(false)
   const receipt = shallowRef<Result>()
   const failure = shallowRef('')
   const checking = shallowRef(false)
@@ -43,6 +47,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
       objectId: context.businessObjectId }
   }
   const submitted = (result: Result) => {
+    if (disposed) return
     receipt.value = result
     poll = 0
     if (timer) clearTimeout(timer)
@@ -75,16 +80,24 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
         client.value?.invalidate(); client.value = undefined; mode.value = 'LEGACY'
       } else {
         mode.value = 'CONTROLLED'
-        if (!value.execution) { client.value?.invalidate(); client.value = undefined }
-        else if (!client.value?.matches(value.execution)) {
-          client.value?.invalidate()
-          client.value = markRaw(new OperationClient(target, value.execution, {
+        if (client.value && !client.value.matches(value.execution)) {
+          // Keep the old client for response recovery, but never route an existing form into a new round.
+          client.value.invalidate(); requiresReopen.value = true
+          throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
+        }
+        if (value.execution && !client.value) {
+          const created: OperationClient = markRaw(new OperationClient(target, value.execution, {
             inspect: input => inspectOperationCapabilities(input),
             submit: (code, command, key) => request.post<Result>({ url: `/api/v1/pms/project-execution/operations/${encodeURIComponent(code)}`,
-              data: command, headers: { 'Idempotency-Key': key } }),
-            newKey: () => crypto.randomUUID(), submitted
+              data: command, headers: { 'Idempotency-Key': key },
+              transformResponse: [...(Array.isArray(service.defaults.transformResponse) ? service.defaults.transformResponse
+                : service.defaults.transformResponse ? [service.defaults.transformResponse] : []), captureOperationResponse] }),
+            newKey: () => crypto.randomUUID(), submitted,
+            pendingChanged: pending => { if (!disposed && client.value === created) uncertain.value = pending }
           }))
+          client.value = created
         }
+        if (value.execution) routingExecution.value = value.execution as Selection
       }
       if (previous && previous.node.status !== value.node.status) changed()
       if (follow && ++poll < 6 && !['DONE', 'CLOSED', 'COMPLETED'].includes(value.node.status)) {
@@ -99,8 +112,8 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
   }
   const decorated = computed(() => {
     const context = active.value.resolvedContext
-    if (mode.value !== 'CONTROLLED' || !client.value || !observation.value?.execution) return context
-    const selected = routeSelection(observation.value.execution as Selection, client.value)
+    if (mode.value !== 'CONTROLLED' || !client.value || !routingExecution.value) return context
+    const selected = routeSelection(routingExecution.value, client.value)
     return { ...context, ...(selected.task ? { taskExecution: selected.task } : { stageExecution: selected.stage }) } as typeof context
   })
   const allowedActions = computed(() => {
@@ -108,7 +121,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     if (requiresReopen.value) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
     if (mode.value === 'INDEPENDENT' || mode.value === 'LEGACY') return target.allowedActions
     const readable = target.allowedActions.includes('QUERY') ? ['QUERY'] : []
-    if (checking.value || failure.value || observation.value?.reason || !client.value) return readable
+    if (checking.value || uncertain.value || recovering.value || failure.value || observation.value?.reason || !client.value) return readable
     const selectedObject = target.resolvedContext.businessObjectId != null
     const ownerAliases = new Set(target.allowedActions)
     const result = new Set(readable)
@@ -124,8 +137,18 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     if (ownerAliases.has('FILE_WRITE')) result.add('FILE_WRITE')
     return [...result]
   })
+  const recover = async () => {
+    if (!client.value || recovering.value) return
+    recovering.value = true
+    try { await client.value.retryPending() }
+    catch (error) { failure.value = error instanceof Error ? error.message : 'OPERATION_RESULT_UNCERTAIN' }
+    finally { recovering.value = false; uncertain.value = client.value?.hasUncertain() ?? false }
+  }
   const reopen = async () => {
-    client.value?.invalidate(); client.value = undefined
+    if (client.value?.isBusy() || client.value?.hasUncertain()) {
+      failure.value = 'OPERATION_RESULT_UNCERTAIN_RETRY_REQUIRED'; return
+    }
+    client.value?.invalidate(); client.value = undefined; routingExecution.value = undefined; uncertain.value = false
     requiresReopen.value = false; mode.value = 'CHECKING'; failure.value = ''
     receipt.value = undefined
     await refresh()
@@ -139,11 +162,12 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     const identity = JSON.stringify(target && [target.projectId, target.nodeKind, target.nodeId])
     if (identity !== previousTarget) {
       client.value?.invalidate(); client.value = undefined
+      routingExecution.value = undefined; uncertain.value = false
       mode.value = 'CHECKING'; requiresReopen.value = false; receipt.value = undefined
       previousTarget = identity
     }
     poll = 0; if (timer) clearTimeout(timer); void refresh()
   }, { immediate: true })
   onBeforeUnmount(() => { disposed = true; generation++; client.value?.invalidate(); if (timer) clearTimeout(timer) })
-  return { observation, client, receipt, failure, checking, mode, decorated, allowedActions, requiresReopen, refresh, reopen }
+  return { observation, client, receipt, failure, checking, mode, decorated, allowedActions, requiresReopen, uncertain, recovering, recover, refresh, reopen }
 }

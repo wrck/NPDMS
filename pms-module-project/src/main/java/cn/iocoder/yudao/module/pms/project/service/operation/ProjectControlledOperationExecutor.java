@@ -102,7 +102,7 @@ public class ProjectControlledOperationExecutor {
             current = request.withExecution(new ProjectBusinessExecutionSelection(null, started));
         }
         var frame = new ProjectVerifiedOperationScope.Frame(tenant, actor, request.projectId(), descriptor.ownerContext(),
-                descriptor.objectType(), code, request.objectId(), current.execution());
+                descriptor.objectType(), code, version, request.objectId(), current.execution());
         try (var ignored = ProjectVerifiedOperationScope.open(frame)) {
             ProjectOperationResult response;
             try { response = work.invoke(current); }
