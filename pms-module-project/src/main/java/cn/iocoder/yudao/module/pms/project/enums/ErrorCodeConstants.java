@@ -70,30 +70,18 @@ public interface ErrorCodeConstants {
     // ========== 验收闭环域 ACC 1-014-011-000 ~ 1-014-016-999 ==========
     // 注：任务规范 ACC 域使用 1-014-000-000 段、每实体 1000 段；为避免与现有 001-010 段冲突，
     //     ACC 域从 1-014-011-000 起按 1000 段递进分配。
+    //     archivedocument/completioncertificate/deliverablechecklist 已随 ACC 归属修正迁至
+    //     pms-module-acceptance 的 ErrorCodeConstants，本文件不再保留对应错误码。
 
-    // ========== 电子完工证明 1-014-011-000 ==========
-    ErrorCode ACC_COMPLETION_CERTIFICATE_NOT_EXISTS = new ErrorCode(1_014_011_000, "电子完工证明不存在");
-    ErrorCode ACC_COMPLETION_CERTIFICATE_CODE_DUPLICATE = new ErrorCode(1_014_011_001, "项目内完工证明编码已存在");
-    ErrorCode ACC_COMPLETION_CERTIFICATE_STATUS_INVALID = new ErrorCode(1_014_011_002, "完工证明状态流转不合法");
-
-    // ========== 初验/终验 1-014-012-000 ==========
-    ErrorCode ACC_ACCEPTANCE_NOT_EXISTS = new ErrorCode(1_014_012_000, "验收记录不存在");
-    ErrorCode ACC_ACCEPTANCE_CODE_DUPLICATE = new ErrorCode(1_014_012_001, "项目内验收编码已存在");
-    ErrorCode ACC_ACCEPTANCE_STATUS_INVALID = new ErrorCode(1_014_012_002, "验收状态流转不合法");
-    ErrorCode ACC_ACCEPTANCE_DELIVERABLE_INCOMPLETE = new ErrorCode(1_014_012_003, "交付件完整性校验未通过，存在未通过的必交交付件");
-    ErrorCode ACC_ACCEPTANCE_SCOPE_REQUEST_INVALID = new ErrorCode(1_014_012_004, "验收范围绑定请求不合法");
-    ErrorCode ACC_ACCEPTANCE_SCOPE_BINDING_CONFLICT = new ErrorCode(1_014_012_005, "验收范围绑定身份或状态冲突");
-    ErrorCode ACC_REPORT_NOT_EXISTS = new ErrorCode(1_014_012_006, "验收报告版本不存在");
-    ErrorCode ACC_REPORT_STATE_INVALID = new ErrorCode(1_014_012_007, "验收报告当前状态不允许该操作");
+    // ========== 验收闭环域 ACC 1-014-011-000 ~ 1-014-016-999 ==========
+    // 注：任务规范 ACC 域使用 1-014-000-000 段、每实体 1000 段；为避免与现有 001-010 段冲突，
+    //     ACC 域从 1-014-011-000 起按 1000 段递进分配。
+    //     验收相关错误码已随 ACC 归属修正迁至 pms-module-acceptance 的 ErrorCodeConstants；
+    //     taskworkbench 任务完成判定仍消费以下 3 个 ACC_REPORT 错误码，待 C2 契约批次收敛。
     ErrorCode ACC_REPORT_VERSION_CONFLICT = new ErrorCode(1_014_012_008, "验收报告或活动版本冲突");
     ErrorCode ACC_REPORT_INCOMPLETE = new ErrorCode(1_014_012_009, "验收报告时间、结论、验收人或附件不完整");
     ErrorCode ACC_REPORT_DEPENDENCY_UNAVAILABLE = new ErrorCode(1_014_012_010, "验收报告Owner事实暂不可用");
-    ErrorCode ACC_REPORT_SCOPE_FORBIDDEN = new ErrorCode(1_014_012_011, "无权访问该项目验收报告");
-
-    // ========== 交付件检查 1-014-013-000 ==========
-    ErrorCode ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS = new ErrorCode(1_014_013_000, "交付件检查记录不存在");
-    ErrorCode ACC_DELIVERABLE_CHECKLIST_CODE_DUPLICATE = new ErrorCode(1_014_013_001, "项目内交付件编码已存在");
-    ErrorCode ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID = new ErrorCode(1_014_013_002, "交付件状态流转不合法");
+    //     ACC_PROJECT_CLOSURE 留待项目闭环（normalclosure）批次迁移。
 
     // ========== 项目闭环 1-014-014-000 ==========
     ErrorCode ACC_PROJECT_CLOSURE_NOT_EXISTS = new ErrorCode(1_014_014_000, "项目闭环记录不存在");
@@ -101,10 +89,7 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_PROJECT_CLOSURE_STATUS_INVALID = new ErrorCode(1_014_014_002, "项目闭环状态流转不合法");
     ErrorCode ACC_PROJECT_CLOSURE_VALIDATION_FAILED = new ErrorCode(1_014_014_003, "项目闭环校验未通过：{}");
 
-    // ========== 归档文档 1-014-015-000 ==========
-    ErrorCode ACC_ARCHIVE_DOCUMENT_NOT_EXISTS = new ErrorCode(1_014_015_000, "归档文档不存在");
-    ErrorCode ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE = new ErrorCode(1_014_015_001, "项目内归档文档编码已存在");
-    ErrorCode ACC_ARCHIVE_DOCUMENT_STATUS_INVALID = new ErrorCode(1_014_015_002, "归档文档状态流转不合法");
+    // ========== 归档文档 1-014-015-000（已随 ACC 归属修正迁至 pms-module-acceptance）==========
 
     // ========== 项目组合模块 1-014-017-000 ==========
     ErrorCode PORTFOLIO_NOT_EXISTS = new ErrorCode(1_014_017_000, "项目组合不存在");

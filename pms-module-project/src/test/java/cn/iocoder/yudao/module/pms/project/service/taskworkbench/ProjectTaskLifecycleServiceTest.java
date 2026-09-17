@@ -18,8 +18,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMach
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskLifecycleStateUpdate;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
-import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
-import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionFact;
+import cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
+import cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.dto.AcceptanceActivityCompletionFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;

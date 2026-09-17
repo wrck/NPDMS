@@ -41,6 +41,11 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-acceptance-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-customer-api</artifactId>
             <version>${revision}</version>
         </dependency>
@@ -102,6 +107,12 @@
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-platform</artifactId>
+            <version>${revision}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-acceptance</artifactId>
             <version>${revision}</version>
             <scope>test</scope>
         </dependency>

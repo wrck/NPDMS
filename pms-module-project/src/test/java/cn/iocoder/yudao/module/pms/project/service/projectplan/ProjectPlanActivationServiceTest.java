@@ -8,7 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStat
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapper;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskProgressService;

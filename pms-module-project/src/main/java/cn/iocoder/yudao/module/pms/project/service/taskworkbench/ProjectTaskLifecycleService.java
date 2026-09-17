@@ -29,8 +29,8 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskNativeComple
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskCompletedMessage;
-import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
-import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionCommand;
+import cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
+import cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.dto.AcceptanceActivityCompletionCommand;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;

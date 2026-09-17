@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 

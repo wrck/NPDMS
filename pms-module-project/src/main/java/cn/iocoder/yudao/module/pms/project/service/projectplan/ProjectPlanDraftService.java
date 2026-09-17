@@ -21,7 +21,7 @@ import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.Deliver
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateCompiler;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateDesignerDependencyValidator;
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

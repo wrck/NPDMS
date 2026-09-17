@@ -31,7 +31,7 @@ class ProjectPlanStageTaskInstallerTest {
     final ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
     final TaskExecutionContractFactory taskFactory = new TaskExecutionContractFactory();
     final ProjectRuntimeGraphFreezer stageFactory = new ProjectRuntimeGraphFreezer(graph,stageContracts);
-    final cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates = mock(cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi.class);
+    final cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates = mock(cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi.class);
     final ProjectPlanStageTaskInstaller installer = new ProjectPlanStageTaskInstaller(projections,stages,tasks,paths,contracts,stageContracts,graph,executions,taskFactory,stageFactory,satisfactionTemplates);
     final LocalDateTime now = LocalDateTime.of(2026,9,14,15,0);
     TemplateExecutionSnapshot before;
@@ -177,7 +177,7 @@ class ProjectPlanStageTaskInstallerTest {
     }
     @Test void newlyAddedSatisfactionTaskFreezesTheOwnerQuestionnaireContract() {
         var after = withNewSatisfactionTask();
-        when(satisfactionTemplates.resolvePublished(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact(
+        when(satisfactionTemplates.resolvePublished(any())).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateFact(
                 "FOUND",81L,82L,3,"rule-v2",new java.math.BigDecimal("90")));
         install(after);
         verify(tasks).insert(argThat((ProjectTaskInstanceDO row) -> "SATISFACTION".equals(row.getCode())

@@ -19,5 +19,9 @@
             <artifactId>pms-module-customer-api</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
     </dependencies>
 </project>

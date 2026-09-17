@@ -33,7 +33,7 @@ class ProjectPlanDraftServiceTest {
     final TemplateDesignerDependencyValidator dependencies = mock(TemplateDesignerDependencyValidator.class);
     final ProjectRulePublicationValidator ruleValidator = mock(ProjectRulePublicationValidator.class);
     final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
-    final cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService deliverables = mock(cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.class);
+    final cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService deliverables = mock(cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.class);
     final ProjectPlanProjectionMapper milestoneProjections = mock(ProjectPlanProjectionMapper.class);
     final ProjectPlanMilestoneInstaller milestoneInstaller = new ProjectPlanMilestoneInstaller(milestoneProjections,
             mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper.class));
@@ -46,7 +46,7 @@ class ProjectPlanDraftServiceTest {
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         TenantContextHolder.setTenantId(7L);
         when(gates.inspect(any(),any(),any())).thenReturn(new ProjectPlanGateInstaller.Plan(List.of(),List.of(),List.of()));
-        when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(),Set.of()));
+        when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(),Set.of()));
         when(permissions.hasAnyPermissions(1L,ProjectPlanDraftService.MANAGE_PERMISSION)).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(51L); project.setVersion(4); project.setLifecycleStatus("ACTIVE");
@@ -130,9 +130,9 @@ class ProjectPlanDraftServiceTest {
         snapshot.setDeliverables(List.of(node)); effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         var after = ProjectPlanImpactAnalyzerTest.copy(snapshot); after.setDeliverables(List.of());
         when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
-        var row = new cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverableView(
+        var row = new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
                 100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8);
-        when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(row),Set.of()));
+        when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(row),Set.of()));
         var result = service.preview(9L,52L,0,1L);
         assertTrue(result.issues().stream().anyMatch(issue -> "DELIVERABLE_HANDLING_HISTORY_PROTECTED".equals(issue.code())));
         assertEquals(100L,result.deliverableChanges().getFirst().instanceId());

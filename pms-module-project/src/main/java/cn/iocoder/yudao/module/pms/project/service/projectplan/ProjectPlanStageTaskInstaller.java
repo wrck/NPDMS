@@ -42,7 +42,7 @@ public class ProjectPlanStageTaskInstaller {
     private final ProjectNodeExecutionMapper executions;
     private final TaskExecutionContractFactory taskFactory;
     private final ProjectRuntimeGraphFreezer stageFactory;
-    private final cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates;
+    private final cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates;
 
     public record Request(ProjectMasterDO project, Long newPlanId, Long newTaskStateMachineRevisionId,
                           TemplateExecutionSnapshot before, TemplateExecutionSnapshot after,

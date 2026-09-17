@@ -6,7 +6,7 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateMachinePublishedQuery;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskProgressService;
 import lombok.RequiredArgsConstructor;

@@ -3,12 +3,11 @@ package cn.iocoder.yudao.module.pms.project.service.projectclosure;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.pms.acceptance.api.acceptance.ProjectAcceptanceFactApi;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosurePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosureSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AcceptanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AcceptanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.ProjectClosureMapper;
 import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardResult;
@@ -98,7 +97,7 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     @Resource
     private ProjectPhaseMapper projectPhaseMapper;
     @Resource
-    private AcceptanceMapper acceptanceMapper;
+    private ProjectAcceptanceFactApi projectAcceptanceFactApi;
     @Resource
     private ProjectClosureGuardService projectClosureGuardService;
 
@@ -242,12 +241,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
                 }
             }
         }
-        // 2. 验收通过：项目内须存在终验且状态为已通过或已归档
-        List<AcceptanceDO> finalAcceptances = acceptanceMapper.selectList(new LambdaQueryWrapperX<AcceptanceDO>()
-                .eq(AcceptanceDO::getProjectId, entity.getProjectId())
-                .eq(AcceptanceDO::getAcceptanceType, ACCEPTANCE_TYPE_FINAL)
-                .in(AcceptanceDO::getStatus, Arrays.asList(ACCEPTANCE_STATUS_PASSED, ACCEPTANCE_STATUS_ARCHIVED)));
-        if (finalAcceptances == null || finalAcceptances.isEmpty()) {
+        // 2. 验收通过：项目内须存在终验且状态为已通过或已归档（通过 ACC 契约消费验收事实，不直接访问 ACC 数据层）
+        Long tenantId = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        boolean finalAcceptancePassed = projectAcceptanceFactApi.existsPassedFinalAcceptance(tenantId, entity.getProjectId());
+        if (!finalAcceptancePassed) {
             throw exception(ACC_PROJECT_CLOSURE_VALIDATION_FAILED, "终验尚未通过");
         }
         // 3. 问题关闭、4. 审批完成：跨模块（巡检问题 pms-module-service、BPM），受领域边界约束留作占位

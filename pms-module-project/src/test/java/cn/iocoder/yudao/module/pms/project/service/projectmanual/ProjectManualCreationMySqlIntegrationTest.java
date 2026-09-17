@@ -20,7 +20,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
+import cn.iocoder.yudao.module.pms.acceptance.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMetrics;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;

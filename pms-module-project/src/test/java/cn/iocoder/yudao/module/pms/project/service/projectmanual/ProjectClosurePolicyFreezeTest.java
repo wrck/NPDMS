@@ -10,7 +10,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMach
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer;
 import org.junit.jupiter.api.BeforeEach;

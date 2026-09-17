@@ -109,9 +109,9 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     @MockitoBean
     private cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi explicitPermissionApi;
     @MockitoBean
-    private cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceActivityInitializationApi;
+    private cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceActivityInitializationApi;
     @MockitoBean
-    private cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionQuestionnaireTemplateApi;
+    private cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionQuestionnaireTemplateApi;
     private ProjectStageAdvanceApplicationService stageAdvanceService;
 
     @BeforeEach

@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import org.junit.jupiter.api.Test;
 import java.util.*;
-import static cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.*;
+import static cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectPlanDeliverablePlannerTest {

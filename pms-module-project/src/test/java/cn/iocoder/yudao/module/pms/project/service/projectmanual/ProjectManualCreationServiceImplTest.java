@@ -15,9 +15,9 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectS
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateFact;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
@@ -48,7 +48,7 @@ import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTempla
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateCompiler;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
