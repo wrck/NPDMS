@@ -33,6 +33,19 @@ class DppmsOrderSyncAdapterTest {
         verify(mapper).selectOrders(argThat(q->q.tenantId()==1 && q.orderNumbers().equals(List.of("R-1"))));
     }
 
+    @Test void orderOnlyChunkNeverQueriesOrderLines() {
+        when(mapper.selectOrders(any())).thenReturn(List.of(),List.of(order()));
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            CommerceAuthorityBatchCommand command=inv.getArgument(0);
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+
+        var changes=adapter.apply(batch(row("ORDER","1")));
+
+        assertEquals(101L,changes.getFirst().targetId());
+        verify(mapper,never()).selectLines(any());
+    }
+
     @Test void applyUsesAuthorityApiForSignedReturnsAndMapsEveryOriginalId() {
         when(authority.ingestBatch(any())).thenAnswer(inv->{
             CommerceAuthorityBatchCommand command=inv.getArgument(0);
