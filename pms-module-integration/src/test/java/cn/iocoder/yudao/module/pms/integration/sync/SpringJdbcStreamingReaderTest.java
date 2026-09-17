@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SpringJdbcStreamingReaderTest {
     @Test
-    void streamsSingleResultSetIntoBoundedChunks() throws Exception {
+    void streamsSingleResultSetIntoBoundedChunksWithStableSourceKeyOrder() throws Exception {
         String url="jdbc:h2:mem:spring_jdbc_stream;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE";
         try(Connection connection=DriverManager.getConnection(url,"sa",""); Statement statement=connection.createStatement()) {
             statement.execute("CREATE TABLE stream_source(id BIGINT PRIMARY KEY, name VARCHAR(32))");
@@ -24,7 +24,7 @@ class SpringJdbcStreamingReaderTest {
         }
         var reader=new SpringJdbcStreamingReader(sourceApi(url));
         var source=SyncDefinition.Source.builder().object("ITEM").sourceObject("stream_source").readMode("SQL")
-                .sql("SELECT id,name FROM stream_source ORDER BY id").parameters(Map.of()).sourceKey("id")
+                .sql("SELECT id,name FROM stream_source ORDER BY id DESC").parameters(Map.of()).sourceKey("id")
                 .columns(List.of()).filters(List.of()).mappings(List.of()).build();
         var definition=SyncDefinition.builder().connectionId(1L).mode("ONCE").overlapSeconds(0)
                 .fetchSize(2).chunkSize(2).restartPolicy("RESTART_ALL").maxRows(100).maxBytes(1024*1024)
@@ -41,6 +41,25 @@ class SpringJdbcStreamingReaderTest {
         assertEquals(List.of(1L,2L,3L,4L,5L),ids);
         assertEquals(5,result.rows());
         assertEquals(1,completed.get());
+    }
+
+    @Test
+    void restartAllRejectsDuplicateSourceKeysWithoutWholeResultState() throws Exception {
+        String url="jdbc:h2:mem:spring_jdbc_duplicate;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE";
+        try(Connection connection=DriverManager.getConnection(url,"sa",""); Statement statement=connection.createStatement()) {
+            statement.execute("CREATE TABLE stream_source(id BIGINT, name VARCHAR(32))");
+            statement.execute("INSERT INTO stream_source VALUES(2,'n2'),(1,'n1a'),(1,'n1b')");
+        }
+        var reader=new SpringJdbcStreamingReader(sourceApi(url));
+        var source=SyncDefinition.Source.builder().object("ITEM").sourceObject("stream_source").readMode("SQL")
+                .sql("SELECT id,name FROM stream_source").parameters(Map.of()).sourceKey("id")
+                .columns(List.of()).filters(List.of()).mappings(List.of()).build();
+        var definition=SyncDefinition.builder().connectionId(1L).mode("ONCE").overlapSeconds(0)
+                .fetchSize(2).chunkSize(2).restartPolicy("RESTART_ALL").maxRows(100).maxBytes(1024*1024)
+                .sources(List.of(source)).build();
+        var error=assertThrows(IllegalArgumentException.class,
+                ()->reader.stream(definition,null,true,null,chunk->{}));
+        assertTrue(error.getMessage().contains("来源主键重复"));
     }
 
     @Test
