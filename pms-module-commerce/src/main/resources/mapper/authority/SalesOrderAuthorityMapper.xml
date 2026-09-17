@@ -7,6 +7,15 @@
           AND source_record_key = #{sourceKey} AND deleted = b'0'
         FOR UPDATE
     </select>
+    <select id="selectBySourcesForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
+        SELECT * FROM com_sales_order
+        WHERE tenant_id = #{tenantId} AND source_system = #{sourceSystem} AND deleted = b'0'
+          AND source_record_key IN
+        <foreach collection="sourceKeys" item="sourceKey" open="(" separator="," close=")">
+            #{sourceKey}
+        </foreach>
+        FOR UPDATE
+    </select>
     <update id="updateOwnerByVersion">
         UPDATE com_sales_order
         SET company_code = #{row.companyCode}, order_no = #{row.orderNo}, order_type = #{row.orderType},
