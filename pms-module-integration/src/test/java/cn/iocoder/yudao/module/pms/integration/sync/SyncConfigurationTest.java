@@ -17,6 +17,20 @@ class SyncConfigurationTest {
         assertEquals(2000,actual.effectiveFetchSize());
         assertEquals(1000,actual.effectiveChunkSize());
     }
+    @Test void legacyJsonWithoutStreamingFieldsKeepsCompatibilityDefaults() {
+        var json=JsonUtils.toJsonString(EhrSyncTemplate.create(1L))
+                .replaceAll(",\"readStrategy\":\"[^\"]+\"","")
+                .replaceAll(",\"fetchSize\":\\d+","")
+                .replaceAll(",\"chunkSize\":\\d+","")
+                .replaceAll(",\"restartPolicy\":\"[^\"]+\"","")
+                .replaceAll(",\"queryTimeoutSeconds\":\\d+","");
+        var actual=JsonUtils.parseObject(json,SyncDefinition.class);
+        assertEquals("SNAPSHOT",actual.effectiveReadStrategy());
+        assertEquals(2000,actual.effectiveFetchSize());
+        assertEquals(1000,actual.effectiveChunkSize());
+        assertEquals("RESTART_ALL",actual.effectiveRestartPolicy());
+        assertEquals(0,actual.queryTimeoutSeconds());
+    }
     @Test void dppmsTemplateUsesSingleQueryStreamingByDefault() {
         var definition=DppmsOrderSyncTemplate.create(1L);
         assertEquals("STREAMING_CURSOR",definition.effectiveReadStrategy());
