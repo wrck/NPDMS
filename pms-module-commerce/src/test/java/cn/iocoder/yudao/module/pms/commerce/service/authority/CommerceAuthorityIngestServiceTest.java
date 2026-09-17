@@ -28,6 +28,8 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException.Code.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -124,7 +126,7 @@ class CommerceAuthorityIngestServiceTest {
     void mixedBatchReplayAndUpdateReturnsAccepted() {
         when(contractMapper.selectBySourceForUpdate(any())).thenReturn(contractRow("C-1", "V2", "ACME"));
         SalesOrderDO order = orderRow("O-1", "V1");
-        when(salesOrderMapper.selectBySourceForUpdate(any())).thenReturn(order);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(order));
         when(salesOrderMapper.updateOwnerByVersion(any())).thenReturn(1);
 
         CommerceAuthorityBatchResult result = service.ingest(batch("EV-6", "B-6",
@@ -134,6 +136,41 @@ class CommerceAuthorityIngestServiceTest {
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
         verify(contractMapper, never()).updateOwnerByVersion(any());
         verify(salesOrderMapper).updateOwnerByVersion(any());
+        verify(salesOrderMapper, never()).selectBySourceForUpdate(any());
+    }
+
+    @Test
+    void createsSalesOrdersWithOneBatchLockAndOneBatchInsert() {
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        when(salesOrderMapper.insertBatch(anyCollection(), eq(1000))).thenReturn(true);
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-BULK-O", "B-BULK-O", List.of(),
+                List.of(order("O-1", null, "V1"), order("O-2", null, "V1")), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper, times(1)).selectBySourcesForUpdate(any());
+        verify(salesOrderMapper, times(1)).insertBatch(argThat(rows -> rows.size() == 2), eq(1000));
+        verify(salesOrderMapper, never()).insert(any(SalesOrderDO.class));
+        verify(salesOrderMapper, never()).selectBySourceForUpdate(any());
+    }
+
+    @Test
+    void createsOrderLinesWithOneParentLockOneLineLockAndOneBatchInsert() {
+        SalesOrderDO parent = orderRow("O-1", "V1");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        when(orderLineMapper.insertBatch(anyCollection(), eq(1000))).thenReturn(true);
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-BULK-L", "B-BULK-L", List.of(), List.of(),
+                List.of(line("L-1", null, "V1", "O-1", "5"),
+                        line("L-2", null, "V1", "O-1", "7"))));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper, times(1)).selectBySourcesForUpdate(any());
+        verify(orderLineMapper, times(1)).selectBySourcesForUpdate(any());
+        verify(orderLineMapper, times(1)).insertBatch(argThat(rows -> rows.size() == 2), eq(1000));
+        verify(orderLineMapper, never()).insert(any(SalesOrderLineDO.class));
+        verify(orderLineMapper, never()).selectBySourceForUpdate(any());
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -144,8 +181,8 @@ class CommerceAuthorityIngestServiceTest {
         DeliveryScopeDO active = activeScope(line.getId(), 701L, 901L, "8");
         DeliveryScopeDetailDO detail = activeDetail(active.getId(), "8");
         DeliveryScopeProjectVersionDO watermark = watermark(901L, 4L);
-        when(salesOrderMapper.selectBySourceForUpdate(any())).thenReturn(order);
-        when(orderLineMapper.selectBySourceForUpdate(any())).thenReturn(line);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(order));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(line));
         when(orderLineMapper.updateOwnerByVersion(any())).thenReturn(1);
         when(scopeImpactMapper.selectActiveScopesForUpdate(any())).thenReturn(List.of(active));
         when(scopeImpactMapper.selectDetailsForUpdate(any())).thenReturn(List.of(detail));
