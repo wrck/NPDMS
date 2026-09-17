@@ -39,11 +39,11 @@ function picker(id: string) {
     props: ['modelValue', 'disabled', 'field'],
     emits: ['update:modelValue', 'change'],
     setup(props, { emit }) {
-      return () => h(ElInput, {
-        modelValue: props.modelValue, disabled: props.disabled, 'data-testid': id,
+      return () => h('div', { 'data-testid': id }, [h(ElInput, {
+        modelValue: props.modelValue, disabled: props.disabled,
         'onUpdate:modelValue': (value: unknown) => emit('update:modelValue', value),
         onChange: (value: unknown) => emit('change', { id: value, label: id })
-      })
+      })])
     }
   }))
 }

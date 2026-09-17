@@ -187,6 +187,9 @@ async function submit(): Promise<void> {
 function resetFields(): void {
   formApi.value?.resetFields()
   resetFieldDefaults(formData, props.config.fields || [])
+  // Keep the engine's internal values aligned before its queued model event.
+  // Otherwise resetFields() publishes undefined rule defaults over V1 defaults.
+  formApi.value?.setValue({ ...formData })
 }
 
 function clearValidate(): void {

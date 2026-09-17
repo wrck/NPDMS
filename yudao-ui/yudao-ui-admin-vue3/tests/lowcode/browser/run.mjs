@@ -39,6 +39,8 @@ async function scenario(name, params, fn) {
     results.push({ name, status: 'failed', message: error.stack || String(error), errors, durationMs: Date.now() - started })
     await page.screenshot({ path: `${artifactDir}/${name}.png`, fullPage: true })
     console.error(`FAIL ${name}: ${error.message}`)
+    console.error('Browser errors:', JSON.stringify(errors))
+    console.error('Fixture DOM:', (await page.locator('main').innerHTML().catch(() => '')).slice(0, 5000))
   } finally {
     await context.tracing.stop(failed ? { path: `${artifactDir}/${name}.zip` } : {})
     await context.close()
@@ -91,7 +93,7 @@ try {
       assert.equal(await file.getAttribute('accept'), '.pdf')
       assert.notEqual(await file.getAttribute('multiple'), null)
       await call(page, 'setDisabled', true)
-      assert.equal(await page.getByRole('button', { name: '点击上传' }).isDisabled(), true)
+      assert.equal(await page.locator('button').filter({ hasText: '点击上传' }).isDisabled(), true)
     })
     for (const consumer of ['tab', 'related']) {
       await scenario(`${version}-consumer-${consumer}`, { version, mode: `consumer-${consumer}` }, async (page) => {
