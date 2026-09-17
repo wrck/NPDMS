@@ -25,6 +25,11 @@ class DppmsOrderSyncAdapterTest {
     @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
+    @Test void descriptorExposesStreamingCapability() {
+        assertTrue(adapter.supportsStreaming());
+        assertTrue(adapter.descriptor().supportsStreaming());
+    }
+
     @Test void previewGroupsIdenticalHeadsAndDoesNotWrite() {
         var changes=adapter.preview(batch(row("LINE","3"),row("ORDER","1"),row("ORDER","2")));
         assertEquals(3,changes.size());
