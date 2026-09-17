@@ -1,22 +1,26 @@
 package cn.iocoder.yudao.module.pms.integration.extsystem.service;
 
+import cn.iocoder.yudao.module.pms.integration.extsystem.exception.IntegrationException;
 import cn.iocoder.yudao.module.pms.integration.extsystem.model.oa.OaTodoRequest;
 import cn.iocoder.yudao.module.pms.workflow.spi.OaTodoPort;
 import cn.iocoder.yudao.module.pms.workflow.spi.dto.OaTodoCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * OA 待办端口适配 Bean（实现 pms-module-workflow 声明的 {@link OaTodoPort} 扩展点，
- * 委托到本模块 {@link OaIntegrationService}）。
+ * Implements the workflow-owned OA port without leaking integration services
+ * into workflow. The existing request shape and service APIs remain unchanged.
  *
- * <p>源工程 pms-workflow 直接依赖 pms-integration 的 Service，目标体系下改为
- * 依赖倒置：workflow 声明 OaTodoPort，本模块实现并注册为 Spring Bean。
- * 独立 Bean 委托到既有 {@code OaIntegrationService}（旧接口与原有功能保持不变），
- * 字段转换保持 OaTodoCommand → OaTodoRequest 一一映射。</p>
+ * <p>The port's independent transaction contains the integration log writes.
+ * Controlled OA failures leave FAILED logs available for retry, then propagate
+ * to the listener outside the transaction proxy. Unexpected persistence/runtime
+ * failures still roll back; no log durability is promised when the database fails.</p>
  */
 @Component
 @RequiredArgsConstructor
+@Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = IntegrationException.class)
 public class OaTodoPortAdapter implements OaTodoPort {
 
     private final OaIntegrationService oaIntegrationService;
@@ -32,11 +36,15 @@ public class OaTodoPortAdapter implements OaTodoPort {
                 .processUrl(command.getProcessUrl())
                 .businessType(command.getBusinessType())
                 .build();
-        oaIntegrationService.pushTodo(request);
+        if (!oaIntegrationService.pushTodo(request)) {
+            throw new IntegrationException("oa", "OA todo push returned an unsuccessful result");
+        }
     }
 
     @Override
     public void completeTodo(String businessKey) {
-        oaIntegrationService.completeTodo(businessKey);
+        if (!oaIntegrationService.completeTodo(businessKey)) {
+            throw new IntegrationException("oa", "OA todo completion returned an unsuccessful result");
+        }
     }
 }

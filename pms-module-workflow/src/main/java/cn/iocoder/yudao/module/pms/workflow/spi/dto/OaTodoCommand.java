@@ -29,7 +29,7 @@ public class OaTodoCommand implements Serializable {
     /** 流程实例 ID。 */
     private String processInstanceId;
 
-    /** 业务键（Flowable 场景下为任务 ID）。 */
+    /** 业务键：兼容流程变量 businessKey，未提供时使用 Flowable 任务 ID。 */
     private String businessKey;
 
     /** 流程详情 URL。 */

@@ -1,0 +1,48 @@
+name: Workflow integration compatibility
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - 'pms-module-workflow/**'
+      - 'pms-module-integration/**'
+      - '.github/workflows/workflow-integration-compat.yml'
+  pull_request:
+    paths:
+      - 'pms-module-workflow/**'
+      - 'pms-module-integration/**'
+      - '.github/workflows/workflow-integration-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  oa-port-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compile dependencies and test OA migration contracts without external services
+        run: >-
+          mvn -B -ntp -pl pms-module-workflow,pms-module-integration -am
+          -Dtest=OaTaskListenerTest,OaTodoPortAdapterTest
+          -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false test
+      - name: Upload focused test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-integration-compat-${{ github.sha }}
+          path: |
+            pms-module-workflow/target/surefire-reports/*OaTaskListenerTest*
+            pms-module-integration/target/surefire-reports/*OaTodoPortAdapterTest*
+          if-no-files-found: warn

@@ -3,30 +3,21 @@ package cn.iocoder.yudao.module.pms.workflow.spi;
 import cn.iocoder.yudao.module.pms.workflow.spi.dto.OaTodoCommand;
 
 /**
- * OA 待办推送端口（本模块 SPI，迁移自源工程 pms-workflow OaTaskListener 对
- * pms-integration OaIntegrationService 的直接依赖，按模块边界做依赖倒置）。
+ * OA 待办推送端口：workflow 声明 SPI，integration 实现并注册 Spring Bean，
+ * workflow 不直接依赖 integration 的 Service。集成模块未加载时按 best-effort 跳过。
  *
- * <p>源工程 pms-workflow 直接依赖 pms-integration 的 Service 违反目标模块边界
- * （模块间不得依赖其他模块的 Service）。本模块声明扩展点，由集成侧实现并注册为
- * Spring Bean；若集成模块未加载（bean 不存在），OA 同步为 best-effort 跳过。</p>
- *
- * <p>实现应在独立事务（REQUIRES_NEW）中执行 OA 调用并持久化集成日志，
- * 调用失败时向上抛出异常，由调用方（OaTaskListener）catch 吞掉，不阻塞工作流主流程。</p>
+ * <p>实现必须在独立事务（REQUIRES_NEW）中执行 OA 调用并持久化集成日志。
+ * 受控外部调用失败应保留失败日志后向上抛出；数据库故障不承诺日志已保存。
+ * 调用方在事务代理之外捕获异常，不阻塞工作流主流程。</p>
  */
 public interface OaTodoPort {
 
-    /**
-     * 推送 OA 待办。
-     *
-     * @param command OA 待办命令（title/content/handlerUserId/processInstanceId/
-     *                businessKey/processUrl/businessType）
-     */
+    /** 推送 OA 待办，字段保持 OaTodoCommand → OaTodoRequest 一一映射。 */
     void pushTodo(OaTodoCommand command);
 
     /**
-     * 完成 OA 待办。
-     *
-     * @param businessKey OA 待办的业务键（Flowable 场景下为任务 ID）
+     * 完成 OA 待办，必须使用创建时对应的业务键。
+     * 兼容既有 process variable businessKey；未提供时使用 Flowable 任务 ID。
      */
     void completeTodo(String businessKey);
 }
