@@ -10,7 +10,8 @@
 - P1.01实现提交：f6d28931608bb39c484c8b9a23da79b81e4a76e1。
 - P1.02.1实现提交：65ec5445fc59ac13c2b81a875806936b790107f5。
 - P1.02.2实现提交：3cba4ac7bfcb59ddc319827b39f9f674044fe198。
-- 本次为P1-V1分支定向验证入口提交；自身SHA由Git历史定位，下一环节补记真实引用。
+- P1-V1验证入口提交：4811a1a08c4c7e972a4c32092298cc08fc1c372d。
+- 本次为P1-V2真实构建缺口修复提交；自身SHA由Git历史定位，下一环节补记真实引用。
 - 最新约束：版本优先、不新增多层Hash、权限码选择动作、复用业务输入、pageUrl仅展示。
 
 ## 阶段状态
@@ -113,3 +114,12 @@ ProjectPlanInitializationService回读项目指定的已发布模板版本，比
 只授予contents:read，checkout不保留凭据；日志与JUnit报告留在本仓库Actions artifact。手动运行或提交明确含[复现包]时，额外归档当前HEAD的Git跟踪源码用于隔离复现，不包含.git、Runner配置、Maven settings或未跟踪文件，保留3天。
 
 本地实际执行：YAML结构检查、所有run块bash -n和内嵌Python语法检查通过。工作流提交时尚无该HEAD的远端运行结果，不能记录CI或JUnit通过；本地仍无JDK25/Maven，Git直连DNS失败。下一生产项仍为P1.02新格式冻结/发布接线，P1与P2～P9状态不变。
+
+
+## P1-V2 操作公开契约的显式序列化依赖
+
+基准：4811a1a08c4c7e972a4c32092298cc08fc1c372d。首轮真实JDK25 CI（run 35255389400 / job 105317637207）FAIL：project-api的ProjectOperationCommand和ProjectOperationResult引用tools.jackson.databind.JsonNode但模块没有声明Jackson依赖，导致4项编译错误；后续Project测试尚未执行。不是依赖下载故障，不把这轮写成测试通过。
+
+修复：project-api显式声明仓库已管理版本的tools.jackson.core:jackson-databind，保持原DTO、权限和运行语义不变，采用与platform-api相同的依赖方式。为后续独立复现，定向工作流仅在提交显式含[离线复现]时归档JDK、Maven bin/boot/lib及repository；不归档Maven settings/toolchains、Git配置、Runner配置或环境转储，产物仅保留1天。
+
+本地POM/XML、工作流YAML、Shell及Python语法检查通过；此修复尚待新HEAD真实构建。已通过源码归档获得4811a1a0完整工作树，本地Git tree与远端e46835e19b4fabbee87d81c85b99a81ab338c092一致；后续直接对准确源码实施，不凭片段猜测。P1.02生产出口及P2～P9仍未完成，不覆盖前述FAIL。

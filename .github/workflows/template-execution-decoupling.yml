@@ -51,6 +51,29 @@ jobs:
             -DskipITs=true \
             '-Dtest=*Template*Test,*ProjectPlan*Test,*ProjectRuntimeGraph*Test' \
             -Dsurefire.failIfNoSpecifiedTests=false test 2>&1 | tee "${RUNNER_TEMP}/template-tests.log"
+      # 离线复现只归档编译器及依赖文件，不导出任何 Maven/Runner 凭据配置。
+      - name: Prepare opt-in offline compiler and dependency bundle
+        if: always() && contains(github.event.head_commit.message, '[离线复现]')
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="${RUNNER_TEMP}/template-offline"
+          mkdir -p "${bundle}/jdk" "${bundle}/maven" "${bundle}/repository"
+          cp -a "${JAVA_HOME}/." "${bundle}/jdk/"
+          maven_home="$(dirname "$(dirname "$(readlink -f "$(command -v mvn)")")")"
+          for part in bin boot lib LICENSE NOTICE; do
+            test ! -e "${maven_home}/${part}" || cp -a "${maven_home}/${part}" "${bundle}/maven/"
+          done
+          # 不读取 ~/.m2/settings.xml、toolchains.xml、.git 或环境变量转储。
+          cp -a "${HOME}/.m2/repository/." "${bundle}/repository/"
+          tar -C "${bundle}" -czf "${RUNNER_TEMP}/template-offline.tar.gz" jdk maven repository
+      - uses: actions/upload-artifact@v4
+        if: always() && contains(github.event.head_commit.message, '[离线复现]')
+        with:
+          name: template-offline-${{ github.sha }}
+          path: ${{ runner.temp }}/template-offline.tar.gz
+          if-no-files-found: error
+          retention-days: 1
       - name: Require real test reports with no failures or skipped tests
         if: always()
         shell: bash

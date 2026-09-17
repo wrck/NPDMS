@@ -14,6 +14,11 @@
     <description>PMS 项目治理跨模块公开契约</description>
 
     <dependencies>
+        <!-- 操作输入和结果直接暴露 JsonNode，不能依赖消费方补齐 Jackson。 -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-customer-api</artifactId>
