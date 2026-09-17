@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringR
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.entity.*;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -108,10 +109,12 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         access.lockScope(projectId, actor);
         var project = new RequirementProjectQuery(actor.tenantId(), projectId);
         if (mapper.selectLatest(project) != null) throw exception(REQUIREMENT_ANALYSIS_DRAFT_CONFLICT);
-        var execution = access.lockExecution(projectId, null, selection);
+        var execution = access.lockExecution(projectId, null, selection, actor, null);
         var draft = newDraft(new EntityRef(actor.tenantId(), ownerModule(), entityType(), IdWorker.getId()), projectId,
                 1, null, null, null, actor, execution);
-        mapper.insertRevision(draft);
+        if (mapper.insertRevision(draft) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
+        ProjectOwnerOperationScope.registerCreated(actor.tenantId(), actor.userId(), projectId, ownerModule(), entityType(),
+                "SOL.REQUIREMENT_ANALYSIS.CREATE", 1, null, draft.getId().toString());
         bindInitialForm(draft, actor, execution);
         record("REQUIREMENT_ANALYSIS_INITIALIZE", draft, actor);
         return draft.revisionMetadata();
@@ -134,7 +137,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         if (source == null || !"FROZEN".equals(source.getRevisionState())) throw exception(REQUIREMENT_STATUS_INVALID);
         requireEntity(source, entity);
         access.lockScope(source.getProjectId(), actor);
-        var execution = access.lockExecution(source.getProjectId(), source.getExecutionSnapshot(), null);
+        var execution = access.lockExecution(source.getProjectId(), source.getExecutionSnapshot(), null, actor, source.getId());
         var project = new RequirementProjectQuery(actor.tenantId(), source.getProjectId());
         if (mapper.selectDraft(project) != null) throw exception(REQUIREMENT_ANALYSIS_DRAFT_CONFLICT);
         var effective = mapper.selectEffective(project);
@@ -144,7 +147,9 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
                 source.getId(), effective == null ? null : effective.getId(), current == null ? null : current.getVersion(), actor, execution);
         FIELDS.write(draft, FIELDS.read(source));
         draft.setChangeReason(reason);
-        mapper.insertRevision(draft);
+        if (mapper.insertRevision(draft) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
+        ProjectOwnerOperationScope.registerCreated(actor.tenantId(), actor.userId(), source.getProjectId(), ownerModule(), entityType(),
+                "SOL.REQUIREMENT_ANALYSIS.COPY", 1, source.getId().toString(), draft.getId().toString());
         var from = EntityDataRef.revision(source.revisionRef());
         var to = EntityDataRef.revision(draft.revisionRef());
         extensions.copy(from, to, draft.getVersion(), actor);

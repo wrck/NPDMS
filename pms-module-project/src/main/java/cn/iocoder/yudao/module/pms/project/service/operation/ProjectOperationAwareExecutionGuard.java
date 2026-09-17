@@ -25,6 +25,16 @@ public class ProjectOperationAwareExecutionGuard implements ProjectBusinessExecu
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockForWrite(WriteRequest request) {
         var frame = ProjectVerifiedOperationScope.current();
+        if (request != null && request.ownerProof() != null) {
+            // The proof independently checks the actual callback target and its declared command source.
+            // A stale/foreign proof never falls through to either the direct or the legacy path.
+            if (!request.ownerProof().matches(TenantContextHolder.getRequiredTenantId(),
+                    SecurityFrameworkUtils.getLoginUserId(), request))
+                throw new IllegalStateException("CONTROLLED_OPERATION_SCOPE_MISMATCH");
+            if (request.selection().task() != null) executions.lockAndRevalidate(request.selection().task());
+            else executions.lockAndRevalidateStage(request.selection().stage());
+            return;
+        }
         if (frame != null && request != null && ProjectVerifiedOperationScope.matches(TenantContextHolder.getRequiredTenantId(),
                 SecurityFrameworkUtils.getLoginUserId(), request.projectId(), request.ownerContext(), request.objectType(),
                 request.selection(), request.operationCode(), request.operationVersion(), request.objectId())) {

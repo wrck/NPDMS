@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
+import cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTaskFactQuery;
@@ -33,17 +35,29 @@ public class RequirementAnalysisExecutionAccess {
     private final ProjectBusinessExecutionApi businessExecutions;
 
     public Frozen lockCurrent(ProjectWorkBindingFact binding) {
+        return lockCurrent(binding, null, null);
+    }
+
+    public Frozen lockCurrent(ProjectWorkBindingFact binding, EntityActor actor, Long targetRevisionId) {
         if (isStage(binding)) {
             var observed = executions.inspectStage(stageQuery(binding));
-            businessExecutions.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(binding.projectId(),
-                    "SOL", "REQUIREMENT_ANALYSIS", new ProjectBusinessExecutionSelection(null, observed)));
+            businessExecutions.lockForWrite(writeRequest(binding, actor, targetRevisionId,
+                    new ProjectBusinessExecutionSelection(null, observed)));
             // The shared guard begins real stage handling in this transaction; freeze its updated version.
             return new Frozen(binding, null, executions.inspectStage(stageQuery(binding)));
         }
         var observed = executions.inspect(query(binding));
-        businessExecutions.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(binding.projectId(),
-                "SOL", "REQUIREMENT_ANALYSIS", new ProjectBusinessExecutionSelection(observed, null)));
+        businessExecutions.lockForWrite(writeRequest(binding, actor, targetRevisionId,
+                new ProjectBusinessExecutionSelection(observed, null)));
         return new Frozen(binding, observed, null);
+    }
+
+    private ProjectBusinessExecutionApi.WriteRequest writeRequest(ProjectWorkBindingFact binding, EntityActor actor,
+            Long targetRevisionId, ProjectBusinessExecutionSelection observed) {
+        if (actor == null) return new ProjectBusinessExecutionApi.WriteRequest(binding.projectId(),
+                "SOL", "REQUIREMENT_ANALYSIS", observed);
+        return ProjectOwnerOperationScope.writeRequest(actor.tenantId(), actor.userId(), binding.projectId(),
+                "SOL", "REQUIREMENT_ANALYSIS", targetRevisionId == null ? null : targetRevisionId.toString(), observed);
     }
 
     public ProjectWorkBindingFact lockBinding(ProjectWorkBindingFact binding) {

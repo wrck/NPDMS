@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidatio
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -76,6 +77,13 @@ public class RequirementAnalysisAccess {
 
     public RequirementAnalysisExecutionAccess.Frozen lockExecution(Long projectId, String snapshot,
                                                                    ProjectBusinessExecutionSelection selection) {
+        return lockExecution(projectId, snapshot, selection, null, null);
+    }
+
+    public RequirementAnalysisExecutionAccess.Frozen lockExecution(Long projectId, String snapshot,
+            ProjectBusinessExecutionSelection selection, EntityActor actor, Long targetRevisionId) {
+        if (actor != null) selection = ProjectOwnerOperationScope.executionFor(actor.tenantId(), actor.userId(), projectId,
+                "SOL", "REQUIREMENT_ANALYSIS", targetRevisionId == null ? null : targetRevisionId.toString(), selection);
         ProjectWorkBindingFact binding;
         if (selection != null) {
             binding = executions.lockRequested(projectId, selection);
@@ -85,7 +93,9 @@ public class RequirementAnalysisAccess {
                     : executions.currentBinding(projectId, snapshot, null);
         }
         if (binding == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
-        return executions.lockCurrent(executions.lockBinding(binding));
+        var lockedBinding = executions.lockBinding(binding);
+        return actor == null ? executions.lockCurrent(lockedBinding)
+                : executions.lockCurrent(lockedBinding, actor, targetRevisionId);
     }
 
     public RequirementAnalysisRevisionDO lock(Long revisionId, Integer expectedVersion, EntityActor actor,
@@ -93,7 +103,7 @@ public class RequirementAnalysisAccess {
         var observed = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
         if (observed == null) throw exception(REQUIREMENT_STATUS_INVALID);
         lockScope(observed.getProjectId(), actor);
-        lockExecution(observed.getProjectId(), observed.getExecutionSnapshot(), selection);
+        lockExecution(observed.getProjectId(), observed.getExecutionSnapshot(), selection, actor, revisionId);
         var locked = mapper.lockRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
         if (locked == null || !Objects.equals(expectedVersion, locked.getVersion())
                 || draftOnly && !"DRAFT".equals(locked.getRevisionState())) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
