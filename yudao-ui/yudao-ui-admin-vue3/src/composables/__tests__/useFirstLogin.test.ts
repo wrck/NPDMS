@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryStorage } from '../../../tests/browserStorage'
 
 // 首次登录检测 composable 的单元测试。
 //
@@ -25,10 +26,12 @@ import { useFirstLogin } from '@/composables/useFirstLogin'
 
 describe('useFirstLogin', () => {
   beforeEach(() => {
+    vi.stubGlobal('localStorage', createMemoryStorage())
     setActivePinia(createPinia())
     localStorage.clear()
     userMock.userInfo = { username: 'admin' }
   })
+  afterEach(() => vi.unstubAllGlobals())
 
   it('首次登录（localStorage 无标记）时 isFirstLogin 应为 true', () => {
     const { isFirstLogin } = useFirstLogin()

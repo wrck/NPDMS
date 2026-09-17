@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { createMemoryStorage } from '../../../tests/browserStorage'
 
 // Hoisted mocks so we can keep stable references to the mock functions.
 const mocks = vi.hoisted(() => ({
@@ -32,10 +33,12 @@ import router from '@/router'
 
 describe('useUserStore', () => {
   beforeEach(() => {
+    vi.stubGlobal('localStorage', createMemoryStorage())
     setActivePinia(createPinia())
     localStorage.clear()
     vi.clearAllMocks()
   })
+  afterEach(() => vi.unstubAllGlobals())
 
   describe('initial state', () => {
     it('token is empty when localStorage has no token', () => {

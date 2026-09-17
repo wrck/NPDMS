@@ -1,7 +1,7 @@
 /**
  * ComponentSandbox 协议与 CSP 工具单元测试（批次4-T7）。
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   SANDBOX_PROTOCOL_VERSION,
   HostToGuestMessage,
@@ -111,8 +111,14 @@ describe('ComponentSandbox protocol', () => {
 
 describe('ComponentSandbox CSP allowlist', () => {
   beforeEach(() => {
-    // 重置 CSP 白名单
+    // These pure utilities only use window as the configuration host. Do not
+    // install a fake DOM globally for unrelated Vue component suites.
+    vi.stubGlobal('window', {})
     setCspAllowlist([])
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   describe('isAllowedUrl', () => {
@@ -138,12 +144,9 @@ describe('ComponentSandbox CSP allowlist', () => {
     })
 
     it('生产环境 http 应被拒绝（模拟生产）', () => {
-      // import.meta.env.DEV 在 vitest 中通常为 true，此用例验证白名单逻辑
-      // 当不在 dev 模式时，http 应被拒绝
-      const isDev = (import.meta as any).env?.DEV === true
-      if (!isDev) {
-        expect(isAllowedUrl('http://example.com/page')).toBe(false)
-      }
+      vi.stubEnv('DEV', false)
+      expect(isAllowedUrl('http://example.com/page')).toBe(false)
+      expect(isAllowedUrl('http://localhost:5173/page')).toBe(false)
     })
 
     it('配置白名单后，白名单内域名应通过', () => {
@@ -160,7 +163,7 @@ describe('ComponentSandbox CSP allowlist', () => {
     it('通配符 *.example.com 应匹配子域名', () => {
       setCspAllowlist(['*.example.com'])
       expect(isAllowedUrl('https://a.b.example.com/c.js')).toBe(true)
-      expect(isAllowedUrl('https://example.com/c.js')).toBe(false) // 通配符要求子域名
+      expect(isAllowedUrl('https://example.com/c.js')).toBe(false)
     })
   })
 
@@ -203,7 +206,7 @@ describe('ComponentSandbox CSP allowlist', () => {
 
   describe('buildFrameCsp', () => {
     it('应包含 default-src none', () => {
-      const csp = buildFrameCsp(['https://cdn.example.com'])
+      const csp = buildFrameCsp([])
       expect(csp).toContain("default-src 'none'")
     })
 
