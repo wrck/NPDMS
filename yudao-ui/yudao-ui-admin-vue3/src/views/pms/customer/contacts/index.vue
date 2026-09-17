@@ -19,7 +19,7 @@
           <el-button v-if="context?.project.canViewHistory && projectId" @click="historyRef?.open(projectId)">变更历史</el-button>
         </div>
       </div>
-      <el-form ref="queryFormRef" :model="query" inline class="contact-filter -mb-15px">
+      <el-form :model="query" inline class="contact-filter -mb-15px">
         <el-form-item v-if="showCustomerFilter" label="客户" prop="customerId">
           <PmsEntitySelect
             v-if="!projectId || !customerId"
@@ -196,7 +196,6 @@ const customerEnabled = computed(() => context.value?.customerStatus === 'ENABLE
 const canEdit = computed(() => props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read']))
 const form = ref<ContactVO>({ name: '', status: 0, primaryFlag: false })
 const formRef = ref()
-const queryFormRef = ref()
 const historyRef = ref<InstanceType<typeof ContactHistoryDialog>>()
 const createMode = ref<'new' | 'reference'>('new')
 let operationKey = '', baseline = '', initialPrimary = false, sequence = 0

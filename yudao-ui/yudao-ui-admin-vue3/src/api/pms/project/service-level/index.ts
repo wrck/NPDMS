@@ -15,9 +15,15 @@ export interface CustomerServiceLevelVO {
   createTime?: Date
 }
 
+export interface ServiceLevelPageParam extends PageParam {
+  customerId?: number
+  level?: string
+  status?: number
+}
+
 const baseUrl = '/pms/service-level'
 
-export const getServiceLevelPage = (params: PageParam) =>
+export const getServiceLevelPage = (params: ServiceLevelPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getServiceLevel = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
