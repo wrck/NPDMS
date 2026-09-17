@@ -53,9 +53,13 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import * as ReportApi from '@/api/pms/project/acceptance-report'
 import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/project/acceptance-report'
+import { useOperationClient } from '@/components/BusinessView/operationHost'
+import type { OperationClient } from '@/components/BusinessView/operationClient'
 
 const props = defineProps<{ readonly?: boolean; allowedActions?: string[] }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
+const executionClient = useOperationClient()
+let openedClient: OperationClient | undefined
 const message = useMessage()
 const visible = ref(false)
 const saving = ref(false)
@@ -96,6 +100,7 @@ const discardChanges = (): boolean => {
   activity.value = undefined
   draftId.value = undefined
   draftNo.value = undefined
+  openedClient = undefined
   Object.keys(form).forEach(key => delete form[key as keyof ReportApi.DraftContent])
   baseline.value = snapshot()
   uploadSession.value++
@@ -109,6 +114,8 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   if (visible.value && activity.value?.id === target.id) return true
   if (!(await requestLeave()) || token !== openSequence || !discardChanges()) return false
   activity.value = { ...target }
+  // A retained editor must not silently adopt a different task/plan/round.
+  openedClient = executionClient.value
   draftId.value = draft?.id
   draftNo.value = draft?.reportVersionNo
   uploadedCount.value = draft?.attachments.length || 0
@@ -134,12 +141,14 @@ const saveDraft = async () => {
   saving.value = true
   try {
     const result = draftId.value
-      ? await ReportApi.updateDraft(activity.value.id, draftId.value, content, activity.value.version)
-      : await ReportApi.createDraft(activity.value.id, content, activity.value.version)
+      ? await ReportApi.updateDraft(activity.value.id, draftId.value, content, activity.value.version, openedClient)
+      : await ReportApi.createDraft(activity.value.id, content, activity.value.version, openedClient)
     if (token !== generation) return false
     draftId.value = result.reportVersionId
     draftNo.value = result.reportVersionNo
     form.expectedReportVersionNo = result.reportVersionNo
+    if (result.activityVersion != null) activity.value = { ...activity.value, version: result.activityVersion }
+    publishKey.value = crypto.randomUUID()
     baseline.value = savedSnapshot
     message.success('草稿已保存')
     emit('changed')
@@ -162,7 +171,7 @@ const publish = async () => {
   const token = generation
   publishing.value = true
   try {
-    await ReportApi.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value)
+    await ReportApi.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value, openedClient)
     if (token !== generation) return false
     message.success(activity.value.currentReportVersionId ? '新版本已替换生效' : '报告版本已生效')
     visible.value = false

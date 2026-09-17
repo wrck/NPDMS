@@ -7,14 +7,12 @@
         <div><h2>{{ typeLabel(activity.acceptanceType) }}活动</h2><p>活动与报告版本独立；报告状态不会触发或反推验收范围绑定。</p></div>
         <el-tag :type="activity.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(activity.activityStatus) }}</el-tag>
       </div>
-
       <el-descriptions :column="narrow ? 1 : 2" border class="facts">
         <el-descriptions-item label="项目ID">{{ activity.projectId }}</el-descriptions-item>
         <el-descriptions-item label="任务ID">{{ activity.projectTaskId }}</el-descriptions-item>
         <el-descriptions-item label="活动版本">{{ activity.version }}</el-descriptions-item>
         <el-descriptions-item label="当前报告">{{ current ? `V${current.reportVersionNo}` : '尚无有效版本' }}</el-descriptions-item>
       </el-descriptions>
-
       <el-alert v-if="current?.archiveStatus === 'PENDING_COMPENSATION'" title="报告已生效，交付件归档待补偿；历史下载保持可用" type="warning" show-icon :closable="false" />
       <el-empty v-else-if="!current" description="当前尚无有效报告；可先保存不完整草稿，活动完成前再补齐四项与附件" />
       <section v-else class="current-report" aria-labelledby="current-report-title">
@@ -22,7 +20,6 @@
         <p>{{ current.conclusionText || '未填写结论说明' }}</p>
         <div class="current-meta"><span>验收人：{{ current.acceptorName }}</span><span>验收时间：{{ current.acceptanceTime }}</span><span>附件：{{ current.attachments.length }}</span></div>
       </section>
-
       <div class="detail-actions">
         <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ draft ? '继续编辑草稿' : current ? '创建替换版本' : '创建报告草稿' }}</el-button>
         <el-button v-if="versions.length" v-hasPermi="['pms:acceptance:report:query']" @click="openHistory">查看版本历史</el-button>
@@ -34,7 +31,6 @@
   <ReportDraftEditor ref="editorRef" :readonly="readonly || activity?.activityStatus !== 'PENDING'" :allowed-actions="allowedActions" @changed="reload" @dirty-change="emit('dirty-change', $event)" />
   <ReportVersionHistoryDrawer ref="historyRef" :allowed-actions="allowedActions" />
 </template>
-
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -42,11 +38,14 @@ import { checkPermi } from '@/utils/permission'
 import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as ReportApi from '@/api/pms/project/acceptance-report'
 import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/project/acceptance-report'
+import { useOperationClient } from '@/components/BusinessView/operationHost'
+import type { OperationClient } from '@/components/BusinessView/operationClient'
 import ReportDraftEditor from './ReportDraftEditor.vue'
 import ReportVersionHistoryDrawer from './ReportVersionHistoryDrawer.vue'
-
 const props = defineProps<{ readonly?: boolean; allowedActions?: string[] }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
+const executionClient = useOperationClient()
+let openedClient: OperationClient | undefined
 const message = useMessage()
 const narrow = useMediaQuery('(width <= 767px)')
 const visible = ref(false)
@@ -57,9 +56,8 @@ const versions = ref<AcceptanceReportVersionVO[]>([])
 const editorRef = ref<InstanceType<typeof ReportDraftEditor>>()
 const historyRef = ref<InstanceType<typeof ReportVersionHistoryDrawer>>()
 const revokeKey = ref(crypto.randomUUID())
-const current = computed(() => versions.value.find((item) => item.reportStatus === 'EFFECTIVE'))
-const draft = computed(() => versions.value.find((item) => item.reportStatus === 'DRAFT'))
-
+const current = computed(() => versions.value.find(item => item.reportStatus === 'EFFECTIVE'))
+const draft = computed(() => versions.value.find(item => item.reportStatus === 'DRAFT'))
 let sequence = 0
 let openSequence = 0
 let expectedProject: BusinessViewId | undefined
@@ -71,12 +69,8 @@ const isDirty = () => revoking.value || !!editorRef.value?.isDirty()
 const requestLeave = async () => !revoking.value && (await editorRef.value?.requestLeave() ?? true)
 const discardChanges = () => {
   if (revoking.value || editorRef.value?.discardChanges() === false) return false
-  sequence++
-  openSequence++
-  visible.value = false
-  loading.value = false
-  activity.value = undefined
-  versions.value = []
+  sequence++; openSequence++; visible.value = false; loading.value = false
+  activity.value = undefined; versions.value = []; openedClient = undefined
   historyRef.value?.close()
   return true
 }
@@ -87,39 +81,27 @@ const open = async (id: BusinessViewId, projectId?: BusinessViewId) => {
   if (visible.value && sameBusinessViewId(activity.value?.id, id) && (projectId === undefined || sameBusinessViewId(activity.value?.projectId, projectId))) return true
   if (!(await requestLeave()) || opening !== openSequence || !discardChanges()) return false
   expectedProject = projectId
+  openedClient = executionClient.value
   return await load(id, true)
 }
 const load = async (id: BusinessViewId, show = false) => {
-  const token = ++sequence
-  const project = expectedProject
-  errorText.value = ''
-  loading.value = true
+  const token = ++sequence, project = expectedProject
+  errorText.value = ''; loading.value = true
   try {
     const target = await ReportApi.getActivity(legacyOwnerId(id))
     if (token !== sequence || !canQuery()) return false
-    if (!sameBusinessViewId(target.id, id) || (project !== undefined && !sameBusinessViewId(target.projectId, project))) {
-      message.warning('该验收活动不属于当前项目')
-      return false
-    }
+    if (!sameBusinessViewId(target.id, id) || (project !== undefined && !sameBusinessViewId(target.projectId, project))) { message.warning('该验收活动不属于当前项目'); return false }
     const reports = await ReportApi.getReportVersions(legacyOwnerId(id))
-    if (token !== sequence || !canQuery()) return false
-    if (reports.some(report => !sameBusinessViewId(report.acceptanceId, id))) return false
-    activity.value = target
-    versions.value = reports
+    if (token !== sequence || !canQuery() || reports.some(report => !sameBusinessViewId(report.acceptanceId, id))) return false
+    activity.value = target; versions.value = reports
     if (show) visible.value = true
     return true
   } catch {
-    if (token === sequence) {
-      errorText.value = '验收报告详情加载失败，请关闭后重试。'
-      if (show) visible.value = true
-    }
+    if (token === sequence) { errorText.value = '验收报告详情加载失败，请关闭后重试。'; if (show) visible.value = true }
     return false
   } finally { if (token === sequence) loading.value = false }
 }
-const reload = async () => {
-  emit('changed')
-  if (activity.value && canQuery()) await load(activity.value.id)
-}
+const reload = async () => { emit('changed'); if (activity.value && canQuery()) await load(activity.value.id) }
 const openEditor = async () => {
   if (!visible.value || !activity.value || !canWrite('UPDATE') || revoking.value) return false
   return await editorRef.value?.open(activity.value, draft.value)
@@ -127,19 +109,14 @@ const openEditor = async () => {
 const openHistory = () => { if (activity.value && canQuery()) void historyRef.value?.open(activity.value.id) }
 const revoke = async () => {
   if (!visible.value || !activity.value || !current.value || !canWrite('REVOKE') || revoking.value || editorRef.value?.isDirty()) return false
-  const token = sequence
-  const target = activity.value
-  const report = current.value
+  const token = sequence, target = activity.value, report = current.value
   try { await message.confirm('撤销后不会恢复旧版本，确认继续？') } catch { return false }
   if (token !== sequence || !canWrite('REVOKE') || revoking.value || editorRef.value?.isDirty()) return false
-  revoking.value = true
-  emit('dirty-change', true)
+  revoking.value = true; emit('dirty-change', true)
   try {
-    await ReportApi.revokeCurrentVersion(target, report, revokeKey.value)
+    await ReportApi.revokeCurrentVersion(target, report, revokeKey.value, openedClient)
     if (token !== sequence) return false
-    revokeKey.value = crypto.randomUUID()
-    message.success('当前报告版本已撤销')
-    await reload()
+    revokeKey.value = crypto.randomUUID(); message.success('当前报告版本已撤销'); await reload()
     return true
   } finally { revoking.value = false; emit('dirty-change', isDirty()) }
 }
@@ -148,7 +125,6 @@ const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
 const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' } as Record<string, string>)[status] || status
 defineExpose({ open, requestLeave, discardChanges, isDirty })
 </script>
-
 <style scoped lang="scss">
 .detail-heading, .section-title, .current-meta, .detail-actions { display: flex; align-items: center; gap: 12px; }
 .detail-heading { align-items: flex-start; justify-content: space-between; }
