@@ -18,7 +18,13 @@ public class SyncDefinitionValidator {
     public DataSyncAdapter adapter(String key) {
         var a=adapters.get(key);if(a==null) throw new IllegalArgumentException("业务适配器不存在");return a;
     }
-    public List<DataSyncAdapter.Descriptor> descriptors(){return adapters.values().stream().map(DataSyncAdapter::descriptor).toList();}
+    public List<DataSyncAdapter.Descriptor> descriptors(){
+        return adapters.values().stream().map(adapter->{
+            var d=adapter.descriptor();
+            return new DataSyncAdapter.Descriptor(d.key(),d.label(),d.objects(),d.missingPolicies(),d.loadingModes(),
+                    d.supportsTargetClear(),adapter.supportsStreaming());
+        }).toList();
+    }
     public void validate(SyncDefinition d) {
         if(d==null||d.connectionId()==null||d.sourceSystem()==null||!d.sourceSystem().matches("[A-Za-z0-9_-]{1,32}"))
             throw new IllegalArgumentException("连接或来源系统标识无效");
