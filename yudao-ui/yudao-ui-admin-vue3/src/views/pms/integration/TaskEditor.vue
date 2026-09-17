@@ -157,9 +157,19 @@
             <el-select v-model="draft.definition.readStrategy" @change="syncLegacyPaging">
               <el-option label="整批快照（兼容模式）" value="SNAPSHOT" />
               <el-option label="主键游标分页" value="KEYSET_PAGING" />
-              <el-option label="JDBC 流式游标（单次 SQL）" value="STREAMING_CURSOR" />
+              <el-option
+                label="JDBC 流式游标（单次 SQL）"
+                value="STREAMING_CURSOR"
+                :disabled="!selectedAdapter?.supportsStreaming"
+              />
             </el-select>
           </el-form-item>
+          <el-alert
+            v-if="selectedAdapter && !selectedAdapter.supportsStreaming"
+            type="info"
+            :closable="false"
+            title="当前业务适配器需要整批上下文，不支持流式分块执行。"
+          />
           <template v-if="draft.definition.readStrategy === 'STREAMING_CURSOR'">
             <el-form-item label="JDBC Fetch Size">
               <el-input-number v-model="draft.definition.fetchSize" :min="1" :max="10000" />
