@@ -1,42 +1,42 @@
-name: Lowcode verified delivery
+name: Lowcode consumer regression
 
 on:
   push:
     branches: [migration-sync-research-f36p0S]
     paths:
-      - '.github/lowcode-consumer-edit.py'
       - '.github/workflows/lowcode-verified-delivery.yml'
-      - 'yudao-ui/yudao-ui-admin-vue3/tests/lowcode/consumers/**'
-      - 'pms-module-lowcode/src/test/**'
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - 'pms-module-lowcode/**'
+  pull_request:
+    paths:
+      - '.github/workflows/lowcode-verified-delivery.yml'
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - 'pms-module-lowcode/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: lowcode-verified-delivery
+  group: lowcode-consumers-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  verify-and-commit:
-    if: github.repository == 'wrck/NPDMS'
+  consumer-regression:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Apply the reviewed source edits with exact base checks
-        id: apply
-        run: |
-          python3 .github/lowcode-consumer-edit.py
-          git diff --cached --check
-          git diff --cached --binary > "$RUNNER_TEMP/reviewed-consumer.patch"
+          show-progress: false
+      # Source edits were committed in dc10865e. This workflow never applies patches
+      # or creates commits: all checks run against the actual checked-out revision.
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Install locked frontend dependencies
+        id: frontend-install
         working-directory: yudao-ui/yudao-ui-admin-vue3
         run: |
           corepack enable
@@ -50,31 +50,39 @@ jobs:
           set -o pipefail
           pnpm run ts:check 2>&1 | tee artifacts/verified-delivery/typecheck.log
       - name: Renderer and validator regression
+        if: ${{ !cancelled() && steps.frontend-install.outcome == 'success' }}
         working-directory: yudao-ui/yudao-ui-admin-vue3
         run: |
           pnpm exec vitest run --config vitest.pms-file.config.ts \
             src/components/LowCodeFormRenderer src/components/LowCodeFormRendererFacade \
-            src/components/LowCodeFormRendererV2 src/validators/__tests__ \
+            src/components/LowCodeFormRendererV2 src/validators/__tests__ src/utils/lowcodeSession.spec.ts \
             --reporter=default --reporter=junit --outputFile.junit=artifacts/verified-delivery/unit.xml
       - name: Install isolated browser tooling
+        id: browser-install
+        if: ${{ !cancelled() && steps.frontend-install.outcome == 'success' }}
         run: |
           npm install --prefix "$RUNNER_TEMP/lowcode-playwright" --no-audit --no-fund playwright@1.58.2
           node "$RUNNER_TEMP/lowcode-playwright/node_modules/playwright/cli.js" install --with-deps chromium
-      - name: Real renderer and saved consumer browser regression
+      - name: Real renderer browser regression
+        if: ${{ !cancelled() && steps.browser-install.outcome == 'success' }}
         working-directory: yudao-ui/yudao-ui-admin-vue3
         env:
           PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
-        run: |
-          node tests/lowcode/browser/run.mjs
-          node tests/lowcode/consumers/run.mjs
+        run: node tests/lowcode/browser/run.mjs
+      - name: Saved consumer browser regression
+        if: ${{ !cancelled() && steps.browser-install.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
+        run: node tests/lowcode/consumers/run.mjs
       - uses: actions/setup-java@v5
-        if: ${{ !cancelled() && steps.apply.outcome == 'success' }}
+        if: ${{ !cancelled() }}
         with:
           distribution: temurin
           java-version: '25'
           cache: maven
       - name: Actual controller security and JDBC persistence regression
-        if: ${{ !cancelled() && steps.apply.outcome == 'success' }}
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           set -o pipefail
@@ -92,33 +100,15 @@ jobs:
               if int(report.get('tests', '0')) < minimum or any(int(report.get(key, '0')) for key in ['failures', 'errors', 'skipped']):
                   raise SystemExit(f'Incomplete or failed tests: {name}')
           PY
-      - name: Commit only the verified source delta
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/migration-sync-research-f36p0S
-          test "$(git ls-remote origin "$GITHUB_REF" | cut -f1)" = "$GITHUB_SHA"
-          git diff --cached --check
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m 'fix(lowcode): close designer and runtime persistence consumer paths' \
-            -m 'Verify full vue-tsc, renderer/validator regression, real pages with an HTTP contract server, and actual controller/security/JDBC paths with H2. The HTTP contract fixture and JDBC tests do not replace deployed application/MySQL E2E.'
-          askpass="$RUNNER_TEMP/lowcode-askpass.sh"
-          printf '%s\n' '#!/bin/sh' 'case "$1" in *Username*) printf "%s\n" x-access-token ;; *) printf "%s\n" "$GITHUB_TOKEN" ;; esac' > "$askpass"
-          chmod 700 "$askpass"
-          trap 'rm -f "$askpass"' EXIT
-          GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git push origin "HEAD:$GITHUB_REF"
-          git log -1 --format='%H %s'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lowcode-verified-delivery-${{ github.sha }}
+          name: lowcode-consumer-regression-${{ github.sha }}
           path: |
             yudao-ui/yudao-ui-admin-vue3/artifacts/verified-delivery/
             yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-browser/
             yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-consumers/
             pms-module-lowcode/target/surefire-reports/*DynamicEntity*Test*
             ${{ runner.temp }}/consumer-backend.log
-            ${{ runner.temp }}/reviewed-consumer.patch
           if-no-files-found: error
+          retention-days: 14
