@@ -15,10 +15,10 @@ import java.time.LocalDate;
 /**
  * PMS 现场工勘 DO（FR-ENG-001）。
  * <p>
- * 对应表 {@code sol_eng_site_survey}。
+ * 对应表 {@code sol_site_survey}。
  * 状态：0 草稿、1 已确认、2 已驳回、3 已归档。
  */
-@TableName(value = "sol_eng_site_survey", autoResultMap = true)
+@TableName(value = "sol_site_survey", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class SiteSurveyEntityDO extends TenantBaseDO {

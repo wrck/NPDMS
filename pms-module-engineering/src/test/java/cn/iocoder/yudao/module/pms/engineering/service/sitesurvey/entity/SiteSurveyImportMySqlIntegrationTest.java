@@ -91,7 +91,7 @@ public class SiteSurveyImportMySqlIntegrationTest {
 
     @Test
     void importAndRetryEveryExistingSurveyWithExactContentReconciliation() {
-        var sourceBefore = jdbc.queryForList("SELECT * FROM sol_eng_site_survey WHERE tenant_id=1 ORDER BY id");
+        var sourceBefore = jdbc.queryForList("SELECT * FROM sol_site_survey WHERE tenant_id=1 ORDER BY id");
         assertFalse(sourceBefore.isEmpty());
         var ids = sourceBefore.stream().map(row -> ((Number) row.get("id")).longValue()).toList();
         var failures = new LinkedHashMap<Long, String>();
@@ -107,13 +107,13 @@ public class SiteSurveyImportMySqlIntegrationTest {
         assertEquals(definitions, count("plt_entity_extension_definition"));
         assertEquals(values, count("plt_entity_extension_value"));
         assertEquals(bindings, count("plt_entity_form_binding"));
-        assertEquals(sourceBefore, jdbc.queryForList("SELECT * FROM sol_eng_site_survey WHERE tenant_id=1 ORDER BY id"));
+        assertEquals(sourceBefore, jdbc.queryForList("SELECT * FROM sol_site_survey WHERE tenant_id=1 ORDER BY id"));
         // A changed target must be reported. Its content and the source must never be replaced on retry.
         transactions.executeWithoutResult(status -> {
-            jdbc.update("UPDATE sol_eng_site_survey SET power_supply='IMPORT_CONFLICT' WHERE tenant_id=1 AND id=?", ids.getFirst());
+            jdbc.update("UPDATE sol_site_survey SET power_supply='IMPORT_CONFLICT' WHERE tenant_id=1 AND id=?", ids.getFirst());
             var conflict = assertThrows(IllegalStateException.class, () -> service.importOne(ids.getFirst(), actor));
             assertTrue(conflict.getMessage().contains("powerSupply"));
-            assertEquals("IMPORT_CONFLICT", jdbc.queryForObject("SELECT power_supply FROM sol_eng_site_survey WHERE tenant_id=1 AND id=?",
+            assertEquals("IMPORT_CONFLICT", jdbc.queryForObject("SELECT power_supply FROM sol_site_survey WHERE tenant_id=1 AND id=?",
                     String.class, ids.getFirst()));
             status.setRollbackOnly();
         });
