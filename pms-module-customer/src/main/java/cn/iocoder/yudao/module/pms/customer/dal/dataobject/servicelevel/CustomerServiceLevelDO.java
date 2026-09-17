@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.dal.dataobject.servicelevel;
+package cn.iocoder.yudao.module.pms.customer.dal.dataobject.servicelevel;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,7 +12,7 @@ import java.time.LocalDate;
 /**
  * PMS 客户服务等级 DO
  */
-@TableName("pms_customer_service_level")
+@TableName("cus_customer_service_level")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CustomerServiceLevelDO extends TenantBaseDO {

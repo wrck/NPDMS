@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * 状态机：0草稿 → 1待客户确认 → 2客户已确认 → 3已归档 / 4已驳回
  * 【待确认：法律效力口径】电子完工证明的法律效力以公司法务口径为准，本实现仅承载流程数据。
  */
-@TableName("pms_acc_completion_certificate")
+@TableName("acc_completion_certificate")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CompletionCertificateDO extends TenantBaseDO {

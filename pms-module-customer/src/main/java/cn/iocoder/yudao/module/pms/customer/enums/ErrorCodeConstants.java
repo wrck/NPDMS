@@ -16,6 +16,11 @@ public interface ErrorCodeConstants {
     ErrorCode CUSTOMER_DELETE_GUARD_BLOCKED = new ErrorCode(1_014_001_004, "客户删除被引用守卫阻止");
     ErrorCode CUSTOMER_CLASSIFICATION_INVALID = new ErrorCode(1_014_001_005, "客户办事处或市场行业组合无效");
     ErrorCode CUSTOMER_SCOPE_DENIED = new ErrorCode(1_014_001_006, "客户办事处或市场行业超出授权范围");
+    // ========== 客户服务等级模块 1-014-018-000（自project模块同号迁入） ==========
+    ErrorCode CUSTOMER_SERVICE_LEVEL_NOT_EXISTS = new ErrorCode(1_014_018_000, "客户服务等级不存在");
+    ErrorCode CUSTOMER_SERVICE_LEVEL_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_018_001, "服务等级关联客户不存在");
+    ErrorCode CUSTOMER_SERVICE_LEVEL_STATUS_INVALID = new ErrorCode(1_014_018_002, "客户服务等级状态流转不合法");
+
     ErrorCode PMS_IDEMPOTENCY_KEY_CONFLICT = new ErrorCode(1_014_024_008,
             "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）");
     ErrorCode PMS_IDEMPOTENCY_IN_PROGRESS = new ErrorCode(1_014_024_012, "相同幂等请求正在处理中，请稍后重试");

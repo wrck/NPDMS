@@ -1,10 +1,10 @@
-package cn.iocoder.yudao.module.pms.project.dal.mysql.servicelevel;
+package cn.iocoder.yudao.module.pms.customer.dal.mysql.servicelevel;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
-import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.servicelevel.CustomerServiceLevelDO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
+import cn.iocoder.yudao.module.pms.customer.dal.dataobject.servicelevel.CustomerServiceLevelDO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

@@ -97,11 +97,6 @@ public interface ErrorCodeConstants {
     ErrorCode PORTFOLIO_STATUS_INVALID = new ErrorCode(1_014_017_002, "项目组合状态流转不合法");
     ErrorCode PORTFOLIO_PROJECT_NOT_EXISTS = new ErrorCode(1_014_017_003, "组合成员项目不存在");
 
-    // ========== 客户服务等级模块 1-014-018-000 ==========
-    ErrorCode CUSTOMER_SERVICE_LEVEL_NOT_EXISTS = new ErrorCode(1_014_018_000, "客户服务等级不存在");
-    ErrorCode CUSTOMER_SERVICE_LEVEL_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_018_001, "服务等级关联客户不存在");
-    ErrorCode CUSTOMER_SERVICE_LEVEL_STATUS_INVALID = new ErrorCode(1_014_018_002, "客户服务等级状态流转不合法");
-
     // ========== 团队批量变更模块 1-014-019-000 ==========
     ErrorCode TEAM_BATCH_CHANGE_NOT_EXISTS = new ErrorCode(1_014_019_000, "批量变更批次不存在");
     ErrorCode TEAM_BATCH_CHANGE_ITEM_NOT_EXISTS = new ErrorCode(1_014_019_001, "批量变更明细不存在");

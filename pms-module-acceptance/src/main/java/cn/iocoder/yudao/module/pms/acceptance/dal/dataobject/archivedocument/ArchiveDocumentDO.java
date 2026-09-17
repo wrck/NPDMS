@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 状态机：0草稿 → 1待归档 → 2已归档
  * 归档后版本不可覆盖：已归档（status=2）的文档不允许更新
  */
-@TableName("pms_acc_archive_document")
+@TableName("acc_archive_document")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ArchiveDocumentDO extends TenantBaseDO {

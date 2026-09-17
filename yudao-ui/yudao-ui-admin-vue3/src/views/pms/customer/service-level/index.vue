@@ -130,9 +130,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
-import * as ServiceLevelApi from '@/api/pms/project/service-level'
+import * as ServiceLevelApi from '@/api/pms/customer/service-level'
 import * as CustomerApi from '@/api/pms/project/customer'
-import type { CustomerServiceLevelVO } from '@/api/pms/project/service-level'
+import type { CustomerServiceLevelVO } from '@/api/pms/customer/service-level'
 
 defineOptions({ name: 'PmsCustomerServiceLevel' })
 const message = useMessage()

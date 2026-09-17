@@ -10,10 +10,10 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 团队批量变更批次 DO（FR-PROJ-014）。
  * <p>
- * 对应表 {@code pms_team_batch_change}，承载一次批量角色移交的批次元数据与汇总结果。
+ * 对应表 {@code proj_team_batch_change}，承载一次批量角色移交的批次元数据与汇总结果。
  * 明细记录见 {@link TeamBatchChangeItemDO}。
  */
-@TableName("pms_team_batch_change")
+@TableName("proj_team_batch_change")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class TeamBatchChangeDO extends TenantBaseDO {

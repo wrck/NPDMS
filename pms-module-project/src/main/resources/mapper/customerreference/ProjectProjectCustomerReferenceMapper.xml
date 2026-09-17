@@ -10,8 +10,8 @@
              + (SELECT COUNT(*) FROM acc_project_closure WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM proj_task_business_link WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_acc_acceptance WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
-             + (SELECT COUNT(*) FROM pms_acc_archive_document WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
-             + (SELECT COUNT(*) FROM pms_acc_completion_certificate WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM acc_archive_document WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM acc_completion_certificate WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_acc_deliverable_checklist WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_acc_project_closure WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
     </select>

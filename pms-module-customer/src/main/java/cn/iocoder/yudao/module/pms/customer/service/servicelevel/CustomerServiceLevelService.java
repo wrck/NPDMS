@@ -1,9 +1,9 @@
-package cn.iocoder.yudao.module.pms.project.service.servicelevel;
+package cn.iocoder.yudao.module.pms.customer.service.servicelevel;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.servicelevel.CustomerServiceLevelDO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel.vo.CustomerServiceLevelSaveReqVO;
+import cn.iocoder.yudao.module.pms.customer.dal.dataobject.servicelevel.CustomerServiceLevelDO;
 import jakarta.validation.Valid;
 
 /**

@@ -1,15 +1,15 @@
-package cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel;
+package cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelRespVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.servicelevel.CustomerServiceLevelDO;
-import cn.iocoder.yudao.module.pms.project.service.servicelevel.CustomerServiceLevelService;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel.vo.CustomerServiceLevelRespVO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.servicelevel.vo.CustomerServiceLevelSaveReqVO;
+import cn.iocoder.yudao.module.pms.customer.dal.dataobject.servicelevel.CustomerServiceLevelDO;
+import cn.iocoder.yudao.module.pms.customer.service.servicelevel.CustomerServiceLevelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

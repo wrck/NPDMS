@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import * as CustomerApi from '@/api/pms/customer'
-import * as ServiceLevelApi from '@/api/pms/project/service-level'
+import * as ServiceLevelApi from '@/api/pms/customer/service-level'
 import type { CustomerDetailRespVO } from '@/api/pms/customer'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'

@@ -29,7 +29,7 @@
 | pms-module-cutover | `/pms/cut-*` | `pms:cut-*:*` | `cut_*` |
 | pms-module-customer | `/pms/customers`（存量无前缀冻结） | `pms:{实体}:{动作}` | `cus_*` |
 
-冻结旧链表与旧功能不改名、不改语义（见 09 分册存量结论）；领域归属修正迁移的代码必须落入目标模块后立即按本表对齐三项前缀，不得保留源模块命名。新链表名按 09 分册各 Context 目标表组命名（`acc_/cut_/cus_/imp_/srv_/com_/plt_/proj_`）。
+存量旧链按承接状态分级处置：**有明确承接新实现的旧链保持冻结**（不改名、不改语义，如 `pms_acc_acceptance`、`pms_customer`、`pms_project_task`、`pms_cut_*` 等）；**无承接的旧链必须原地改为领域模型**（表名改领域前缀、归属正确模块，URL/权限同步模块规则；V254 为示例）。领域归属修正迁移的代码必须落入目标模块后立即按本表对齐三项前缀，不得保留源模块命名。新链表名按 09 分册各 Context 目标表组命名（`acc_/cut_/cus_/imp_/sol_/srv_/com_/plt_/proj_`）。
 
 ## 2. 通用请求与响应
 

@@ -12,7 +12,7 @@ import java.time.LocalDate;
 /**
  * PMS 项目组合 DO
  */
-@TableName("pms_project_portfolio")
+@TableName("proj_project_portfolio")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectPortfolioDO extends TenantBaseDO {

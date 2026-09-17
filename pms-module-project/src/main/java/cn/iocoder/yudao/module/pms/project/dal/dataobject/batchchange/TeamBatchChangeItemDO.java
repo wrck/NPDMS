@@ -9,9 +9,9 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 团队批量变更明细 DO（FR-PROJ-014）。
  * <p>
- * 对应表 {@code pms_team_batch_change_item}，每条记录对应一次项目团队成员的变更结果。
+ * 对应表 {@code proj_team_batch_change_item}，每条记录对应一次项目团队成员的变更结果。
  */
-@TableName("pms_team_batch_change_item")
+@TableName("proj_team_batch_change_item")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class TeamBatchChangeItemDO extends TenantBaseDO {
