@@ -20,6 +20,7 @@ import {
   type VersionedFormConfig
 } from '@/components/LowCodeFormRenderer/rendererVersion'
 import { normalizeRendererConfig } from './compat'
+import { useRendererModel } from './useRendererModel'
 
 interface RendererExpose {
   validate?: () => Promise<boolean>
@@ -81,6 +82,17 @@ const effectiveRendererVersion = computed(() =>
   resolveLowCodeFormRendererVersion(props.config, props.rendererVersion)
 )
 
+const { model: rendererModel, updateModel } = useRendererModel(
+  () => props.modelValue,
+  () => effectiveRendererVersion.value,
+  () => rendererRef.value?.getFormData?.()
+)
+
+function handleModelUpdate(value: Record<string, unknown>): void {
+  updateModel(value)
+  emit('update:modelValue', value)
+}
+
 const rendererComponent = computed(() =>
   effectiveRendererVersion.value === LowCodeFormRendererVersion.V2
     ? LowCodeFormRendererV2
@@ -104,7 +116,7 @@ function clearValidate(): void {
 }
 
 function getFormData(): Record<string, unknown> {
-  return rendererRef.value?.getFormData?.() ?? {}
+  return rendererRef.value?.getFormData?.() ?? { ...rendererModel.value }
 }
 
 /** V1 兼容逃生口；V2 时返回 FormCreate Api。业务代码优先使用上面的统一 methods。 */
@@ -128,11 +140,11 @@ defineExpose({
     :is="rendererComponent"
     ref="rendererRef"
     :config="rendererConfig"
-    :model-value="modelValue"
+    :model-value="rendererModel"
     :disabled="disabled"
     :component-registry="effectiveComponentRegistry"
     :event-handlers="eventHandlers"
-    @update:model-value="(value: Record<string, unknown>) => emit('update:modelValue', value)"
+    @update:model-value="handleModelUpdate"
     @submit="(value: Record<string, unknown>) => emit('submit', value)"
     @validate-fail="(errors: unknown) => emit('validate-fail', errors)"
     @field-change="(field: FormFieldConfig, value: unknown) => emit('field-change', field, value)"
