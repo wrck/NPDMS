@@ -1,0 +1,107 @@
+name: Lowcode verified delivery
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - '.github/lowcode-reviewed.patch'
+      - '.github/workflows/lowcode-verified-delivery.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lowcode-verified-delivery
+  cancel-in-progress: false
+
+jobs:
+  verify-and-commit:
+    if: github.repository == 'wrck/NPDMS'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      DELIVERY_MESSAGE: 'fix(types): close full frontend typecheck without weakening checks'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Apply the reviewed patch to the index
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check .github/lowcode-reviewed.patch
+          git apply --index .github/lowcode-reviewed.patch
+          git diff --cached --check
+          git diff --cached --name-only > "$RUNNER_TEMP/changed-paths.txt"
+          test -s "$RUNNER_TEMP/changed-paths.txt"
+          python3 - <<'PY'
+          import os, pathlib
+          paths = pathlib.Path(os.environ['RUNNER_TEMP'], 'changed-paths.txt').read_text().splitlines()
+          prefix = 'yudao-ui/yudao-ui-admin-vue3/'
+          allowed = ('src/', 'tests/', 'scripts/', 'types/')
+          for path in paths:
+              if not path.startswith(prefix):
+                  raise SystemExit(f'Out-of-scope patch path: {path}')
+              relative = path[len(prefix):]
+              if relative != 'tsconfig.json' and not relative.startswith(allowed):
+                  raise SystemExit(f'Out-of-scope patch path: {path}')
+          PY
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          mkdir -p artifacts/verified-delivery
+          pnpm install --frozen-lockfile > artifacts/verified-delivery/install.log 2>&1 || { tail -n 40 artifacts/verified-delivery/install.log; exit 1; }
+      - name: Full frontend typecheck
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm run ts:check 2>&1 | tee artifacts/verified-delivery/typecheck.log
+      - name: Renderer and validator regression
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        run: |
+          pnpm exec vitest run --config vitest.pms-file.config.ts \
+            src/components/LowCodeFormRenderer src/components/LowCodeFormRendererFacade \
+            src/components/LowCodeFormRendererV2 src/validators/__tests__ \
+            --reporter=default --reporter=junit --outputFile.junit=artifacts/verified-delivery/unit.xml
+      - name: Install isolated browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lowcode-playwright" --no-audit --no-fund playwright@1.58.2
+          node "$RUNNER_TEMP/lowcode-playwright/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Real renderer browser regression
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
+        run: node tests/lowcode/browser/run.mjs
+      - name: Commit only verified source changes
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/migration-sync-research-f36p0S
+          test "$(git ls-remote origin "$GITHUB_REF" | cut -f1)" = "$GITHUB_SHA"
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "$DELIVERY_MESSAGE" -m 'Validated with full vue-tsc, renderer/validator tests and real Chromium contracts. The staged patch contains the complete reviewed source delta; no compiler checks were disabled.'
+          askpass="$RUNNER_TEMP/lowcode-askpass.sh"
+          printf '%s\n' '#!/bin/sh' 'case "$1" in *Username*) printf "%s\n" x-access-token ;; *) printf "%s\n" "$GITHUB_TOKEN" ;; esac' > "$askpass"
+          chmod 700 "$askpass"
+          trap 'rm -f "$askpass"' EXIT
+          GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git push origin "HEAD:$GITHUB_REF"
+          git log -1 --format='%H %s'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lowcode-verified-delivery-${{ github.sha }}
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/verified-delivery/
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-browser/
+          if-no-files-found: error

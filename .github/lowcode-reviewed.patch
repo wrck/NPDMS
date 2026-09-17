@@ -1,0 +1,259 @@
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/service-level/index.ts b/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/service-level/index.ts
+--- a/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/service-level/index.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/service-level/index.ts
+@@ -19,3 +19,8 @@
+ 
+-export const getServiceLevelPage = (params: PageParam) =>
++export interface ServiceLevelPageParams extends PageParam {
++  customerId?: number
++  status?: number
++}
++
++export const getServiceLevelPage = (params: ServiceLevelPageParams) =>
+   request.get({ url: `${baseUrl}/page`, params })
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRenderer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRenderer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRenderer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRenderer/index.vue
+@@ -388,3 +388,3 @@
+         <el-form-item
+-          v-else
++          v-else-if="!isLayoutField(field)"
+           :label="field.label"
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRendererV2/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRendererV2/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRendererV2/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeFormRendererV2/index.vue
+@@ -2,3 +2,3 @@
+ /** FormCreate V2：保留 FormConfig、props、emits 与公开方法；V1 独立不变。 */
+-import { computed, markRaw, reactive, ref, shallowRef, watch, type Component } from 'vue'
++import { computed, markRaw, reactive, ref, shallowReactive, shallowRef, watch, type Component } from 'vue'
+ import { LayoutType, type FormConfig, type FormFieldConfig, type ResponsiveSpan } from '@/api/lowcode'
+@@ -114,3 +114,3 @@
+     const tabsProps = reactive({ modelValue: activeTab.value })
+-    const tabs: Rule = reactive({
++    const tabs = shallowReactive<Rule>({
+       type: 'el-tabs',
+@@ -133,3 +133,3 @@
+     const collapseProps = reactive({ modelValue: activeCollapse.value })
+-    const collapse: Rule = reactive({
++    const collapse = shallowReactive<Rule>({
+       type: 'el-collapse',
+@@ -162,3 +162,3 @@
+     form: {
+-      labelWidth: props.config.labelWidth ?? 100,
++      labelWidth: typeof props.config.labelWidth === 'string' ? props.config.labelWidth : `${props.config.labelWidth ?? 100}px`,
+       labelPosition: props.config.labelPosition ?? 'right',
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeListRenderer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeListRenderer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeListRenderer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeListRenderer/index.vue
+@@ -197,17 +197,2 @@
+ 
+-/** 筛选组件解析 */
+-function resolveFilterComponent(f: ListFilterConfig) {
+-  switch (f.type) {
+-    case FilterType.SELECT:
+-      return 'el-select'
+-    case FilterType.DATE:
+-    case FilterType.DATERANGE:
+-      return 'el-date-picker'
+-    case FilterType.CASCADER:
+-      return 'el-cascader'
+-    default:
+-      return 'el-input'
+-  }
+-}
+-
+ /** 筛选 select 选项（优先 options，否则从 dictMap 取） */
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeMultiDeviceRenderer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeMultiDeviceRenderer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeMultiDeviceRenderer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeMultiDeviceRenderer/index.vue
+@@ -214,3 +214,3 @@
+ /** 监听设备变化，触发事件 */
+-watch(currentDevice, (newDevice) => {
++watch(currentDevice, () => {
+   // 通过 emit 触发（setup 中已定义 emits，但需通过组件实例）
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeTabRenderer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeTabRenderer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeTabRenderer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeTabRenderer/index.vue
+@@ -21,3 +21,3 @@
+  */
+-import { computed, ref, watch, shallowRef, defineAsyncComponent } from 'vue'
++import { computed, ref, watch, defineAsyncComponent } from 'vue'
+ import { useRoute, useRouter } from 'vue-router'
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/ChartPreview.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/ChartPreview.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/ChartPreview.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/ChartPreview.vue
+@@ -6,3 +6,2 @@
+ <script setup lang="ts">
+-import { ref } from 'vue'
+ const props = defineProps<{ modelValue: any; chartType?: string }>()
+@@ -12,3 +11,2 @@
+ const height = 300
+-const model = ref(props.modelValue)
+ </script>
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/NumberRangeInput.vue b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/NumberRangeInput.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/NumberRangeInput.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/components/LowCodeWidgets/NumberRangeInput.vue
+@@ -11,3 +11,2 @@
+ const emit = defineEmits<{ (e: 'update:modelValue', v: any): void }>()
+-const model = ref(props.modelValue)
+ const minVal = ref<number | undefined>(undefined)
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/types/__tests__/api.test-d.ts b/yudao-ui/yudao-ui-admin-vue3/src/types/__tests__/api.test-d.ts
+--- a/yudao-ui/yudao-ui-admin-vue3/src/types/__tests__/api.test-d.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/types/__tests__/api.test-d.ts
+@@ -250,2 +250,10 @@
+ export const _typeTests = assertType({
++  _dataIsString,
++  _dataIsNumber,
++  _records,
++  _total,
++  _tagSuccess,
++  _tagWarning,
++  _tagDanger,
++  _tagInfo,
+   _resultOk,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/index.test.ts b/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/index.test.ts
+--- a/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/index.test.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/index.test.ts
+@@ -1,2 +1,2 @@
+-import { describe, expect, it, beforeEach } from 'vitest'
++import { describe, expect, it } from 'vitest'
+ import {
+@@ -13,4 +13,2 @@
+   maxLen,
+-  min,
+-  max,
+   range,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/project.test.ts b/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/project.test.ts
+--- a/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/project.test.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/validators/__tests__/project.test.ts
+@@ -2,3 +2,2 @@
+ import {
+-  projectSchema,
+   projectFieldMapping,
+@@ -229,3 +228,3 @@
+     const v1 = (input: unknown) => ({ valid: true, errors: [], data: input })
+-    const v2 = (input: unknown) => ({ valid: false, errors: [], data: undefined })
++    const v2 = (_input: unknown) => ({ valid: false, errors: [], data: undefined })
+     registerValidator({ method: 'POST', urlPattern: '/api/test', requestValidator: v1 })
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/validators/project.ts b/yudao-ui/yudao-ui-admin-vue3/src/validators/project.ts
+--- a/yudao-ui/yudao-ui-admin-vue3/src/validators/project.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/validators/project.ts
+@@ -62,4 +62,2 @@
+ 
+-const PROJECT_TYPE_ENUM = ['NETWORK_DEVICE', 'SECURITY', 'DATACENTER'] as const
+-
+ export const projectSchema: Schema = defineSchema({
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/connector-designer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/connector-designer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/connector-designer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/connector-designer/index.vue
+@@ -100,8 +100,2 @@
+ 
+-/** Step 5（分页）仅 REST 类型展示 */
+-function showStep(stepTitle: string): boolean {
+-  if (basic.type === 'DB' && stepTitle === '分页配置') return false
+-  return true
+-}
+-
+ // ---------------- 新建 / 编辑 ----------------
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/entity-designer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/entity-designer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/entity-designer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/entity-designer/index.vue
+@@ -26,3 +26,3 @@
+ import FieldPanel from '@/components/EntityDesigner/FieldPanel.vue'
+-import IndexPanel, { type LowCodeIndex } from '@/components/EntityDesigner/IndexPanel.vue'
++import { type LowCodeIndex } from '@/components/EntityDesigner/IndexPanel.vue'
+ import RelationConfigDialog from '@/components/EntityDesigner/RelationConfigDialog.vue'
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/form-designer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/form-designer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/form-designer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/form-designer/index.vue
+@@ -27,3 +27,2 @@
+   createForm,
+-  deleteForm,
+   exportForm,
+@@ -38,3 +37,2 @@
+   type LowCodeFormConfig,
+-  type LowCodeFormQuery,
+   type ResponsiveSpan
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/list-designer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/list-designer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/list-designer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/list-designer/index.vue
+@@ -26,3 +26,2 @@
+   createList,
+-  deleteList,
+   exportList,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/preview/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/preview/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/preview/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/preview/index.vue
+@@ -3,3 +3,2 @@
+ import { useRoute } from 'vue-router'
+-import { get } from '@/utils/request'
+ 
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/related-page-designer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/related-page-designer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/related-page-designer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/related-page-designer/index.vue
+@@ -26,3 +26,2 @@
+   createRelatedPage,
+-  deleteRelatedPage,
+   exportRelatedPage,
+@@ -34,3 +33,2 @@
+   type LowCodeRelatedPageConfig,
+-  type LowCodeRelatedPageQuery,
+   type RelatedPageConfig,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/tab-designer/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/tab-designer/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/tab-designer/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/tab-designer/index.vue
+@@ -27,3 +27,2 @@
+   createTab,
+-  deleteTab,
+   exportTab,
+@@ -35,3 +34,2 @@
+   type LowCodeTabConfig,
+-  type LowCodeTabQuery,
+   type TabConfig,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/ImportConflictResolver.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/ImportConflictResolver.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/ImportConflictResolver.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/ImportConflictResolver.vue
+@@ -102,14 +102,2 @@
+ 
+-function resolutionTagType(r?: string): 'success' | 'warning' | 'info' {
+-  if (r === 'KEEP_SOURCE') return 'success'
+-  if (r === 'KEEP_TARGET') return 'warning'
+-  return 'info'
+-}
+-
+-function resolutionLabel(r?: string): string {
+-  if (r === 'KEEP_SOURCE') return '保留源版本'
+-  if (r === 'KEEP_TARGET') return '保留目标版本'
+-  if (r === 'SKIP') return '跳过'
+-  return '未选择'
+-}
+ </script>
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/lowcode/version-history/index.vue
+@@ -13,6 +13,4 @@
+   exportPackageZip,
+-  importPackage,
+   createBranch,
+   addTag,
+-  getPipelineStatus,
+   type LowCodeConfigVersion,
+@@ -20,3 +18,2 @@
+   type VersionTreeNode,
+-  type PromotionPipelineDTO
+ } from '@/api/lowcode-version'
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/contacts/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/contacts/index.vue
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/contacts/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/contacts/index.vue
+@@ -198,3 +198,2 @@
+ const formRef = ref()
+-const queryFormRef = ref()
+ const historyRef = ref<InstanceType<typeof ContactHistoryDialog>>()
+diff --git a/yudao-ui/yudao-ui-admin-vue3/tsconfig.json b/yudao-ui/yudao-ui-admin-vue3/tsconfig.json
+--- a/yudao-ui/yudao-ui-admin-vue3/tsconfig.json
++++ b/yudao-ui/yudao-ui-admin-vue3/tsconfig.json
+@@ -5,3 +5,3 @@
+     "module": "esnext",
+-    "moduleResolution": "node",
++    "moduleResolution": "bundler",
+     "ignoreDeprecations": "6.0",
