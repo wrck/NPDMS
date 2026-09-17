@@ -35,8 +35,6 @@
         <module>pms-module-service</module>
         <module>pms-module-asset</module>
         <module>pms-module-commerce</module>
-        <module>pms-module-outsourcing</module>
-        <module>pms-module-analytics</module>
         <module>pms-module-integration</module>
 <!--        <module>yudao-module-report</module>-->
 <!--        <module>yudao-module-mp</module>-->

@@ -93,16 +93,6 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
-            <artifactId>pms-module-outsourcing</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.iocoder.boot</groupId>
-            <artifactId>pms-module-analytics</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-acceptance</artifactId>
             <version>${revision}</version>
         </dependency>
