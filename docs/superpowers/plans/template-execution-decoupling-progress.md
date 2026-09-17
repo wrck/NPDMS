@@ -12,7 +12,9 @@
 - P1.02.2实现提交：3cba4ac7bfcb59ddc319827b39f9f674044fe198。
 - P1-V1验证入口提交：4811a1a08c4c7e972a4c32092298cc08fc1c372d。
 - P1-V2依赖修复提交：8053868b017252d88bd520602138cd35f2144df9。
-- 本次为P1.02.3新格式闭包与读取接线提交；自身SHA由Git历史定位，下一环节补记真实引用。
+- P1.02.3冻结读取提交：16d2c6b1aba4b3557fb1b372ad45b102a2a53e87。
+- P1-V3事实目录权限回归提交：ba793870df04a3737dede25ca8f756d72732d4c5。
+- 本次为P1.02.4新格式发布接线提交；自身SHA由Git历史定位，下一环节补记真实引用。
 - 最新约束：版本优先、不新增多层Hash、权限码选择动作、复用业务输入、pageUrl仅展示。
 
 ## 阶段状态
@@ -20,7 +22,7 @@
 | 阶段 | 状态 | 下一环节 |
 |---|---|---|
 | P0 | COMMITTED_PENDING_VERIFICATION（准备文档完成） | [范围与来源](template-execution-decoupling-p0.md)；对应真实验证在各改动阶段执行 |
-| P1 | IMPLEMENTING | P1.01、P1.02.1～P1.02.3已交付增量；P1.02.3定向153项测试通过；下一项新格式发布与不可变写保护；P1.03/P1.04未完成 |
+| P1 | IMPLEMENTING | P1.01、P1.02.1～P1.02.4代码及测试源码已交付；520项非MySQL定向回归通过；下一项P1.03独立配置模型，P1.04及数据库/浏览器验证未完成 |
 | P2 | PLANNED | 逐业务审计配置与独立路径 |
 | P3 | PLANNED | 权威结果及条件性能力 |
 | P4 | PLANNED | 独立订阅及有界恢复 |
@@ -143,3 +145,30 @@ ProjectPlanInitializationService回读项目指定的已发布模板版本，比
 定向通过不代表全套通过：8053868b的真实CI run35256618711为FAIL，437项中1项旧Controller权限契约断言失败、4项MySQL用例因未提供环境跳过；未覆盖这些缺口。当前定向测试使用持久化替身，不计为MySQL事务/并发、浏览器或业务验收。之前本地测试夹具的集合修改异常、定时器装配和事件ID断言失败已修复后重跑；只以上述最新153项计PASS，不覆盖既有FAIL历史。
 
 下一项P1.02.4：新格式Compiler/发布/匹配/复制/计划写入，以及数据库可空约束和已发布不可覆盖保护。未全部接通前不产生格式3发布数据；P1仍为IMPLEMENTING，P1.03/P1.04及P2～P9尚未完成。没有部署、迁移、服务重启或旧实例切换。
+
+
+## P1-V3 / P1.02.4 回归纠正与完整版本发布接线
+
+基准：ba793870df04a3737dede25ca8f756d72732d4c5。重新读取远端确认原HEAD只有16d2c6b1；此前对话所称d7440272、8978cbec未成功创建/推送，不属于已交付进度，也不采用其声称测试结果。ba793870仅修复事实目录的实际双消费权限测试，生产授权不变；准确源码通过本仓库Actions归档回读，完整Git树与远端8501fc739eaae256f3a011f9ea1c02061bbfeaee一致。
+
+### 实现与保护
+
+- TemplateCompiler保留原compile及格式2/旧Hasher路径，新增compileVersioned共用原编译逻辑后形成格式3完整快照，并经同一严格Reader回读；新路径不调用旧Hasher、snapshotHash为null，不新增摘要。
+- ProjectTemplateV2ServiceImpl的校验/发布接入新编译入口；新发布行明确保存租户、递增revision、完整Designer和Snapshot、实际格式/编译器元数据。发布仍处于原模板锁和事务内，插入、状态更新、版本递增返回非1即失败；草稿写之前核验租户/模板/正数行ID/revision0/DRAFT，禁止把已发布行当草稿更新。
+- TemplateVersionPublication统一格式3发布身份、冻结Designer及执行快照回读；运行读取、revision投影、最新匹配和发布版复制均接入。拒绝错租户/模板/版本、混入Hash、损坏/缺失Designer及快照、重复/未知字段。复制只创建独立新草稿，不反编译Snapshot，不修改原发布内容。最新版坏数据不回退早期版本。
+- ProjectPlanDraftService预览/启用使用compileVersioned；初始化对回读的完整发布快照执行格式3验证。正式计划Writer、原锁序和Owner规则不变；六处原计划测试Mock同步到实际新调用入口，旧断言保留。
+- 核查既有V52/V206/V228及Mapper：已有模板版本唯一键、snapshot_hash可空和原发布/草稿写分离；未新增数据库列/表、Hash、触发器或迁移。生产代码可写格式3不代表部署或数据库验收已通过。
+
+### 实际验证
+
+同一任务的独立源码副本并行运行基线验证，主工作树实施发布接线；未使用多代理、未并行写共同文件或分支引用。
+
+JDK25.0.4.1/Maven3.9.16离线28模块反应堆真实编译生产及测试源码，准确ba793870基线487项非MySQL测试通过。加入本增量后最终520项通过，0失败、0错误、0跳过；其中新增编译8项、发布/复制/匹配25项。命令：`/mnt/data/mvn-local.sh -pl pms-module-project -am -DskipITs=true '-Dtest=*Template*Test,*ProjectPlan*Test,*ProjectRuntimeGraph*Test,!*MySql*' -Dsurefire.failIfNoSpecifiedTests=false test`；本轮日志`/mnt/data/logs/p1024-final.log`与Surefire报告一致。两次范围重叠，不累加为1007项。
+
+新公开复制用例首次失败是测试直接写入未经原保存层规范化的Designer，与真实草稿来源不一致；改为使用既有TemplateRuleCollection.forEditing生成夹具后重跑全部上述测试，保留原发布内容字节不变断言。git diff --check通过；对旧Hasher、历史Resolver、旧基础Service、生产Controller、业务DTO、数据库和部署文件无修改。
+
+这是L2级真实编译/序列化/Service单测（外围持久化与Owner依赖Mock），不是MySQL事务/并发或L4验收。未执行4项已有MySQL计划测试，未取得真实发布事务、浏览器或全业务验收结果；原CI FAIL/跳过记录仍保留。没有部署、迁移、重启或旧实例切换。
+
+### 下一项
+
+P1.03独立操作/订阅/证据/页面配置与草稿无损保存，随后P1.04原业务输入/URL安全边界。新订阅/政策实际能力未接入时必须禁止相应发布，不以格式3发布已接线声称P1或P2～P9完成。

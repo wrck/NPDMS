@@ -52,7 +52,7 @@ public class ProjectPlanInitializationService {
         if (snapshot == null || published == null || !published.equals(snapshot)) {
             throw new IllegalArgumentException("PUBLISHED_EXECUTION_SNAPSHOT_MISMATCH");
         }
-        TemplateExecutionSnapshotReader.requireSupportedVersion(published.getExecutionSchemaVersion());
+        TemplateExecutionSnapshotReader.validate(published);
         requireContracts(project, published, stageContracts, taskContracts);
         var plan = new ProjectPlanVersionDO();
         plan.setTenantId(project.getTenantId()); plan.setProjectId(project.getId()); plan.setRevisionNo(1);

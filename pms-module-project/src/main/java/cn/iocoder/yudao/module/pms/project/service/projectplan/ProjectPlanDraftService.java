@@ -146,7 +146,7 @@ public class ProjectPlanDraftService {
             throw exception(PROJECT_PLAN_CHANGE_INVALID);
         }
         var designer = definition(draft).designer();
-        var compilation = compiler.compile(designer);
+        var compilation = compiler.compileVersioned(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
         issues.addAll(dependencies.validateProjectChanges(definition(effective).designer(), designer, publishing));
         issues.addAll(ruleValidator.validate(designer));

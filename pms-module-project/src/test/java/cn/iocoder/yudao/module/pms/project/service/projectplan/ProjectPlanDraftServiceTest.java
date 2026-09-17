@@ -105,7 +105,7 @@ class ProjectPlanDraftServiceTest {
         when(executions.selectCurrentForUpdate(any())).thenReturn(runtime.rounds);
         when(graph.selectStagesForUpdate(any())).thenReturn(runtime.stages);
         when(graph.selectTasksForUpdate(any())).thenReturn(runtime.tasks);
-        when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(ProjectPlanImpactAnalyzerTest.copy(snapshot),null,List.of()));
+        when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(ProjectPlanImpactAnalyzerTest.copy(snapshot),null,List.of()));
         when(dependencies.validateProjectChanges(any(),any(),eq(false))).thenReturn(List.of()); when(ruleValidator.validate(any())).thenReturn(List.of());
         var result=service.preview(9L,52L,0,1L);
         assertTrue(result.changes().isEmpty()); assertTrue(result.issues().isEmpty()); assertEquals(4,result.projectVersion());
@@ -117,7 +117,7 @@ class ProjectPlanDraftServiceTest {
     }
     @Test void previewExposesMissingRuntimeInsteadOfPromisingSuccessfulActivation() {
         var snapshot = ProjectPlanImpactAnalyzerTest.snapshot(); effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
-        when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
+        when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
         var result = service.preview(9L,52L,0,1L);
         assertEquals(3,result.issues().stream().filter(issue -> issue.code().equals("CURRENT_EXECUTION_MISSING")).count());
         assertTrue(result.executionChanges().isEmpty());
@@ -129,7 +129,7 @@ class ProjectPlanDraftServiceTest {
         node.setCode("CUSTOM-D"); node.setName("delivery"); node.setStageCode("A"); node.setRequired(true);
         snapshot.setDeliverables(List.of(node)); effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         var after = ProjectPlanImpactAnalyzerTest.copy(snapshot); after.setDeliverables(List.of());
-        when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
+        when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
         var row = new cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverableView(
                 100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8);
         when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(row),Set.of()));
@@ -145,7 +145,7 @@ class ProjectPlanDraftServiceTest {
         node.setCode("M1"); node.setName("已达成里程碑"); node.setStageCode("A"); snapshot.setMilestones(List.of(node));
         effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         var after = ProjectPlanImpactAnalyzerTest.copy(snapshot); after.setMilestones(List.of());
-        when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
+        when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
         var row = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMilestoneInstanceDO();
         row.setId(200L); row.setProjectId(9L); row.setTenantId(7L); row.setMilestoneCode("M1"); row.setStatus("ACHIEVED"); row.setVersion(6);
         when(milestoneProjections.selectMilestonesForUpdate(any())).thenReturn(List.of(row));
@@ -158,7 +158,7 @@ class ProjectPlanDraftServiceTest {
         var snapshot = ProjectPlanImpactAnalyzerTest.snapshot();
         var node = new TemplateExecutionSnapshot.GateContract(); node.setNodeKey("gate:one"); node.setCode("G1"); node.setName("业务门禁");
         snapshot.setGates(List.of(node)); effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
-        when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
+        when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
         var change = new ProjectPlanGateInstaller.Change("gate:one","UPDATE",300L,7,"G1","G1",true);
         when(gates.inspect(any(),any(),any())).thenReturn(new ProjectPlanGateInstaller.Plan(List.of(change),
                 List.of(new ProjectPlanGateInstaller.Write(change,null,"PASSED",List.of(),List.of())),List.of()));
@@ -178,7 +178,7 @@ class ProjectPlanDraftServiceTest {
         when(executions.selectCurrentForUpdate(any())).thenReturn(runtime.rounds);
         when(graph.selectStagesForUpdate(any())).thenReturn(runtime.stages);
         when(graph.selectTasksForUpdate(any())).thenReturn(runtime.tasks);
-        when(compiler.compile(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
+        when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
         when(ruleValidator.validate(any())).thenReturn(List.of(failure));
         var result = service.preview(9L,52L,0,1L);
         assertTrue(result.issues().contains(failure));
