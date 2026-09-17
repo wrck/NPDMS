@@ -1,0 +1,53 @@
+name: Lowcode browser compatibility
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - '.github/workflows/lowcode-browser-compat.yml'
+  pull_request:
+    paths:
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - '.github/workflows/lowcode-browser-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lowcode-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked application dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          pnpm install --frozen-lockfile
+      - name: Install isolated browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lowcode-playwright" --no-audit --no-fund playwright@1.58.2
+          node "$RUNNER_TEMP/lowcode-playwright/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Run real renderer and nested consumer browser contracts
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
+        run: node tests/lowcode/browser/run.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lowcode-browser-${{ github.sha }}
+          path: yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-browser/
+          if-no-files-found: warn
