@@ -54,6 +54,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
     @Override public List<Change> preview(Batch batch) { return plan(batch,true).changes(); }
     @Override public boolean requiresAllBindings() { return false; }
     @Override public boolean sharesTargetAcrossSources() { return true; }
+    @Override public boolean supportsStreaming() { return true; }
     @Override public void refreshCaches() { /* COM order queries do not cache these records. */ }
 
     @Override
