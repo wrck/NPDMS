@@ -22,8 +22,8 @@
              + (SELECT COUNT(*) FROM imp_eng_material_exchange WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM imp_eng_material_requisition WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM imp_eng_external_procurement WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
-             + (SELECT COUNT(*) FROM res_eng_outsource_request WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
-             + (SELECT COUNT(*) FROM plt_eng_authorization WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
-             + (SELECT COUNT(*) FROM kno_eng_announcement_check WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM res_outsource_request WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM plt_authorization WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM kno_announcement_check WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
     </select>
 </mapper>

@@ -13,10 +13,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 授权与借货 DO（FR-ENG-010）。
  * <p>
- * 对应表 {@code plt_eng_authorization}。
+ * 对应表 {@code plt_authorization}。
  * 状态：0 草稿、1 已提交、2 审批中、3 已通过、4 已驳回、5 已撤回、6 已终止。
  */
-@TableName("plt_eng_authorization")
+@TableName("plt_authorization")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class AuthorizationDO extends TenantBaseDO {

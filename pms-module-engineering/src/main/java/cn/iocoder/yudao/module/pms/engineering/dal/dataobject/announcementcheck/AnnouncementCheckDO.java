@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 技术公告预检查记录 DO（FR-ENG-009）。
  * <p>
- * 对应表 {@code kno_eng_announcement_check}。
+ * 对应表 {@code kno_announcement_check}。
  * 状态：0 待检查、1 已检查、2 已处置、3 已忽略。
  */
-@TableName("kno_eng_announcement_check")
+@TableName("kno_announcement_check")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class AnnouncementCheckDO extends TenantBaseDO {

@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 准备数据表单实例 DO（FR-ENG-007）。
  * <p>
- * 对应表 {@code plt_eng_form_instance}。
+ * 对应表 {@code plt_form_instance}。
  * 状态：0 待填、1 已填、2 已提交、3 已审核、4 已驳回。
  */
-@TableName("plt_eng_form_instance")
+@TableName("plt_form_instance")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class FormInstanceDO extends TenantBaseDO {
