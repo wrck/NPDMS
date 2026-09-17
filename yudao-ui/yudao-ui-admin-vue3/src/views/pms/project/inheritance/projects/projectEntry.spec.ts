@@ -22,6 +22,11 @@ it('preserves the original pages and uses selectable customer identity only in t
   expect(page).not.toContain('customerName: createForm.customerName || undefined')
   expect(page).toContain('/pms-inheritance/project-detail')
   expect(page).toContain('createSubmissionIdempotencyState')
-  expect(page).toContain('matchTemplates')
+  // Matching is now owned by the shared lifecycle composable and the
+  // customer-selected API. Preserve that wiring, not an obsolete local name.
+  expect(page).toContain('useCreationTemplateMatch(() => ({')
+  expect(page).toContain('}), matchCustomerSelectedTemplates)')
+  expect(page).toContain('await runMatch()')
+  expect(page).toContain('if (!matchResult.value.candidateWatermark) return false')
   expect(read('../detail/index.vue')).toContain('legacyOwnerId(route.query.projectId)')
 })

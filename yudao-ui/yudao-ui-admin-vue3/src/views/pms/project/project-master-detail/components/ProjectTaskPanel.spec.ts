@@ -66,7 +66,9 @@ describe('F-PROJ-007 project task workbench', () => {
   })
 
   it('uses only server allowed actions for workspace and task operations', () => {
-    expect(panel).toContain("workspace?.allowedActions.includes('CREATE')")
+    expect(panel).toContain("workspace?.allowedActions.includes('MANAGE_PLAN')")
+    expect(panel).toContain('<ProjectPlanEditor')
+    expect(panel).toContain('TaskWorkbenchApi.getProjectWorkspace(props.projectId)')
     expect(stateActions).toContain('props.workbench.allowedActions?.includes(action)')
     expect(drawer).toContain('<ProjectFlowPanel')
     expect(drawer).not.toMatch(/hasRole|roleCode|v-hasPermi/)

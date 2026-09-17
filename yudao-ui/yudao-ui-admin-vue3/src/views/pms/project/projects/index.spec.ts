@@ -81,7 +81,7 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.match(source, /departmentCode/)
   })
 
-  it('keeps legacy survey read-only, installation atomic and equipment location read-only', () => {
+  it('keeps confirmed surveys read-only, installation atomic and equipment location read-only', () => {
     const surveySource = readFileSync(
       new URL('../../engineering/site-survey/index.vue', import.meta.url),
       'utf8'
@@ -95,9 +95,13 @@ describe('F-PROJ-001 creation submission state', () => {
       'utf8'
     )
 
-    assert.match(surveySource, /仅保留历史查询/)
-    assert.match(surveySource, /router\.push\('\/pms\/customer-asset\/asset-site'\)/)
-    assert.doesNotMatch(surveySource, /SiteSurveyApi\.(create|update|delete)/)
+    // The historical placeholder is now the Owner's survey workbench. Protect
+    // immutable confirmed/rejected/archived records, not absence of all CRUD.
+    assert.ok(surveySource.includes('detailReadonly.value = view || (!!row && row.status !== 0)'))
+    assert.ok(surveySource.includes("detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE')"))
+    assert.match(surveySource, /:disabled="readonly \|\| saving"/)
+    assert.match(surveySource, /v-if="!readonly" type="primary" :loading="saving" @click="save"/)
+    assert.match(surveySource, /props\.allowedActions\.includes\(action\)/)
     assert.match(installationSource, /locationMaintenance/)
     assert.match(installationSource, /getEquipmentVersionList/)
     for (const source of [surveySource, installationSource, equipmentSource]) {
