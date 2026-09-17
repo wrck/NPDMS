@@ -1,0 +1,77 @@
+name: Complete frontend unit regression
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - '.github/workflows/frontend-unit-regression.yml'
+  pull_request:
+    paths:
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - '.github/workflows/frontend-unit-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          show-progress: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install frozen application dependencies
+        id: install
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          mkdir -p artifacts
+          pnpm install --frozen-lockfile > artifacts/unit-install.log 2>&1 || { tail -n 40 artifacts/unit-install.log; exit 1; }
+      - name: Run all existing Node-native frontend suites
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          set +e
+          node --experimental-strip-types --test tests/theme-init.test.mjs \
+            src/components/PmsLocationSelector/locationSelector.spec.ts \
+            src/views/pms/asset/location/location-contract.spec.ts \
+            src/views/pms/engineering/installation/installationForm.spec.ts \
+            src/views/pms/project/projects/index.spec.ts > artifacts/frontend-native.log 2>&1
+          result=$?
+          tail -n 120 artifacts/frontend-native.log
+          exit "$result"
+      - name: Run complete Vitest suite without path filters
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          set +e
+          pnpm exec vitest run --config vitest.pms-file.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile.junit=artifacts/frontend-all.xml > artifacts/frontend-all.log 2>&1
+          result=$?
+          tail -n 160 artifacts/frontend-all.log
+          exit "$result"
+      - name: Upload full frontend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-unit-regression-${{ github.sha }}
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/frontend-native.log
+            yudao-ui/yudao-ui-admin-vue3/artifacts/frontend-all.log
+            yudao-ui/yudao-ui-admin-vue3/artifacts/frontend-all.xml
+            yudao-ui/yudao-ui-admin-vue3/artifacts/unit-install.log
+          if-no-files-found: error
+          retention-days: 14
