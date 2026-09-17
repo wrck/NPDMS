@@ -24,7 +24,7 @@
 | 物理模块（领域） | 旧链 URL 前缀 | 旧链权限前缀 | 表名前缀 |
 |---|---|---|---|
 | pms-module-project（PROJ） | `/pms/*`（存量无前缀） | `pms:{实体}:{动作}` | `proj_*`；`pms_*` 存量待逐项判定 |
-| pms-module-engineering（SOL/IMP 双域） | SOL：`/pms/sol-*`；IMP：`/pms/imp-*` | `pms:sol-*:*` / `pms:imp-*:*` | `sol_*` / `imp_*`；`pms_eng_*` 为待逐项对齐的历史命名 |
+| pms-module-engineering（SOL/IMP/KNO/RES/PLT 多域） | SOL：`/pms/sol-*`；IMP：`/pms/imp-*`；KNO：`/pms/kno-*`；RES：`/pms/res-*`；PLT：`/pms/plt-*` | 各领域前缀同 URL | `{领域}_eng_{实体}`（原 `pms_eng_*` 的 pms_ 段替换为领域前缀、保留 eng_ 段、实体名不变，V257） |
 | pms-module-acceptance（ACC） | `/pms/acc-*` | `pms:acc-*:*` | `acc_*` |
 | pms-module-cutover（CUT） | `/pms/cut-*` | `pms:cut-*:*` | `cut_*` |
 | pms-module-customer（CUS） | `/pms/customers`（存量无前缀） | `pms:{实体}:{动作}` | `cus_*` |

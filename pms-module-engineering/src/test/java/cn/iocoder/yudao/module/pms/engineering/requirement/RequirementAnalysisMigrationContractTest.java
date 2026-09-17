@@ -130,7 +130,7 @@ class RequirementAnalysisMigrationContractTest {
         assertTrue(legacyPermissionSql.contains("m.`permission` LIKE 'pms:sol-requirement:%'"));
         assertFalse(legacyPermissionSql.contains("UPDATE `system_menu`"));
         assertFalse(legacyPermissionSql.contains("DELETE FROM"));
-        assertFalse(legacyPermissionSql.contains("sol_requirement"));
+        assertFalse(legacyPermissionSql.contains("sol_eng_requirement"));
     }
 
     @Test

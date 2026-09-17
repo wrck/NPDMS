@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
-@TableName("plt_authorization_grant")
+@TableName("plt_eng_authorization_grant")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class AuthorizationGrantDO extends TenantBaseDO {

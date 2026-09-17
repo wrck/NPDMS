@@ -113,7 +113,7 @@ class AuthorizationGrantMySqlTest {
 
         assertNotNull(created.id());
         assertEquals(1L, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_authorization_grant WHERE id = ?", Long.class, created.id()));
+                "SELECT COUNT(*) FROM plt_eng_authorization_grant WHERE id = ?", Long.class, created.id()));
         assertEquals(1, effectiveAt(now).size());
         assertEquals(0, effectiveAt(now.plusHours(2)).size());
 
@@ -127,7 +127,7 @@ class AuthorizationGrantMySqlTest {
         assertEquals(0, effectiveAt(now).size());
         assertEquals(1L, countGrantRows());
         assertEquals(0L, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_authorization_grant WHERE id = ? AND current_marker = 1",
+                "SELECT COUNT(*) FROM plt_eng_authorization_grant WHERE id = ? AND current_marker = 1",
                 Long.class, created.id()));
     }
 
@@ -165,10 +165,10 @@ class AuthorizationGrantMySqlTest {
         assertEquals("ACTIVE", current.statusCode());
         assertEquals(2L, countGrantRows());
         assertEquals(1L, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_authorization_grant WHERE subject_id = ? AND status_code = 'EXPIRED'",
+                "SELECT COUNT(*) FROM plt_eng_authorization_grant WHERE subject_id = ? AND status_code = 'EXPIRED'",
                 Long.class, subjectId));
         assertEquals(1L, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_authorization_grant WHERE subject_id = ? AND current_marker = 1",
+                "SELECT COUNT(*) FROM plt_eng_authorization_grant WHERE subject_id = ? AND current_marker = 1",
                 Long.class, subjectId));
     }
 
@@ -192,7 +192,7 @@ class AuthorizationGrantMySqlTest {
             assertEquals(1, outcomes.stream().filter(Throwable.class::isInstance).count());
             assertEquals(1L, countGrantRows());
             assertEquals(1L, jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM plt_authorization_grant WHERE subject_id = ? AND current_marker = 1",
+                    "SELECT COUNT(*) FROM plt_eng_authorization_grant WHERE subject_id = ? AND current_marker = 1",
                     Long.class, subjectId));
         }
     }
@@ -241,7 +241,7 @@ class AuthorizationGrantMySqlTest {
         LocalDateTime now = LocalDateTime.now();
 
         assertThrows(DataAccessException.class, () -> jdbcTemplate.update(
-                "INSERT INTO plt_authorization_grant "
+                "INSERT INTO plt_eng_authorization_grant "
                         + "(id,subject_type_code,subject_id,resource_context_code,resource_type_code,resource_id,"
                         + "action_code,scope_code,effective_from,effective_to,status_code,source_context_code,"
                         + "granted_by,granted_at,version,current_marker,tenant_id) "
@@ -285,11 +285,11 @@ class AuthorizationGrantMySqlTest {
 
     private long countGrantRows() {
         return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM plt_authorization_grant WHERE subject_id = ?", Long.class, subjectId);
+                "SELECT COUNT(*) FROM plt_eng_authorization_grant WHERE subject_id = ?", Long.class, subjectId);
     }
 
     private void cleanFacts() {
-        jdbcTemplate.update("DELETE FROM plt_authorization_grant WHERE subject_id = ?", subjectId);
+        jdbcTemplate.update("DELETE FROM plt_eng_authorization_grant WHERE subject_id = ?", subjectId);
         jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE correlation_id LIKE ?",
                 KEY_PREFIX + subjectId + "%");
         jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE ?",

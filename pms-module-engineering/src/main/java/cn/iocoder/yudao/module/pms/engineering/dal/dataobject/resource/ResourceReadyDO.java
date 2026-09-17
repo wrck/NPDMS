@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 /**
  * 资源与备件就绪 DO
  */
-@TableName("sol_resource_ready")
+@TableName("sol_eng_resource_ready")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ResourceReadyDO extends TenantBaseDO {

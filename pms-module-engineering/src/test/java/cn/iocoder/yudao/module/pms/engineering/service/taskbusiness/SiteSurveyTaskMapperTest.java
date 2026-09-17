@@ -28,12 +28,12 @@ class SiteSurveyTaskMapperTest {
         dataSource = new DriverManagerDataSource("jdbc:h2:mem:survey_" + UUID.randomUUID()
                 + ";MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=100", "sa", "");
         try (var connection = dataSource.getConnection(); var sql = connection.createStatement()) {
-            sql.execute("CREATE TABLE sol_site_survey (id BIGINT PRIMARY KEY, tenant_id BIGINT, "
+            sql.execute("CREATE TABLE sol_eng_site_survey (id BIGINT PRIMARY KEY, tenant_id BIGINT, "
                     + "project_id BIGINT, name VARCHAR(100), version INT, status INT, deleted INT, confirmed_at TIMESTAMP(3), archived_at TIMESTAMP(3))");
             for (int id = 1; id <= 105; id++) {
-                sql.execute("INSERT INTO sol_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (" + id + ",3,100,'survey',7,1,0)");
+                sql.execute("INSERT INTO sol_eng_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (" + id + ",3,100,'survey',7,1,0)");
             }
-            sql.execute("INSERT INTO sol_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (201,4,100,'foreign tenant',7,1,0),"
+            sql.execute("INSERT INTO sol_eng_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (201,4,100,'foreign tenant',7,1,0),"
                     + "(202,3,101,'foreign project',7,1,0),(203,3,100,'deleted',7,1,1)");
         }
         Configuration configuration = new Configuration(new Environment("survey-test", new JdbcTransactionFactory(), dataSource));
@@ -60,7 +60,7 @@ class SiteSurveyTaskMapperTest {
 
     @Test void ownerProjectionReadsFormalConfirmationTimesWithoutBusinessBody() throws Exception {
         try (var connection = dataSource.getConnection(); var sql = connection.createStatement()) {
-            sql.execute("UPDATE sol_site_survey SET confirmed_at='2026-09-14 12:00:01.123', archived_at='2026-09-14 12:01:02.456' WHERE id=1");
+            sql.execute("UPDATE sol_eng_site_survey SET confirmed_at='2026-09-14 12:00:01.123', archived_at='2026-09-14 12:01:02.456' WHERE id=1");
         }
         try (var session = sessions.openSession(false)) {
             var row = session.getMapper(SiteSurveyMapper.class).selectTaskObjectForUpdate(new SiteSurveyTaskObjectQuery(3L,100L,1L));
@@ -73,7 +73,7 @@ class SiteSurveyTaskMapperTest {
 
     @Test void automaticAssociationPagesCurrentObjectsWithoutRejectedHistoryOrSilentFirstHundredLimit() throws Exception {
         try (var connection = dataSource.getConnection(); var sql = connection.createStatement()) {
-            sql.execute("INSERT INTO sol_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (206,3,100,'rejected history',1,2,0)");
+            sql.execute("INSERT INTO sol_eng_site_survey (id,tenant_id,project_id,name,version,status,deleted) VALUES (206,3,100,'rejected history',1,2,0)");
         }
         try (var session = sessions.openSession()) {
             var mapper = session.getMapper(SiteSurveyMapper.class);
@@ -104,7 +104,7 @@ class SiteSurveyTaskMapperTest {
     @Test
     void ownerLockBlocksConcurrentOriginalRowMutationUntilTransactionEnds() throws Exception {
         try (var session = sessions.openSession(false); var concurrent = dataSource.getConnection();
-             var update = concurrent.prepareStatement("UPDATE sol_site_survey SET version=8 WHERE id=1")) {
+             var update = concurrent.prepareStatement("UPDATE sol_eng_site_survey SET version=8 WHERE id=1")) {
             assertNotNull(session.getMapper(SiteSurveyMapper.class)
                     .selectTaskObjectForUpdate(new SiteSurveyTaskObjectQuery(3L, 100L, 1L)));
             assertThrows(SQLException.class, update::executeUpdate);

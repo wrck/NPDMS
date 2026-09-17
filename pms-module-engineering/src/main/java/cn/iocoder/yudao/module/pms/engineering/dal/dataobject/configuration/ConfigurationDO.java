@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 配置调试记录 DO（FR-ENG-023）。
  * <p>
- * 对应表 {@code imp_configuration_collection_result}。
+ * 对应表 {@code imp_eng_configuration}。
  * 状态：0 待调试、1 进行中、2 已完成、3 异常。
  */
-@TableName("imp_configuration_collection_result")
+@TableName("imp_eng_configuration")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ConfigurationDO extends TenantBaseDO {

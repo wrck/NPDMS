@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 /**
  * 实施问题与整改 DO
  */
-@TableName("imp_issue")
+@TableName("imp_eng_issue")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class IssueDO extends TenantBaseDO {

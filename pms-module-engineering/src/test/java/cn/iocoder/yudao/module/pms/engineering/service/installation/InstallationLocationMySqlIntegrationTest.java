@@ -53,12 +53,12 @@ class InstallationLocationMySqlIntegrationTest {
                 connection.rollback();
             }
             assertEquals(before, equipmentLocation(connection, equipmentId));
-            assertEquals(0, count(connection, "SELECT COUNT(*) FROM imp_installation_record WHERE code LIKE '" + prefix + "%'"));
+            assertEquals(0, count(connection, "SELECT COUNT(*) FROM imp_eng_installation WHERE code LIKE '" + prefix + "%'"));
         }
     }
 
     private static long availableEquipment(Connection connection) throws SQLException {
-        String sql = "SELECT e.id FROM pms_equipment e LEFT JOIN imp_installation_record i "
+        String sql = "SELECT e.id FROM pms_equipment e LEFT JOIN imp_eng_installation i "
                 + "ON i.tenant_id=e.tenant_id AND i.current_equipment_id=e.id "
                 + "WHERE e.tenant_id=1 AND e.deleted=b'0' AND i.id IS NULL ORDER BY e.id LIMIT 1";
         try (PreparedStatement statement = connection.prepareStatement(sql);
@@ -73,7 +73,7 @@ class InstallationLocationMySqlIntegrationTest {
     private static long insertInstallation(Connection connection, String code, long equipmentId,
                                            long siteId, long locationId, LocalDateTime effectiveFrom)
             throws SQLException {
-        String sql = "INSERT INTO imp_installation_record "
+        String sql = "INSERT INTO imp_eng_installation "
                 + "(project_id, code, equipment_id, install_location, install_time, address_id, address_version, "
                 + "site_id, site_version, site_location_id, site_location_version, location_resolution_status, "
                 + "address_snapshot, location_snapshot, effective_from, status, version, creator, updater, deleted, tenant_id) "
@@ -96,7 +96,7 @@ class InstallationLocationMySqlIntegrationTest {
 
     private static void closeInstallation(Connection connection, long installationId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "UPDATE imp_installation_record SET effective_to=NOW(3) WHERE id=?")) {
+                "UPDATE imp_eng_installation SET effective_to=NOW(3) WHERE id=?")) {
             statement.setLong(1, installationId);
             statement.executeUpdate();
         }

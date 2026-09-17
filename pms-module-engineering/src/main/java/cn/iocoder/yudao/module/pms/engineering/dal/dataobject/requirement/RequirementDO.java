@@ -10,10 +10,10 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 需求分析与接口规划 DO（FR-ENG-004）。
  * <p>
- * 对应表 {@code sol_requirement}。
+ * 对应表 {@code sol_eng_requirement}。
  * 状态：0 草稿、1 已提交、2 已生效、3 已归档。
  */
-@TableName("sol_requirement")
+@TableName("sol_eng_requirement")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class RequirementDO extends TenantBaseDO {

@@ -15,7 +15,7 @@
     <select id="selectByTenantAndId"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO">
         SELECT <include refid="columns"/>
-        FROM plt_authorization_grant
+        FROM plt_eng_authorization_grant
         WHERE tenant_id = #{tenantId}
           AND id = #{grantId}
           AND deleted = b'0'
@@ -24,7 +24,7 @@
     <select id="selectListEffective"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO">
         SELECT <include refid="columns"/>
-        FROM plt_authorization_grant
+        FROM plt_eng_authorization_grant
         WHERE tenant_id = #{query.tenantId}
           AND subject_type_code = #{query.subjectTypeCode}
           AND subject_id = #{query.subjectId}
@@ -79,7 +79,7 @@
     <select id="selectListPage"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO">
         SELECT <include refid="columns"/>
-        FROM plt_authorization_grant
+        FROM plt_eng_authorization_grant
         WHERE <include refid="pageConditions"/>
         ORDER BY granted_at DESC, id DESC
         LIMIT #{query.offset}, #{query.limit}
@@ -87,12 +87,12 @@
 
     <select id="selectCountPage" resultType="long">
         SELECT COUNT(*)
-        FROM plt_authorization_grant
+        FROM plt_eng_authorization_grant
         WHERE <include refid="pageConditions"/>
     </select>
 
     <update id="expireCurrentByKey">
-        UPDATE plt_authorization_grant
+        UPDATE plt_eng_authorization_grant
         SET status_code = 'EXPIRED', current_marker = NULL, version = version + 1,
             update_time = #{query.expiredAt}
         WHERE tenant_id = #{query.tenantId}
@@ -111,7 +111,7 @@
     </update>
 
     <update id="revoke">
-        UPDATE plt_authorization_grant
+        UPDATE plt_eng_authorization_grant
         SET status_code = 'REVOKED', current_marker = NULL,
             revoked_by = #{update.revokedBy}, revoked_at = #{update.revokedAt},
             revoke_reason = #{update.revokeReason}, version = version + 1,

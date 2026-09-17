@@ -113,7 +113,7 @@ class ProjectTreeAuthorizationMySqlTest {
                 "ACTIVE", LocalDateTime.now().minusHours(1), LocalDateTime.now().plusDays(1), 1);
 
         var granted = resolve(actorId, baseId + 2, "PROJECT_VIEW", 7L);
-        jdbcTemplate.update("UPDATE plt_authorization_grant SET status_code='REVOKED', "
+        jdbcTemplate.update("UPDATE plt_eng_authorization_grant SET status_code='REVOKED', "
                         + "current_marker=NULL, revoked_by=?, revoked_at=NOW(), revoke_reason='集成测试撤权', "
                         + "version=version+1 WHERE id=?", actorId, grantId);
         var revoked = resolve(actorId, baseId + 2, "PROJECT_VIEW", 7L);
@@ -171,7 +171,7 @@ class ProjectTreeAuthorizationMySqlTest {
     private long insertGrant(long resourceId, String actionCode, String scopeCode, String statusCode,
                              LocalDateTime effectiveFrom, LocalDateTime effectiveTo, Integer currentMarker) {
         long grantId = baseId + 50 + Math.abs((resourceId + actionCode.hashCode() + scopeCode.hashCode()) % 40);
-        jdbcTemplate.update("INSERT INTO plt_authorization_grant "
+        jdbcTemplate.update("INSERT INTO plt_eng_authorization_grant "
                         + "(id,subject_type_code,subject_id,resource_context_code,resource_type_code,resource_id,"
                         + "action_code,scope_code,effective_from,effective_to,status_code,source_context_code,"
                         + "granted_by,granted_at,version,current_marker,tenant_id) "
@@ -229,7 +229,7 @@ class ProjectTreeAuthorizationMySqlTest {
 
     private void cleanFacts() {
         if (actorId != 0) {
-            jdbcTemplate.update("DELETE FROM plt_authorization_grant WHERE subject_id = ?", actorId);
+            jdbcTemplate.update("DELETE FROM plt_eng_authorization_grant WHERE subject_id = ?", actorId);
         }
         if (baseId != 0) {
             jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE project_id BETWEEN ? AND ?",

@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 /**
  * 方案来源追溯 DO
  */
-@TableName("sol_solution_source")
+@TableName("sol_eng_solution_source")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class SolutionSourceDO extends TenantBaseDO {

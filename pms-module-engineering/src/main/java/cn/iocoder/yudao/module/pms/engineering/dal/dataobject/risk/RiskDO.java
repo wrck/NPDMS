@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 单机风险 DO（FR-ENG-008）。
  * <p>
- * 对应表 {@code imp_risk}。
+ * 对应表 {@code imp_eng_risk}。
  * 状态：0 草稿、1 已识别、2 已确认、3 已同步CRM、4 已关闭。
  */
-@TableName("imp_risk")
+@TableName("imp_eng_risk")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class RiskDO extends TenantBaseDO {

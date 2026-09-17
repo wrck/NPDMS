@@ -3,12 +3,12 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportMapper">
     <!-- 先定位项目以校验并锁定范围，不在未授权时锁住其他项目的旧业务行。 -->
     <select id="selectSource" resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportSource">
-        SELECT * FROM sol_briefing
+        SELECT * FROM sol_eng_briefing
         WHERE tenant_id = #{query.tenantId} AND id = #{query.id}
     </select>
     <!-- 包含逻辑删除记录，按固定源主键和可信租户读取；不触发旧业务操作。 -->
     <select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportSource">
-        SELECT * FROM sol_briefing
+        SELECT * FROM sol_eng_briefing
         WHERE tenant_id = #{query.tenantId} AND id = #{query.id}
         FOR UPDATE
     </select>
