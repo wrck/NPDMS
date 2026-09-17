@@ -284,8 +284,8 @@ class ConstructionPlanMySqlIntegrationTest {
 
     private long legacyRowCount() {
         return jdbcTemplate.queryForObject("SELECT "
-                + "(SELECT COUNT(*) FROM pms_schedule_backward) + "
-                + "(SELECT COUNT(*) FROM pms_schedule_backward_item) + "
+                + "(SELECT COUNT(*) FROM pms_eng_schedule_backward) + "
+                + "(SELECT COUNT(*) FROM pms_eng_schedule_backward_item) + "
                 + "(SELECT COUNT(*) FROM pms_plan_change_request) + "
                 + "(SELECT COUNT(*) FROM pms_plan_change_phase_snapshot)", Long.class);
     }
