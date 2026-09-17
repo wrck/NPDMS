@@ -45,8 +45,12 @@ const server = await createServer({ configFile: fileURLToPath(new URL('./vite.co
         if (req.method === 'PUT') store.forms[id] = { ...body, id, version: store.forms[id].version + 1 }
         return send(store.forms[id] || null)
       }
-      if (/^\/form\/\d+\/publish$/.test(url.pathname)) { store.forms[Number(url.pathname.split('/')[2])].status = 'PUBLISHED'; return send(null) }
-      if (url.pathname.startsWith('/form/code/')) return send(Object.values(store.forms).find((form) => form.code === decodeURIComponent(url.pathname.slice(11))) || null)
+      if (/^\/form\/\d+\/publish$/.test(url.pathname)) {
+        const form = store.forms[Number(url.pathname.split('/')[2])]
+        if (!form || form.status !== 'DRAFT' || !form.formConfig) return send(null, 400, '当前状态不允许发布')
+        form.status = 'PUBLISHED'; form.version++; return send(null)
+      }
+      if (url.pathname.startsWith('/form/code/')) return send(Object.values(store.forms).find((form) => form.status === 'PUBLISHED' && form.code === decodeURIComponent(url.pathname.slice(11))) || null)
       if (url.pathname.startsWith('/list/code/')) return send({ name: 'Devices', listConfig: JSON.stringify({ entityCode: 'device', formCode: store.forms[1].code, columns: [ { prop: 'name', label: 'Name', type: 'text' } ], toolbar: [ { label: '新增', action: 'create', type: 'primary' } ], operations: [ { label: '编辑', action: 'edit' }, { label: '详情', action: 'view' } ] }) })
       if (url.pathname === '/data/device') {
         if (req.method === 'POST') { const id = store.nextId++; store.records[id] = { ...body, id }; return send(id) }
@@ -98,6 +102,7 @@ async function scenario(name, version, fn) {
 try {
   for (const version of ['v1', 'v2']) {
     await scenario(`${version}-designer-save-reopen-preview-publish`, version, async (page) => {
+      store.forms[1].status = 'DRAFT'
       await open(page, '/designer?id=1')
       const name = page.getByPlaceholder('请输入表单名称')
       await page.waitForFunction(() => document.querySelector('input[placeholder="请输入表单名称"]')?.value === 'Device form')
@@ -115,7 +120,7 @@ try {
       await page.getByRole('button', { name: '退出预览', exact: true }).click()
       await page.getByRole('button', { name: '发布', exact: true }).click()
       await page.getByText('发布成功', { exact: true }).waitFor()
-      assert.equal(store.forms[1].version, 3)
+      assert.equal(store.forms[1].version, 4)
       assert.equal(writes().at(-1).path, '/form/1/publish')
     })
     await scenario(`${version}-list-create-edit-detail-persistence`, version, async (page) => {
