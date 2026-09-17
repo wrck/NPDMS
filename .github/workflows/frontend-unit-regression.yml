@@ -51,7 +51,7 @@ jobs:
             src/views/pms/engineering/installation/installationForm.spec.ts \
             src/views/pms/project/projects/index.spec.ts > artifacts/frontend-native.log 2>&1
           result=$?
-          tail -n 120 artifacts/frontend-native.log
+          grep -E 'not ok|# (tests|pass|fail|skipped)' artifacts/frontend-native.log || true
           exit "$result"
       - name: Run complete Vitest suite without path filters
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -61,8 +61,36 @@ jobs:
             --reporter=default --reporter=junit \
             --outputFile.junit=artifacts/frontend-all.xml > artifacts/frontend-all.log 2>&1
           result=$?
-          tail -n 160 artifacts/frontend-all.log
+          tail -n 12 artifacts/frontend-all.log
           exit "$result"
+      - name: Summarize every failed test
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+          report = Path('artifacts/frontend-all.xml')
+          if report.exists():
+              root = ET.parse(report).getroot()
+              for case in root.iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      print('FAIL', case.get('classname'), '|', case.get('name'))
+                      print((failure.get('message') or '')[:900])
+                      text = failure.text or ''
+                      print(text[:900])
+                      locations = [line.strip() for line in text.splitlines() if re.search(r'\.(?:spec|test)\.[cm]?[jt]sx?[:(]', line)]
+                      print('\n'.join(locations[-3:]))
+          else:
+              log = Path('artifacts/frontend-all.log')
+              if log.exists():
+                  print(log.read_text()[-6000:])
+          native = Path('artifacts/frontend-native.log')
+          if native.exists():
+              for line in native.read_text().splitlines():
+                  if re.match(r'\s*(not ok|error:|expected:|location:|# (tests|pass|fail|skipped))', line):
+                      print(line[:700])
+          PY
       - name: Upload full frontend test evidence
         if: always()
         uses: actions/upload-artifact@v4
