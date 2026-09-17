@@ -5,6 +5,7 @@ on:
     branches: [migration-sync-research-f36p0S]
     paths:
       - '.github/apply-migration-repairs.py'
+      - '.github/finalize-migration-repairs.py'
       - '.github/workflows/migration-repair-delivery.yml'
 
 permissions:
@@ -31,6 +32,7 @@ jobs:
         id: apply
         run: |
           python3 .github/apply-migration-repairs.py
+          python3 .github/finalize-migration-repairs.py
           git diff --cached --check
           git diff --cached --binary > "$RUNNER_TEMP/reviewed-repair.patch"
       - uses: actions/setup-node@v5
@@ -106,10 +108,10 @@ jobs:
           test "$GITHUB_REF" = refs/heads/migration-sync-research-f36p0S
           test "$(git ls-remote origin "$GITHUB_REF" | cut -f1)" = "$GITHUB_SHA"
           git diff --cached --check
-          git rm .github/apply-migration-repairs.py .github/workflows/migration-repair-delivery.yml
+          git rm .github/apply-migration-repairs.py .github/finalize-migration-repairs.py .github/workflows/migration-repair-delivery.yml
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit \
             -m 'fix(frontend): isolate preview state and close list failure paths' \
-            -m 'Verify complete ESLint, full vue-tsc, all Vitest/Node suites, production build, original renderer scenarios and expanded real-page HTTP-contract scenarios. Preserve V1 implementation and immutable configuration semantics. Remove the one-use delivery script and workflow.'
+            -m 'Verify complete ESLint, full vue-tsc, all Vitest/Node suites, production build, original renderer scenarios and expanded real-page HTTP-contract scenarios. Preserve V1 implementation and immutable configuration semantics. Remove the one-use delivery scripts and workflow.'
           askpass="$RUNNER_TEMP/repair-askpass.sh"
           printf '%s\n' '#!/bin/sh' 'case "$1" in *Username*) printf "%s\n" x-access-token ;; *) printf "%s\n" "$GITHUB_TOKEN" ;; esac' > "$askpass"
           chmod 700 "$askpass"
