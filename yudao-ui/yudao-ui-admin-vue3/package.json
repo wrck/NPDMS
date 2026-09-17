@@ -12,7 +12,7 @@
     "icons:generate": "node scripts/generate-iconify-collections.cjs",
     "icons:check": "node scripts/generate-iconify-collections.cjs --check",
     "test:theme-init": "node --test tests/theme-init.test.mjs",
-    "ts:check": "node --max_old_space_size=8192 ./node_modules/vue-tsc/bin/vue-tsc.js --noEmit --incremental --tsBuildInfoFile node_modules/.cache/vue-tsc/tsconfig.tsbuildinfo",
+    "ts:check": "node scripts/prepare-types.mjs && node --max_old_space_size=8192 ./node_modules/vue-tsc/bin/vue-tsc.js --noEmit --incremental --tsBuildInfoFile node_modules/.cache/vue-tsc/tsconfig.tsbuildinfo",
     "build:local": "pnpm icons:check && node --max_old_space_size=8192 ./node_modules/vite/bin/vite.js build --mode env.local",
     "build:dev": "pnpm icons:check && node --max_old_space_size=8192 ./node_modules/vite/bin/vite.js build --mode dev",
     "build:test": "pnpm icons:check && node --max_old_space_size=8192 ./node_modules/vite/bin/vite.js build --mode test",
