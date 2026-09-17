@@ -3,6 +3,8 @@
     <section v-if="operation.requiresReopen.value || operation.mode.value !== 'INDEPENDENT' && operation.mode.value !== 'LEGACY'" aria-label="项目执行规则">
       <el-alert v-if="operation.failure.value || operation.observation.value?.reason"
         :title="operation.failure.value || operation.observation.value?.reason || ''" type="warning" :closable="false" />
+      <el-alert v-if="operation.presentationReason.value" :title="operation.presentationReason.value"
+        type="warning" :closable="false" />
       <el-alert v-if="operation.receipt.value"
         :title="`业务已提交：${operation.receipt.value.resultCode}；节点当前状态：${operation.observation.value?.node.status || '待刷新'}。业务提交不等于节点完成。`"
         type="info" :closable="false" />
@@ -42,7 +44,7 @@ const operation = useOperationHost(active, () => emit('changed'))
 provide(operationClientKey, operation.client)
 const activeKey = computed(() => editingTargetKey(active.value))
 const resolved = computed(() => resolveBusinessView({ ...active.value, resolvedContext: operation.decorated.value,
-  allowedActions: operation.allowedActions.value, readonly: active.value.readonly || operation.requiresReopen.value }))
+  allowedActions: operation.allowedActions.value, readonly: active.value.readonly || operation.requiresReopen.value || operation.presentationReadonly.value }))
 const contentRef = ref<{ requestLeave?: () => Promise<boolean>; discardChanges?: () => boolean; isDirty?: () => boolean }>()
 const dirty = ref(false)
 const loadError = ref('')

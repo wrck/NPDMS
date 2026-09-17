@@ -4,6 +4,7 @@ import request from '@/config/axios'
 import { service } from '@/config/axios/service'
 import { OperationClient, routeSelection, captureOperationResponse, type Result, type Selection } from './operationClient'
 import type { BusinessViewTarget } from './registry'
+import { operationPresentation } from './operationPresentation'
 
 export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
 export const useOperationClient = () => inject(operationClientKey, shallowRef<OperationClient>())
@@ -116,12 +117,16 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     const selected = routeSelection(routingExecution.value, client.value)
     return { ...context, ...(selected.task ? { taskExecution: selected.task } : { stageExecution: selected.stage }) } as typeof context
   })
+  // Presentation can restrict this view without changing Owner command authorization or the recovery client.
+  const presentation = computed(() => operationPresentation(mode.value, observation.value?.presentation))
+  const presentationReadonly = computed(() => presentation.value.readonly)
+  const presentationReason = computed(() => presentation.value.reason)
   const allowedActions = computed(() => {
     const target = active.value
     if (requiresReopen.value) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
     if (mode.value === 'INDEPENDENT' || mode.value === 'LEGACY') return target.allowedActions
     const readable = target.allowedActions.includes('QUERY') ? ['QUERY'] : []
-    if (checking.value || uncertain.value || recovering.value || failure.value || observation.value?.reason || !client.value) return readable
+    if (presentationReadonly.value || checking.value || uncertain.value || recovering.value || failure.value || observation.value?.reason || !client.value) return readable
     const selectedObject = target.resolvedContext.businessObjectId != null
     const ownerAliases = new Set(target.allowedActions)
     const result = new Set(readable)
@@ -169,5 +174,5 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     poll = 0; if (timer) clearTimeout(timer); void refresh()
   }, { immediate: true })
   onBeforeUnmount(() => { disposed = true; generation++; client.value?.invalidate(); if (timer) clearTimeout(timer) })
-  return { observation, client, receipt, failure, checking, mode, decorated, allowedActions, requiresReopen, uncertain, recovering, recover, refresh, reopen }
+  return { observation, client, receipt, failure, checking, mode, decorated, allowedActions, presentationReadonly, presentationReason, requiresReopen, uncertain, recovering, recover, refresh, reopen }
 }

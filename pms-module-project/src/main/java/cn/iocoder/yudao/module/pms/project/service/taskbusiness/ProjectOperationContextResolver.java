@@ -96,7 +96,7 @@ public class ProjectOperationContextResolver {
                 if (!Objects.equals(current.executionId(), round.getId()) || !Objects.equals(current.planVersionId(), plan.getId()))
                     return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
                 selection = new ProjectBusinessExecutionSelection(current, null);
-                permitted = current.writable() && taskAccess.writable(task, project,
+                permitted = current.writable() && taskAccess.executable(task, project,
                         new TaskBusinessObjectProvider.Context(tenant, actor, projectId, nodeId, null));
             } else {
                 var current = executions.inspectStage(new ProjectStageExecutionQuery(projectId, nodeId, round.getContractId()));

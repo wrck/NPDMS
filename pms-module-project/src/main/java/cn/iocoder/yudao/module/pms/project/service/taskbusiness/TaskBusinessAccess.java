@@ -55,14 +55,24 @@ class TaskBusinessAccess {
         return task;
     }
 
+    /** Legacy association maintenance retains its original UPDATE permission. */
     boolean writable(ProjectTaskInstanceDO task, ProjectMasterDO project, Context context) {
+        return permitted(task, project, context, "pms:project-task:update");
+    }
+
+    /** Executing a bound business operation is not permission to edit task metadata. */
+    boolean executable(ProjectTaskInstanceDO task, ProjectMasterDO project, Context context) {
+        return permitted(task, project, context, "pms:project-task:execute");
+    }
+
+    private boolean permitted(ProjectTaskInstanceDO task, ProjectMasterDO project, Context context, String permission) {
         if (project == null || !Objects.equals(project.getTenantId(), context.tenantId())
                 || !Objects.equals(project.getId(), context.projectId())
                 || !Objects.equals(task.getTenantId(), context.tenantId())
                 || !Objects.equals(task.getProjectId(), context.projectId())
                 || !"ACTIVE".equals(project.getLifecycleStatus()) || task.getStatus() == null
                 || Set.of("DONE", "CLOSED", "CANCELLED", "CANCELED").contains(task.getStatus())
-                || !permissionApi.hasAnyPermissions(context.actorId(), "pms:project-task:update")) return false;
+                || !permissionApi.hasAnyPermissions(context.actorId(), permission)) return false;
         if (treeScopes.isTenantSuperAdmin(context.tenantId(), context.actorId()))
             return fullScope(context, ProjectScopeApi.ACTION_MANAGE);
         var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(context.tenantId(), Set.of(task.getId())))
