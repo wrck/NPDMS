@@ -1,0 +1,106 @@
+name: OA MySQL persistence acceptance
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - 'pms-module-integration/**'
+      - 'pms-module-workflow/**'
+      - 'sql/migrations/V284__init_integration_extsystem_tables.sql'
+      - '.github/workflows/oa-mysql-acceptance.yml'
+  pull_request:
+    paths:
+      - 'pms-module-integration/**'
+      - 'pms-module-workflow/**'
+      - '.github/workflows/oa-mysql-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oa-mysql-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mysql-persistence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ephemeral-ci-root
+          MYSQL_DATABASE: npdms_migration_acceptance
+          MYSQL_USER: acceptance
+          MYSQL_PASSWORD: ephemeral-ci-only
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pephemeral-ci-root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      NPDMS_OA_TEST_JDBC_URL: jdbc:mysql://127.0.0.1:${{ job.services.mysql.ports[3306] }}/npdms_migration_acceptance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      NPDMS_OA_TEST_DB_USER: acceptance
+      NPDMS_OA_TEST_DB_PASSWORD: ephemeral-ci-only
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          show-progress: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Real MySQL, Spring transactions, Flowable and HTTP delivery
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/oa-mysql
+          git rev-parse HEAD > artifacts/oa-mysql/source-commit.txt
+          mvn -B -ntp -pl pms-module-integration -am \
+            -Dtest=OaTaskListenerTest,OaTodoPortAdapterTest,OaDeliveryPersistenceTest \
+            -Dnpdms.oa.require-mysql=true \
+            -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false test \
+            > artifacts/oa-mysql/maven.log 2>&1 || { tail -n 80 artifacts/oa-mysql/maven.log; exit 1; }
+          tail -n 45 artifacts/oa-mysql/maven.log
+      - name: Require all acceptance cases with no skipped tests
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          expected = [('pms-module-workflow', 'OaTaskListenerTest', 5),
+                      ('pms-module-integration', 'OaTodoPortAdapterTest', 5),
+                      ('pms-module-integration', 'OaDeliveryPersistenceTest', 7)]
+          failed = False
+          for module, name, count in expected:
+              reports = list(Path(module, 'target/surefire-reports').glob(f'TEST-*{name}.xml'))
+              if len(reports) != 1:
+                  print('MISSING', name)
+                  failed = True
+                  continue
+              report = ET.parse(reports[0]).getroot()
+              print(name, {key: report.get(key) for key in ['tests', 'failures', 'errors', 'skipped']})
+              if int(report.get('tests', '0')) != count or any(int(report.get(key, '0')) for key in ['failures', 'errors', 'skipped']):
+                  failed = True
+              for case in report.iter('testcase'):
+                  for error in list(case.findall('failure')) + list(case.findall('error')):
+                      print('FAIL', case.get('name'), (error.get('message') or '')[:1200])
+          if failed:
+              raise SystemExit('Acceptance incomplete or failed; see retained reports')
+          PY
+      - name: Upload inspectable database acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oa-mysql-acceptance-${{ github.sha }}
+          path: |
+            artifacts/oa-mysql/
+            pms-module-integration/target/surefire-reports/*Oa*Test*
+            pms-module-workflow/target/surefire-reports/*Oa*Test*
+          if-no-files-found: error
+          retention-days: 14
