@@ -16,7 +16,7 @@ class EngineeringRuleReevaluationEventsTest {
         var outbox = mock(PlatformBusinessEventApi.class);
         TenantContextHolder.setTenantId(7L);
         try {
-            new EngineeringRuleReevaluationEvents(outbox).changed(9L, aggregateType, 11L, 3L, "owner-change");
+            new EngineeringRuleReevaluationEvents(outbox, org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class)).changed(9L, aggregateType, 11L, 3L, "owner-change");
             var event = ArgumentCaptor.forClass(BusinessEvent.class);
             verify(outbox).append(eq(aggregateType), eq("11"), event.capture());
             var payload = JsonUtils.parseObject(event.getValue().eventPayload(), ProjectRuleReevaluationRequested.class);

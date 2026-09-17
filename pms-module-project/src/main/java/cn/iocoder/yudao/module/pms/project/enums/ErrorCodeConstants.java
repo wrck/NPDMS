@@ -108,12 +108,7 @@ public interface ErrorCodeConstants {
     ErrorCode TEAM_BATCH_CHANGE_SOURCE_EQUALS_TARGET = new ErrorCode(1_014_019_002, "源用户与目标用户不能相同");
     ErrorCode TEAM_BATCH_CHANGE_NO_ITEMS = new ErrorCode(1_014_019_003, "未找到待变更的团队成员记录");
     ErrorCode TEAM_BATCH_CHANGE_STATUS_INVALID = new ErrorCode(1_014_019_004, "批量变更状态流转不合法");
-
-    // ========== 工期倒排模块 1-014-020-000 ==========
-    ErrorCode SCHEDULE_BACKWARD_NOT_EXISTS = new ErrorCode(1_014_020_000, "工期倒排记录不存在");
-    ErrorCode SCHEDULE_BACKWARD_NO_PHASES = new ErrorCode(1_014_020_001, "项目暂无阶段，无法倒排");
-    ErrorCode SCHEDULE_BACKWARD_HAS_CONFLICT = new ErrorCode(1_014_020_002, "工期倒排存在冲突，请先处理冲突后再应用");
-    ErrorCode SCHEDULE_BACKWARD_STATUS_INVALID = new ErrorCode(1_014_020_003, "工期倒排状态流转不合法");
+    // ========== 工期倒排模块 1-014-020-000（已随 SOL/PLN 归属迁至 pms-module-engineering）==========
 
     // ========== 计划变更审批模块 1-014-021-000 ==========
     ErrorCode PLAN_CHANGE_NOT_EXISTS = new ErrorCode(1_014_021_000, "计划变更记录不存在");

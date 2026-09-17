@@ -243,5 +243,11 @@ public interface ErrorCodeConstants {
     ErrorCode PREPARATION_READINESS_VERSION_CONFLICT = new ErrorCode(1_011_024_011, "工勘就绪事实已变更，请刷新后重试");
     ErrorCode PREPARATION_COMMAND_INVALID = new ErrorCode(1_011_024_012, "工勘准备命令参数无效");
     ErrorCode PREPARATION_PROJECT_FACT_INVALID = new ErrorCode(1_011_024_013, "工勘准备项目资格或主体事实无效");
-
+    // ========== 工期倒排 1-014-020-000（自 project 模块随 SOL/PLN 归属迁入，数值不变）==========
+    ErrorCode SCHEDULE_BACKWARD_NOT_EXISTS = new ErrorCode(1_014_020_000, "工期倒排记录不存在");
+    ErrorCode SCHEDULE_BACKWARD_NO_PHASES = new ErrorCode(1_014_020_001, "项目暂无阶段，无法倒排");
+    ErrorCode SCHEDULE_BACKWARD_HAS_CONFLICT = new ErrorCode(1_014_020_002, "工期倒排存在冲突，请先处理冲突后再应用");
+    ErrorCode SCHEDULE_BACKWARD_STATUS_INVALID = new ErrorCode(1_014_020_003, "工期倒排状态流转不合法");
+    // 迁移期沿用的 PROJ 段通用错误码（同号同文案，行为保持）
+    ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");
 }

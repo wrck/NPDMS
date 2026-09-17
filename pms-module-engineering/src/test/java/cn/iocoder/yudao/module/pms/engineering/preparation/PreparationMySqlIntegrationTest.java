@@ -51,7 +51,7 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionCon
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
+import cn.iocoder.yudao.module.pms.acceptance.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeClassificationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeSourceCorrectionService;

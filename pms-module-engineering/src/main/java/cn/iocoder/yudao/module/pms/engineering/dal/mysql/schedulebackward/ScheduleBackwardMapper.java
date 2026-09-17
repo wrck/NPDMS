@@ -1,10 +1,10 @@
-package cn.iocoder.yudao.module.pms.project.dal.mysql.schedulebackward;
+package cn.iocoder.yudao.module.pms.engineering.dal.mysql.schedulebackward;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
-import cn.iocoder.yudao.module.pms.project.controller.admin.schedulebackward.vo.ScheduleBackwardPageReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.schedulebackward.ScheduleBackwardDO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.schedulebackward.vo.ScheduleBackwardPageReqVO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward.ScheduleBackwardDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

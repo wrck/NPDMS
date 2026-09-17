@@ -1,17 +1,13 @@
-package cn.iocoder.yudao.module.pms.project.service.schedulebackward;
+package cn.iocoder.yudao.module.pms.engineering.service.schedulebackward;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.pms.project.controller.admin.schedulebackward.vo.ScheduleBackwardPageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.schedulebackward.vo.ScheduleBackwardSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.schedulebackward.ScheduleBackwardDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.schedulebackward.ScheduleBackwardItemDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.schedulebackward.ScheduleBackwardItemMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.schedulebackward.ScheduleBackwardMapper;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.schedulebackward.vo.ScheduleBackwardPageReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.schedulebackward.vo.ScheduleBackwardSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward.ScheduleBackwardDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward.ScheduleBackwardItemDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.schedulebackward.ScheduleBackwardItemMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.schedulebackward.ScheduleBackwardMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
 
 /**
  * PMS 工期倒排 Service 实现（FR-PROJ-018）。
@@ -59,9 +55,7 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
     @Resource
     private ScheduleBackwardItemMapper scheduleBackwardItemMapper;
     @Resource
-    private ProjectPhaseMapper projectPhaseMapper;
-    @Resource
-    private ProjectMapper projectMapper;
+    private cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi stagePlanApi;
 
     @Override
     public Long createScheduleBackward(ScheduleBackwardSaveReqVO createReqVO) {
@@ -117,8 +111,10 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
         if (backward.getStatus() != null && backward.getStatus() == STATUS_APPLIED) {
             throw exception(SCHEDULE_BACKWARD_STATUS_INVALID);
         }
-        // 1. 查询项目阶段（按 sort 升序）
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(backward.getProjectId());
+        // 1. 查询项目阶段（按 sort 升序，经 PROJ 阶段计划契约）
+        Long tenantId = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        List<cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.StagePlanFact> phases =
+                stagePlanApi.listStages(tenantId, backward.getProjectId());
         if (phases.isEmpty()) {
             throw exception(SCHEDULE_BACKWARD_NO_PHASES);
         }
@@ -128,14 +124,14 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
         boolean isIndirect = "INDIRECT".equalsIgnoreCase(backward.getProjectType());
         // 逆序处理，结果按 sort 升序保存
         List<ScheduleBackwardItemDO> computed = new ArrayList<>(phases.size());
-        List<ProjectPhaseDO> reversed = new ArrayList<>(phases);
+        List<cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.StagePlanFact> reversed = new ArrayList<>(phases);
         Collections.reverse(reversed);
         LocalDate prevPhaseStart = null;
-        for (ProjectPhaseDO phase : reversed) {
+        for (var phase : reversed) {
             int durationDays = computePhaseDurationDays(phase);
             LocalDate plannedEnd = cursor;
             LocalDate plannedStart = plannedEnd.minusDays(Math.max(durationDays - 1, 0));
-            LocalDate recommendedLatest = toLocalDate(phase.getSuggestedEndTime());
+            LocalDate recommendedLatest = phase.suggestedEndTime();
             // 3. 校验合理性
             List<String> reasons = new ArrayList<>();
             if (plannedStart.isBefore(today)) {
@@ -151,12 +147,12 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
             // 4. 构造明细
             ScheduleBackwardItemDO item = new ScheduleBackwardItemDO();
             item.setBackwardId(id);
-            item.setPhaseId(phase.getId());
-            item.setPhaseName(phase.getName());
+            item.setPhaseId(phase.stageId());
+            item.setPhaseName(phase.name());
             item.setPlannedStartDate(plannedStart);
             item.setPlannedEndDate(plannedEnd);
             item.setRecommendedLatestDate(recommendedLatest);
-            item.setSort(phase.getSort() != null ? phase.getSort() : 0);
+            item.setSort(phase.sort() != null ? phase.sort() : 0);
             if (reasons.isEmpty()) {
                 item.setHasConflict(false);
                 item.setConflictReason(null);
@@ -205,17 +201,13 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
         if (hasConflict) {
             throw exception(SCHEDULE_BACKWARD_HAS_CONFLICT);
         }
-        // 将计算结果更新到 pms_project_phase 的计划开始/结束时间
-        for (ScheduleBackwardItemDO item : items) {
-            if (item.getPhaseId() == null) {
-                continue;
-            }
-            ProjectPhaseDO update = new ProjectPhaseDO();
-            update.setId(item.getPhaseId());
-            update.setPlanStartTime(atStartOfDay(item.getPlannedStartDate()));
-            update.setPlanEndTime(atStartOfDay(item.getPlannedEndDate()));
-            projectPhaseMapper.updateById(update);
-        }
+        // 将计算结果经 PROJ 阶段计划契约写入阶段计划开始/结束时间
+        Long tenantId = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        stagePlanApi.applyPlanDates(tenantId, backward.getProjectId(), items.stream()
+                .filter(item -> item.getPhaseId() != null)
+                .map(item -> new cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.StagePlanDate(
+                        item.getPhaseId(), item.getPlannedStartDate(), item.getPlannedEndDate()))
+                .toList());
         // 更新倒排记录状态为已应用
         ScheduleBackwardDO update = new ScheduleBackwardDO();
         update.setId(id);
@@ -229,11 +221,11 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
     /**
      * 计算阶段工期天数：优先使用建议开始/结束时间差，否则默认 7 天。
      */
-    private int computePhaseDurationDays(ProjectPhaseDO phase) {
-        if (phase.getSuggestedStartTime() != null && phase.getSuggestedEndTime() != null) {
+    private int computePhaseDurationDays(cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.StagePlanFact phase) {
+        if (phase.suggestedStartTime() != null && phase.suggestedEndTime() != null) {
             long days = ChronoUnit.DAYS.between(
-                    phase.getSuggestedStartTime().toLocalDate(),
-                    phase.getSuggestedEndTime().toLocalDate()) + 1;
+                    phase.suggestedStartTime(),
+                    phase.suggestedEndTime()) + 1;
             if (days > 0) {
                 return (int) days;
             }
@@ -263,8 +255,10 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
         if (projectId == null) {
             return;
         }
-        ProjectDO project = projectMapper.selectById(projectId);
-        if (project == null) {
+        Long tenantId = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        try {
+            stagePlanApi.listStages(tenantId, projectId);
+        } catch (IllegalArgumentException ex) {
             throw exception(PROJECT_NOT_EXISTS);
         }
     }
