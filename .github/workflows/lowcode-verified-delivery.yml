@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: lowcode-verified-delivery
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   verify-and-commit:
@@ -28,6 +28,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Apply the reviewed source edits with exact base checks
+        id: apply
         run: |
           python3 .github/lowcode-consumer-edit.py
           git diff --cached --check
@@ -67,11 +68,13 @@ jobs:
           node tests/lowcode/browser/run.mjs
           node tests/lowcode/consumers/run.mjs
       - uses: actions/setup-java@v5
+        if: ${{ !cancelled() && steps.apply.outcome == 'success' }}
         with:
           distribution: temurin
           java-version: '25'
           cache: maven
       - name: Actual controller security and JDBC persistence regression
+        if: ${{ !cancelled() && steps.apply.outcome == 'success' }}
         shell: bash
         run: |
           set -o pipefail
