@@ -61,6 +61,12 @@ public class SyncDefinitionValidator {
                 ||d.queryTimeoutSeconds()<0||d.queryTimeoutSeconds()>3600)
             throw new IllegalArgumentException("重试、窗口、流式参数或容量参数超出范围");
         if(d.sources()==null||d.sources().size()!=descriptor.objects().size()) throw new IllegalArgumentException("必须配置适配器全部对象");
+        if("STREAMING_CURSOR".equals(readStrategy)) {
+            List<String> configured=d.sources().stream().map(SyncDefinition.Source::object).toList();
+            List<String> expected=descriptor.objects().stream().map(DataSyncAdapter.ObjectDescriptor::name).toList();
+            if(!configured.equals(expected))
+                throw new IllegalArgumentException("流式来源对象必须按适配器声明顺序配置，避免跨对象依赖被提前提交");
+        }
         Set<String> objects=new HashSet<>(),sourceObjects=new HashSet<>();
         for(var s:d.sources()) {
             if(d.resetMappingsBeforeLoad()&&!s.syncPrimaryKey())
