@@ -126,8 +126,8 @@ class OaDeliveryPersistenceTest {
         context.registerBean(IntegrationProperties.class, IntegrationProperties::new);
         context.registerBean(IntegrationLogServiceImpl.class);
         context.registerBean(OaProperties.class, () -> properties);
-        context.registerBean(RestTemplate.class, RestTemplate::new);
-        context.registerBean(ObjectMapper.class, ObjectMapper::new);
+        context.registerBean(RestTemplate.class, () -> new RestTemplate());
+        context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
         context.registerBean(OAuthTokenCache.class, () -> tokens);
         context.registerBean(OaIntegrationServiceImpl.class);
         context.registerBean(OaTodoPortAdapter.class);
