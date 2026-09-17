@@ -73,6 +73,7 @@ export interface Adapter {
   missingPolicies: string[]
   loadingModes: string[]
   supportsTargetClear: boolean
+  supportsStreaming: boolean
   objects: {
     name: string
     label: string
