@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportMapper">
+    <!-- 先定位项目以校验并锁定范围，不在未授权时锁住其他项目的旧业务行。 -->
+    <select id="selectSource" resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportSource">
+        SELECT * FROM pms_eng_briefing
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.id}
+    </select>
+    <!-- 包含逻辑删除记录，按固定源主键和可信租户读取；不触发旧业务操作。 -->
+    <select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportSource">
+        SELECT * FROM pms_eng_briefing
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.id}
+        FOR UPDATE
+    </select>
+    <select id="selectTargetForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.entity.BriefingEntityDO">
+        SELECT * FROM sol_engineering_briefing
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.id}
+        FOR UPDATE
+    </select>
+    <!-- 显式写入审计、时间、删除和并发版本，不调用带业务副作用的创建接口。 -->
+    <insert id="insertImported">
+        INSERT INTO sol_engineering_briefing
+        (id, code, project_id, name, briefing_type, template_id, template_snapshot, source_snapshot, content, file_url, file_name, file_size, file_checksum, status, version, generate_time, publish_time, approver_user_id, approve_opinion, approve_time, creator_user_id, remark, creator, create_time, updater, update_time, deleted, tenant_id, legacy_source_id)
+        VALUES
+        (#{row.id}, #{row.code}, #{row.projectId}, #{row.name}, #{row.briefingType}, #{row.templateId}, #{row.templateSnapshot}, #{row.sourceSnapshot}, #{row.content}, #{row.fileUrl}, #{row.fileName}, #{row.fileSize}, #{row.fileChecksum}, #{row.status}, #{row.version}, #{row.generateTime}, #{row.publishTime}, #{row.approverUserId}, #{row.approveOpinion}, #{row.approveTime}, #{row.creatorUserId}, #{row.remark}, #{row.creator}, #{row.createTime}, #{row.updater}, #{row.updateTime}, #{row.deleted}, #{row.tenantId}, #{row.id})
+    </insert>
+</mapper>
