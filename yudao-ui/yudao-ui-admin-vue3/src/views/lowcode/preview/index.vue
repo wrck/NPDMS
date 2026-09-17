@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { get } from '@/utils/request'
 
 defineOptions({ name: 'LowCodePreviewView' })
 

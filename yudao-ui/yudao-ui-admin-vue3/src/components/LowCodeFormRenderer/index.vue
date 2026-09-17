@@ -386,7 +386,7 @@ defineExpose({
         </h3>
         <!-- 普通表单项 -->
         <el-form-item
-          v-else
+          v-else-if="!isLayoutField(field)"
           :label="field.label"
           :prop="field.prop"
         >

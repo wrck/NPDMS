@@ -25,7 +25,6 @@ import {
   TabPosition,
   archiveTab,
   createTab,
-  deleteTab,
   exportTab,
   getTab,
   importTab,
@@ -33,7 +32,6 @@ import {
   publishTab,
   updateTab,
   type LowCodeTabConfig,
-  type LowCodeTabQuery,
   type TabConfig,
   type TabItemConfig
 } from '@/api/lowcode'

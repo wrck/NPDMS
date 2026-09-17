@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   defineSchema,
   validate,
@@ -11,8 +11,6 @@ import {
   string,
   number,
   maxLen,
-  min,
-  max,
   range,
   enumOf,
   pattern,

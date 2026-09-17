@@ -25,7 +25,6 @@ import {
 import {
   archiveForm,
   createForm,
-  deleteForm,
   exportForm,
   FieldType,
   getForm,
@@ -36,7 +35,6 @@ import {
   type FormConfig,
   type FormFieldConfig,
   type LowCodeFormConfig,
-  type LowCodeFormQuery,
   type ResponsiveSpan
 } from '@/api/lowcode'
 import LowCodeFormRendererFacade from '@/components/LowCodeFormRendererFacade/index.vue'

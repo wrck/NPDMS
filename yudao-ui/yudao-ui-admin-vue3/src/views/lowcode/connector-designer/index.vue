@@ -98,12 +98,6 @@ const steps = computed(() => {
 
 const isLastStep = computed(() => activeStep.value === steps.value.length - 1)
 
-/** Step 5（分页）仅 REST 类型展示 */
-function showStep(stepTitle: string): boolean {
-  if (basic.type === 'DB' && stepTitle === '分页配置') return false
-  return true
-}
-
 // ---------------- 新建 / 编辑 ----------------
 function openNew() {
   editingId.value = undefined

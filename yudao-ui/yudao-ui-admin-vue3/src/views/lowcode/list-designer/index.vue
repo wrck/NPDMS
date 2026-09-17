@@ -24,7 +24,6 @@ import {
   ButtonType,
   ColumnType,
   createList,
-  deleteList,
   exportList,
   FilterType,
   getList,

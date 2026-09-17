@@ -24,7 +24,6 @@ import {
   RelatedPageLayout,
   archiveRelatedPage,
   createRelatedPage,
-  deleteRelatedPage,
   exportRelatedPage,
   getRelatedPage,
   importRelatedPage,
@@ -32,7 +31,6 @@ import {
   publishRelatedPage,
   updateRelatedPage,
   type LowCodeRelatedPageConfig,
-  type LowCodeRelatedPageQuery,
   type RelatedPageConfig,
   type RelatedPageSectionConfig,
   type ResponsiveSpan

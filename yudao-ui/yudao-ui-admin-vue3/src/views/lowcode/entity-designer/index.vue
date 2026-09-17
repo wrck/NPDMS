@@ -24,7 +24,7 @@ import {
   type DdlBackup
 } from '@/api/lowcode-entity'
 import FieldPanel from '@/components/EntityDesigner/FieldPanel.vue'
-import IndexPanel, { type LowCodeIndex } from '@/components/EntityDesigner/IndexPanel.vue'
+import { type LowCodeIndex } from '@/components/EntityDesigner/IndexPanel.vue'
 import RelationConfigDialog from '@/components/EntityDesigner/RelationConfigDialog.vue'
 import EntityNode from '@/components/EntityDesigner/EntityNode.vue'
 

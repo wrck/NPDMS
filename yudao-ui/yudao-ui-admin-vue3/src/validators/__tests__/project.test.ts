@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import {
-  projectSchema,
   projectFieldMapping,
   projectRequestValidator,
   validateProjectResponse
@@ -227,7 +226,7 @@ describe('validators/registry', () => {
 
   it('后注册的优先级高（覆盖）', () => {
     const v1 = (input: unknown) => ({ valid: true, errors: [], data: input })
-    const v2 = (input: unknown) => ({ valid: false, errors: [], data: undefined })
+    const v2 = (_input: unknown) => ({ valid: false, errors: [], data: undefined })
     registerValidator({ method: 'POST', urlPattern: '/api/test', requestValidator: v1 })
     registerValidator({ method: 'POST', urlPattern: '/api/test', requestValidator: v2 })
     const found = findRequestValidator('POST', '/api/test')

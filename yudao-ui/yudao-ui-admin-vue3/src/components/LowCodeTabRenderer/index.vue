@@ -19,7 +19,7 @@
  *
  * <p>对外暴露 tab-change / navigate / page-loaded 事件，方便业务层介入。</p>
  */
-import { computed, ref, watch, shallowRef, defineAsyncComponent } from 'vue'
+import { computed, ref, watch, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type TabsPaneContext } from 'element-plus'
 import {

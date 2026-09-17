@@ -195,21 +195,6 @@ function handleReset() {
   handleSearch()
 }
 
-/** 筛选组件解析 */
-function resolveFilterComponent(f: ListFilterConfig) {
-  switch (f.type) {
-    case FilterType.SELECT:
-      return 'el-select'
-    case FilterType.DATE:
-    case FilterType.DATERANGE:
-      return 'el-date-picker'
-    case FilterType.CASCADER:
-      return 'el-cascader'
-    default:
-      return 'el-input'
-  }
-}
-
 /** 筛选 select 选项（优先 options，否则从 dictMap 取） */
 function getFilterOptions(f: ListFilterConfig): Array<{ label: string; value: string | number }> {
   if (f.options && f.options.length > 0) return f.options

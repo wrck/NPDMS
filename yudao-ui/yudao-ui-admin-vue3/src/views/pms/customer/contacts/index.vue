@@ -196,7 +196,6 @@ const customerEnabled = computed(() => context.value?.customerStatus === 'ENABLE
 const canEdit = computed(() => props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read']))
 const form = ref<ContactVO>({ name: '', status: 0, primaryFlag: false })
 const formRef = ref()
-const queryFormRef = ref()
 const historyRef = ref<InstanceType<typeof ContactHistoryDialog>>()
 const createMode = ref<'new' | 'reference'>('new')
 let operationKey = '', baseline = '', initialPrimary = false, sequence = 0

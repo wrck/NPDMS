@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
 })
 
 /** 监听设备变化，触发事件 */
-watch(currentDevice, (newDevice) => {
+watch(currentDevice, () => {
   // 通过 emit 触发（setup 中已定义 emits，但需通过组件实例）
   // 这里通过 watch + 事件派发实现
 })

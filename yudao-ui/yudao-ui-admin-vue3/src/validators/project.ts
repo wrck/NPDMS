@@ -60,8 +60,6 @@ const PROJECT_STATUS_ENUM = [
   'REJECTED'
 ] as const
 
-const PROJECT_TYPE_ENUM = ['NETWORK_DEVICE', 'SECURITY', 'DATACENTER'] as const
-
 export const projectSchema: Schema = defineSchema({
   // ============ BaseEntity 字段 ============
   id: [optional(), number()],

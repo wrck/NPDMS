@@ -248,6 +248,14 @@ const _assertPageRecords: _AssertPageRecords = true
 
 // 防止「未使用变量」告警（编译期保留）
 export const _typeTests = assertType({
+  _dataIsString,
+  _dataIsNumber,
+  _records,
+  _total,
+  _tagSuccess,
+  _tagWarning,
+  _tagDanger,
+  _tagInfo,
   _resultOk,
   _resultWithTimestamp,
   _page,

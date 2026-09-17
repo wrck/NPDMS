@@ -9,7 +9,6 @@
 import { ref, watch } from 'vue'
 const props = defineProps<{ modelValue: any; min?: number; max?: number }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: any): void }>()
-const model = ref(props.modelValue)
 const minVal = ref<number | undefined>(undefined)
 const maxVal = ref<number | undefined>(undefined)
 watch([minVal, maxVal], () => {

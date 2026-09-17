@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** FormCreate V2：保留 FormConfig、props、emits 与公开方法；V1 独立不变。 */
-import { computed, markRaw, reactive, ref, shallowRef, watch, type Component } from 'vue'
+import { computed, markRaw, reactive, ref, shallowReactive, shallowRef, watch, type Component } from 'vue'
 import { LayoutType, type FormConfig, type FormFieldConfig, type ResponsiveSpan } from '@/api/lowcode'
 import formCreate, { type Api as FormCreateApi, type Options, type Rule } from '@form-create/element-ui'
 import { initMissingFieldDefaults, mergeExternalModelValue, resetFieldDefaults } from './runtimeCompat'
@@ -112,7 +112,7 @@ const option = ref<Options>({})
 function buildLayoutRules(): Rule[] {
   if (layout.value.type === LayoutType.TABS) {
     const tabsProps = reactive({ modelValue: activeTab.value })
-    const tabs: Rule = reactive({
+    const tabs = shallowReactive<Rule>({
       type: 'el-tabs',
       native: true,
       props: tabsProps,
@@ -131,7 +131,7 @@ function buildLayoutRules(): Rule[] {
   }
   if (layout.value.type === LayoutType.COLLAPSE) {
     const collapseProps = reactive({ modelValue: activeCollapse.value })
-    const collapse: Rule = reactive({
+    const collapse = shallowReactive<Rule>({
       type: 'el-collapse',
       native: true,
       props: collapseProps,
@@ -160,7 +160,7 @@ watch([() => props.config, () => props.componentRegistry], () => {
   finalRule.value = buildLayoutRules()
   option.value = {
     form: {
-      labelWidth: props.config.labelWidth ?? 100,
+      labelWidth: typeof props.config.labelWidth === 'string' ? props.config.labelWidth : `${props.config.labelWidth ?? 100}px`,
       labelPosition: props.config.labelPosition ?? 'right',
       size: props.config.size ?? 'default'
     },

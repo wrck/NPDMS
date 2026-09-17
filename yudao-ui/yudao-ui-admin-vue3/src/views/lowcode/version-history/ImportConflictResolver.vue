@@ -100,18 +100,6 @@ async function submitImport() {
   }
 }
 
-function resolutionTagType(r?: string): 'success' | 'warning' | 'info' {
-  if (r === 'KEEP_SOURCE') return 'success'
-  if (r === 'KEEP_TARGET') return 'warning'
-  return 'info'
-}
-
-function resolutionLabel(r?: string): string {
-  if (r === 'KEEP_SOURCE') return '保留源版本'
-  if (r === 'KEEP_TARGET') return '保留目标版本'
-  if (r === 'SKIP') return '跳过'
-  return '未选择'
-}
 </script>
 
 <template>
