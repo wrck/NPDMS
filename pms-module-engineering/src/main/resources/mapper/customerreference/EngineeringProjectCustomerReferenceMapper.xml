@@ -17,7 +17,7 @@
              + (SELECT COUNT(*) FROM pms_eng_installation WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_eng_joint_test WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_eng_issue WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
-             + (SELECT COUNT(*) FROM pms_eng_risk WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+             + (SELECT COUNT(*) FROM imp_risk WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_eng_resource_ready WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_eng_material_exchange WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
              + (SELECT COUNT(*) FROM pms_eng_material_requisition WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})

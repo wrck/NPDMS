@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
  * 门禁：闭环通过（pass 2→3）前校验 阶段完成 + 验收通过 + 问题关闭 + 审批完成
  * 【待确认：遗留问题闭环规则】允许带条件移交（CONDITIONAL），具体移交条件由业务规则补充，本实现承载流程数据。
  */
-@TableName("pms_acc_project_closure")
+@TableName("acc_project_closure_record")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectClosureDO extends TenantBaseDO {

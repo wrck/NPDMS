@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
  *
  * @deprecated 旧V17历史载体；不得作为F-ACC-001及后续能力的实现基础。
  */
-@TableName("pms_acc_acceptance")
+@TableName("acc_acceptance_record")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Deprecated(since = "F-ACC-001", forRemoval = false)

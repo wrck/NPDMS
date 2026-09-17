@@ -12,10 +12,10 @@ import java.time.LocalDate;
 /**
  * PMS 工期倒排记录 DO（FR-PROJ-018）。
  * <p>
- * 对应表 {@code pms_eng_schedule_backward}，承载一次工期倒排的目标日期、项目类型、状态与冲突汇总。
+ * 对应表 {@code sol_schedule_backward}，承载一次工期倒排的目标日期、项目类型、状态与冲突汇总。
  * 阶段明细见 {@link ScheduleBackwardItemDO}。
  */
-@TableName("pms_eng_schedule_backward")
+@TableName("sol_schedule_backward")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ScheduleBackwardDO extends TenantBaseDO {

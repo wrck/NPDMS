@@ -27,7 +27,7 @@ export interface ScheduleBackwardVO {
   items?: ScheduleBackwardItemVO[]
 }
 
-const baseUrl = '/pms/eng-schedule-backward'
+const baseUrl = '/pms/sol-schedule-backward'
 
 /** V1.7历史只读证据；PRE-01写入统一使用construction-plan API。 */
 export const getScheduleBackwardPage = (params: PmsProjectPageParam) =>
