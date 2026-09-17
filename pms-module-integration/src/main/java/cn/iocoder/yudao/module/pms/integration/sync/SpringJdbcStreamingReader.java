@@ -34,8 +34,10 @@ public class SpringJdbcStreamingReader {
         try (Connection connection=sourceApi.openReadOnly(definition.connectionId())) {
             SingleConnectionDataSource dataSource=new SingleConnectionDataSource(connection,true);
             JdbcTemplate jdbc=new JdbcTemplate(dataSource);
-            // Capture the incremental upper bound before opening the repeatable snapshot. Any later commit may be
-            // visible in the snapshot, but the upper-bound predicate leaves it for the next run instead of losing it.
+            // ExternalDataSourceApi opens MySQL with autoCommit=false. Take the upper-bound timestamp outside that
+            // transaction, then open the repeatable snapshot so commits after upper are filtered into the next run.
+            connection.rollback();
+            connection.setAutoCommit(true);
             LocalDateTime now=currentTime(jdbc);
             if(lower!=null && now.isBefore(lower))
                 throw new IllegalArgumentException("来源时间早于已提交检查点，禁止游标倒退");
