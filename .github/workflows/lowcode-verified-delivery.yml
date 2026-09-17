@@ -4,8 +4,10 @@ on:
   push:
     branches: [migration-sync-research-f36p0S]
     paths:
-      - '.github/lowcode-reviewed.patch'
+      - '.github/lowcode-consumer-edit.py'
       - '.github/workflows/lowcode-verified-delivery.yml'
+      - 'yudao-ui/yudao-ui-admin-vue3/tests/lowcode/consumers/**'
+      - 'pms-module-lowcode/src/test/**'
 
 permissions:
   contents: read
@@ -18,40 +20,22 @@ jobs:
   verify-and-commit:
     if: github.repository == 'wrck/NPDMS'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: write
-    env:
-      DELIVERY_MESSAGE: 'fix(types): close full frontend typecheck without weakening checks'
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Apply the reviewed patch to the index
-        shell: bash
+      - name: Apply the reviewed source edits with exact base checks
         run: |
-          set -euo pipefail
-          git apply --check .github/lowcode-reviewed.patch
-          git apply --index .github/lowcode-reviewed.patch
+          python3 .github/lowcode-consumer-edit.py
           git diff --cached --check
-          git diff --cached --name-only > "$RUNNER_TEMP/changed-paths.txt"
-          test -s "$RUNNER_TEMP/changed-paths.txt"
-          python3 - <<'PY'
-          import os, pathlib
-          paths = pathlib.Path(os.environ['RUNNER_TEMP'], 'changed-paths.txt').read_text().splitlines()
-          prefix = 'yudao-ui/yudao-ui-admin-vue3/'
-          allowed = ('src/', 'tests/', 'scripts/', 'types/')
-          for path in paths:
-              if not path.startswith(prefix):
-                  raise SystemExit(f'Out-of-scope patch path: {path}')
-              relative = path[len(prefix):]
-              if relative != 'tsconfig.json' and not relative.startswith(allowed):
-                  raise SystemExit(f'Out-of-scope patch path: {path}')
-          PY
+          git diff --cached --binary > "$RUNNER_TEMP/reviewed-consumer.patch"
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Install locked dependencies
+      - name: Install locked frontend dependencies
         working-directory: yudao-ui/yudao-ui-admin-vue3
         run: |
           corepack enable
@@ -75,12 +59,37 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/lowcode-playwright" --no-audit --no-fund playwright@1.58.2
           node "$RUNNER_TEMP/lowcode-playwright/node_modules/playwright/cli.js" install --with-deps chromium
-      - name: Real renderer browser regression
+      - name: Real renderer and saved consumer browser regression
         working-directory: yudao-ui/yudao-ui-admin-vue3
         env:
           PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
-        run: node tests/lowcode/browser/run.mjs
-      - name: Commit only verified source changes
+        run: |
+          node tests/lowcode/browser/run.mjs
+          node tests/lowcode/consumers/run.mjs
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Actual controller security and JDBC persistence regression
+        shell: bash
+        run: |
+          set -o pipefail
+          mvn -B -ntp -pl pms-module-lowcode -am -Dtest=DynamicEntityDataServiceTest,DynamicEntityConsumerTest \
+            -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false test 2>&1 | tee "$RUNNER_TEMP/consumer-backend.log"
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root = Path('pms-module-lowcode/target/surefire-reports')
+          for name, minimum in [('DynamicEntityDataServiceTest', 5), ('DynamicEntityConsumerTest', 3)]:
+              reports = list(root.glob(f'TEST-*{name}.xml'))
+              if len(reports) != 1:
+                  raise SystemExit(f'Missing report: {name}')
+              report = ET.parse(reports[0]).getroot()
+              if int(report.get('tests', '0')) < minimum or any(int(report.get(key, '0')) for key in ['failures', 'errors', 'skipped']):
+                  raise SystemExit(f'Incomplete or failed tests: {name}')
+          PY
+      - name: Commit only the verified source delta
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
@@ -90,7 +99,8 @@ jobs:
           test "$(git ls-remote origin "$GITHUB_REF" | cut -f1)" = "$GITHUB_SHA"
           git diff --cached --check
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m "$DELIVERY_MESSAGE" -m 'Validated with full vue-tsc, renderer/validator tests and real Chromium contracts. The staged patch contains the complete reviewed source delta; no compiler checks were disabled.'
+            commit -m 'fix(lowcode): close designer and runtime persistence consumer paths' \
+            -m 'Verify full vue-tsc, renderer/validator regression, real pages with an HTTP contract server, and actual controller/security/JDBC paths with H2. The HTTP contract fixture and JDBC tests do not replace deployed application/MySQL E2E.'
           askpass="$RUNNER_TEMP/lowcode-askpass.sh"
           printf '%s\n' '#!/bin/sh' 'case "$1" in *Username*) printf "%s\n" x-access-token ;; *) printf "%s\n" "$GITHUB_TOKEN" ;; esac' > "$askpass"
           chmod 700 "$askpass"
@@ -104,4 +114,8 @@ jobs:
           path: |
             yudao-ui/yudao-ui-admin-vue3/artifacts/verified-delivery/
             yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-browser/
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-consumers/
+            pms-module-lowcode/target/surefire-reports/*DynamicEntity*Test*
+            ${{ runner.temp }}/consumer-backend.log
+            ${{ runner.temp }}/reviewed-consumer.patch
           if-no-files-found: error
