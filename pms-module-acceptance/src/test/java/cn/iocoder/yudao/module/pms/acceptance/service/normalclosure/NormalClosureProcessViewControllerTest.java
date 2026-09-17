@@ -1,10 +1,10 @@
-package cn.iocoder.yudao.module.pms.project.controller.admin.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.controller.admin.normalclosure;
 
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO;
-import cn.iocoder.yudao.module.pms.project.service.normalclosure.*;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO;
+import cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -37,7 +37,7 @@ class NormalClosureProcessViewControllerTest {
 
         assertSame(detail, controller.detail(application.getId()).getData());
 
-        var actor = ArgumentCaptor.forClass(NormalClosureAccess.Actor.class);
+        var actor = ArgumentCaptor.forClass(NormalClosureApplicationService.Actor.class);
         verify(query).processViewByApplicationId(eq(application.getId()), actor.capture());
         assertEquals(1L, actor.getValue().tenantId());
         assertEquals(9L, actor.getValue().userId());

@@ -337,9 +337,9 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         try {
             boolean qualified = publishing
                     ? explicitPermissionApi.lockAndCheck(tenantId, policy.getReviewerUserId(),
-                            TemplateDefinitionContent.ClosurePolicy.REVIEWER_PERMISSION)
+                            cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy.REVIEWER_PERMISSION)
                     : explicitPermissionApi.hasExplicitPermission(tenantId, policy.getReviewerUserId(),
-                            TemplateDefinitionContent.ClosurePolicy.REVIEWER_PERMISSION);
+                            cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy.REVIEWER_PERMISSION);
             if (!qualified) {
                 failures.add("专用闭环材料审核人须为同租户启用用户且具有显式材料审核资格");
             }
@@ -617,7 +617,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         content.setProcessDefinitionKey(revision.getProcessDefinitionKey());
         content.setProcessDefinitionVersion(revision.getProcessDefinitionVersion());
         content.setClosurePolicy(revision.getClosurePolicy() == null ? null
-                : new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(revision.getClosurePolicy())));
+                : new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(JsonUtils.parseTree(revision.getClosurePolicy())));
         content.setStages(BeanUtils.toBean(stageDefinitionMapper.selectListByRevisionId(revision.getId()),
                 TemplateDefinitionContent.StageDef.class));
         content.setTasks(BeanUtils.toBean(taskDefinitionMapper.selectListByRevisionId(revision.getId()),

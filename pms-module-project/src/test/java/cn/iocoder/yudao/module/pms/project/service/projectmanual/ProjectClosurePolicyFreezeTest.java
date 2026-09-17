@@ -69,14 +69,14 @@ class ProjectClosurePolicyFreezeTest {
 
     @Test
     void freezesExactPublishedJsonBeforeRootInsertAndCannotFollowLaterTemplateChange() {
-        content.setClosurePolicy(new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(JSON)));
+        content.setClosurePolicy(new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(JsonUtils.parseTree(JSON)));
         doAnswer(call -> {
             var row = call.<ProjectMasterDO>getArgument(0);
             assertEquals(JsonUtils.parseTree(JSON), JsonUtils.parseTree(row.getClosurePolicySnapshot()));
             row.setId(100L); return 1;
         }).when(projects).insert(any(ProjectMasterDO.class));
         var created = create();
-        content.setClosurePolicy(new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(JSON.replace("9007199254740993", "27"))));
+        content.setClosurePolicy(new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(JsonUtils.parseTree(JSON.replace("9007199254740993", "27"))));
         assertEquals(JsonUtils.parseTree(JSON), JsonUtils.parseTree(created.getClosurePolicySnapshot()));
         assertEquals(100L, created.getRootId());
         assertEquals("S0", created.getCurrentStage());
@@ -116,7 +116,7 @@ class ProjectClosurePolicyFreezeTest {
 
     @Test
     void initializationFailurePropagatesFromSameTransactionalCreation() throws Exception {
-        content.setClosurePolicy(new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(JSON)));
+        content.setClosurePolicy(new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(JsonUtils.parseTree(JSON)));
         doThrow(new IllegalStateException("initialization failed")).when(deliverables).initialize(any());
         assertThrows(IllegalStateException.class, this::create);
         var method = ProjectManualCreationServiceImpl.class.getMethod("createProject", ProjectMasterDO.class,

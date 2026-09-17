@@ -1,7 +1,7 @@
-package cn.iocoder.yudao.module.pms.project.service.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_PROJECT_CLOSURE_VALIDATION_FAILED;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_PROJECT_CLOSURE_VALIDATION_FAILED;
 
 public final class NormalClosureErrors {
     private NormalClosureErrors() {}

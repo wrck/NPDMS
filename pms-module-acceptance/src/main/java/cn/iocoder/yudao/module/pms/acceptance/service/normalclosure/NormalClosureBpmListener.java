@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.service.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
 
 import cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureResultEvent;
 import lombok.RequiredArgsConstructor;

@@ -166,7 +166,7 @@ class TemplateClosurePolicyPersistenceTest {
     }
     private TemplateDefinitionContent content() {
         var content = new TemplateDefinitionContent();
-        content.setClosurePolicy(new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(JSON)));
+        content.setClosurePolicy(new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(JsonUtils.parseTree(JSON)));
         return content;
     }
 }

@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.*;

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.NormalClosureMapper">
+    <select id="selectLatestApplication" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO">
+        SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND deleted=b'0' ORDER BY submitted_at DESC,id DESC LIMIT 1
+    </select>
+    <select id="selectApplicationByProcess" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO">
+        SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId}
+          AND process_instance_id=#{query.processInstanceId} AND deleted=b'0'
+    </select>
+    <select id="selectApplicationProjectId" resultType="java.lang.Long">
+        SELECT project_id FROM acc_project_closure WHERE tenant_id=#{query.tenantId}
+          AND id=#{query.applicationId} AND deleted=b'0'
+    </select>
+    <sql id="application">SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId}
+        AND project_id=#{query.projectId} AND id=#{query.applicationId} AND deleted=b'0'</sql>
+    <select id="selectApplication" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO"><include refid="application"/></select>
+    <select id="selectApplicationForUpdate" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO"><include refid="application"/> FOR UPDATE</select>
+    <select id="selectLatestSnapshot" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureSnapshotDO">
+        SELECT * FROM acc_closure_gate_snapshot WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND deleted=b'0' ORDER BY checked_at DESC,id DESC LIMIT 1
+    </select>
+    <select id="selectSnapshot" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureSnapshotDO">
+        SELECT * FROM acc_closure_gate_snapshot WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND id=#{query.snapshotId} AND deleted=b'0'
+    </select>
+    <select id="selectReviews" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureReviewDO">
+        SELECT * FROM acc_closure_review WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND application_id=#{query.applicationId} AND deleted=b'0' ORDER BY reviewed_at,id
+    </select>
+    <insert id="insertSnapshot">
+        INSERT INTO acc_closure_gate_snapshot(id,tenant_id,project_id,project_version,tree_version,from_stage,
+          closure_type,rule_revision,passed,evidence,source_vector,source_digest,checked_by,checked_at,creator,updater)
+        VALUES(#{id},#{tenantId},#{projectId},#{projectVersion},#{treeVersion},#{fromStage},#{closureType},
+          #{ruleRevision},#{passed},#{evidence},#{sourceVector},#{sourceDigest},#{checkedBy},#{checkedAt},#{creator},#{updater})
+    </insert>
+    <insert id="insertApplication">
+        INSERT INTO acc_project_closure(id,tenant_id,project_id,snapshot_id,closure_type,rule_revision,from_stage,
+          project_version,tree_version,status,applicant_user_id,service_manager_user_id,reviewer_user_id,
+          process_definition_key,process_definition_id,process_instance_id,business_key,process_evidence,submitted_at,version,creator,updater)
+        VALUES(#{id},#{tenantId},#{projectId},#{snapshotId},#{closureType},#{ruleRevision},#{fromStage},
+          #{projectVersion},#{treeVersion},#{status},#{applicantUserId},#{serviceManagerUserId},#{reviewerUserId},
+          #{processDefinitionKey},#{processDefinitionId},#{processInstanceId},#{businessKey},#{processEvidence},#{submittedAt},0,#{creator},#{updater})
+    </insert>
+    <insert id="insertReview">
+        INSERT INTO acc_closure_review(id,tenant_id,application_id,project_id,process_instance_id,process_definition_id,
+          task_id,task_definition_key,reviewer_user_id,outcome,reason,reviewed_at,creator,updater)
+        VALUES(#{id},#{tenantId},#{applicationId},#{projectId},#{processInstanceId},#{processDefinitionId},
+          #{taskId},#{taskDefinitionKey},#{reviewerUserId},#{outcome},#{reason},#{reviewedAt},#{creator},#{updater})
+    </insert>
+    <update id="decideApplicationIfMatch">
+        UPDATE acc_project_closure SET status=#{query.status},decided_at=#{query.decidedAt},version=version+1,
+          updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.applicationId}
+          AND version=#{query.expectedVersion} AND status='IN_REVIEW' AND deleted=b'0'
+          AND #{query.status} IN ('APPROVED','REJECTED','CANCELLED')
+    </update>
+</mapper>

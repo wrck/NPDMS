@@ -20,7 +20,7 @@ class NormalClosureAccessTest {
         var scope = mock(ProjectScopeApi.class);
         var participants = mock(ProjectParticipantFactApi.class);
         var permissions = mock(PermissionApi.class);
-        var access = new NormalClosureAccess(projects, mock(ProjectMemberAssignmentMapper.class), scope, participants, permissions);
+        var access = new NormalClosureAccess(projects, mock(ProjectMemberAssignmentMapper.class), mock(cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.class), scope, participants, permissions);
         var project = new ProjectMasterDO(); project.setId(10L); project.setTenantId(1L); project.setManagerId(9L);
         when(projects.selectById(10L)).thenReturn(project);
         when(permissions.hasAnyPermissions(2L, NormalClosureAccess.QUERY)).thenReturn(true);

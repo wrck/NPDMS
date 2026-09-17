@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
+import cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,7 +30,7 @@ class TemplateClosurePolicyTest {
     @Test
     void preservesExactStringLongAndCopiesBothDirections() {
         var original = (ObjectNode) JsonUtils.parseTree(POLICY);
-        var policy = new TemplateDefinitionContent.ClosurePolicy(original);
+        var policy = new ClosurePolicy(original);
         original.put("reviewerUserId", 1);
         assertEquals(Long.MAX_VALUE, policy.getReviewerUserId());
         assertEquals(JsonUtils.parseTree(POLICY), policy.toJson());
@@ -58,7 +60,7 @@ class TemplateClosurePolicyTest {
     void requiresEveryField(String field) {
         var node = (ObjectNode) JsonUtils.parseTree(POLICY);
         node.remove(field);
-        assertThrows(IllegalArgumentException.class, () -> new TemplateDefinitionContent.ClosurePolicy(node));
+        assertThrows(IllegalArgumentException.class, () -> new ClosurePolicy(node));
     }
 
     @ParameterizedTest
@@ -66,9 +68,9 @@ class TemplateClosurePolicyTest {
     void rejectsWaiversAndBooleanCoercion(String field) {
         var node = (ObjectNode) JsonUtils.parseTree(POLICY);
         node.put(field, false);
-        assertThrows(IllegalArgumentException.class, () -> new TemplateDefinitionContent.ClosurePolicy(node));
+        assertThrows(IllegalArgumentException.class, () -> new ClosurePolicy(node));
         node.put(field, "true");
-        assertThrows(IllegalArgumentException.class, () -> new TemplateDefinitionContent.ClosurePolicy(node));
+        assertThrows(IllegalArgumentException.class, () -> new ClosurePolicy(node));
     }
 
     @Test
@@ -80,12 +82,12 @@ class TemplateClosurePolicyTest {
         assertThrows(IllegalArgumentException.class, () -> parse(POLICY.replace("PMS_MINIMAL_NORMAL_CLOSURE", "OTHER")));
         var node = (ObjectNode) JsonUtils.parseTree(POLICY);
         node.put("autoApproval", true);
-        assertThrows(IllegalArgumentException.class, () -> new TemplateDefinitionContent.ClosurePolicy(node));
+        assertThrows(IllegalArgumentException.class, () -> new ClosurePolicy(node));
         assertThrows(RuntimeException.class, () -> JsonUtils.parseObject(
                 "{\"closurePolicy\":" + node + "}", TemplateDefinitionContent.class));
     }
 
-    private TemplateDefinitionContent.ClosurePolicy parse(String json) {
-        return new TemplateDefinitionContent.ClosurePolicy(JsonUtils.parseTree(json));
+    private ClosurePolicy parse(String json) {
+        return new ClosurePolicy(JsonUtils.parseTree(json));
     }
 }

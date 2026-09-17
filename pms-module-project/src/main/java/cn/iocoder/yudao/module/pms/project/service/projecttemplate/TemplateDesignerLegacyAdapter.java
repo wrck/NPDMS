@@ -23,7 +23,7 @@ public final class TemplateDesignerLegacyAdapter {
         content.setProcessDefinitionKey(designer.getProcessDefinitionKey());
         content.setProcessDefinitionVersion(null);
         content.setClosurePolicy(designer.getClosurePolicy() == null ? null
-                : new TemplateDefinitionContent.ClosurePolicy(designer.getClosurePolicy()));
+                : new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(designer.getClosurePolicy()));
         content.setDefinitionSnapshot(designer.getSourceEvidence());
 
         for (TemplateDesignerDocument.StageNode source : designer.getStages()) {

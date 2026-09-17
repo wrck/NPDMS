@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.pms.project.service.normalclosure;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.*;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.NormalClosureMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskbusiness.ProjectTaskBusinessLinkMapper;
@@ -21,12 +20,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import static cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureViews.Check;
+
 
 /** Checks are evidence only: no task completion, stage advance, legacy final acceptance or project exit. */
 @Service @RequiredArgsConstructor
-public class NormalClosureCheckService {
-    private final NormalClosureMapper mapper;
+public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureCheckApi {
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper closureProjects;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projects;
     private final ProjectTaskExecutionContractMapper contracts;
     private final ProjectTaskBusinessLinkMapper links;
     private final ProjectRuntimeGraphResolver graphs;
@@ -34,24 +34,28 @@ public class NormalClosureCheckService {
     private final ProjectTaskBusinessService business;
     private final TaskBusinessCompletionEvaluator evaluator;
     private final ProjectClosureGuardService descendantGuard;
+    private final NormalClosureAccess access;
 
-    public record Evaluation(NormalClosurePolicy policy, List<Check> checks, String evidence,
+    public record Evaluation(String policyJson, List<Check> checks, String evidence,
                              String sourceVector, String sourceDigest,
                              ProjectRuntimeGraphResolver.Resolution graph) {
-        public boolean passed() { return policy != null && !checks.isEmpty() && checks.stream().allMatch(Check::passed); }
+        public boolean passed() { return policyJson != null && !checks.isEmpty() && checks.stream().allMatch(Check::passed); }
     }
+
+    /** 与 ACC 侧 Views.Check 同构的检查证据行（跨模块经 ClosureCheck DTO 传递）。 */
+    public record Check(String code, boolean passed, String reason, Long subjectId) {}
 
     /** Caller has already locked root/project and revalidated current PM + MANAGE scope. */
     @Transactional(propagation = Propagation.MANDATORY)
     public Evaluation evaluateLocked(ProjectMasterDO project, long treeVersion, Long actorId, String correlationId) {
-        NormalClosurePolicy policy = NormalClosurePolicy.parseFrozen(project.getClosurePolicySnapshot());
+        String policyJson = project.getClosurePolicySnapshot();
         List<Check> checks = new ArrayList<>();
         Map<String, Object> source = new LinkedHashMap<>();
         source.put("projectId", project.getId()); source.put("projectVersion", project.getVersion());
-        source.put("treeVersion", treeVersion); source.put("policy", policy);
+        source.put("treeVersion", treeVersion); source.put("policy", policyJson);
         source.put("taskTreeVersion", project.getTaskTreeVersion()); source.put("taskProgressVersion", project.getTaskProgressVersion());
         add(checks, "PROJECT_ACTIVE", "ACTIVE".equals(project.getLifecycleStatus()), project.getId());
-        if (!"ACTIVE".equals(project.getLifecycleStatus())) return result(policy, checks, source, null);
+        if (!"ACTIVE".equals(project.getLifecycleStatus())) return result(policyJson, checks, source, null);
 
         var guard = descendantGuard.evaluate(project.getId(), treeVersion,
                 new ProjectClosureGuardService.Actor(project.getTenantId(), actorId, correlationId));
@@ -59,8 +63,8 @@ public class NormalClosureCheckService {
         source.put("descendantGuard", Map.of("allowed", guard.allowed(), "treeVersion", guard.treeVersion(),
                 "blockers", guard.blockers().stream().sorted(Comparator.comparing(b -> b.projectId())).toList(),
                 "pendingProgressProjects", guard.pendingProgressProjects().stream().sorted().toList()));
-        var query = new NormalClosureMapper.ProjectQuery(project.getTenantId(), project.getId());
-        List<ProjectTaskInstanceDO> tasks = mapper.selectTasksForUpdate(query);
+        var query = new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(project.getTenantId(), project.getId());
+        List<ProjectTaskInstanceDO> tasks = closureProjects.selectTasksForUpdate(query);
         Map<Long, ProjectTaskExecutionContractDO> current = new LinkedHashMap<>();
         // Lock all local tasks/contracts/links before any business Owner. Never lock closure before project.
         for (var task : tasks) {
@@ -123,16 +127,16 @@ public class NormalClosureCheckService {
             }
         }
         source.put("tasks", taskEvidence);
-        return result(policy, checks, source, graph);
+        return result(policyJson, checks, source, graph);
     }
 
     private static void add(List<Check> checks, String code, boolean passed, Long id) {
         checks.add(new Check(code, passed, passed ? null : code, id));
     }
-    private static Evaluation result(NormalClosurePolicy policy, List<Check> checks, Map<String, Object> source,
+    private static Evaluation result(String policyJson, List<Check> checks, Map<String, Object> source,
                                      ProjectRuntimeGraphResolver.Resolution graph) {
         String vector = canonical(JsonUtils.parseObject(JsonUtils.toJsonString(source), tools.jackson.databind.JsonNode.class));
-        return new Evaluation(policy, List.copyOf(checks), JsonUtils.toJsonString(checks), vector, digest(vector), graph);
+        return new Evaluation(policyJson, List.copyOf(checks), JsonUtils.toJsonString(checks), vector, digest(vector), graph);
     }
     static String canonical(tools.jackson.databind.JsonNode node) {
         if (node.isObject()) {
@@ -149,5 +153,39 @@ public class NormalClosureCheckService {
     public static String digest(String text) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))); }
         catch (NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
+    }
+
+    // ===== ProjectClosureCheckApi 实现（跨模块契约；ACC 正常闭环消费）=====
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ClosureEvaluation evaluateLocked(ClosureCheckCommand command) {
+        var project = access.lockProject(command.projectId(), command.tenantId());
+        if (!java.util.Objects.equals(command.expectedProjectVersion(), project.getVersion()))
+            throw closureFailure("CLOSURE_PROJECT_VERSION_CONFLICT");
+        var evaluation = evaluateLocked(project, command.treeVersion(), command.actorId(), command.correlationId());
+        var current = evaluation.graph() == null ? null : evaluation.graph().current();
+        return new ClosureEvaluation(evaluation.passed(), evaluation.policyJson(),
+                evaluation.checks().stream().map(c -> new ClosureCheck(c.code(), c.passed(), c.reason(), c.subjectId())).toList(),
+                evaluation.evidence(), evaluation.sourceVector(), evaluation.sourceDigest(),
+                current == null ? null : current.getId(), current == null ? null : current.getVersion(),
+                evaluation.graph() != null && evaluation.graph().terminal());
+    }
+
+    @Override
+    public GraphOverview inspectGraph(Long tenantId, Long projectId) {
+        var project = projects.selectById(projectId);
+        if (project == null || !java.util.Objects.equals(project.getTenantId(), tenantId))
+            throw closureFailure("CLOSURE_PROJECT_NOT_FOUND");
+        var graph = graphs.inspect(project);
+        boolean done = closureProjects.selectTasks(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId))
+                .stream().allMatch(t -> "DONE".equals(t.getStatus()));
+        return new GraphOverview(graph.terminal(), String.valueOf(graph.completion()), graph.current().getId(), done);
+    }
+
+    private static cn.iocoder.yudao.framework.common.exception.ServiceException closureFailure(String reason) {
+        return new cn.iocoder.yudao.framework.common.exception.ServiceException(
+                cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_PROJECT_CLOSURE_VALIDATION_FAILED.getCode(), reason);
     }
 }

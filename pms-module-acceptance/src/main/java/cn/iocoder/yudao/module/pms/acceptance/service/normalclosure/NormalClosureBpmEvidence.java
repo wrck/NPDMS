@@ -1,10 +1,10 @@
-package cn.iocoder.yudao.module.pms.project.service.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureApi;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO;
 import java.util.*;
-import static cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureErrors.failure;
+import static cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.NormalClosureErrors.failure;
 
 /** Verify concrete engine identities; a generic process status or HTTP success is never approval evidence. */
 public final class NormalClosureBpmEvidence {

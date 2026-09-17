@@ -1,11 +1,12 @@
-package cn.iocoder.yudao.module.pms.project.controller.admin.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.controller.admin.normalclosure;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.*;
-import cn.iocoder.yudao.module.pms.project.service.normalclosure.*;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.*;
+import cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.*;
+import cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.NormalClosureApplicationService.Actor;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-import static cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureErrors.failure;
+import static cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.NormalClosureErrors.failure;
 
 /** Approval decisions are exclusively platform BPM operations, never controller CRUD. */
 @RestController @Validated @RequiredArgsConstructor
@@ -56,8 +57,8 @@ public class NormalClosureController {
     public CommonResult<NormalClosureViews.ApplicationDetail> detail(@PathVariable Long projectId, @PathVariable Long id) {
         return trusted(() -> success(query.application(projectId, id, actor())));
     }
-    private NormalClosureAccess.Actor actor() {
-        return new NormalClosureAccess.Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString());
+    private Actor actor() {
+        return new Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString());
     }
     private <T> T trusted(Supplier<T> action) {
         if (TenantContextHolder.getTenantId() != null) return action.get();

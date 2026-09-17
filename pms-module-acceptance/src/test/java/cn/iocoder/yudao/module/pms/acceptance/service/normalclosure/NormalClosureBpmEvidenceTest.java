@@ -1,8 +1,8 @@
-package cn.iocoder.yudao.module.pms.project.service.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureApi.*;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureApplicationDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;

@@ -1,6 +1,6 @@
-package cn.iocoder.yudao.module.pms.project.service.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
 
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.*;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.*;
 import java.util.List;
 
 public final class NormalClosureViews {

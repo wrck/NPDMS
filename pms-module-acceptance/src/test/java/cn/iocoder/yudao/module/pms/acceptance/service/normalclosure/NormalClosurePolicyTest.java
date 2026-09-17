@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.service.normalclosure;
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class NormalClosurePolicyTest {
     @Test void sourceDigestCanonicalizesNestedObjectKeysWithoutReorderingEvidenceArrays() {
         JsonNode a = JsonUtils.parseObject("{\"b\":{\"z\":2,\"a\":1},\"a\":[2,1]}", JsonNode.class);
         JsonNode b = JsonUtils.parseObject("{\"a\":[2,1],\"b\":{\"a\":1,\"z\":2}}", JsonNode.class);
-        assertEquals(NormalClosureCheckService.canonical(a), NormalClosureCheckService.canonical(b));
-        assertTrue(NormalClosureCheckService.canonical(a).contains("[2,1]"));
+        assertEquals(NormalClosurePolicy.canonical(a), NormalClosurePolicy.canonical(b));
+        assertTrue(NormalClosurePolicy.canonical(a).contains("[2,1]"));
     }
 }

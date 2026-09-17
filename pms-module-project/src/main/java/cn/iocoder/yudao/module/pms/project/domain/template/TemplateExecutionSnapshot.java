@@ -184,7 +184,7 @@ public class TemplateExecutionSnapshot {
         content.setProcessDefinitionKey(processDefinitionKey);
         content.setProcessDefinitionVersion(null);
         content.setClosurePolicy(closurePolicy == null || closurePolicy.isNull() ? null
-                : new TemplateDefinitionContent.ClosurePolicy(closurePolicy));
+                : new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(closurePolicy));
         content.setDefinitionSnapshot(null);
         content.setExecutionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(this), JsonNode.class));
 

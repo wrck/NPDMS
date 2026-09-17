@@ -71,12 +71,12 @@ public final class TemplatePublishValidator {
     }
 
     /** 仅检查可选闭环schema；真实BPM及显式材料审核资格由发布服务向Owner重验。 */
-    public static List<String> validateClosurePolicy(TemplateDefinitionContent.ClosurePolicy policy) {
+    public static List<String> validateClosurePolicy(cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy policy) {
         if (policy == null) {
             return List.of();
         }
         try {
-            new TemplateDefinitionContent.ClosurePolicy(policy.toJson());
+            new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(policy.toJson());
             return List.of();
         } catch (IllegalArgumentException ex) {
             return List.of(ex.getMessage());

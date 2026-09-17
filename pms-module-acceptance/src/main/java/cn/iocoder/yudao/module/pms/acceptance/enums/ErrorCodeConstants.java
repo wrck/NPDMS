@@ -33,6 +33,9 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_DELIVERABLE_CHECKLIST_CODE_DUPLICATE = new ErrorCode(1_014_013_001, "项目内交付件编码已存在");
     ErrorCode ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID = new ErrorCode(1_014_013_002, "交付件状态流转不合法");
 
+    // ========== 项目闭环 1-014-014-000（ACC 侧正常闭环用；PROJ 留守检查/退出执行仍持同码副本）==========
+    ErrorCode ACC_PROJECT_CLOSURE_VALIDATION_FAILED = new ErrorCode(1_014_014_003, "项目闭环校验未通过：{}");
+
     // ========== 归档文档 1-014-015-000 ==========
     ErrorCode ACC_ARCHIVE_DOCUMENT_NOT_EXISTS = new ErrorCode(1_014_015_000, "归档文档不存在");
     ErrorCode ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE = new ErrorCode(1_014_015_001, "项目内归档文档编码已存在");
