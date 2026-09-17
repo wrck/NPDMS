@@ -276,9 +276,12 @@ public class OaIntegrationServiceImpl implements OaIntegrationService {
             HttpEntity<String> entity = new HttpEntity<>(body, headers);
             ResponseEntity<String> response = integrationRestTemplate.exchange(
                     url, method, entity, String.class);
+            // The default error handler rejects 4xx/5xx, but not every non-2xx response.
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new IntegrationException("oa", "OA returned HTTP " + response.getStatusCode().value());
+            }
             integrationLogService.markSuccess(logRecord.getId(), response.getBody());
-            // RestTemplate 默认对 4xx/5xx 抛出 HttpStatusCodeException，到达此处即 2xx 成功
-            return response.getStatusCode().is2xxSuccessful();
+            return true;
         } catch (IntegrationException e) {
             // 已经是 IntegrationException（来自 token 获取失败），直接透传
             integrationLogService.markFailed(logRecord.getId(), e.getMessage());

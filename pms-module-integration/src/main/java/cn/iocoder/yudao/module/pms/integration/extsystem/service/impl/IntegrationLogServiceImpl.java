@@ -53,7 +53,7 @@ public class IntegrationLogServiceImpl
         log.setResponseBody(responseBody);
         log.setErrorMessage(null);
         log.setNextRetryTime(null);
-        this.updateById(log);
+        baseMapper.updateDeliveryOutcome(log);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class IntegrationLogServiceImpl
             long delayMinutes = (long) (retryCount + 1) * integrationProperties.getBackoffMultiplier();
             log.setNextRetryTime(LocalDateTime.now().plusMinutes(delayMinutes));
         }
-        this.updateById(log);
+        baseMapper.updateDeliveryOutcome(log);
     }
 
     @Override
