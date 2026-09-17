@@ -1,3 +1,4 @@
+import '../../../tests/lowcode/transportBoundary'
 import type { Component } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import { FieldType, type FormFieldConfig } from '@/api/lowcode'

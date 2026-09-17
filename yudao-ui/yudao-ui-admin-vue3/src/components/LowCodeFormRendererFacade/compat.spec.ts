@@ -1,3 +1,4 @@
+import '../../../tests/lowcode/transportBoundary'
 import { describe, expect, it } from 'vitest'
 import { FieldType, type FormFieldConfig } from '@/api/lowcode'
 import type { VersionedFormConfig } from '@/components/LowCodeFormRenderer/rendererVersion'
