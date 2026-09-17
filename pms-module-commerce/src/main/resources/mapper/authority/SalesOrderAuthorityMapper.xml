@@ -14,6 +14,7 @@
         <foreach collection="sourceKeys" item="sourceKey" open="(" separator="," close=")">
             #{sourceKey}
         </foreach>
+        ORDER BY source_record_key
         FOR UPDATE
     </select>
     <update id="updateOwnerByVersion">
