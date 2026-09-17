@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /** FormCreate V2：保留 FormConfig、props、emits 与公开方法；V1 独立不变。 */
-import { computed, markRaw, reactive, ref, watch, type Component } from 'vue'
+import { computed, markRaw, reactive, ref, shallowRef, watch, type Component } from 'vue'
 import { LayoutType, type FormConfig, type FormFieldConfig, type ResponsiveSpan } from '@/api/lowcode'
-import formCreate, { type Api as FormCreateApi, type Rule } from '@form-create/element-ui'
+import formCreate, { type Api as FormCreateApi, type Options, type Rule } from '@form-create/element-ui'
 import { initMissingFieldDefaults, mergeExternalModelValue, resetFieldDefaults } from './runtimeCompat'
 import { buildFieldRule } from './fieldRules'
 import LegacyUploadField from './LegacyUploadField.vue'
@@ -26,7 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const formData = reactive<Record<string, unknown>>({ ...(props.modelValue || {}) })
-const formApi = ref<FormCreateApi>()
+const formApi = shallowRef<FormCreateApi>()
 /** V1 兼容别名。底层对象在 V2 中仍是 FormCreate Api。 */
 const formRef = formApi
 const values = computed<Record<string, unknown>>({
@@ -62,9 +62,9 @@ function toRule(field: FormFieldConfig): Rule {
   })
 }
 
-function colProps(span: number | ResponsiveSpan | undefined): Record<string, number> {
+function colProps(span: number | ResponsiveSpan | undefined): ResponsiveSpan & { span?: number } {
   if (span === undefined || typeof span === 'number') return { span: span ?? 24 }
-  const result: Record<string, number> = {}
+  const result: ResponsiveSpan = {}
   if (span.xs !== undefined) result.xs = span.xs
   if (span.sm !== undefined) result.sm = span.sm
   if (span.md !== undefined) result.md = span.md
@@ -107,14 +107,15 @@ function buildFieldRules(fields: FormFieldConfig[]): Rule[] {
 
 /** FormCreate 会修改 Rule；使用 ref，不向它传入只读 computed 规则。 */
 const finalRule = ref<Rule[]>([])
-const option = ref<Record<string, unknown>>({})
+const option = ref<Options>({})
 
 function buildLayoutRules(): Rule[] {
   if (layout.value.type === LayoutType.TABS) {
+    const tabsProps = reactive({ modelValue: activeTab.value })
     const tabs: Rule = reactive({
       type: 'el-tabs',
       native: true,
-      props: { modelValue: activeTab.value },
+      props: tabsProps,
       children: (layout.value.tabs || []).map((tab) => ({
         type: 'el-tab-pane',
         native: true,
@@ -124,15 +125,16 @@ function buildLayoutRules(): Rule[] {
     })
     tabs.on = { 'update:modelValue': (value: string) => {
       activeTab.value = value
-      tabs.props!.modelValue = value
+      tabsProps.modelValue = value
     } }
     return [tabs]
   }
   if (layout.value.type === LayoutType.COLLAPSE) {
+    const collapseProps = reactive({ modelValue: activeCollapse.value })
     const collapse: Rule = reactive({
       type: 'el-collapse',
       native: true,
-      props: { modelValue: activeCollapse.value },
+      props: collapseProps,
       children: (layout.value.collapse || []).map((group, index) => ({
         type: 'el-collapse-item',
         native: true,
@@ -142,7 +144,7 @@ function buildLayoutRules(): Rule[] {
     })
     collapse.on = { 'update:modelValue': (value: string[]) => {
       activeCollapse.value = value
-      collapse.props!.modelValue = value
+      collapseProps.modelValue = value
     } }
     return [collapse]
   }
