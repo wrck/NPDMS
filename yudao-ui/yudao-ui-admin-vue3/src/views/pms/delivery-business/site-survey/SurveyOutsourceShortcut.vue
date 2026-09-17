@@ -11,7 +11,7 @@
       link
       type="primary"
       @click="launch?.('outsource')"
-      v-hasPermi="['pms:eng-outsource:create']"
+      v-hasPermi="['pms:res-outsource:create']"
       >保存工勘并发起转包申请</el-button
     >
     <el-link

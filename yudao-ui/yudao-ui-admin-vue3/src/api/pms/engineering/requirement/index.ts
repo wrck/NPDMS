@@ -23,7 +23,7 @@ export interface RequirementVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-requirement'
+const baseUrl = '/pms/sol-requirement'
 
 export const getRequirementPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

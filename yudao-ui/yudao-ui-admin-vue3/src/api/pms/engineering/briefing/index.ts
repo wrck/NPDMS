@@ -26,7 +26,7 @@ export interface BriefingVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-briefing'
+const baseUrl = '/pms/sol-briefing'
 
 export const getBriefingPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

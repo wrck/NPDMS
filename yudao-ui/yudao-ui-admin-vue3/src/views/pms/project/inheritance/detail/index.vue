@@ -107,7 +107,7 @@
             class="rail-item"
             :class="{ 'rail-item--active': activeTab === 'preparation' }"
             @click="switchTab('preparation')"
-            v-hasPermi="['pms:eng-site-survey:query']"
+            v-hasPermi="['pms:sol-site-survey:query']"
           >
             <Icon icon="ep:compass" class="rail-icon" />
             <span class="rail-label">工勘准备</span>

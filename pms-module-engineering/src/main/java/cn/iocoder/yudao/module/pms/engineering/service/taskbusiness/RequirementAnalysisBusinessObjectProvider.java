@@ -27,7 +27,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE;
 
-/** PRE-04: sol_preparation + published PLT composition only; never pms_eng_requirement or fixed sections. */
+/** PRE-04: sol_preparation + published PLT composition only; never sol_requirement or fixed sections. */
 // Retired PRE-04 registration; the independent business Owner provides the new instances.
 @RequiredArgsConstructor
 public class RequirementAnalysisBusinessObjectProvider implements TaskBusinessObjectProvider, StageBusinessViewProvider {

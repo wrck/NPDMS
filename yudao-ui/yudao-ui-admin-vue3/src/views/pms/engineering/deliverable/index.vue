@@ -37,7 +37,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-deliverable:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-deliverable:create']"
           ><Icon icon="ep:plus" />新增交付件</el-button
         >
       </el-form-item>
@@ -66,7 +66,7 @@
             type="primary"
             v-if="row.status !== 1"
             @click="openForm(row)"
-            v-hasPermi="['pms:eng-deliverable:update']"
+            v-hasPermi="['pms:imp-deliverable:update']"
             >编辑</el-button
           >
           <el-button
@@ -74,7 +74,7 @@
             type="success"
             v-if="row.status === 0"
             @click="archive(row)"
-            v-hasPermi="['pms:eng-deliverable:archive']"
+            v-hasPermi="['pms:imp-deliverable:archive']"
             >归集</el-button
           >
           <el-button
@@ -82,7 +82,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 1"
             @click="voidRow(row)"
-            v-hasPermi="['pms:eng-deliverable:update']"
+            v-hasPermi="['pms:imp-deliverable:update']"
             >作废</el-button
           >
           <el-button
@@ -90,7 +90,7 @@
             type="danger"
             v-if="row.status !== 1"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-deliverable:delete']"
+            v-hasPermi="['pms:imp-deliverable:delete']"
             >删除</el-button
           >
         </template>

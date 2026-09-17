@@ -39,7 +39,7 @@ public class SiteSurveyEntityController {
     private cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityFormService formService;
 
     @GetMapping("/form-schema")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<SiteSurveyEntityFormSchemaRespVO> formSchema(
             @RequestParam Long revisionId, @RequestParam Integer revisionVersion) {
         var schema = formService.schema(revisionId, revisionVersion, false);
@@ -47,7 +47,7 @@ public class SiteSurveyEntityController {
     }
 
     @GetMapping("/default-form-schema")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<SiteSurveyEntityFormSchemaRespVO> defaultFormSchema() {
         var schema = formService.defaultSchema();
         return success(SiteSurveyEntityFormSchemaRespVO.from(schema, formService.fieldBindings(schema)));
@@ -55,14 +55,14 @@ public class SiteSurveyEntityController {
 
     @PostMapping("/create")
     @Operation(summary = "创建现场工勘")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:create')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:create')")
     public CommonResult<Long> createSiteSurveyEntity(@Valid @RequestBody SiteSurveyEntitySaveReqVO createReqVO) {
         return success(siteSurveyService.createSiteSurveyEntity(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新现场工勘")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> updateSiteSurveyEntity(@Valid @RequestBody SiteSurveyEntitySaveReqVO updateReqVO) {
         siteSurveyService.updateSiteSurveyEntity(updateReqVO);
         return success(true);
@@ -71,7 +71,7 @@ public class SiteSurveyEntityController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除现场工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:delete')")
     public CommonResult<Boolean> deleteSiteSurveyEntity(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.deleteSiteSurveyEntity(id, execution);
         return success(true);
@@ -80,7 +80,7 @@ public class SiteSurveyEntityController {
     @GetMapping("/get")
     @Operation(summary = "查询现场工勘详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<SiteSurveyEntityRespVO> getSiteSurveyEntity(@RequestParam("id") Long id) {
         SiteSurveyEntityDO survey = siteSurveyService.getSiteSurveyEntity(id);
         return success(formService.response(survey));
@@ -88,7 +88,7 @@ public class SiteSurveyEntityController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询现场工勘")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<PageResult<SiteSurveyEntityRespVO>> getSiteSurveyEntityPage(@Validated SiteSurveyEntityPageReqVO pageReqVO) {
         PageResult<SiteSurveyEntityDO> pageResult = siteSurveyService.getSiteSurveyEntityPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SiteSurveyEntityRespVO.class));
@@ -97,7 +97,7 @@ public class SiteSurveyEntityController {
     @PutMapping("/confirm")
     @Operation(summary = "确认工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> confirmSiteSurveyEntity(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.confirmSiteSurveyEntity(id, execution);
         return success(true);
@@ -106,7 +106,7 @@ public class SiteSurveyEntityController {
     @PutMapping("/reject")
     @Operation(summary = "驳回工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> rejectSiteSurveyEntity(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.rejectSiteSurveyEntity(id, execution);
         return success(true);
@@ -115,7 +115,7 @@ public class SiteSurveyEntityController {
     @PutMapping("/archive")
     @Operation(summary = "归档工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> archiveSiteSurveyEntity(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.archiveSiteSurveyEntity(id, execution);
         return success(true);

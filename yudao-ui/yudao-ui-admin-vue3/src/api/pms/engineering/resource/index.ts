@@ -16,7 +16,7 @@ export interface ResourceReadyVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-resource'
+const baseUrl = '/pms/sol-resource'
 
 export const getResourceReadyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

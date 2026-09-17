@@ -112,8 +112,8 @@ class ArrivalAcceptanceMigrationContractTest {
     @Test
     void schemaDoesNotPerformLegacyForwardMigrationOrStoreRawUrls() {
         assertFalse(schemaSql.contains("INSERT INTO"));
-        assertFalse(schemaSql.contains("pms_eng_arrival"));
-        assertFalse(schemaSql.contains("pms_eng_deliverable"));
+        assertFalse(schemaSql.contains("imp_arrival"));
+        assertFalse(schemaSql.contains("imp_deliverable"));
         assertFalse(schemaSql.toLowerCase().contains("attachment_url"));
         assertFalse(schemaSql.toLowerCase().contains("download_url"));
         assertFalse(schemaSql.toLowerCase().contains("auto_assign"));
@@ -346,7 +346,7 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(seedSql.contains("`status`=2"));
         assertFalse(seedSql.contains("`status`=1"));
         assertFalse(seedSql.contains("19013"));
-        assertFalse(seedSql.contains("pms:eng-arrival"));
+        assertFalse(seedSql.contains("pms:imp-arrival"));
         assertFalse(seedSql.contains("system_role_menu"));
         assertFalse(seedSql.contains("imp_arrival_acceptance`"));
         assertFalse(seedSql.toLowerCase().contains("auto_assign"));

@@ -46,8 +46,8 @@ class SiteSurveyEntityWriteEntryTest {
         };
         assertEquals("node denied", assertThrows(IllegalStateException.class,write::run).getMessage());
         String permission = "create".equals(action) ? "create" : "delete".equals(action) ? "delete" : "update";
-        if (legacyInternal) verify(access).lock(9L,"pms:eng-site-survey:"+permission,selection);
-        else verify(access).lock("create".equals(action) ? 99L : 9L,"pms:eng-site-survey:"+permission,selection,
+        if (legacyInternal) verify(access).lock(9L,"pms:sol-site-survey:"+permission,selection);
+        else verify(access).lock("create".equals(action) ? 99L : 9L,"pms:sol-site-survey:"+permission,selection,
                 "SOL.SITE_SURVEY." + action.toUpperCase(java.util.Locale.ROOT), "create".equals(action) ? null : 11L);
         if (!"create".equals(action)) verify(mapper).selectById(11L);
         verifyNoMoreInteractions(mapper);

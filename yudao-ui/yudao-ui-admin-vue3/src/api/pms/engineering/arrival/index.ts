@@ -17,7 +17,7 @@ export interface ArrivalVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-arrival'
+const baseUrl = '/pms/imp-arrival'
 
 export const getArrivalPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

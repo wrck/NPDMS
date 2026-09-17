@@ -13,7 +13,7 @@
             conclusion, status, confirmed_at, archived_at, remark, version,
             form_revision_id, form_revision_version, form_extra_values, outsource_required, outsource_request_id,
             creator, updater, create_time, update_time, deleted
-        FROM pms_eng_site_survey
+        FROM sol_site_survey
         WHERE tenant_id = #{query.tenantId} AND id = #{query.surveyId} FOR UPDATE
     </select>
     <select id="lockTarget" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO">

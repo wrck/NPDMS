@@ -31,7 +31,7 @@ export interface InstallationVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-installation'
+const baseUrl = '/pms/imp-installation'
 
 export const getInstallationPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

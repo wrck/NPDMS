@@ -43,7 +43,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-announcement:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:kno-announcement:create']"
           ><Icon icon="ep:plus" />新建公告</el-button
         >
       </el-form-item>
@@ -74,7 +74,7 @@
       </el-table-column>
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-announcement:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:kno-announcement:query']"
             >明细</el-button
           >
           <el-button
@@ -82,7 +82,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-announcement:update']"
+            v-hasPermi="['pms:kno-announcement:update']"
             >编辑</el-button
           >
           <el-button
@@ -90,7 +90,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handlePublish(row)"
-            v-hasPermi="['pms:eng-announcement:publish']"
+            v-hasPermi="['pms:kno-announcement:publish']"
             >发布</el-button
           >
           <el-button
@@ -98,7 +98,7 @@
             type="danger"
             v-if="row.status === 1"
             @click="handleDisable(row)"
-            v-hasPermi="['pms:eng-announcement:disable']"
+            v-hasPermi="['pms:kno-announcement:disable']"
             >停用</el-button
           >
           <el-button
@@ -106,7 +106,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-announcement:delete']"
+            v-hasPermi="['pms:kno-announcement:delete']"
             >删除</el-button
           >
         </template>

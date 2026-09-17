@@ -22,11 +22,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - 到货签收 Controller（FR-ENG-021）。
  * <p>
- * 路径前缀 {@code /pms/eng-arrival}。
+ * 路径前缀 {@code /pms/imp-arrival}。
  */
 @Tag(name = "管理后台 - 到货签收")
 @RestController
-@RequestMapping("/pms/eng-arrival")
+@RequestMapping("/pms/imp-arrival")
 @Validated
 public class ArrivalController {
 
@@ -35,14 +35,14 @@ public class ArrivalController {
 
     @PostMapping("/create")
     @Operation(summary = "创建到货签收")
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:create')")
     public CommonResult<Long> createArrival(@Valid @RequestBody ArrivalSaveReqVO createReqVO) {
         return success(arrivalService.createArrival(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新到货签收")
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:update')")
     public CommonResult<Boolean> updateArrival(@Valid @RequestBody ArrivalSaveReqVO updateReqVO) {
         arrivalService.updateArrival(updateReqVO);
         return success(true);
@@ -51,7 +51,7 @@ public class ArrivalController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除到货签收")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:delete')")
     public CommonResult<Boolean> deleteArrival(@RequestParam("id") Long id) {
         arrivalService.deleteArrival(id);
         return success(true);
@@ -60,7 +60,7 @@ public class ArrivalController {
     @GetMapping("/get")
     @Operation(summary = "查询到货签收详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:query')")
     public CommonResult<ArrivalRespVO> getArrival(@RequestParam("id") Long id) {
         ArrivalDO arrival = arrivalService.getArrival(id);
         return success(BeanUtils.toBean(arrival, ArrivalRespVO.class));
@@ -68,7 +68,7 @@ public class ArrivalController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询到货签收")
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:query')")
     public CommonResult<PageResult<ArrivalRespVO>> getArrivalPage(@Validated ArrivalPageReqVO pageReqVO) {
         PageResult<ArrivalDO> pageResult = arrivalService.getArrivalPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ArrivalRespVO.class));
@@ -77,7 +77,7 @@ public class ArrivalController {
     @PutMapping("/sign")
     @Operation(summary = "签收到货")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:update')")
     public CommonResult<Boolean> signArrival(@RequestParam("id") Long id) {
         arrivalService.signArrival(id);
         return success(true);
@@ -86,7 +86,7 @@ public class ArrivalController {
     @PutMapping("/mark-abnormal")
     @Operation(summary = "标记到货异常")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-arrival:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-arrival:update')")
     public CommonResult<Boolean> markAbnormal(@RequestParam("id") Long id) {
         arrivalService.markAbnormal(id);
         return success(true);

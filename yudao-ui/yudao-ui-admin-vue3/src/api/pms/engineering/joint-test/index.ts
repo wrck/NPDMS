@@ -18,7 +18,7 @@ export interface JointTestVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-joint-test'
+const baseUrl = '/pms/imp-joint-test'
 
 export const getJointTestPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

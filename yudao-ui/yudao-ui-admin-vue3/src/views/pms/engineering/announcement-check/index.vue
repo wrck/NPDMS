@@ -57,7 +57,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-announcement-check:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:kno-announcement-check:create']"
           ><Icon icon="ep:plus" />新建检查</el-button
         >
       </el-form-item>
@@ -97,7 +97,7 @@
       </el-table-column>
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-announcement-check:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:kno-announcement-check:query']"
             >明细</el-button
           >
           <el-button
@@ -105,7 +105,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-announcement-check:update']"
+            v-hasPermi="['pms:kno-announcement-check:update']"
             >编辑</el-button
           >
           <el-button
@@ -113,7 +113,7 @@
             type="primary"
             v-if="row.status === 0"
             @click="handlePerformCheck(row)"
-            v-hasPermi="['pms:eng-announcement-check:update']"
+            v-hasPermi="['pms:kno-announcement-check:update']"
             >执行检查</el-button
           >
           <el-button
@@ -121,7 +121,7 @@
             type="success"
             v-if="row.status === 1"
             @click="openHandle(row, 'HANDLE')"
-            v-hasPermi="['pms:eng-announcement-check:handle']"
+            v-hasPermi="['pms:kno-announcement-check:handle']"
             >处置</el-button
           >
           <el-button
@@ -129,7 +129,7 @@
             type="info"
             v-if="row.status === 1"
             @click="openHandle(row, 'IGNORE')"
-            v-hasPermi="['pms:eng-announcement-check:handle']"
+            v-hasPermi="['pms:kno-announcement-check:handle']"
             >忽略</el-button
           >
           <el-button
@@ -137,7 +137,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-announcement-check:delete']"
+            v-hasPermi="['pms:kno-announcement-check:delete']"
             >删除</el-button
           >
         </template>

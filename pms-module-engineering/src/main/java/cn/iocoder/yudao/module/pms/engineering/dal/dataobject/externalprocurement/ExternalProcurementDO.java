@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 外采申请 DO（FR-ENG-002）。
  * <p>
- * 对应表 {@code pms_eng_external_procurement}。
+ * 对应表 {@code imp_external_procurement}。
  * 状态：0 草稿、1 已提交、2 审批中、3 已通过、4 已驳回、5 已撤回、6 已终止。
  */
-@TableName("pms_eng_external_procurement")
+@TableName("imp_external_procurement")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ExternalProcurementDO extends TenantBaseDO {

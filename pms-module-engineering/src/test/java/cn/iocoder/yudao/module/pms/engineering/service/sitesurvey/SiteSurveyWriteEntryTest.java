@@ -44,7 +44,7 @@ class SiteSurveyWriteEntryTest {
         };
         assertEquals("node denied", assertThrows(IllegalStateException.class,write::run).getMessage());
         String permission = "create".equals(action) ? "create" : "delete".equals(action) ? "delete" : "update";
-        verify(access).lock("create".equals(action) ? 99L : 9L,"pms:eng-site-survey:"+permission, selection);
+        verify(access).lock("create".equals(action) ? 99L : 9L,"pms:sol-site-survey:"+permission, selection);
         if (!"create".equals(action)) verify(mapper).selectById(11L);
         verifyNoMoreInteractions(mapper);
         verifyNoInteractions(location,forms,events);

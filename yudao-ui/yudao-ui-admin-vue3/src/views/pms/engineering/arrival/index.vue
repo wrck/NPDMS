@@ -27,7 +27,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-arrival:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-arrival:create']"
           ><Icon icon="ep:plus" />新增签收</el-button
         >
       </el-form-item>
@@ -47,7 +47,7 @@
       </el-table-column>
       <el-table-column label="操作" width="300" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-arrival:query']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-arrival:query']"
             >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
@@ -55,7 +55,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'sign')"
-            v-hasPermi="['pms:eng-arrival:update']"
+            v-hasPermi="['pms:imp-arrival:update']"
             >签收</el-button
           >
           <el-button
@@ -63,10 +63,10 @@
             type="warning"
             v-if="row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
-            v-hasPermi="['pms:eng-arrival:update']"
+            v-hasPermi="['pms:imp-arrival:update']"
             >标记异常</el-button
           >
-          <el-button v-if="row.status !== 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-arrival:delete']"
+          <el-button v-if="row.status !== 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-arrival:delete']"
             >删除</el-button
           >
         </template>
@@ -173,8 +173,8 @@ const formVisible = ref(false)
 const formRef = ref()
 type ArrivalForm = Omit<ArrivalVO, 'arrivalTime'> & { arrivalTime?: string | number | null }
 const form = ref<ArrivalForm>({ projectId: 0, code: '', status: 0 })
-const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:eng-arrival:update'])
-const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:eng-arrival:create']))
+const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:imp-arrival:update'])
+const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入签收编码' }],

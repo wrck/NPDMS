@@ -31,7 +31,7 @@ export interface AuthorizationVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-authorization'
+const baseUrl = '/pms/plt-authorization'
 
 export const getAuthorizationPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

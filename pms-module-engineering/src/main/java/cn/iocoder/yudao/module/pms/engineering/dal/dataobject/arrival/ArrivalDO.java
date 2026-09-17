@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 到货签收 DO（FR-ENG-021）。
  * <p>
- * 对应表 {@code pms_eng_arrival}。
+ * 对应表 {@code imp_arrival}。
  * 状态：0 待签收、1 已签收、2 异常。
  */
-@TableName("pms_eng_arrival")
+@TableName("imp_arrival")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ArrivalDO extends TenantBaseDO {

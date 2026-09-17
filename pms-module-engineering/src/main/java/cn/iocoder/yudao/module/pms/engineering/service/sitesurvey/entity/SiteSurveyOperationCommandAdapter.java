@@ -37,7 +37,7 @@ public class SiteSurveyOperationCommandAdapter implements ProjectBusinessOperati
         if (!supports(code, 1)) throw exception(BAD_REQUEST, "OPERATION_NOT_REGISTERED");
         Long actor = SecurityFrameworkUtils.getLoginUserId();
         String action = code.endsWith(".CREATE") ? "create" : code.endsWith(".DELETE") ? "delete" : "update";
-        if (actor == null || !permissions.getObject().hasAnyPermissions(actor, "pms:eng-site-survey:" + action)) throw exception(FORBIDDEN);
+        if (actor == null || !permissions.getObject().hasAnyPermissions(actor, "pms:sol-site-survey:" + action)) throw exception(FORBIDDEN);
         var scope = scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(TenantContextHolder.getRequiredTenantId(), actor,
                 command.projectId(), ProjectScopeApi.ACTION_MANAGE));
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) throw exception(FORBIDDEN);

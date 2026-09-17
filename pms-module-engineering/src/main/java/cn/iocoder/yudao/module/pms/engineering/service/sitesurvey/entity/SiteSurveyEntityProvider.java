@@ -59,8 +59,8 @@ public class SiteSurveyEntityProvider implements EntityFieldProvider {
         }
         var row = mapper.selectById(target.entity().entityId());
         if (row == null || !actor.tenantId().equals(row.getTenantId())) throw exception(SITE_SURVEY_FORM_INVALID);
-        boolean allowed = write ? permissions.hasAnyPermissions(actor.userId(), "pms:eng-site-survey:create", "pms:eng-site-survey:update")
-                : permissions.hasAnyPermissions(actor.userId(), "pms:eng-site-survey:query");
+        boolean allowed = write ? permissions.hasAnyPermissions(actor.userId(), "pms:sol-site-survey:create", "pms:sol-site-survey:update")
+                : permissions.hasAnyPermissions(actor.userId(), "pms:sol-site-survey:query");
         var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), row.getProjectId(),
                 write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
         if (!allowed || scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(row.getProjectId())) throw exception(FORBIDDEN);

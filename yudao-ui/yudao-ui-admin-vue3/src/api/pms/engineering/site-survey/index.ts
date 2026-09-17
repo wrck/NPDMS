@@ -56,7 +56,7 @@ export interface SiteSurveyVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-site-survey'
+const baseUrl = '/pms/sol-site-survey'
 
 export const getSiteSurveyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

@@ -31,12 +31,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 准备数据表单模板 Controller（FR-ENG-007）。
  * <p>
- * 路径前缀 {@code /pms/eng-form-template}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-form-template:*}。
+ * 路径前缀 {@code /pms/plt-form-template}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:plt-form-template:*}。
  */
 @Tag(name = "管理后台 - PMS 准备数据表单模板")
 @RestController
-@RequestMapping("/pms/eng-form-template")
+@RequestMapping("/pms/plt-form-template")
 @Validated
 public class FormTemplateController {
 
@@ -45,14 +45,14 @@ public class FormTemplateController {
 
     @PostMapping("/create")
     @Operation(summary = "创建表单模板")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:create')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:create')")
     public CommonResult<Long> createFormTemplate(@Valid @RequestBody FormTemplateSaveReqVO createReqVO) {
         return success(formTemplateService.createFormTemplate(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新表单模板")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:update')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:update')")
     public CommonResult<Boolean> updateFormTemplate(@Valid @RequestBody FormTemplateSaveReqVO updateReqVO) {
         formTemplateService.updateFormTemplate(updateReqVO);
         return success(true);
@@ -61,7 +61,7 @@ public class FormTemplateController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除表单模板")
     @Parameter(name = "id", description = "模板编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:delete')")
     public CommonResult<Boolean> deleteFormTemplate(@RequestParam("id") Long id) {
         formTemplateService.deleteFormTemplate(id);
         return success(true);
@@ -70,7 +70,7 @@ public class FormTemplateController {
     @GetMapping("/get")
     @Operation(summary = "查询表单模板详情")
     @Parameter(name = "id", description = "模板编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:query')")
     public CommonResult<FormTemplateRespVO> getFormTemplate(@RequestParam("id") Long id) {
         FormTemplateDO entity = formTemplateService.getFormTemplate(id);
         return success(BeanUtils.toBean(entity, FormTemplateRespVO.class));
@@ -78,7 +78,7 @@ public class FormTemplateController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询表单模板")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:query')")
     public CommonResult<PageResult<FormTemplateRespVO>> getFormTemplatePage(@Validated FormTemplatePageReqVO pageReqVO) {
         PageResult<FormTemplateDO> pageResult = formTemplateService.getFormTemplatePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, FormTemplateRespVO.class));
@@ -87,7 +87,7 @@ public class FormTemplateController {
     @PutMapping("/publish")
     @Operation(summary = "发布表单模板（0 草稿 → 1 已发布）")
     @Parameter(name = "id", description = "模板编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:publish')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:publish')")
     public CommonResult<Boolean> publishFormTemplate(@RequestParam("id") Long id) {
         formTemplateService.publishFormTemplate(id);
         return success(true);
@@ -96,7 +96,7 @@ public class FormTemplateController {
     @PutMapping("/disable")
     @Operation(summary = "停用表单模板（1 已发布 → 2 已停用）")
     @Parameter(name = "id", description = "模板编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:publish')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:publish')")
     public CommonResult<Boolean> disableFormTemplate(@RequestParam("id") Long id) {
         formTemplateService.disableFormTemplate(id);
         return success(true);
@@ -105,7 +105,7 @@ public class FormTemplateController {
     @PutMapping("/enable")
     @Operation(summary = "重新启用表单模板（2 已停用 → 1 已发布）")
     @Parameter(name = "id", description = "模板编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:publish')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:publish')")
     public CommonResult<Boolean> enableFormTemplate(@RequestParam("id") Long id) {
         formTemplateService.enableFormTemplate(id);
         return success(true);
@@ -114,7 +114,7 @@ public class FormTemplateController {
     @GetMapping("/published-list")
     @Operation(summary = "查询已发布模板列表（供实例创建时下拉选择）")
     @Parameter(name = "productType", description = "产品类型（可空）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-template:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-template:query')")
     public CommonResult<List<FormTemplateRespVO>> getPublishedFormTemplateList(
             @RequestParam(value = "productType", required = false) String productType) {
         List<FormTemplateDO> list = formTemplateService.getPublishedFormTemplateList(productType);

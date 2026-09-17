@@ -9,10 +9,10 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 工程文档模板版本 DO（V36 结构化文档模板）。
  * <p>
- * 对应表 {@code pms_eng_doc_template_version}。
+ * 对应表 {@code imp_doc_template_version}。
  * published：0 未发布、1 已发布（已发布版本不可修改）。
  */
-@TableName("pms_eng_doc_template_version")
+@TableName("imp_doc_template_version")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class DocTemplateVersionDO extends TenantBaseDO {

@@ -13,7 +13,7 @@ export interface FormTemplateVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-form-template'
+const baseUrl = '/pms/plt-form-template'
 
 export const getFormTemplatePage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

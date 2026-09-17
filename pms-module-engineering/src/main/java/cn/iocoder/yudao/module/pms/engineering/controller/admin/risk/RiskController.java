@@ -30,12 +30,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 单机风险 Controller（FR-ENG-008）。
  * <p>
- * 路径前缀 {@code /pms/eng-risk}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-risk:*}。
+ * 路径前缀 {@code /pms/imp-risk}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:imp-risk:*}。
  */
 @Tag(name = "管理后台 - PMS 单机风险")
 @RestController
-@RequestMapping("/pms/eng-risk")
+@RequestMapping("/pms/imp-risk")
 @Validated
 public class RiskController {
 
@@ -44,14 +44,14 @@ public class RiskController {
 
     @PostMapping("/create")
     @Operation(summary = "创建单机风险")
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:create')")
     public CommonResult<Long> createRisk(@Valid @RequestBody RiskSaveReqVO createReqVO) {
         return success(riskService.createRisk(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新单机风险")
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:update')")
     public CommonResult<Boolean> updateRisk(@Valid @RequestBody RiskSaveReqVO updateReqVO) {
         riskService.updateRisk(updateReqVO);
         return success(true);
@@ -60,7 +60,7 @@ public class RiskController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除单机风险")
     @Parameter(name = "id", description = "风险ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:delete')")
     public CommonResult<Boolean> deleteRisk(@RequestParam("id") Long id) {
         riskService.deleteRisk(id);
         return success(true);
@@ -69,7 +69,7 @@ public class RiskController {
     @GetMapping("/get")
     @Operation(summary = "查询单机风险详情")
     @Parameter(name = "id", description = "风险ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:query')")
     public CommonResult<RiskRespVO> getRisk(@RequestParam("id") Long id) {
         RiskDO entity = riskService.getRisk(id);
         return success(BeanUtils.toBean(entity, RiskRespVO.class));
@@ -77,7 +77,7 @@ public class RiskController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询单机风险")
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:query')")
     public CommonResult<PageResult<RiskRespVO>> getRiskPage(@Validated RiskPageReqVO pageReqVO) {
         PageResult<RiskDO> pageResult = riskService.getRiskPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, RiskRespVO.class));
@@ -85,7 +85,7 @@ public class RiskController {
 
     @PutMapping("/confirm")
     @Operation(summary = "确认风险（0 草稿 / 1 已识别 → 2 已确认）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:confirm')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:confirm')")
     public CommonResult<Boolean> confirmRisk(@Valid @RequestBody RiskHandleReqVO reqVO) {
         riskService.confirmRisk(reqVO);
         return success(true);
@@ -94,7 +94,7 @@ public class RiskController {
     @PutMapping("/sync-crm")
     @Operation(summary = "同步CRM（2 已确认 → 3 已同步CRM）")
     @Parameter(name = "id", description = "风险ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:sync')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:sync')")
     public CommonResult<Boolean> syncCrm(@RequestParam("id") Long id) {
         riskService.syncCrm(id);
         return success(true);
@@ -102,7 +102,7 @@ public class RiskController {
 
     @PutMapping("/close")
     @Operation(summary = "关闭风险（3 已同步CRM → 4 已关闭）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-risk:close')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-risk:close')")
     public CommonResult<Boolean> closeRisk(@Valid @RequestBody RiskHandleReqVO reqVO) {
         riskService.closeRisk(reqVO);
         return success(true);

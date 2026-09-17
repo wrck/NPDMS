@@ -30,10 +30,10 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-solution:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-solution:create']"
           ><Icon icon="ep:plus" />新增方案</el-button
         >
-        <el-button type="success" disabled title="工勘与需求的自动汇总尚未接入，请先使用新增方案进行本地编制。" v-hasPermi="['pms:eng-solution:create']"
+        <el-button type="success" disabled title="工勘与需求的自动汇总尚未接入，请先使用新增方案进行本地编制。" v-hasPermi="['pms:sol-solution:create']"
           ><Icon icon="ep:magic-stick" />自动汇总未接入</el-button
         >
       </el-form-item>
@@ -58,7 +58,7 @@
       </el-table-column>
       <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-solution:query']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-solution:query']"
             >{{ editableDraft(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
@@ -66,7 +66,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleSimpleAction(row, 'submit')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >提交</el-button
           >
           <el-button
@@ -74,7 +74,7 @@
             type="primary"
             v-if="row.status === 1"
             @click="handleSimpleAction(row, 'startReview')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >开始审核</el-button
           >
           <el-button
@@ -84,7 +84,7 @@
             :disabled="row.reviewLevel !== 0"
             :title="row.reviewLevel !== 0 ? '重大方案复审尚未接入，不能直接通过' : undefined"
             @click="openApprove(row, 'approve')"
-            v-hasPermi="['pms:eng-solution:audit']"
+            v-hasPermi="['pms:sol-solution:audit']"
             >{{ row.reviewLevel === 0 ? '通过' : '复审待接入' }}</el-button
           >
           <el-button
@@ -92,7 +92,7 @@
             type="warning"
             v-if="row.status === 2"
             @click="openApprove(row, 'reject')"
-            v-hasPermi="['pms:eng-solution:audit']"
+            v-hasPermi="['pms:sol-solution:audit']"
             >驳回</el-button
           >
           <el-button
@@ -100,7 +100,7 @@
             type="info"
             v-if="row.status === 2"
             @click="handleSimpleAction(row, 'withdraw')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >撤回</el-button
           >
           <el-button
@@ -108,10 +108,10 @@
             type="danger"
             v-if="row.status === 2"
             @click="handleSimpleAction(row, 'terminate')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >终止</el-button
           >
-          <el-button v-if="row.status === 0" link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-solution:delete']"
+          <el-button v-if="row.status === 0" link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-solution:delete']"
             >删除</el-button
           >
         </template>
@@ -281,8 +281,8 @@ const detailError = ref('')
 let detailSequence = 0
 const formRef = ref()
 const form = ref<SolutionVO>({ projectId: 0, code: '', name: '', reviewLevel: 0, status: 0 })
-const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:eng-solution:update'])
-const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:eng-solution:create'])))
+const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:sol-solution:update'])
+const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },

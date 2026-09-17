@@ -31,7 +31,7 @@
       </el-form-item>
       <el-form-item>
         <el-button :disabled="!can('QUERY')" @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button v-if="can('CREATE')" type="primary" @click="openForm()" v-hasPermi="['pms:eng-site-survey:create']"
+        <el-button v-if="can('CREATE')" type="primary" @click="openForm()" v-hasPermi="['pms:sol-site-survey:create']"
           ><Icon icon="ep:plus" />新增工勘</el-button
         >
       </el-form-item>
@@ -63,7 +63,7 @@
             link
             type="primary"
             @click="openForm(row)"
-            v-hasPermi="['pms:eng-site-survey:update']"
+            v-hasPermi="['pms:sol-site-survey:update']"
             >编辑</el-button
           >
           <el-button
@@ -71,7 +71,7 @@
             type="success"
             v-if="row.status === 0 && can('CONFIRM')"
             @click="handleAction(row, 'confirm')"
-            v-hasPermi="['pms:eng-site-survey:update']"
+            v-hasPermi="['pms:sol-site-survey:update']"
             >确认</el-button
           >
           <el-button
@@ -79,7 +79,7 @@
             type="warning"
             v-if="row.status === 0 && can('REJECT')"
             @click="handleAction(row, 'reject')"
-            v-hasPermi="['pms:eng-site-survey:update']"
+            v-hasPermi="['pms:sol-site-survey:update']"
             >驳回</el-button
           >
           <el-button
@@ -87,7 +87,7 @@
             type="info"
             v-if="row.status === 1 && can('ARCHIVE')"
             @click="handleAction(row, 'archive')"
-            v-hasPermi="['pms:eng-site-survey:update']"
+            v-hasPermi="['pms:sol-site-survey:update']"
             >归档</el-button
           >
           <el-button
@@ -97,7 +97,7 @@
             @click="remove(row)"
             :disabled="!!row.outsourceRequestId"
             :title="row.outsourceRequestId ? '已关联转包申请，请先处理关联申请' : undefined"
-            v-hasPermi="['pms:eng-site-survey:delete']"
+            v-hasPermi="['pms:sol-site-survey:delete']"
             >删除</el-button
           >
         </template>
@@ -202,7 +202,7 @@
               type="primary"
               :loading="saving"
               @click="startOutsource"
-              v-hasPermi="['pms:eng-outsource:create']"
+              v-hasPermi="['pms:res-outsource:create']"
             >
               保存工勘并发起转包申请
             </el-button>

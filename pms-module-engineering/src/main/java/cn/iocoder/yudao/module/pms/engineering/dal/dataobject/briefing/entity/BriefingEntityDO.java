@@ -62,6 +62,6 @@ public class BriefingEntityDO extends TenantBaseDO {
     private Long creatorUserId;
     /** 备注。 */
     private String remark;
-    /** 原 pms_eng_briefing 主键；新建对象为空，只作来源追溯。 */
+    /** 原 sol_briefing 主键；新建对象为空，只作来源追溯。 */
     private Long legacySourceId;
 }

@@ -127,10 +127,10 @@ class RequirementAnalysisMigrationContractTest {
         assertTrue(legacyPermissionSql.contains("r.`code` <> 'super_admin'"));
         assertTrue(legacyPermissionSql.contains("m.`id` = 19010"));
         assertTrue(legacyPermissionSql.contains("m.`parent_id` = 19010"));
-        assertTrue(legacyPermissionSql.contains("m.`permission` LIKE 'pms:eng-requirement:%'"));
+        assertTrue(legacyPermissionSql.contains("m.`permission` LIKE 'pms:sol-requirement:%'"));
         assertFalse(legacyPermissionSql.contains("UPDATE `system_menu`"));
         assertFalse(legacyPermissionSql.contains("DELETE FROM"));
-        assertFalse(legacyPermissionSql.contains("pms_eng_requirement"));
+        assertFalse(legacyPermissionSql.contains("sol_requirement"));
     }
 
     @Test

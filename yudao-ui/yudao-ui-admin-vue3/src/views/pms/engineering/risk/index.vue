@@ -51,7 +51,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-risk:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-risk:create']"
           ><Icon icon="ep:plus" />新建风险</el-button
         >
       </el-form-item>
@@ -91,13 +91,13 @@
       </el-table-column>
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-risk:query']">明细</el-button>
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:imp-risk:query']">明细</el-button>
           <el-button
             link
             type="warning"
             v-if="row.status === 0 || row.status === 1"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-risk:update']"
+            v-hasPermi="['pms:imp-risk:update']"
             >编辑</el-button
           >
           <el-button
@@ -105,7 +105,7 @@
             type="primary"
             v-if="row.status === 0 || row.status === 1"
             @click="openConfirm(row)"
-            v-hasPermi="['pms:eng-risk:confirm']"
+            v-hasPermi="['pms:imp-risk:confirm']"
             >确认</el-button
           >
           <el-button
@@ -113,7 +113,7 @@
             type="success"
             v-if="row.status === 2"
             @click="handleSyncCrm(row)"
-            v-hasPermi="['pms:eng-risk:sync']"
+            v-hasPermi="['pms:imp-risk:sync']"
             >同步CRM</el-button
           >
           <el-button
@@ -121,7 +121,7 @@
             type="success"
             v-if="row.status === 3"
             @click="openClose(row)"
-            v-hasPermi="['pms:eng-risk:close']"
+            v-hasPermi="['pms:imp-risk:close']"
             >关闭</el-button
           >
           <el-button
@@ -129,7 +129,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-risk:delete']"
+            v-hasPermi="['pms:imp-risk:delete']"
             >删除</el-button
           >
         </template>

@@ -16,7 +16,7 @@ export interface ConfigurationVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-configuration'
+const baseUrl = '/pms/imp-configuration'
 
 export const getConfigurationPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

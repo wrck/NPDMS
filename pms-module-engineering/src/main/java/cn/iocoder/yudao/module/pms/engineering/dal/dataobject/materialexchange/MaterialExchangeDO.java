@@ -13,11 +13,11 @@ import java.time.LocalDateTime;
 /**
  * PMS 物料换货协同 DO（FR-ENG-003）。
  * <p>
- * 对应表 {@code pms_eng_material_exchange}。
+ * 对应表 {@code imp_material_exchange}。
  * 单据状态：0 草稿、1 已提交、2 审批中、3 已通过、4 已驳回、5 已撤回、6 已终止。
  * CRM 推送状态：PENDING 待推送 / SENT 已推送 / RECEIVED 已接收。
  */
-@TableName("pms_eng_material_exchange")
+@TableName("imp_material_exchange")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class MaterialExchangeDO extends TenantBaseDO {

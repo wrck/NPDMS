@@ -61,7 +61,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         SecurityFrameworkUtils.setLoginUser(login, new MockHttpServletRequest());
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:query")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:query")).thenReturn(true);
     }
 
     @AfterEach
@@ -97,8 +97,8 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     void writesRequireManageAndFunctionalPermissionAndEntityState() {
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:update")).thenReturn(true);
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:create")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:update")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(true);
         when(mapper.selectTaskObject(objectQuery)).thenReturn(row(0));
         assertEquals(Set.of("QUERY", "CREATE", "UPDATE", "CONFIRM", "REJECT", "LINK", "UNLINK"),
                 provider.inspect(context, "42").allowedActions());
@@ -107,7 +107,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
                 provider.inspect(context, "42").allowedActions());
         when(mapper.selectTaskObject(objectQuery)).thenReturn(row(3));
         assertEquals(Set.of("QUERY", "CREATE", "LINK", "UNLINK"), provider.inspect(context, "42").allowedActions());
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:update")).thenReturn(false);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:update")).thenReturn(false);
         assertEquals(Set.of("QUERY", "CREATE"), provider.inspect(context, "42").allowedActions());
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of()));
@@ -129,7 +129,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void noFunctionalQueryPermissionNeverReadsAnObject() {
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:query")).thenReturn(false);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:query")).thenReturn(false);
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
         assertThrows(ServiceException.class, () -> provider.candidates(context));
         assertThrows(ServiceException.class, () -> provider.lockAndRevalidate(context, "42", "unknownVersion"));
@@ -168,13 +168,13 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:create")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(true);
         assertEquals(Set.of("QUERY", "CREATE"), provider.inspectContext(context));
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:update")).thenReturn(true);
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:delete")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:update")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:delete")).thenReturn(true);
         assertEquals(Set.of("QUERY", "CREATE", "UPDATE", "CONFIRM", "REJECT", "ARCHIVE", "DELETE"),
                 provider.inspectContext(context));
-        when(permissions.hasAnyPermissions(9L, "pms:eng-site-survey:query")).thenReturn(false);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:query")).thenReturn(false);
         assertThrows(ServiceException.class, () -> provider.inspectContext(context));
         verifyNoInteractions(mapper);
     }
@@ -409,9 +409,9 @@ class SiteSurveyTaskBusinessObjectProviderTest {
                 3L,9L,100L,300L,"SITE_SURVEY","CREATE_ON_FIRST_ACTION",stageExecution);
         assertEquals(Set.of("QUERY"),provider.inspectStage(stage).allowedActions());
         when(permissions.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(true);
-        when(permissions.hasAnyPermissions(9L,"pms:eng-site-survey:create")).thenReturn(true);
-        when(permissions.hasAnyPermissions(9L,"pms:eng-site-survey:update")).thenReturn(true);
-        when(permissions.hasAnyPermissions(9L,"pms:eng-site-survey:delete")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L,"pms:sol-site-survey:create")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L,"pms:sol-site-survey:update")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L,"pms:sol-site-survey:delete")).thenReturn(true);
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L,9L,100L,ProjectScopeApi.ACTION_EDIT)))
                 .thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L,9L,100L,ProjectScopeApi.ACTION_MANAGE)))

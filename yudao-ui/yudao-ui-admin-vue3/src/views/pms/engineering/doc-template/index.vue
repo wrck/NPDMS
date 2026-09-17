@@ -30,7 +30,7 @@
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button @click="resetQuery"><Icon icon="ep:refresh" />重置</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-doc-template:create']">
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-doc-template:create']">
           <Icon icon="ep:plus" />新增模板
         </el-button>
       </el-form-item>
@@ -78,7 +78,7 @@
       <el-table-column prop="createTime" label="创建时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-doc-template:query']">
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:imp-doc-template:query']">
             详情
           </el-button>
           <el-button
@@ -86,7 +86,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-doc-template:update']"
+            v-hasPermi="['pms:imp-doc-template:update']"
           >
             编辑
           </el-button>
@@ -95,7 +95,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handlePublish(row)"
-            v-hasPermi="['pms:eng-doc-template:publish']"
+            v-hasPermi="['pms:imp-doc-template:publish']"
           >
             发布
           </el-button>
@@ -104,7 +104,7 @@
             type="info"
             v-if="row.status === 1"
             @click="handleDisable(row)"
-            v-hasPermi="['pms:eng-doc-template:publish']"
+            v-hasPermi="['pms:imp-doc-template:publish']"
           >
             停用
           </el-button>
@@ -112,7 +112,7 @@
             link
             type="primary"
             @click="openVersionDialog(row)"
-            v-hasPermi="['pms:eng-doc-template:update']"
+            v-hasPermi="['pms:imp-doc-template:update']"
           >
             版本管理
           </el-button>
@@ -121,7 +121,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-doc-template:delete']"
+            v-hasPermi="['pms:imp-doc-template:delete']"
           >
             删除
           </el-button>
@@ -234,7 +234,7 @@
   <!-- 版本管理对话框 -->
   <Dialog v-model="versionVisible" title="版本管理" width="960px">
     <div class="mb-10px">
-      <el-button type="primary" @click="openVersionCreate" v-hasPermi="['pms:eng-doc-template:create']">
+      <el-button type="primary" @click="openVersionCreate" v-hasPermi="['pms:imp-doc-template:create']">
         <Icon icon="ep:plus" />新增版本
       </el-button>
     </div>
@@ -256,7 +256,7 @@
             type="success"
             v-if="row.published !== 1"
             @click="handlePublishVersion(row)"
-            v-hasPermi="['pms:eng-doc-template:publish']"
+            v-hasPermi="['pms:imp-doc-template:publish']"
           >
             发布版本
           </el-button>

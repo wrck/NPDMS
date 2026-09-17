@@ -27,7 +27,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-installation:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-installation:create']"
           ><Icon icon="ep:plus" />新增安装</el-button
         >
       </el-form-item>
@@ -66,7 +66,7 @@
             link
             type="primary"
             @click="openForm(row)"
-            v-hasPermi="['pms:eng-installation:query']"
+            v-hasPermi="['pms:imp-installation:query']"
             >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
@@ -74,7 +74,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'start')"
-            v-hasPermi="['pms:eng-installation:update']"
+            v-hasPermi="['pms:imp-installation:update']"
             >开始安装</el-button
           >
           <el-button
@@ -82,7 +82,7 @@
             type="success"
             v-if="row.status === 1"
             @click="handleAction(row, 'complete')"
-            v-hasPermi="['pms:eng-installation:update']"
+            v-hasPermi="['pms:imp-installation:update']"
             >完成安装</el-button
           >
           <el-button
@@ -90,7 +90,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
-            v-hasPermi="['pms:eng-installation:update']"
+            v-hasPermi="['pms:imp-installation:update']"
             >标记异常</el-button
           >
           <el-button
@@ -98,7 +98,7 @@
             type="danger"
             v-if="row.status !== 2"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-installation:delete']"
+            v-hasPermi="['pms:imp-installation:delete']"
             >删除</el-button
           >
         </template>
@@ -222,8 +222,8 @@ const formVisible = ref(false)
 const formRef = ref()
 type InstallationForm = Omit<InstallationVO, 'installTime'> & { installTime?: string | number | null }
 const form = ref<InstallationForm>({ projectId: 0, code: '', status: 0 })
-const editableRecord = (row: Pick<InstallationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:eng-installation:update'])
-const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:eng-installation:create']))
+const editableRecord = (row: Pick<InstallationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-installation:update'])
+const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-installation:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入安装编码' }]

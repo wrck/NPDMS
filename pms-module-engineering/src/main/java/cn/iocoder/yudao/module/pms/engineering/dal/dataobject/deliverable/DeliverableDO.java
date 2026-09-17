@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 /**
  * 阶段交付件归集 DO
  */
-@TableName("pms_eng_deliverable")
+@TableName("imp_deliverable")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class DeliverableDO extends TenantBaseDO {

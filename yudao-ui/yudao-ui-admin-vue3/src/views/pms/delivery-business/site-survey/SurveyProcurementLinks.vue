@@ -6,13 +6,13 @@
     <el-button
       :disabled="readonly"
       @click="launch?.('material')"
-      v-hasPermi="['pms:eng-material-req:create']"
+      v-hasPermi="['pms:imp-material-req:create']"
       >保存工勘并发起领料申请</el-button
     >
     <el-button
       :disabled="readonly"
       @click="launch?.('procurement')"
-      v-hasPermi="['pms:eng-ext-proc:create']"
+      v-hasPermi="['pms:imp-ext-proc:create']"
       >保存工勘并发起外采申请</el-button
     >
     <p>复用原申请入口；保存工勘或申请草稿不等于OA审批、采购或到货完成。</p>

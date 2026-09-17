@@ -232,9 +232,9 @@ class ArrivalAcceptanceApplicationMySqlTest {
     @Test
     void legacyArrivalTableAndControllerContractRemainUnchanged() {
         assertEquals(1, count("SELECT COUNT(*) FROM information_schema.tables "
-                + "WHERE table_schema=DATABASE() AND table_name='pms_eng_arrival'"));
-        assertEquals("pms_eng_arrival", ArrivalDO.class.getAnnotation(TableName.class).value());
-        assertEquals("/pms/eng-arrival",
+                + "WHERE table_schema=DATABASE() AND table_name='imp_arrival'"));
+        assertEquals("imp_arrival", ArrivalDO.class.getAnnotation(TableName.class).value());
+        assertEquals("/pms/imp-arrival",
                 ArrivalController.class.getAnnotation(RequestMapping.class).value()[0]);
     }
 

@@ -35,7 +35,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-form-instance:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:plt-form-instance:create']"
           ><Icon icon="ep:plus" />新建实例</el-button
         >
       </el-form-item>
@@ -70,7 +70,7 @@
       <el-table-column prop="createTime" label="创建时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-form-instance:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:plt-form-instance:query']"
             >明细</el-button
           >
           <el-button
@@ -78,7 +78,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 1 || row.status === 4"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-form-instance:update']"
+            v-hasPermi="['pms:plt-form-instance:update']"
             >编辑</el-button
           >
           <el-button
@@ -86,7 +86,7 @@
             type="success"
             v-if="row.status === 0 || row.status === 1 || row.status === 4"
             @click="handleSubmit(row)"
-            v-hasPermi="['pms:eng-form-instance:submit']"
+            v-hasPermi="['pms:plt-form-instance:submit']"
             >提交</el-button
           >
           <el-button
@@ -94,7 +94,7 @@
             type="primary"
             v-if="row.status === 2"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-form-instance:audit']"
+            v-hasPermi="['pms:plt-form-instance:audit']"
             >审核</el-button
           >
           <el-button
@@ -102,7 +102,7 @@
             type="danger"
             v-if="row.status === 0 || row.status === 1 || row.status === 4"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-form-instance:delete']"
+            v-hasPermi="['pms:plt-form-instance:delete']"
             >删除</el-button
           >
         </template>

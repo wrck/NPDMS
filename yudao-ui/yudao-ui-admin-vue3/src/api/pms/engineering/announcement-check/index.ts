@@ -23,7 +23,7 @@ export interface AnnouncementCheckVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-announcement-check'
+const baseUrl = '/pms/kno-announcement-check'
 
 export const getAnnouncementCheckPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

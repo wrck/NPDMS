@@ -29,11 +29,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 技术公告 Controller（FR-ENG-009）。
  * <p>
- * 路径前缀 {@code /pms/eng-announcement}，对应菜单权限 {@code pms:eng-announcement:*}。
+ * 路径前缀 {@code /pms/kno-announcement}，对应菜单权限 {@code pms:kno-announcement:*}。
  */
 @Tag(name = "管理后台 - PMS 技术公告")
 @RestController
-@RequestMapping("/pms/eng-announcement")
+@RequestMapping("/pms/kno-announcement")
 @Validated
 public class AnnouncementController {
 
@@ -42,14 +42,14 @@ public class AnnouncementController {
 
     @PostMapping("/create")
     @Operation(summary = "创建技术公告")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:create')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:create')")
     public CommonResult<Long> createAnnouncement(@Valid @RequestBody AnnouncementSaveReqVO createReqVO) {
         return success(announcementService.createAnnouncement(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新技术公告")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:update')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:update')")
     public CommonResult<Boolean> updateAnnouncement(@Valid @RequestBody AnnouncementSaveReqVO updateReqVO) {
         announcementService.updateAnnouncement(updateReqVO);
         return success(true);
@@ -58,7 +58,7 @@ public class AnnouncementController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除技术公告")
     @Parameter(name = "id", description = "公告ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:delete')")
     public CommonResult<Boolean> deleteAnnouncement(@RequestParam("id") Long id) {
         announcementService.deleteAnnouncement(id);
         return success(true);
@@ -67,7 +67,7 @@ public class AnnouncementController {
     @GetMapping("/get")
     @Operation(summary = "查询技术公告详情")
     @Parameter(name = "id", description = "公告ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:query')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:query')")
     public CommonResult<AnnouncementRespVO> getAnnouncement(@RequestParam("id") Long id) {
         AnnouncementDO entity = announcementService.getAnnouncement(id);
         return success(BeanUtils.toBean(entity, AnnouncementRespVO.class));
@@ -75,7 +75,7 @@ public class AnnouncementController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询技术公告")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:query')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:query')")
     public CommonResult<PageResult<AnnouncementRespVO>> getAnnouncementPage(@Validated AnnouncementPageReqVO pageReqVO) {
         PageResult<AnnouncementDO> pageResult = announcementService.getAnnouncementPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, AnnouncementRespVO.class));
@@ -84,7 +84,7 @@ public class AnnouncementController {
     @PutMapping("/publish")
     @Operation(summary = "发布技术公告（0 草稿 → 1 已发布）")
     @Parameter(name = "id", description = "公告ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:publish')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:publish')")
     public CommonResult<Boolean> publishAnnouncement(@RequestParam("id") Long id) {
         announcementService.publishAnnouncement(id);
         return success(true);
@@ -93,7 +93,7 @@ public class AnnouncementController {
     @PutMapping("/disable")
     @Operation(summary = "停用技术公告（1 已发布 → 2 已停用）")
     @Parameter(name = "id", description = "公告ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement:disable')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement:disable')")
     public CommonResult<Boolean> disableAnnouncement(@RequestParam("id") Long id) {
         announcementService.disableAnnouncement(id);
         return success(true);

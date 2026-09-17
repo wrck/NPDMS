@@ -30,12 +30,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 准备数据表单实例 Controller（FR-ENG-007）。
  * <p>
- * 路径前缀 {@code /pms/eng-form-instance}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-form-instance:*}。
+ * 路径前缀 {@code /pms/plt-form-instance}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:plt-form-instance:*}。
  */
 @Tag(name = "管理后台 - PMS 准备数据表单实例")
 @RestController
-@RequestMapping("/pms/eng-form-instance")
+@RequestMapping("/pms/plt-form-instance")
 @Validated
 public class FormInstanceController {
 
@@ -44,14 +44,14 @@ public class FormInstanceController {
 
     @PostMapping("/create")
     @Operation(summary = "创建表单实例")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:create')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:create')")
     public CommonResult<Long> createFormInstance(@Valid @RequestBody FormInstanceSaveReqVO createReqVO) {
         return success(formInstanceService.createFormInstance(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新表单实例")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:update')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:update')")
     public CommonResult<Boolean> updateFormInstance(@Valid @RequestBody FormInstanceSaveReqVO updateReqVO) {
         formInstanceService.updateFormInstance(updateReqVO);
         return success(true);
@@ -60,7 +60,7 @@ public class FormInstanceController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除表单实例")
     @Parameter(name = "id", description = "实例编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:delete')")
     public CommonResult<Boolean> deleteFormInstance(@RequestParam("id") Long id) {
         formInstanceService.deleteFormInstance(id);
         return success(true);
@@ -69,7 +69,7 @@ public class FormInstanceController {
     @GetMapping("/get")
     @Operation(summary = "查询表单实例详情")
     @Parameter(name = "id", description = "实例编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:query')")
     public CommonResult<FormInstanceRespVO> getFormInstance(@RequestParam("id") Long id) {
         FormInstanceDO entity = formInstanceService.getFormInstance(id);
         return success(BeanUtils.toBean(entity, FormInstanceRespVO.class));
@@ -77,7 +77,7 @@ public class FormInstanceController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询表单实例")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:query')")
     public CommonResult<PageResult<FormInstanceRespVO>> getFormInstancePage(@Validated FormInstancePageReqVO pageReqVO) {
         PageResult<FormInstanceDO> pageResult = formInstanceService.getFormInstancePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, FormInstanceRespVO.class));
@@ -85,7 +85,7 @@ public class FormInstanceController {
 
     @PutMapping("/save")
     @Operation(summary = "保存填报（0 待填 / 4 已驳回 → 1 已填）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:update')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:update')")
     public CommonResult<Boolean> saveFormInstance(@Valid @RequestBody FormInstanceSaveReqVO reqVO) {
         formInstanceService.saveFormInstance(reqVO);
         return success(true);
@@ -94,7 +94,7 @@ public class FormInstanceController {
     @PutMapping("/submit")
     @Operation(summary = "提交表单实例（0 待填 / 1 已填 / 4 已驳回 → 2 已提交）")
     @Parameter(name = "id", description = "实例编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:submit')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:submit')")
     public CommonResult<Boolean> submitFormInstance(@RequestParam("id") Long id) {
         formInstanceService.submitFormInstance(id);
         return success(true);
@@ -102,7 +102,7 @@ public class FormInstanceController {
 
     @PutMapping("/approve")
     @Operation(summary = "审核表单实例（2 已提交 → 3 已审核 / 4 已驳回）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-form-instance:audit')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-form-instance:audit')")
     public CommonResult<Boolean> approveFormInstance(@Valid @RequestBody FormInstanceApproveReqVO reqVO) {
         formInstanceService.approveFormInstance(reqVO);
         return success(true);

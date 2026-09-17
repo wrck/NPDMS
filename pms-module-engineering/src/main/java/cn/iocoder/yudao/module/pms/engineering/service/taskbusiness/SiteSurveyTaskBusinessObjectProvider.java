@@ -114,9 +114,9 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
                 && permissionApi.hasAnyPermissions(context.actorId(), "pms:project-task:execute")
                 && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_EDIT)
                 && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_MANAGE)) {
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) actions.add("CREATE");
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) actions.addAll(Set.of("UPDATE", "CONFIRM", "REJECT", "ARCHIVE"));
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete")) actions.add("DELETE");
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:create")) actions.add("CREATE");
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) actions.addAll(Set.of("UPDATE", "CONFIRM", "REJECT", "ARCHIVE"));
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) actions.add("DELETE");
         }
         return new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Result(actions);
     }
@@ -174,7 +174,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
             throw exception(FORBIDDEN);
         }
         if (!hasScope(tenantId, actorId, projectId, ProjectScopeApi.ACTION_VIEW)
-                || !permissionApi.hasAnyPermissions(actorId, "pms:eng-site-survey:query")) {
+                || !permissionApi.hasAnyPermissions(actorId, "pms:sol-site-survey:query")) {
             throw exception(FORBIDDEN);
         }
     }
@@ -193,13 +193,13 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     private Set<String> writePermissions(TaskBusinessObjectProvider.Context context) {
         if (!hasScope(context, ProjectScopeApi.ACTION_MANAGE)) return Set.of();
         Set<String> permissions = new LinkedHashSet<>();
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:create")) {
             permissions.add("CREATE");
         }
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) {
             permissions.add("UPDATE");
         }
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) {
             permissions.add("DELETE");
         }
         return permissions;

@@ -30,7 +30,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-resource:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-resource:create']"
           ><Icon icon="ep:plus" />新增资源</el-button
         >
       </el-form-item>
@@ -53,7 +53,7 @@
       </el-table-column>
       <el-table-column label="操作" width="360" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-resource:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-resource:update']"
             >编辑</el-button
           >
           <el-button
@@ -61,7 +61,7 @@
             type="success"
             v-if="row.readyStatus === 0"
             @click="handleAction(row, 'markReady')"
-            v-hasPermi="['pms:eng-resource:update']"
+            v-hasPermi="['pms:sol-resource:update']"
             >标记就绪</el-button
           >
           <el-button
@@ -69,7 +69,7 @@
             type="warning"
             v-if="row.readyStatus === 0 || row.readyStatus === 1"
             @click="handleAction(row, 'markAbnormal')"
-            v-hasPermi="['pms:eng-resource:update']"
+            v-hasPermi="['pms:sol-resource:update']"
             >标记异常</el-button
           >
           <el-button
@@ -77,10 +77,10 @@
             type="info"
             v-if="row.readyStatus === 1 || row.readyStatus === 2"
             @click="handleAction(row, 'resetToNotReady')"
-            v-hasPermi="['pms:eng-resource:update']"
+            v-hasPermi="['pms:sol-resource:update']"
             >重置未就绪</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-resource:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-resource:delete']"
             >删除</el-button
           >
         </template>

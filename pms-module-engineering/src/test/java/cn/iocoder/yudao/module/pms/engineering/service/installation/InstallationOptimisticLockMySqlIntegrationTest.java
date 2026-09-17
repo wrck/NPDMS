@@ -68,14 +68,14 @@ class InstallationOptimisticLockMySqlIntegrationTest {
         Long equipmentId = jdbcTemplate.queryForObject(
                 "SELECT id FROM pms_equipment WHERE tenant_id=1 AND deleted=b'0' ORDER BY id LIMIT 1",
                 Long.class);
-        jdbcTemplate.update("INSERT INTO pms_eng_installation "
+        jdbcTemplate.update("INSERT INTO imp_installation_record "
                         + "(project_id, code, equipment_id, install_location, status, version, "
                         + "creator, updater, deleted, tenant_id) "
                         + "VALUES (1001, ?, ?, '乐观锁集成测试地点', 0, 0, "
                         + "'mysql-it', 'mysql-it', b'0', 1)",
                 code, equipmentId);
         Long id = jdbcTemplate.queryForObject(
-                "SELECT id FROM pms_eng_installation WHERE code=? AND tenant_id=1", Long.class, code);
+                "SELECT id FROM imp_installation_record WHERE code=? AND tenant_id=1", Long.class, code);
         try {
             InstallationDO first = installationMapper.selectById(id);
             InstallationDO stale = installationMapper.selectById(id);
@@ -87,11 +87,11 @@ class InstallationOptimisticLockMySqlIntegrationTest {
             stale.setStatus(3);
             assertEquals(0, installationMapper.updateById(stale));
             assertEquals(1, jdbcTemplate.queryForObject(
-                    "SELECT version FROM pms_eng_installation WHERE id=?", Integer.class, id));
+                    "SELECT version FROM imp_installation_record WHERE id=?", Integer.class, id));
             assertEquals(1, jdbcTemplate.queryForObject(
-                    "SELECT status FROM pms_eng_installation WHERE id=?", Integer.class, id));
+                    "SELECT status FROM imp_installation_record WHERE id=?", Integer.class, id));
         } finally {
-            jdbcTemplate.update("DELETE FROM pms_eng_installation WHERE id=?", id);
+            jdbcTemplate.update("DELETE FROM imp_installation_record WHERE id=?", id);
         }
     }
 

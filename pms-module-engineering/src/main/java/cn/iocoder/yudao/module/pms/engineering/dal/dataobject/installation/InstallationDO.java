@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 硬件安装记录 DO（FR-ENG-022）。
  * <p>
- * 对应表 {@code pms_eng_installation}。
+ * 对应表 {@code imp_installation_record}。
  * 状态：0 待安装、1 进行中、2 已完成、3 异常。
  */
-@TableName("pms_eng_installation")
+@TableName("imp_installation_record")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class InstallationDO extends TenantBaseDO {

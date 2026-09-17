@@ -22,11 +22,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - 硬件安装 Controller（FR-ENG-022）。
  * <p>
- * 路径前缀 {@code /pms/eng-installation}。
+ * 路径前缀 {@code /pms/imp-installation}。
  */
 @Tag(name = "管理后台 - 硬件安装")
 @RestController
-@RequestMapping("/pms/eng-installation")
+@RequestMapping("/pms/imp-installation")
 @Validated
 public class InstallationController {
 
@@ -35,14 +35,14 @@ public class InstallationController {
 
     @PostMapping("/create")
     @Operation(summary = "创建硬件安装记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:create')")
     public CommonResult<Long> createInstallation(@Valid @RequestBody InstallationSaveReqVO createReqVO) {
         return success(installationService.createInstallation(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新硬件安装记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:update')")
     public CommonResult<Boolean> updateInstallation(@Valid @RequestBody InstallationSaveReqVO updateReqVO) {
         installationService.updateInstallation(updateReqVO);
         return success(true);
@@ -51,7 +51,7 @@ public class InstallationController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除硬件安装记录")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:delete')")
     public CommonResult<Boolean> deleteInstallation(@RequestParam("id") Long id) {
         installationService.deleteInstallation(id);
         return success(true);
@@ -60,7 +60,7 @@ public class InstallationController {
     @GetMapping("/get")
     @Operation(summary = "查询硬件安装详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:query')")
     public CommonResult<InstallationRespVO> getInstallation(@RequestParam("id") Long id) {
         InstallationDO installation = installationService.getInstallation(id);
         return success(BeanUtils.toBean(installation, InstallationRespVO.class));
@@ -68,7 +68,7 @@ public class InstallationController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询硬件安装")
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:query')")
     public CommonResult<PageResult<InstallationRespVO>> getInstallationPage(@Validated InstallationPageReqVO pageReqVO) {
         PageResult<InstallationDO> pageResult = installationService.getInstallationPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, InstallationRespVO.class));
@@ -77,7 +77,7 @@ public class InstallationController {
     @PutMapping("/start")
     @Operation(summary = "开始安装")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:update')")
     public CommonResult<Boolean> startInstallation(@RequestParam("id") Long id) {
         installationService.startInstallation(id);
         return success(true);
@@ -86,7 +86,7 @@ public class InstallationController {
     @PutMapping("/complete")
     @Operation(summary = "完成安装")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:update')")
     public CommonResult<Boolean> completeInstallation(@RequestParam("id") Long id) {
         installationService.completeInstallation(id);
         return success(true);
@@ -95,7 +95,7 @@ public class InstallationController {
     @PutMapping("/mark-abnormal")
     @Operation(summary = "标记安装异常")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-installation:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-installation:update')")
     public CommonResult<Boolean> markAbnormal(@RequestParam("id") Long id) {
         installationService.markAbnormal(id);
         return success(true);

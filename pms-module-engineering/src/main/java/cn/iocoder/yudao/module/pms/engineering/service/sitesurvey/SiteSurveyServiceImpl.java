@@ -44,7 +44,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSiteSurvey(SiteSurveySaveReqVO createReqVO) {
-        writeAccess.lock(createReqVO.getProjectId(), "pms:eng-site-survey:create", createReqVO.getExecution());
+        writeAccess.lock(createReqVO.getProjectId(), "pms:sol-site-survey:create", createReqVO.getExecution());
         validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         SiteSurveyDO survey = BeanUtils.toBean(createReqVO, SiteSurveyDO.class);
         survey.setId(null);
@@ -63,7 +63,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Transactional(rollbackFor = Exception.class)
     public void updateSiteSurvey(SiteSurveySaveReqVO updateReqVO) {
         SiteSurveyDO existing = validateSiteSurveyExists(updateReqVO.getId());
-        writeAccess.lock(existing.getProjectId(), "pms:eng-site-survey:update", updateReqVO.getExecution());
+        writeAccess.lock(existing.getProjectId(), "pms:sol-site-survey:update", updateReqVO.getExecution());
         validateStatus(existing, 0);
         if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
                 || !Objects.equals(existing.getCode(), updateReqVO.getCode())) throw exception(SITE_SURVEY_FORM_INVALID);
@@ -95,7 +95,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteSiteSurvey(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyDO existing = validateSiteSurveyExists(id);
-        writeAccess.lock(existing.getProjectId(), "pms:eng-site-survey:delete", execution);
+        writeAccess.lock(existing.getProjectId(), "pms:sol-site-survey:delete", execution);
         validateStatus(existing, 0);
         if (existing.getOutsourceRequestId() != null) throw exception(SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED);
         if (siteSurveyMapper.deleteDraft(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.query.SiteSurveyMutation(
@@ -119,7 +119,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Transactional(rollbackFor = Exception.class)
     public void confirmSiteSurvey(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyDO survey = validateSiteSurveyExists(id);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
         validateStatus(survey, 0); // 草稿 → 已确认
         validateForm(survey, false);
         updateStatus(survey, 1);
@@ -129,7 +129,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Transactional(rollbackFor = Exception.class)
     public void rejectSiteSurvey(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyDO survey = validateSiteSurveyExists(id);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
         validateStatus(survey, 0); // 草稿 → 已驳回
         updateStatus(survey, 2);
     }
@@ -138,7 +138,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
     @Transactional(rollbackFor = Exception.class)
     public void archiveSiteSurvey(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyDO survey = validateSiteSurveyExists(id);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
         validateStatus(survey, 1); // 已确认 → 已归档
         updateStatus(survey, 3);
     }
@@ -197,11 +197,11 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public void associateOutsourceRequest(Long surveyId, Long projectId, Long outsourceRequestId, ProjectBusinessExecutionSelection execution) {
         if (surveyId == null) throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
         SiteSurveyDO survey = validateSiteSurveyExists(surveyId);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
         validateStatus(survey, 0);
         if (!Objects.equals(projectId, survey.getProjectId()) || !Boolean.TRUE.equals(survey.getOutsourceRequired())
                 || outsourceRequestId == null || survey.getOutsourceRequestId() != null) {
@@ -231,10 +231,10 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public void releaseDeletedOutsourceRequest(Long surveyId, Long outsourceRequestId, ProjectBusinessExecutionSelection execution) {
         SiteSurveyDO survey = validateSiteSurveyExists(surveyId);
-        writeAccess.lock(survey.getProjectId(), "pms:eng-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
         if (!Objects.equals(survey.getOutsourceRequestId(), outsourceRequestId)) return;
         validateStatus(survey, 0);
         survey.setOutsourceRequestId(null);

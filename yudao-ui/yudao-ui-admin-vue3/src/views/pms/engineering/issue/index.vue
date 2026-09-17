@@ -37,7 +37,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-issue:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-issue:create']"
           ><Icon icon="ep:plus" />新增问题</el-button
         >
       </el-form-item>
@@ -65,7 +65,7 @@
       </el-table-column>
       <el-table-column label="操作" width="460" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-issue:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-issue:update']"
             >编辑</el-button
           >
           <el-button
@@ -73,7 +73,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'startRectify')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >开始整改</el-button
           >
           <el-button
@@ -81,7 +81,7 @@
             type="success"
             v-if="row.status === 1"
             @click="handleAction(row, 'submitForVerify')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >提交验证</el-button
           >
           <el-button
@@ -89,7 +89,7 @@
             type="success"
             v-if="row.status === 2"
             @click="openVerify(row, 'close')"
-            v-hasPermi="['pms:eng-issue:verify']"
+            v-hasPermi="['pms:imp-issue:verify']"
             >关闭</el-button
           >
           <el-button
@@ -97,7 +97,7 @@
             type="warning"
             v-if="row.status === 2"
             @click="openVerify(row, 'reject')"
-            v-hasPermi="['pms:eng-issue:verify']"
+            v-hasPermi="['pms:imp-issue:verify']"
             >驳回</el-button
           >
           <el-button
@@ -105,7 +105,7 @@
             type="warning"
             v-if="row.status !== 3 && row.status !== 4"
             @click="handleAction(row, 'suspend')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >挂起</el-button
           >
           <el-button
@@ -113,10 +113,10 @@
             type="success"
             v-if="row.status === 4"
             @click="handleAction(row, 'resume')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >恢复</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-issue:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-issue:delete']"
             >删除</el-button
           >
         </template>

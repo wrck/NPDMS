@@ -20,7 +20,7 @@ export interface DeliverableVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-deliverable'
+const baseUrl = '/pms/imp-deliverable'
 
 export const getDeliverablePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

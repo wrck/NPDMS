@@ -30,12 +30,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 外采申请 Controller（FR-ENG-002）。
  * <p>
- * 路径前缀 {@code /pms/eng-ext-proc}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-ext-proc:*}。
+ * 路径前缀 {@code /pms/imp-ext-proc}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:imp-ext-proc:*}。
  */
 @Tag(name = "管理后台 - PMS 外采申请")
 @RestController
-@RequestMapping("/pms/eng-ext-proc")
+@RequestMapping("/pms/imp-ext-proc")
 @Validated
 public class ExternalProcurementController {
 
@@ -44,14 +44,14 @@ public class ExternalProcurementController {
 
     @PostMapping("/create")
     @Operation(summary = "创建外采申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:create')")
     public CommonResult<Long> createExternalProcurement(@Valid @RequestBody ExternalProcurementSaveReqVO createReqVO) {
         return success(externalProcurementService.createExternalProcurement(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新外采申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:update')")
     public CommonResult<Boolean> updateExternalProcurement(@Valid @RequestBody ExternalProcurementSaveReqVO updateReqVO) {
         externalProcurementService.updateExternalProcurement(updateReqVO);
         return success(true);
@@ -60,7 +60,7 @@ public class ExternalProcurementController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除外采申请")
     @Parameter(name = "id", description = "外采申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:delete')")
     public CommonResult<Boolean> deleteExternalProcurement(@RequestParam("id") Long id) {
         externalProcurementService.deleteExternalProcurement(id);
         return success(true);
@@ -69,7 +69,7 @@ public class ExternalProcurementController {
     @GetMapping("/get")
     @Operation(summary = "查询外采申请详情")
     @Parameter(name = "id", description = "外采申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:query')")
     public CommonResult<ExternalProcurementRespVO> getExternalProcurement(@RequestParam("id") Long id) {
         ExternalProcurementDO entity = externalProcurementService.getExternalProcurement(id);
         return success(BeanUtils.toBean(entity, ExternalProcurementRespVO.class));
@@ -77,7 +77,7 @@ public class ExternalProcurementController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询外采申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:query')")
     public CommonResult<PageResult<ExternalProcurementRespVO>> getExternalProcurementPage(@Validated ExternalProcurementPageReqVO pageReqVO) {
         PageResult<ExternalProcurementDO> pageResult = externalProcurementService.getExternalProcurementPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ExternalProcurementRespVO.class));
@@ -86,7 +86,7 @@ public class ExternalProcurementController {
     @PutMapping("/submit")
     @Operation(summary = "提交外采申请（0 草稿 / 4 已驳回 → 1 已提交）")
     @Parameter(name = "id", description = "外采申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:update')")
     public CommonResult<Boolean> submitExternalProcurement(@RequestParam("id") Long id) {
         externalProcurementService.submitExternalProcurement(id);
         return success(true);
@@ -94,7 +94,7 @@ public class ExternalProcurementController {
 
     @PutMapping("/approve")
     @Operation(summary = "审批外采申请（1 已提交 / 2 审批中 → 3/4/0/2）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:update')")
     public CommonResult<Boolean> approveExternalProcurement(@Valid @RequestBody ExternalProcurementApproveReqVO reqVO) {
         externalProcurementService.approveExternalProcurement(reqVO);
         return success(true);
@@ -103,7 +103,7 @@ public class ExternalProcurementController {
     @PutMapping("/withdraw")
     @Operation(summary = "撤回外采申请（1 已提交 / 2 审批中 → 5 已撤回）")
     @Parameter(name = "id", description = "外采申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:update')")
     public CommonResult<Boolean> withdrawExternalProcurement(@RequestParam("id") Long id) {
         externalProcurementService.withdrawExternalProcurement(id);
         return success(true);
@@ -112,7 +112,7 @@ public class ExternalProcurementController {
     @PutMapping("/terminate")
     @Operation(summary = "终止外采申请（非 3 已通过 / 非 6 已终止 → 6 已终止）")
     @Parameter(name = "id", description = "外采申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-ext-proc:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-ext-proc:update')")
     public CommonResult<Boolean> terminateExternalProcurement(@RequestParam("id") Long id) {
         externalProcurementService.terminateExternalProcurement(id);
         return success(true);

@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-outsource:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:res-outsource:create']"
           ><Icon icon="ep:plus" />新建外包申请</el-button
         >
       </el-form-item>
@@ -90,7 +90,7 @@
       <el-table-column prop="applyTime" label="申请时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-outsource:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:res-outsource:query']"
             >明细</el-button
           >
           <el-button
@@ -98,7 +98,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 4"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-outsource:update']"
+            v-hasPermi="['pms:res-outsource:update']"
             >编辑</el-button
           >
           <el-button
@@ -106,7 +106,7 @@
             type="success"
             v-if="row.status === 0 || row.status === 4"
             @click="handleSubmit(row)"
-            v-hasPermi="['pms:eng-outsource:submit']"
+            v-hasPermi="['pms:res-outsource:submit']"
             >提交</el-button
           >
           <el-button
@@ -114,7 +114,7 @@
             type="primary"
             v-if="row.status === 1 || row.status === 2"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-outsource:audit']"
+            v-hasPermi="['pms:res-outsource:audit']"
             >审批</el-button
           >
           <el-button
@@ -122,7 +122,7 @@
             type="info"
             v-if="row.status === 1 || row.status === 2"
             @click="handleWithdraw(row)"
-            v-hasPermi="['pms:eng-outsource:submit']"
+            v-hasPermi="['pms:res-outsource:submit']"
             >撤回</el-button
           >
           <el-button
@@ -130,7 +130,7 @@
             type="danger"
             v-if="row.status !== 3 && row.status !== 6"
             @click="handleTerminate(row)"
-            v-hasPermi="['pms:eng-outsource:audit']"
+            v-hasPermi="['pms:res-outsource:audit']"
             >终止</el-button
           >
           <el-button
@@ -138,7 +138,7 @@
             type="danger"
             v-if="row.status === 0 || row.status === 4"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-outsource:delete']"
+            v-hasPermi="['pms:res-outsource:delete']"
             >删除</el-button
           >
         </template>

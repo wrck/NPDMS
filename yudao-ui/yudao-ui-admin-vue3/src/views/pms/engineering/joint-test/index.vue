@@ -27,7 +27,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-joint-test:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-joint-test:create']"
           ><Icon icon="ep:plus" />新增联调</el-button
         >
         <el-button disabled title="外部采集仅保留扩展入口，当前不连接设备">一键收集未接入</el-button>
@@ -52,7 +52,7 @@
       </el-table-column>
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-joint-test:query']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-joint-test:query']"
             >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
@@ -60,7 +60,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'start')"
-            v-hasPermi="['pms:eng-joint-test:update']"
+            v-hasPermi="['pms:imp-joint-test:update']"
             >开始联调</el-button
           >
           <el-button
@@ -68,7 +68,7 @@
             type="success"
             v-if="row.status === 1"
             @click="handleAction(row, 'pass')"
-            v-hasPermi="['pms:eng-joint-test:update']"
+            v-hasPermi="['pms:imp-joint-test:update']"
             >联调通过</el-button
           >
           <el-button
@@ -76,10 +76,10 @@
             type="danger"
             v-if="row.status === 1"
             @click="handleFail(row)"
-            v-hasPermi="['pms:eng-joint-test:update']"
+            v-hasPermi="['pms:imp-joint-test:update']"
             >联调失败</el-button
           >
-          <el-button v-if="row.status === 0 || row.status === 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-joint-test:delete']"
+          <el-button v-if="row.status === 0 || row.status === 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-joint-test:delete']"
             >删除</el-button
           >
         </template>
@@ -202,8 +202,8 @@ const formVisible = ref(false)
 const formRef = ref()
 type JointTestForm = Omit<JointTestVO, 'testTime'> & { testTime?: number | string | null }
 const form = ref<JointTestForm>({ projectId: 0, code: '', testCase: '', status: 0 })
-const editableRecord = (row: Pick<JointTestVO, 'status'>) => (row.status === 0 || row.status === 1) && checkPermi(['pms:eng-joint-test:update'])
-const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:eng-joint-test:create']))
+const editableRecord = (row: Pick<JointTestVO, 'status'>) => (row.status === 0 || row.status === 1) && checkPermi(['pms:imp-joint-test:update'])
+const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-joint-test:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }, { validator: (_rule: unknown, value: number | string, callback: (error?: Error) => void) => callback(Number(value) > 0 ? undefined : new Error('请选择项目')) }],
   code: [{ required: true, message: '请输入联调编码' }],

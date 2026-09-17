@@ -33,7 +33,7 @@ export interface MaterialExchangeVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-material-exch'
+const baseUrl = '/pms/imp-material-exch'
 
 export const getMaterialExchangePage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

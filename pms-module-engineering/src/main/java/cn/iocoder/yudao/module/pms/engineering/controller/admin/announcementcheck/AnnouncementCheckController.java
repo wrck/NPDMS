@@ -30,11 +30,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 公告预检查 Controller（FR-ENG-009）。
  * <p>
- * 路径前缀 {@code /pms/eng-announcement-check}，对应菜单权限 {@code pms:eng-announcement-check:*}。
+ * 路径前缀 {@code /pms/kno-announcement-check}，对应菜单权限 {@code pms:kno-announcement-check:*}。
  */
 @Tag(name = "管理后台 - PMS 公告预检查")
 @RestController
-@RequestMapping("/pms/eng-announcement-check")
+@RequestMapping("/pms/kno-announcement-check")
 @Validated
 public class AnnouncementCheckController {
 
@@ -43,14 +43,14 @@ public class AnnouncementCheckController {
 
     @PostMapping("/create")
     @Operation(summary = "创建公告预检查记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:create')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:create')")
     public CommonResult<Long> createAnnouncementCheck(@Valid @RequestBody AnnouncementCheckSaveReqVO createReqVO) {
         return success(announcementCheckService.createAnnouncementCheck(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新公告预检查记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:update')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:update')")
     public CommonResult<Boolean> updateAnnouncementCheck(@Valid @RequestBody AnnouncementCheckSaveReqVO updateReqVO) {
         announcementCheckService.updateAnnouncementCheck(updateReqVO);
         return success(true);
@@ -59,7 +59,7 @@ public class AnnouncementCheckController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除公告预检查记录")
     @Parameter(name = "id", description = "检查记录ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:delete')")
     public CommonResult<Boolean> deleteAnnouncementCheck(@RequestParam("id") Long id) {
         announcementCheckService.deleteAnnouncementCheck(id);
         return success(true);
@@ -68,7 +68,7 @@ public class AnnouncementCheckController {
     @GetMapping("/get")
     @Operation(summary = "查询公告预检查记录详情")
     @Parameter(name = "id", description = "检查记录ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:query')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:query')")
     public CommonResult<AnnouncementCheckRespVO> getAnnouncementCheck(@RequestParam("id") Long id) {
         AnnouncementCheckDO entity = announcementCheckService.getAnnouncementCheck(id);
         return success(BeanUtils.toBean(entity, AnnouncementCheckRespVO.class));
@@ -76,7 +76,7 @@ public class AnnouncementCheckController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询公告预检查记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:query')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:query')")
     public CommonResult<PageResult<AnnouncementCheckRespVO>> getAnnouncementCheckPage(@Validated AnnouncementCheckPageReqVO pageReqVO) {
         PageResult<AnnouncementCheckDO> pageResult = announcementCheckService.getAnnouncementCheckPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, AnnouncementCheckRespVO.class));
@@ -85,7 +85,7 @@ public class AnnouncementCheckController {
     @PutMapping("/perform-check")
     @Operation(summary = "执行检查（0 待检查 → 1 已检查）")
     @Parameter(name = "id", description = "检查记录ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:update')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:update')")
     public CommonResult<Boolean> performCheck(@RequestParam("id") Long id) {
         announcementCheckService.performCheck(id);
         return success(true);
@@ -93,7 +93,7 @@ public class AnnouncementCheckController {
 
     @PutMapping("/handle")
     @Operation(summary = "处置检查记录（1 已检查 → 2 已处置 / 3 已忽略）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-announcement-check:handle')")
+    @PreAuthorize("@ss.hasPermission('pms:kno-announcement-check:handle')")
     public CommonResult<Boolean> handleCheck(@Valid @RequestBody AnnouncementCheckHandleReqVO reqVO) {
         announcementCheckService.handleCheck(reqVO);
         return success(true);

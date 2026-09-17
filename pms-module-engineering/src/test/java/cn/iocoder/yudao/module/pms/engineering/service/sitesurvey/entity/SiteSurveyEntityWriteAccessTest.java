@@ -23,25 +23,25 @@ class SiteSurveyEntityWriteAccessTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L); var user = new LoginUser(); user.setId(8L); user.setTenantId(7L);
         SecurityFrameworkUtils.setLoginUser(user,new MockHttpServletRequest());
-        when(permissions.hasAnyPermissions(8L,"pms:eng-site-survey:create")).thenReturn(true);
+        when(permissions.hasAnyPermissions(8L,"pms:sol-site-survey:create")).thenReturn(true);
         when(scopes.resolveCurrent(new ProjectCurrentScopeQuery(7L,8L,9L,ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
     }
     @AfterEach void clear() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
     @Test void usesTrustedActorAndOwnerIdentityForStandaloneWrite() {
-        access.lock(9L,"pms:eng-site-survey:create",null);
+        access.lock(9L,"pms:sol-site-survey:create",null);
         verify(executions).lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(9L,"SOL","SITE_SURVEY",null));
     }
     @Test void missingFunctionalPermissionOrEmptyScopeNeverInvokesExecutionApi() {
-        assertThrows(ServiceException.class, () -> access.lock(9L,"pms:eng-site-survey:delete",null));
+        assertThrows(ServiceException.class, () -> access.lock(9L,"pms:sol-site-survey:delete",null));
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
-        assertThrows(ServiceException.class, () -> access.lock(9L,"pms:eng-site-survey:create",null));
+        assertThrows(ServiceException.class, () -> access.lock(9L,"pms:sol-site-survey:create",null));
         verifyNoInteractions(executions);
     }
     @Test void unauthenticatedOrUnavailableExecutionDoesNotFallBackToOriginalWrite() {
         doThrow(new IllegalStateException("node unavailable")).when(executions).lockForWrite(any());
-        assertThrows(IllegalStateException.class, () -> access.lock(9L,"pms:eng-site-survey:create",null));
-        SecurityContextHolder.clearContext(); assertThrows(ServiceException.class, () -> access.lock(9L,"pms:eng-site-survey:create",null));
+        assertThrows(IllegalStateException.class, () -> access.lock(9L,"pms:sol-site-survey:create",null));
+        SecurityContextHolder.clearContext(); assertThrows(ServiceException.class, () -> access.lock(9L,"pms:sol-site-survey:create",null));
         verify(executions,times(1)).lockForWrite(any());
     }
 }

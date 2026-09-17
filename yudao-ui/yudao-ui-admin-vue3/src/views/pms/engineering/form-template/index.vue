@@ -29,7 +29,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-form-template:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:plt-form-template:create']"
           ><Icon icon="ep:plus" />新建模板</el-button
         >
       </el-form-item>
@@ -55,7 +55,7 @@
       <el-table-column prop="createTime" label="创建时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-form-template:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:plt-form-template:query']"
             >明细</el-button
           >
           <el-button
@@ -63,7 +63,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-form-template:update']"
+            v-hasPermi="['pms:plt-form-template:update']"
             >编辑</el-button
           >
           <el-button
@@ -71,7 +71,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handlePublish(row)"
-            v-hasPermi="['pms:eng-form-template:publish']"
+            v-hasPermi="['pms:plt-form-template:publish']"
             >发布</el-button
           >
           <el-button
@@ -79,7 +79,7 @@
             type="info"
             v-if="row.status === 1"
             @click="handleDisable(row)"
-            v-hasPermi="['pms:eng-form-template:publish']"
+            v-hasPermi="['pms:plt-form-template:publish']"
             >停用</el-button
           >
           <el-button
@@ -87,7 +87,7 @@
             type="success"
             v-if="row.status === 2"
             @click="handleEnable(row)"
-            v-hasPermi="['pms:eng-form-template:publish']"
+            v-hasPermi="['pms:plt-form-template:publish']"
             >启用</el-button
           >
           <el-button
@@ -95,7 +95,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-form-template:delete']"
+            v-hasPermi="['pms:plt-form-template:delete']"
             >删除</el-button
           >
         </template>

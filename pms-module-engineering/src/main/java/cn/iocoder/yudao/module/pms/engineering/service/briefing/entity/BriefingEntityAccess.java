@@ -23,13 +23,13 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 @Service
 @RequiredArgsConstructor
 public class BriefingEntityAccess {
-    public static final String QUERY = "pms:eng-briefing:query";
-    public static final String CREATE = "pms:eng-briefing:create";
-    public static final String UPDATE = "pms:eng-briefing:update";
-    public static final String DELETE = "pms:eng-briefing:delete";
-    public static final String GENERATE = "pms:eng-briefing:generate";
-    public static final String AUDIT = "pms:eng-briefing:audit";
-    public static final String PUBLISH = "pms:eng-briefing:publish";
+    public static final String QUERY = "pms:sol-briefing:query";
+    public static final String CREATE = "pms:sol-briefing:create";
+    public static final String UPDATE = "pms:sol-briefing:update";
+    public static final String DELETE = "pms:sol-briefing:delete";
+    public static final String GENERATE = "pms:sol-briefing:generate";
+    public static final String AUDIT = "pms:sol-briefing:audit";
+    public static final String PUBLISH = "pms:sol-briefing:publish";
     private final PermissionApi permissions;
     private final ProjectScopeApi scopes;
 

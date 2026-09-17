@@ -30,13 +30,13 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 实施问题 Controller（FR-ENG-026）。
  * <p>
- * 路径前缀 {@code /pms/eng-issue}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-issue:*}。
+ * 路径前缀 {@code /pms/imp-issue}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:imp-issue:*}。
  * 未关闭问题阻断项目验收，由 {@code validateProjectAcceptance} 提供。
  */
 @Tag(name = "管理后台 - PMS 实施问题")
 @RestController
-@RequestMapping("/pms/eng-issue")
+@RequestMapping("/pms/imp-issue")
 @Validated
 public class IssueController {
 
@@ -45,14 +45,14 @@ public class IssueController {
 
     @PostMapping("/create")
     @Operation(summary = "创建问题")
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:create')")
     public CommonResult<Long> createIssue(@Valid @RequestBody IssueSaveReqVO createReqVO) {
         return success(issueService.createIssue(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新问题（已关闭不允许修改）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:update')")
     public CommonResult<Boolean> updateIssue(@Valid @RequestBody IssueSaveReqVO updateReqVO) {
         issueService.updateIssue(updateReqVO);
         return success(true);
@@ -61,7 +61,7 @@ public class IssueController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除问题")
     @Parameter(name = "id", description = "问题编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:delete')")
     public CommonResult<Boolean> deleteIssue(@RequestParam("id") Long id) {
         issueService.deleteIssue(id);
         return success(true);
@@ -70,7 +70,7 @@ public class IssueController {
     @GetMapping("/get")
     @Operation(summary = "查询问题详情")
     @Parameter(name = "id", description = "问题编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:query')")
     public CommonResult<IssueRespVO> getIssue(@RequestParam("id") Long id) {
         IssueDO entity = issueService.getIssue(id);
         return success(BeanUtils.toBean(entity, IssueRespVO.class));
@@ -78,7 +78,7 @@ public class IssueController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询问题")
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:query')")
     public CommonResult<PageResult<IssueRespVO>> getIssuePage(@Validated IssuePageReqVO pageReqVO) {
         PageResult<IssueDO> pageResult = issueService.getIssuePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, IssueRespVO.class));
@@ -87,7 +87,7 @@ public class IssueController {
     @PutMapping("/start-rectify")
     @Operation(summary = "开始整改（0待处理 → 1整改中）")
     @Parameter(name = "id", description = "问题编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:update')")
     public CommonResult<Boolean> startRectify(@RequestParam("id") Long id) {
         issueService.startRectify(id);
         return success(true);
@@ -96,7 +96,7 @@ public class IssueController {
     @PutMapping("/submit-for-verify")
     @Operation(summary = "提交验证（1整改中 → 2待验证）")
     @Parameter(name = "id", description = "问题编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:update')")
     public CommonResult<Boolean> submitForVerify(@RequestParam("id") Long id) {
         issueService.submitForVerify(id);
         return success(true);
@@ -104,7 +104,7 @@ public class IssueController {
 
     @PutMapping("/close")
     @Operation(summary = "关闭问题（2待验证 → 3已关闭，需复测结果）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:verify')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:verify')")
     public CommonResult<Boolean> close(@Valid @RequestBody IssueVerifyReqVO reqVO) {
         issueService.close(reqVO);
         return success(true);
@@ -112,7 +112,7 @@ public class IssueController {
 
     @PutMapping("/reject")
     @Operation(summary = "验证驳回（2待验证 → 1整改中，需驳回原因）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:verify')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:verify')")
     public CommonResult<Boolean> reject(@Valid @RequestBody IssueVerifyReqVO reqVO) {
         issueService.reject(reqVO);
         return success(true);
@@ -121,7 +121,7 @@ public class IssueController {
     @PutMapping("/suspend")
     @Operation(summary = "挂起（任意非终态 → 4已挂起）")
     @Parameter(name = "id", description = "问题编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:update')")
     public CommonResult<Boolean> suspend(@RequestParam("id") Long id) {
         issueService.suspend(id);
         return success(true);
@@ -130,7 +130,7 @@ public class IssueController {
     @PutMapping("/resume")
     @Operation(summary = "恢复（4已挂起 → 1整改中）")
     @Parameter(name = "id", description = "问题编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:update')")
     public CommonResult<Boolean> resume(@RequestParam("id") Long id) {
         issueService.resume(id);
         return success(true);
@@ -139,7 +139,7 @@ public class IssueController {
     @GetMapping("/validate-acceptance")
     @Operation(summary = "验收门禁：检查项目是否存在未关闭问题")
     @Parameter(name = "projectId", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-issue:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-issue:query')")
     public CommonResult<Boolean> validateAcceptance(@RequestParam("projectId") Long projectId) {
         issueService.validateProjectAcceptance(projectId);
         return success(true);

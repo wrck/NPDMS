@@ -40,7 +40,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-requirement:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-requirement:create']"
           ><Icon icon="ep:plus" />新增需求</el-button
         >
       </el-form-item>
@@ -62,7 +62,7 @@
       </el-table-column>
       <el-table-column label="操作" width="340" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-requirement:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-requirement:update']"
             >编辑</el-button
           >
           <el-button
@@ -70,7 +70,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'submit')"
-            v-hasPermi="['pms:eng-requirement:update']"
+            v-hasPermi="['pms:sol-requirement:update']"
             >提交</el-button
           >
           <el-button
@@ -78,7 +78,7 @@
             type="primary"
             v-if="row.status === 1"
             @click="handleAction(row, 'markEffective')"
-            v-hasPermi="['pms:eng-requirement:update']"
+            v-hasPermi="['pms:sol-requirement:update']"
             >标记生效</el-button
           >
           <el-button
@@ -86,10 +86,10 @@
             type="info"
             v-if="row.status === 2"
             @click="handleAction(row, 'archive')"
-            v-hasPermi="['pms:eng-requirement:update']"
+            v-hasPermi="['pms:sol-requirement:update']"
             >归档</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-requirement:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-requirement:delete']"
             >删除</el-button
           >
         </template>

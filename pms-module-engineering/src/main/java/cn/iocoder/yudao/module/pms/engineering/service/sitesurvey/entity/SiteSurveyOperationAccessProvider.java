@@ -27,11 +27,11 @@ public class SiteSurveyOperationAccessProvider implements ProjectBusinessOperati
     @Override public Access inspect(Context context) {
         if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId())
                 || context.actorId() == null || !Objects.equals(context.actorId(), SecurityFrameworkUtils.getLoginUserId())
-                || !permissions.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:query")
+                || !permissions.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:query")
                 || !scope(context, ProjectScopeApi.ACTION_VIEW)) throw exception(FORBIDDEN);
         boolean manage = scope(context, ProjectScopeApi.ACTION_MANAGE);
         Set<String> actions = new LinkedHashSet<>();
-        if (manage && permissions.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) actions.add("SOL.SITE_SURVEY.CREATE");
+        if (manage && permissions.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:create")) actions.add("SOL.SITE_SURVEY.CREATE");
         if (context.objectId() == null) return new Access(actions, null);
         Long id;
         try { id = Long.valueOf(context.objectId()); } catch (NumberFormatException invalid) { throw exception(FORBIDDEN); }
@@ -41,13 +41,13 @@ public class SiteSurveyOperationAccessProvider implements ProjectBusinessOperati
             throw exception(FORBIDDEN);
         if (row.getStatus() == null || row.getStatus() < 0 || row.getStatus() > 3
                 || row.getVersion() == null || row.getVersion() < 0) throw new IllegalStateException("OWNER_STATE_UNAVAILABLE");
-        if (manage && permissions.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) {
+        if (manage && permissions.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) {
             if (Integer.valueOf(0).equals(row.getStatus())) actions.addAll(Set.of(
                     "SOL.SITE_SURVEY.UPDATE", "SOL.SITE_SURVEY.CONFIRM", "SOL.SITE_SURVEY.REJECT"));
             if (Integer.valueOf(1).equals(row.getStatus())) actions.add("SOL.SITE_SURVEY.ARCHIVE");
         }
         if (manage && Integer.valueOf(0).equals(row.getStatus()) && row.getOutsourceRequestId() == null
-                && permissions.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete"))
+                && permissions.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete"))
             actions.add("SOL.SITE_SURVEY.DELETE");
         return new Access(actions, "SOL:SITE_SURVEY:" + row.getId() + ":" + row.getVersion() + ":" + row.getStatus());
     }

@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 业务联调记录 DO（FR-ENG-024）。
  * <p>
- * 对应表 {@code pms_eng_joint_test}。
+ * 对应表 {@code imp_joint_debugging_result}。
  * 状态：0 待联调、1 进行中、2 通过、3 失败。
  */
-@TableName("pms_eng_joint_test")
+@TableName("imp_joint_debugging_result")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class JointTestDO extends TenantBaseDO {

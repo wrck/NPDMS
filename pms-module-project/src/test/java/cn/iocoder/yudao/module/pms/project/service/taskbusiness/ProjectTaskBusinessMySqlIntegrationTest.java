@@ -75,7 +75,7 @@ import static org.mockito.Mockito.*;
  * PlatformCommandExecutionApi transactions/audits. Only PermissionApi and ProjectScopeApi are
  * authorization stubs (one fixture actor/project); this does NOT validate the real IAM/scope engine.
  * BusinessViewQueryApi is unused in these command tests. TestSourceOwner is a test-only Owner,
- * reading/locking dedicated pms_eng_site_survey fixture rows, NOT the PRE production provider.
+ * reading/locking dedicated sol_site_survey fixture rows, NOT the PRE production provider.
  * No production bean, schema or migration is replaced. No default connection to npdms/npdms_test.
  */
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
@@ -176,7 +176,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
                         "SELECT id FROM plt_operation_audit WHERE actor_id=?", Long.class, actorId));
                 deleteIds("plt_idempotency_record", jdbc.queryForList(
                         "SELECT id FROM plt_idempotency_record WHERE actor_id=?", Long.class, actorId));
-                deleteIds("pms_eng_site_survey", ownerIds);
+                deleteIds("sol_site_survey", ownerIds);
                 jdbc.update("DELETE FROM proj_project_task_execution_contract WHERE id=? AND creator=?", contractId, prefix);
                 jdbc.update("DELETE FROM proj_project_member_assignment WHERE id=? AND creator=?", projectId + 5, prefix);
                 deleteSelfReferencingFixtureTask();
@@ -274,7 +274,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
         try (var executor = Executors.newSingleThreadExecutor()) {
             probe.afterInspect = () -> {
                 Future<Integer> changed = executor.submit(() -> jdbc.update(
-                        "UPDATE pms_eng_site_survey SET version=version+1 WHERE id=? AND creator=?", ownerId, prefix));
+                        "UPDATE sol_site_survey SET version=version+1 WHERE id=? AND creator=?", ownerId, prefix));
                 assertEquals(1, get(changed));
             };
             var failure = assertThrows(ServiceException.class,
@@ -367,7 +367,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
                 connection.setAutoCommit(false);
                 try {
                     SQLException conflict = assertThrows(SQLException.class, () -> statement.executeQuery(
-                            "SELECT id FROM pms_eng_site_survey WHERE id=" + ownerId + " FOR UPDATE NOWAIT"));
+                            "SELECT id FROM sol_site_survey WHERE id=" + ownerId + " FOR UPDATE NOWAIT"));
                     assertEquals(3572, conflict.getErrorCode(), "MySQL NOWAIT must report the Owner row is locked");
                 } finally { connection.rollback(); }
             }
@@ -393,7 +393,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
             // After commit the same Owner row must be lockable, proving the lock was not left on a detached transaction.
             try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
                 connection.setAutoCommit(false);
-                try (var row = statement.executeQuery("SELECT id FROM pms_eng_site_survey WHERE id=" + ownerId + " FOR UPDATE NOWAIT")) {
+                try (var row = statement.executeQuery("SELECT id FROM sol_site_survey WHERE id=" + ownerId + " FOR UPDATE NOWAIT")) {
                     assertTrue(row.next()); assertEquals(ownerId, row.getLong(1));
                 } finally { connection.rollback(); }
             }
@@ -415,7 +415,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
         projectIds.add(id);
     }
     private void insertOwner(long id, long tenantId, long project) {
-        jdbc.update("INSERT INTO pms_eng_site_survey (id,project_id,code,name,status,version,tenant_id,creator,updater) "
+        jdbc.update("INSERT INTO sol_site_survey (id,project_id,code,name,status,version,tenant_id,creator,updater) "
                 + "VALUES (?,?,?, ?,1,0,?,?,?)", id, project, "TB-" + id, prefix, tenantId, prefix, prefix);
         ownerIds.add(id);
     }
@@ -453,7 +453,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
                 () -> service.lockAndRevalidateLinkedFacts(taskId, 0L, actorId, prefix, version)).getMessage());
     }
     private int taskVersion() { return jdbc.queryForObject("SELECT version FROM proj_project_task WHERE id=?", Integer.class, taskId); }
-    private int ownerVersion() { return jdbc.queryForObject("SELECT version FROM pms_eng_site_survey WHERE id=?", Integer.class, ownerId); }
+    private int ownerVersion() { return jdbc.queryForObject("SELECT version FROM sol_site_survey WHERE id=?", Integer.class, ownerId); }
     private long linkCount() { return jdbc.queryForObject("SELECT COUNT(*) FROM proj_task_business_link WHERE task_id=?", Long.class, taskId); }
     private long reservationCount() { return jdbc.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record WHERE actor_id=?", Long.class, actorId); }
     private long successCount() { return auditCount("SUCCESS"); }
@@ -510,7 +510,7 @@ class ProjectTaskBusinessMySqlIntegrationTest {
         private BusinessObjectFact read(Context context, String objectId, boolean lock) {
             if (!Objects.equals(context.actorId(), probe.actorId)) throw new SecurityException("Test Owner actor forbidden");
             // Fixture-only SQL is deliberately confined here; production relationship queries remain MyBatis XML.
-            String sql = "SELECT id,name,version,status FROM pms_eng_site_survey WHERE id=? AND tenant_id=? "
+            String sql = "SELECT id,name,version,status FROM sol_site_survey WHERE id=? AND tenant_id=? "
                     + "AND project_id=? AND deleted=b'0'" + (lock ? " FOR UPDATE" : "");
             var facts = jdbc.query(sql, (rs, row) -> new BusinessObjectFact(Long.toString(rs.getLong("id")),
                     rs.getString("name"), "v" + rs.getInt("version"), Set.of("QUERY", "LINK", "UNLINK"),

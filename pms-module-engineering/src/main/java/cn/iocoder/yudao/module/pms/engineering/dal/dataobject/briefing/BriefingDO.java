@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 工程交底书 DO（FR-ENG-006）。
  * <p>
- * 对应表 {@code pms_eng_briefing}。
+ * 对应表 {@code sol_briefing}。
  * 状态：0 草稿、1 已生成、2 已审核、3 已发布、4 已作废。
  */
-@TableName("pms_eng_briefing")
+@TableName("sol_briefing")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class BriefingDO extends TenantBaseDO {

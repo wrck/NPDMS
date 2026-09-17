@@ -12,10 +12,10 @@ import java.time.LocalDate;
 /**
  * PMS 技术公告 DO（FR-ENG-009）。
  * <p>
- * 对应表 {@code pms_eng_announcement}。
+ * 对应表 {@code kno_announcement}。
  * 状态：0 草稿、1 已发布、2 已停用。
  */
-@TableName("pms_eng_announcement")
+@TableName("kno_announcement")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class AnnouncementDO extends TenantBaseDO {

@@ -10,10 +10,10 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 准备数据表单模板 DO（FR-ENG-007）。
  * <p>
- * 对应表 {@code pms_eng_form_template}。
+ * 对应表 {@code plt_form_template}。
  * 状态：0 草稿、1 已发布、2 已停用。
  */
-@TableName("pms_eng_form_template")
+@TableName("plt_form_template")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class FormTemplateDO extends TenantBaseDO {
