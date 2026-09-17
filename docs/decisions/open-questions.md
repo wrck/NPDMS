@@ -809,3 +809,25 @@
 #### 2026-09-08 变更级审查政策生效后的阻断范围
 
 需求方已批准取消Phase 1/2阶段全量阻断。上文中的纯阶段顺序、整阶段批准和PRD全文身份联动不再作为本Q的关闭前置；原审阅/失败记录保留历史，不能称已修复。当前只需针对独立验收这项变更，将已审契约落实到其实际权威API/物理设计及直接消费者，完成真正受影响的Schema/一致性检查并取得对应范围审阅结论；无需修改无关分册状态或重签全阶段。本Q不自动关闭，仍限制尚未明确或验证的实质契约及其依赖实现。
+
+## 领域模块物理组织与跨域交互形态
+
+### Q-ARCH-001
+
+- Status: OPEN
+- Requirement IDs: 无单一Requirement绑定；不改变PRD业务语义的工程结构问题，影响全部`pms-module-*`模块与跨域契约演进
+- Area: 多领域模块物理组织与跨域交互形态
+- Question: 跨域交互的接入税（跨域Fact API层、Provider接入数组、DTO映射及api模块维护成本）应通过物理合并领域模块降低，还是通过按交互性质分流交互形态降低？
+- Evidence: 当前12个`pms-module-*`业务/公共模块与9个`pms-module-*-api`模块；`pms-module-platform`已具备幂等、审计、Outbox与业务授权；engineering已运行`PreparationSourceProviderRegistry`端口注册表模式，并已定义`ArtifactAcceptedMessage`、`ImplementationEvidencePublishedMessage`等事件消息；analytics为纯只读分析域。
+- Options:
+  - A. 维持现状：每域api+biz双模块，跨域交互继续按同步FactApi/Provider形态扩展。
+  - B. 物理合并（2026-09-17讨论的8模块方向）：高频执行环领域合并为单一承载模块（如`pms-module-delivery`），域内跨域调用退化为模块内调用；逻辑领域保留，以包结构纪律补偿边界。
+  - C. 三旋钮组合：把模块化拆为物理边界（Maven模块划分）、契约形态（接口由提供方api发布或由消费方端口定义）、运行时耦合（同步调用/事件/本地投影）三个可独立调节维度；物理边界维持多域不合并，只调节后两者——强一致命令（如`lockAndRevalidate`行锁重验）保留同步api；只读事实快照按消费频率与陈旧容忍度在FactApi与事件物化/本地投影间选择（analytics为天然试点）；多源适配推广端口+注册表既有模式；跨域长流程（五步检查、异步重评链等PRD既有流程）归编排层+LiteFlow，依赖图从网状收敛为星型；全域公共概念收敛共享内核platform。
+- Recommended technical default: C。B一次性降低接入税但牺牲域边界与演进隔离，合并后难以回退；C复用既有基础设施（platform Outbox、Provider注册表、事件消息），按交互逐项演进、分阶段实施且单项可回退。
+- Cost/risk note: C的事件物化新增投影维护、重建与对账成本，仅对高频且可容忍短暂陈旧的读启用；编排层不得拥有业务事实，防止演变为上帝模块；共享内核严格准入，只收全域真正共用概念，防止退化为公共堆积区。
+- Why it blocks design/implementation: 不阻断当前Feature实施与验收；裁决前新跨域交互仍按现状同步FactApi/Provider形态实施，不得擅自切换事件物化、本地投影或新建编排层。
+- Blocking scope: 后续新跨域交互的形态选择与模块结构演进；既有已实现api契约不因本Q变更。
+- Business decision required: 是；需需求方裁决方向，架构负责人与各领域Owner参与影响分析。
+- Resolution: 待定
+- Decision owner: 需求方（方向）；架构负责人、各领域Owner（影响分析与落实）
+- Decision date: 未关闭；2026-09-17登记
