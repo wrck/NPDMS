@@ -21,4 +21,14 @@ public class AcceptanceReportOperationProvider implements ProjectBusinessOperati
                 new ProjectBusinessOperationDescriptor("ACC.ACCEPTANCE_REPORT.REVOKE", 1, "ACC", "ACCEPTANCE", "撤销验收报告", "MANAGE",
                         Set.of("PRE", "POST"), AcceptanceReportCommandService.class, "revoke"));
     }
+
+    /** Native functional permissions; actual Owner methods still authorize every command. */
+    @Override
+    public java.util.Map<String, String> permissionCodes() {
+        return java.util.Map.of(
+                "ACC.ACCEPTANCE_REPORT.CREATE_DRAFT", "pms:acceptance:report:write",
+                "ACC.ACCEPTANCE_REPORT.UPDATE_DRAFT", "pms:acceptance:report:write",
+                "ACC.ACCEPTANCE_REPORT.PUBLISH", "pms:acceptance:report:write",
+                "ACC.ACCEPTANCE_REPORT.REVOKE", "pms:acceptance:report:write");
+    }
 }

@@ -335,3 +335,30 @@ Legacy Import只允许复制能证明的事实。缺图、缺rule、缺Owner、�
 10. 当前模板UI真实保存、validate、publish、创建Project和工作区消费浏览器闭环。
 
 通过代码存在、单个单测或Schema可执行均不能单独宣称Feature Done。
+
+
+## 13. 2026-09-17补充：按原权限码选择业务操作（P1.01）
+
+适用PM-03配置目录及PM-11直接消费者；依据[版本优先决策](../decisions/ADR-2026-09-17-template-execution-version-first.md)。本节是配置查询契约，不改变本分册schema2历史读取/Hash、业务运行授权或快照格式；新的版本冻结行为在P1.02另行接线。
+
+`ProjectBusinessOperationProvider`可提供 `permissionCodes()`：原operationCode到原业务功能权限码的受信映射。默认空映射保持旧Provider兼容，仍可按原精确版本查找，但不参与权限码简写；不从ownerAction、名称或前缀猜权限。映射只能指向该Provider自己登记的操作，空值/未知键/重复精确操作启动拒绝。
+
+现有 `GET /api/v1/pms/project-templates/operation-catalog` 保留原参数和六个响应字段，增加可空 `permissionCode`。旧调用和底层operationVersion保持兼容，该版本由注册信息提供，不增加用户必填的版本组合。
+
+新增同资源只读 `GET /api/v1/pms/project-templates/operation-catalog/resolve`：必填ownerContext、objectType、permissionCode，可选原operationCode；不接受客户端操作版本。两个接口均要求 `pms:project-template:update` 或 `pms:project-plan:manage`，不开放未授权的公共目录。
+
+响应仍使用原CommonResult，data为 `{status, selected, candidates}`。配置选择状态为：
+
+| status | 语义 |
+|---|---|
+| RESOLVED | 恰有一个元数据项；selected为该项 |
+| NOT_FOUND | 当前Owner/实体/权限/可选动作范围没有匹配 |
+| AMBIGUOUS_OPERATION | 共用权限映射多个动作；需选择原动作，不取第一条 |
+| AMBIGUOUS_VERSION | 相同动作存在多个已登记候选版本；无明确部署预设时拒绝自动选择，不取latest/默认1 |
+| INVALID_REQUEST | 空白/缺少必要选择字段；selected为空 |
+
+除了RESOLVED，selected均为空；候选排序只为稳定呈现，不作为执行策略。请求缺少必需HTTP参数仍按Spring原400错误处理；选择无匹配/歧义是正常只读结果而非服务错误。非法登记属于服务配置错误，不能静默覆盖。
+
+每个候选仅暴露原业务操作、权限及检查点/可用性元数据，不暴露Java类或方法名。RESOLVED不等于用户有业务权限或操作可运行；runtimeAvailable仍为独立观察，不能用它筛掉某个版本后偷偷选另一个版本。
+
+P1.01只接通目录及前端类型化调用，不使新权限码配置直接进入旧命令执行器。后续编译必须将选择出的既有操作身份内联到模板发布版本；提交仍重新核对真实Owner授权、数据范围、对象/业务版本和节点资格。无任何Hash新增，无数据库/状态写入，页面URL不参与命令路由。
