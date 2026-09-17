@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityMapper">
+    <!-- 显式约束租户和逻辑删除，不依赖调用方传入任意 SQL。 -->
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.entity.BriefingEntityDO">
+        SELECT * FROM sol_engineering_briefing
+        WHERE id = #{query.id} AND tenant_id = #{query.tenantId} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+</mapper>
