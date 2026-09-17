@@ -50,7 +50,7 @@ jobs:
             src/components/LowCodeFormRendererV2 \
             --reporter=default --reporter=junit \
             --outputFile.junit=artifacts/lowcode-compat.xml
-      - name: Type-check frontend
+      - name: Type-check complete frontend
         if: ${{ !cancelled() && success() }}
         run: |
           set +e
@@ -65,6 +65,8 @@ jobs:
           print(f'TypeScript diagnostic count: {len(errors)}')
           for path, count in counts.most_common(50):
               print(f'{count:4} {path}')
+          for line in errors[:200]:
+              print(line)
           if not errors:
               print(text[-4000:])
           PY
@@ -79,4 +81,43 @@ jobs:
             yudao-ui/yudao-ui-admin-vue3/artifacts/typecheck.log
             yudao-ui/yudao-ui-admin-vue3/artifacts/typecheck.exit
             yudao-ui/yudao-ui-admin-vue3/artifacts/install.log
+          if-no-files-found: error
+
+  production-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          mkdir -p artifacts
+          pnpm install --frozen-lockfile > artifacts/build-install.log 2>&1 || { tail -n 40 artifacts/build-install.log; exit 1; }
+      - name: Build complete production frontend
+        run: |
+          set +e
+          pnpm run build:prod > artifacts/build.log 2>&1
+          result=$?
+          printf '%s\n' "$result" > artifacts/build.exit
+          tail -n 100 artifacts/build.log
+          exit "$result"
+      - name: Upload complete build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-production-build-${{ github.sha }}
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/build.log
+            yudao-ui/yudao-ui-admin-vue3/artifacts/build.exit
+            yudao-ui/yudao-ui-admin-vue3/artifacts/build-install.log
           if-no-files-found: error
