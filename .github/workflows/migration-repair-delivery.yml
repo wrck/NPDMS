@@ -1,0 +1,151 @@
+name: Migration repair delivery
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - '.github/apply-migration-repairs.py'
+      - '.github/workflows/migration-repair-delivery.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration-repair-delivery
+  cancel-in-progress: true
+
+jobs:
+  verify-repair:
+    if: github.repository == 'wrck/NPDMS'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          show-progress: false
+      - name: Apply exact reviewed source edits
+        id: apply
+        run: |
+          python3 .github/apply-migration-repairs.py
+          git diff --cached --check
+          git diff --cached --binary > "$RUNNER_TEMP/reviewed-repair.patch"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        id: install
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          mkdir -p artifacts/migration-repair
+          pnpm install --frozen-lockfile > artifacts/migration-repair/install.log 2>&1 || { tail -n 40 artifacts/migration-repair/install.log; exit 1; }
+      - name: Full frontend ESLint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        run: |
+          pnpm exec eslint ./src --format json --output-file artifacts/migration-repair/eslint.json
+      - name: Full frontend typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm run ts:check 2>&1 | tee artifacts/migration-repair/typecheck.log
+      - name: Complete existing unit and Node regression
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        shell: bash
+        run: |
+          set +e
+          pnpm exec vitest run --config vitest.pms-file.config.ts --reporter=default --reporter=junit --outputFile.junit=artifacts/migration-repair/unit.xml > artifacts/migration-repair/unit.log 2>&1
+          unit=$?
+          node --experimental-strip-types --test tests/theme-init.test.mjs src/components/PmsLocationSelector/locationSelector.spec.ts src/views/pms/asset/location/location-contract.spec.ts src/views/pms/engineering/installation/installationForm.spec.ts src/views/pms/project/projects/index.spec.ts > artifacts/migration-repair/native.log 2>&1
+          native=$?
+          tail -n 14 artifacts/migration-repair/unit.log
+          grep -E 'not ok|# (tests|pass|fail|skipped)' artifacts/migration-repair/native.log || true
+          test "$unit" = 0 && test "$native" = 0
+      - name: Full production build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        shell: bash
+        run: |
+          set +e
+          pnpm run build:prod > artifacts/migration-repair/build.log 2>&1
+          result=$?
+          tail -n 30 artifacts/migration-repair/build.log
+          exit "$result"
+      - name: Install isolated browser tooling
+        id: browser
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lowcode-playwright" --no-audit --no-fund playwright@1.58.2
+          node "$RUNNER_TEMP/lowcode-playwright/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Original renderer browser regression
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
+        run: node tests/lowcode/browser/run.mjs
+      - name: Saved consumers and new failure regression
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/lowcode-playwright
+        run: node tests/lowcode/consumers/run.mjs
+      - name: Commit only the verified source repair
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/migration-sync-research-f36p0S
+          test "$(git ls-remote origin "$GITHUB_REF" | cut -f1)" = "$GITHUB_SHA"
+          git diff --cached --check
+          git rm .github/apply-migration-repairs.py .github/workflows/migration-repair-delivery.yml
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit \
+            -m 'fix(frontend): isolate preview state and close list failure paths' \
+            -m 'Verify complete ESLint, full vue-tsc, all Vitest/Node suites, production build, original renderer scenarios and expanded real-page HTTP-contract scenarios. Preserve V1 implementation and immutable configuration semantics. Remove the one-use delivery script and workflow.'
+          askpass="$RUNNER_TEMP/repair-askpass.sh"
+          printf '%s\n' '#!/bin/sh' 'case "$1" in *Username*) printf "%s\n" x-access-token ;; *) printf "%s\n" "$GITHUB_TOKEN" ;; esac' > "$askpass"
+          chmod 700 "$askpass"
+          trap 'rm -f "$askpass"' EXIT
+          GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git push origin "HEAD:$GITHUB_REF"
+          git rev-parse HEAD > yudao-ui/yudao-ui-admin-vue3/artifacts/migration-repair/verified-commit.txt
+      - name: Summarize exact failures
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as ET
+          from pathlib import Path
+          root = Path('yudao-ui/yudao-ui-admin-vue3/artifacts/migration-repair')
+          report = root / 'eslint.json'
+          if report.exists():
+              rows = json.loads(report.read_text())
+              print('ESLint errors:', sum(row.get('errorCount', 0) for row in rows))
+              print('ESLint warnings:', sum(row.get('warningCount', 0) for row in rows))
+              for row in rows:
+                  for message in row.get('messages', []):
+                      if message.get('severity') == 2:
+                          print(row['filePath'], message)
+          report = root / 'unit.xml'
+          if report.exists():
+              for case in ET.parse(report).getroot().iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      print('FAIL', case.get('classname'), case.get('name'), (failure.get('message') or '')[:700])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: migration-repair-${{ github.sha }}
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/migration-repair/
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-browser/
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-consumers/
+            ${{ runner.temp }}/reviewed-repair.patch
+          if-no-files-found: error
+          retention-days: 14
