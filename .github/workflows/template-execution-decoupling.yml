@@ -1,0 +1,91 @@
+name: Template execution decoupling regression
+
+on:
+  push:
+    branches: [codex/liteflow-remediation]
+    paths:
+      - '.github/workflows/template-execution-decoupling.yml'
+      - 'pms-module-project/**'
+      - 'pms-module-platform/**'
+      - 'yudao-framework/**'
+      - 'pom.xml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: template-execution-decoupling-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Template and plan regression (Java 25)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      # The opt-in bundle contains only tracked source, never checkout credentials or runner settings.
+      - name: Archive the exact source for reproduction
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[复现包]')
+        run: git archive --format=tar --output="${RUNNER_TEMP}/template-source.tar" HEAD
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[复现包]')
+        with:
+          name: template-source-${{ github.sha }}
+          path: ${{ runner.temp }}/template-source.tar
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compile dependencies and run template, plan and runtime graph tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -ntp -pl pms-module-project -am \
+            -DskipITs=true \
+            '-Dtest=*Template*Test,*ProjectPlan*Test,*ProjectRuntimeGraph*Test' \
+            -Dsurefire.failIfNoSpecifiedTests=false test 2>&1 | tee "${RUNNER_TEMP}/template-tests.log"
+      - name: Require real test reports with no failures or skipped tests
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          reports = list(Path('pms-module-project/target/surefire-reports').glob('TEST-*.xml'))
+          required = {
+              'TemplateExecutionSnapshotReaderTest',
+              'ProjectTemplatePublishedSnapshotBoundaryTest',
+              'ProjectRuntimeGraphSnapshotFormatTest',
+          }
+          observed = set()
+          totals = dict.fromkeys(('tests', 'failures', 'errors', 'skipped'), 0)
+          for path in reports:
+              suite = ET.parse(path).getroot()
+              count = int(suite.get('tests', '0'))
+              if count:
+                  observed.add(suite.get('name', '').rsplit('.', 1)[-1])
+              for field in totals:
+                  totals[field] += int(suite.get(field, '0'))
+          print(totals)
+          missing = required - observed
+          if missing or totals['tests'] == 0 or any(totals[key] for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit(f'Template regression evidence incomplete: missing={sorted(missing)}, totals={totals}')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: template-regression-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/template-tests.log
+            pms-module-project/target/surefire-reports/*.xml
+            pms-module-project/target/surefire-reports/*.txt
+          if-no-files-found: error
+          retention-days: 14

@@ -9,7 +9,8 @@
 - P0准备提交：a6313c6b4c84db03acbd0361ab57bb00a90e7ab5。
 - P1.01实现提交：f6d28931608bb39c484c8b9a23da79b81e4a76e1。
 - P1.02.1实现提交：65ec5445fc59ac13c2b81a875806936b790107f5。
-- 本次为P1.02.2计划快照消费边界提交；自身SHA由Git历史定位，下一环节补记真实引用。
+- P1.02.2实现提交：3cba4ac7bfcb59ddc319827b39f9f674044fe198。
+- 本次为P1-V1分支定向验证入口提交；自身SHA由Git历史定位，下一环节补记真实引用。
 - 最新约束：版本优先、不新增多层Hash、权限码选择动作、复用业务输入、pageUrl仅展示。
 
 ## 阶段状态
@@ -102,3 +103,13 @@ ProjectPlanInitializationService回读项目指定的已发布模板版本，比
 实际验证：修改前两个Service、原初始化测试及进度已核对Git Blob；JDK21以-Werror -Xlint:all实际编译新合同集合生产类及场景，26项通过；8个Java文件语法解析0错误；差异空白检查通过。框架测试源码覆盖完整快照差异、来源替换、合同错配、异常格式、预览/启用写前拒绝及正常阶段/任务轮次；JUnit/Spring/JDK25/Maven/数据库/API/浏览器未运行。当前容器Git和依赖站点DNS不可用，无Maven，不复用历史PASS。
 
 旧Hasher、Compiler发布格式、业务命令、历史Resolver、数据库和部署配置保持不变。下一项仍为P1.02新版本完整冻结/不可变发布及其全部Reader接线，未启用新格式，不将P1父阶段或P2～P9提前标为完成。
+
+## P1-V1 分支定向构建与可复现验证入口
+
+基准：3cba4ac7bfcb59ddc319827b39f9f674044fe198。实施计划I12的本阶段验证支撑，不替代P1.02生产出口或P9全阶段验收。
+
+已审计现有integration-code-regression.yml：仅PR/master及手动触发，前述分支提交不能据此推导CI执行。新增独立template-execution-decoupling.yml，在目标分支相关代码推送时用JDK25/Maven编译依赖并执行Template、ProjectPlan、RuntimeGraph定向测试；缺少关键测试报告、零测试、失败、错误或跳过均明确失败。复用仓库现有Actions版本，不修改既有工作流、生产服务、部署或数据库。
+
+只授予contents:read，checkout不保留凭据；日志与JUnit报告留在本仓库Actions artifact。手动运行或提交明确含[复现包]时，额外归档当前HEAD的Git跟踪源码用于隔离复现，不包含.git、Runner配置、Maven settings或未跟踪文件，保留3天。
+
+本地实际执行：YAML结构检查、所有run块bash -n和内嵌Python语法检查通过。工作流提交时尚无该HEAD的远端运行结果，不能记录CI或JUnit通过；本地仍无JDK25/Maven，Git直连DNS失败。下一生产项仍为P1.02新格式冻结/发布接线，P1与P2～P9状态不变。
