@@ -1,12 +1,12 @@
 import { createRenderer, defineComponent, h, nextTick, reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ProjectNormalClosurePanel from './ProjectNormalClosurePanel.vue'
-import * as ClosureApi from '@/api/pms/project/normal-closure'
+import * as ClosureApi from '@/api/pms/acceptance/normal-closure'
 import type {
   ClosureApplication,
   ClosureOverview,
   ClosureSnapshot
-} from '@/api/pms/project/normal-closure'
+} from '@/api/pms/acceptance/normal-closure'
 import {
   button as elementButton,
   passthrough,
@@ -25,7 +25,7 @@ vi.mock('vue-router', () => ({
   useRoute: () => controls.route
 }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
-vi.mock('@/api/pms/project/normal-closure', () => ({
+vi.mock('@/api/pms/acceptance/normal-closure', () => ({
   getNormalClosure: vi.fn(),
   checkNormalClosure: vi.fn(),
   submitNormalClosure: vi.fn()

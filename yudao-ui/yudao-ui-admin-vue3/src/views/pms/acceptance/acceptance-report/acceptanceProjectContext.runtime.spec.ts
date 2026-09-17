@@ -1,14 +1,14 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import Workbench from './index.vue'
-import * as ReportApi from '@/api/pms/project/acceptance-report'
+import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
 import { mount, passthrough, tableColumn, findByTestId, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const detailState = vi.hoisted(() => ({ dirty: false, close: vi.fn() }))
 const guards = vi.hoisted(() => ({ leave: [] as Array<() => Promise<boolean>>, update: [] as Array<() => Promise<boolean>> }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), onBeforeRouteLeave: (guard: () => Promise<boolean>) => guards.leave.push(guard), onBeforeRouteUpdate: (guard: () => Promise<boolean>) => guards.update.push(guard) }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
-vi.mock('@/api/pms/project/acceptance-report', () => ({ getActivities: vi.fn() }))
+vi.mock('@/api/pms/acceptance/acceptance-report', () => ({ getActivities: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('./detail.vue', () => ({ default: { setup: (_: unknown, { expose }: any) => {
   expose({

@@ -81,8 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import * as Api from '@/api/pms/project/satisfaction'
-import type { TemplateRevision, TemplateView } from '@/api/pms/project/satisfaction'
+import * as Api from '@/api/pms/acceptance/satisfaction'
+import type { TemplateRevision, TemplateView } from '@/api/pms/acceptance/satisfaction'
 
 const message = useMessage()
 const loading = ref(false)

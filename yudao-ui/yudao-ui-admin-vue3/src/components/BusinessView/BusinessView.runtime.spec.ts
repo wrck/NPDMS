@@ -18,7 +18,7 @@ import {
 vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
-vi.mock('@/views/pms/project/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
+vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
 const confirm = vi.hoisted(() => vi.fn(async (): Promise<void> => undefined))
 vi.mock('@/hooks/web/useMessage', () => ({
   useMessage: () => ({ confirm, warning: vi.fn(), success: vi.fn(), info: vi.fn() })

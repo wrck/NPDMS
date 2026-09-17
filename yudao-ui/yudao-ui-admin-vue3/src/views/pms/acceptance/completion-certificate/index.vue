@@ -186,10 +186,10 @@
 import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
-import * as CompletionCertificateApi from '@/api/pms/project/completion-certificate'
+import * as CompletionCertificateApi from '@/api/pms/acceptance/completion-certificate'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as CustomerApi from '@/api/pms/project/customer'
-import type { CompletionCertificateVO } from '@/api/pms/project/completion-certificate'
+import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 
 defineOptions({ name: 'PmsCompletionCertificate' })
 const message = useMessage()

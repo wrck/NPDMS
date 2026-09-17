@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import request from '@/config/axios'
 import * as Survey from '@/api/pms/engineering/site-survey/entity'
 import * as Analysis from '@/api/pms/engineering/requirement-analysis/entity'
-import * as Report from '@/api/pms/project/acceptance-report'
+import * as Report from '@/api/pms/acceptance/acceptance-report'
 import { OperationClient, routeSelection } from './operationClient'
 
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))

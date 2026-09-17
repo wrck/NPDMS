@@ -4,7 +4,7 @@ import NormalClosureProcessView from './NormalClosureProcessView.vue'
 import {
   getNormalClosureApplication,
   type ApplicationDetail
-} from '@/api/pms/project/normal-closure'
+} from '@/api/pms/acceptance/normal-closure'
 import {
   mount,
   passthrough,
@@ -12,7 +12,7 @@ import {
   type TestNode
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/api/pms/project/normal-closure', () => ({ getNormalClosureApplication: vi.fn() }))
+vi.mock('@/api/pms/acceptance/normal-closure', () => ({ getNormalClosureApplication: vi.fn() }))
 const ID = '2099999999999999999'
 const KEY = `PROJECT_NORMAL_CLOSURE:${ID}`
 const tables: unknown[] = []

@@ -19,7 +19,7 @@ vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), useRoute: () => ({ q
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue', () => ({ default: { render: () => null } }))
 vi.mock('./SiteSurveyDynamicForm.vue', () => ({ default: { render: () => null } }))
-vi.mock('@/views/pms/project/acceptance-report/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { render: () => null } }))
 
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 12; i++) { await nextTick(); await Promise.resolve() } }

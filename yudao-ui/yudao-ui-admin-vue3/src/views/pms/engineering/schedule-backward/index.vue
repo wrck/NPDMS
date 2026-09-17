@@ -33,10 +33,10 @@
 
 <script setup lang="ts">
 import { dateFormatter } from '@/utils/formatTime'
-import * as ScheduleApi from '@/api/pms/project/schedule-backward'
+import * as ScheduleApi from '@/api/pms/engineering/schedule-backward'
 import * as ProjectApi from '@/api/pms/project/project'
 import ProjectTag from '@/components/ProjectTag/index.vue'
-import type { ScheduleBackwardItemVO, ScheduleBackwardVO } from '@/api/pms/project/schedule-backward'
+import type { ScheduleBackwardItemVO, ScheduleBackwardVO } from '@/api/pms/engineering/schedule-backward'
 
 defineOptions({ name: 'PmsScheduleBackwardHistory' })
 const loading = ref(false)

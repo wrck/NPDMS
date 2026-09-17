@@ -56,6 +56,14 @@
 | ApprovedImplementationCommandSnapshot | EXE-03、INT-12 | Implementation Execution | Device Access & Collection | 仅EXE-03受信批准记录/版本/哈希/设备/主体范围；DAC重验。独立中心、CUT、INS仍需要已发布命令模板。 |
 | CutoverChecklistCollectionBinding | CUT-03、INT-12 | Cutover | Device Access & Collection / Cutover | taskId、checklistVersion、itemId、deviceId、CollectionTask及resultVersion精确绑定；技术回调只提供证据，CUT判定业务通过。 |
 | AuthenticatedFileCallback | PLT-02、INT-12 | Authenticated integration caller | Platform file service | 来源身份、契约验签、任务/对象权限、大小/类型/哈希和幂等同时校验；幂等键不能替代认证。 |
+| `ProjectParticipantFactApi` | PM-08、ACC-02 | Project | Acceptance | 项目参与人时态事实只读；ACC 满意度任务指派据此判定对象为当前参与人，不直接访问 PROJ 成员表。 |
+| `ProjectAcceptanceFactApi` | CLO-01 | Project | Acceptance | 项目终验已通过/已归档事实只读；PROJ 旧闭环链据此校验终验，不直接访问 ACC 验收表。 |
+| `ProjectDeliverableInitializationApplicationService` | PM-01、PM-03 | Acceptance | Project | ACC 交付件初始化同步契约（ADR-0032 限定例外）；PROJ 模板激活时调用，ACC 加入调用方同一事务。 |
+| `ProjectClosureContextApi` | CLO-01、CLO-02 | Project | Acceptance | 闭环项目上下文与锁（root 先锁→project，版本/树版本/PM 重验）及主责服务经理集合锁。 |
+| `ProjectClosureCheckApi` | CLO-01 | Project | Acceptance | 闭环就绪评估（阶段/门禁/任务/业务事实/子孙守卫）与只读运行图概览；结果为证据而非完成。 |
+| `ProjectClosureExitApi` | CLO-02 | Project | Acceptance | CLO 审批通过后 PROJ 唯一终态 Writer 原子执行：复检+终态阶段 DONE+NORMAL_CLOSED+ProjectExitRecord；两域同事务分别写各自对象。 |
+| `ProjectStagePlanApi` | PLN-01～PLN-04 | Project | SOL（engineering 工期倒排） | 阶段计划事实只读与计划起止日期受控写入（仅日期字段，不改状态与版本）。 |
+| `ClosurePolicy`（共享契约类型） | PM-03、CLO-01 | Project api | Acceptance | 模板闭环策略七字段冻结校验契约；PROJ 模板域与 ACC 闭环域共用，避免双份校验漂移。 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 

@@ -113,9 +113,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
-import * as Api from '@/api/pms/project/satisfaction'
+import * as Api from '@/api/pms/acceptance/satisfaction'
 import * as FileApi from '@/api/pms/platform/file'
-import type { ExportTask, ResultView } from '@/api/pms/project/satisfaction'
+import type { ExportTask, ResultView } from '@/api/pms/acceptance/satisfaction'
 import { satisfactionProjectContext, type SatisfactionViewProps } from './projectContext'
 
 const props = defineProps<SatisfactionViewProps>()

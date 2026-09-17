@@ -1,5 +1,12 @@
 <template>
   <ContentWrap>
+    <el-alert
+      title="此页面为旧V17验收功能，仅保留历史兼容；新验收报告请使用F-ACC-001验收报告页面。"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="mb-16px"
+    />
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
       <el-form-item label="项目" prop="projectId">
         <PmsEntitySelect
@@ -12,16 +19,16 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="文档编号" prop="code">
+      <el-form-item label="验收编号" prop="code">
         <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
-      <el-form-item label="文档名称" prop="name">
+      <el-form-item label="验收名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
-      <el-form-item label="文档类型" prop="documentType">
-        <el-select v-model="query.documentType" clearable class="!w-120px">
+      <el-form-item label="验收类型" prop="acceptanceType">
+        <el-select v-model="query.acceptanceType" clearable class="!w-120px">
           <el-option
-            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DOCUMENT_TYPE)"
+            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_ACCEPTANCE_TYPE)"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value"
@@ -40,52 +47,74 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:acc-archive-document:create']"
-          ><Icon icon="ep:plus" />新增归档文档</el-button
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:acc-acceptance:create']"
+          ><Icon icon="ep:plus" />新增验收</el-button
         >
       </el-form-item>
     </el-form>
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="文档编号" min-width="140" />
-      <el-table-column prop="name" label="文档名称" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="documentType" label="文档类型" width="100">
+      <el-table-column prop="code" label="验收编号" min-width="140" />
+      <el-table-column prop="name" label="验收名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="acceptanceType" label="验收类型" width="100">
         <template #default="{ row }">
-          <dict-tag :type="DICT_TYPE.PMS_DOCUMENT_TYPE" :value="row.documentType" />
+          <dict-tag :type="DICT_TYPE.PMS_ACCEPTANCE_TYPE" :value="row.acceptanceType" />
         </template>
       </el-table-column>
-      <el-table-column prop="version" label="版本" width="90" />
-      <el-table-column prop="uploadedBy" label="上传人" width="100" />
-      <el-table-column prop="uploadedDate" label="上传日期" width="120" />
-      <el-table-column prop="fileChecksum" label="校验值" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="signedDate" label="签署日期" width="120" />
+      <el-table-column prop="conclusion" label="验收结论" min-width="160" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_ACCEPTANCE_STATUS" :value="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="460" fixed="right">
+      <el-table-column label="操作" width="560" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-archive-document:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-acceptance:update']"
             >编辑</el-button
           >
           <el-button
             link
             type="success"
             v-if="row.status === 0"
-            @click="handleAction(row, 'submitArchiveDocument', '提交')"
-            v-hasPermi="['pms:acc-archive-document:update']"
+            @click="handleAction(row, 'submitAcceptance', '提交')"
+            v-hasPermi="['pms:acc-acceptance:update']"
             >提交</el-button
           >
           <el-button
             link
             type="primary"
             v-if="row.status === 1"
-            @click="handleAction(row, 'archiveArchiveDocument', '归档')"
-            v-hasPermi="['pms:acc-archive-document:update']"
+            @click="handleAction(row, 'approveAcceptance', '开始审批')"
+            v-hasPermi="['pms:acc-acceptance:update']"
+            >开始审批</el-button
+          >
+          <el-button
+            link
+            type="success"
+            v-if="row.status === 2"
+            @click="handleAction(row, 'passAcceptance', '通过')"
+            v-hasPermi="['pms:acc-acceptance:update']"
+            >通过</el-button
+          >
+          <el-button
+            link
+            type="danger"
+            v-if="row.status === 2"
+            @click="handleAction(row, 'rejectAcceptance', '驳回')"
+            v-hasPermi="['pms:acc-acceptance:update']"
+            >驳回</el-button
+          >
+          <el-button
+            link
+            type="primary"
+            v-if="row.status === 3"
+            @click="handleAction(row, 'archiveAcceptance', '归档')"
+            v-hasPermi="['pms:acc-acceptance:update']"
             >归档</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-archive-document:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-acceptance:delete']"
             >删除</el-button
           >
         </template>
@@ -99,7 +128,7 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑归档文档' : '新增归档文档'" width="780px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑验收' : '新增验收'" width="780px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="12">
@@ -116,18 +145,18 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="文档编号" prop="code">
+          <el-form-item label="验收编号" prop="code">
             <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="文档名称" prop="name"><el-input v-model="form.name" /></el-form-item>
+          <el-form-item label="验收名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="文档类型" prop="documentType">
-            <el-select v-model="form.documentType" class="!w-full">
+          <el-form-item label="验收类型" prop="acceptanceType">
+            <el-select v-model="form.acceptanceType" class="!w-full">
               <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DOCUMENT_TYPE)"
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_ACCEPTANCE_TYPE)"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
@@ -136,24 +165,23 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="版本" prop="version"><el-input v-model="form.version" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="上传人" prop="uploadedBy"><el-input v-model="form.uploadedBy" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="上传日期" prop="uploadedDate">
-            <el-date-picker v-model="form.uploadedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
+          <el-form-item label="签署日期" prop="signedDate">
+            <el-date-picker v-model="form.signedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="文件地址" prop="fileUrl">
-            <UploadFile v-model="form.fileUrl!" />
+          <el-form-item label="验收结论" prop="conclusion">
+            <Editor v-model="form.conclusion" :height="300" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="文件校验值" prop="fileChecksum">
-            <el-input v-model="form.fileChecksum" />
+          <el-form-item label="审批意见" prop="opinion">
+            <Editor v-model="form.opinion" :height="300" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="附件" prop="attachmentUrl">
+            <UploadFile v-model="form.attachmentUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -174,15 +202,15 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
-import * as ArchiveDocumentApi from '@/api/pms/project/archive-document'
+import * as AcceptanceApi from '@/api/pms/acceptance/acceptance'
 import * as ProjectApi from '@/api/pms/project/project'
-import type { ArchiveDocumentVO } from '@/api/pms/project/archive-document'
+import type { AcceptanceVO } from '@/api/pms/acceptance/acceptance'
 
-defineOptions({ name: 'PmsArchiveDocument' })
+defineOptions({ name: 'PmsAcceptance' })
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const rows = ref<ArchiveDocumentVO[]>([])
+const rows = ref<AcceptanceVO[]>([])
 const total = ref(0)
 const query = reactive({
   pageNo: 1,
@@ -190,30 +218,30 @@ const query = reactive({
   projectId: undefined as number | undefined,
   code: '',
   name: '',
-  documentType: undefined,
+  acceptanceType: undefined,
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<ArchiveDocumentVO>({ projectId: undefined!, code: '', name: '' })
+const form = reactive<AcceptanceVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入文档编号' }],
-  name: [{ required: true, message: '请输入文档名称' }],
-  documentType: [{ required: true, message: '请选择文档类型' }]
+  code: [{ required: true, message: '请输入验收编号' }],
+  name: [{ required: true, message: '请输入验收名称' }],
+  acceptanceType: [{ required: true, message: '请选择验收类型' }]
 }
 
 const load = async () => {
   loading.value = true
   try {
-    const data = await ArchiveDocumentApi.getArchiveDocumentPage(query)
+    const data = await AcceptanceApi.getAcceptancePage(query)
     rows.value = data.list
     total.value = data.total
   } finally {
     loading.value = false
   }
 }
-const openForm = (row?: ArchiveDocumentVO) => {
+const openForm = (row?: AcceptanceVO) => {
   Object.assign(
     form,
     {
@@ -221,15 +249,14 @@ const openForm = (row?: ArchiveDocumentVO) => {
       projectId: undefined,
       code: '',
       name: '',
-      documentType: 'SCHEME',
-      version: '',
-      fileUrl: '',
-      fileChecksum: '',
-      uploadedBy: undefined,
-      uploadedDate: '',
+      acceptanceType: 'PRELIMINARY',
+      signedDate: '',
+      conclusion: '',
+      opinion: '',
+      attachmentUrl: '',
       status: 0,
       remark: '',
-      versionNum: undefined
+      version: undefined
     },
     row || {}
   )
@@ -239,7 +266,7 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id ? await ArchiveDocumentApi.updateArchiveDocument(form) : await ArchiveDocumentApi.createArchiveDocument(form)
+    form.id ? await AcceptanceApi.updateAcceptance(form) : await AcceptanceApi.createAcceptance(form)
     message.success('保存成功')
     formVisible.value = false
     await load()
@@ -247,19 +274,24 @@ const save = async () => {
     saving.value = false
   }
 }
-const remove = async (row: ArchiveDocumentVO) => {
+const remove = async (row: AcceptanceVO) => {
   await message.delConfirm()
-  await ArchiveDocumentApi.deleteArchiveDocument(row.id!)
+  await AcceptanceApi.deleteAcceptance(row.id!)
   message.success('删除成功')
   await load()
 }
 const handleAction = async (
-  row: ArchiveDocumentVO,
-  action: 'submitArchiveDocument' | 'archiveArchiveDocument',
+  row: AcceptanceVO,
+  action:
+    | 'submitAcceptance'
+    | 'approveAcceptance'
+    | 'passAcceptance'
+    | 'rejectAcceptance'
+    | 'archiveAcceptance',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}归档文档【${row.code}】？`)
-  await (ArchiveDocumentApi as any)[action](row.id!)
+  await message.confirm(`确认${actionText}验收【${row.code}】？`)
+  await (AcceptanceApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()
 }

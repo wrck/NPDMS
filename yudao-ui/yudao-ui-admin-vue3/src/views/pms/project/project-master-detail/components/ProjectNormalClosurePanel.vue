@@ -57,8 +57,8 @@ import { useMediaQuery } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
-import * as ClosureApi from '@/api/pms/project/normal-closure'
-import type { ClosureOverview } from '@/api/pms/project/normal-closure'
+import * as ClosureApi from '@/api/pms/acceptance/normal-closure'
+import type { ClosureOverview } from '@/api/pms/acceptance/normal-closure'
 import type { BusinessViewId } from '@/api/pms/platform/business-view/ids'
 const props = defineProps<{ projectId: BusinessViewId; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()

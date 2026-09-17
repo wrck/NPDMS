@@ -4,13 +4,13 @@ import { mount, passthrough, tableColumn, textOf } from '@/views/pms/platform/dy
 import Page from './index.vue'
 import Editor from './ReportDraftEditor.vue'
 import History from './ReportVersionHistoryDrawer.vue'
-import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/project/acceptance-report'
+import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/acceptance/acceptance-report'
 
 const api = vi.hoisted(() => ({ getActivities: vi.fn(), getActivity: vi.fn(), getReportVersions: vi.fn(), createDraft: vi.fn(), updateDraft: vi.fn(), publishVersion: vi.fn(), revokeCurrentVersion: vi.fn(), downloadAttachment: vi.fn() }))
 const message = vi.hoisted(() => ({ confirm: vi.fn(), success: vi.fn(), warning: vi.fn() }))
 const permissions = vi.hoisted(() => ({ denied: [] as string[] }))
 const route = vi.hoisted(() => ({ query: {} as Record<string, unknown> }))
-vi.mock('@/api/pms/project/acceptance-report', () => api)
+vi.mock('@/api/pms/acceptance/acceptance-report', () => api)
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/platform/file', () => ({ createAccessTicket: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: (keys: string[]) => keys.every(key => !permissions.denied.includes(key)) }))

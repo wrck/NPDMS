@@ -120,13 +120,13 @@
 <script setup lang="ts">
 import type { UploadFile } from 'element-plus'
 import { useRoute } from 'vue-router'
-import * as Api from '@/api/pms/project/satisfaction'
+import * as Api from '@/api/pms/acceptance/satisfaction'
 import type {
   GrantFileFact,
   PublicQuestionnaire,
   QuestionnaireDefinition,
   SubmissionOutcome
-} from '@/api/pms/project/satisfaction'
+} from '@/api/pms/acceptance/satisfaction'
 
 defineOptions({ name: 'PmsSatisfactionQuestionnairePublic' })
 const route = useRoute()

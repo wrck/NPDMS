@@ -7,7 +7,7 @@ import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-vie
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
-import AcceptanceReportPage from '@/views/pms/project/acceptance-report/index.vue'
+import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {

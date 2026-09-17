@@ -36,7 +36,7 @@ const remainingRouter: AppRouteRecordRaw[] = [
   {
     path: '/satisfaction-questionnaires/:token',
     name: 'PmsSatisfactionQuestionnairePublic',
-    component: () => import('@/views/pms/project/satisfaction/questionnaire.vue'),
+    component: () => import('@/views/pms/acceptance/satisfaction/questionnaire.vue'),
     meta: {
       hidden: true,
       noTagsView: true,
@@ -52,7 +52,7 @@ const remainingRouter: AppRouteRecordRaw[] = [
       {
         path: '',
         name: 'PmsSatisfactionWorkbench',
-        component: () => import('@/views/pms/project/satisfaction/index.vue'),
+        component: () => import('@/views/pms/acceptance/satisfaction/index.vue'),
         meta: { canTo: true, hidden: true, title: '满意度管理' }
       }
     ]

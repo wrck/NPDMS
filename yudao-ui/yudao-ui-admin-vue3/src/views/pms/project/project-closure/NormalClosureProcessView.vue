@@ -94,7 +94,7 @@ import {
   getNormalClosureApplication,
   type ApplicationDetail,
   type ClosureCheck
-} from '@/api/pms/project/normal-closure'
+} from '@/api/pms/acceptance/normal-closure'
 
 const props = defineProps<{ id: string }>()
 const detail = ref<ApplicationDetail>()

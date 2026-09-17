@@ -32,7 +32,7 @@ vi.mock('vue-router', () => ({
   onBeforeRouteLeave: (guard: () => boolean) => routeGuards.leave.push(guard),
   onBeforeRouteUpdate: (guard: () => boolean) => routeGuards.update.push(guard)
 }))
-vi.mock('@/api/pms/project/satisfaction', () => api)
+vi.mock('@/api/pms/acceptance/satisfaction', () => api)
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/auth', () => ({ getTenantId: () => 1 }))

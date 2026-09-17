@@ -21,6 +21,6 @@ export default {
   optimizeDeps: { entries: [resolve(browserRoot, 'index.html')] },
   test: {
     environment: resolve(uiRoot, 'vitest.pms-file.environment.ts'),
-    include: ['src/views/pms/project/satisfaction/projectContext.runtime.spec.ts']
+    include: ['src/views/pms/acceptance/satisfaction/projectContext.runtime.spec.ts']
   }
 }

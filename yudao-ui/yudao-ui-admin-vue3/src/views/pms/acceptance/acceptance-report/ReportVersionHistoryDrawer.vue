@@ -32,9 +32,9 @@ import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { sameBusinessViewId } from '@/api/pms/platform/business-view/ids'
-import * as ReportApi from '@/api/pms/project/acceptance-report'
+import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
 import * as FileApi from '@/api/pms/platform/file'
-import type { AcceptanceReportVersionVO, ReportAttachmentVO } from '@/api/pms/project/acceptance-report'
+import type { AcceptanceReportVersionVO, ReportAttachmentVO } from '@/api/pms/acceptance/acceptance-report'
 
 const props = defineProps<{ allowedActions?: string[] }>()
 const message = useMessage()

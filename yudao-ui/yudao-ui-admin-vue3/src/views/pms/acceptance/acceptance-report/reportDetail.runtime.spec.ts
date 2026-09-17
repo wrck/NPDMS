@@ -1,11 +1,11 @@
 import { expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import Detail from './detail.vue'
-import * as ReportApi from '@/api/pms/project/acceptance-report'
+import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
 import { mount, passthrough } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ({ value: false }) }))
-vi.mock('@/api/pms/project/acceptance-report', () => ({ getActivity: vi.fn(), getReportVersions: vi.fn() }))
+vi.mock('@/api/pms/acceptance/acceptance-report', () => ({ getActivity: vi.fn(), getReportVersions: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('./ReportDraftEditor.vue', () => ({ default: { setup: (_: unknown, { expose }: any) => { expose({ isDirty: () => false, requestLeave: async () => true, discardChanges: () => true }); return () => null } } }))
 vi.mock('./ReportVersionHistoryDrawer.vue', () => ({ default: { setup: (_: unknown, { expose }: any) => { expose({ close: vi.fn() }); return () => null } } }))

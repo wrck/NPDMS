@@ -12,16 +12,16 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="交付件编号" prop="code">
+      <el-form-item label="文档编号" prop="code">
         <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
-      <el-form-item label="交付件名称" prop="name">
+      <el-form-item label="文档名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
-      <el-form-item label="交付件类型" prop="deliverableType">
-        <el-select v-model="query.deliverableType" clearable class="!w-120px">
+      <el-form-item label="文档类型" prop="documentType">
+        <el-select v-model="query.documentType" clearable class="!w-120px">
           <el-option
-            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DELIVERABLE_TYPE)"
+            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DOCUMENT_TYPE)"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value"
@@ -31,7 +31,7 @@
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-140px">
           <el-option
-            v-for="dict in getIntDictOptions(DICT_TYPE.PMS_DELIVERABLE_STATUS)"
+            v-for="dict in getIntDictOptions(DICT_TYPE.PMS_ACCEPTANCE_STATUS)"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value"
@@ -40,72 +40,52 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:acc-deliverable-checklist:create']"
-          ><Icon icon="ep:plus" />新增交付件</el-button
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:acc-archive-document:create']"
+          ><Icon icon="ep:plus" />新增归档文档</el-button
         >
       </el-form-item>
     </el-form>
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="交付件编号" min-width="140" />
-      <el-table-column prop="name" label="交付件名称" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="deliverableType" label="类型" width="90">
+      <el-table-column prop="code" label="文档编号" min-width="140" />
+      <el-table-column prop="name" label="文档名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="documentType" label="文档类型" width="100">
         <template #default="{ row }">
-          <dict-tag :type="DICT_TYPE.PMS_DELIVERABLE_TYPE" :value="row.deliverableType" />
+          <dict-tag :type="DICT_TYPE.PMS_DOCUMENT_TYPE" :value="row.documentType" />
         </template>
       </el-table-column>
       <el-table-column prop="version" label="版本" width="90" />
-      <el-table-column prop="signedFlag" label="已签章" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.signedFlag ? 'success' : 'info'" size="small">
-            {{ row.signedFlag ? '是' : '否' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="validFlag" label="有效" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.validFlag ? 'success' : 'danger'" size="small">
-            {{ row.validFlag ? '是' : '否' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="submittedDate" label="提交日期" width="120" />
+      <el-table-column prop="uploadedBy" label="上传人" width="100" />
+      <el-table-column prop="uploadedDate" label="上传日期" width="120" />
+      <el-table-column prop="fileChecksum" label="校验值" min-width="140" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <dict-tag :type="DICT_TYPE.PMS_DELIVERABLE_STATUS" :value="row.status" />
+          <dict-tag :type="DICT_TYPE.PMS_ACCEPTANCE_STATUS" :value="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="500" fixed="right">
+      <el-table-column label="操作" width="460" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-deliverable-checklist:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-archive-document:update']"
             >编辑</el-button
           >
           <el-button
             link
             type="success"
             v-if="row.status === 0"
-            @click="handleAction(row, 'submitDeliverableChecklist', '提交')"
-            v-hasPermi="['pms:acc-deliverable-checklist:update']"
+            @click="handleAction(row, 'submitArchiveDocument', '提交')"
+            v-hasPermi="['pms:acc-archive-document:update']"
             >提交</el-button
           >
           <el-button
             link
-            type="success"
+            type="primary"
             v-if="row.status === 1"
-            @click="handleAction(row, 'passDeliverableChecklist', '通过')"
-            v-hasPermi="['pms:acc-deliverable-checklist:update']"
-            >通过</el-button
+            @click="handleAction(row, 'archiveArchiveDocument', '归档')"
+            v-hasPermi="['pms:acc-archive-document:update']"
+            >归档</el-button
           >
-          <el-button
-            link
-            type="danger"
-            v-if="row.status === 1"
-            @click="handleAction(row, 'rejectDeliverableChecklist', '驳回')"
-            v-hasPermi="['pms:acc-deliverable-checklist:update']"
-            >驳回</el-button
-          >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-deliverable-checklist:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-archive-document:delete']"
             >删除</el-button
           >
         </template>
@@ -119,7 +99,7 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑交付件' : '新增交付件'" width="780px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑归档文档' : '新增归档文档'" width="780px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="12">
@@ -136,18 +116,18 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="交付件编号" prop="code">
+          <el-form-item label="文档编号" prop="code">
             <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="交付件名称" prop="name"><el-input v-model="form.name" /></el-form-item>
+          <el-form-item label="文档名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="交付件类型" prop="deliverableType">
-            <el-select v-model="form.deliverableType" class="!w-full">
+          <el-form-item label="文档类型" prop="documentType">
+            <el-select v-model="form.documentType" class="!w-full">
               <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DELIVERABLE_TYPE)"
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DOCUMENT_TYPE)"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
@@ -159,23 +139,21 @@
           <el-form-item label="版本" prop="version"><el-input v-model="form.version" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="提交日期" prop="submittedDate">
-            <el-date-picker v-model="form.submittedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
-          </el-form-item>
+          <el-form-item label="上传人" prop="uploadedBy"><el-input v-model="form.uploadedBy" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="是否签章" prop="signedFlag">
-            <el-switch v-model="form.signedFlag" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="是否有效" prop="validFlag">
-            <el-switch v-model="form.validFlag" />
+          <el-form-item label="上传日期" prop="uploadedDate">
+            <el-date-picker v-model="form.uploadedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl!" />
+          <el-form-item label="文件地址" prop="fileUrl">
+            <UploadFile v-model="form.fileUrl!" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="文件校验值" prop="fileChecksum">
+            <el-input v-model="form.fileChecksum" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -196,15 +174,15 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
-import * as DeliverableChecklistApi from '@/api/pms/project/deliverable-checklist'
+import * as ArchiveDocumentApi from '@/api/pms/acceptance/archive-document'
 import * as ProjectApi from '@/api/pms/project/project'
-import type { DeliverableChecklistVO } from '@/api/pms/project/deliverable-checklist'
+import type { ArchiveDocumentVO } from '@/api/pms/acceptance/archive-document'
 
-defineOptions({ name: 'PmsDeliverableChecklist' })
+defineOptions({ name: 'PmsArchiveDocument' })
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const rows = ref<DeliverableChecklistVO[]>([])
+const rows = ref<ArchiveDocumentVO[]>([])
 const total = ref(0)
 const query = reactive({
   pageNo: 1,
@@ -212,30 +190,30 @@ const query = reactive({
   projectId: undefined as number | undefined,
   code: '',
   name: '',
-  deliverableType: undefined,
+  documentType: undefined,
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<DeliverableChecklistVO>({ projectId: undefined!, code: '', name: '' })
+const form = reactive<ArchiveDocumentVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入交付件编号' }],
-  name: [{ required: true, message: '请输入交付件名称' }],
-  deliverableType: [{ required: true, message: '请选择交付件类型' }]
+  code: [{ required: true, message: '请输入文档编号' }],
+  name: [{ required: true, message: '请输入文档名称' }],
+  documentType: [{ required: true, message: '请选择文档类型' }]
 }
 
 const load = async () => {
   loading.value = true
   try {
-    const data = await DeliverableChecklistApi.getDeliverableChecklistPage(query)
+    const data = await ArchiveDocumentApi.getArchiveDocumentPage(query)
     rows.value = data.list
     total.value = data.total
   } finally {
     loading.value = false
   }
 }
-const openForm = (row?: DeliverableChecklistVO) => {
+const openForm = (row?: ArchiveDocumentVO) => {
   Object.assign(
     form,
     {
@@ -243,12 +221,12 @@ const openForm = (row?: DeliverableChecklistVO) => {
       projectId: undefined,
       code: '',
       name: '',
-      deliverableType: 'REQUIRED',
+      documentType: 'SCHEME',
       version: '',
-      signedFlag: false,
-      validFlag: true,
-      submittedDate: '',
-      attachmentUrl: '',
+      fileUrl: '',
+      fileChecksum: '',
+      uploadedBy: undefined,
+      uploadedDate: '',
       status: 0,
       remark: '',
       versionNum: undefined
@@ -261,9 +239,7 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id
-      ? await DeliverableChecklistApi.updateDeliverableChecklist(form)
-      : await DeliverableChecklistApi.createDeliverableChecklist(form)
+    form.id ? await ArchiveDocumentApi.updateArchiveDocument(form) : await ArchiveDocumentApi.createArchiveDocument(form)
     message.success('保存成功')
     formVisible.value = false
     await load()
@@ -271,19 +247,19 @@ const save = async () => {
     saving.value = false
   }
 }
-const remove = async (row: DeliverableChecklistVO) => {
+const remove = async (row: ArchiveDocumentVO) => {
   await message.delConfirm()
-  await DeliverableChecklistApi.deleteDeliverableChecklist(row.id!)
+  await ArchiveDocumentApi.deleteArchiveDocument(row.id!)
   message.success('删除成功')
   await load()
 }
 const handleAction = async (
-  row: DeliverableChecklistVO,
-  action: 'submitDeliverableChecklist' | 'passDeliverableChecklist' | 'rejectDeliverableChecklist',
+  row: ArchiveDocumentVO,
+  action: 'submitArchiveDocument' | 'archiveArchiveDocument',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}交付件【${row.code}】？`)
-  await (DeliverableChecklistApi as any)[action](row.id!)
+  await message.confirm(`确认${actionText}归档文档【${row.code}】？`)
+  await (ArchiveDocumentApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()
 }

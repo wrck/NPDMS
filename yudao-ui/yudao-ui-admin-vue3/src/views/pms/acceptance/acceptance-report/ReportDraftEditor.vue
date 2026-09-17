@@ -51,8 +51,8 @@
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
-import * as ReportApi from '@/api/pms/project/acceptance-report'
-import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/project/acceptance-report'
+import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
+import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/acceptance/acceptance-report'
 import { useOperationClient } from '@/components/BusinessView/operationHost'
 import type { OperationClient } from '@/components/BusinessView/operationClient'
 
