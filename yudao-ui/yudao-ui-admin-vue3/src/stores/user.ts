@@ -48,12 +48,18 @@ export const useUserStore = defineStore('user', () => {
    */
   async function login(params: LoginParams) {
     const res = await loginApi(params)
+    // A new token must never be paired with the previous user's privileges.
+    reset()
     token.value = res.accessToken
     localStorage.setItem(TOKEN_KEY, res.accessToken)
-
-    // 登录成功后立即拉取用户权限信息
-    await fetchPermissionInfo()
-    return res
+    try {
+      await fetchPermissionInfo()
+      return res
+    } catch (error) {
+      // Permission bootstrap is part of login, not an optional background read.
+      reset()
+      throw error
+    }
   }
 
   /**
