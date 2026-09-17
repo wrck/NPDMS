@@ -32,15 +32,17 @@ public class SpringJdbcStreamingReader {
                                SyncStreamingState resume, Consumer<StreamChunk> consumer) throws SQLException {
         var sourceApi=sources.orElseThrow(()->new IllegalStateException("外部数据源服务不可用"));
         try (Connection connection=sourceApi.openReadOnly(definition.connectionId())) {
-            connection.setAutoCommit(false);
             SingleConnectionDataSource dataSource=new SingleConnectionDataSource(connection,true);
             JdbcTemplate jdbc=new JdbcTemplate(dataSource);
-            startSnapshot(connection);
+            // Capture the incremental upper bound before opening the repeatable snapshot. Any later commit may be
+            // visible in the snapshot, but the upper-bound predicate leaves it for the next run instead of losing it.
             LocalDateTime now=currentTime(jdbc);
             if(lower!=null && now.isBefore(lower))
                 throw new IllegalArgumentException("来源时间早于已提交检查点，禁止游标倒退");
             LocalDateTime upper=resume!=null&&resume.upper()!=null?resume.upper():now;
             if(now.isBefore(upper)) throw new IllegalArgumentException("来源时间早于流式断点上界，禁止恢复游标倒退");
+            connection.setAutoCommit(false);
+            startSnapshot(connection);
             int startSource=resume==null?0:resume.sourceIndex();
             long[] totalRows={0};
             int[] sequence={resume==null?0:resume.committedChunks()};
