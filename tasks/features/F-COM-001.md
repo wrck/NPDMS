@@ -13,6 +13,14 @@
 
 ## 当前检查点
 
+### 2026-09-17 合同来源表补齐（局部实施）
+
+- 需求方明确要求先补齐 `proj_project_party`、`com_contract_receivable`、`com_shipment_contract_reference`、`com_shipment_package`。本次为现有核心迁移物理模型的建表承接，不宣称完成历史迁移、财务业务或整个Feature。
+- 新增前向迁移 `V258__project_party_and_contract_source_tables.sql`，完整继承 `project-order-physical-schema.mysql.sql` 中四表的127列、主键、租户内来源唯一键、同领域外键及检查约束；不修改已执行迁移，不读写旧源库，不加载真实来源数据。
+- 合同主档生成方式正在由需求方重新选择。此前多来源及字段优先级的回答不作为当前实施依据；主档汇总相关规格和实现暂不修改，四表建表独立推进。
+- 已完成静态核对：四张建表语句与既定目标DDL一致；被引用的 `proj_project(tenant_id,id)` 唯一键由V88提供，`com_contract(tenant_id,id)`由V160提供。
+- 固定测试环境 `npdms-50eb-test` 已存在，但容器配置凭据及本地配置凭据均无法登录MySQL（1045）。未重置密码、未清库、未切换到开发数据库；实库建表、约束失败用例及Flyway升级/重复运行验证尚未执行。
+
 需求方已确认COM-A与COM-B承载不同需求，按Requirement整体合并。master已形成可构建增量：统一规格以项目办事处发生时快照作为COM唯一地点事实，COM-B的AST站点/位置迁入IMP/AST；PLT迁移证据Owner已随CUT旧数据核对依赖由`master代码回执c9066332`独立落位，COM仍只消费公开API。历史分支Gate与Done只作来源证据，不能转记master完成状态。
 
 ## 实施边界
