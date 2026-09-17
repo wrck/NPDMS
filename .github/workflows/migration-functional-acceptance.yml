@@ -39,6 +39,9 @@ jobs:
           mkdir -p artifacts/migration-acceptance
           git rev-parse HEAD > artifacts/migration-acceptance/source-commit.txt
           pnpm install --frozen-lockfile > artifacts/migration-acceptance/install.log 2>&1 || { tail -n 40 artifacts/migration-acceptance/install.log; exit 1; }
+      - name: Check formatting of the new helper and changed assertions
+        run: |
+          pnpm exec prettier --check src/views/lowcode/form-designer/designerState.ts src/views/lowcode/form-designer/designerState.spec.ts src/views/pms/project/projects/index.spec.ts
       - name: Full ESLint and typecheck
         run: |
           pnpm exec eslint ./src --format json --output-file artifacts/migration-acceptance/eslint.json

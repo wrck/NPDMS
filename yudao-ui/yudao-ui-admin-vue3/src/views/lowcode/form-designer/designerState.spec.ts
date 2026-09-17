@@ -11,7 +11,8 @@ describe('designer editable state', () => {
     expect(second).toBe('name_copy2')
   })
   it('respects existing manually assigned copy keys', () => {
-    expect(uniqueCopyProp('name', [{ prop: 'name_copy' }, { prop: 'name_copy2' }])).toBe('name_copy3')
+    const fields = [{ prop: 'name_copy' }, { prop: 'name_copy2' }]
+    expect(uniqueCopyProp('name', fields)).toBe('name_copy3')
   })
   it('preserves false, zero and empty default values', () => {
     expect(
