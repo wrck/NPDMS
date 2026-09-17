@@ -14,10 +14,17 @@ import listSource from '@/components/LowCodeListRenderer/index.vue?raw'
  * 1. V1 的稳定公开契约仍存在，且 V1 不依赖 FormCreate/V2；
  * 2. 业务消费方只能依赖 Facade，不能直接选择具体渲染器；
  * 3. 正式运行页必须通过 Facade submit 契约触发校验后持久化。
+ * 结构断言不是组件行为测试或浏览器验收的替代品。
  */
 describe('LowCodeFormRenderer acceptance gate', () => {
   it('keeps the V1 public contract independent from V2/FormCreate', () => {
-    expect(v1Source).toContain("defineProps<{\n    config: FormConfig")
+    // V1 的 props 带有 JSDoc。锁定契约，不要求注释、缩进或换行完全相同。
+    expect(v1Source).toMatch(/defineProps\s*<\s*\{/)
+    expect(v1Source).toMatch(/\bconfig\s*:\s*FormConfig\b/)
+    expect(v1Source).toMatch(/\bmodelValue\s*\?\s*:\s*Record<string,\s*unknown>/)
+    expect(v1Source).toMatch(/\bdisabled\s*\?\s*:\s*boolean\b/)
+    expect(v1Source).toMatch(/\bcomponentRegistry\s*\?\s*:\s*Record<string,\s*Component>/)
+    expect(v1Source).toMatch(/\beventHandlers\s*\?\s*:\s*Record<string,/)
     expect(v1Source).toContain("(e: 'update:modelValue'")
     expect(v1Source).toContain("(e: 'submit'")
     expect(v1Source).toContain("(e: 'validate-fail'")
