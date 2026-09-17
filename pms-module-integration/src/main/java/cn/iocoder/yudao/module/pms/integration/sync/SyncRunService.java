@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.integration.sync;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
 import cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.*;
 import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.*;
@@ -24,6 +23,7 @@ public class SyncRunService {
     private final SyncBindingMapper bindings;
     private final SyncConnectionService connections;
     private final MysqlSyncReader reader;
+    private final SpringJdbcStreamingReader streamingReader;
     private final SyncFieldMapper fieldMapper;
     private final SyncDefinitionValidator validator;
     private final SyncEvidenceService evidenceService;
@@ -39,6 +39,7 @@ public class SyncRunService {
         long tenant=SyncTaskService.tenant();
         SyncRunDO run=tx().execute(status->{
             var t=taskService.locked(command.taskId());
+            var d=taskService.definition(t);
             var previous=runs.selectRequest(new SyncQueries.Request(tenant,t.getId(),command.requestKey()));
             if(previous!=null)return previous;
             if(!Objects.equals(command.expectedVersion(),t.getVersion()))throw new IllegalArgumentException("配置版本冲突");
@@ -47,15 +48,19 @@ public class SyncRunService {
                 var prior=required(command.retryOf());
                 if(!prior.getTaskId().equals(t.getId())||!"FAILED".equals(prior.getStatus()))
                     throw new IllegalArgumentException("仅可重试当前任务的失败批次");
-                if(prior.getPageNumber()!=null)throw new IllegalArgumentException("请从自动分页主运行创建关联重试");
+                if(prior.getPageNumber()!=null)throw new IllegalArgumentException("请从主运行创建关联重试");
+                if("STREAMING_CURSOR".equals(d.effectiveReadStrategy())&&"NO_RESTART".equals(d.effectiveRestartPolicy()))
+                    throw new IllegalArgumentException("当前流式任务配置为失败后不可断点重试");
                 if(prior.getPagingJson()!=null && (!Objects.equals(prior.getConfigVersion(),t.getVersion())
                         || !Objects.equals(prior.getPreview(),command.preview())))
-                    throw new IllegalArgumentException("分页断点重试须保持配置版本和预览方式不变；修改配置后请创建新运行");
+                    throw new IllegalArgumentException("断点重试须保持配置版本和预览方式不变；修改配置后请创建新运行");
             }
             if(command.adoptExisting()&&!command.preview()&&!Objects.equals(t.getValidatedVersion(),t.getVersion()))
                 throw new IllegalArgumentException("接管前必须完成完整预检");
-            var d=taskService.definition(t);
-            if(d.autoPaging()&&command.adoptExisting())throw new IllegalArgumentException("自动分页不支持接管已有目标");
+            if("STREAMING_CURSOR".equals(d.effectiveReadStrategy())&&command.adoptExisting())
+                throw new IllegalArgumentException("流式分块同步不支持接管已有目标");
+            if("KEYSET_PAGING".equals(d.effectiveReadStrategy())&&command.adoptExisting())
+                throw new IllegalArgumentException("自动分页不支持接管已有目标");
             if((d.clearBeforeLoad()||d.resetMappingsBeforeLoad())&&!command.preview()) {
                 if(!command.confirmPreparation()||!Objects.equals(t.getValidatedVersion(),t.getVersion()))
                     throw new IllegalArgumentException("加载前截断或重置映射必须先完成当前版本的完整预览，再明确确认执行");
@@ -67,7 +72,12 @@ public class SyncRunService {
                     .setConfigSnapshot(t.getDefinition()).setConfigVersion(t.getVersion()).setStartedAt(LocalDateTime.now())
                     .setCachePending(false).setReadCount(0);
             r.setTenantId(tenant);
-            if(command.retryOf()!=null)r.setPagingJson(required(command.retryOf()).getPagingJson());
+            if(command.retryOf()!=null) {
+                var prior=required(command.retryOf());
+                boolean keepCheckpoint="KEYSET_PAGING".equals(d.effectiveReadStrategy())
+                        ||("STREAMING_CURSOR".equals(d.effectiveReadStrategy())&&"CHECKPOINT_KEY".equals(d.effectiveRestartPolicy()));
+                if(keepCheckpoint)r.setPagingJson(prior.getPagingJson());
+            }
             Long actor=cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
             r.setCreator(actor==null?"scheduled_sync":actor.toString());r.setUpdater(r.getCreator());
             runs.insert(r);
@@ -78,7 +88,7 @@ public class SyncRunService {
     }
     public SyncRunDO required(Long id) {
         // Spring Batch's NOT_SUPPORTED tasklet still enables synchronization. A mapper read
-        // outside an actual transaction would retain a first-level cache across page commits.
+        // outside an actual transaction would retain a first-level cache across chunk commits.
         if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
             return tx().execute(status->required(id));
         var r=runs.selectScoped(new SyncQueries.Id(SyncTaskService.tenant(),id));
@@ -87,13 +97,16 @@ public class SyncRunService {
     public void execute(Long runId) throws Exception {
         var run=required(runId);
         var definition=JsonUtils.parseObject(run.getConfigSnapshot(),SyncDefinition.class);
-        if(definition.autoPaging() && run.getPageNumber()==null) executePaged(runId,definition);
+        if("STREAMING_CURSOR".equals(definition.effectiveReadStrategy())&&run.getPageNumber()==null)
+            executeStreaming(runId,definition);
+        else if("KEYSET_PAGING".equals(definition.effectiveReadStrategy())&&run.getPageNumber()==null)
+            executePaged(runId,definition);
         else executeSingle(runId);
     }
+
     private void executeSingle(Long runId) throws Exception {
         var r=required(runId);
         Long ownerRunId=r.getPageNumber()==null?runId:r.getParentRunId();
-        // A committed business result is authoritative if the framework lost its completion response.
         if("SUCCESS".equals(r.getStatus())||"PREVIEW_READY".equals(r.getStatus()))return;
         if(!Objects.equals(taskService.required(r.getTaskId()).getActiveRunId(),ownerRunId))return;
         var d=JsonUtils.parseObject(r.getConfigSnapshot(),SyncDefinition.class);
@@ -129,22 +142,23 @@ public class SyncRunService {
             Set<String> stale=new HashSet<>();
             rows=protectNewer(rows,existing,stale);
             var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,r.getFullSnapshot(),d.missingPolicy(),r.getAdoptExisting(),d.loadingMode(),d.clearBeforeLoad());
-            var preview=adapter.preview(batch);
-            if(preview.stream().anyMatch(c->"CONFLICT".equals(c.action()))) {
-                saveResult(runId,preview);throw new IllegalArgumentException("存在目标归属或字段冲突，未写入任何业务记录");
-            }
             if(r.getPreview()) {
+                var preview=adapter.preview(batch);
+                if(preview.stream().anyMatch(c->"CONFLICT".equals(c.action()))) {
+                    saveResult(runId,preview);throw new IllegalArgumentException("存在目标归属或字段冲突，未写入任何业务记录");
+                }
                 var finalEvidence=evidence;
                 tx().executeWithoutResult(status->{
                     evidenceService.complete(runId,d,finalEvidence,adapter.descriptor(),List.of(),false);
                     var current=required(runId);current.setStatus("PREVIEW_READY").setResultJson(JsonUtils.toJsonString(preview))
-                            .setSummaryJson(summary(preview))
-                            .setFinishedAt(LocalDateTime.now());runs.updateById(current);
+                            .setSummaryJson(summary(preview)).setFinishedAt(LocalDateTime.now());runs.updateById(current);
                     if(r.getPageNumber()!=null) advancePage(r,d,snapshot,preview);
                     else { var t=taskService.locked(task.getId());t.setValidatedVersion(t.getVersion()).setActiveRunId(null);tasks.updateById(t); }
                 });
                 return;
             }
+            // Formal execution does not run preview a second time. apply() executes inside this transaction;
+            // any returned conflict is converted to an exception so all target writes roll back atomically.
             updateStatus(runId,"APPLYING");
             var finalEvidence=evidence;
             tx().executeWithoutResult(status->{
@@ -165,22 +179,12 @@ public class SyncRunService {
                 if(d.resetMappingsBeforeLoad())bindings.deleteTaskBindings(new SyncQueries.Task(SyncTaskService.tenant(),t.getId()));
                 var changes=adapter.apply(batch);
                 if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))throw new IllegalArgumentException("写入时发生业务冲突");
-                Map<String,DataSyncAdapter.Change> changesByKey=new HashMap<>();
-                changes.forEach(c->changesByKey.put(c.object()+":"+c.sourceKey(),c));
-                for (var row:batch.rows()) if(row.fields().containsKey("_sourcePrimaryKey")) {
-                    long requested=SyncFieldMapper.primaryKey(row.sourceKey());
-                    var change=changesByKey.get(row.object()+":"+row.sourceKey());
-                    if(change==null)throw new IllegalStateException("适配器未返回主键同步结果");
-                    if (!Objects.equals(change.targetId(),requested))
-                        throw new IllegalStateException("适配器写入主键与来源主键不一致，整批回滚");
-                }
-                List<DataSyncAdapter.Change> finalChanges=changes.stream().map(c->stale.contains(c.object()+":"+c.sourceKey())
-                        ?new DataSyncAdapter.Change(c.object(),c.sourceKey(),c.targetId(),"SKIPPED",c.before(),c.after(),"旧来源版本已跳过"):c).toList();
+                verifyPrimaryKeys(batch,changes);
+                List<DataSyncAdapter.Change> finalChanges=markStale(changes,stale);
                 persistBindings(t,d,finalChanges,runId);
                 evidenceService.complete(runId,d,finalEvidence,adapter.descriptor(),finalChanges.stream().filter(c->!"CLEARED".equals(c.action())).toList(),false);
                 var current=required(runId);current.setStatus("SUCCESS").setResultJson(JsonUtils.toJsonString(finalChanges))
-                        .setSummaryJson(summary(finalChanges))
-                        .setFinishedAt(LocalDateTime.now()).setCachePending(true);runs.updateById(current);
+                        .setSummaryJson(summary(finalChanges)).setFinishedAt(LocalDateTime.now()).setCachePending(true);runs.updateById(current);
                 if(r.getPageNumber()!=null) { advancePage(r,d,snapshot,finalChanges);return; }
                 t.setCheckpoint(snapshot.upper()).setActiveRunId(null).setRetryAttempt(0).setLastFailedRunId(null)
                         .setNextRunAt(SyncTaskService.next(d.cron()));
@@ -197,23 +201,120 @@ public class SyncRunService {
                     if(!captured.isEmpty())evidenceService.complete(runId,d,captured,validator.adapter(d.adapter()).descriptor(),List.of(),true);
                     var failure=required(runId);
                     failure.setStatus("FAILED").setFinishedAt(LocalDateTime.now())
-                            .setErrorMessage(safeError(exception))
-                            .setSummaryJson(JsonUtils.toJsonString(Map.of("FAILED",failure.getReadCount())));runs.updateById(failure);
-                    var t=taskService.locked(r.getTaskId());
-                    if(Objects.equals(t.getActiveRunId(),runId)) {
-                        t.setActiveRunId(null);
-                        if(!r.getPreview()) {
-                            int attempt=t.getRetryAttempt()+1;t.setRetryAttempt(attempt).setLastFailedRunId(runId);
-                            t.setNextRunAt(attempt<=d.retryCount()?LocalDateTime.now().plusSeconds(d.retryIntervalSeconds()):SyncTaskService.next(d.cron()));
-                            if(r.getFullSnapshot())t.setNextFullAt(attempt<=d.retryCount()?t.getNextRunAt():SyncTaskService.next(d.fullCron()));
-                        }
-                        tasks.updateById(t);
-                    }
+                            .setErrorMessage(safeError(exception)).setSummaryJson(JsonUtils.toJsonString(Map.of("FAILED",failure.getReadCount())));runs.updateById(failure);
+                    failTask(failure,d);
                 });
             }
             throw exception;
         } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
     }
+
+    private void executeStreaming(Long runId,SyncDefinition d)throws Exception {
+        var root=required(runId);
+        if(Set.of("SUCCESS","PREVIEW_READY").contains(root.getStatus())
+                ||!Objects.equals(taskService.required(root.getTaskId()).getActiveRunId(),runId))return;
+        var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+        boolean acquired=false;
+        try {
+            acquired=lock.tryLock(1,TimeUnit.SECONDS);
+            if(!acquired)throw new IllegalStateException("目标范围正在由另一任务同步");
+            var task=taskService.required(root.getTaskId());
+            var adapter=validator.adapter(d.adapter());
+            if(!adapter.supportsStreaming())throw new IllegalArgumentException("当前业务适配器不支持流式分块执行");
+            updateStatus(runId,"READING");
+            SyncStreamingState resume=null;
+            if("CHECKPOINT_KEY".equals(d.effectiveRestartPolicy())&&root.getPagingJson()!=null)
+                resume=JsonUtils.parseObject(root.getPagingJson(),SyncStreamingState.class);
+            var resolved=connections.resolve(d);
+            streamingReader.stream(resolved,task.getCheckpoint(),root.getFullSnapshot(),resume,chunk->{
+                if(chunk.sourceComplete())advanceStreamingSource(runId,d,chunk);
+                else processStreamingChunk(runId,d,task,adapter,chunk);
+            });
+            tx().executeWithoutResult(status->{
+                var current=required(runId);
+                var state=current.getPagingJson()==null?SyncStreamingState.start(current.getSourceUpper()):
+                        JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
+                if(!state.finished(d.sources().size()))throw new IllegalStateException("流式来源尚未全部完成");
+                var t=taskService.locked(current.getTaskId());
+                if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
+                    throw new IllegalStateException("流式运行所有权或配置版本变化");
+                current.setStatus(current.getPreview()?"PREVIEW_READY":"SUCCESS").setFinishedAt(LocalDateTime.now())
+                        .setCachePending(!current.getPreview());runs.updateById(current);
+                t.setActiveRunId(null);
+                if(current.getPreview())t.setValidatedVersion(t.getVersion());
+                else {
+                    t.setCheckpoint(state.upper()).setRetryAttempt(0).setLastFailedRunId(null).setNextRunAt(SyncTaskService.next(d.cron()));
+                    if(current.getFullSnapshot())t.setNextFullAt(SyncTaskService.next(d.fullCron()));
+                    if("ONCE".equals(d.mode()))t.setEnabled(false);
+                }
+                tasks.updateById(t);
+            });
+            if(!root.getPreview())refreshCache(runId);
+        } catch(Exception ex) {
+            tx().executeWithoutResult(status->{
+                var failure=required(runId);
+                if(!Set.of("SUCCESS","PREVIEW_READY").contains(failure.getStatus())) {
+                    failure.setStatus("FAILED").setFinishedAt(LocalDateTime.now()).setErrorMessage(safeError(ex));
+                    runs.updateById(failure);failTask(failure,d);
+                }
+            });
+            throw ex;
+        } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
+    }
+
+    private void processStreamingChunk(Long runId,SyncDefinition d,SyncTaskDO task,DataSyncAdapter adapter,
+                                       SpringJdbcStreamingReader.StreamChunk chunk) {
+        var snapshot=new MysqlSyncReader.Snapshot(chunk.upper(),List.of(
+                new MysqlSyncReader.SourceRows(chunk.object(),chunk.sourceObject(),chunk.rows())),chunk.bytes());
+        String correlation=runId+":s"+chunk.sourceIndex()+":c"+chunk.sequence();
+        var evidence=evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
+        try {
+            tx().executeWithoutResult(status->{
+                var current=required(runId);
+                var t=taskService.locked(task.getId());
+                if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
+                    throw new IllegalStateException("流式运行所有权或配置版本变化");
+                var state=current.getPagingJson()==null?SyncStreamingState.start(chunk.upper()):
+                        JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
+                if(state.sourceIndex()!=chunk.sourceIndex())throw new IllegalStateException("流式来源断点与当前游标不一致");
+                var existing=loadPageBindings(task.getId(),d,snapshot);
+                var rows=fieldMapper.transform(d,snapshot,existing);
+                Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
+                var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
+                var changes=current.getPreview()?adapter.preview(batch):adapter.apply(batch);
+                if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
+                    throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
+                verifyPrimaryKeys(batch,changes);
+                var finalChanges=markStale(changes,stale);
+                if(!current.getPreview())persistBindings(t,d,finalChanges,runId);
+                evidenceService.complete(runId,d,evidence,adapter.descriptor(),
+                        current.getPreview()?List.of():finalChanges,false);
+                state=state.committed(chunk.lastKey(),chunk.rows().size());
+                current.setPagingJson(JsonUtils.toJsonString(state)).setSourceUpper(chunk.upper())
+                        .setReadCount(current.getReadCount()+chunk.rows().size())
+                        .setStatus(current.getPreview()?"VALIDATING":"APPLYING");
+                mergeSummary(current,finalChanges);appendResultSample(current,finalChanges,d.maxRows());runs.updateById(current);
+            });
+        } catch(RuntimeException ex) {
+            tx().executeWithoutResult(status->evidenceService.complete(runId,d,evidence,adapter.descriptor(),List.of(),true));
+            throw ex;
+        }
+    }
+
+    private void advanceStreamingSource(Long runId,SyncDefinition d,SpringJdbcStreamingReader.StreamChunk chunk) {
+        tx().executeWithoutResult(status->{
+            var current=required(runId);
+            var t=taskService.locked(current.getTaskId());
+            if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
+                throw new IllegalStateException("流式运行所有权或配置版本变化");
+            var state=current.getPagingJson()==null?SyncStreamingState.start(chunk.upper()):
+                    JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
+            if(state.sourceIndex()!=chunk.sourceIndex())throw new IllegalStateException("流式来源完成标记与断点不一致");
+            current.setPagingJson(JsonUtils.toJsonString(state.nextSource())).setSourceUpper(chunk.upper())
+                    .setStatus(current.getPreview()?"VALIDATING":"APPLYING");runs.updateById(current);
+        });
+    }
+
     private void executePaged(Long runId,SyncDefinition d) throws Exception {
         var root=required(runId);
         if(Set.of("SUCCESS","PREVIEW_READY").contains(root.getStatus())
@@ -263,21 +364,11 @@ public class SyncRunService {
                 tasks.updateById(t);
             });
         } catch(Exception ex) {
-            tx().executeWithoutResult(s->{
-                var r=required(runId);r.setStatus("FAILED").setErrorMessage(safeError(ex)).setFinishedAt(LocalDateTime.now());runs.updateById(r);
-                var t=taskService.locked(r.getTaskId());
-                if(Objects.equals(t.getActiveRunId(),runId)) {
-                    t.setActiveRunId(null);
-                    if(!r.getPreview()) {
-                        int attempt=t.getRetryAttempt()+1;t.setRetryAttempt(attempt).setLastFailedRunId(runId)
-                                .setNextRunAt(attempt<=d.retryCount()?LocalDateTime.now().plusSeconds(d.retryIntervalSeconds()):SyncTaskService.next(d.cron()));
-                        t.setNextFullAt(attempt<=d.retryCount()?t.getNextRunAt():SyncTaskService.next(d.fullCron()));
-                    }
-                    tasks.updateById(t);
-                }
-            });throw ex;
+            tx().executeWithoutResult(s->{var r=required(runId);r.setStatus("FAILED").setErrorMessage(safeError(ex)).setFinishedAt(LocalDateTime.now());runs.updateById(r);failTask(r,d);});
+            throw ex;
         } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
     }
+
     /** Called in the page's business/evidence transaction so retry cannot skip an uncommitted page. */
     private void advancePage(SyncRunDO page,SyncDefinition d,MysqlSyncReader.Snapshot snapshot,List<DataSyncAdapter.Change> changes) {
         var root=required(page.getParentRunId());
@@ -288,9 +379,7 @@ public class SyncRunService {
         if(!rows.isEmpty()&&last<=state.afterId())throw new IllegalStateException("分页来源主键未推进");
         root.setPagingJson(JsonUtils.toJsonString(state.advance(last,rows.size(),d.maxRows())))
                 .setReadCount(root.getReadCount()+rows.size()).setStatus(page.getPreview()?"VALIDATING":"APPLYING");
-        Map<String,Object> totals=root.getSummaryJson()==null?new LinkedHashMap<>():new LinkedHashMap<>(JsonUtils.parseMap(root.getSummaryJson()));
-        for(var change:changes)totals.compute(change.action(),(k,v)->(v==null?0:((Number)v).longValue())+1);
-        root.setSummaryJson(JsonUtils.toJsonString(totals));runs.updateById(root);
+        mergeSummary(root,changes);runs.updateById(root);
     }
     public void refreshCache(Long runId) {
         var r=required(runId);if(!"SUCCESS".equals(r.getStatus())||!r.getCachePending())return;
@@ -298,7 +387,6 @@ public class SyncRunService {
             validator.adapter(JsonUtils.parseObject(r.getConfigSnapshot(),SyncDefinition.class).adapter()).refreshCaches();
             tx().executeWithoutResult(s->{var row=required(runId);row.setCachePending(false);runs.updateById(row);});
         }catch(RuntimeException ex){
-            // Do not log exception messages that may contain connection information.
             log.warn("Organization cache refresh pending for run {}: {}",runId,ex.getClass().getSimpleName());
         }
     }
@@ -341,11 +429,8 @@ public class SyncRunService {
                     .setSourceObject(d.sources().stream().filter(s->s.object().equals(c.object())).findFirst().orElseThrow().sourceObject());
             b.setTenantId(task.getTenantId());b.setTargetId(c.targetId()).setFieldsJson(JsonUtils.toJsonString(c.after())).setLastRunId(runId);
             b.setTargetShared(targetShared);
-            if(fresh) {
-                b.setCreator("data_sync");b.setUpdater("data_sync");created.add(b);
-            }else {
-                b.setUpdater("data_sync");b.setUpdateTime(LocalDateTime.now());updated.add(b);
-            }
+            if(fresh) {b.setCreator("data_sync");b.setUpdater("data_sync");created.add(b);}
+            else {b.setUpdater("data_sync");b.setUpdateTime(LocalDateTime.now());updated.add(b);}
         }
         if(!created.isEmpty())bindings.insertBatch(created,1000);
         if(!updated.isEmpty())bindings.updateBatch(updated,1000);
@@ -375,21 +460,53 @@ public class SyncRunService {
         Map<String,DataSyncAdapter.Binding> old=new HashMap<>();bindings.forEach(b->old.put(b.object()+":"+b.sourceKey(),b));
         return rows.stream().map(r->{
             var prior=old.get(r.object()+":"+r.sourceKey());
-            Object time=r.fields().get("_sourceUpdatedAt");
-            Object last=prior==null?null:prior.lastFields().get("_sourceUpdatedAt");
+            Object time=r.fields().get("_sourceUpdatedAt");Object last=prior==null?null:prior.lastFields().get("_sourceUpdatedAt");
             if(time!=null&&last!=null&&SyncFieldMapper.sourceTime(time).isBefore(SyncFieldMapper.sourceTime(last))) {
-                stale.add(r.object()+":"+r.sourceKey());
-                return new DataSyncAdapter.Row(r.object(),r.sourceKey(),prior.lastFields(),prior.targetId());
+                stale.add(r.object()+":"+r.sourceKey());return new DataSyncAdapter.Row(r.object(),r.sourceKey(),prior.lastFields(),prior.targetId());
             }
             return r;
         }).toList();
     }
+    private static List<DataSyncAdapter.Change> markStale(List<DataSyncAdapter.Change> changes,Set<String> stale) {
+        return changes.stream().map(c->stale.contains(c.object()+":"+c.sourceKey())
+                ?new DataSyncAdapter.Change(c.object(),c.sourceKey(),c.targetId(),"SKIPPED",c.before(),c.after(),"旧来源版本已跳过"):c).toList();
+    }
+    private static void verifyPrimaryKeys(DataSyncAdapter.Batch batch,List<DataSyncAdapter.Change> changes) {
+        Map<String,DataSyncAdapter.Change> byKey=new HashMap<>();changes.forEach(c->byKey.put(c.object()+":"+c.sourceKey(),c));
+        for(var row:batch.rows())if(row.fields().containsKey("_sourcePrimaryKey")) {
+            long requested=SyncFieldMapper.primaryKey(row.sourceKey());var change=byKey.get(row.object()+":"+row.sourceKey());
+            if(change==null)throw new IllegalStateException("适配器未返回主键同步结果");
+            if(!Objects.equals(change.targetId(),requested))throw new IllegalStateException("适配器写入主键与来源主键不一致，整批回滚");
+        }
+    }
+    private void failTask(SyncRunDO run,SyncDefinition d) {
+        var t=taskService.locked(run.getTaskId());
+        if(!Objects.equals(t.getActiveRunId(),run.getId()))return;
+        t.setActiveRunId(null);
+        if(!run.getPreview()) {
+            int attempt=t.getRetryAttempt()+1;t.setRetryAttempt(attempt).setLastFailedRunId(run.getId());
+            t.setNextRunAt(attempt<=d.retryCount()?LocalDateTime.now().plusSeconds(d.retryIntervalSeconds()):SyncTaskService.next(d.cron()));
+            if(run.getFullSnapshot())t.setNextFullAt(attempt<=d.retryCount()?t.getNextRunAt():SyncTaskService.next(d.fullCron()));
+        }
+        tasks.updateById(t);
+    }
+    private static void mergeSummary(SyncRunDO run,List<DataSyncAdapter.Change> changes) {
+        Map<String,Object> totals=run.getSummaryJson()==null?new LinkedHashMap<>():new LinkedHashMap<>(JsonUtils.parseMap(run.getSummaryJson()));
+        for(var change:changes)totals.compute(change.action(),(k,v)->(v==null?0L:((Number)v).longValue())+1L);
+        run.setSummaryJson(JsonUtils.toJsonString(totals));
+    }
+    private static void appendResultSample(SyncRunDO run,List<DataSyncAdapter.Change> changes,int limit) {
+        if(limit<=0||changes.isEmpty())return;
+        List<DataSyncAdapter.Change> sample=run.getResultJson()==null?new ArrayList<>():
+                new ArrayList<>(JsonUtils.parseArray(run.getResultJson(),DataSyncAdapter.Change.class));
+        int remaining=Math.max(0,limit-sample.size());
+        if(remaining>0)sample.addAll(changes.subList(0,Math.min(remaining,changes.size())));
+        run.setResultJson(JsonUtils.toJsonString(sample));
+    }
     private void updateStatus(Long id,String state){tx().executeWithoutResult(s->{var r=required(id);r.setStatus(state);runs.updateById(r);});}
     private void saveResult(Long id,List<DataSyncAdapter.Change> changes){tx().executeWithoutResult(s->{var r=required(id);r.setResultJson(JsonUtils.toJsonString(changes)).setSummaryJson(summary(changes));runs.updateById(r);});}
     private static String summary(List<DataSyncAdapter.Change> changes) {
-        Map<String,Long> counts=new LinkedHashMap<>();
-        for(var change:changes)counts.merge(change.action(),1L,Long::sum);
-        return JsonUtils.toJsonString(counts);
+        Map<String,Long> counts=new LinkedHashMap<>();for(var change:changes)counts.merge(change.action(),1L,Long::sum);return JsonUtils.toJsonString(counts);
     }
     public static String owner(SyncTaskDO t){return "integration:"+t.getTenantId()+":"+t.getId();}
     private TransactionTemplate tx(){return new TransactionTemplate(transactionManager);}

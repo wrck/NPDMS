@@ -16,19 +16,29 @@ import java.util.*;
 @RequiredArgsConstructor
 public class SyncEvidenceService {
     private final PlatformMigrationEvidenceApi api;
-    public record Evidence(String object,String sourceObject,Long batchId,Map<String,Long> recordIds) {}
+    public record Evidence(String object,String sourceObject,Long batchId,Map<String,Long> recordIds,String correlation) {
+        public Evidence(String object,String sourceObject,Long batchId,Map<String,Long> recordIds) {
+            this(object,sourceObject,batchId,recordIds,null);
+        }
+    }
 
     @Transactional(rollbackFor=Exception.class)
     public List<Evidence> stage(Long runId, SyncDefinition d, MysqlSyncReader.Snapshot snapshot) {
+        return stage(runId,d,snapshot,runId.toString(),"snapshot");
+    }
+
+    /** Streaming chunks use distinct correlation/idempotency keys while remaining under the same logical run purpose. */
+    @Transactional(rollbackFor=Exception.class)
+    public List<Evidence> stage(Long runId,SyncDefinition d,MysqlSyncReader.Snapshot snapshot,String correlation,String unitKey) {
         long tenant=TenantContextHolder.getRequiredTenantId();
-        String correlation=runId.toString(),purpose="SYNC_"+runId;
+        String purpose="SYNC_"+runId;
         List<Evidence> evidence=new ArrayList<>();
         for(var source:snapshot.objects()) {
             var config=d.sources().stream().filter(s->s.object().equals(source.object())).findFirst().orElseThrow();
             String payload=JsonUtils.toJsonString(source.rows()),digest=sha(payload);
             var batch=api.createImportBatch(new CreateImportBatchCommand(tenant,"INT",purpose,correlation,
                     d.sourceSystem(),source.sourceObject(),"SYNC_V1",source.rows().size(),digest,snapshot.upper(),
-                    null,null,purpose+":"+source.object(),correlation));
+                    null,null,purpose+":"+source.object()+":"+unitKey,correlation));
             Map<String,Long> ids=new LinkedHashMap<>();
             List<AppendMigrationSourceRecordCommand> sourceCommands=new ArrayList<>();
             for(var row:source.rows()) {
@@ -44,7 +54,7 @@ public class SyncEvidenceService {
             api.markStagedReady(new MarkStagedReadyCommand(tenant,batch.batchId(),batch.version(),
                     ImportStagingDecision.READY,(long)source.rows().size(),"SYNC_V1",digest,null,
                     "ready:"+batch.batchId(),correlation));
-            evidence.add(new Evidence(source.object(),source.sourceObject(),batch.batchId(),ids));
+            evidence.add(new Evidence(source.object(),source.sourceObject(),batch.batchId(),ids,correlation));
         }
         return evidence;
     }
@@ -54,10 +64,10 @@ public class SyncEvidenceService {
     public void complete(Long runId, SyncDefinition d,List<Evidence> evidence,
                          DataSyncAdapter.Descriptor descriptor,List<DataSyncAdapter.Change> changes,boolean failed) {
         long tenant=TenantContextHolder.getRequiredTenantId();
-        String correlation=runId.toString();
         Map<String,DataSyncAdapter.Change> byKey=new HashMap<>();
         changes.forEach(c->byKey.put(c.object()+":"+c.sourceKey(),c));
         for(var e:evidence) {
+            String correlation=e.correlation()==null?runId.toString():e.correlation();
             var claim=api.claimStagedBatch(new ClaimStagedBatchCommand(tenant,"INT","SYNC_"+runId,
                     List.of(d.sourceSystem()),List.of(e.sourceObject()),correlation));
             if(!claim.claimed()||!claim.batch().batchId().equals(e.batchId())) throw new IllegalStateException("迁移证据批次领取失败");
