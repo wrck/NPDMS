@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.integration.sync;
 
 import cn.iocoder.yudao.module.infra.api.db.ExternalDataSourceApi;
-import lombok.RequiredArgsConstructor;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,9 +15,15 @@ import java.util.function.Consumer;
 
 /** Executes one source SQL cursor and emits bounded chunks without materializing the full result set. */
 @Component
-@RequiredArgsConstructor
 public class SpringJdbcStreamingReader {
-    private final ExternalDataSourceApi sources;
+    private final Optional<ExternalDataSourceApi> sources;
+
+    public SpringJdbcStreamingReader(Optional<ExternalDataSourceApi> sources) {
+        this.sources=sources;
+    }
+    SpringJdbcStreamingReader(ExternalDataSourceApi source) {
+        this(Optional.of(source));
+    }
 
     public record StreamChunk(LocalDateTime upper, int sourceIndex, String object, String sourceObject,
                               List<Map<String,Object>> rows, Object lastKey, long bytes,
@@ -27,7 +32,8 @@ public class SpringJdbcStreamingReader {
 
     public StreamResult stream(SyncDefinition definition, LocalDateTime lower, boolean full,
                                SyncStreamingState resume, Consumer<StreamChunk> consumer) throws SQLException {
-        try (Connection connection=sources.openReadOnly(definition.connectionId())) {
+        var sourceApi=sources.orElseThrow(()->new IllegalStateException("外部数据源服务不可用"));
+        try (Connection connection=sourceApi.openReadOnly(definition.connectionId())) {
             connection.setAutoCommit(false);
             SingleConnectionDataSource dataSource=new SingleConnectionDataSource(connection,true);
             JdbcTemplate jdbc=new JdbcTemplate(dataSource);
@@ -44,7 +50,7 @@ public class SpringJdbcStreamingReader {
                 var source=definition.sources().get(sourceIndex);
                 Object checkpoint=resume!=null&&sourceIndex==resume.sourceIndex()?resume.lastKey():null;
                 streamSource(jdbc,connection,definition,source,sourceIndex,lower,upper,full,checkpoint,sequence,totalRows,consumer);
-                consumer.accept(new StreamChunk(upper,sourceIndex,source.object(),source.sourceObject(),List.of(),checkpoint,0,true,++sequence[0]));
+                consumer.accept(new StreamChunk(upper,sourceIndex,source.object(),source.sourceObject(),List.of(),checkpoint,0,true,sequence[0]));
                 resume=null;
             }
             connection.rollback();
