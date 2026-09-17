@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class BriefingEntityImportServiceTest {
     @Mock private BriefingEntityImportMapper mapper;
+    @Mock private BriefingEntityAccess access;
     @InjectMocks private BriefingEntityImportService service;
     @BeforeEach void setTenant() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void clearTenant() { TenantContextHolder.clear(); }
@@ -36,6 +37,7 @@ class BriefingEntityImportServiceTest {
     }
     @Test void importPreservesDeletedZeroEmptyAndNullAuditFields() {
         var source = source(); var target = target(source);
+        when(mapper.selectSource(any())).thenReturn(source);
         when(mapper.selectSourceForUpdate(any())).thenReturn(source);
         when(mapper.selectTargetForUpdate(any())).thenReturn(null, target);
         when(mapper.insertImported(source)).thenReturn(1);
@@ -46,12 +48,14 @@ class BriefingEntityImportServiceTest {
         verify(mapper).selectSourceForUpdate(new BriefingEntityLockQuery(1L, 7L));
     }
     @Test void identicalRetryDoesNotInsert() {
-        var source = source(); when(mapper.selectSourceForUpdate(any())).thenReturn(source);
+        var source = source(); when(mapper.selectSource(any())).thenReturn(source);
+        when(mapper.selectSourceForUpdate(any())).thenReturn(source);
         when(mapper.selectTargetForUpdate(any())).thenReturn(target(source));
         assertEquals(7L, service.importOne(7L)); verify(mapper, never()).insertImported(any());
     }
     @Test void changedTargetIsNotOverwritten() {
         var source = source(); var target = target(source); target.setContent("目标已编辑");
+        when(mapper.selectSource(any())).thenReturn(source);
         when(mapper.selectSourceForUpdate(any())).thenReturn(source);
         when(mapper.selectTargetForUpdate(any())).thenReturn(target);
         assertThrows(IllegalStateException.class, () -> service.importOne(7L));
@@ -59,6 +63,7 @@ class BriefingEntityImportServiceTest {
     }
     @Test void occupiedPrimaryKeyIsNotReused() {
         var source = source(); var target = target(source); target.setLegacySourceId(null);
+        when(mapper.selectSource(any())).thenReturn(source);
         when(mapper.selectSourceForUpdate(any())).thenReturn(source);
         when(mapper.selectTargetForUpdate(any())).thenReturn(target);
         assertThrows(IllegalStateException.class, () -> service.importOne(7L));
@@ -66,6 +71,7 @@ class BriefingEntityImportServiceTest {
     }
     @Test void failedReadbackRejectsImport() {
         var source = source(); var target = target(source); target.setFileChecksum("被改变");
+        when(mapper.selectSource(any())).thenReturn(source);
         when(mapper.selectSourceForUpdate(any())).thenReturn(source);
         when(mapper.selectTargetForUpdate(any())).thenReturn(null, target);
         when(mapper.insertImported(source)).thenReturn(1);
@@ -75,4 +81,25 @@ class BriefingEntityImportServiceTest {
         assertThrows(RuntimeException.class, () -> service.importOne(7L));
         verify(mapper, never()).insertImported(any()); verify(mapper, never()).selectTargetForUpdate(any());
     }
+    @Test void deniedImportDoesNotReadOrLockOldTable() {
+        doThrow(new IllegalStateException("DENIED")).when(access).requirePermission(BriefingEntityAccess.CREATE);
+        var error=assertThrows(IllegalStateException.class, () -> service.importOne(7L));
+        assertEquals("DENIED",error.getMessage()); verifyNoInteractions(mapper);
+    }
+    @Test void sourceProjectChangeAfterScopeLockDoesNotImport() {
+        var initial=source(); var changed=source(); changed.setProjectId(20L);
+        when(mapper.selectSource(any())).thenReturn(initial);
+        when(mapper.selectSourceForUpdate(any())).thenReturn(changed);
+        assertThrows(IllegalStateException.class, () -> service.importOne(7L));
+        verify(access).lockWrite(10L,BriefingEntityAccess.CREATE);
+        verify(mapper,never()).insertImported(any()); verify(mapper,never()).selectTargetForUpdate(any());
+    }
+    @Test void foreignTenantSourceIsNotImported() {
+        var initial=source(); var changed=source(); changed.setTenantId(2L);
+        when(mapper.selectSource(any())).thenReturn(initial);
+        when(mapper.selectSourceForUpdate(any())).thenReturn(changed);
+        assertThrows(IllegalStateException.class, () -> service.importOne(7L));
+        verify(mapper,never()).insertImported(any());
+    }
+
 }

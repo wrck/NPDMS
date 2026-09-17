@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.entity.Br
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.BriefingEntityImportMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.entity.query.BriefingEntityLockQuery;
 import lombok.RequiredArgsConstructor;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -19,13 +20,24 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.B
 @RequiredArgsConstructor
 public class BriefingEntityImportService {
     private final BriefingEntityImportMapper mapper;
+    private final BriefingEntityAccess access;
 
     @Transactional(rollbackFor = Exception.class)
     public Long importOne(Long sourceId) {
         if (sourceId == null || sourceId <= 0) throw exception(BRIEFING_NOT_EXISTS);
         var query = new BriefingEntityLockQuery(TenantContextHolder.getRequiredTenantId(), sourceId);
+        access.requirePermission(BriefingEntityAccess.QUERY);
+        access.requirePermission(BriefingEntityAccess.CREATE);
+        var identity = mapper.selectSource(query);
+        if (identity == null) throw exception(BRIEFING_NOT_EXISTS);
+        access.requireReadable(identity.getProjectId());
+        access.lockWrite(identity.getProjectId(), BriefingEntityAccess.CREATE);
         var source = mapper.selectSourceForUpdate(query);
         if (source == null) throw exception(BRIEFING_NOT_EXISTS);
+        if (!Objects.equals(source.getId(), sourceId)
+                || !Objects.equals(source.getTenantId(), query.tenantId())
+                || !Objects.equals(source.getProjectId(), identity.getProjectId()))
+            throw new IllegalStateException("交底承接来源身份已变化，禁止继续迁移");
         var expected = BeanUtils.toBean(source, BriefingEntityDO.class);
         expected.setLegacySourceId(sourceId);
         var existing = mapper.selectTargetForUpdate(query);

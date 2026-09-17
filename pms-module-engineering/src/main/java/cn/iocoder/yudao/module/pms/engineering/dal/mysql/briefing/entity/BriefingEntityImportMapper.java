@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Param;
 /** 唯一允许读取旧交底表的专用承接 Mapper；没有旧表写方法。 */
 @Mapper
 public interface BriefingEntityImportMapper {
+    BriefingEntityImportSource selectSource(@Param("query") BriefingEntityLockQuery query);
     BriefingEntityImportSource selectSourceForUpdate(@Param("query") BriefingEntityLockQuery query);
     BriefingEntityDO selectTargetForUpdate(@Param("query") BriefingEntityLockQuery query);
     int insertImported(@Param("row") BriefingEntityImportSource row);

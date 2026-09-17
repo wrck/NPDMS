@@ -15,8 +15,13 @@ import java.util.Objects;
 public interface BriefingEntityMapper extends BaseMapperX<BriefingEntityDO> {
     default PageResult<BriefingEntityDO> selectPage(BriefingEntityPageQuery query) {
         Objects.requireNonNull(query.getTenantId(), "tenantId");
+        Objects.requireNonNull(query.getVisibleProjectIds(), "visibleProjectIds");
+        if (query.getVisibleProjectIds().isEmpty())
+            return new PageResult<>(java.util.List.of(), 0L);
         var wrapper = new LambdaQueryWrapperX<BriefingEntityDO>()
                 .eq(BriefingEntityDO::getTenantId, query.getTenantId())
+                .eq(BriefingEntityDO::getDeleted, false)
+                .in(BriefingEntityDO::getProjectId, query.getVisibleProjectIds())
                 .eqIfPresent(BriefingEntityDO::getProjectId, query.getProjectId())
                 .likeIfPresent(BriefingEntityDO::getCode, query.getCode())
                 .likeIfPresent(BriefingEntityDO::getName, query.getName())
@@ -31,8 +36,20 @@ public interface BriefingEntityMapper extends BaseMapperX<BriefingEntityDO> {
         return selectPage(query, wrapper.orderByDesc(BriefingEntityDO::getId));
     }
 
-    default BriefingEntityDO selectByCode(String code) {
-        return selectOne(BriefingEntityDO::getCode, code);
+    default BriefingEntityDO selectByTenantAndId(Long tenantId, Long id) {
+        Objects.requireNonNull(tenantId, "tenantId");
+        Objects.requireNonNull(id, "id");
+        return selectOne(new LambdaQueryWrapperX<BriefingEntityDO>()
+                .eq(BriefingEntityDO::getTenantId, tenantId)
+                .eq(BriefingEntityDO::getId, id).eq(BriefingEntityDO::getDeleted, false));
+    }
+
+    default BriefingEntityDO selectByTenantAndCode(Long tenantId, String code) {
+        Objects.requireNonNull(tenantId, "tenantId");
+        Objects.requireNonNull(code, "code");
+        return selectOne(new LambdaQueryWrapperX<BriefingEntityDO>()
+                .eq(BriefingEntityDO::getTenantId, tenantId)
+                .eq(BriefingEntityDO::getCode, code).eq(BriefingEntityDO::getDeleted, false));
     }
 
     BriefingEntityDO selectForUpdate(@Param("query") BriefingEntityLockQuery query);
