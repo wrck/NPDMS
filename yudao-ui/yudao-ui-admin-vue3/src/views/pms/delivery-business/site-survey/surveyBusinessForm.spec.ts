@@ -24,6 +24,6 @@ describe('complete site survey business form', () => {
     app.app.unmount()
   })
   it('carries only source identities into existing workflow pages, not invented material data', () => {
-    expect(surveyProcurementRoute('exchange', 12, 'SN-1')).toEqual({ path: '/pms/engineering/procurement/eng-material-exch', query: { surveyId: '12', deviceSn: 'SN-1' } })
+    expect(surveyProcurementRoute('exchange', 12, 'SN-1')).toEqual({ path: '/pms/engineering/procurement/imp-material-exch', query: { surveyId: '12', deviceSn: 'SN-1' } })
   })
 })

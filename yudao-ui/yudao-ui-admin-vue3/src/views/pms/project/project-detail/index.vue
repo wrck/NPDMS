@@ -917,9 +917,9 @@ const businessGroups = [
       { key: 'briefing', label: '工程交底', icon: 'ep:notebook-2' }
     ],
     parallelItems: [
-      { key: 'eng-risk', label: '单机风险', icon: 'ep:cpu' },
-      { key: 'eng-announcement', label: '技术公告', icon: 'ep:bell' },
-      { key: 'eng-authorization', label: '授权借货', icon: 'ep:document-checked' }
+      { key: 'imp-risk', label: '单机风险', icon: 'ep:cpu' },
+      { key: 'kno-announcement', label: '技术公告', icon: 'ep:bell' },
+      { key: 'plt-authorization', label: '授权借货', icon: 'ep:document-checked' }
     ]
   },
   {
@@ -982,7 +982,7 @@ const businessGroups = [
 const moduleConfigs: Record<string, ModuleConfig> = {
   // --- 工程实施：流程步骤 ---
   'site-survey': {
-    key: 'site-survey', label: '现场工勘', icon: 'ep:position', path: '/pms/engineering/preparation/eng-site-survey',
+    key: 'site-survey', label: '现场工勘', icon: 'ep:position', path: '/pms/engineering/preparation/sol-site-survey',
     load: (pid, pageNo, pageSize) => SiteSurveyApi.getSiteSurveyPage({ projectId: pid, pageNo, pageSize }),
     get: (id) => SiteSurveyApi.getSiteSurvey(id),
     columns: [
@@ -996,7 +996,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     actions: []
   },
   'requirement': {
-    key: 'requirement', label: '需求分析', icon: 'ep:document-copy', path: '/pms/engineering/preparation/eng-requirement',
+    key: 'requirement', label: '需求分析', icon: 'ep:document-copy', path: '/pms/engineering/preparation/sol-requirement',
     load: (pid, pageNo, pageSize) => RequirementApi.getRequirementPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => RequirementApi.createRequirement(data),
     update: (data) => RequirementApi.updateRequirement(data),
@@ -1016,7 +1016,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'briefing': {
-    key: 'briefing', label: '工程交底', icon: 'ep:notebook-2', path: '/pms/engineering/preparation/eng-briefing',
+    key: 'briefing', label: '工程交底', icon: 'ep:notebook-2', path: '/pms/engineering/preparation/sol-briefing',
     load: (pid, pageNo, pageSize) => BriefingApi.getBriefingPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => BriefingApi.createBriefing(data),
     update: (data) => BriefingApi.updateBriefing(data),
@@ -1036,8 +1036,8 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   // --- 工程实施：并行事项 ---
-  'eng-risk': {
-    key: 'eng-risk', label: '单机风险', icon: 'ep:cpu', path: '/pms/engineering/safeguard/eng-risk',
+  'imp-risk': {
+    key: 'imp-risk', label: '单机风险', icon: 'ep:cpu', path: '/pms/engineering/safeguard/imp-risk',
     load: (pid, pageNo, pageSize) => EngRiskApi.getRiskPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => EngRiskApi.createRisk(data),
     update: (data) => EngRiskApi.updateRisk(data),
@@ -1057,8 +1057,8 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { label: '关闭', type: 'success', show: (r) => r.status === 1, run: (r) => EngRiskApi.closeRisk(r.id), confirm: '关闭该风险？' }
     ]
   },
-  'eng-announcement': {
-    key: 'eng-announcement', label: '技术公告', icon: 'ep:bell', path: '/pms/engineering/safeguard/eng-announcement',
+  'kno-announcement': {
+    key: 'kno-announcement', label: '技术公告', icon: 'ep:bell', path: '/pms/engineering/safeguard/kno-announcement',
     load: (_pid, pageNo, pageSize) => AnnouncementApi.getAnnouncementPage({ pageNo, pageSize }),
     create: (data) => AnnouncementApi.createAnnouncement(data),
     update: (data) => AnnouncementApi.updateAnnouncement(data),
@@ -1077,8 +1077,8 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { label: '停用', type: 'danger', show: (r) => r.status === 1, run: (r) => AnnouncementApi.disableAnnouncement(r.id), confirm: '停用该公告？' }
     ]
   },
-  'eng-authorization': {
-    key: 'eng-authorization', label: '授权借货', icon: 'ep:document-checked', path: '/pms/engineering/safeguard/eng-authorization',
+  'plt-authorization': {
+    key: 'plt-authorization', label: '授权借货', icon: 'ep:document-checked', path: '/pms/engineering/safeguard/plt-authorization',
     load: (pid, pageNo, pageSize) => AuthorizationApi.getAuthorizationPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => AuthorizationApi.createAuthorization(data),
     update: (data) => AuthorizationApi.updateAuthorization(data),
@@ -1101,7 +1101,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   // --- 方案计划：流程步骤 ---
   'solution': {
-    key: 'solution', label: '实施方案', icon: 'ep:files', path: '/pms/engineering/preparation/eng-solution',
+    key: 'solution', label: '实施方案', icon: 'ep:files', path: '/pms/engineering/preparation/sol-solution',
     load: (pid, pageNo, pageSize) => SolutionApi.getSolutionPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => SolutionApi.createSolution(data),
     update: (data) => SolutionApi.updateSolution(data),
@@ -1123,7 +1123,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'resource': {
-    key: 'resource', label: '资源就绪', icon: 'ep:box', path: '/pms/engineering/execution/eng-resource',
+    key: 'resource', label: '资源就绪', icon: 'ep:box', path: '/pms/engineering/execution/sol-resource',
     load: (pid, pageNo, pageSize) => ResourceApi.getResourceReadyPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => ResourceApi.createResourceReady(data),
     update: (data) => ResourceApi.updateResourceReady(data),
@@ -1171,7 +1171,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   // --- 实施部署：流程步骤 ---
   'arrival': {
-    key: 'arrival', label: '到货签收', icon: 'ep:takeaway-box', path: '/pms/engineering/execution/eng-arrival',
+    key: 'arrival', label: '到货签收', icon: 'ep:takeaway-box', path: '/pms/engineering/execution/imp-arrival',
     load: (pid, pageNo, pageSize) => ArrivalApi.getArrivalPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => ArrivalApi.createArrival(data),
     update: (data) => ArrivalApi.updateArrival(data),
@@ -1191,7 +1191,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'installation': {
-    key: 'installation', label: '硬件安装', icon: 'ep:setting', path: '/pms/engineering/execution/eng-installation',
+    key: 'installation', label: '硬件安装', icon: 'ep:setting', path: '/pms/engineering/execution/imp-installation',
     load: (pid, pageNo, pageSize) => InstallationApi.getInstallationPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => InstallationApi.createInstallation(data),
     update: (data) => InstallationApi.updateInstallation(data),
@@ -1212,7 +1212,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'configuration': {
-    key: 'configuration', label: '配置调试', icon: 'ep:tools', path: '/pms/engineering/execution/eng-configuration',
+    key: 'configuration', label: '配置调试', icon: 'ep:tools', path: '/pms/engineering/execution/imp-configuration',
     load: (pid, pageNo, pageSize) => ConfigurationApi.getConfigurationPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => ConfigurationApi.createConfiguration(data),
     update: (data) => ConfigurationApi.updateConfiguration(data),
@@ -1232,7 +1232,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'joint-test': {
-    key: 'joint-test', label: '业务联调', icon: 'ep:connection', path: '/pms/engineering/execution/eng-joint-test',
+    key: 'joint-test', label: '业务联调', icon: 'ep:connection', path: '/pms/engineering/execution/imp-joint-test',
     load: (pid, pageNo, pageSize) => JointTestApi.getJointTestPage({ projectId: pid, pageNo, pageSize }),
     create: (data) => JointTestApi.createJointTest(data),
     update: (data) => JointTestApi.updateJointTest(data),
@@ -1254,7 +1254,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   // --- 实施部署：并行事项 ---
   'issue': {
-    key: 'issue', label: '实施问题', icon: 'ep:warning-filled', path: '/pms/engineering/execution/eng-issue',
+    key: 'issue', label: '实施问题', icon: 'ep:warning-filled', path: '/pms/engineering/execution/imp-issue',
     load: (pid, pageNo, pageSize) => IssueApi.getIssuePage({ projectId: pid, pageNo, pageSize }),
     create: (data) => IssueApi.createIssue(data),
     update: (data) => IssueApi.updateIssue(data),
@@ -1275,7 +1275,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'deliverable': {
-    key: 'deliverable', label: '交付件', icon: 'ep:folder', path: '/pms/engineering/execution/eng-deliverable',
+    key: 'deliverable', label: '交付件', icon: 'ep:folder', path: '/pms/engineering/execution/imp-deliverable',
     load: (pid, pageNo, pageSize) => DeliverableApi.getDeliverablePage({ projectId: pid, pageNo, pageSize }),
     create: (data) => DeliverableApi.createDeliverable(data),
     update: (data) => DeliverableApi.updateDeliverable(data),

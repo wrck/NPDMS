@@ -12,6 +12,6 @@ export const surveyProcurementRoute = (
   surveyId: number,
   sn?: string
 ) => ({
-  path: `/pms/engineering/procurement/${{ material: 'eng-material-req', procurement: 'eng-ext-proc', exchange: 'eng-material-exch' }[kind]}`,
+  path: `/pms/engineering/procurement/${{ material: 'imp-material-req', procurement: 'imp-ext-proc', exchange: 'imp-material-exch' }[kind]}`,
   query: { surveyId: String(surveyId), ...(sn ? { deviceSn: sn } : {}) }
 })
