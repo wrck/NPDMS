@@ -22,7 +22,12 @@ public interface DataSyncAdapter {
                             String targetContext, String targetObjectType, String targetTable,
                             boolean supportsSourcePrimaryKey) {}
     record Descriptor(String key, String label, List<ObjectDescriptor> objects, List<String> missingPolicies,
-                      List<String> loadingModes, boolean supportsTargetClear) {}
+                      List<String> loadingModes, boolean supportsTargetClear, boolean supportsStreaming) {
+        public Descriptor(String key, String label, List<ObjectDescriptor> objects, List<String> missingPolicies,
+                          List<String> loadingModes, boolean supportsTargetClear) {
+            this(key, label, objects, missingPolicies, loadingModes, supportsTargetClear, false);
+        }
+    }
     /** fields._sourcePrimaryKey requests an exact target ID; targetId remains the established binding. */
     record Row(String object, String sourceKey, Map<String, Object> fields, Long targetId) {}
     record Binding(String object, String sourceKey, Long targetId, Map<String, Object> lastFields) {}
