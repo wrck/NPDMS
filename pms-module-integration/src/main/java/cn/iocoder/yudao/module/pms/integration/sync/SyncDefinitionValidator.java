@@ -50,8 +50,8 @@ public class SyncDefinitionValidator {
             throw new IllegalArgumentException("Cron 表达式无效");
         if(d.overlapSeconds()<0||d.retryCount()<0||d.retryCount()>10||d.retryIntervalSeconds()<1
                 ||d.maxRows()<1||d.maxRows()>10000||d.maxBytes()<1||d.maxBytes()>64L*1024*1024
-                ||d.fetchSize()<1||d.fetchSize()>10000
-                ||d.chunkSize()<1||d.chunkSize()>5000
+                ||d.effectiveFetchSize()<1||d.effectiveFetchSize()>10000
+                ||d.effectiveChunkSize()<1||d.effectiveChunkSize()>5000
                 ||d.queryTimeoutSeconds()<0||d.queryTimeoutSeconds()>3600)
             throw new IllegalArgumentException("重试、窗口、流式参数或容量参数超出范围");
         if(d.sources()==null||d.sources().size()!=descriptor.objects().size()) throw new IllegalArgumentException("必须配置适配器全部对象");
