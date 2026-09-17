@@ -35,6 +35,9 @@ jobs:
         working-directory: yudao-ui/yudao-ui-admin-vue3
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          show-progress: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -43,10 +46,11 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.5 --activate
       - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Run V1 contracts, facade lifecycle and V2 adapter tests
         run: |
           mkdir -p artifacts
+          pnpm install --frozen-lockfile > artifacts/install.log 2>&1 || { tail -n 40 artifacts/install.log; exit 1; }
+      - name: Run V1 contracts, facade lifecycle and V2 adapter tests
+        run: |
           pnpm exec vitest run --config vitest.pms-file.config.ts \
             src/components/LowCodeFormRenderer \
             src/components/LowCodeFormRendererFacade \
@@ -54,13 +58,48 @@ jobs:
             --reporter=default --reporter=junit \
             --outputFile.junit=artifacts/lowcode-compat.xml
       - name: Type-check frontend
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
-        run: pnpm run ts:check
-      - name: Upload test results
+        if: ${{ !cancelled() && success() }}
+        run: |
+          set +e
+          pnpm run ts:check > artifacts/typecheck.log 2>&1
+          result=$?
+          printf '%s\n' "$result" > artifacts/typecheck.exit
+          python3 - <<'PY'
+          import collections, pathlib, re
+          text = pathlib.Path('artifacts/typecheck.log').read_text()
+          errors = [line for line in text.splitlines() if re.search(r'error TS\d+:', line)]
+          counts = collections.Counter(re.split(r'\(\d+,\d+\)', line)[0] for line in errors)
+          print(f'TypeScript diagnostic count: {len(errors)}')
+          for path, count in counts.most_common():
+              print(f'{count:4} {path}')
+          if not errors:
+              print(text[-4000:])
+          PY
+          exit "$result"
+      - name: Package reproducible inputs for migration investigation
+        if: ${{ failure() && github.event_name == 'push' }}
+        run: |
+          git -C ../.. archive --format=tar.gz --output="$PWD/artifacts/source.tar.gz" HEAD
+          tar -czf artifacts/frontend-dependencies.tar.gz node_modules
+      - name: Upload test results and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lowcode-renderer-compat-${{ github.sha }}
-          path: yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-compat.xml
-          if-no-files-found: warn
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-compat.xml
+            yudao-ui/yudao-ui-admin-vue3/artifacts/typecheck.log
+            yudao-ui/yudao-ui-admin-vue3/artifacts/typecheck.exit
+            yudao-ui/yudao-ui-admin-vue3/artifacts/install.log
+          if-no-files-found: error
+      - name: Upload reproducible inputs
+        if: ${{ failure() && github.event_name == 'push' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lowcode-investigation-inputs-${{ github.sha }}
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/source.tar.gz
+            yudao-ui/yudao-ui-admin-vue3/artifacts/frontend-dependencies.tar.gz
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error
