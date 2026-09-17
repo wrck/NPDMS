@@ -44,7 +44,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         return new Descriptor(KEY, "DPPMS ERP销售订单与订单行",
                 List.of(new ObjectDescriptor("ORDER", "销售订单", head, "COM", "SalesOrder", "com_sales_order", false),
                         new ObjectDescriptor("LINE", "订单行", line, "COM", "OrderLine", "com_sales_order_line", false)),
-                List.of("RETAIN"), List.of("UPSERT"), false);
+                List.of("RETAIN"), List.of("UPSERT"), false, true);
     }
 
     private static Field field(String name, String label, boolean required) {
