@@ -267,38 +267,34 @@ public class SyncRunService {
         var snapshot=new MysqlSyncReader.Snapshot(chunk.upper(),List.of(
                 new MysqlSyncReader.SourceRows(chunk.object(),chunk.sourceObject(),chunk.rows())),chunk.bytes());
         String correlation=runId+":s"+chunk.sourceIndex()+":c"+chunk.sequence();
-        var evidence=evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
-        try {
-            tx().executeWithoutResult(status->{
-                var current=required(runId);
-                var t=taskService.locked(task.getId());
-                if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
-                    throw new IllegalStateException("流式运行所有权或配置版本变化");
-                var state=current.getPagingJson()==null?SyncStreamingState.start(chunk.upper()):
-                        JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
-                if(state.sourceIndex()!=chunk.sourceIndex())throw new IllegalStateException("流式来源断点与当前游标不一致");
-                var existing=loadPageBindings(task.getId(),d,snapshot);
-                var rows=fieldMapper.transform(d,snapshot,existing);
-                Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
-                var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
-                var changes=current.getPreview()?adapter.preview(batch):adapter.apply(batch);
-                if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
-                    throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
-                verifyPrimaryKeys(batch,changes);
-                var finalChanges=markStale(changes,stale);
-                if(!current.getPreview())persistBindings(t,d,finalChanges,runId);
-                evidenceService.complete(runId,d,evidence,adapter.descriptor(),
-                        current.getPreview()?List.of():finalChanges,false);
-                state=state.committed(chunk.lastKey(),chunk.rows().size());
-                current.setPagingJson(JsonUtils.toJsonString(state)).setSourceUpper(chunk.upper())
-                        .setReadCount(current.getReadCount()+chunk.rows().size())
-                        .setStatus(current.getPreview()?"VALIDATING":"APPLYING");
-                mergeSummary(current,finalChanges);appendResultSample(current,finalChanges,d.maxRows());runs.updateById(current);
-            });
-        } catch(RuntimeException ex) {
-            tx().executeWithoutResult(status->evidenceService.complete(runId,d,evidence,adapter.descriptor(),List.of(),true));
-            throw ex;
-        }
+        tx().executeWithoutResult(status->{
+            var current=required(runId);
+            var t=taskService.locked(task.getId());
+            if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
+                throw new IllegalStateException("流式运行所有权或配置版本变化");
+            var state=current.getPagingJson()==null?SyncStreamingState.start(chunk.upper()):
+                    JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
+            if(state.sourceIndex()!=chunk.sourceIndex())throw new IllegalStateException("流式来源断点与当前游标不一致");
+            var existing=loadPageBindings(task.getId(),d,snapshot);
+            var rows=fieldMapper.transform(d,snapshot,existing);
+            Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
+            var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
+            // Stage, target writes, reconciliation, bindings and checkpoint advance are one atomic chunk transaction.
+            var evidence=evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
+            var changes=current.getPreview()?adapter.preview(batch):adapter.apply(batch);
+            if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
+                throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
+            verifyPrimaryKeys(batch,changes);
+            var finalChanges=markStale(changes,stale);
+            if(!current.getPreview())persistBindings(t,d,finalChanges,runId);
+            evidenceService.complete(runId,d,evidence,adapter.descriptor(),
+                    current.getPreview()?List.of():finalChanges,false);
+            state=state.committed(chunk.lastKey(),chunk.rows().size());
+            current.setPagingJson(JsonUtils.toJsonString(state)).setSourceUpper(chunk.upper())
+                    .setReadCount(current.getReadCount()+chunk.rows().size())
+                    .setStatus(current.getPreview()?"VALIDATING":"APPLYING");
+            mergeSummary(current,finalChanges);appendResultSample(current,finalChanges,d.maxRows());runs.updateById(current);
+        });
     }
 
     private void advanceStreamingSource(Long runId,SyncDefinition d,SpringJdbcStreamingReader.StreamChunk chunk) {
