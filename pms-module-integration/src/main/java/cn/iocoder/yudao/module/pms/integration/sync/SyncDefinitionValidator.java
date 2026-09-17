@@ -2,10 +2,12 @@ package cn.iocoder.yudao.module.pms.integration.sync;
 
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
 import org.quartz.CronExpression;
+import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 import java.util.*;
 
 @Component
+@Import(SpringJdbcStreamingReader.class)
 public class SyncDefinitionValidator {
     private final Map<String,DataSyncAdapter> adapters;
     public SyncDefinitionValidator(List<DataSyncAdapter> providers) {
@@ -16,14 +18,31 @@ public class SyncDefinitionValidator {
     public DataSyncAdapter adapter(String key) {
         var a=adapters.get(key);if(a==null) throw new IllegalArgumentException("业务适配器不存在");return a;
     }
-    public List<DataSyncAdapter.Descriptor> descriptors(){return adapters.values().stream().map(DataSyncAdapter::descriptor).toList();}
+    public List<DataSyncAdapter.Descriptor> descriptors(){
+        return adapters.values().stream().map(adapter->{
+            var d=adapter.descriptor();
+            return new DataSyncAdapter.Descriptor(d.key(),d.label(),d.objects(),d.missingPolicies(),d.loadingModes(),
+                    d.supportsTargetClear(),adapter.supportsStreaming());
+        }).toList();
+    }
     public void validate(SyncDefinition d) {
         if(d==null||d.connectionId()==null||d.sourceSystem()==null||!d.sourceSystem().matches("[A-Za-z0-9_-]{1,32}"))
             throw new IllegalArgumentException("连接或来源系统标识无效");
-        var descriptor=adapter(d.adapter()).descriptor();
-        if(d.autoPaging() && (!Set.of("ONCE","SNAPSHOT").contains(d.mode()) || adapter(d.adapter()).requiresAllBindings()
+        var adapter=adapter(d.adapter());
+        var descriptor=adapter.descriptor();
+        String readStrategy=d.effectiveReadStrategy();
+        if(!Set.of("SNAPSHOT","KEYSET_PAGING","STREAMING_CURSOR").contains(readStrategy))
+            throw new IllegalArgumentException("来源读取策略无效");
+        if("KEYSET_PAGING".equals(readStrategy) && (!Set.of("ONCE","SNAPSHOT").contains(d.mode()) || adapter.requiresAllBindings()
                 || !"RETAIN".equals(d.missingPolicy()) || d.clearBeforeLoad() || d.resetMappingsBeforeLoad()))
-            throw new IllegalArgumentException("自动分页仅支持独立记录的完整读取和保留策略，不支持整树、清空或重置映射");
+            throw new IllegalArgumentException("主键游标分页仅支持独立记录的完整读取和保留策略，不支持整树、清空或重置映射");
+        if("STREAMING_CURSOR".equals(readStrategy) && (!adapter.supportsStreaming()
+                || !"RETAIN".equals(d.missingPolicy()) || d.clearBeforeLoad() || d.resetMappingsBeforeLoad()))
+            throw new IllegalArgumentException("流式游标仅支持显式声明可分块重放的适配器和保留策略，不支持整树、清空或重置映射");
+        if(!Set.of("RESTART_ALL","CHECKPOINT_KEY","NO_RESTART").contains(d.effectiveRestartPolicy()))
+            throw new IllegalArgumentException("流式失败恢复策略无效");
+        if("STREAMING_CURSOR".equals(readStrategy) && "NO_RESTART".equals(d.effectiveRestartPolicy()) && d.retryCount()>0)
+            throw new IllegalArgumentException("流式 NO_RESTART 不允许配置自动重试");
         if(d.resetMappingsBeforeLoad()&&(d.clearBeforeLoad()||"INCREMENTAL".equals(d.mode())||d.retryCount()>0
                 ||!"UPSERT".equals(d.loadingMode())))
             throw new IllegalArgumentException("仅重置映射不能同时截断目标；须使用完整快照、追加更新和手动执行，不能自动重试");
@@ -36,9 +55,18 @@ public class SyncDefinitionValidator {
         if(!CronExpression.isValidExpression(d.cron())||!CronExpression.isValidExpression(d.fullCron()))
             throw new IllegalArgumentException("Cron 表达式无效");
         if(d.overlapSeconds()<0||d.retryCount()<0||d.retryCount()>10||d.retryIntervalSeconds()<1
-                ||d.maxRows()<1||d.maxRows()>10000||d.maxBytes()<1||d.maxBytes()>64L*1024*1024)
-            throw new IllegalArgumentException("重试、窗口或容量参数超出范围");
+                ||d.maxRows()<1||d.maxRows()>10000||d.maxBytes()<1||d.maxBytes()>64L*1024*1024
+                ||d.effectiveFetchSize()<1||d.effectiveFetchSize()>10000
+                ||d.effectiveChunkSize()<1||d.effectiveChunkSize()>5000
+                ||d.queryTimeoutSeconds()<0||d.queryTimeoutSeconds()>3600)
+            throw new IllegalArgumentException("重试、窗口、流式参数或容量参数超出范围");
         if(d.sources()==null||d.sources().size()!=descriptor.objects().size()) throw new IllegalArgumentException("必须配置适配器全部对象");
+        if("STREAMING_CURSOR".equals(readStrategy)) {
+            List<String> configured=d.sources().stream().map(SyncDefinition.Source::object).toList();
+            List<String> expected=descriptor.objects().stream().map(DataSyncAdapter.ObjectDescriptor::name).toList();
+            if(!configured.equals(expected))
+                throw new IllegalArgumentException("流式来源对象必须按适配器声明顺序配置，避免跨对象依赖被提前提交");
+        }
         Set<String> objects=new HashSet<>(),sourceObjects=new HashSet<>();
         for(var s:d.sources()) {
             if(d.resetMappingsBeforeLoad()&&!s.syncPrimaryKey())
@@ -52,6 +80,7 @@ public class SyncDefinitionValidator {
             if(s.syncPrimaryKey()&&!object.supportsSourcePrimaryKey())
                 throw new IllegalArgumentException("该业务对象不支持同步源主键");
             if("INCREMENTAL".equals(d.mode())) MysqlSyncReader.identifier(s.updatedAt());
+            if("STREAMING_CURSOR".equals(readStrategy)) MysqlSyncReader.identifier(s.sourceKey());
             if(s.mappings()==null) throw new IllegalArgumentException("缺少字段映射");
             Set<String> mapped=new HashSet<>();
             for(var m:s.mappings()) {

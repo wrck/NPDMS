@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Source definitions are unpaged; the engine owns bounded keyset paging and committed cursors. */
+/** Source definitions stay unpaged; STREAMING_CURSOR executes each expensive SQL once and commits bounded chunks. */
 public final class DppmsOrderSyncTemplate {
     private DppmsOrderSyncTemplate() {}
 
@@ -12,7 +12,10 @@ public final class DppmsOrderSyncTemplate {
         return SyncDefinition.builder().adapter("DPPMS_ERP_ORDER").sourceSystem("DPPMS")
                 .connectionId(connectionId).mode("ONCE").loadingMode("UPSERT").missingPolicy("RETAIN")
                 .cron("0 0 2 * * ?").fullCron("0 0 2 ? * SUN").overlapSeconds(0)
-                .retryCount(0).retryIntervalSeconds(60).autoPaging(true).maxRows(2000).maxBytes(64L*1024*1024)
+                .retryCount(0).retryIntervalSeconds(60).autoPaging(false)
+                .readStrategy("STREAMING_CURSOR").fetchSize(2000).chunkSize(1000)
+                .restartPolicy("RESTART_ALL").queryTimeoutSeconds(0)
+                .maxRows(2000).maxBytes(64L*1024*1024)
                 .sources(List.of(source(false),source(true))).build();
     }
 

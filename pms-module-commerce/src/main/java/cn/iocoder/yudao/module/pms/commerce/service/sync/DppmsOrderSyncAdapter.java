@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
-/** DPPMS source pages enter the existing COM authority transaction, never a second table writer. */
+/** DPPMS source chunks enter the existing COM authority transaction, never a second table writer. */
 @Component
 @RequiredArgsConstructor
 public class DppmsOrderSyncAdapter implements DataSyncAdapter {
@@ -44,7 +44,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         return new Descriptor(KEY, "DPPMS ERP销售订单与订单行",
                 List.of(new ObjectDescriptor("ORDER", "销售订单", head, "COM", "SalesOrder", "com_sales_order", false),
                         new ObjectDescriptor("LINE", "订单行", line, "COM", "OrderLine", "com_sales_order_line", false)),
-                List.of("RETAIN"), List.of("UPSERT"), false);
+                List.of("RETAIN"), List.of("UPSERT"), false, true);
     }
 
     private static Field field(String name, String label, boolean required) {
@@ -54,6 +54,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
     @Override public List<Change> preview(Batch batch) { return plan(batch,true).changes(); }
     @Override public boolean requiresAllBindings() { return false; }
     @Override public boolean sharesTargetAcrossSources() { return true; }
+    @Override public boolean supportsStreaming() { return true; }
     @Override public void refreshCaches() { /* COM order queries do not cache these records. */ }
 
     @Override
@@ -67,8 +68,10 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     event, event, "ERP", event, List.of(), plan.orders(), plan.lines(), List.of(), LocalDateTime.now(), event));
         }
         Map<String, Long> ids = new HashMap<>();
-        mapper.selectOrders(plan.query()).forEach(r -> ids.put("ORDER:" + r.getSourceKey(), r.getId()));
-        mapper.selectLines(plan.query()).forEach(r -> ids.put("LINE:" + r.getSourceKey(), r.getId()));
+        if (plan.hasOrderRows())
+            mapper.selectOrders(plan.query()).forEach(r -> ids.put("ORDER:" + r.getSourceKey(), r.getId()));
+        if (plan.hasLineRows())
+            mapper.selectLines(plan.query()).forEach(r -> ids.put("LINE:" + r.getSourceKey(), r.getId()));
         return plan.changes().stream().map(c -> {
             if ("ISSUE".equals(c.action())) return c;
             Long id = ids.get(c.object() + ":" + c.after().get("_targetSourceKey"));
@@ -81,16 +84,18 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         if (!"UPSERT".equals(batch.loadingMode()) || !"RETAIN".equals(batch.missingPolicy())
                 || batch.clearBeforeLoad() || batch.adoptExisting())
             throw new IllegalArgumentException("DPPMS订单使用追加更新并保留源端消失记录，不清空或接管其他来源");
+        boolean hasOrderRows=batch.rows().stream().anyMatch(r->"ORDER".equals(r.object()));
+        boolean hasLineRows=batch.rows().stream().anyMatch(r->"LINE".equals(r.object()));
         var query = new ErpOrderSyncQuery(TenantContextHolder.getRequiredTenantId(), batch.rows().stream()
                 .map(r -> text(r, "orderNo")).filter(Objects::nonNull).distinct().toList());
         Map<String, SalesOrderDO> orders = new HashMap<>();
         Map<String, String> orderBusiness = new HashMap<>();
-        for (var r : mapper.selectOrders(query)) {
+        if(hasOrderRows||hasLineRows) for (var r : mapper.selectOrders(query)) {
             orders.put(r.getSourceKey(), r);
             orderBusiness.put(r.getCompanyCode() + "|" + r.getOrderType() + "|" + r.getOrderNo(), r.getSourceKey());
         }
         Map<String, SalesOrderLineDO> lines = new HashMap<>();
-        for (var r : mapper.selectLines(query)) lines.put(r.getSourceKey(), r);
+        if(hasLineRows) for (var r : mapper.selectLines(query)) lines.put(r.getSourceKey(), r);
         Map<String, CommerceSalesOrderFact> incomingOrders = new LinkedHashMap<>();
         Map<String, CommerceOrderLineFact> incomingLines = new LinkedHashMap<>();
         Map<String, Binding> bindings = new HashMap<>();
@@ -179,7 +184,8 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         // Conflicting rows must not leave an earlier candidate for the same business key writable.
         if (changes.stream().anyMatch(c -> "ISSUE".equals(c.action()) && c.message().startsWith("同一批次")))
             throw new IllegalArgumentException("来源预检未隔离同业务键冲突，整批停止");
-        return new Plan(query, changes, List.copyOf(incomingOrders.values()), List.copyOf(incomingLines.values()));
+        return new Plan(query, changes, List.copyOf(incomingOrders.values()), List.copyOf(incomingLines.values()),
+                hasOrderRows,hasLineRows);
     }
 
     private static String decision(String oldVersion, String version, String oldPayload, String payload) {
@@ -219,5 +225,6 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         return value == null ? null : new BigDecimal(value);
     }
     private record Plan(ErpOrderSyncQuery query, List<Change> changes,
-                        List<CommerceSalesOrderFact> orders, List<CommerceOrderLineFact> lines) {}
+                        List<CommerceSalesOrderFact> orders, List<CommerceOrderLineFact> lines,
+                        boolean hasOrderRows,boolean hasLineRows) {}
 }

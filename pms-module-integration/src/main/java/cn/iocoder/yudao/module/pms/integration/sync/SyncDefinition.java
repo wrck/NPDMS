@@ -29,13 +29,30 @@ public class SyncDefinition {
     private int retryCount;
     private int retryIntervalSeconds;
     private int maxRows;
+    /** Legacy compatibility flag. New configurations should use readStrategy=KEYSET_PAGING. */
     private boolean autoPaging;
     private long maxBytes;
+    @Builder.Default private String readStrategy = "SNAPSHOT";
+    @Builder.Default private int fetchSize = 2000;
+    @Builder.Default private int chunkSize = 1000;
+    @Builder.Default private String restartPolicy = "RESTART_ALL";
+    /** 0 means use the JDBC driver's timeout/default and allows expensive analytical SQL to finish. */
+    @Builder.Default private int queryTimeoutSeconds = 0;
     private List<Source> sources;
 
+    public String effectiveReadStrategy() {
+        if (autoPaging) return "KEYSET_PAGING";
+        return readStrategy == null || readStrategy.isBlank() ? "SNAPSHOT" : readStrategy;
+    }
+    public String effectiveRestartPolicy() {
+        return restartPolicy == null || restartPolicy.isBlank() ? "RESTART_ALL" : restartPolicy;
+    }
+    public int effectiveFetchSize() { return fetchSize > 0 ? fetchSize : 2000; }
+    public int effectiveChunkSize() { return chunkSize > 0 ? chunkSize : 1000; }
+
     @Data @Builder(toBuilder=true) @NoArgsConstructor @AllArgsConstructor(access=AccessLevel.PRIVATE)
-@JsonAutoDetect(fieldVisibility=JsonAutoDetect.Visibility.ANY, getterVisibility=JsonAutoDetect.Visibility.NONE)
-@Accessors(fluent=true)
+    @JsonAutoDetect(fieldVisibility=JsonAutoDetect.Visibility.ANY, getterVisibility=JsonAutoDetect.Visibility.NONE)
+    @Accessors(fluent=true)
     public static class Source {
         private String object;
         private String sourceObject;
@@ -52,8 +69,8 @@ public class SyncDefinition {
     }
     public record Filter(String column,String operator,Object value) {}
     @Data @Builder(toBuilder=true) @NoArgsConstructor @AllArgsConstructor(access=AccessLevel.PRIVATE)
-@JsonAutoDetect(fieldVisibility=JsonAutoDetect.Visibility.ANY, getterVisibility=JsonAutoDetect.Visibility.NONE)
-@Accessors(fluent=true)
+    @JsonAutoDetect(fieldVisibility=JsonAutoDetect.Visibility.ANY, getterVisibility=JsonAutoDetect.Visibility.NONE)
+    @Accessors(fluent=true)
     public static class Mapping {
         private String target;
         private String source;

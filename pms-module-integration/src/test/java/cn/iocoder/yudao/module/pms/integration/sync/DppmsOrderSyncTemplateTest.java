@@ -12,7 +12,7 @@ class DppmsOrderSyncTemplateTest {
         assertEquals(time,SyncFieldMapper.sourceTime(time));
         assertEquals(time,SyncFieldMapper.sourceTime(time.toString()));
     }
-    @Test void compilesReadOnlyPagesAndRetainsRawIdsAndVersions() {
+    @Test void compilesReadOnlyStreamingSourcesAndRetainsRawIdsAndVersions() {
         var definition=DppmsOrderSyncTemplate.create(12L);
         for(var source:definition.sources()) {
             var sql=MysqlSyncReader.compile(source);
@@ -22,11 +22,12 @@ class DppmsOrderSyncTemplateTest {
             assertFalse(source.syncPrimaryKey());
             assertEquals(0,sql.values().size());
             assertFalse(sql.sql().contains(":afterId"));
-            var page=MysqlSyncReader.pageSql(source,new SyncPagingState(0,7,java.util.List.of(99L),0,java.time.LocalDateTime.now()),17);
-            assertEquals(java.util.List.of(7L,99L,17),page.values());
-            assertTrue(page.sql().endsWith("ORDER BY `id` LIMIT ?"));
         }
-        assertTrue(definition.autoPaging());
+        assertFalse(definition.autoPaging());
+        assertEquals("STREAMING_CURSOR",definition.effectiveReadStrategy());
+        assertEquals(2000,definition.effectiveFetchSize());
+        assertEquals(1000,definition.effectiveChunkSize());
+        assertEquals("RESTART_ALL",definition.effectiveRestartPolicy());
         assertEquals("RETAIN",definition.missingPolicy());
         assertEquals("ONCE",definition.mode());
     }
