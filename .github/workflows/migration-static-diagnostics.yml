@@ -4,6 +4,8 @@ on:
   push:
     branches: [migration-sync-research-f36p0S]
     paths:
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - 'pms-module-integration/**'
       - '.github/workflows/migration-static-diagnostics.yml'
   workflow_dispatch:
 
@@ -35,28 +37,24 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.5 --activate
           mkdir -p artifacts/static-diagnostics
+          git rev-parse HEAD > artifacts/static-diagnostics/source-commit.txt
           pnpm install --frozen-lockfile > artifacts/static-diagnostics/install.log 2>&1 || { tail -n 40 artifacts/static-diagnostics/install.log; exit 1; }
       - name: Complete ESLint diagnostics without fixes
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: |
-          pnpm exec eslint ./src --format json --output-file artifacts/static-diagnostics/eslint.json
+        run: pnpm exec eslint ./src --format json --output-file artifacts/static-diagnostics/eslint.json
       - name: Complete Stylelint diagnostics without fixes
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: |
-          pnpm exec stylelint './src/**/*.{vue,less,postcss,css,scss}' --formatter json > artifacts/static-diagnostics/stylelint.json 2> artifacts/static-diagnostics/stylelint-stderr.log
+        run: pnpm exec stylelint './src/**/*.{vue,less,postcss,css,scss}' --formatter json --output-file artifacts/static-diagnostics/stylelint.json
       - name: Complete formatting diagnostics without fixes
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: |
-          pnpm exec prettier --list-different 'src/**/*.{js,ts,json,tsx,css,less,scss,vue,html,md}' > artifacts/static-diagnostics/prettier.txt
-      - name: Summarize diagnostics and retain exact inspected sources
+        run: pnpm exec prettier --list-different 'src/**/*.{js,ts,json,tsx,css,less,scss,vue,html,md}' > artifacts/static-diagnostics/prettier.txt
+      - name: Summarize all diagnostics without suppressing failure exit codes
         if: always()
-        working-directory: .
         run: |
           python3 - <<'PY'
           import collections, json
           from pathlib import Path
-          root = Path('yudao-ui/yudao-ui-admin-vue3/artifacts/static-diagnostics')
-          root.mkdir(parents=True, exist_ok=True)
+          root = Path('artifacts/static-diagnostics')
           for name in ['eslint', 'stylelint']:
               path = root / f'{name}.json'
               if not path.exists() or not path.stat().st_size:
@@ -69,27 +67,21 @@ jobs:
                   messages = row.get('messages', row.get('warnings', []))
                   rules.update(item.get('ruleId', item.get('rule', 'parse')) for item in messages)
                   if messages:
-                      file = row.get('filePath', row.get('source', ''))
-                      affected.append((len(messages), file))
-                      if any(part in file for part in ['LowCode', '/lowcode/', '/sdk/', '/stores/user']):
-                          for item in messages[:12]:
-                              print(name, file, item.get('line'), item.get('ruleId', item.get('rule')), item.get('message', item.get('text')))
+                      affected.append((len(messages), row.get('filePath', row.get('source', ''))))
               print(name, 'affected files:', len(affected), 'diagnostics:', sum(rules.values()))
+              if name == 'eslint':
+                  print('errors:', sum(row.get('errorCount', 0) for row in rows), 'warnings:', sum(row.get('warningCount', 0) for row in rows))
               print('rules:', rules.most_common(20))
               print('largest:', sorted(affected, reverse=True)[:15])
           path = root / 'prettier.txt'
           if path.exists():
               print('prettier differing files:', len(path.read_text().splitlines()))
           PY
-          git rev-parse HEAD > yudao-ui/yudao-ui-admin-vue3/artifacts/static-diagnostics/source-commit.txt
-          git archive --format=tar.gz --output="$RUNNER_TEMP/inspected-source.tar.gz" HEAD
       - name: Upload immutable diagnostic evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: migration-static-diagnostics-${{ github.sha }}
-          path: |
-            yudao-ui/yudao-ui-admin-vue3/artifacts/static-diagnostics/
-            ${{ runner.temp }}/inspected-source.tar.gz
+          path: yudao-ui/yudao-ui-admin-vue3/artifacts/static-diagnostics/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14

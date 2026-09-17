@@ -41,10 +41,6 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=30
-    env:
-      NPDMS_OA_TEST_JDBC_URL: jdbc:mysql://127.0.0.1:${{ job.services.mysql.ports[3306] }}/npdms_migration_acceptance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      NPDMS_OA_TEST_DB_USER: acceptance
-      NPDMS_OA_TEST_DB_PASSWORD: ephemeral-ci-only
     steps:
       - uses: actions/checkout@v5
         with:
@@ -56,6 +52,10 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Real MySQL, Spring transactions, Flowable and HTTP delivery
+        env:
+          NPDMS_OA_TEST_JDBC_URL: jdbc:mysql://127.0.0.1:${{ job.services.mysql.ports['3306'] }}/npdms_migration_acceptance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          NPDMS_OA_TEST_DB_USER: acceptance
+          NPDMS_OA_TEST_DB_PASSWORD: ephemeral-ci-only
         shell: bash
         run: |
           set -o pipefail

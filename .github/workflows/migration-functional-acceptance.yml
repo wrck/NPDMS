@@ -1,0 +1,83 @@
+name: Migration functional acceptance
+
+on:
+  push:
+    branches: [migration-sync-research-f36p0S]
+    paths:
+      - 'yudao-ui/yudao-ui-admin-vue3/**'
+      - 'pms-module-integration/**'
+      - 'pms-module-workflow/**'
+      - '.github/workflows/migration-functional-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration-functional-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          show-progress: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install frozen dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          mkdir -p artifacts/migration-acceptance
+          git rev-parse HEAD > artifacts/migration-acceptance/source-commit.txt
+          pnpm install --frozen-lockfile > artifacts/migration-acceptance/install.log 2>&1 || { tail -n 40 artifacts/migration-acceptance/install.log; exit 1; }
+      - name: Full ESLint and typecheck
+        run: |
+          pnpm exec eslint ./src --format json --output-file artifacts/migration-acceptance/eslint.json
+          pnpm run ts:check > artifacts/migration-acceptance/typecheck.log 2>&1 || { cat artifacts/migration-acceptance/typecheck.log; exit 1; }
+      - name: All Vitest and native tests
+        shell: bash
+        run: |
+          set +e
+          pnpm exec vitest run --config vitest.pms-file.config.ts --reporter=default --reporter=junit --outputFile.junit=artifacts/migration-acceptance/unit.xml > artifacts/migration-acceptance/unit.log 2>&1
+          unit=$?
+          node --experimental-strip-types --test tests/theme-init.test.mjs src/components/PmsLocationSelector/locationSelector.spec.ts src/views/pms/asset/location/location-contract.spec.ts src/views/pms/engineering/installation/installationForm.spec.ts src/views/pms/project/projects/index.spec.ts > artifacts/migration-acceptance/native.log 2>&1
+          native=$?
+          tail -n 12 artifacts/migration-acceptance/unit.log
+          grep -E 'not ok|# (tests|pass|fail|skipped)' artifacts/migration-acceptance/native.log || true
+          test "$unit" = 0 && test "$native" = 0
+      - name: Complete production build
+        run: |
+          pnpm run build:prod > artifacts/migration-acceptance/build.log 2>&1 || { tail -n 60 artifacts/migration-acceptance/build.log; exit 1; }
+          tail -n 8 artifacts/migration-acceptance/build.log
+      - name: Install isolated browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/acceptance-playwright" --no-audit --no-fund playwright@1.58.2
+          node "$RUNNER_TEMP/acceptance-playwright/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Actual renderer and saved consumer browser cases
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: ${{ runner.temp }}/acceptance-playwright
+        shell: bash
+        run: |
+          set -o pipefail
+          node tests/lowcode/browser/run.mjs 2>&1 | tee artifacts/migration-acceptance/browser.log
+          node tests/lowcode/consumers/run.mjs 2>&1 | tee artifacts/migration-acceptance/consumers.log
+      - name: Upload exact source acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-functional-${{ github.sha }}
+          path: |
+            yudao-ui/yudao-ui-admin-vue3/artifacts/migration-acceptance/
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-browser/
+            yudao-ui/yudao-ui-admin-vue3/artifacts/lowcode-consumers/
+          if-no-files-found: error
+          retention-days: 14
