@@ -49,6 +49,11 @@ export interface Definition {
   maxRows: number
   autoPaging?: boolean
   maxBytes: number
+  readStrategy?: 'SNAPSHOT' | 'KEYSET_PAGING' | 'STREAMING_CURSOR'
+  fetchSize?: number
+  chunkSize?: number
+  restartPolicy?: 'RESTART_ALL' | 'CHECKPOINT_KEY' | 'NO_RESTART'
+  queryTimeoutSeconds?: number
   sources: Source[]
 }
 export interface Task {

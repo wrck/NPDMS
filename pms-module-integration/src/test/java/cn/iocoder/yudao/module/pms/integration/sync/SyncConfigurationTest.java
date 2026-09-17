@@ -13,6 +13,28 @@ class SyncConfigurationTest {
         var actual=JsonUtils.parseObject(json,SyncDefinition.class);
         assertEquals(expected,actual);
         assertEquals("compID",actual.sources().getFirst().sourceKey());
+        assertEquals("SNAPSHOT",actual.effectiveReadStrategy());
+        assertEquals(2000,actual.effectiveFetchSize());
+        assertEquals(1000,actual.effectiveChunkSize());
+    }
+    @Test void dppmsTemplateUsesSingleQueryStreamingByDefault() {
+        var definition=DppmsOrderSyncTemplate.create(1L);
+        assertEquals("STREAMING_CURSOR",definition.effectiveReadStrategy());
+        assertEquals("RESTART_ALL",definition.effectiveRestartPolicy());
+        assertFalse(definition.autoPaging());
+        assertEquals(2000,definition.effectiveFetchSize());
+        assertEquals(1000,definition.effectiveChunkSize());
+        assertEquals(0,definition.queryTimeoutSeconds());
+    }
+    @Test void legacyAutoPagingStillSelectsKeysetStrategy() {
+        var definition=EhrSyncTemplate.create(1L).toBuilder().autoPaging(true).readStrategy("SNAPSHOT").build();
+        assertEquals("KEYSET_PAGING",definition.effectiveReadStrategy());
+    }
+    @Test void streamingStateAdvancesOnlyCommittedBoundaries() {
+        var upper=java.time.LocalDateTime.of(2026,9,17,12,0);
+        var state=SyncStreamingState.start(upper).committed(100L,25);
+        assertEquals(0,state.sourceIndex());assertEquals(100L,state.lastKey());assertEquals(25,state.committedRows());
+        var next=state.nextSource();assertEquals(1,next.sourceIndex());assertNull(next.lastKey());assertEquals(upper,next.upper());
     }
     @Test void rejectsWriteAndMultiStatementSql() {
         for(String sql:List.of("DELETE FROM company","SELECT 1; DELETE FROM company",
