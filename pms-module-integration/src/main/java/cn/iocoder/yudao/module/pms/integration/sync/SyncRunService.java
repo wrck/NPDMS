@@ -404,8 +404,8 @@ public class SyncRunService {
                             validator.adapter(d.adapter()).descriptor(),List.of(),true);
                     r.setStatus("FAILED").setErrorMessage("运行进程中断，已核对业务提交状态；可创建关联重试")
                             .setFinishedAt(LocalDateTime.now());runs.updateById(r);
-                    var t=taskService.locked(r.getTaskId());
-                    if(Objects.equals(t.getActiveRunId(),r.getId())){t.setActiveRunId(null);tasks.updateById(t);}
+                    // Root runs own task scheduling. Child-page recovery calls failTask too, but its owner check is a no-op.
+                    failTask(r,d);
                 });
             } finally {lock.unlock();}
         }
