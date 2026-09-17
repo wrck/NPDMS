@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.Templ
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
@@ -25,6 +26,7 @@ import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -302,9 +304,35 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
 
     private TemplateDesignerDocument designerForRevision(Long templateId, int revisionNo) {
         ProjectTemplateRevisionDO revision = v2RevisionMapper.selectByTemplateIdAndRevisionNo(templateId, revisionNo);
-        if (revision == null) throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
-        if (hasText(revision.getDesignerDocument()))
-            return JsonUtils.parseObject(revision.getDesignerDocument(), TemplateDesignerDocument.class);
+        if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
+            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
+        }
+        // Copying a published V2 revision must not bypass the runtime integrity boundary.
+        if (hasText(revision.getExecutionSnapshot()) || hasV2PublicationMetadata(revision)) {
+            verifiedExecutionSnapshot(revision);
+            if (!hasText(revision.getDesignerDocument())) {
+                throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
+                        "V2发布版本缺少冻结Designer，禁止退回Legacy复制路径");
+            }
+            TemplateDesignerDocument designer;
+            try {
+                JsonNode document = JsonUtils.parseObject(revision.getDesignerDocument(), JsonNode.class);
+                JsonNode schema = document == null || !document.isObject() ? null : document.get("schemaVersion");
+                if (!Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION).equals(revision.getDesignerSchemaVersion())
+                        || schema == null || !schema.isIntegralNumber()
+                        || !Integer.toString(TemplateDesignerDocument.SCHEMA_VERSION).equals(schema.asText())) {
+                    throw new IllegalArgumentException("PUBLISHED_DESIGNER_SCHEMA_UNSUPPORTED");
+                }
+                designer = JsonUtils.parseObject(revision.getDesignerDocument(), TemplateDesignerDocument.class);
+            } catch (RuntimeException ex) {
+                throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2发布版本冻结Designer无法解析或schema不受支持");
+            }
+            if (designer == null || !Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION)
+                    .equals(designer.getSchemaVersion())) {
+                throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2发布版本冻结Designer的schema不受支持");
+            }
+            return designer;
+        }
         TemplateDefinitionContent legacy = super.getRevisionContent(templateId, revisionNo);
         return TemplateDesignerDocument.fromResolvedLegacy(legacy);
     }
@@ -316,7 +344,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         }
         TemplateExecutionSnapshot snapshot;
         try {
-            snapshot = JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+            snapshot = TemplateExecutionSnapshotReader.read(revision.getExecutionSnapshot());
         } catch (RuntimeException ex) {
             throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照无法解析");
         }

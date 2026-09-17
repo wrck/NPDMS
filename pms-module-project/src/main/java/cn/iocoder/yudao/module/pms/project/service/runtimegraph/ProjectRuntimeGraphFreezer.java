@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntime
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectStageExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -48,10 +49,8 @@ public class ProjectRuntimeGraphFreezer {
     }
 
     public void validate(TemplateExecutionSnapshot snapshot) {
-        if (snapshot == null || snapshot.getExecutionSchemaVersion() == null
-                || snapshot.getExecutionSchemaVersion() < TemplateExecutionSnapshot.SCHEMA_VERSION) {
-            throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
-        }
+        if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
+        TemplateExecutionSnapshotReader.requireSupportedVersion(snapshot.getExecutionSchemaVersion());
         if (snapshot.getStages() == null || snapshot.getTasks() == null || snapshot.getTransitions() == null) {
             throw new IllegalArgumentException("COMPILED_TEMPLATE_COLLECTION_REQUIRED");
         }
@@ -92,7 +91,7 @@ public class ProjectRuntimeGraphFreezer {
         }
     }
 
-    /** Compatibility overload: unwraps the embedded V2 snapshot and delegates to the native freezer. */
+    /** Compatibility overload: verifies the stored schema before unwrapping and freezing the V2 snapshot. */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<ProjectStageExecutionContractDO> freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateDefinitionContent content,
                        List<ProjectStageInstanceDO> stages, LocalDateTime now) {
@@ -166,10 +165,7 @@ public class ProjectRuntimeGraphFreezer {
         if (content == null || content.getExecutionSnapshot() == null) {
             throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
         }
-        TemplateExecutionSnapshot snapshot = JsonUtils.parseObject(
-                JsonUtils.toJsonString(content.getExecutionSnapshot()), TemplateExecutionSnapshot.class);
-        if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
-        return snapshot;
+        return TemplateExecutionSnapshotReader.read(content.getExecutionSnapshot());
     }
 
     private ProjectStageInstanceDO requireStage(Map<String, ProjectStageInstanceDO> byCode,

@@ -7,7 +7,8 @@
 - 旧文档基准：75dfa7d98cade30f708759720400e6b8c01e5ec0。
 - v1.1方案提交：f755c5721090d34bca6412aa39ded32ccd42093c。
 - P0准备提交：a6313c6b4c84db03acbd0361ab57bb00a90e7ab5。
-- 本次为P1.01实现提交；自身SHA由Git历史定位，下一环节补记真实引用。
+- P1.01实现提交：f6d28931608bb39c484c8b9a23da79b81e4a76e1。
+- 本次为P1.02.1兼容读取边界实现提交；自身SHA由Git历史定位，下一环节补记真实引用。
 - 最新约束：版本优先、不新增多层Hash、权限码选择动作、复用业务输入、pageUrl仅展示。
 
 ## 阶段状态
@@ -15,7 +16,7 @@
 | 阶段 | 状态 | 下一环节 |
 |---|---|---|
 | P0 | COMMITTED_PENDING_VERIFICATION（准备文档完成） | [范围与来源](template-execution-decoupling-p0.md)；对应真实验证在各改动阶段执行 |
-| P1 | IMPLEMENTING | P1.01代码/测试齐备；下一项P1.02完整版本冻结，P1.03/P1.04尚未完成 |
+| P1 | IMPLEMENTING | P1.01、P1.02.1代码/测试源码齐备；P1.02完整版本冻结仍未完成，下一项见P1.02.1剩余范围；P1.03/P1.04未完成 |
 | P2 | PLANNED | 逐业务审计配置与独立路径 |
 | P3 | PLANNED | 权威结果及条件性能力 |
 | P4 | PLANNED | 独立订阅及有界恢复 |
@@ -53,6 +54,35 @@ ProjectOperationPermissionIndex将权限与命令选择分开：Owner/实体/权
 
 ### 尚未完成/启用
 
-P1.02～P1.04尚未实现：没有启用新模板发布格式、没有删除旧Hash验证、没有改变运行快照或业务实体输入；权限码配置在模板编辑器内的完整保存/发布以及pageUrl展示仍待后续。P2～P9未开始本轮实现。
+P1.01提交时P1.02～P1.04尚未实现（后续增量见下节）：没有启用新模板发布格式、没有删除旧Hash验证、没有改变运行快照或业务实体输入；权限码配置在模板编辑器内的完整保存/发布以及pageUrl展示仍待后续。P2～P9未开始本轮实现。
 
 完整JDK25/Maven、Spring/JUnit、Vue/Vitest、数据库/API/浏览器均待验证。仅提交代码/测试源码及必要契约/本进度；没有部署、迁移、重启或新旧实例切换。
+
+## P1.02.1 已发布快照读取与复制防降级
+
+基准：f6d28931608bb39c484c8b9a23da79b81e4a76e1。按实施计划允许的独立子步骤推进P1.02；本子步骤不等于完整版本冻结完成，P1仍为IMPLEMENTING。
+
+### 审计与实现
+
+审计了TemplateExecutionSnapshot、TemplateCompiler、ProjectTemplateV2ServiceImpl、旧Hasher，以及ProjectRuntimeGraphFreezer、ProjectPlanInitializationService和ProjectPlanDraftService直接消费路径。本次仅修改模板V2读取/复制、运行图新写入口及新增格式Reader，不宣称其他计划/运行读取点已全部收敛。
+
+- 新增TemplateExecutionSnapshotReader：先检查原始JSON对象必须明确携带受支持的整数schema，再绑定模型；拒绝缺失、null、字符串、小数、未知版本和溢出数字，不能利用模型默认值或类型转换恢复成v2。字符串输入检查版本后仍绑定原文，不经JSON树重序列化改变小数精度或旧Hash；Reader只负责格式边界，发布元数据与旧Hash仍由发布服务校验。
+- 模板运行读取和revision兼容投影继续通过同一verifiedExecutionSnapshot；原有匹配候选也复用该路径。旧schema2/compiler/hash校验保留，不调用当前Compiler或活体Definition补救坏发布记录。
+- 发布版本复制先检查PUBLISHED及V2快照，再读取冻结Designer；缺快照、Hash损坏、版本/编译器不一致、缺Designer或Designer格式/元数据异常均在创建副本前拒绝。真正Legacy发布版仍沿原显式导入路径；草稿复制入口不变。
+- ProjectRuntimeGraphFreezer由“schema>=2”改为精确版本判定；兼容投影先检查原始schema，未知格式在合同/关系写入前拒绝。既有冻结合同构造、历史Resolver及业务规则不改。
+- 新增三组JUnit测试源码：原始格式与原文小数精度/回读/旧Hash稳定性、公开复制负向/冻结Designer只读、运行图类型化及兼容入口写前拒绝。未修改或删除旧测试。
+
+本次是恢复F-PROJ-009既有“未知格式拒绝、半V2禁止降级”的约束，不改变API/数据库设计，不另行修改SDS或历史Feature状态。
+
+### 本次实际验证
+
+- 修改前两个生产类和本进度文件的本地副本均已逐字节核对远端Git Blob。
+- 使用JDK21的JavacTask.parse解析全部6个本次Java文件，0语法错误；这不是类型检查、JDK25构建或JUnit执行。
+- 差异自审核对：原发布方法、旧Hash算法、业务操作、历史Resolver及数据库文件不在改动范围；修改差异通过空白检查。
+- 当前环境只有JDK21、无Maven，且依赖下载未成功；三组JUnit及原兼容回归未执行，不记录测试通过。Spring装配、JDK25/Maven、数据库/API/浏览器仍待真实验证。
+
+### P1.02剩余范围 / 下一环节
+
+完整新版本格式、全部规则/决策闭包与执行配置冻结、发布不可覆盖、Compiler/Publisher/Reader/复制/计划全部消费者接线、数据库可空契约检查及新旧格式回归仍未完成。审计发现ProjectPlanDraftService.prepare仍直接反序列化effective快照，计划初始化也需核验传入快照与来源版本的一致性；这些是下一增量的确定待整改项，不记成仅待验证。
+
+新格式发布保持未启用，旧Hasher保持不变；不通过本子步骤对历史快照补字段、重算Hash或自动迁移。P1.03/P1.04及P2～P9继续按原顺序推进，没有部署、迁移、重启或实例切换。
