@@ -81,7 +81,7 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.match(source, /departmentCode/)
   })
 
-  it('keeps confirmed surveys read-only, installation atomic and equipment location read-only', () => {
+  it('preserves survey immutability, atomic installation and read-only equipment location', () => {
     const surveySource = readFileSync(
       new URL('../../engineering/site-survey/index.vue', import.meta.url),
       'utf8'
@@ -100,7 +100,10 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.ok(surveySource.includes('detailReadonly.value = view || (!!row && row.status !== 0)'))
     assert.ok(surveySource.includes("detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE')"))
     assert.match(surveySource, /:disabled="formReadonly \|\| saving"/)
-    assert.match(surveySource, /v-if="!formReadonly" type="primary" :loading="saving" @click="save"/)
+    assert.match(
+      surveySource,
+      /v-if="!formReadonly" type="primary" :loading="saving" @click="save"/
+    )
     assert.match(surveySource, /props\.allowedActions\.includes\(action\)/)
     assert.match(installationSource, /locationMaintenance/)
     assert.match(installationSource, /getEquipmentVersionList/)

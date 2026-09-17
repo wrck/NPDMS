@@ -14,12 +14,14 @@ describe('designer editable state', () => {
     expect(uniqueCopyProp('name', [{ prop: 'name_copy' }, { prop: 'name_copy2' }])).toBe('name_copy3')
   })
   it('preserves false, zero and empty default values', () => {
-    expect(createPreviewData([
-      { prop: 'zero', defaultValue: 0 },
-      { prop: 'flag', defaultValue: false },
-      { prop: 'text', defaultValue: '' },
-      { prop: 'missing' }
-    ])).toEqual({ zero: 0, flag: false, text: '', missing: '' })
+    expect(
+      createPreviewData([
+        { prop: 'zero', defaultValue: 0 },
+        { prop: 'flag', defaultValue: false },
+        { prop: 'text', defaultValue: '' },
+        { prop: 'missing' }
+      ])
+    ).toEqual({ zero: 0, flag: false, text: '', missing: '' })
   })
   it('does not share nested defaults with the editable model or another preview', () => {
     const fields = [{ prop: 'items', defaultValue: [{ value: 'original' }] }]
