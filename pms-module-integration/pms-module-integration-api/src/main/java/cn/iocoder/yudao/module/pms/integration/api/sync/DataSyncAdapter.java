@@ -14,8 +14,8 @@ public interface DataSyncAdapter {
     default boolean requiresAllBindings() { return true; }
     /** Canonical business records may combine equivalent legacy rows; source identities stay distinct. */
     default boolean sharesTargetAcrossSources() { return false; }
-    /** Independent/page-oriented adapters can be consumed as bounded streaming chunks. */
-    default boolean supportsStreaming() { return !requiresAllBindings(); }
+    /** Explicit opt-in: chunk apply must be transaction-bound, bounded, and safe to replay after a partial run. */
+    default boolean supportsStreaming() { return false; }
 
     record Field(String name, String label, String type, boolean required) {}
     record ObjectDescriptor(String name, String label, List<Field> fields,
