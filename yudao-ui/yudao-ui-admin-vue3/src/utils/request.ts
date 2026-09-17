@@ -2,6 +2,7 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { lowcodeSessionHeaders } from './lowcodeSession'
 // 启用数据集成校验对象：导入所有实体 validator（导入即注册到 registry）
 // 顺序：业务核心 → 资产 → 实施/工作流 → 系统管理
 import '@/validators/project'
@@ -116,6 +117,9 @@ service.interceptors.request.use(
     const token = localStorage.getItem(TOKEN_KEY)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    if (config.url?.startsWith('/api/lowcode/')) {
+      Object.assign(config.headers, lowcodeSessionHeaders())
     }
     // 写操作（POST/PUT/DELETE/PATCH）注入 X-Idempotent-Key 头
     // 配合后端 @Idempotent 注解实现接口幂等性，防止用户重复点击导致重复提交

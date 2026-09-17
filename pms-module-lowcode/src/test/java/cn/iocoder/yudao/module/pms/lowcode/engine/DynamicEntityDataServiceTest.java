@@ -13,6 +13,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.support.KeyHolder;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 
 import java.util.List;
 import java.util.Map;
@@ -90,17 +95,23 @@ class DynamicEntityDataServiceTest {
 
     @Test
     @DisplayName("新增 — 过滤非法字段后插入")
-    void create_success() {
+    void create_success() throws Exception {
         when(entityService.getOne(any())).thenReturn(buildEntity());
         when(entityService.getDesign(any())).thenReturn(buildDesign());
-        when(jdbcTemplate.update(anyString(), any(Object[].class))).thenReturn(1);
-        when(jdbcTemplate.queryForObject(eq("SELECT LAST_INSERT_ID()"), eq(Long.class)))
-                .thenReturn(10L);
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString(), eq(Statement.RETURN_GENERATED_KEYS))).thenReturn(statement);
+        when(jdbcTemplate.update(any(PreparedStatementCreator.class), any(KeyHolder.class))).thenAnswer(invocation -> {
+            invocation.<PreparedStatementCreator>getArgument(0).createPreparedStatement(connection);
+            invocation.<KeyHolder>getArgument(1).getKeyList().add(Map.of("id", 10L));
+            return 1;
+        });
 
         Long id = dataService.create("device", Map.of("device_name", "Switch", "hacked_field", "x"));
 
         assertEquals(10L, id);
-        verify(jdbcTemplate).update(contains("INSERT INTO"), any(Object[].class));
+        verify(connection).prepareStatement("INSERT INTO `pms_lc_device` (`device_name`) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        verify(statement).setObject(1, "Switch");
     }
 
     @Test

@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.lowcode.service.LowCodeEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import java.sql.Statement;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -342,9 +344,16 @@ public class DynamicEntityDataService {
                 .collect(Collectors.joining(", "));
 
         String sql = "INSERT INTO `" + tableName + "` (" + columns + ") VALUES (" + placeholders + ")";
-        jdbcTemplate.update(sql, filtered.values().toArray());
-
-        return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            var statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            int index = 1;
+            for (Object value : filtered.values()) statement.setObject(index++, value);
+            return statement;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        if (key == null) throw new IllegalStateException("新增记录未返回主键");
+        return key.longValue();
     }
 
     /**
@@ -359,9 +368,10 @@ public class DynamicEntityDataService {
         Set<String> validFields = fieldTypeMap.keySet().stream()
                 .filter(f -> !"id".equals(f))
                 .collect(Collectors.toSet());
-        Map<String, Object> filtered = data.entrySet().stream()
-                .filter(e -> validFields.contains(e.getKey()) && e.getValue() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
+        Map<String, Object> filtered = new LinkedHashMap<>();
+        data.forEach((field, value) -> {
+            if (validFields.contains(field)) filtered.put(field, value);
+        });
 
         if (filtered.isEmpty()) {
             return;

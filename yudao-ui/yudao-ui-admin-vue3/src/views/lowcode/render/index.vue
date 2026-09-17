@@ -14,10 +14,9 @@
  * <p>表单统一通过 LowCodeFormRendererFacade 渲染：历史无版本配置默认 V1，
  * 显式 rendererVersion=v2 使用 FormCreate V2。业务运行页不再直接依赖具体渲染器。</p>
  */
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
 import {
   checkLowCodePermission,
   getFormByCode,
@@ -30,7 +29,7 @@ import {
   type LowCodeRelatedPageConfig,
   type LowCodeTabConfig
 } from '@/api/lowcode'
-import { TOKEN_KEY } from '@/utils/request'
+import { get, post, put } from '@/utils/request'
 
 interface FormRendererExpose {
   validate?: () => Promise<boolean>
@@ -55,8 +54,14 @@ const rendererRef = ref<FormRendererExpose | null>(null)
 
 const pageType = computed(() => route.params.pageType as LowCodePageType)
 const pageCode = computed(() => route.params.pageCode as string)
-const formMode = computed(() => (route.query.mode as string) || 'view')
+const formMode = computed(() => route.query.mode === 'create' || route.query.mode === 'edit' ? route.query.mode : 'view')
+const recordId = computed(() => typeof route.query.id === 'string' ? route.query.id : '')
+const validating = ref(false)
+const saving = ref(false)
+let loadSequence = 0
+let validationSequence = 0
 const entityCode = computed(() => {
+  if (typeof config.value?.entityCode === 'string' && config.value.entityCode) return config.value.entityCode
   const code = pageCode.value
   if (code.startsWith('form_')) return code.substring(5)
   if (code.startsWith('list_')) return code.substring(5)
@@ -152,73 +157,51 @@ async function fetchConfig(
 
 /** 加载并校验低代码页面 */
 async function load() {
+  const sequence = ++loadSequence
+  const type = pageType.value
+  const code = pageCode.value
+  const mode = formMode.value
+  const id = recordId.value
   state.value = 'loading'
   config.value = null
+  pageName.value = ''
+  formDataModel.value = {}
   rendererRef.value = null
-
-  // 1. 校验 pageType 合法性
-  if (!VALID_PAGE_TYPES.has(pageType.value)) {
+  if (!VALID_PAGE_TYPES.has(type) || !code || (type === 'form' && mode === 'edit' && !id)) {
     state.value = 'not-found'
     return
   }
-  if (!pageCode.value) {
-    state.value = 'not-found'
-    return
-  }
-
   try {
-    // 2. 权限校验（调用后端 /api/lowcode/permission/check）
-    //    后端返回 false 时显示 403；接口异常时降级为放行（由配置接口本身的鉴权兜底）
-    let allowed = true
-    try {
-      allowed = await checkLowCodePermission(pageType.value, pageCode.value)
-    } catch (e) {
-      // 权限校验接口不可用时降级放行，避免阻断已发布的低代码页面访问
-      console.warn('低代码权限校验接口不可用，降级放行', e)
-      allowed = true
-    }
+    const allowed = await checkLowCodePermission(type, code)
+    if (sequence !== loadSequence) return
     if (!allowed) {
       state.value = 'forbidden'
-      ElMessage.error('您没有访问该低代码页面的权限')
       return
     }
-
-    // 3. 拉取已发布配置
-    const result = await fetchConfig(pageType.value, pageCode.value)
+    const result = await fetchConfig(type, code)
+    if (sequence !== loadSequence) return
     if (!result) {
       state.value = 'not-found'
       return
     }
     config.value = result.config
-    pageName.value = result.name || ''
-    // 更新浏览器标题
-    if (result.name) {
-      document.title = `${result.name} - 网络设备工程项目管理系统`
-    }
-    formDataModel.value = {}
-    if (pageType.value === 'form' && (formMode.value === 'view' || formMode.value === 'edit')) {
-      const id = route.query.id as string
-      if (id) {
-        const token = localStorage.getItem(TOKEN_KEY) || ''
-        const response = await axios.get(`/api/lowcode/data/${entityCode.value}/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        formDataModel.value = response.data?.data || response.data || {}
-      }
+    pageName.value = result.name
+    if (result.name) document.title = `${result.name} - 网络设备工程项目管理系统`
+    if (type === 'form' && mode !== 'create' && id) {
+      const data = await get<Record<string, unknown>>(
+        `/api/lowcode/data/${encodeURIComponent(entityCode.value)}/${encodeURIComponent(id)}`
+      )
+      if (sequence !== loadSequence) return
+      formDataModel.value = data
     }
     state.value = 'done'
-  } catch (e) {
-    console.error('加载低代码页面失败', e)
-    state.value = 'error'
+  } catch {
+    if (sequence === loadSequence) state.value = 'error'
   }
 }
 
-onMounted(load)
-
-// 路由参数变化时重新加载（同一组件实例复用场景）
-watch([pageType, pageCode], () => {
-  load()
-})
+watch([pageType, pageCode, formMode, recordId], load, { immediate: true })
+onBeforeUnmount(() => { loadSequence++ })
 
 function goBack() {
   router.back()
@@ -229,39 +212,48 @@ function goBack() {
  * V1/V2 都通过同一事件进入这里，因此业务层不依赖 FormCreate Api。
  */
 async function handleFormSubmit(submittedData: Record<string, unknown>) {
+  if (state.value !== 'done' || pageType.value !== 'form' || isFormReadOnly.value || saving.value) return
+  if (validationSequence !== loadSequence) return
+  const sequence = loadSequence
+  const mode = formMode.value
+  const id = recordId.value
+  if (mode === 'edit' && !id) return
+  saving.value = true
   try {
     formDataModel.value = { ...submittedData }
-    const formData: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(submittedData)) {
-      formData[key] = value === '' || value === undefined ? null : value
+    const formData = Object.fromEntries(Object.entries(submittedData).map(([key, value]) =>
+      [key, value === '' || value === undefined ? null : value]
+    ))
+    const baseUrl = `/api/lowcode/data/${encodeURIComponent(entityCode.value)}`
+    if (mode === 'edit') await put(`${baseUrl}/${encodeURIComponent(id)}`, formData)
+    else await post(baseUrl, formData)
+    if (sequence === loadSequence) {
+      ElMessage.success('保存成功')
+      router.back()
     }
-    const token = localStorage.getItem(TOKEN_KEY) || ''
-    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-    const baseUrl = `/api/lowcode/data/${entityCode.value}`
-    const id = route.query.id as string
-    if (formMode.value === 'edit' && id) {
-      await axios.put(`${baseUrl}/${id}`, formData, { headers })
-    } else {
-      await axios.post(baseUrl, formData, { headers })
-    }
-    ElMessage.success('保存成功')
-    router.back()
-  } catch (e) {
-    console.error('表单提交失败', e)
-    ElMessage.error('保存失败，请检查数据')
+  } catch {
+    // The shared transport reports business errors as failures, even for HTTP 200.
+  } finally {
+    saving.value = false
   }
 }
 
-/** 统一触发 V1/V2 的 validate + submit 契约。 */
+/** Validation remains mandatory for both renderer versions. */
 async function requestFormSubmit() {
-  if (pageType.value !== 'form') return
-  if (rendererRef.value?.submit) {
-    await rendererRef.value.submit()
+  if (state.value !== 'done' || pageType.value !== 'form' || isFormReadOnly.value || validating.value || saving.value) return
+  if (!rendererRef.value?.submit) {
+    ElMessage.warning('表单尚未加载完成，请稍后再试')
     return
   }
-  // 异步组件 ref 尚未就绪时不绕过校验直接保存。
-  ElMessage.warning('表单尚未加载完成，请稍后再试')
+  validationSequence = loadSequence
+  validating.value = true
+  try {
+    await rendererRef.value.submit()
+  } finally {
+    validating.value = false
+  }
 }
+
 </script>
 
 <template>
@@ -310,7 +302,7 @@ async function requestFormSubmit() {
       />
       <div v-if="pageType === 'form'" class="form-actions">
         <template v-if="!isFormReadOnly">
-          <el-button type="primary" @click="requestFormSubmit">保存</el-button>
+          <el-button type="primary" :loading="validating || saving" @click="requestFormSubmit">保存</el-button>
           <el-button @click="goBack">取消</el-button>
         </template>
         <el-button v-else type="primary" @click="goBack">返回</el-button>

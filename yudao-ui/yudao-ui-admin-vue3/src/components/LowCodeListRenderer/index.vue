@@ -33,7 +33,8 @@ import {
   type ResponsiveSpan
 } from '@/api/lowcode'
 import { getDictPage, getDictItems, type SysDictItem } from '@/api/system'
-import { TOKEN_KEY } from '@/utils/request'
+import { TOKEN_KEY, get, post } from '@/utils/request'
+import { lowcodeSessionHeaders } from '@/utils/lowcodeSession'
 import { triggerBlobDownload } from '@/api/excel'
 import type { EpTagType } from '@/types'
 
@@ -457,7 +458,7 @@ async function handleRowClick(
         router.push(resolveLinkUrl(op.url, actualRow))
       } else if (effectiveFormCode.value && actualRow.id != null) {
         router.push({
-          path: `/lowcode/form/${effectiveFormCode.value}`,
+          path: `/lowcode/form/${encodeURIComponent(effectiveFormCode.value)}`,
           query: { mode: op.action === ActionType.EDIT ? 'edit' : 'view', id: String(actualRow.id) }
         })
       } else {
@@ -470,7 +471,7 @@ async function handleRowClick(
           const url = resolveLinkUrl(op.api, actualRow)
           const method = (op.method || 'DELETE').toUpperCase()
           const token = localStorage.getItem(TOKEN_KEY) || ''
-          await axios.request({ url, method, headers: { Authorization: `Bearer ${token}` } })
+          await axios.request({ url, method, headers: url.startsWith('/api/lowcode/') ? lowcodeSessionHeaders() : { Authorization: `Bearer ${token}` } })
           ElMessage.success('删除成功')
           fetchData()
         } catch {
@@ -502,7 +503,7 @@ function execToolbar(op: ListOperationConfig) {
     case ActionType.VIEW:
       if (op.url) router.push(op.url)
       else if (op.action === ActionType.CREATE && effectiveFormCode.value) {
-        router.push({ path: `/lowcode/form/${effectiveFormCode.value}`, query: { mode: 'create' } })
+        router.push({ path: `/lowcode/form/${encodeURIComponent(effectiveFormCode.value)}`, query: { mode: 'create' } })
       }
       else emit('toolbar-click', op)
       break
@@ -574,17 +575,22 @@ async function fetchData(): Promise<void> {
   try {
     const method = (props.config.method || 'GET').toUpperCase()
     const query = buildQuery()
-    const token = localStorage.getItem(TOKEN_KEY) || ''
-    const headers: Record<string, string> = { Authorization: `Bearer ${token}` }
-    let response
-    if (method === 'POST') {
-      response = await axios.post(api, query, { headers })
+    let page
+    if (api.startsWith('/api/lowcode/')) {
+      // The project transport validates the business envelope and current tenant.
+      page = method === 'POST' ? await post<any>(api, query) : await get<any>(api, query)
     } else {
-      response = await axios.get(api, { params: query, headers })
+      const token = localStorage.getItem(TOKEN_KEY) || ''
+      const headers = { Authorization: `Bearer ${token}` }
+      const response = method === 'POST'
+        ? await axios.post(api, query, { headers })
+        : await axios.get(api, { params: query, headers })
+      const payload = response.data
+      if (payload && typeof payload.code === 'number' && payload.code !== 0 && payload.code !== 200) {
+        throw new Error(payload.msg || payload.message || '查询失败')
+      }
+      page = payload?.data ?? payload
     }
-    // 兼容后端统一 envelope { code, data, ... } 或裸 IPage
-    const payload = response.data
-    const page = payload?.data ?? payload
     innerData.value = page?.records ?? page?.list ?? (Array.isArray(page) ? page : [])
     innerTotal.value = page?.total ?? innerData.value.length
     emit('data-loaded', innerData.value, innerTotal.value)
@@ -617,7 +623,7 @@ async function exportData(): Promise<void> {
     const response = await axios.get(exp.api, {
       params: query,
       responseType: 'blob',
-      headers: { Authorization: `Bearer ${token}` }
+      headers: exp.api.startsWith('/api/lowcode/') ? lowcodeSessionHeaders() : { Authorization: `Bearer ${token}` }
     })
     const fileName = exp.fileName ? `${exp.fileName}-${Date.now()}.xlsx` : `export-${Date.now()}.xlsx`
     triggerBlobDownload(response.data, fileName)

@@ -565,6 +565,7 @@ function parseFormConfigFromStr() {
       return
     }
     const parsed = JSON.parse(metaForm.formConfig) as VersionedFormConfig
+    Object.assign(formConfig, parsed)
     formConfig.title = parsed.title ?? ''
     formConfig.description = parsed.description ?? ''
     const parsedLabelWidth =
@@ -722,55 +723,50 @@ async function loadForm(id: number) {
 
 // ===================== 保存 / 发布 / 归档 =====================
 
-/** 保存草稿（创建或更新） */
-async function handleSave() {
-  if (!metaFormRef.value) return
-  await metaFormRef.value.validate(async (valid) => {
+/** Save/publish share one validation and persistence path; lock before validation. */
+async function persistForm(publish: boolean): Promise<void> {
+  if (loading.value || !metaFormRef.value) return
+  if (publish && !metaForm.id) {
+    ElMessage.warning('请先保存草稿')
+    return
+  }
+  loading.value = true
+  try {
+    const valid = await metaFormRef.value.validate().catch(() => false)
     if (!valid) return
     if (formConfig.fields.length === 0) {
       ElMessage.warning('请至少添加一个字段')
       return
     }
     syncFormConfigToStr()
-    loading.value = true
-    try {
-      if (metaForm.id) {
-        await updateForm(metaForm.id, metaForm)
-        ElMessage.success('保存成功')
-      } else {
-        const created = await createForm(metaForm)
-        metaForm.id = created.id
-        metaForm.status = created.status
-        ElMessage.success('创建成功')
-      }
-    } catch {
-      /* handled by interceptor */
-    } finally {
-      loading.value = false
+    const payload = { ...metaForm }
+    const isNew = !payload.id
+    const saved = payload.id ? await updateForm(payload.id, payload) : await createForm(payload)
+    // Refresh persisted identity/version without overwriting edits made during the request.
+    metaForm.id = saved.id
+    metaForm.version = saved.version
+    metaForm.status = saved.status
+    metaForm.createTime = saved.createTime
+    metaForm.updateTime = saved.updateTime
+    if (isNew && saved.id) {
+      await router.replace({ query: { ...route.query, id: String(saved.id) } })
     }
-  })
-}
-
-/** 发布 */
-async function handlePublish() {
-  if (!metaForm.id) {
-    ElMessage.warning('请先保存草稿')
-    return
-  }
-  syncFormConfigToStr()
-  loading.value = true
-  try {
-    // 先保存最新配置
-    await updateForm(metaForm.id, metaForm)
-    await publishForm(metaForm.id)
-    metaForm.status = 'PUBLISHED'
-    ElMessage.success('发布成功')
+    if (publish && saved.id) {
+      await publishForm(saved.id)
+      metaForm.status = 'PUBLISHED'
+      ElMessage.success('发布成功')
+    } else {
+      ElMessage.success(isNew ? '创建成功' : '保存成功')
+    }
   } catch {
-    /* handled by interceptor */
+    /* handled by interceptor; never report a failed save/publish as successful */
   } finally {
     loading.value = false
   }
 }
+
+async function handleSave() { await persistForm(false) }
+async function handlePublish() { await persistForm(true) }
 
 /** 归档 */
 async function handleArchive() {
@@ -961,7 +957,7 @@ onBeforeUnmount(() => {
           <el-button type="primary" :icon="'Document'" :loading="loading" @click="handleSave">
             保存草稿
           </el-button>
-          <el-button type="success" :icon="'Promotion'" @click="handlePublish">发布</el-button>
+          <el-button type="success" :icon="'Promotion'" :disabled="loading" @click="handlePublish">发布</el-button>
           <el-button :icon="'Download'" @click="handleExport">导出</el-button>
           <el-button :icon="'Upload'" @click="handleImport">导入</el-button>
           <el-button :icon="'View'" @click="handlePreview">预览</el-button>
