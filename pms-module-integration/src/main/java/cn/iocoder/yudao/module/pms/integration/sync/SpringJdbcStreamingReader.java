@@ -5,7 +5,6 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -14,7 +13,6 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /** Executes one source SQL cursor and emits bounded chunks without materializing the full result set. */
-@Component
 public class SpringJdbcStreamingReader {
     private final Optional<ExternalDataSourceApi> sources;
 
