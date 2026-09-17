@@ -54,7 +54,7 @@ export function createVitePlugins(isBuild = false, env: Record<string, string> =
       eslintrc: {
         enabled: false, // Default `false`
         filepath: './.eslintrc-auto-import.json', // Default `./.eslintrc-auto-import.json`
-        globalsPropValue: true // Default `true`, (true | false | 'readonly' | 'readable' | 'writable' | 'writeable')
+        globalsPropValue: true // Default `true`, (true | false | 'readonly' | 'readable' | 'writable')
       }
     }),
     Components({
@@ -62,7 +62,12 @@ export function createVitePlugins(isBuild = false, env: Record<string, string> =
       dts: 'src/types/auto-components.d.ts',
       // 自定义组件的解析器
       resolvers: [ElementPlusResolver()],
-      globs: ['src/components/**/**.{vue, md}', '!src/components/DiyEditor/components/mobile/**']
+      globs: [
+        'src/components/**/**.{vue, md}',
+        '!src/components/DiyEditor/components/mobile/**',
+        // Loaded explicitly by LowCodeComponentRegistry, not the global DictSelect.
+        '!src/components/LowCodeWidgets/DictSelect.vue'
+      ]
     }),
     createSvgIconsPlugin({
       iconDirs: [pathResolve('src/assets/svgs')],
