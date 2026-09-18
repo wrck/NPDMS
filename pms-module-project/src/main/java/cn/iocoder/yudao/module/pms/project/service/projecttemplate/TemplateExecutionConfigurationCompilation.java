@@ -22,10 +22,19 @@ public class TemplateExecutionConfigurationCompilation {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private TemplatePresentationRoutes presentationRoutes;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemplateResultSubscriptionCapabilities resultCapabilities;
+
     public List<Issue> prepare(TemplateDesignerDocument normalized) {
         List<Issue> issues = new ArrayList<>();
         for (var node : TemplateExecutionConfiguration.nodes(normalized)) {
             var config = TemplateExecutionConfiguration.read(node.value());
+            for (int i = 0; i < config.subscriptions().size(); i++) {
+                String path = node.path() + ".subscriptions[" + i + "]";
+                if (resultCapabilities == null)
+                    issues.add(new Issue(path, "RESULT_SOURCE_UNAVAILABLE", "结果来源目录未安装"));
+                else issues.addAll(resultCapabilities.validate(config.subscriptions().get(i), path));
+            }
             if (!config.subscriptions().isEmpty())
                 issues.add(new Issue(node.path() + ".subscriptions", "RESULT_SUBSCRIPTION_NOT_INSTALLED",
                         "独立结果订阅的来源、证据和恢复尚未接通；可保存草稿，不能发布"));
