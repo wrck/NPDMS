@@ -91,7 +91,11 @@ public class ProjectResultSubscriptionWorker {
         if (subscriptions.checkpoint(new Checkpoint(row.getTenantId(), row.getProjectId(), row.getId(), row.getVersion(),
                 next.phase().name(), next.inventoryCursor(), next.processedSequence(), next.throughSequence())) != 1)
             throw new IllegalStateException("SUBSCRIPTION_CHECKPOINT_CONFLICT");
-        if (next.phase() != Phase.LIVE) {
+        if (next.phase() == Phase.LIVE) {
+            var event = ResultEvidenceScanEvent.create(row, Math.addExact(row.getVersion(), 1), "checkpoint");
+            outbox.append("ResultSubscription", row.getId().toString(),
+                    new BusinessEvent(event.eventId(), ResultEvidenceScanEvent.EVENT_TYPE, JsonUtils.toJsonString(event)));
+        } else {
             var event = ResultSubscriptionWakeup.forCause(row, "checkpoint:" + Math.addExact(row.getVersion(), 1));
             outbox.append("ResultSubscription", row.getId().toString(),
                     new BusinessEvent(event.eventId(), ResultSubscriptionWakeup.EVENT_TYPE, JsonUtils.toJsonString(event)));

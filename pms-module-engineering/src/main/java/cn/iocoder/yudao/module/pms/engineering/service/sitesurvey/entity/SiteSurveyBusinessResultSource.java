@@ -23,6 +23,9 @@ public class SiteSurveyBusinessResultSource implements BusinessResultChangeSourc
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
 
+    /** 原生结果形成/生效/撤销均在Owner事务内写入同一通道；草稿修改不改变该结果事实。 */
+    @Override public boolean transactionalChangeCoverage() { return true; }
+
     @Override
     @Transactional(readOnly = true)
     public InventoryPage inventory(InventoryQuery query) {

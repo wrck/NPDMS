@@ -58,6 +58,16 @@ class ProjectBusinessResultSourcesTest {
         }
         assertThrows(IllegalArgumentException.class,()->Observation.absent(Status.AVAILABLE,"OWNER_REASON"));
     }
+    @Test void aChangeFeedAloneDoesNotPromiseTransactionalCommitCoverage() {
+        var changing = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource.class);
+        when(changing.descriptor()).thenReturn(new Descriptor(type,true,true,true));
+        var sources = new ProjectBusinessResultSources(List.of(changing));
+        assertFalse(sources.commitBarrierSupported(type));
+        when(changing.transactionalChangeCoverage()).thenReturn(true);
+        assertTrue(sources.commitBarrierSupported(type));
+        assertFalse(sources.commitBarrierSupported(new Type("OTHER","ENTITY","COMPLETED")));
+        verify(changing,never()).inspect(any());
+    }
     private Result result(Long tenant,Long project,Type resultType,String object,String result) {
         return new Result(tenant,project,resultType,object,result,null,null,Validity.CURRENT,null);
     }

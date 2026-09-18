@@ -77,6 +77,11 @@ public final class ProjectBusinessResultSources {
                 .sorted(Comparator.comparing(Type::resultType)).toList();
     }
 
+    public boolean commitBarrierSupported(Type type) {
+        var value = sources.get(type);
+        return value != null && value.source() instanceof BusinessResultChangeSource source && source.transactionalChangeCoverage();
+    }
+
     public boolean changeSupported(Type type) {
         var value = sources.get(type);
         return value != null && value.source() instanceof BusinessResultChangeSource;

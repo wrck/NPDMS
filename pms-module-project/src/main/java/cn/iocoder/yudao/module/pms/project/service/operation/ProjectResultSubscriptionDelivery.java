@@ -17,9 +17,11 @@ import java.util.Set;
 public class ProjectResultSubscriptionDelivery {
     private final ProjectResultSubscriptionWorker worker;
     private final ProjectResultSubscriptionFanout fanout;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<ProjectResultEvidenceScanner> evidence;
 
     public static Set<String> eventTypes() {
-        return Set.of(BusinessResultChange.EVENT_TYPE, ResultSubscriptionWakeup.EVENT_TYPE, ResultSubscriptionFanoutEvent.EVENT_TYPE);
+        return Set.of(BusinessResultChange.EVENT_TYPE, ResultSubscriptionWakeup.EVENT_TYPE, ResultSubscriptionFanoutEvent.EVENT_TYPE, ResultEvidenceScanEvent.EVENT_TYPE);
     }
     public boolean deliver(PlatformOutboxMessageDTO message) {
         if (message == null || !Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
@@ -30,7 +32,13 @@ public class ProjectResultSubscriptionDelivery {
         if (json == null || !json.isObject() || !json.path("eventVersion").isIntegralNumber()
                 || !"1".equals(json.path("eventVersion").asText()) || !Objects.equals(message.eventId(), json.path("eventId").asText()))
             throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
-        if (ResultSubscriptionWakeup.EVENT_TYPE.equals(message.eventType())) {
+        if (ResultEvidenceScanEvent.EVENT_TYPE.equals(message.eventType())) {
+            requireNumbers(json, "subscriptionVersion");
+            requireNumbers(json.path("target"), "eventVersion", "tenantId", "projectId", "subscriptionId", "planVersionId", "executionId", "contractId");
+            var event = read(message.payload(), ResultEvidenceScanEvent.class);
+            if (!Objects.equals(message.tenantId(), event.target().tenantId())) throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
+            evidence.getObject().process(event);
+        } else if (ResultSubscriptionWakeup.EVENT_TYPE.equals(message.eventType())) {
             requireNumbers(json, "tenantId", "projectId", "subscriptionId", "planVersionId", "executionId", "contractId");
             var event = read(message.payload(), ResultSubscriptionWakeup.class);
             if (!Objects.equals(message.tenantId(), event.tenantId())) throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
