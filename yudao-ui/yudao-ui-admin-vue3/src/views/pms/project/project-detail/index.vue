@@ -884,7 +884,7 @@ interface ModuleConfig {
   load: (projectId: number, pageNo: number, pageSize: number) => Promise<any>
   columns: ModuleColumn[]
   statusField?: string
-  statusMap?: Record<number, { label: string; tone: string }>
+  statusMap?: Record<number | string, { label: string; tone: string }>
   actions?: ModuleAction[]
   create?: (data: any) => Promise<any>
   update?: (data: any) => Promise<any>
@@ -1024,15 +1024,15 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     load: (pid, pageNo, pageSize) => DeviceArchiveApi.getDeviceArchivePage({ projectId: pid, pageNo, pageSize }),
     get: (id) => DeviceArchiveApi.getDeviceArchiveRecord(id),
     columns: [
-      { prop: 'serialNumber', label: '序列号', width: 140 },
+      { prop: 'sn', label: '序列号', width: 140 },
       { prop: 'name', label: '设备名称', minWidth: 150 },
-      { prop: 'model', label: '产品型号', width: 110 },
-      { prop: 'location', label: '安装位置', minWidth: 130 },
+      { prop: 'productModel', label: '产品型号', width: 110 },
+      { prop: 'locationSnapshot', label: '位置快照', minWidth: 130 },
       { prop: 'warrantyStartDate', label: '维保开始', width: 110, type: 'time' },
       { prop: 'warrantyEndDate', label: '维保结束', width: 110, type: 'time' },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
-    statusMap: { 0: { label: '在库', tone: 'gray' }, 1: { label: '在用', tone: 'blue' }, 2: { label: '维修中', tone: 'yellow' }, 3: { label: '已报废', tone: 'red' }, 4: { label: '已借出', tone: 'green' } },
+    statusMap: { IN_STOCK: { label: '在库', tone: 'gray' }, IN_USE: { label: '在用', tone: 'blue' }, FAULT: { label: '故障', tone: 'yellow' }, REPAIRING: { label: '维修中', tone: 'yellow' }, RETIRED: { label: '已报废', tone: 'red' } },
     actions: []
   },
   'config-log': {
@@ -1065,7 +1065,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   // 物料换货（Demo 2.2.1 物料选择，提交后审批，通过后推送CRM）
   'material-exch': {
-    key: 'material-exch', label: '物料换货', icon: 'ep:sort', path: '/pms/eng-material-exch',
+    key: 'material-exch', label: '物料换货', icon: 'ep:sort', path: '/pms/imp-material-exch',
     load: (pid, pageNo, pageSize) => MaterialExchangeApi.getMaterialExchangePage({ projectId: pid, pageNo, pageSize }),
     get: (id) => MaterialExchangeApi.getMaterialExchange(id),
     columns: [

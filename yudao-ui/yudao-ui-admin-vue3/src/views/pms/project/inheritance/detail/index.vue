@@ -460,7 +460,11 @@
           />
         </div>
         <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
-          <ProjectEquipmentPanel :key="`equipment-${detail.id}`" :project-id="detail.id" />
+          <!-- 设备清单 = 订单信息（交付范围明细）；序列号档案见"序列号详情"Tab -->
+          <DeliveryModuleTable
+            :config="deliveryModules['equipment']"
+            :project-id="detail.id"
+          />
         </div>
         <!-- Demo 1.1.1 序列号详情 / Demo 1.1.1.1 配置Log（配置驱动，消费设备域真实 API） -->
         <DeliveryModuleTable
@@ -548,13 +552,14 @@ import { checkPermi } from '@/utils/permission'
 // 设备序列号域（Demo 1.1.1 序列号详情 / 1.1.1.1 配置Log）
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import * as DeviceConfigLogApi from '@/api/pms/asset/device/archive'
+// 设备清单（订单信息：ERP销售订单→交付范围明细；序列号档案见 sn-result）
+import { getDeliveryScopePage } from '@/api/pms/commerce'
 // 物料换货协同（Demo 2.2.1 物料选择，通过后推送CRM）
 import * as MaterialExchangeApi from '@/api/pms/engineering/material-exch'
 import DeliveryModuleTable from './DeliveryModuleTable.vue'
 import type { DeliveryModuleConfig } from './DeliveryModuleTable.vue'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import ProjectCustomerOverview from '@/views/pms/project/project-master-detail/components/ProjectCustomerOverview.vue'
-import ProjectEquipmentPanel from '@/views/pms/asset/device/archive/index.vue'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import type {
@@ -636,10 +641,10 @@ const overviewSteps: { key: string; label: string; icon: string; permission?: st
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
-  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:equipment:query'] },
-  // Demo 1.1.1 / 1.1.1.1（设备序列号域，消费 pms_equipment 真实数据）
-  { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:equipment:query'] },
-  { key: 'config-log', label: '配置Log', icon: 'ep:document', permission: ['pms:equipment-config:query'] },
+  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:commerce:scope:query'] },
+  // Demo 1.1.1 / 1.1.1.1（设备序列号域，消费 ast_device 真实数据）
+  { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
+  { key: 'config-log', label: '配置Log', icon: 'ep:document', permission: ['pms:device:query'] },
   { key: 'scope', label: '实施范围', icon: 'ep:files', permission: ['pms:commerce:scope:query'] }
 ]
 
@@ -665,28 +670,61 @@ const loadProjectConfigLogs = async (pid: number, pageNo: number, pageSize: numb
 }
 
 const deliveryModules: Record<string, DeliveryModuleConfig> = {
-  // --- Demo 1.1.1 序列号详情（pms_equipment 按项目过滤；在网版本口径见配置Log，无既有来源不造列） ---
+  // --- 设备清单（订单信息：ERP销售订单→交付范围→组合维度明细展平；无独立明细API，内存分页） ---
+  equipment: {
+    label: '设备清单',
+    icon: 'ep:cpu',
+    path: '/customer-asset/delivery-scopes',
+    load: async (pid, pageNo, pageSize) => {
+      const res = await getDeliveryScopePage({ projectId: pid, pageNo: 1, pageSize: 200, includeHistory: false })
+      const rows = (res.list || []).flatMap((scope: any) => {
+        const base = { orderNo: scope.orderNo, lineNo: scope.lineNo, itemCode: scope.itemCode }
+        const details = scope.details || []
+        if (!details.length) {
+          return [{ ...base, productCode: '', deviceTypeCode: '', allocatedQuantity: scope.allocatedQuantity, status: scope.scopeStatus }]
+        }
+        return details.map((d: any) => ({
+          ...base,
+          productCode: d.productCode || '',
+          deviceTypeCode: d.deviceTypeCode || '',
+          allocatedQuantity: d.allocatedQuantity,
+          status: d.status || scope.scopeStatus
+        }))
+      })
+      return { list: rows.slice((pageNo - 1) * pageSize, pageNo * pageSize), total: rows.length }
+    },
+    columns: [
+      { prop: 'orderNo', label: '订单号', minWidth: 160 },
+      { prop: 'lineNo', label: '行号', width: 140 },
+      { prop: 'itemCode', label: '物料编码', minWidth: 150 },
+      { prop: 'productCode', label: '产品编码', minWidth: 140 },
+      { prop: 'deviceTypeCode', label: '设备类型', width: 120 },
+      { prop: 'allocatedQuantity', label: '数量', width: 90 },
+      { prop: 'status', label: '状态', width: 110 }
+    ]
+  },
+  // --- Demo 1.1.1 序列号详情（ast_device 按项目过滤；在网版本口径见配置Log，无既有来源不造列） ---
   'sn-result': {
     label: '序列号详情',
     icon: 'ep:cpu',
-    path: '/customer-asset/equipment',
+    path: '/customer-asset/device-archive',
     load: (pid, pageNo, pageSize) => DeviceArchiveApi.getDeviceArchivePage({ projectId: pid, pageNo, pageSize }),
     columns: [
-      { prop: 'serialNumber', label: '序列号', width: 150 },
+      { prop: 'sn', label: '序列号', width: 150 },
       { prop: 'name', label: '设备名称', minWidth: 150 },
-      { prop: 'model', label: '产品型号', width: 120 },
-      { prop: 'location', label: '安装位置', minWidth: 140 },
+      { prop: 'productModel', label: '产品型号', width: 120 },
+      { prop: 'locationSnapshot', label: '位置快照', minWidth: 140 },
       { prop: 'warrantyStartDate', label: '维保开始', width: 110, type: 'time' },
       { prop: 'warrantyEndDate', label: '维保结束', width: 110, type: 'time' },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
-    // 状态口径：EquipmentDO 0在库 1在用 2故障 3维修中 4已报废
+    // 状态口径：ast_device String 值域（pms_device_status 字典）
     statusMap: {
-      0: { label: '在库', tone: 'gray' },
-      1: { label: '在用', tone: 'blue' },
-      2: { label: '故障', tone: 'yellow' },
-      3: { label: '维修中', tone: 'yellow' },
-      4: { label: '已报废', tone: 'red' }
+      IN_STOCK: { label: '在库', tone: 'gray' },
+      IN_USE: { label: '在用', tone: 'blue' },
+      FAULT: { label: '故障', tone: 'yellow' },
+      REPAIRING: { label: '维修中', tone: 'yellow' },
+      RETIRED: { label: '已报废', tone: 'red' }
     },
     // Demo 1.1.1 跨页操作：从序列号行直达该设备的配置Log页签
     actions: [

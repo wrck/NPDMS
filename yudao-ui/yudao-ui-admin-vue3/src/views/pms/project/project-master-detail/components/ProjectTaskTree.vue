@@ -1,5 +1,5 @@
 <template>
-  <div class="task-tree" v-loading="loading">
+  <div class="task-tree" :class="{ 'task-tree--compact': props.compact }" v-loading="loading">
     <el-tree
       :key="renderKey"
       :data="treeRows"
@@ -46,6 +46,8 @@ const props = defineProps<{
   stageCode?: string
   keyword?: string
   refreshToken?: number
+  /** 左侧导航内嵌使用：高度随内容收缩，不保留独立页签的 280px 最小高度 */
+  compact?: boolean
 }>()
 const emit = defineEmits<{
   select: [task: TaskNode]
@@ -163,6 +165,10 @@ defineExpose({ reload: search })
 <style scoped lang="scss">
 .task-tree {
   min-height: 280px;
+}
+
+.task-tree--compact {
+  min-height: 0;
 }
 
 .task-node {

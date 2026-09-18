@@ -18,19 +18,18 @@ it('puts cached panel visibility on native hosts, independent of component root 
       hosts.push(node)
       const key = testId.slice('project-pane-'.length)
       expect(node.tag).toBe('div')
-      const sharedStagePanel = key === 'stage-gates'
-      expect(show.exp.content).toBe(sharedStagePanel
-        ? "['base', 'tasks', 'stage-gates'].includes(activeTab)"
-        : `activeTab === '${key}'`)
-      expect(node.props.find((prop: any) => prop.name === 'if').exp.content).toBe(sharedStagePanel
-        ? "detail?.id && (visitedTabs.has('base') || visitedTabs.has('tasks') || visitedTabs.has('stage-gates'))"
-        : `detail?.id && visitedTabs.has('${key}')`)
+      // 阶段状态与阶段工作区的页签键与 testid 后缀不同
+      const tab = ({ 'stage-gates': 'stage-status', 'stage-workspace': 'stage' } as Record<string, string>)[key] ?? key
+      expect(show.exp.content).toBe(`activeTab === '${tab}'`)
+      expect(node.props.find((prop: any) => prop.name === 'if').exp.content).toBe(
+        `detail?.id && visitedTabs.has('${tab}')`
+      )
     }
     node.children?.forEach(visit)
   }
   visit(ast)
   expect(invalid).toEqual([])
-  expect(hosts).toHaveLength(15)
+  expect(hosts).toHaveLength(16)
   const children = hosts.flatMap(node => node.children)
   const taskPanel = children.find(node => node.tag === 'ProjectTaskPanel')
   expect(taskPanel.props.find((prop: any) => prop.name === 'on' && prop.arg?.content === 'updated').exp.content).toBe('loadAll')
