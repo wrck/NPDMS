@@ -70,7 +70,8 @@ public final class TemplateVersionSnapshot {
             require(task != null, "任务为空");
             node(task.getNodeKey(), task.getCode(), nodeKeys, tasks, task);
             require(text(task.getName()) && stages.containsKey(task.getStageCode()), "任务所属阶段缺失");
-            require(task.getBinding() != null && task.getPermission() != null, "任务执行契约缺失");
+            boolean resultOnly = task.getBinding() == null && ResultSubscriptionTaskContract.pure(task.getExecution());
+            require(resultOnly ? task.getPermission() == null : task.getBinding() != null && task.getPermission() != null, "任务执行契约缺失");
             nodeRules(programs, rules, task.getAdmissionRuleKey(), task.getCompletionRuleKey(), task.getExitRuleKey(), task.getCompletionRule());
             binding(task.getBinding(), programs);
             execution(task.getExecution(), task.getBinding());

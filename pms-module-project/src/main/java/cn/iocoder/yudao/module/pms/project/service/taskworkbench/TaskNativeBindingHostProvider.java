@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** 共用原项目任务授权；审批和订阅不提供人工提交/完成入口，不据此授予Owner业务权限。 */
 @Component
 @RequiredArgsConstructor
 public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
@@ -62,7 +63,7 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         return BINDING_TYPE;
     }
 
-    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL"); }
+    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL", "RESULT_SUBSCRIPTION"); }
 
     @Override
     public TaskBindingInspection inspect(TaskBindingInspectionQuery query) {
@@ -80,6 +81,11 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         boolean approvalHandling = approval && "IN_PROGRESS".equals(task.getStatus());
         if (!bindingTypes().contains(contract.getWorkBindingTypeCode()) || hasExternalTarget(contract)) {
             return TaskBindingInspection.failed(BINDING_TYPE, "BINDING_CONTRACT_INVALID");
+        }
+        boolean resultOnly = "RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode());
+        if (resultOnly) {
+            try { cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.requireRuntime(contract); }
+            catch (RuntimeException invalid) { return TaskBindingInspection.failed(contract.getWorkBindingTypeCode(), "RESULT_SUBSCRIPTION_TASK_CONTRACT_INVALID"); }
         }
         if (approval) {
             try {
@@ -119,8 +125,9 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         }
         String factVersion = task.getVersion() + ":" + contract.getContractVersion() + ":"
                 + (assignment == null ? 0 : assignment.getVersion());
-        // Approval submission/completion belongs to BPM, never to the native manual-completion buttons.
+        // 完成取决于BPM或订阅证据，不能通过原生手工按钮制造完成事实。
         if (approval) allowedActions.retainAll(Set.of("START", "APPROVAL", "CANCEL", "ASSIGN"));
+        if (resultOnly) allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
         return new TaskBindingInspection(contract.getWorkBindingTypeCode(), Set.copyOf(allowedActions), factVersion, null);
     }
 

@@ -17,7 +17,7 @@ public class TaskExecutionContractFactory {
     public static final String TASK_NATIVE = TaskNativeCompletionPolicy.WORK_BINDING_TYPE;
 
     private static final Set<String> SUPPORTED_TYPES = Set.of(
-            TASK_NATIVE, "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
+            TASK_NATIVE, "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE", "RESULT_SUBSCRIPTION");
 
     public ProjectTaskExecutionContractDO create(Long projectTaskId, Long templateTaskDefinitionId,
                                                   TemplateDefinitionContent.TaskDef definition,
@@ -37,7 +37,9 @@ public class TaskExecutionContractFactory {
         contract.setTargetObjectKey(definition.getTargetObjectKey());
         contract.setComponentKey(definition.getComponentKey());
         contract.setDynamicFormRevisionId(definition.getDynamicFormRevisionId());
-        contract.setBindingParameterSnapshot("APPROVAL".equals(definition.getWorkBindingTypeCode())
+        contract.setBindingParameterSnapshot("RESULT_SUBSCRIPTION".equals(definition.getWorkBindingTypeCode())
+                ? cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.parameters()
+                : "APPROVAL".equals(definition.getWorkBindingTypeCode())
                 ? JsonUtils.toJsonString(ApprovalWorkBindingSchema.freeze(
                         definition.getApprovalDefinitionKey(), JsonUtils.parseTree(definition.getBindingConfig())))
                 : definition.getBindingConfig());
@@ -121,6 +123,8 @@ public class TaskExecutionContractFactory {
         if (definition.getDefinitionVersion() == null || definition.getDefinitionVersion() <= 0) {
             throw new IllegalArgumentException("任务定义版本无效");
         }
+        if ("RESULT_SUBSCRIPTION".equals(definition.getWorkBindingTypeCode()))
+            cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.requireDefinition(definition);
         validateBindingTarget(definition);
     }
 
@@ -148,6 +152,7 @@ public class TaskExecutionContractFactory {
             case "APPROVAL" -> ApprovalWorkBindingSchema.read(
                     definition.getApprovalDefinitionKey(), JsonUtils.parseTree(definition.getBindingConfig()));
             case "COMPOSITE" -> { /* subviews are carried in validated bindingConfig */ }
+            case "RESULT_SUBSCRIPTION" -> { /* 专用投影已拒绝任何Owner/页面/表单目标。 */ }
             default -> throw new IllegalArgumentException("任务WorkBinding类型无效");
         }
     }

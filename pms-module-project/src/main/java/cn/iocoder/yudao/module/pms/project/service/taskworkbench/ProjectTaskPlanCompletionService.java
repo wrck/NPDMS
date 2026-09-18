@@ -114,6 +114,9 @@ public class ProjectTaskPlanCompletionService {
         if (completion==null || exit==null) return unknown(reference,"FROZEN_RULE_PROGRAM_REQUIRED");
         boolean nativeWork = "TASK_NATIVE".equals(binding.getWorkBindingTypeCode());
         boolean approvalWork = "APPROVAL".equals(binding.getWorkBindingTypeCode());
+        boolean resultOnly = "RESULT_SUBSCRIPTION".equals(binding.getWorkBindingTypeCode());
+        if (resultOnly && !cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.matches(binding,node))
+            return unknown(reference,"RESULT_SUBSCRIPTION_TASK_CONTRACT_INVALID");
         if (nativeWork && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
         List<TaskBusinessLinkFact> links = List.of();
         Map<String,Object> evidence = new LinkedHashMap<>();
@@ -127,7 +130,7 @@ public class ProjectTaskPlanCompletionService {
                 return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));
             }
             evidence.put("approval", approval);
-        } else if (!nativeWork) {
+        } else if (!nativeWork && !resultOnly) {
             var ownerResult = ownerReader.get();
             var ownerFacts = ownerResult == null ? null : ownerResult.facts();
             if (ownerFacts==null || ownerFacts.factVersion() == null || ownerFacts.links().isEmpty())
