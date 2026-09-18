@@ -5,9 +5,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
         />
@@ -112,9 +112,9 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -187,7 +187,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CompletionCertificateApi from '@/api/pms/acceptance/completion-certificate'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
 import * as CustomerApi from '@/api/pms/customer'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 
