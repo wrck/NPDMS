@@ -38,7 +38,9 @@ public class AcceptanceReportOperationCommandAdapter implements ProjectBusinessO
         authorizeReplay(code, command);
         Long id;
         try { id = Long.valueOf(command.objectId()); } catch (RuntimeException invalid) { throw exception(BAD_REQUEST, "BUSINESS_OBJECT_REQUIRED"); }
-        var actor = new AcceptanceReportCommands.Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), null);
+        // Reuse the existing command identity for Owner audit and Outbox correlation.
+        String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + command.nodeKind() + ":" + command.nodeId() + ":" + command.idempotencyKey());
+        var actor = new AcceptanceReportCommands.Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), key);
         var queryActor = new AcceptanceReportQueryService.Actor(actor.tenantId(), actor.userId());
         var activity = queries.getObject().get(id, queryActor);
         if (!Objects.equals(activity.projectId(), command.projectId()) || !Objects.equals(activity.version(), command.expectedBusinessVersion()))
@@ -51,7 +53,6 @@ public class AcceptanceReportOperationCommandAdapter implements ProjectBusinessO
             if (code.endsWith(".REVOKE")) ProjectOperationInput.fields(input,
                     Set.of("expectedCurrentReportVersionId", "expectedCurrentReportVersionNo"));
         } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
-        String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + command.nodeKind() + ":" + command.nodeId() + ":" + command.idempotencyKey());
         String digest = DigestUtil.sha256Hex(JsonUtils.toJsonString(command));
         AcceptanceReportCommands.ReportResult result;
         switch (code) {
