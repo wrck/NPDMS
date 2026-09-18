@@ -14,7 +14,7 @@ public final class CutoverTaskReqVO {
 
     public record ProjectContext(Long projectId, Integer projectVersion, String projectCode, String projectName,
                                  Long customerId, String customerCode, String customerName,
-                                 Long officeDepartmentId, String officeCode, String officeName) {
+                                 Long departmentId, String departmentCode, String departmentName) {
     }
 
     public record DeviceWatermark(Long deviceId, String serialNumber, Long projectAssignmentVersion) {

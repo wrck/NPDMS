@@ -102,8 +102,8 @@ public class CommerceDeliveryScopeCommandService {
                         scope.getAllocatedQty(), scope.getAllocationVersion(), scope.getScopeStatus()))
                 .toList();
         return new DeliveryScopePreviewResult(project.projectId(), project.projectVersion(), project.projectCode(),
-                project.officeDepartmentId(), project.officeDepartmentCode(), project.officeDepartmentName(),
-                project.officeDepartmentVersion(), line.getId(), line.getSourceVersion(), line.getOrderQty(),
+                project.departmentId(), project.departmentCode(), project.departmentName(),
+                project.departmentVersion(), line.getId(), line.getSourceVersion(), line.getOrderQty(),
                 allocated, available, command.proposedQuantity(), errors.isEmpty(), List.copyOf(errors), occupied);
     }
 
@@ -261,9 +261,9 @@ public class CommerceDeliveryScopeCommandService {
         if (fact == null || fact.outcome() != ProjectFactOutcome.FOUND
                 || !Objects.equals(fact.projectId(), projectId)
                 || !Objects.equals(fact.projectVersion(), projectVersion)
-                || blank(fact.projectCode()) || fact.officeDepartmentId() == null
-                || blank(fact.officeDepartmentCode()) || blank(fact.officeDepartmentName())
-                || fact.officeDepartmentVersion() == null || fact.officeDepartmentVersion() < 0) {
+                || blank(fact.projectCode()) || fact.departmentId() == null
+                || blank(fact.departmentCode()) || blank(fact.departmentName())
+                || fact.departmentVersion() == null || fact.departmentVersion() < 0) {
             throw conflict("PROJECT_OFFICE_FACT_INVALID");
         }
         return fact;
@@ -440,10 +440,10 @@ public class CommerceDeliveryScopeCommandService {
         scope.setAllocationVersion(version);
         scope.setAllocationSource(source);
         scope.setChangeReason(reason);
-        scope.setOfficeDepartmentId(project.officeDepartmentId());
-        scope.setOfficeDepartmentCode(project.officeDepartmentCode());
-        scope.setOfficeDepartmentName(project.officeDepartmentName());
-        scope.setOfficeDepartmentVersion(project.officeDepartmentVersion());
+        scope.setDepartmentId(project.departmentId());
+        scope.setDepartmentCode(project.departmentCode());
+        scope.setDepartmentName(project.departmentName());
+        scope.setDepartmentVersion(project.departmentVersion());
         scope.setSourceEvidence(operationId);
         scope.setEffectiveFrom(now);
         scope.setStatus("ENABLED");

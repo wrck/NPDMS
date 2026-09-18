@@ -87,7 +87,7 @@ public class CutoverTaskController {
         CutoverProjectContextPort.ProjectContextFact projectFact = new CutoverProjectContextPort.ProjectContextFact(
                 trusted.tenantId(), project.projectId(), project.projectVersion(), project.projectCode(),
                 project.projectName(), project.customerId(), project.customerCode(), project.customerName(),
-                project.officeDepartmentId(), project.officeCode(), project.officeName(),
+                project.departmentId(), project.departmentCode(), project.departmentName(),
                 requiredVersion(request.expectedProjectScopeVersion(), "expectedProjectScopeVersion"));
         List<CutoverDeviceScopePort.DeviceFact> devices = request.expectedDeviceScopeWatermark().stream()
                 .map(item -> new CutoverDeviceScopePort.DeviceFact(item.deviceId(), item.serialNumber(),

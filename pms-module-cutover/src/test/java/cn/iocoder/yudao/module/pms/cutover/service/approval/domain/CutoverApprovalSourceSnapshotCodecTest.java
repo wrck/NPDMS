@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CutoverApprovalSourceSnapshotCodecTest {
 
@@ -63,6 +64,23 @@ class CutoverApprovalSourceSnapshotCodecTest {
         assertNull(decoded.checklistId());
         assertEquals(List.of(), decoded.riskItems());
         assertEquals(List.of(), decoded.businessSurveyItems());
+    }
+
+    @Test
+    void decodesLegacyOfficeKeysForHistoricalSnapshots() {
+        ApprovalSourceSnapshot source = snapshot("A", null);
+        String legacy = codec.encode(source)
+                .replace("\"departmentId\"", "\"officeDepartmentId\"")
+                .replace("\"departmentCode\"", "\"officeCode\"")
+                .replace("\"departmentName\"", "\"officeName\"");
+        assertEquals(source, codec.decode(legacy));
+    }
+
+    @Test
+    void rejectsMixedOfficeKeyGenerations() {
+        ApprovalSourceSnapshot source = snapshot("A", null);
+        String mixed = codec.encode(source).replace("\"departmentCode\"", "\"officeCode\"");
+        assertThrows(RuntimeException.class, () -> codec.decode(mixed));
     }
 
     private static ApprovalSourceSnapshot snapshot(String grade, String networkMode) {

@@ -42,10 +42,10 @@ public class DeliveryScopeDO extends TenantBaseDO {
     private Long allocationVersion;
     private String allocationSource;
     private String changeReason;
-    private Long officeDepartmentId;
-    private String officeDepartmentCode;
-    private String officeDepartmentName;
-    private Integer officeDepartmentVersion;
+    private Long departmentId;
+    private String departmentCode;
+    private String departmentName;
+    private Integer departmentVersion;
     private String sourceEvidence;
     private LocalDateTime effectiveFrom;
     private LocalDateTime effectiveTo;

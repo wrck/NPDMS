@@ -106,9 +106,9 @@ public class ProjectSplitRequestController {
         return new ProjectSplitDraftCommand(requestId, request.getExpectedDraftVersion(), request.getParentProjectId(),
                 request.getTemplateRevisionId(), request.getItems().stream().map(item ->
                 new ProjectSplitDraftCommand.Item(item.getClientItemKey(), item.getProjectName(),
-                        item.getBusinessLevelCode(), item.getTreeSort(), item.getOfficeDepartmentCode(),
+                        item.getBusinessLevelCode(), item.getTreeSort(), item.getDepartmentCode(),
                         item.getScopes().stream().map(scope -> new ProjectSplitDraftCommand.Scope(
-                                scope.getOrderLineId(), scope.getQuantity(), scope.getOfficeDepartmentCode(),
+                                scope.getOrderLineId(), scope.getQuantity(), scope.getDepartmentCode(),
                                 scope.getSerialNumbers())).toList(), item.getTemplateRevisionId(),
                         item.getTemplateSelectionReason())).toList());
     }
@@ -149,14 +149,14 @@ public class ProjectSplitRequestController {
         response.setProjectName(item.getProjectName());
         response.setBusinessLevelCode(item.getBusinessLevelCode());
         response.setTreeSort(item.getTreeSort());
-        response.setOfficeDepartmentCode(item.getOfficeDepartmentCode());
+        response.setDepartmentCode(item.getDepartmentCode());
         response.setTemplateRevisionId(item.getTemplateRevisionId());
         response.setTemplateSelectionReason(item.getTemplateSelectionReason());
         response.setItemStatus(item.getItemStatus());
         response.setScopes(scopes.stream().map(scope -> {
             ProjectSplitRequestRespVO.Scope value = new ProjectSplitRequestRespVO.Scope();
             value.setId(scope.getId()); value.setOrderLineId(scope.getOrderLineId());
-            value.setAllocatedQty(scope.getAllocatedQty()); value.setOfficeDepartmentCode(scope.getOfficeDepartmentCode());
+            value.setAllocatedQty(scope.getAllocatedQty()); value.setDepartmentCode(scope.getDepartmentCode());
             value.setSerialNo(scope.getSerialNo()); value.setSourceScopeVersion(scope.getSourceScopeVersion());
             return value;
         }).toList());

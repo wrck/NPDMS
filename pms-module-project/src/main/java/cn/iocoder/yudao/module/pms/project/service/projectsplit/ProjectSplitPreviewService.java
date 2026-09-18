@@ -154,8 +154,8 @@ public class ProjectSplitPreviewService {
 
     private void validateDepartments(ProjectSplitDraftService.DraftResult draft, List<String> errors) {
         Set<String> codes = new LinkedHashSet<>();
-        draft.items().stream().map(ProjectSplitItemDO::getOfficeDepartmentCode).filter(Objects::nonNull).forEach(codes::add);
-        draft.scopes().stream().map(ProjectSplitScopeDO::getOfficeDepartmentCode).filter(Objects::nonNull).forEach(codes::add);
+        draft.items().stream().map(ProjectSplitItemDO::getDepartmentCode).filter(Objects::nonNull).forEach(codes::add);
+        draft.scopes().stream().map(ProjectSplitScopeDO::getDepartmentCode).filter(Objects::nonNull).forEach(codes::add);
         for (String code : codes) {
             try {
                 DeptRespDTO department = deptApi.getDeptByCode(code);
@@ -174,16 +174,16 @@ public class ProjectSplitPreviewService {
         Map<String, AllocationAccumulator> grouped = new LinkedHashMap<>();
         for (ProjectSplitScopeDO scope : draft.scopes()) {
             ProjectSplitItemDO item = itemById.get(scope.getSplitItemId());
-            String key = item.getClientItemKey() + "|" + scope.getOrderLineId() + "|" + scope.getOfficeDepartmentCode();
+            String key = item.getClientItemKey() + "|" + scope.getOrderLineId() + "|" + scope.getDepartmentCode();
             AllocationAccumulator value = grouped.computeIfAbsent(key, ignored -> new AllocationAccumulator(
-                    item.getClientItemKey(), scope.getOrderLineId(), scope.getOfficeDepartmentCode()));
+                    item.getClientItemKey(), scope.getOrderLineId(), scope.getDepartmentCode()));
             value.quantity = value.quantity.add(scope.getAllocatedQty());
             if (scope.getSerialNo() != null) {
                 value.serials.add(scope.getSerialNo());
             }
         }
         return grouped.values().stream().map(value -> new SplitScopePreviewCommand.Allocation(
-                value.clientItemKey, value.orderLineId, value.quantity, value.officeCode, List.copyOf(value.serials))).toList();
+                value.clientItemKey, value.orderLineId, value.quantity, value.departmentCode, List.copyOf(value.serials))).toList();
     }
 
     private void persistResult(ProjectSplitRequestDO request, List<ProjectSplitItemDO> items, boolean valid,
@@ -215,13 +215,13 @@ public class ProjectSplitPreviewService {
             List<ProjectSplitScopeDO> scopes = scopesByItem.getOrDefault(item.getId(), List.of());
             Set<String> references = new LinkedHashSet<>();
             references.add(item.getClientItemKey());
-            if (item.getOfficeDepartmentCode() != null) {
-                references.add(item.getOfficeDepartmentCode());
+            if (item.getDepartmentCode() != null) {
+                references.add(item.getDepartmentCode());
             }
             scopes.forEach(scope -> {
                 references.add(String.valueOf(scope.getOrderLineId()));
-                if (scope.getOfficeDepartmentCode() != null) {
-                    references.add(scope.getOfficeDepartmentCode());
+                if (scope.getDepartmentCode() != null) {
+                    references.add(scope.getDepartmentCode());
                 }
                 if (scope.getSerialNo() != null) {
                     references.add(scope.getSerialNo());
@@ -252,13 +252,13 @@ public class ProjectSplitPreviewService {
     private static final class AllocationAccumulator {
         private final String clientItemKey;
         private final Long orderLineId;
-        private final String officeCode;
+        private final String departmentCode;
         private BigDecimal quantity = BigDecimal.ZERO;
         private final List<String> serials = new ArrayList<>();
-        private AllocationAccumulator(String clientItemKey, Long orderLineId, String officeCode) {
+        private AllocationAccumulator(String clientItemKey, Long orderLineId, String departmentCode) {
             this.clientItemKey = clientItemKey;
             this.orderLineId = orderLineId;
-            this.officeCode = officeCode;
+            this.departmentCode = departmentCode;
         }
     }
 

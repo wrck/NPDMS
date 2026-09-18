@@ -5,8 +5,8 @@ public record ProjectOfficeFact(
         Long projectId,
         Integer projectVersion,
         String projectCode,
-        Long officeDepartmentId,
-        String officeDepartmentCode,
-        String officeDepartmentName,
-        Integer officeDepartmentVersion) {
+        Long departmentId,
+        String departmentCode,
+        String departmentName,
+        Integer departmentVersion) {
 }

@@ -70,9 +70,9 @@ class CutoverTaskControllerContractTest {
                 new CutoverTaskReqVO.ResolveCreateContext(List.of("SN-001")));
         var response = controller.resolveCreateContext(resolveBody);
         assertThat(response.getData().candidates().getFirst().project()).satisfies(projectView -> {
-            assertThat(projectView.officeDepartmentId()).isEqualTo(51L);
-            assertThat(projectView.officeCode()).isEqualTo("OFF-01");
-            assertThat(projectView.officeName()).isEqualTo("华东办事处");
+            assertThat(projectView.departmentId()).isEqualTo(51L);
+            assertThat(projectView.departmentCode()).isEqualTo("OFF-01");
+            assertThat(projectView.departmentName()).isEqualTo("华东办事处");
         });
         assertThat(response.getData().configurationChoices()).extracting(
                 CutoverTaskViews.ConfigurationChoice::configurationCode).containsExactly("CORE_STANDARD");

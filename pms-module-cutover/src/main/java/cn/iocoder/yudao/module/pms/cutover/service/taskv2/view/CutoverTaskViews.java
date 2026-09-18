@@ -33,7 +33,7 @@ public final class CutoverTaskViews {
 
     public record Summary(Long id, String taskNo, String taskName, String taskOrigin, String intakeSourceType,
                           Long configurationRevisionId, String configurationCode, Integer configurationRevisionNo,
-                          Long projectId, String projectName, String officeCode, String officeName,
+                          Long projectId, String projectName, String departmentCode, String departmentName,
                           Long ownerUserId, String currentStage, String taskStatus, String manualGrade,
                           LocalDateTime scheduledTime, LocalDateTime generatedAt, int version) {
     }

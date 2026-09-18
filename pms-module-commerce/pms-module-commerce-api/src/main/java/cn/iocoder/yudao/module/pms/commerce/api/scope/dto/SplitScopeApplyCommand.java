@@ -11,6 +11,6 @@ public record SplitScopeApplyCommand(Long tenantId, Long parentProjectId, Intege
                                      List<Allocation> allocations) {
 
     public record Allocation(String clientItemKey, Long orderLineId, BigDecimal quantity,
-                             String officeDepartmentCode, List<String> serialNumbers) {
+                             String departmentCode, List<String> serialNumbers) {
     }
 }

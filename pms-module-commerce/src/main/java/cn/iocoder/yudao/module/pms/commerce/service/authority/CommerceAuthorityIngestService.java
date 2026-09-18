@@ -489,10 +489,10 @@ public class CommerceAuthorityIngestService {
             conflict.setAllocationVersion(active.getAllocationVersion() + 1);
             conflict.setAllocationSource("ERP_AUTHORITY_CHANGE");
             conflict.setChangeReason("SOURCE_AUTHORITY_CHANGED");
-            conflict.setOfficeDepartmentId(active.getOfficeDepartmentId());
-            conflict.setOfficeDepartmentCode(active.getOfficeDepartmentCode());
-            conflict.setOfficeDepartmentName(active.getOfficeDepartmentName());
-            conflict.setOfficeDepartmentVersion(active.getOfficeDepartmentVersion());
+            conflict.setDepartmentId(active.getDepartmentId());
+            conflict.setDepartmentCode(active.getDepartmentCode());
+            conflict.setDepartmentName(active.getDepartmentName());
+            conflict.setDepartmentVersion(active.getDepartmentVersion());
             conflict.setSourceEvidence(conflictEvidence(command, incoming));
             conflict.setEffectiveFrom(now);
             conflict.setEffectiveTo(null);
@@ -519,7 +519,7 @@ public class CommerceAuthorityIngestService {
         copy.setId(IdWorker.getId());
         copy.setDeliveryScopeId(scopeId);
         copy.setDetailSequence(source.getDetailSequence());
-        copy.setOfficeDepartmentCode(source.getOfficeDepartmentCode());
+        copy.setDepartmentCode(source.getDepartmentCode());
         copy.setSerialNo(source.getSerialNo());
         copy.setAllocatedQty(source.getAllocatedQty());
         copy.setProductCode(source.getProductCode());

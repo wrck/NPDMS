@@ -14,7 +14,7 @@ public record CutoverCreateContextRespVO(List<Candidate> candidates, boolean sel
 
     public record Project(Long projectId, int projectVersion, String projectCode, String projectName,
                           Long customerId, String customerCode, String customerName,
-                          Long officeDepartmentId, String officeCode, String officeName,
+                          Long departmentId, String departmentCode, String departmentName,
                           long projectScopeVersion) {
     }
 

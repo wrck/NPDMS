@@ -152,14 +152,14 @@ public class ProjectSplitApplicationService {
         for (ProjectSplitScopeDO scope : draft.scopes()) {
             ProjectSplitItemDO item = items.get(scope.getSplitItemId());
             String key = item.getClientItemKey() + "|" + scope.getOrderLineId() + "|"
-                    + scope.getOfficeDepartmentCode();
+                    + scope.getDepartmentCode();
             AllocationAccumulator value = grouped.computeIfAbsent(key, ignored -> new AllocationAccumulator(
-                    item.getClientItemKey(), scope.getOrderLineId(), scope.getOfficeDepartmentCode()));
+                    item.getClientItemKey(), scope.getOrderLineId(), scope.getDepartmentCode()));
             value.quantity = value.quantity.add(scope.getAllocatedQty());
             if (scope.getSerialNo() != null) value.serials.add(scope.getSerialNo());
         }
         return grouped.values().stream().map(value -> new SplitScopeApplyCommand.Allocation(
-                value.clientItemKey, value.orderLineId, value.quantity, value.officeCode,
+                value.clientItemKey, value.orderLineId, value.quantity, value.departmentCode,
                 List.copyOf(value.serials))).toList();
     }
 
@@ -222,11 +222,11 @@ public class ProjectSplitApplicationService {
     private static final class AllocationAccumulator {
         private final String clientItemKey;
         private final Long orderLineId;
-        private final String officeCode;
+        private final String departmentCode;
         private BigDecimal quantity = BigDecimal.ZERO;
         private final List<String> serials = new ArrayList<>();
-        private AllocationAccumulator(String clientItemKey, Long orderLineId, String officeCode) {
-            this.clientItemKey = clientItemKey; this.orderLineId = orderLineId; this.officeCode = officeCode;
+        private AllocationAccumulator(String clientItemKey, Long orderLineId, String departmentCode) {
+            this.clientItemKey = clientItemKey; this.orderLineId = orderLineId; this.departmentCode = departmentCode;
         }
     }
 }

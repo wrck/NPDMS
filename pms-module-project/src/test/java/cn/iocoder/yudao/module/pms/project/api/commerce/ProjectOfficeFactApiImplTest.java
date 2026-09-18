@@ -50,10 +50,10 @@ class ProjectOfficeFactApiImplTest {
 
         assertEquals(ProjectFactOutcome.FOUND, fact.outcome());
         assertEquals("PROJ-10", fact.projectCode());
-        assertEquals(20L, fact.officeDepartmentId());
-        assertEquals("OFF-20", fact.officeDepartmentCode());
-        assertEquals("杭州办事处", fact.officeDepartmentName());
-        assertEquals(7, fact.officeDepartmentVersion());
+        assertEquals(20L, fact.departmentId());
+        assertEquals("OFF-20", fact.departmentCode());
+        assertEquals("杭州办事处", fact.departmentName());
+        assertEquals(7, fact.departmentVersion());
     }
 
     @Test

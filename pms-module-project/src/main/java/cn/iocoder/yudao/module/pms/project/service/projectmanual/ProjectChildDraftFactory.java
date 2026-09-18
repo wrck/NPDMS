@@ -23,7 +23,7 @@ public class ProjectChildDraftFactory {
         draft.setCompanyId(parent.getCompanyId());
         draft.setCompanyCode(parent.getCompanyCode());
         draft.setCompanyName(parent.getCompanyName());
-        String office = item.getOfficeDepartmentCode() == null ? parent.getDepartmentCode() : item.getOfficeDepartmentCode();
+        String office = item.getDepartmentCode() == null ? parent.getDepartmentCode() : item.getDepartmentCode();
         var department = office == null ? null : departments.getDeptByCode(office);
         if (office != null && department == null) throw new IllegalStateException("项目拆分办事处权威数据不可用");
         draft.setDepartmentId(department == null ? parent.getDepartmentId() : department.getId());

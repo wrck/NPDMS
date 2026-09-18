@@ -174,7 +174,7 @@ class CommerceAuthorityIngestMySqlTest {
         jdbcTemplate.update("INSERT INTO com_delivery_scope "
                         + "(id,project_id,project_code,order_line_id,order_source_system,order_company_code,order_type,"
                         + "order_no,line_no,allocated_qty,scope_status,allocation_version,allocation_source,"
-                        + "office_department_id,office_department_code,office_department_name,office_department_version,"
+                        + "department_id,department_code,department_name,department_version,"
                         + "source_evidence,effective_from,version,creator,create_time,updater,update_time,deleted,tenant_id) "
                         + "VALUES (?,?,?,?,'ERP','ACME','NORMAL',?,'10',8,'ACTIVE',1,'ERP',1,'D-1','Office',1,"
                         + "'BASE',NOW(3),0,'0',NOW(3),'0',NOW(3),b'0',?)",

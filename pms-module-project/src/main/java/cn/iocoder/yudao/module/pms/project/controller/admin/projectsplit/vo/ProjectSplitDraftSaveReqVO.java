@@ -24,7 +24,7 @@ public class ProjectSplitDraftSaveReqVO {
         @NotBlank @Size(max = 255) private String projectName;
         @Size(max = 64) private String businessLevelCode;
         private Integer treeSort;
-        @Size(max = 64) private String officeDepartmentCode;
+        @Size(max = 64) private String departmentCode;
         @jakarta.validation.constraints.Positive private Long templateRevisionId;
         @Size(max = 512) private String templateSelectionReason;
         @Valid @NotEmpty private List<Scope> scopes;
@@ -34,7 +34,7 @@ public class ProjectSplitDraftSaveReqVO {
     public static class Scope {
         @NotNull private Long orderLineId;
         @NotNull @DecimalMin(value = "0", inclusive = false) private BigDecimal quantity;
-        @Size(max = 64) private String officeDepartmentCode;
+        @Size(max = 64) private String departmentCode;
         private List<@Size(max = 128) String> serialNumbers;
     }
 }

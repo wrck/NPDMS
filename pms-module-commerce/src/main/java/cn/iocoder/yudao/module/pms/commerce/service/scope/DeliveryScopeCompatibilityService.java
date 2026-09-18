@@ -139,7 +139,7 @@ public class DeliveryScopeCompatibilityService {
 
         List<SplitScopePreviewCommand.Allocation> previewAllocations = command.allocations().stream()
                 .map(item -> new SplitScopePreviewCommand.Allocation(item.clientItemKey(), item.orderLineId(),
-                        item.quantity(), item.officeDepartmentCode(), item.serialNumbers())).toList();
+                        item.quantity(), item.departmentCode(), item.serialNumbers())).toList();
         validateQuantities(previewAllocations, lockedLines, currentScopes, errors);
         validateNoSerialSubjects(previewAllocations, lockedLines, errors);
         validateRemainderSubjects(previewAllocations, lockedLines, currentScopes, errors);
@@ -250,9 +250,9 @@ public class DeliveryScopeCompatibilityService {
         return fact != null && fact.outcome() == ProjectFactOutcome.FOUND
                 && Objects.equals(fact.projectId(), projectId)
                 && Objects.equals(fact.projectVersion(), projectVersion)
-                && notBlank(fact.projectCode()) && fact.officeDepartmentId() != null
-                && notBlank(fact.officeDepartmentCode()) && notBlank(fact.officeDepartmentName())
-                && fact.officeDepartmentVersion() != null && fact.officeDepartmentVersion() >= 0;
+                && notBlank(fact.projectCode()) && fact.departmentId() != null
+                && notBlank(fact.departmentCode()) && notBlank(fact.departmentName())
+                && fact.departmentVersion() != null && fact.departmentVersion() >= 0;
     }
 
     private Map<Long, AcceptanceStageBindingCoordinator.StageContext> lockAcceptanceStageFacts(
@@ -317,7 +317,7 @@ public class DeliveryScopeCompatibilityService {
         }
         List<SplitScopePreviewCommand.Allocation> allocations = command.allocations() == null ? List.of()
                 : command.allocations().stream().map(item -> new SplitScopePreviewCommand.Allocation(
-                        item.clientItemKey(), item.orderLineId(), item.quantity(), item.officeDepartmentCode(),
+                        item.clientItemKey(), item.orderLineId(), item.quantity(), item.departmentCode(),
                         item.serialNumbers())).toList();
         List<String> errors = validatePreviewShape(new SplitScopePreviewCommand(command.tenantId(),
                 command.parentProjectId(), command.expectedScopeVersion(), allocations));
@@ -459,10 +459,10 @@ public class DeliveryScopeCompatibilityService {
         scope.setScopeStatus("ACTIVE");
         scope.setAllocationVersion(scopeVersion);
         scope.setAllocationSource("PROJECT_SPLIT");
-        scope.setOfficeDepartmentId(project.officeDepartmentId());
-        scope.setOfficeDepartmentCode(project.officeDepartmentCode());
-        scope.setOfficeDepartmentName(project.officeDepartmentName());
-        scope.setOfficeDepartmentVersion(project.officeDepartmentVersion());
+        scope.setDepartmentId(project.departmentId());
+        scope.setDepartmentCode(project.departmentCode());
+        scope.setDepartmentName(project.departmentName());
+        scope.setDepartmentVersion(project.departmentVersion());
         scope.setSourceEvidence(evidencePrefix(command.idempotencyKey()) + evidenceKey);
         scope.setEffectiveFrom(now);
         scope.setStatus("ENABLED");

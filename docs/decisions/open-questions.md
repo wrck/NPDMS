@@ -831,3 +831,164 @@
 - Resolution: 待定
 - Decision owner: 需求方（方向）；架构负责人、各领域Owner（影响分析与落实）
 - Decision date: 未关闭；2026-09-17登记
+
+## 四级维度字段库内命名统一
+
+### Q-MIG-DIM-001
+
+- Status: CLOSED（2026-09-18裁决并落实，见末节落实回执）
+- Requirement IDs: COM-01（合同回款/发货合同归属列）、PM-03/PM-10（CRM执行单列）；主数据治理事项，不改变PRD业务语义
+- Area: dppms迁移目标库四级"市场-系统-拓展-行业"维度字段命名统一
+- Question: 主档`cus_market_relation`与业务表（`com_crm_execution_order`、`com_contract_receivable`、`com_shipment_contract_reference`）对同一维度概念使用不同列名，统一到哪套命名、`*_department_source_key`血缘列是否保留？
+- Evidence: 规格DDL（`project-order-physical-schema.mysql.sql`）内部分歧：主档用`market_code/system_code/expend_code/industry_code`（行业一致）；三张业务表用`marketing_department_code`、`system_department_code`（另有`system_department_source_key`）、`expansion_department_code`（另有`expansion_department_source_key`）。需求方2026-09-18指令：四级维度主档为`cus_market_relation`（dppms同步副本`pm_project_market_relations_from_sms`，529行），且这些字段在数据库内必须保持统一。
+- Why it blocks design/implementation: 不阻断迁移映射梳理（报告按各表实际DDL列名如实记录）；阻断CRM执行单6张未建表的最终DDL定稿，及已建表（V258）列名演进。
+- Options:
+  - A. 业务表对齐主档命名：`marketing_department_*→market_department_*`或`market_*`、`expansion_department_*→expend_department_*`或`expend_*`，系统部对齐`system_*`；`*_department_source_key`作为CRM原始键血缘列保留。
+  - B. 主档改为业务表命名（`marketing_department_code`等）；主档是CRM同步目录，改名偏离CRM来源字段语义。
+- Recommended technical default: A。主档是权威来源且`industry_code`已一致，业务表向主档语义对齐改动面最小；`*_department_source_key`保留原值血缘符合既有裁定。
+- Business decision required: 是；统一后目标列名（含`_id/_name`伴生列）需需求方确认，随后修订规格DDL并复核证据哈希，V258已建表以前向迁移落列名变更。
+- Resolution: 业务表对齐主档命名（方向A）；行业划分四维列名按`cus_market_relation`（`market_/system_/expend_/industry_`），办事处取`department_`，创建时原值合并`original_division_values` JSON；2026-09-18落实于规格DDL修订与前向迁移（原V294/V295，后按需求方指令并入合并迁移V294，见Q-MIG-DIM-005回执后合并记录）。
+- Decision owner: 需求方（目标命名）；F-COM-001/AI-MIG Owner（DDL修订与迁移落实）
+- Decision date: 2026-09-18登记
+
+#### 2026-09-18 需求方裁决
+
+需求方裁决按`cus_market_relation`主档列名统一（方向A）：`market_code/market_name`、`system_code/system_name`、`expend_code/expend_name`、`industry_code/industry_name`；伴生解析列`<root>_department_id`、血缘列`<root>_source_key`（原值列`original_<root>_source_key`）；`office_department_*`与行业列维持现状。现行业务表DDL列名（`marketing_department_*`/`system_department_*`/`expansion_department_*`）定性为实现偏差，偏差对照见`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。落实：CRM执行单6张未建表按裁定列名定稿；`com_contract_receivable`、`com_shipment_contract_reference`（V258已建表）以前向迁移更正列名并复核证据哈希。实施完成前本Q保持OPEN。
+
+#### 2026-09-18 补充裁决（办事处对齐）
+
+办事处是部门维度而非行业，编码/名称同样对齐主档风格：`office_department_code/name→office_code/office_name`；`office_department_id`已指向平台共享部门主档（`system_dept`），保持不变。行业列`industry_code/industry_name`维持现状。偏差对照已更新至`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 更正（办事处命名保留department）
+
+办事处是部门而非四级组合成员，"部门是department"：`office_department_code/office_department_name/office_department_id`命名保留，不随`cus_market_relation`四级表（`market_code/system_code/expend_code/industry_code`）改名，现DDL无偏差。上一条"补充裁决（办事处对齐）"中`office_department_code/name→office_code/office_name`的更正作废。四级组合维度偏差对照（市场/系统/拓展/原值列）维持不变。
+
+#### 2026-09-18 再更正（办事处编码/名称去重）
+
+`office_`与`department_`语义重复：办事处编码/名称列裁定为`office_code/office_name`，现DDL`office_department_code/name`为实现偏差；`office_department_id`保留（指向平台共享部门主档`system_dept`，`department`在此有实义）。上一条"更正（办事处命名保留department）"中关于编码/名称列的部分作废，ID列结论不变。最终命名体系：编码/名称列一律`<root>_code/<root>_name`（市场/系统/拓展/办事处/行业），ID列一律`<root>_department_id`，血缘列`<root>_source_key`。偏差对照已更新至`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 最终命名裁定（部门列保留department后缀）
+
+部门维度（市场/系统/拓展/办事处）编码/名称列统一为`<root>_department_code/<root>_department_name`，根名取主档`cus_market_relation`的`market/system/expend`（办事处根名`office`）；ID列`<root>_department_id`、血缘列`<root>_department_source_key`（原值列`original_<root>_department_source_key`）。行业不是部门：仅`industry_code/industry_name`，无`industry_department_id`。据此实际偏差收敛为两组根名错误：`marketing_department_*→market_department_*`（3列）、`expansion_department_*→expend_department_*`（4列及`original_expansion_department_source_key`）；`system_department_*`、`office_department_*`、`industry_*`、`original_system_department_source_key`与现DDL一致。此前关于`market_code/system_code/expend_code/office_code`命名的中间结论作废。偏差对照见`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 概念澄清与最终口径（行业划分非部门）
+
+"行业划分"是市场/系统/拓展/行业四个维度的统称（不单指industry维度），四个维度都不是部门、与部门主档（`system_dept`）无关：列名一律按主档`cus_market_relation`——`market_code/market_name`、`system_code/system_name`、`expend_code/expend_name`、`industry_code/industry_name`，全部经组合目录解析，无`*_department_id`；CRM原始键血缘列`system_source_key`/`expend_source_key`（原值列`original_*_source_key`）。办事处是部门维度：列名`department_code/department_name/department_id`（`office_`与`department_`语义重复取`department_`），`department_id`解析到`system_dept`。据此现DDL偏差为：`marketing_department_code/name→market_code/market_name`、`system_department_*→system_code/name/source_key`、`expansion_department_*→expend_code/name/source_key`、`original_*_department_source_key→original_*_source_key`、`office_department_code/name/id→department_code/name/id`；`marketing_department_id`/`system_department_id`/`expansion_department_id`三列应删除（行业划分维度无部门主档ID）；`industry_code/name`一致。此前所有含`_department_`中缀的中间命名结论作废。偏差对照见`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 裁决（行业划分原值合并JSON字段）
+
+行业划分创建时原值（回款源表`sms_ofst_contract_head_sap`的`systemid_o`/`expendid_o`/`industry_name_o`，当前81,547行全空）不再设`original_system_source_key`/`original_expend_source_key`/`original_industry_name`独立列，合并为单个JSON字段`original_division_values`统一存储：`{"systemSourceKey":...,"expendSourceKey":...,"industryName":...}`，按来源原值保留、不参与解析。现DDL`com_contract_receivable`的三个`original_*`列在规格DDL修订时以此JSON字段替代。背景：`_o`字段为回款记录创建时的行业划分归属原值，当前字段被调整后保留初始归属用于追溯。
+
+#### 2026-09-18 落实回执（规格DDL修订+前向迁移，迁移文件现为合并V294第1段）
+
+按上述裁决完成库内统一：(1) 规格权威DDL `specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql` 修订`com_contract_receivable`、`com_shipment_contract_reference`、`com_crm_execution_order`三表列名——行业划分四维改`market_code/market_name`、`system_source_key/system_code/system_name`、`expend_source_key/expend_code/expend_name`（industry两列原本一致），删除行业划分维度的三个`*_department_id`列，办事处改`department_id/department_code/department_name`（含执行单两个索引`idx_crm_execution_company_office(_code)`列引用），三个`original_*`列合并为`original_division_values JSON`；修订后SHA-256 `AF8C3BA5D44BDE9809E9F10AC70A60E0CA4DA43E9BFE7E6B1714759294BBB3D0`（修订前基线`6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B`）；同日按需求方要求将上述列注释精简为界面显示字段口径（市场部编码/系统部编码/拓展部编码/办事处编码等），语义不变。(2) 前向迁移（列名更正，现并入合并迁移`V294__migration_field_naming_and_comment_alignment.sql`第1段）对V258已建的`com_contract_receivable`、`com_shipment_contract_reference`执行同等更正（两表经核查均0行，合并不丢数据），2026-09-18经Flyway实际应用成功，实库列状态及注释已复核（注释精简亦在合并迁移第3段）。(3) 修订后规格DDL已在隔离MySQL 8.4容器完整执行验证，66张表全部建成、索引列正确。`com_crm_execution_order`等6张执行单表未在实库建表，建表时直接采用修订后规格DDL，无需迁移。本Q裁决均已落实，Q关闭。
+
+## 办事处维度字段库内命名统一（续）
+
+### Q-MIG-DIM-002
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: COM-01（履约范围/拆分承接列）、PM-03/PM-10（项目拆分列）、CUT（快照键）
+- Area: 办事处（部门维度）字段在履约范围、项目拆分与切换快照中的命名统一
+- Question: Q-MIG-DIM-001裁决"办事处是部门维度取`department_`"后，实库仍有4张表带`office_department_*`列，对应Java字段、跨模块API契约`ProjectOfficeFact`及cutover审批快照JSON键是否一并统一？
+- Evidence: 实库`com_delivery_scope`（office_department_id/code/name/version）、`fcom001_v70_com_delivery_scope_detail`、`proj_project_split_item`、`proj_project_split_scope`（各office_department_code）；代码引用横跨pms-module-commerce（履约范围DO/VO/服务/测试）、pms-module-project（拆分DO/服务/VO、`ProjectOfficeFact` API契约）、pms-module-cutover（审批快照编解码器、请求编解码器、VO/视图）；`CutoverProjectContextPort.ProjectContextFact`已提交为`departmentId/departmentCode/departmentName`，控制器等仍用旧名（分支处于改名中途）。
+- Options:
+  - A. 全部统一为`department*`：DB列、Java字段、API契约、快照新写键；历史快照旧键只读兼容。
+  - B. 仅统一DB列，代码与快照键保留office命名——列与代码脱节，违背库内统一裁决。
+- Recommended technical default: A。
+- Business decision required: 是；已由需求方2026-09-18确认（含历史快照"新写新键、旧键只读兼容"方案）。
+- Resolution: 采用A。4张表DB列`office_department_*→department_*`（原V296，现为合并V294第2段）；三模块代码与`ProjectOfficeFact`组件同步改名；cutover审批快照写入`departmentId/departmentCode/departmentName`新键，读取同时接受旧键`officeDepartmentId/officeCode/officeName`，不重写历史快照。`pms_project.office_id`（项目所属办公室，40行）同属办事处概念但属核心项目表既有约定，不在本次确认范围，保留并在此标记。
+- Decision owner: 需求方（命名与兼容方案）；F-COM-001/FPROJ-002/CUT Owner（落实）
+- Decision date: 2026-09-18登记并确认
+
+#### 2026-09-18 落实回执
+
+- DB：原`sql/migrations/V296__office_department_column_alignment.sql`（已并入合并迁移`V294__migration_field_naming_and_comment_alignment.sql`）完成4张表`office_department_*→department_*`（`com_delivery_scope`四列、`fcom001_v70_com_delivery_scope_detail`/`proj_project_split_item`/`proj_project_split_scope`各一列），并按界面显示口径补注（办事处ID/办事处编码/办事处名称/办事处版本），2026-09-18经Flyway应用成功（库版本v296），实库列名与注释已复核；列上无索引/外键引用。
+- 代码：pms-module-commerce（`DeliveryScopeDO`、`DeliveryScopeDetailDO`遗留占位字段、`DeliveryScopeRespVO`、`DeliveryScopePreviewResult`、三个scope服务、`DeliveryScopeController`、`SplitScope*Command`、`CommerceAuthorityIngestService`及相关测试）；pms-module-project（`ProjectSplitItemDO`/`ProjectSplitScopeDO`、拆分草稿/预览/应用服务、拆分VO与控制器、`ProjectChildDraftFactory`、`ProjectOfficeFact`四组件改为`departmentId/departmentCode/departmentName/departmentVersion`及ApiImpl/测试）；pms-module-cutover（`CutoverTaskReqVO`、`CutoverCreateContextRespVO`、`CutoverTaskRequestCodec`请求键、`CutoverTaskViews.Summary`、`CutoverTaskController`，本分支`CutoverProjectContextPort`既有新名由此收口可编译）。
+- 快照兼容：`CutoverApprovalSourceSnapshotCodec`写入新键`departmentId/departmentCode/departmentName`；解码按世代识别，旧键`officeDepartmentId/officeCode/officeName`只读兼容，新旧键混用拒绝，历史快照不重写。
+- 验证：三模块`mvn compile`通过；聚焦测试通过——cutover 11/11（快照编解码5含2个新旧键兼容用例、控制器契约3、查询服务3）、commerce 18/18（范围命令服务16、公共API契约2）、project 8/8（ProjectOfficeFactApiImpl 6、公共API契约2）。`CommerceAuthorityIngestMySqlTest`未执行：需`npdms-50eb-test`隔离库凭据（既往核实1045不可用）。
+- 范围保留：`orderOfficeDepartment*`（项目创建/手动建项目请求的订单办事处入参）与`pms_project.office_id`不在本裁决确认范围，维持原名，后续如需统一须需求方另行确认。
+
+## 迁移目标列名跟源字段与来源系统前缀
+
+### Q-MIG-DIM-003
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: PM-03/PM-10（CRM执行单/配置列）
+- Area: 迁移目标列名与源字段名及来源系统前缀的口径
+- Question: 目标列名何时跟源字段原名、何时加来源系统前缀？（需求方2026-09-18指令：`applyType→application_type→apply_type`；`com_crm_execution_config.crm_project_code`直接用`project_code`；跨表同名时才追加来源系统前缀）
+- Evidence: `core-field-mapping.jsonl`裁定`pm_project_property_from_sms.applyType→application_type`、`projectCode/Name→crm_project_code/name`、`pm_project_property_af_from_sms.projectType→crm_project_type`、`pm_project_product_af_from_sms/real_product_line.projectCode→com_crm_execution_config.crm_project_code`；规格DDL同名。执行单两表未在实库建表。
+- Options:
+  - A. 本表内列名直接跟源字段（蛇形），不加来源系统前缀；仅当目标表内与其他来源同名冲突时加前缀。
+  - B. 维持`application_type`/`crm_project_*`语义化改写命名。
+- Recommended technical default: A（需求方裁决）。
+- Business decision required: 是；已裁决。
+- Resolution: 采用A。`com_crm_execution_order`：`application_type→apply_type`、`crm_project_code→project_code`、`crm_project_name→project_name`、`crm_project_type→project_type`（源字段applyType/projectCode/projectName/projectType）；`com_crm_execution_config`：`crm_project_code→project_code`。两表内均无同名冲突，无需前缀；索引`idx_crm_execution_crm_project`随列更名为`idx_crm_execution_source_project`（`idx_crm_execution_project`已被同表`primary_project_id`既有索引占用，不能复用）。实库`imp_eng_*`表的`crm_*`列属集成推送域，不适用本口径。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+规格DDL修订上述5列与索引（修订后SHA-256 `E425A2678D9A2EB7516709322A938996D6BB2EB79E4789BD8FEF91319C812412`），隔离MySQL 8.4容器复验66张表建成、新列名与`idx_crm_execution_source_project`索引到位、无`crm_project_code`/`application_type`残留；报告第1节字段表同步。执行单两表未建库，无需迁移；`core-field-mapping.jsonl`作为基线证据不回写，本Q为准。
+
+### Q-MIG-DIM-004
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: PM-10（CRM执行单配置列）；涉及平台血缘字段口径
+- Area: 各表"本行来源系统"字段的统一命名
+- Question: 行级来源系统字段存在`source_system`（约30张实库表及`plt_migration_source_record`既定口径）、`config_source`（仅`com_crm_execution_config`）与源字段`dataSource`（dppms各SMS源表，值'SMS'/'CRM'）三种命名，需统一（需求方2026-09-18指令）。
+- Evidence: 规格`project-order-physical-schema.mysql.sql`中`source_system`约20处；实库`ast_*`/`com_*`/`cus_*`/`cut_task`/`pms_project`/`proj_*`/`fcom001_v70_*`均用`source_system`；jsonl将`dataSource` direct映射到`source_system`/`config_source`。限定语变体`master_source_system`/`order_source_system`/`candidate_source_system`语义为引用另一对象的来源系统，不属于本行来源，不在统一范围。
+- Options:
+  - A. 统一到`source_system`：仅改未建表的`com_crm_execution_config.config_source`，零迁移、零代码改动。
+  - B. 统一到`data_source`（严格跟源字段名）：需重命名约30张已建实库表的`source_system`及全部消费代码与索引。
+- Recommended technical default: A。
+- Business decision required: 是；需求方已裁决选A。
+- Resolution: 采用A。行级来源系统字段统一为`source_system`（平台血缘既定口径，语义"来源系统编码"而非镜像业务字段，不适用Q-MIG-DIM-003的源字段名口径）；`com_crm_execution_config.config_source→source_system`，唯一键`uk_crm_execution_config`第二列随之改为`source_system`。限定语变体保留。实库未建该表，无需迁移；`core-field-mapping.jsonl`不回写，本Q为准。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+规格DDL修订上述1列及唯一键（修订后SHA-256 `B58870683C9C213D406740193D6E2072F093179C69D2CBB1B61B68DC213ADF51`），隔离MySQL 8.4容器复验66张表建成、`uk_crm_execution_config`列为`(tenant_id, source_system, source_config_key)`、无`config_source`残留；报告第1节字段表3处同步。Java代码无`configSource`引用，无需改码。
+
+### Q-MIG-DIM-005
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: 全域（迁移域所有表）
+- Area: 此前裁决（列名统一、字段注释精简为界面显示口径）对全部表的适用
+- Question: 需求方2026-09-18指令——此前裁决内容需对所有表适用，尤其是字段描述精简、字段名称统一。
+- Evidence: 规格DDL 66张表1166条列注释中存在解释性尾缀（空值语义/时区/字典约束/单位/币种口径等）与表语境前缀（`CRM执行单镜像的`/`X主档的`/`合同回款的`等）两类冗长写法；列名口径经盘点已无`marketing_department_*`/`expansion_department_*`/`office_department_*`/`crm_project_*`/`application_type`/`config_source`残留。
+- Options:
+  - A. 按Q-MIG-DIM-001已确认的界面显示口径机械扩展到全部66张表：剥尾缀、剥表语境前缀、保留`：0否，1是`类值图例，不改变任何业务语义。
+  - B. 逐表人工重写（不必要，口径已裁决）。
+- Recommended technical default: A。
+- Business decision required: 是；需求方已裁决适用全部表。
+- Resolution: 采用A。字段名称统一：全部表已符合此前各裁决口径（市场/系统/拓展/行业四维、`department_`、源字段名蛇形、`source_system`），无残留。字段描述精简：规格DDL共410条注释精简（剥解释性尾缀与表语境前缀，保留值图例），SHA-256更新为`AC2D3C6E8F862A9A8DCF8632B3F495E7F57E085C9874674F2835C70A9ADC4833`。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+规格DDL 410条注释精简，隔离MySQL 8.4容器复验66张表建成、无冗长尾缀/前缀残留；已建实库35张表464列经注释同步迁移（原V297，现为合并V294第3段；仅MODIFY注释，保留类型/字符集/排序/默认值/ON UPDATE；FK引用列以会话级`FOREIGN_KEY_CHECKS=0`执行，列定义不变），复验实库与规格注释差异0条。未建表（设备域`ast_device_sn`系、文档/组合/交付件等）随建表迁移自然落地。`core-field-mapping.jsonl`不回写，本Q为准。
+
+#### 2026-09-18 迁移合并记录（需求方指令：正式执行前合并）
+
+Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未正式执行，按需求方指令合并为单个`sql/migrations/V294__migration_field_naming_and_comment_alignment.sql`（净效果三段：列名更正与原值合并、办事处列名统一、全量注释精简），原四个文件删除。开发库经`flyway repair`对齐：合并V294校验和已更新，V295/296/297标记DELETE；validate全部通过。全新环境仅执行合并V294。上文各回执中的原迁移编号均指其并入合并V294的对应段落。
+
+### Q-MIG-DIM-006
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: COM-01@V1（F-COM-001合同主档）
+- Area: 合同主档com_contract与回款/发货归属来源表的字段归并方式
+- Question: 需求方2026-09-18两次指令——先要求com_contract_receivable与com_shipment_contract_reference合并字段、去除重复含义的内容形成合同主档；随后明确改判：主档com_contract直接包含全部信息，数据同步时更新对应业务最新值，不创建com_contract_summary视图。
+- Evidence: F-COM-001第6章2026-09-17检查点曾批准只读视图com_contract_summary（主档优先、来源仅补缺、冲突不任选、source_conflict标记），并因"合同主档生成方式重新选择"暂停主档汇总规格与实现；本次指令解除暂停并废止视图方案。
+- Options:
+  - A. 只读视图com_contract_summary按2026-09-17契约实现（被需求方改判否决）。
+  - B. 主档com_contract扩列直含全部合并字段，来源同步时以最新值更新主档列，不建视图（需求方裁决）。
+- Resolution: B。com_contract新增17列：currency_name、contract_create_time、project_name、project_code、market_code、market_name、department_code、department_name、system_code、system_name、expend_code、expend_name、industry_code、industry_name、marketing_representative_code、marketing_representative_name、secondary_representative_code（类型与来源表同名列一致）。客户、合同类型、合同名称、合同金额、币种编码、生效/失效日期等ERP Owner既有列不重复增设。规格DDL SHA-256更新为`F9B29ED5D9EE651453AA11DBFFC771E9346D2F5B3B45374F9CEF21F075E996D6`。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+前向迁移`sql/migrations/V300__contract_master_field_consolidation.sql`（17条ADD COLUMN，含AFTER锚定）已应用于开发库，validate 271个迁移通过。语义契约：来源表保持不变继续作为来源证据；"去除重复含义"指消费以主档列为唯一权威，不在主档外另建汇总视图；回款/发货归属同步入库时以该来源行非空值更新主档对应列（最新同步覆盖，两来源共用同义主档列）；ERP Owner字段仍由ERP主档同步负责，来源同步不覆盖。同步实现代码随后续接入任务交付，本Q不宣称同步已实现。

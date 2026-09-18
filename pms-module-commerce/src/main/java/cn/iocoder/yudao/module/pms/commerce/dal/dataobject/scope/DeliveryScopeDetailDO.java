@@ -21,7 +21,7 @@ public class DeliveryScopeDetailDO extends TenantBaseDO {
     private Integer detailSequence;
     // Historical callers retain this value; the current table stores office facts on the scope root.
     @TableField(exist = false)
-    private String officeDepartmentCode;
+    private String departmentCode;
     private String serialNo;
     private String productCode;
     private String productName;

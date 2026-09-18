@@ -20,7 +20,7 @@ class ProjectChildDraftFactoryTest {
         parent.setBusinessType("PARENT-ONLY"); parent.setCustomerCode("CUSTOMER");
         parent.setSigningMethod("DIRECT_SIGN"); parent.setProjectType("STANDARD");
         var item = new ProjectSplitItemDO(); item.setProjectName("现场工勘");
-        item.setBusinessLevelCode("CHILD"); item.setOfficeDepartmentCode("CHILD-OFFICE");
+        item.setBusinessLevelCode("CHILD"); item.setDepartmentCode("CHILD-OFFICE");
         var draft = new ProjectChildDraftFactory(departments).create(parent, item);
         var facts = ProjectRuleFields.manualCreationFacts(draft).values();
         assertEquals("现场工勘", facts.get("project.projectName").value());
@@ -36,7 +36,7 @@ class ProjectChildDraftFactoryTest {
 
     @Test void unavailableOfficeDoesNotFallbackToParent() {
         var parent = new ProjectMasterDO(); parent.setDepartmentCode("PARENT");
-        var item = new ProjectSplitItemDO(); item.setOfficeDepartmentCode("MISSING");
+        var item = new ProjectSplitItemDO(); item.setDepartmentCode("MISSING");
         assertThrows(IllegalStateException.class, () -> new ProjectChildDraftFactory(mock(DeptApi.class)).create(parent, item));
     }
 }

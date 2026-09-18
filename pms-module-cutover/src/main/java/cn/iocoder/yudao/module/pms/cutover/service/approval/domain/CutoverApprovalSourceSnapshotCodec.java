@@ -24,8 +24,11 @@ public final class CutoverApprovalSourceSnapshotCodec {
     private static final Set<String> ROOT = Set.of("snapshotVersion", "taskId", "taskVersion", "checklistId",
             "checklistVersion", "project", "collectionAnalysis", "riskItems", "businessSurveyItems",
             "assessment", "plan");
+    // 办事处（部门维度）键自2026-09-18起写入departmentId/departmentCode/departmentName；
+    // 历史快照仍为officeDepartmentId/officeCode/officeName，解码只读兼容（Q-MIG-DIM-002），不重写历史。
     private static final Set<String> PROJECT = Set.of("projectId", "projectVersion", "projectCode", "projectName",
-            "customerId", "customerCode", "customerName", "officeDepartmentId", "officeCode", "officeName",
+            "customerId", "customerCode", "customerName", "departmentId", "departmentCode", "departmentName",
+            "officeDepartmentId", "officeCode", "officeName",
             "projectScopeVersion");
     private static final Set<String> COLLECTION = Set.of("cutoverType", "networkMode", "scheduledTime");
     private static final Set<String> CHECKLIST = Set.of("checklistItemId", "stableItemKey", "itemDefinitionId",
@@ -94,12 +97,19 @@ public final class CutoverApprovalSourceSnapshotCodec {
     }
 
     private ProjectApprovalSnapshot project(JsonNode node) {
-        exact(node, PROJECT, "project");
+        require(node != null && node.isObject(), "project");
+        Set<String> actual = new HashSet<>(); node.properties().forEach(entry -> actual.add(entry.getKey()));
+        require(PROJECT.containsAll(actual), "project keys");
+        boolean modernKeys = actual.contains("departmentId");
+        require(modernKeys != actual.contains("officeDepartmentId"), "project.officeKeyGeneration");
+        String departmentIdField = modernKeys ? "departmentId" : "officeDepartmentId";
+        String departmentCodeField = modernKeys ? "departmentCode" : "officeCode";
+        String departmentNameField = modernKeys ? "departmentName" : "officeName";
         return new ProjectApprovalSnapshot(positiveLong(node, "projectId"), nonNegativeInt(node, "projectVersion"),
                 text(node, "projectCode", 64), text(node, "projectName", 255),
                 positiveLong(node, "customerId"), text(node, "customerCode", 64),
-                text(node, "customerName", 255), positiveLong(node, "officeDepartmentId"),
-                text(node, "officeCode", 64), text(node, "officeName", 255),
+                text(node, "customerName", 255), positiveLong(node, departmentIdField),
+                text(node, departmentCodeField, 64), text(node, departmentNameField, 255),
                 nonNegativeLong(node, "projectScopeVersion"));
     }
 
@@ -108,8 +118,8 @@ public final class CutoverApprovalSourceSnapshotCodec {
         putWireLong(node, "projectId", value.projectId()); node.put("projectVersion", value.projectVersion());
         node.put("projectCode", value.projectCode()); node.put("projectName", value.projectName());
         putWireLong(node, "customerId", value.customerId()); node.put("customerCode", value.customerCode());
-        node.put("customerName", value.customerName()); putWireLong(node, "officeDepartmentId", value.officeDepartmentId());
-        node.put("officeCode", value.officeCode()); node.put("officeName", value.officeName());
+        node.put("customerName", value.customerName()); putWireLong(node, "departmentId", value.departmentId());
+        node.put("departmentCode", value.departmentCode()); node.put("departmentName", value.departmentName());
         putWireLong(node, "projectScopeVersion", value.projectScopeVersion()); return node;
     }
 
@@ -334,8 +344,8 @@ public final class CutoverApprovalSourceSnapshotCodec {
     }
 
     public record ProjectApprovalSnapshot(long projectId,int projectVersion,String projectCode,String projectName,
-                                            long customerId,String customerCode,String customerName,long officeDepartmentId,
-                                            String officeCode,String officeName,long projectScopeVersion){public ProjectApprovalSnapshot{require(projectId>0&&projectVersion>=0&&customerId>0&&officeDepartmentId>0&&projectScopeVersion>=0,"project");requireText(projectCode,64,"projectCode");requireText(projectName,255,"projectName");requireText(customerCode,64,"customerCode");requireText(customerName,255,"customerName");requireText(officeCode,64,"officeCode");requireText(officeName,255,"officeName");}}
+                                            long customerId,String customerCode,String customerName,long departmentId,
+                                            String departmentCode,String departmentName,long projectScopeVersion){public ProjectApprovalSnapshot{require(projectId>0&&projectVersion>=0&&customerId>0&&departmentId>0&&projectScopeVersion>=0,"project");requireText(projectCode,64,"projectCode");requireText(projectName,255,"projectName");requireText(customerCode,64,"customerCode");requireText(customerName,255,"customerName");requireText(departmentCode,64,"departmentCode");requireText(departmentName,255,"departmentName");}}
     public record CollectionAnalysisSnapshot(String cutoverType,String networkMode,long scheduledTime){public CollectionAnalysisSnapshot{requireText(cutoverType,64,"cutoverType");if(networkMode!=null)requireText(networkMode,64,"networkMode");require(scheduledTime>0,"scheduledTime");}}
     public record ChecklistResultSnapshot(long checklistItemId,String stableItemKey,Long itemDefinitionId,Integer itemDefinitionVersion,String itemTypeCode,String itemName,boolean required,int itemResultVersion,String resultSourceCode,String answerSnapshot,String factDescription,Long collectionTaskId,Long collectionResultReferenceId,Long collectionResultVersion,String externalSourceCode,String manualEvidenceFileReference){public ChecklistResultSnapshot{require(checklistItemId>0&&itemResultVersion>0,"checklistItem");requireText(stableItemKey,128,"stableItemKey");require(ITEM_TYPES.contains(itemTypeCode),"itemTypeCode");requireText(itemName,255,"itemName");require(RESULT_SOURCES.contains(resultSourceCode),"resultSourceCode");require(answerSnapshot!=null&&!answerSnapshot.isBlank(),"answerSnapshot");if(factDescription!=null)requireText(factDescription,4000,"factDescription");require((itemDefinitionId==null)==(itemDefinitionVersion==null),"itemDefinition");require(itemDefinitionId==null||itemDefinitionId>0,"itemDefinitionId");require(itemDefinitionVersion==null||itemDefinitionVersion>0,"itemDefinitionVersion");require(("COLLECTION".equals(resultSourceCode)&&collectionTaskId!=null&&collectionTaskId>0)||(!"COLLECTION".equals(resultSourceCode)&&collectionTaskId==null&&collectionResultReferenceId==null&&collectionResultVersion==null),"collectionIdentity");require(collectionResultReferenceId==null||collectionResultReferenceId>0,"collectionResultReferenceId");require(collectionResultVersion==null||collectionResultVersion>0,"collectionResultVersion");require(("EXTERNAL".equals(resultSourceCode))==(externalSourceCode!=null),"externalSourceCode");if(externalSourceCode!=null)requireText(externalSourceCode,64,"externalSourceCode");if(manualEvidenceFileReference!=null)require("MANUAL".equals(resultSourceCode)&&manualEvidenceFileReference.length()<=128&&!manualEvidenceFileReference.isBlank(),"manualEvidenceFileReference");}}
     public record AssessmentApprovalSnapshot(long assessmentId,int assessmentVersion,long questionnaireTemplateVersion,String businessImportanceLevel,String operationComplexityLevel,String hiddenRiskLevel,boolean sparePartApplied,String customerServiceLevelCode,String manualGrade,long submittedBy,long submittedAt){public AssessmentApprovalSnapshot{require(assessmentId>0&&assessmentVersion>0&&questionnaireTemplateVersion>0&&submittedBy>0&&submittedAt>0,"assessment");requireText(businessImportanceLevel,64,"businessImportanceLevel");requireText(operationComplexityLevel,64,"operationComplexityLevel");requireText(hiddenRiskLevel,64,"hiddenRiskLevel");requireText(customerServiceLevelCode,64,"customerServiceLevelCode");require(GRADES.contains(manualGrade),"manualGrade");}}

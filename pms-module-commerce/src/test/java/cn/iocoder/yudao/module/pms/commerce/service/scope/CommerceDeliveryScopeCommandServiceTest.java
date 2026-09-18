@@ -89,7 +89,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         ArgumentCaptor<DeliveryScopeDO> scope = ArgumentCaptor.forClass(DeliveryScopeDO.class);
         verify(scopeMapper).insert(scope.capture());
         assertEquals("P-501", scope.getValue().getProjectCode());
-        assertEquals("OFF-1", scope.getValue().getOfficeDepartmentCode());
+        assertEquals("OFF-1", scope.getValue().getDepartmentCode());
         ArgumentCaptor<DeliveryScopeDetailDO> detail = ArgumentCaptor.forClass(DeliveryScopeDetailDO.class);
         verify(detailMapper).insert(detail.capture());
         assertEquals("ERP-PRODUCT-1", detail.getValue().getProductCode());
@@ -142,7 +142,7 @@ class CommerceDeliveryScopeCommandServiceTest {
 
         assertTrue(result.allowed());
         assertEquals(new BigDecimal("90"), result.availableQuantity());
-        assertEquals("OFF-1", result.officeDepartmentCode());
+        assertEquals("OFF-1", result.departmentCode());
         assertEquals(List.of(401L), result.occupiedScopes().stream()
                 .map(DeliveryScopePreviewResult.OccupiedScope::deliveryScopeId).toList());
         verifyNoInteractions(detailMapper, acceptanceScopeGuardApi, operationAuditApi);

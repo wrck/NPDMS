@@ -103,7 +103,7 @@ class CutoverTaskQueryServiceTest {
                 "GRADE_CONFIRMING", "P2", 1, 20);
         assertThat(page.getList()).singleElement().satisfies(item -> {
             assertThat(item.projectName()).isEqualTo("核心网扩容");
-            assertThat(item.officeName()).isEqualTo("华东办事处");
+            assertThat(item.departmentName()).isEqualTo("华东办事处");
         });
 
         when(taskMapper.selectById(701L)).thenReturn(task);

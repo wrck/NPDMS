@@ -119,7 +119,7 @@ public class DeliveryScopeService {
         }
         List<SplitScopePreviewCommand.Allocation> previewAllocations = command.allocations().stream()
                 .map(item -> new SplitScopePreviewCommand.Allocation(item.clientItemKey(), item.orderLineId(),
-                        item.quantity(), item.officeDepartmentCode(), item.serialNumbers())).toList();
+                        item.quantity(), item.departmentCode(), item.serialNumbers())).toList();
         validateVersion(command.expectedScopeVersion(), currentScopes, errors);
         validateParentQuantities(previewAllocations, lockedLines, currentScopes, errors);
         for (SplitScopeApplyCommand.Allocation item : command.allocations()) {
@@ -189,7 +189,7 @@ public class DeliveryScopeService {
         }
         List<SplitScopePreviewCommand.Allocation> allocations = command.allocations() == null ? List.of()
                 : command.allocations().stream().map(item -> new SplitScopePreviewCommand.Allocation(
-                        item.clientItemKey(), item.orderLineId(), item.quantity(), item.officeDepartmentCode(),
+                        item.clientItemKey(), item.orderLineId(), item.quantity(), item.departmentCode(),
                         item.serialNumbers())).toList();
         List<String> errors = validateCommand(new SplitScopePreviewCommand(command.tenantId(),
                 command.parentProjectId(), command.expectedScopeVersion(), allocations));
@@ -222,7 +222,7 @@ public class DeliveryScopeService {
             if (item.clientItemKey() == null || item.clientItemKey().isBlank()
                     || "REMAINDER".equals(item.clientItemKey()) || item.orderLineId() == null
                     || item.clientItemKey().length() > 64 || item.quantity() == null || item.quantity().signum() <= 0
-                    || (item.officeDepartmentCode() != null && item.officeDepartmentCode().length() > 64)) {
+                    || (item.departmentCode() != null && item.departmentCode().length() > 64)) {
                 errors.add("INVALID_ALLOCATION");
                 continue;
             }
@@ -242,7 +242,7 @@ public class DeliveryScopeService {
                 if (!serials.add(serial)) {
                     errors.add("DUPLICATE_SERIAL:" + serial);
                 }
-                if (!dimensions.add(item.orderLineId() + "|" + item.officeDepartmentCode() + "|" + serial)) {
+                if (!dimensions.add(item.orderLineId() + "|" + item.departmentCode() + "|" + serial)) {
                     errors.add("DUPLICATE_DIMENSION:" + serial);
                 }
             }
@@ -288,10 +288,10 @@ public class DeliveryScopeService {
         List<String> serials = item.serialNumbers() == null ? List.of() : item.serialNumbers().stream()
                 .filter(Objects::nonNull).map(String::trim).filter(value -> !value.isEmpty()).toList();
         if (serials.isEmpty()) {
-            insertDetail(tenantId, scopeId, item.officeDepartmentCode(), null, item.quantity());
+            insertDetail(tenantId, scopeId, item.departmentCode(), null, item.quantity());
             return;
         }
-        serials.forEach(serial -> insertDetail(tenantId, scopeId, item.officeDepartmentCode(), serial, BigDecimal.ONE));
+        serials.forEach(serial -> insertDetail(tenantId, scopeId, item.departmentCode(), serial, BigDecimal.ONE));
     }
 
     private DeliveryScopeDO insertScope(Long tenantId, Long orderLineId, Long projectId, BigDecimal quantity,
@@ -311,12 +311,12 @@ public class DeliveryScopeService {
         return scope;
     }
 
-    private void insertDetail(Long tenantId, Long scopeId, String officeDepartmentCode, String serial,
+    private void insertDetail(Long tenantId, Long scopeId, String departmentCode, String serial,
                               BigDecimal quantity) {
         DeliveryScopeDetailDO detail = new DeliveryScopeDetailDO();
         detail.setTenantId(tenantId);
         detail.setDeliveryScopeId(scopeId);
-        detail.setOfficeDepartmentCode(officeDepartmentCode);
+        detail.setDepartmentCode(departmentCode);
         detail.setSerialNo(serial);
         detail.setAllocatedQty(quantity);
         detail.setDetailStatus("ACTIVE");
@@ -405,7 +405,7 @@ public class DeliveryScopeService {
             String serials = item.serialNumbers() == null ? "" : item.serialNumbers().stream()
                     .filter(Objects::nonNull).map(String::trim).filter(value -> !value.isEmpty())
                     .sorted().toList().toString();
-            return HexFormat.of().formatHex(digest.digest((item.officeDepartmentCode() + "|" + serials)
+            return HexFormat.of().formatHex(digest.digest((item.departmentCode() + "|" + serials)
                     .getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);

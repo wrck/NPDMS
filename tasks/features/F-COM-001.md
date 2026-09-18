@@ -21,6 +21,12 @@
 - 已完成静态核对：四张建表语句与既定目标DDL一致；被引用的 `proj_project(tenant_id,id)` 唯一键由V88提供，`com_contract(tenant_id,id)`由V160提供。
 - 固定测试环境 `npdms-50eb-test` 已存在，但容器配置凭据及本地配置凭据均无法登录MySQL（1045）。未重置密码、未清库、未切换到开发数据库；实库建表、约束失败用例及Flyway升级/重复运行验证尚未执行。
 
+### 2026-09-18 合同主档字段归并改判（不建视图）
+
+- 需求方指令：主档`com_contract`直接包含合并后的全部合同级信息，数据同步时更新对应业务最新值，不创建`com_contract_summary`视图。2026-09-17"主档汇总暂缓"解除，视图方案废止（登记为Q-MIG-DIM-006）。
+- 落实：前向迁移`V300__contract_master_field_consolidation.sql`为主档新增17列（币种名称、合同创建时间、项目名称/编码、市场部/办事处/系统部/拓展部、行业、市场代表/辅助代表），已应用开发库并validate通过；规格DDL同步修订（SHA-256 `F9B29ED5D9EE651453AA11DBFFC771E9346D2F5B3B45374F9CEF21F075E996D6`）。
+- 语义契约：来源表保持不变作为来源证据，消费以主档列为唯一权威；回款/发货归属同步以来源行非空值更新主档列（最新同步覆盖，两来源共用同义列）；ERP Owner字段（客户、合同类型、合同名称、合同金额、币种编码、生效/失效日期、状态）仍由ERP主档同步负责，来源同步不覆盖。同步实现代码随后续接入任务交付，本检查点不宣称同步已实现。
+
 需求方已确认COM-A与COM-B承载不同需求，按Requirement整体合并。master已形成可构建增量：统一规格以项目办事处发生时快照作为COM唯一地点事实，COM-B的AST站点/位置迁入IMP/AST；PLT迁移证据Owner已随CUT旧数据核对依赖由`master代码回执c9066332`独立落位，COM仍只消费公开API。历史分支Gate与Done只作来源证据，不能转记master完成状态。
 
 ## 实施边界
@@ -76,3 +82,16 @@
 ## 2026-09-07 修订018影响记录
 
 模板业务规则配置化与独立验收设计已获需求方确认，正文及当前Feature Spec已登记`CHG-PRD-2026-09-07-018`。上文Implementation状态、提交、测试及历史Done保持原范围，不自动覆盖新语义；当前Ready以Feature Spec的REVALIDATION_REQUIRED为准。Q-TPLACC-001限制新增实体创建/范围绑定及其消费者路径，须先完成Phase 2差量再更新唯一实施计划，不从本次文档确认派生Task/Feature完成。
+
+## 2026-09-18 行业划分维度列名统一落地（Q-MIG-DIM-001）
+
+- 需求方2026-09-18裁决：行业划分是市场/系统/拓展/行业四维统称（非部门），列名按主档`cus_market_relation`；办事处为部门维度取`department_`；创建时行业划分原值合并`original_division_values` JSON。裁决与落实记录见`docs/decisions/open-questions.md` Q-MIG-DIM-001（已关闭）。
+- 规格权威DDL `project-order-physical-schema.mysql.sql` 已修订`com_contract_receivable`、`com_shipment_contract_reference`、`com_crm_execution_order`三表列名并删除行业划分维度三个`*_department_id`列；修订后SHA-256 `AF8C3BA5D44BDE9809E9F10AC70A60E0CA4DA43E9BFE7E6B1714759294BBB3D0`（修订前基线`6B203BF3...`，与AI-MIG证据基线一致），隔离MySQL 8.4容器完整执行66张表建成。
+- 列名更正迁移（现并入合并迁移`sql/migrations/V294__migration_field_naming_and_comment_alignment.sql`第1段）对V258所建`com_contract_receivable`、`com_shipment_contract_reference`（核查时均0行）完成同口径更正，2026-09-18经Flyway实际应用成功（库版本v294），实库列状态及注释已复核；列注释另经原`V295`迁移精简为界面显示字段口径（已并入合并迁移V294第3段）。`com_crm_execution_order`未建表，建表时直接采用修订后规格DDL。
+- 本回执仅覆盖列名口径落地，不改变Task 4其余验收项状态；隔离凭据环境集成测试、浏览器闭环与Implementation Done独立裁决仍按原剩余项执行。
+
+## 2026-09-18 办事处维度列名统一落地（Q-MIG-DIM-002）
+
+- 承Q-MIG-DIM-001裁决，履约范围侧`com_delivery_scope`四列`office_department_*→department_*`（原V296迁移，现并入合并迁移V294第2段，Flyway应用成功）；`DeliveryScopeDO`/`DeliveryScopeRespVO`/`DeliveryScopePreviewResult`/scope三服务/`DeliveryScopeController`及`SplitScope*Command`契约字段同步改名为`department*`，项目侧`ProjectOfficeFact` API契约四组件同步改名。
+- 聚焦验证：commerce范围命令服务16项+公共API契约2项通过；project `ProjectOfficeFactApiImplTest` 6项+契约2项通过。`CommerceAuthorityIngestMySqlTest`因隔离库凭据不可用未执行（同Task 4既有未决项）。
+- 本回执仅覆盖命名统一，不改变Task 4其余验收项状态。

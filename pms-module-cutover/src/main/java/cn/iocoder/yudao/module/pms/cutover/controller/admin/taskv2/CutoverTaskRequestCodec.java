@@ -22,7 +22,7 @@ public final class CutoverTaskRequestCodec {
             "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo");
     private static final Set<String> PROJECT_KEYS = Set.of(
             "projectId", "projectVersion", "projectCode", "projectName", "customerId", "customerCode",
-            "customerName", "officeDepartmentId", "officeCode", "officeName");
+            "customerName", "departmentId", "departmentCode", "departmentName");
     private static final Set<String> DEVICE_KEYS = Set.of("deviceId", "serialNumber", "projectAssignmentVersion");
     private static final Set<String> ASSESSMENT_KEYS = Set.of("answers", "manualGrade");
     private static final Set<String> ANSWER_KEYS = Set.of(
