@@ -128,6 +128,12 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content) {
         Objects.requireNonNull(content, "template content");
+        lockV2Template(templateId);
+        ProjectTemplateRevisionDO draft = requireWritableDraft(templateId);
+        if (hasText(draft.getDesignerDocument()) && !cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionConfiguration.nodes(
+                JsonUtils.parseObject(draft.getDesignerDocument(), TemplateDesignerDocument.class)).isEmpty()) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "旧content接口不能覆盖独立执行配置；请使用Designer草稿入口");
+        }
         v2LegacyAssembler.resolve(content, false);
         updateProjectTemplateDesigner(templateId, TemplateDesignerDocument.fromResolvedLegacy(content));
     }

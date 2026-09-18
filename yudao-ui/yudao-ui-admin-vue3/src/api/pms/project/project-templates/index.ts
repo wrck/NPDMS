@@ -1,6 +1,7 @@
 import request from '@/config/axios'
 import type { ValidationResult } from './definitions'
 import type { RuleResult, VersionRule } from './rules'
+import type { NodeExecutionConfiguration } from './execution'
 
 export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
 export interface JsonObject { [key: string]: JsonValue | undefined }
@@ -49,6 +50,7 @@ export interface RuleSpec {
 }
 
 export interface DesignerStageNode {
+  execution?: NodeExecutionConfiguration
   lifecycleStage?: string
   admissionRuleKey?: string
   completionRuleKey?: string
@@ -69,6 +71,7 @@ export interface DesignerStageNode {
 }
 
 export interface DesignerTaskNode {
+  execution?: NodeExecutionConfiguration
   admissionRuleKey?: string
   completionRuleKey?: string
   exitRuleKey?: string

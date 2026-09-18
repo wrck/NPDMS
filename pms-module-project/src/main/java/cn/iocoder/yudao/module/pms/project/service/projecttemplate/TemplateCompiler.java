@@ -30,6 +30,8 @@ public class TemplateCompiler {
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private TemplateOperationCompilation operationCompilation;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemplateExecutionConfigurationCompilation executionConfigurations;
 
     public record Compilation(TemplateExecutionSnapshot snapshot, String snapshotHash, List<Issue> issues) {
         public boolean valid() { return issues.isEmpty(); }
@@ -62,6 +64,14 @@ public class TemplateCompiler {
         }
         requireCollections(source, issues);
         if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
+
+        if (!cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionConfiguration.nodes(source).isEmpty()) {
+            if (!versioned) issues.add(new Issue("execution", "VERSIONED_SNAPSHOT_REQUIRED", "独立执行配置不能发布为历史格式2"));
+            else if (executionConfigurations == null)
+                issues.add(new Issue("execution", "EXECUTION_CONFIGURATION_NOT_INSTALLED", "独立执行配置编译未装配"));
+            else issues.addAll(executionConfigurations.prepare(source));
+            if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
+        }
 
         validateNodes(source, issues);
         validateGraph(source, issues);
@@ -452,6 +462,7 @@ public class TemplateCompiler {
         TemplateExecutionSnapshot.StageContract target = new TemplateExecutionSnapshot.StageContract();
         target.setLifecycleStage(source.getLifecycleStage());
         target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
+        target.setExecution(copy(source.getExecution()));
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setSortOrder(source.getSortOrder()); target.setEntryCriteria(source.getEntryCriteria()); target.setExitCriteria(source.getExitCriteria());
         target.setStart(source.getStart()); target.setTerminal(source.getTerminal()); target.setBinding(binding(source.getWorkBinding()));
@@ -468,6 +479,7 @@ public class TemplateCompiler {
     private TemplateExecutionSnapshot.TaskContract task(TemplateDesignerDocument.TaskNode source) {
         TemplateExecutionSnapshot.TaskContract target = new TemplateExecutionSnapshot.TaskContract();
         target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
+        target.setExecution(copy(source.getExecution()));
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setParentTaskCode(source.getParentTaskCode()); target.setStageCode(source.getStageCode()); target.setPriority(source.getPriority());
         target.setSortOrder(source.getSortOrder()); target.setEstimatedHours(source.getEstimatedHours()); target.setSatisfactionTiming(source.getSatisfactionTiming());

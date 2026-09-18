@@ -62,6 +62,7 @@ public final class TemplateVersionSnapshot {
             require(text(stage.getName()) && stage.getLifecycleStage() != null && stage.getLifecycleStage().matches("S[0-6]"), "阶段基础信息缺失");
             nodeRules(programs, rules, stage.getAdmissionRuleKey(), stage.getCompletionRuleKey(), stage.getExitRuleKey(), stage.getCompletionRule());
             binding(stage.getBinding(), programs);
+            execution(stage.getExecution(), stage.getBinding());
             require(stage.getBinding() == null || stage.getPermission() != null, "阶段绑定缺少权限契约");
         }
         Map<String, TemplateExecutionSnapshot.TaskContract> tasks = new LinkedHashMap<>();
@@ -72,6 +73,7 @@ public final class TemplateVersionSnapshot {
             require(task.getBinding() != null && task.getPermission() != null, "任务执行契约缺失");
             nodeRules(programs, rules, task.getAdmissionRuleKey(), task.getCompletionRuleKey(), task.getExitRuleKey(), task.getCompletionRule());
             binding(task.getBinding(), programs);
+            execution(task.getExecution(), task.getBinding());
         }
         for (var task : tasks.values()) {
             Set<String> path = new HashSet<>();
@@ -198,6 +200,32 @@ public final class TemplateVersionSnapshot {
             }
         }
         require(references.equals(new HashSet<>(frozen.path("programs").propertyNames())), "操作程序集合不完整");
+    }
+
+    private static void execution(JsonNode value, TemplateExecutionSnapshot.BindingContract binding) {
+        if (value == null) return;
+        var config = TemplateExecutionConfiguration.read(value);
+        require(config.subscriptions().isEmpty(), "独立订阅运行消费者尚未接通");
+        require(config.presentation() == null, "安全页面路由尚未接通");
+        if (config.operations().isEmpty()) return;
+        require(binding != null && binding.getOperationContract() != null, "独立操作缺少冻结运行绑定");
+        ObjectNode authoring = ((ObjectNode) binding.getOperationContract()).deepCopy();
+        authoring.remove("programs");
+        var frozen = TemplateOperationContractJson.readAuthoring(authoring).operations();
+        require(frozen.size() == config.operations().size(), "独立操作与运行绑定集合不一致");
+        // 原运行契约会按动作编码排序；独立配置的展示顺序不应被当作动作身份。
+        Set<String> declaredCodes = new HashSet<>();
+        for (var declared : config.operations()) {
+            require(declaredCodes.add(declared.operationCode()), "独立操作重复");
+            var operation = frozen.stream().filter(item -> Objects.equals(item.operationCode(), declared.operationCode()))
+                    .findFirst().orElse(null);
+            require(operation != null, "独立操作缺少精确运行绑定");
+            require(Objects.equals(declared.ownerContext(), binding.getTargetContextCode())
+                    && Objects.equals(declared.entityType(), binding.getTargetObjectType())
+                    && Objects.equals(declared.operationCode(), operation.operationCode())
+                    && Objects.equals(declared.pre(), operation.pre()) && Objects.equals(declared.post(), operation.post()),
+                    "独立操作与冻结运行契约不一致");
+        }
     }
 
     private static void condition(Map<String, RuleProgram> programs, String key) {

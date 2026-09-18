@@ -385,3 +385,15 @@ P1.01只接通目录及前端类型化调用，不使新权限码配置直接进
 ### 14.3 新发布启用条件
 
 格式3的持久化发布必须先完成Compiler、发布记录、复制、所有直接Reader及数据库约束接线；仅Reader已存在不授权新发布。新发布不计算或要求snapshot_hash，旧格式2读取仍必须验证旧Hash。已发布同版本禁止更新/删除，修订产生新发布行；运行计划继续引用原版本，显式计划变更才影响后续执行。迁移仅准备前向代码，不由普通提交自动执行。
+
+## 15. 节点独立执行配置（PM-03，版本优先）
+
+Designer的Stage/Task可选`execution`与主WorkBinding并列，不改变原绑定身份。其`operations`、`subscriptions`、`presentation`分别可省略，空集合表示无该项；显式null、未知字段和无效引用拒绝，不把缺失PRE/POST解释为NONE。旧文档无该字段时原序列化与解释不变；此字段不进入格式2发布。
+
+操作只保存`ownerContext/entityType/permissionCode`、必要的原`operationCode`及`pre/post`（NONE或RULE+版本内ruleKey）。原业务输入由已有类型化命令处理器承接，不让模板填写Java类、写API或输入版本。新编译按P1.01目录唯一解析，冻结真实operationCode；既有operationVersion仅进入原运行子契约。PRE/POST规则及间接决策表复用原编译器内联，配置权限不是运行授权。首批操作须与该节点主绑定的Owner/实体一致；重复解析到同一操作、共用权限未消歧、精确运行处理器缺失均禁止发布。
+
+订阅保存版本内唯一`key`、`ownerContext/entityType/resultType`、`scope`及内联`policy`。scope支持PROJECT（本项目的Owner对象）或OBJECTS（明确字符串objectIds集合）；不接受固定租户/主体。policy明确`acquisition`（REUSE_EXISTING/NEW_RESULT/PINNED_RESULT）、`validity`（HISTORICAL_FACT/CURRENT_VALID）、`selection`（EXACT_ONE/ANY_MATCHING/ALL_EXPECTED）。PINNED_RESULT必须明确pinnedResultId；ALL_EXPECTED首批只支持完整显式对象集合。ID不转为浮点数。只有订阅的节点无需操作、处理器或页面即可保存，但实际结果来源、证据和恢复消费者接通前不得发布对应订阅。
+
+presentation保存`pageUrl`和独立字符串query映射，只用于展示。路由安全和实际受信路由接线完成前不能发布。可保存草稿不等于可运行；编译返回具体路径和未安装能力，不生成半接线快照。
+
+新旧配置不并行维护两份可编辑操作真值：有execution.operations时不得另填workBinding.operationContract；后者只由编译器派生供既有运行消费者读取。草稿归一化/复制保留完整execution，全部RULE引用参与原共享规则校验。旧content写入口无法承载execution时拒绝覆盖已有新配置，用户继续使用原/draft入口；身份更新和真正旧草稿兼容不变。格式3冻结后按同一Reader核对execution与派生操作/规则的一致性，运行不重新按权限选择最新操作。

@@ -16,7 +16,12 @@ public final class TemplateExecutionSnapshotReader {
                 .readValue(json);
         int version = requireSupportedDocument(document);
         // 绑定原文，不能通过JSON树重序列化改变小数精度及旧Hash。
-        if (version == TemplateExecutionSnapshot.SCHEMA_VERSION) return JsonUtils.parseObject(json, TemplateExecutionSnapshot.class);
+        if (version == TemplateExecutionSnapshot.SCHEMA_VERSION) {
+            for (String collection : java.util.List.of("stages", "tasks"))
+                for (JsonNode node : document.path(collection))
+                    if (node.has("execution")) throw new IllegalArgumentException("VERSIONED_SNAPSHOT_REQUIRED");
+            return JsonUtils.parseObject(json, TemplateExecutionSnapshot.class);
+        }
         TemplateVersionSnapshot.requireDocument(document);
         TemplateExecutionSnapshot snapshot = JsonUtils.getObjectMapper().readerFor(TemplateExecutionSnapshot.class)
                 .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
@@ -51,6 +56,11 @@ public final class TemplateExecutionSnapshotReader {
     public static void validate(TemplateExecutionSnapshot snapshot) {
         if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
         requireSupportedVersion(snapshot.getExecutionSchemaVersion());
+        if (Integer.valueOf(TemplateExecutionSnapshot.SCHEMA_VERSION).equals(snapshot.getExecutionSchemaVersion())) {
+            if (snapshot.getStages() != null && snapshot.getStages().stream().anyMatch(n -> n != null && n.getExecution() != null)
+                    || snapshot.getTasks() != null && snapshot.getTasks().stream().anyMatch(n -> n != null && n.getExecution() != null))
+                throw new IllegalArgumentException("VERSIONED_SNAPSHOT_REQUIRED");
+        }
         if (Integer.valueOf(TemplateVersionSnapshot.SCHEMA_VERSION).equals(snapshot.getExecutionSchemaVersion())) {
             TemplateVersionSnapshot.validate(snapshot);
         }

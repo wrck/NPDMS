@@ -56,6 +56,9 @@ public class TemplateDesignerDocument {
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;
+        /** 独立操作、订阅与呈现；缺失时保持原绑定语义。 */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode execution;
         private String nodeKey;
         private String code;
         private String name;
@@ -75,6 +78,9 @@ public class TemplateDesignerDocument {
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;
+        /** 独立操作、订阅与呈现；缺失时保持原绑定语义。 */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode execution;
         private String nodeKey;
         private String code;
         private String name;

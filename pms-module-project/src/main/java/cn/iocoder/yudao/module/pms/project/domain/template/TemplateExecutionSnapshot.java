@@ -41,6 +41,8 @@ public class TemplateExecutionSnapshot {
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode execution;
         private String nodeKey;
         private String code;
         private String name;
@@ -63,6 +65,8 @@ public class TemplateExecutionSnapshot {
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode execution;
         private String nodeKey;
         private String code;
         private String name;
