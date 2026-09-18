@@ -58,7 +58,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_R
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_INCOMPLETE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_VERSION_CONFLICT;
 
-/** TASK_NATIVE动作、完成判定、审计与Outbox应用服务。 */
+/** 项目任务动作、原生/业务/订阅完成判定、审计与Outbox应用服务。 */
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskLifecycleService {
@@ -282,7 +282,8 @@ public class ProjectTaskLifecycleService {
             return new AutomaticResult(false, false);
         var contract = requireCurrentContract(task, tenantId);
         boolean nativeWork = TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode());
-        if ((!isBusinessContract(contract) && !nativeWork && !"APPROVAL".equals(contract.getWorkBindingTypeCode()))
+        if ((!isBusinessContract(contract) && !nativeWork && !"APPROVAL".equals(contract.getWorkBindingTypeCode())
+                && !"RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))
                 || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
         if (nativeWork && !"PENDING_ACCEPT".equals(task.getStatus())) return new AutomaticResult(false, false);
         var evaluated = planCompletion.evaluateAutomatically(project, task, contract);
@@ -331,9 +332,13 @@ public class ProjectTaskLifecycleService {
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
                 || (!TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode())
                 && !"APPROVAL".equals(contract.getWorkBindingTypeCode())
-                && !isAcceptanceContract(contract) && !isBusinessContract(contract))) {
+                && !isAcceptanceContract(contract) && !isBusinessContract(contract)
+                && !"RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
+        // 订阅合同只接受编译器生成的查询投影，不能借新类型夹带Owner或人工办理权限。
+        if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))
+            cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.requireRuntime(contract);
         return contract;
     }
 

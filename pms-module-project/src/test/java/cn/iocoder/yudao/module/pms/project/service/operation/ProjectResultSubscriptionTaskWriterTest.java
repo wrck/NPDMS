@@ -37,6 +37,7 @@ class ProjectResultSubscriptionTaskWriterTest {
     private ResultEvidenceScanFixture f;
     private ProjectTaskLifecycleService writer;
     private ProjectTaskInstanceDO task;
+    private ProjectTaskExecutionContractDO binding;
     private final ProjectTaskRuntimeMapper tasks=mock(ProjectTaskRuntimeMapper.class);
     private final ProjectTaskExecutionContractMapper contracts=mock(ProjectTaskExecutionContractMapper.class);
     private final ProjectTaskCompletionEvaluationMapper evaluations=mock(ProjectTaskCompletionEvaluationMapper.class);
@@ -47,7 +48,7 @@ class ProjectResultSubscriptionTaskWriterTest {
 
     @BeforeEach void before() throws Exception {
         f=new ResultEvidenceScanFixture();var snapshot=ResultSubscriptionTaskFixture.snapshot();
-        var binding=ResultSubscriptionTaskFixture.contract(snapshot);
+        binding=ResultSubscriptionTaskFixture.contract(snapshot);
         f.recovery.plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         when(f.recovery.plans.selectEffective(any())).thenReturn(f.recovery.plan);
         f.recovery.project.setTaskTreeVersion(1L);f.recovery.project.setTaskProgressVersion(1L);
@@ -110,6 +111,21 @@ class ProjectResultSubscriptionTaskWriterTest {
         assertFalse(complete().completed());f.recovery.project.setLifecycleStatus("ACTIVE");task.setStatus("DONE");assertFalse(complete().completed());
         verifyNoInteractions(commands,business);
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"permission", "target", "parameters", "version"})
+    void invalidSubscriptionProjectionCannotUseTheAutomaticWriter(String damage) {
+        switch (damage) {
+            case "permission" -> binding.setPermissionSnapshot("{\"policySnapshot\":{\"requiredActions\":[\"COMPLETE\"]}}");
+            case "target" -> binding.setTargetObjectKey("untrusted-owner");
+            case "parameters" -> binding.setBindingParameterSnapshot("{}");
+            case "version" -> binding.setSourceDefinitionVersion(2);
+            default -> throw new AssertionError(damage);
+        }
+        assertThrows(RuntimeException.class, this::complete);
+        verifyNoInteractions(commands, business);
+        verify(tasks, never()).updateLifecycleIfMatch(any());
+    }
+
     @Test void failingTheFormalRoundCompareAndSetDoesNotReturnACompletionReceipt() {
         f.seed(1,"object","r1",null,Validity.CURRENT);f.tick();when(f.recovery.rounds.recordTaskTransition(any())).thenReturn(0);
         assertThrows(RuntimeException.class,this::complete);assertTrue(success.isEmpty());
