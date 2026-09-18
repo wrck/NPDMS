@@ -7,18 +7,34 @@ import lombok.RequiredArgsConstructor;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
 import org.springframework.stereotype.Component;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultInventorySource;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SurveyResultInventoryQuery;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
 /** A survey confirms once; archiving retains that result, but its mutable row is not a revision history. */
 @Component
 @RequiredArgsConstructor
-public class SiteSurveyBusinessResultSource implements BusinessResultChangeSource {
+public class SiteSurveyBusinessResultSource implements BusinessResultChangeSource, BusinessResultInventorySource {
     public static final Type TYPE = new Type("SOL", "SITE_SURVEY", "SURVEY_CONFIRMED");
     private static final Descriptor DESCRIPTOR = new Descriptor(TYPE, true, false, false);
     private final SiteSurveyEntityMapper surveys;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InventoryPage inventory(InventoryQuery query) {
+        if (query == null || !TYPE.equals(query.type())
+                || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw new IllegalArgumentException("RESULT_QUERY_SCOPE_INVALID");
+        if (query.historical() && !DESCRIPTOR.historicalLookup())
+            throw new IllegalArgumentException("RESULT_HISTORY_UNSUPPORTED");
+        var ids = surveys.selectResultInventory(new SurveyResultInventoryQuery(query.tenantId(), query.projectId(),
+                BusinessResultInventorySource.nativeObjects(query), BusinessResultSource.nativeId(query.after()), query.limit() + 1, query.historical()));
+        return BusinessResultInventorySource.nativePage(query, ids, id -> inspect(new Query(query.tenantId(), query.projectId(), TYPE, id, null)));
+    }
 
     @Override public Query changeQuery(BusinessOperationResultEvent event) {
         if (event == null || !TYPE.ownerContext().equals(event.ownerContext()) || !TYPE.entityType().equals(event.objectType()))

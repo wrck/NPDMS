@@ -150,8 +150,11 @@ class RequirementAnalysisOwnerOperationContextTest {
                         assertTrue(facts.getFirst().businessEvents() == null || facts.getFirst().businessEvents().isEmpty());
                         verify(f.audit, atLeastOnce()).record(eq(1L), eq(2L), eq(key), anyString(), anyString(),
                                 anyString(), anyString(), anyMap());
-                        if (action.equals("COMPLETE")) verify(f.events).changed(3L, "RequirementAnalysis", 40L, 2L, key);
-                        else verifyNoInteractions(f.events);
+                        if (action.equals("COMPLETE")) {
+                            var eventOrder = inOrder(f.events);
+                            eventOrder.verify(f.events).formed(3L, "RequirementAnalysis", 40L, 2L, key);
+                            eventOrder.verify(f.events).changed(3L, "RequirementAnalysis", 40L, 2L, key);
+                        } else verifyNoInteractions(f.events);
                         assertFalse(f.checked.isEmpty());
                         assertTrue(f.checked.stream().allMatch(write -> write.operationCode().equals(code)));
                         assertThrows(IllegalStateException.class, () -> f.request("40"));

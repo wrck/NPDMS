@@ -46,4 +46,17 @@ public class EngineeringRuleReevaluationEvents {
         outbox.append(result.objectType(),result.objectId(),new BusinessEvent(committed.eventId(),
                 BusinessOperationResultEvent.EVENT_TYPE,JsonUtils.toJsonString(committed)));
     }
+    /** Called only after the Owner's successful native formation transition, not after a generic observation. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void formed(Long projectId, String aggregateType, Long objectId, Long actorId, String correlationId) {
+        Long tenant = TenantContextHolder.getRequiredTenantId();
+        var matches = sources.orderedStream().filter(source -> source.supports(aggregateType)).toList();
+        if (matches.size() != 1) throw new IllegalStateException("OWNER_RESULT_SOURCE_NOT_UNIQUE");
+        var result = matches.getFirst().current(tenant, projectId, aggregateType, objectId);
+        if (result == null) throw new IllegalStateException("OWNER_FORMED_RESULT_UNAVAILABLE");
+        var event = BusinessOperationResultEvent.create(tenant, projectId, "OWNER." + aggregateType + ".FORMED",
+                java.util.UUID.randomUUID().toString(), result, actorId, correlationId);
+        // Only the recovery journal receives this transition; the original business event remains unchanged.
+        resultRecording.getObject().record(event);
+    }
 }

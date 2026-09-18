@@ -187,6 +187,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         }
         var frozen = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), ref.revisionId()));
         record("REQUIREMENT_ANALYSIS_FREEZE", frozen, actor);
+        events.formed(frozen.getProjectId(), "RequirementAnalysis", frozen.getId(), actor.userId(), actor.correlationId());
         return frozen.revisionMetadata();
     }
 

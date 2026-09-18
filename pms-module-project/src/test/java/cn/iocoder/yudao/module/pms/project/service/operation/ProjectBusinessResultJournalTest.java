@@ -124,9 +124,9 @@ class ProjectBusinessResultJournalTest {
         jdbc.update("DELETE FROM proj_business_result_change WHERE sequence_no=2");
         assertEquals("RESULT_CHANGE_GAP",assertThrows(IllegalStateException.class,()->journal.read(through,0,2)).getMessage());
     }
-    @ParameterizedTest @ValueSource(strings={"missing","draft","unavailable","old"})
-    void claimedFormationRequiresAnAvailableCurrentNativeResult(String state){
-        if(state.equals("old"))observation.set(Observation.available(new Result(1L,3L,TYPE,"100","40","1","2",Validity.NOT_CURRENT,LocalDateTime.now())));
+    @ParameterizedTest @ValueSource(strings={"missing","draft","unavailable","revoked"})
+    void claimedFormationRequiresAnAvailableNonRevokedNativeResult(String state){
+        if(state.equals("revoked"))observation.set(Observation.available(new Result(1L,3L,TYPE,"100","40","1","2",Validity.REVOKED,LocalDateTime.now())));
         else observation.set(Observation.absent(state.equals("missing")?Status.NOT_FOUND:state.equals("draft")?Status.NOT_FORMED:Status.UNAVAILABLE,"OWNER_REASON"));
         assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(status->journal.record(event("40"))));assertEquals(0,count("proj_business_result_change"));assertEquals(0,count("test_outbox"));
     }
@@ -177,6 +177,11 @@ class ProjectBusinessResultJournalTest {
         else json.remove("formation");
         jdbc.update("UPDATE proj_business_result_change SET payload=?",json.toString());
         assertEquals("RESULT_CHANGE_FORMAT_UNSUPPORTED",assertThrows(IllegalStateException.class,()->journal.read(through,0,1)).getMessage());
+    }
+    @Test void newlyFrozenNativeHistoryCanPrecedeActivationWithoutLosingItsFormationBoundary() {
+        observation.set(Observation.available(new Result(1L,3L,TYPE,"100","40","1","2",Validity.NOT_CURRENT,LocalDateTime.now())));
+        tx.executeWithoutResult(status->journal.record(event("40")));
+        assertTrue(journal.read(capture(),0,1).changes().getFirst().formation());
     }
     private ProjectBusinessResultJournal.Boundary capture(){return tx.execute(status->journal.capture(1L,3L,TYPE));}
     private int count(String table){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class);}

@@ -8,6 +8,9 @@ import java.util.List;
 
 @Mapper
 public interface RequirementAnalysisMapper {
+    java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementResultInventoryQuery query);
+
     RequirementAnalysisDO selectCurrent(@Param("query") RequirementEntityQuery query);
     RequirementAnalysisDO lockCurrent(@Param("query") RequirementEntityQuery query);
     RequirementAnalysisRevisionDO selectRevision(@Param("query") RequirementRevisionQuery query);

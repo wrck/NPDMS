@@ -44,5 +44,12 @@ class EngineeringResultRecordingTest {
             events.changed(3L,"SiteSurvey",40L,9L,"trace");verifyNoInteractions(recorder,source);verify(outbox,times(1)).append(anyString(),anyString(),any());
         }
     }
+    @Test void formationHookDoesNotPublishADuplicateLegacyBusinessResult() {
+        when(source.current(1L,3L,"RequirementAnalysis",40L)).thenReturn(new ProjectOperationResult("SOL","REQUIREMENT_ANALYSIS","40","40",2,"frozen","REQUIREMENT_ANALYSIS_COMPLETED",null,false));
+        events.formed(3L,"RequirementAnalysis",40L,9L,"trace");
+        var event=ArgumentCaptor.forClass(BusinessOperationResultEvent.class);verify(recorder).record(event.capture());
+        assertEquals("OWNER.RequirementAnalysis.FORMED",event.getValue().operationCode());
+        assertEquals("40",event.getValue().revisionId());verifyNoInteractions(outbox);
+    }
     @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T value){ObjectProvider<T> provider=mock(ObjectProvider.class);when(provider.getObject()).thenReturn(value);return provider;}
 }

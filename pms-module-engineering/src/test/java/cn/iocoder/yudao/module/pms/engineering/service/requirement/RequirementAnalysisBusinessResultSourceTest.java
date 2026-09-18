@@ -100,7 +100,10 @@ class RequirementAnalysisBusinessResultSourceTest {
         var query=source.changeQuery(event);
         assertEquals(type,query.type());assertEquals(3L,query.projectId());
         assertNull(query.objectId());assertEquals("40",query.resultId());
-        assertTrue(source.declaresFormation(event));
+        assertFalse(source.declaresFormation(event));
+        var formed = new BusinessOperationResultEvent(event.eventId(),1,1L,3L,type.ownerContext(),type.entityType(),
+                "40","40",2,"native-fact",type.resultType(),"OWNER.RequirementAnalysis.FORMED","key",9L,event.occurredAt(),"trace");
+        assertTrue(source.declaresFormation(formed));
         verifyNoInteractions(mapper);
     }
 }

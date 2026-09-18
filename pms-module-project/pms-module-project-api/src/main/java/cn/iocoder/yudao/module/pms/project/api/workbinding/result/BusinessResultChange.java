@@ -33,7 +33,7 @@ public record BusinessResultChange(String eventId, int eventVersion, Channel cha
         if (result != null && (!Objects.equals(channel.tenantId(), result.tenantId())
                 || !Objects.equals(channel.projectId(), result.projectId()) || !channel.type().equals(result.type())))
             throw new IllegalArgumentException("RESULT_CHANGE_IDENTITY_INVALID");
-        if (formation && (result == null || result.validity() != Validity.CURRENT))
+        if (formation && (result == null || result.validity() == Validity.REVOKED))
             throw new IllegalArgumentException("RESULT_FORMATION_INVALID");
     }
 }

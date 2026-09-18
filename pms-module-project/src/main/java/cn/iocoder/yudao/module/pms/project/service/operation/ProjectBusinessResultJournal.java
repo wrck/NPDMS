@@ -53,7 +53,7 @@ public class ProjectBusinessResultJournal implements ProjectBusinessResultRecord
             }
             var observation = sources.inspect(sources.changeQuery(type, event));
             boolean formation = sources.declaresFormation(type, event);
-            if (formation && (observation.result() == null || observation.result().validity() != Validity.CURRENT))
+            if (formation && (observation.result() == null || observation.result().validity() == Validity.REVOKED))
                 throw new IllegalStateException("RESULT_FORMATION_UNVERIFIED");
             var result = observation.result();
             if (formation) {

@@ -9,18 +9,39 @@ import lombok.RequiredArgsConstructor;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
 import org.springframework.stereotype.Component;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultInventorySource;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementResultInventoryQuery;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
 /** Frozen revision IDs remain stable when effective markers and optimistic versions later change. */
 @Component
 @RequiredArgsConstructor
-public class RequirementAnalysisBusinessResultSource implements BusinessResultChangeSource {
+public class RequirementAnalysisBusinessResultSource implements BusinessResultChangeSource, BusinessResultInventorySource {
     public static final Type TYPE = new Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED");
     private static final Descriptor DESCRIPTOR = new Descriptor(TYPE, true, true, true);
     private final RequirementAnalysisMapper revisions;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InventoryPage inventory(InventoryQuery query) {
+        if (query == null || !TYPE.equals(query.type())
+                || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw new IllegalArgumentException("RESULT_QUERY_SCOPE_INVALID");
+        if (query.historical() && !DESCRIPTOR.historicalLookup())
+            throw new IllegalArgumentException("RESULT_HISTORY_UNSUPPORTED");
+        var ids = revisions.selectResultInventory(new RequirementResultInventoryQuery(query.tenantId(), query.projectId(),
+                BusinessResultInventorySource.nativeObjects(query), BusinessResultSource.nativeId(query.after()), query.limit() + 1, query.historical()));
+        return BusinessResultInventorySource.nativePage(query, ids, id -> inspect(new Query(query.tenantId(), query.projectId(), TYPE, null, id)));
+    }
+
+    @Override public boolean declaresFormation(BusinessOperationResultEvent event) {
+        // Activating or re-observing an existing frozen revision must never create a new formation boundary.
+        return "OWNER.RequirementAnalysis.FORMED".equals(event.operationCode()) && TYPE.resultType().equals(event.resultCode());
+    }
 
     @Override public Query changeQuery(BusinessOperationResultEvent event) {
         if (event == null || !TYPE.ownerContext().equals(event.ownerContext()) || !TYPE.entityType().equals(event.objectType()))
