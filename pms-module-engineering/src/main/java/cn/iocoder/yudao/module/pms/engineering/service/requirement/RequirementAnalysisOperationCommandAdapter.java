@@ -36,14 +36,16 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
             if (code.endsWith(".CREATE")) ProjectOperationInput.fields(command.input(), Set.of());
         } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
         String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + command.nodeKind() + ":" + command.nodeId() + ":" + command.idempotencyKey());
+        // Reuse the existing command key for Owner audit, form callbacks and committed-event correlation.
+        var actor = new EntityActor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), key);
         EntityVersionProvider.Revision result;
         if (code.endsWith(".CREATE")) {
             if (command.objectId() != null) throw exception(BAD_REQUEST, "CREATE_OBJECT_MUST_BE_ABSENT");
-            result = commands.getObject().create(new RequirementAnalysisEntityCommands.Create(command.projectId(), command.execution()), actor(), key);
+            result = commands.getObject().create(new RequirementAnalysisEntityCommands.Create(command.projectId(), command.execution()), actor, key);
         } else {
             Long id;
             try { id = Long.valueOf(command.objectId()); } catch (RuntimeException invalid) { throw exception(BAD_REQUEST, "BUSINESS_OBJECT_REQUIRED"); }
-            var current = access.getObject().read(id, actor());
+            var current = access.getObject().read(id, actor);
             if (!Objects.equals(current.getProjectId(), command.projectId()) || !Objects.equals(current.getVersion(), command.expectedBusinessVersion()))
                 throw exception(BAD_REQUEST, "BUSINESS_VERSION_CONFLICT");
             var ref = current.revisionRef();
@@ -53,7 +55,7 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
                 catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
                 result = commands.getObject().save(ref, command.expectedBusinessVersion(),
                         new RequirementAnalysisEntityCommands.Patch(input.values(), input.extensionDefinitionRevisionId(), input.expectedExtensionVersion(),
-                                input.extensionValues(), command.execution()), actor(), key);
+                                input.extensionValues(), command.execution()), actor, key);
             } else {
                 String reason;
                 try {
@@ -61,8 +63,8 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
                     reason = ProjectOperationInput.optionalText(command.input(), "reason");
                 } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
                 var action = new RequirementAnalysisEntityCommands.Action(reason, command.execution());
-                result = code.endsWith(".COMPLETE") ? commands.getObject().complete(ref, command.expectedBusinessVersion(), action, actor(), key)
-                        : commands.getObject().copy(ref, command.expectedBusinessVersion(), action, actor(), key);
+                result = code.endsWith(".COMPLETE") ? commands.getObject().complete(ref, command.expectedBusinessVersion(), action, actor, key)
+                        : commands.getObject().copy(ref, command.expectedBusinessVersion(), action, actor, key);
             }
         }
         if (result == null || result.ref() == null || result.ref().revisionId() == null) throw new IllegalStateException("OWNER_RESULT_IDENTITY_INVALID");
