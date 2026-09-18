@@ -15,9 +15,16 @@ import java.util.Set;
 public class ProjectOperationResultDelivery {
     private final ProjectOperationResultFanout fanout;
     private final ProjectOperationNodeResultProcessor processor;
-    public static Set<String> eventTypes() { return Set.of(BusinessOperationResultEvent.EVENT_TYPE,ProjectResultTargetEvent.EVENT_TYPE); }
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<ProjectResultSubscriptionDelivery> subscriptions;
+    public static Set<String> eventTypes() {
+        var types = new java.util.HashSet<>(ProjectResultSubscriptionDelivery.eventTypes());
+        types.add(BusinessOperationResultEvent.EVENT_TYPE); types.add(ProjectResultTargetEvent.EVENT_TYPE);
+        return Set.copyOf(types);
+    }
     public boolean deliver(PlatformOutboxMessageDTO message) {
         if (!Objects.equals(message.tenantId(),TenantContextHolder.getRequiredTenantId())) throw new IllegalArgumentException("RESULT_TENANT_INVALID");
+        if (ProjectResultSubscriptionDelivery.eventTypes().contains(message.eventType())) return subscriptions.getObject().deliver(message);
         if (BusinessOperationResultEvent.EVENT_TYPE.equals(message.eventType())) {
             var source = JsonUtils.parseObject(message.payload(),BusinessOperationResultEvent.class);
             source.requireEnvelope(message.eventId(),message.tenantId()); fanout.accept(source); return true;
