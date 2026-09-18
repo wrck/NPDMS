@@ -20,7 +20,7 @@ class ProjectOperationAwareExecutionGuardTest {
         ObjectProvider<ProjectBusinessExecutionService> provider = mock(ObjectProvider.class);
         when(provider.getObject()).thenReturn(old);
         var execution = mock(ProjectNodeExecutionApi.class);
-        var guard = new ProjectOperationAwareExecutionGuard(provider,execution);
+        var guard = new ProjectOperationAwareExecutionGuard(provider,execution,mock(ProjectIndependentOperationAdmission.class));
         var selection = new ProjectBusinessExecutionSelection(null,
                 new ProjectStageExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,true));
         var legacy = new WriteRequest(3L,"SOL","SITE_SURVEY",selection);

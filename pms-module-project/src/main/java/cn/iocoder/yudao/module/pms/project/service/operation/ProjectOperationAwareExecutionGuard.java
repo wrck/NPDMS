@@ -14,13 +14,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 
-/** Legacy calls delegate unchanged. Only an exact operation, object and execution can reuse PRE. */
+/** Exact controlled calls retain PRE checks; explicitly independent Owner commands do not infer a node. */
 @Service
 @Primary
 @RequiredArgsConstructor
 public class ProjectOperationAwareExecutionGuard implements ProjectBusinessExecutionApi {
     private final ObjectProvider<ProjectBusinessExecutionService> legacy;
     private final ProjectNodeExecutionApi executions;
+    private final ProjectIndependentOperationAdmission independent;
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockForWrite(WriteRequest request) {
@@ -47,6 +48,7 @@ public class ProjectOperationAwareExecutionGuard implements ProjectBusinessExecu
             // A nested same-Owner write must enter its own verified command, not downgrade to the legacy guard.
             throw new IllegalStateException("CONTROLLED_OPERATION_SCOPE_MISMATCH");
         }
+        if (independent.admit(request)) return;
         legacy.getObject().lockForWrite(request);
     }
 }

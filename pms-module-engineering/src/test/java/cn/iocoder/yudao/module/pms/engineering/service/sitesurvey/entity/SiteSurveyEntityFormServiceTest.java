@@ -108,7 +108,7 @@ class SiteSurveyEntityFormServiceTest {
         verify(deadlines).updateFromSurvey(command.capture());
         assertEquals(java.time.LocalDate.of(2026, 9, 21), command.getValue().endDate());
         assertEquals(6, command.getValue().expectedProjectVersion());
-        verify(access).lock(7L, "pms:eng-site-survey:update", null);
+        verify(access).lock(7L, "pms:eng-site-survey:update", null, "SOL.SITE_SURVEY.UPDATE", 5L);
         verify(mapper, never()).updateById(any(SiteSurveyEntityDO.class));
         verifyNoInteractions(events, extensions, details);
     }

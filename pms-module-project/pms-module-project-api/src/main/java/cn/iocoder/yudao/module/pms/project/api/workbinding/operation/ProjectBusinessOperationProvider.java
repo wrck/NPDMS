@@ -13,4 +13,7 @@ public interface ProjectBusinessOperationProvider {
      * but cannot be selected by a permission shorthand. Do not infer permissions from labels/actions.
      */
     default Map<String, String> permissionCodes() { return Map.of(); }
+
+    /** Omitted commands retain their legacy admission path; this metadata never grants business permissions. */
+    default Map<String, ProjectOperationControlScope> controlScopes() { return Map.of(); }
 }
