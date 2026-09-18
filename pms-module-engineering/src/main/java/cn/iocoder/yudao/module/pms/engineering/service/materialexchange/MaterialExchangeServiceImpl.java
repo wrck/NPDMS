@@ -252,12 +252,15 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     }
 
     /**
-     * 更新状态并写入审批信息。version 自增以触发乐观锁。
+     * 更新状态并写入审批信息。
+     * <p>
+     * version 交由 {@code OptimisticLockerInnerInterceptor} 处理：updateById 自动
+     * WHERE version=DB 当前值并 SET version+1。此处不得手动 {@code setVersion(+1)}，
+     * 否则 WHERE 版本超前一位，UPDATE 恒为 0 行静默失败。
      */
     private void updateStatus(MaterialExchangeDO entity, int newStatus,
                               Long approverUserId, String approveOpinion, String approveAction) {
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         // 审批类操作（PASS / REJECT / RETURN / TRANSFER / COUNTERSIGN）记录审批信息
         if (approverUserId != null) {
             entity.setApproverUserId(approverUserId);
