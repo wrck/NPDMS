@@ -414,7 +414,11 @@ export enum DICT_TYPE {
   PMS_SRV_MAINTENANCE_STATUS = 'pms_srv_maintenance_status', // 维保状态
   PMS_SERVICE_LEVEL = 'pms_service_level', // 服务等级
   PMS_SRV_LEVEL_STATUS = 'pms_srv_level_status', // 服务等级状态
-  PMS_EQUIPMENT_STATUS = 'pms_equipment_status', // 设备状态（旧链历史）
+  /**
+   * @deprecated pms_equipment 旧链 Integer 状态字典，已由 PMS_DEVICE_STATUS（String 值域）承接，
+   * 仅历史数据展示使用，后续清理时连同字典数据一并删除。
+   */
+  PMS_EQUIPMENT_STATUS = 'pms_equipment_status',
   PMS_DEVICE_STATUS = 'pms_device_status', // 设备档案状态（ast_device 承载）
   PMS_BATCH_CHANGE_STATUS = 'pms_batch_change_status', // 批量变更状态
   PMS_APPROVAL_STATUS = 'pms_approval_status', // 审批状态(通用7态)

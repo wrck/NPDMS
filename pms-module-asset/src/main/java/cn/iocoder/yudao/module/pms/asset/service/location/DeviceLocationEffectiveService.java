@@ -1,31 +1,58 @@
 package cn.iocoder.yudao.module.pms.asset.service.location;
 
+import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.DeviceLocationDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.DeviceLocationMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.DeviceLocationProjectionUpdate;
+import cn.iocoder.yudao.module.pms.asset.enums.LocationResolutionStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_LOCATION_COMMAND_INVALID;
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_LOCATION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_LOCATION_REFERENCE_INVALID;
 
 @Service
 public class DeviceLocationEffectiveService {
 
     private final DeviceMapper deviceMapper;
     private final DeviceLocationMapper locationMapper;
+    private final SiteMapper siteMapper;
+    private final SiteLocationTreeService siteLocationTreeService;
 
     public DeviceLocationEffectiveService(
             DeviceMapper deviceMapper,
-            DeviceLocationMapper locationMapper) {
+            DeviceLocationMapper locationMapper,
+            SiteMapper siteMapper,
+            SiteLocationTreeService siteLocationTreeService) {
         this.deviceMapper = deviceMapper;
         this.locationMapper = locationMapper;
+        this.siteMapper = siteMapper;
+        this.siteLocationTreeService = siteLocationTreeService;
+    }
+
+    /**
+     * 校验命令与站点引用后执行位置生效；设备不存在时抛错。
+     * 自 {@code EquipmentLocationEffectiveService} 承接的编排入口（API 层调用）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void effectOrThrow(EquipmentLocationEffectiveCommand command) {
+        validateCommand(command);
+        validateLocation(command);
+        if (!effect(command)) {
+            throw exception(AST_EQUIPMENT_NOT_EXISTS);
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -53,6 +80,42 @@ public class DeviceLocationEffectiveService {
             throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
         }
         return true;
+    }
+
+    private void validateCommand(EquipmentLocationEffectiveCommand command) {
+        if (command == null || command.equipmentId() == null || command.installationId() == null
+                || command.effectiveFrom() == null || command.resolutionStatus() == null) {
+            throw exception(AST_EQUIPMENT_LOCATION_COMMAND_INVALID);
+        }
+        boolean resolved = LocationResolutionStatus.RESOLVED.name().equals(command.resolutionStatus());
+        boolean unresolved = LocationResolutionStatus.UNRESOLVED.name().equals(command.resolutionStatus());
+        if (!resolved && !unresolved) {
+            throw exception(AST_EQUIPMENT_LOCATION_COMMAND_INVALID);
+        }
+        if (resolved != (command.siteId() != null)) {
+            throw exception(AST_EQUIPMENT_LOCATION_COMMAND_INVALID);
+        }
+        if (!resolved && command.siteLocationId() != null) {
+            throw exception(AST_EQUIPMENT_LOCATION_COMMAND_INVALID);
+        }
+    }
+
+    private void validateLocation(EquipmentLocationEffectiveCommand command) {
+        if (command.siteId() == null) {
+            return;
+        }
+        SiteDO site = siteMapper.selectById(command.siteId());
+        if (site == null || !CommonStatusEnum.isEnable(site.getStatus())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
+        if (command.siteLocationId() == null) {
+            return;
+        }
+        SiteLocationDO location = siteLocationTreeService.get(command.siteLocationId(), null);
+        if (!Objects.equals(location.getSiteId(), command.siteId())
+                || !CommonStatusEnum.isEnable(location.getStatus())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
     }
 
     private boolean isSameRequest(

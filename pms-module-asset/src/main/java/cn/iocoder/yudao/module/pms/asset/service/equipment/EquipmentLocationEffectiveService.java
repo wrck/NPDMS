@@ -18,9 +18,12 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.*;
 
 /**
- * 设备当前位置生效服务（ast_device 承载，pms_equipment 兜底分支已随旧链退役）。
- * 只消费公开命令，不读取工程实施域内部数据。
+ * 设备当前位置生效服务（pms_equipment 旧链遗留包装层，已由
+ * {@link DeviceLocationEffectiveService#effectOrThrow} 完全承接，当前无生产调用方）。
+ *
+ * @deprecated ast_device 承接完成后的遗留方法，仅保留供历史参照，后续清理时直接删除本类。
  */
+@Deprecated
 @Service
 @RequiredArgsConstructor
 public class EquipmentLocationEffectiveService {
@@ -29,6 +32,10 @@ public class EquipmentLocationEffectiveService {
     private final SiteLocationTreeService siteLocationTreeService;
     private final DeviceLocationEffectiveService deviceLocationEffectiveService;
 
+    /**
+     * @deprecated 请改用 {@link DeviceLocationEffectiveService#effectOrThrow}。
+     */
+    @Deprecated
     @Transactional(rollbackFor = Exception.class)
     public void effect(EquipmentLocationEffectiveCommand command) {
         validateCommand(command);

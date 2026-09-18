@@ -9,7 +9,6 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.AddressMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.LocationSourceMappingMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
-import cn.iocoder.yudao.module.pms.asset.service.equipment.EquipmentLocationEffectiveService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,14 +29,14 @@ class AssetLocationApiImplTest {
     @Mock private LocationSourceMappingMapper sourceMappingMapper;
     @Mock private SiteLocationTreeService treeService;
     @Mock private AreaDepartmentMappingService mappingService;
-    @Mock private EquipmentLocationEffectiveService equipmentLocationEffectiveService;
+    @Mock private DeviceLocationEffectiveService deviceLocationEffectiveService;
 
     private AssetLocationApiImpl api;
 
     @BeforeEach
     void setUp() {
         api = new AssetLocationApiImpl(addressMapper, siteMapper, sourceMappingMapper, treeService, mappingService,
-                equipmentLocationEffectiveService);
+                deviceLocationEffectiveService);
     }
 
     @Test

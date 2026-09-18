@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.DeviceLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.DeviceLocationMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.DeviceLocationProjectionUpdate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,12 +33,14 @@ class DeviceLocationEffectiveServiceTest {
 
     @Mock private DeviceMapper deviceMapper;
     @Mock private DeviceLocationMapper locationMapper;
+    @Mock private SiteMapper siteMapper;
+    @Mock private SiteLocationTreeService treeService;
     private DeviceLocationEffectiveService service;
 
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(1L);
-        service = new DeviceLocationEffectiveService(deviceMapper, locationMapper);
+        service = new DeviceLocationEffectiveService(deviceMapper, locationMapper, siteMapper, treeService);
     }
 
     @AfterEach

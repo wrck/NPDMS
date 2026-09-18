@@ -13,7 +13,7 @@ import cn.iocoder.yudao.module.pms.asset.enums.LocationMatchStatus;
 import cn.iocoder.yudao.module.pms.asset.enums.LocationResolutionStatus;
 import cn.iocoder.yudao.module.pms.asset.service.location.AreaDepartmentMappingService;
 import cn.iocoder.yudao.module.pms.asset.service.location.SiteLocationTreeService;
-import cn.iocoder.yudao.module.pms.asset.service.equipment.EquipmentLocationEffectiveService;
+import cn.iocoder.yudao.module.pms.asset.service.location.DeviceLocationEffectiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +37,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     private final LocationSourceMappingMapper sourceMappingMapper;
     private final SiteLocationTreeService siteLocationTreeService;
     private final AreaDepartmentMappingService areaDepartmentMappingService;
-    private final EquipmentLocationEffectiveService equipmentLocationEffectiveService;
+    private final DeviceLocationEffectiveService deviceLocationEffectiveService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -129,7 +129,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
 
     @Override
     public void effectEquipmentLocation(EquipmentLocationEffectiveCommand command) {
-        equipmentLocationEffectiveService.effect(command);
+        deviceLocationEffectiveService.effectOrThrow(command);
     }
 
     private AddressDO maintainAddress(AddressInput input) {
