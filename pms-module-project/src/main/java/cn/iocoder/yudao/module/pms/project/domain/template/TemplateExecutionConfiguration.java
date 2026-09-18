@@ -4,7 +4,6 @@ import cn.iocoder.yudao.module.pms.project.domain.template.operation.TemplateOpe
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +26,10 @@ public final class TemplateExecutionConfiguration {
     public record Subscription(String key, String ownerContext, String entityType, String resultType,
                                Scope scope, Policy policy) { }
     public record Presentation(String pageUrl, Map<String, String> query) {
-        public Presentation { query = Collections.unmodifiableMap(new LinkedHashMap<>(query)); }
+        public Presentation {
+            pageUrl = TemplatePresentationUrl.path(pageUrl);
+            query = TemplatePresentationUrl.query(query);
+        }
     }
     public record Node(String kind, String nodeKey, String path, JsonNode value,
                        TemplateDesignerDocument.WorkBindingSpec binding) { }

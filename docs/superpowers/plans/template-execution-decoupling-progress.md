@@ -15,7 +15,11 @@
 - P1.02.3冻结读取提交：16d2c6b1aba4b3557fb1b372ad45b102a2a53e87。
 - P1-V3事实目录权限回归提交：ba793870df04a3737dede25ca8f756d72732d4c5。
 - P1.02.4新格式发布接线提交：bda6f2bc602d1d3ef1091745c21a769d72606b3e。
-- 本次为P1.03独立配置及保存/编译接线提交；自身SHA由Git历史定位，下一环节补记。
+- P1.03独立配置提交：9f877b7295ab60ac4bf9cf08c72b385e8f230d3e。
+- P1.03后继事件回归修复：55a4dacd7b18c0896e33a85783ed653064759073。
+- P1.04.1页面路径与参数编码：17546cbf4268c82e8d503544300e9a1a8efa411a。
+- P1-V4需求分析插入失败替身修复：df2fc1e393ec67ee627025ce075e73c84b438b8a。
+- 本次为P1.04.2原业务输入与呈现保存边界提交；自身SHA由Git历史定位，下一环节补记。
 - 最新约束：版本优先、不新增多层Hash、权限码选择动作、复用业务输入、pageUrl仅展示。
 
 ## 阶段状态
@@ -23,7 +27,7 @@
 | 阶段 | 状态 | 下一环节 |
 |---|---|---|
 | P0 | COMMITTED_PENDING_VERIFICATION（准备文档完成） | [范围与来源](template-execution-decoupling-p0.md)；对应真实验证在各改动阶段执行 |
-| P1 | IMPLEMENTING | P1.01～P1.03代码及测试源码已交付；566项非MySQL定向回归、33项Node测试通过；下一项P1.04输入/URL安全边界，数据库/浏览器验证未完成 |
+| P1 | IMPLEMENTING | P1.04.1～P1.04.2已交付；原输入、URL语法及保存/编译边界接通；受信页面登记与呈现消费者尚待接线，数据库/浏览器未验证 |
 | P2 | PLANNED | 逐业务审计配置与独立路径 |
 | P3 | PLANNED | 权威结果及条件性能力 |
 | P4 | PLANNED | 独立订阅及有界恢复 |
@@ -188,3 +192,26 @@ Stage/Task增加可选execution，严格区分操作、结果订阅和页面呈�
 实际验证：同一Feature的独立源码副本并行执行准确bda基线520项回归；主工作树实现并自审后JDK25.0.4.1/Maven3.9.16离线28模块真实编译，566项测试全部通过，0失败/错误/跳过（包含新增46项，不与基线相加）。日志为/mnt/data/logs/p103-final.log及Surefire XML。新旧前端Node契约测试33项全部通过；execution.ts单文件严格tsc检查通过；git diff --check通过。自审补齐逆序多动作、显式null、无绑定纯订阅保存、原权限简写保存后发布及旧草稿不变测试。查询解析不调用Owner命令。
 
 以上为真实单元/序列化/Service验证，持久化与外围依赖使用Mock；未运行MySQL、完整Vue类型/组件、API鉴权代理或浏览器，不声称整体CI/业务验收通过。旧Hasher、历史Resolver、业务Controller/DTO、数据库和部署配置保持不变。下一项P1.04；P2～P9未因此晋级。没有部署、迁移、重启或实例切换。
+
+
+## P1.04.1 / P1-V4 页面基础边界与原回归替身修复
+
+17546cbf基于55a4：新增TemplatePresentationUrl，站内路径与独立参数分别校验/编码，拒绝协议/外域/穿越/路径编码/片段/API根和身份凭据参数，字符串ID无损；没有路由授权或Owner写入。JDK25以-Werror -Xlint:all实际编译生产类及同一场景源码，63个无框架行为场景通过；JUnit桥接后续纳入回归，其一项测试内部复用63个场景，不与JUnit计数重复相加。
+
+已从17546cbf的真实Actions源码归档恢复完整工作树，Git tree=d5ab08c6b72494ec3487ca066608b884c201c29f；独立副本复跑567项模板/计划/运行图非MySQL回归全部通过。55a4真实CI产物另有570项总记录，其中4项MySQL因缺夹具跳过，不能标整体CI通过。
+
+df2fc1e在未修改生产的17546cbf副本上复现RequirementAnalysisOwnerOperationContextTest：重设insertRevision的when调用先触发旧Answer并收到null。仅用doReturn修正替身设置，保留插入失败不得注册派生对象/调用表单文件等全部原断言；原5项测试全部通过。此修复不改变业务或权限规则。
+
+## P1.04.2 原业务输入、字段约束与呈现保存/编译边界
+
+基准：df2fc1e393ec67ee627025ce075e73c84b438b8a。先审计C0三个实际CommandAdapter、原Controller/SaveReq/Commands及前端提交路径，通用边界追加SDS04a第16节；不修改原业务DTO、Controller、服务状态机或旧Hash。
+
+ProjectOperationInput仅使用代码指定的原业务类型和已有Mapper配置，拒绝非对象、execution/tenantId、未知字段、小数转整数及null转原始数值默认值；不改全局Mapper、不加载用户类名、不回显原请求或Java类型。动态业务Map保留原字段，由Owner继续校验。
+
+三个真实适配器均已接入：工勘复用SiteSurveyEntitySaveReqVO/Bean Validation，重复对象/项目/版本输入不再静默覆盖，四个对象动作拒绝多余输入；需求分析SAVE复用原Patch，CREATE拒绝被忽略输入，COMPLETE/COPY原因只接受文本/null；验收报告复用原Draft/Publish/Revoke ReqVO及Bean Validation，再调用原Commands，保留大小/正数/并发约束和原权限。更新报告的路径传输字段仅从私有副本剥离；原意图与幂等键不变。
+
+工勘受控客户端单独去掉GET返回的只读地点/表单目录/审计等投影，原写字段、业务/扩展值及未知新增字段均保留给服务端校验；独立普通HTTP请求分支不变。新presentation在草稿保存归一化及编译前接入URL语法校验；非法配置不能到草稿Writer或生成快照。合法配置保存重开无损，但尚未安装的页面/订阅继续返回明确阻断，不冒充路由已登记或页面已可用。
+
+实际验证：JDK25.0.4.1/Maven3.9.16离线29模块真实编译。新输入定向74项通过；扩大到模板、计划、运行图、操作和工程事件回归后，最终项目683项+工程46项=729项全部通过，0失败/错误/跳过，日志/mnt/data/logs/p104-all.log。74项是729项的子集，不相加。前端Node实际执行受控输入投影2项通过；完整Vue/Vitest/浏览器尚未运行。此前扩大回归的既有替身FAIL由P1-V4修复后重跑，记录保留。
+
+源码自审与git diff --check通过；没有新增数据库结构、Hash或DTO技术字段，没有改旧Reader/历史Resolver/业务状态机。剩余：受信页面登记及真实呈现消费尚需接线（未放开页面发布），P2～P9仍按各自出口实施；当前验证使用外围Mock，不是MySQL事务、API代理或浏览器验收。没有部署、迁移、重启或实例切换。

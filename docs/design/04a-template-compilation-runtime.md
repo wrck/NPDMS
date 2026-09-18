@@ -397,3 +397,12 @@ Designer的Stage/Task可选`execution`与主WorkBinding并列，不改变原绑�
 presentation保存`pageUrl`和独立字符串query映射，只用于展示。路由安全和实际受信路由接线完成前不能发布。可保存草稿不等于可运行；编译返回具体路径和未安装能力，不生成半接线快照。
 
 新旧配置不并行维护两份可编辑操作真值：有execution.operations时不得另填workBinding.operationContract；后者只由编译器派生供既有运行消费者读取。草稿归一化/复制保留完整execution，全部RULE引用参与原共享规则校验。旧content写入口无法承载execution时拒绝覆盖已有新配置，用户继续使用原/draft入口；身份更新和真正旧草稿兼容不变。格式3冻结后按同一Reader核对execution与派生操作/规则的一致性，运行不重新按权限选择最新操作。
+
+
+## 16. 原业务输入与页面语法边界（PM-03）
+
+受控操作只使用代码登记的原SaveReq/Command类型，不从模板、URL或JSON字段加载类名、方法或Bean。业务输入必须是JSON对象；项目执行身份由独立通道提供，输入中的execution/tenantId（包括显式null）拒绝。在保留原ObjectMapper的日期和数值模块的前提下，单次读取拒绝未知类型化字段、小数转整数和null转原始数值默认值，不修改全局序列化设置。动态表单的values/businessValues/extensionValues保持原Map语义，由Owner继续校验字段和值，不能递归删除同名合法业务字段。
+
+类型化输入后仍执行原权限、对象归属、期望版本、Bean Validation和Owner命令；请求内已提供的对象/版本不得被通道值静默覆盖。仅需对象身份的动作拒绝额外业务字段。报告的原DraftReqVO/PublishReqVO/RevokeReqVO约束继续校验；更新的reportVersionId属于已有路径传输字段，显式取出并校验后把其余内容绑定原请求，转换为原DraftContent/Command；发布/撤销只接受各原命令实际消费的输入。输入无效返回原BAD_REQUEST，不泄露原始请求或Java类型信息，不产生业务写入。旧普通Controller和DTO保持不变；工勘受控客户端只移除查询投影字段，保留原写字段和动态表单内容。
+
+新execution.presentation保存时先检查站内绝对路径与独立query；拒绝协议/authority、片段、路径穿越、反斜线、路径百分号编码及已知API根。参数名不接受身份、凭据、重定向或原型污染字段；参数值逐项UTF-8编码，字符串ID不转浮点。该语法校验不证明路由存在或授权，不调用业务命令；发布还须命中受信页面登记及已安装消费者，页面和结果能力缺失继续拒绝相应发布。历史无execution的文档及格式2算法不变，不批量改写旧快照。
