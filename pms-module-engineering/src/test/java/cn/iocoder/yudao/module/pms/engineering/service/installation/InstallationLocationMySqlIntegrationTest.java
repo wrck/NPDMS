@@ -34,17 +34,17 @@ class InstallationLocationMySqlIntegrationTest {
             try {
                 long firstInstallation = insertInstallation(connection, prefix + "-A", equipmentId,
                         930811L, 930825L, LocalDateTime.now());
-                effectEquipment(connection, equipmentId, 930811L, 930825L, "RESOLVED", firstInstallation);
+                effectEquipment(connection, equipmentId, 930811L, 930825L, "RESOLVED");
                 assertEquals(930825L, equipmentLocation(connection, equipmentId).siteLocationId());
 
                 closeInstallation(connection, firstInstallation);
                 long secondInstallation = insertInstallation(connection, prefix + "-B", equipmentId,
                         930811L, 930824L, LocalDateTime.now().plusSeconds(1));
-                effectEquipment(connection, equipmentId, 930811L, 930824L, "RESOLVED", secondInstallation);
+                effectEquipment(connection, equipmentId, 930811L, 930824L, "RESOLVED");
                 assertEquals(930824L, equipmentLocation(connection, equipmentId).siteLocationId());
 
                 closeInstallation(connection, secondInstallation);
-                effectEquipment(connection, equipmentId, null, null, "UNRESOLVED", null);
+                effectEquipment(connection, equipmentId, null, null, "UNRESOLVED");
                 EquipmentLocation removed = equipmentLocation(connection, equipmentId);
                 assertNull(removed.siteId());
                 assertNull(removed.siteLocationId());
@@ -58,7 +58,7 @@ class InstallationLocationMySqlIntegrationTest {
     }
 
     private static long availableEquipment(Connection connection) throws SQLException {
-        String sql = "SELECT e.id FROM pms_equipment e LEFT JOIN imp_eng_installation i "
+        String sql = "SELECT e.id FROM ast_device e LEFT JOIN imp_eng_installation i "
                 + "ON i.tenant_id=e.tenant_id AND i.current_equipment_id=e.id "
                 + "WHERE e.tenant_id=1 AND e.deleted=b'0' AND i.id IS NULL ORDER BY e.id LIMIT 1";
         try (PreparedStatement statement = connection.prepareStatement(sql);
@@ -103,9 +103,9 @@ class InstallationLocationMySqlIntegrationTest {
     }
 
     private static void effectEquipment(Connection connection, long equipmentId, Long siteId, Long locationId,
-                                        String resolutionStatus, Long installationId) throws SQLException {
-        String sql = "UPDATE pms_equipment SET site_id=?, site_location_id=?, location_resolution_status=?, "
-                + "location_snapshot='{}', location_effective_from=NOW(3), location_source_installation_id=? WHERE id=?";
+                                        String resolutionStatus) throws SQLException {
+        String sql = "UPDATE ast_device SET site_id=?, site_location_id=?, location_resolution_status=?, "
+                + "location_snapshot='{}', location_effective_from=NOW(3) WHERE id=?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             if (siteId == null) {
                 statement.setNull(1, java.sql.Types.BIGINT);
@@ -118,19 +118,14 @@ class InstallationLocationMySqlIntegrationTest {
                 statement.setLong(2, locationId);
             }
             statement.setString(3, resolutionStatus);
-            if (installationId == null) {
-                statement.setNull(4, java.sql.Types.BIGINT);
-            } else {
-                statement.setLong(4, installationId);
-            }
-            statement.setLong(5, equipmentId);
+            statement.setLong(4, equipmentId);
             statement.executeUpdate();
         }
     }
 
     private static EquipmentLocation equipmentLocation(Connection connection, long equipmentId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("SELECT site_id, site_location_id, "
-                + "location_resolution_status, location_source_installation_id FROM pms_equipment WHERE id=?")) {
+                + "location_resolution_status, location_record_id FROM ast_device WHERE id=?")) {
             statement.setLong(1, equipmentId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
@@ -201,6 +196,6 @@ class InstallationLocationMySqlIntegrationTest {
     }
 
     private record EquipmentLocation(Long siteId, Long siteLocationId, String resolutionStatus,
-                                     Long sourceInstallationId) {
+                                     Long locationRecordId) {
     }
 }

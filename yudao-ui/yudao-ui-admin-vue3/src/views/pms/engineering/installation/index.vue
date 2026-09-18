@@ -137,10 +137,10 @@
           <el-form-item label="关联设备" prop="equipmentId">
             <PmsEntitySelect
               v-model="form.equipmentId"
-              :api="EquipmentApi.getEquipmentPage"
-              :label-field="['serialNumber', 'name']"
+              :api="DeviceArchiveApi.getDeviceArchivePage"
+              :label-field="['sn', 'name']"
               value-field="id"
-              query-field="serialNumber"
+              query-field="sn"
               placeholder="请选择设备"
             />
           </el-form-item>
@@ -207,7 +207,7 @@ import * as InstallationApi from '@/api/pms/engineering/installation'
 import type { InstallationVO } from '@/api/pms/engineering/installation'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as EquipmentApi from '@/api/pms/asset/equipment'
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
@@ -353,8 +353,8 @@ const handleAction = async (row: InstallationVO, action: 'start' | 'complete' | 
     await InstallationApi.completeInstallation(row.id!)
     if (row.equipmentId) {
       await Promise.all([
-        EquipmentApi.getEquipment(row.equipmentId),
-        EquipmentApi.getEquipmentVersionList(row.equipmentId)
+        DeviceArchiveApi.getDeviceArchiveRecord(row.equipmentId),
+        DeviceArchiveApi.getDeviceArchiveVersions(row.equipmentId)
       ])
     }
   }

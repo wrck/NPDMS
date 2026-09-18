@@ -1,11 +1,14 @@
 package cn.iocoder.yudao.module.pms.asset.service.configurationlog;
 
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceConfigurationLogPageReqVO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceConfigLogDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceConfigLogMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.query.DeviceConfigurationLogListQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceConfigurationLogListQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +23,20 @@ public class DeviceConfigurationLogQueryService {
     public static final String DOWNLOAD_PERMISSION = "pms:device-configuration-log:download";
 
     private final DeviceMapper deviceMapper;
-    private final EquipmentConfigLogMapper configurationLogMapper;
+    private final DeviceConfigLogMapper configurationLogMapper;
     private final PermissionApi permissionApi;
 
     public DeviceConfigurationLogQueryService(
             DeviceMapper deviceMapper,
-            EquipmentConfigLogMapper configurationLogMapper,
+            DeviceConfigLogMapper configurationLogMapper,
             PermissionApi permissionApi) {
         this.deviceMapper = deviceMapper;
         this.configurationLogMapper = configurationLogMapper;
         this.permissionApi = permissionApi;
+    }
+
+    public PageResult<DeviceConfigLogDO> getPage(DeviceConfigurationLogPageReqVO reqVO) {
+        return configurationLogMapper.selectPage(reqVO);
     }
 
     public List<DeviceConfigurationLogMetadata> getList(Long tenantId, Long userId, Long deviceId) {

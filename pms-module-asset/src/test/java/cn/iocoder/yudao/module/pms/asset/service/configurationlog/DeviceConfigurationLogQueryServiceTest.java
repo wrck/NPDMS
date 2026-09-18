@@ -4,10 +4,10 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipmentconfiglog.EquipmentConfigLogDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceConfigLogDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.query.DeviceConfigurationLogListQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceConfigLogMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceConfigurationLogListQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 class DeviceConfigurationLogQueryServiceTest {
 
     @Mock private DeviceMapper deviceMapper;
-    @Mock private EquipmentConfigLogMapper configurationLogMapper;
+    @Mock private DeviceConfigLogMapper configurationLogMapper;
     @Mock private PermissionApi permissionApi;
     private DeviceConfigurationLogQueryService service;
 
@@ -131,10 +131,10 @@ class DeviceConfigurationLogQueryServiceTest {
         return device;
     }
 
-    private EquipmentConfigLogDO configurationLog() {
-        EquipmentConfigLogDO log = new EquipmentConfigLogDO();
+    private DeviceConfigLogDO configurationLog() {
+        DeviceConfigLogDO log = new DeviceConfigLogDO();
         log.setId(21L);
-        log.setEquipmentId(8L);
+        log.setDeviceId(8L);
         log.setConfigType("RUNNING_CONFIG");
         log.setConfigContent("secret configuration");
         log.setSourceSystem("NMS");

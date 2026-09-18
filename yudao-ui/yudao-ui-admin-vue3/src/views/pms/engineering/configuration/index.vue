@@ -114,10 +114,10 @@
           <el-form-item label="关联设备" prop="equipmentId">
             <PmsEntitySelect
               v-model="form.equipmentId"
-              :api="EquipmentApi.getEquipmentPage"
-              :label-field="['serialNumber', 'name']"
+              :api="DeviceArchiveApi.getDeviceArchivePage"
+              :label-field="['sn', 'name']"
               value-field="id"
-              query-field="serialNumber"
+              query-field="sn"
               placeholder="请选择设备"
             />
           </el-form-item>
@@ -159,7 +159,7 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/project'
-import * as EquipmentApi from '@/api/pms/asset/equipment'
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'

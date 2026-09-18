@@ -66,7 +66,7 @@ class InstallationOptimisticLockMySqlIntegrationTest {
     void mybatisOptimisticLockerRejectsStaleInstallationUpdate() {
         String code = "IT-INSTALL-LOCK-" + System.nanoTime();
         Long equipmentId = jdbcTemplate.queryForObject(
-                "SELECT id FROM pms_equipment WHERE tenant_id=1 AND deleted=b'0' ORDER BY id LIMIT 1",
+                "SELECT id FROM ast_device WHERE tenant_id=1 AND deleted=b'0' ORDER BY id LIMIT 1",
                 Long.class);
         jdbcTemplate.update("INSERT INTO imp_eng_installation "
                         + "(project_id, code, equipment_id, install_location, status, version, "

@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import * as EquipmentApi from '@/api/pms/asset/equipment'
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 
 defineOptions({ name: 'EquipmentTag' })
 
@@ -30,8 +30,8 @@ const loadEquipmentName = async (id: number | string) => {
     return
   }
   try {
-    const res = await EquipmentApi.getEquipment(id)
-    const name = res?.name || res?.serialNumber || `设备#${id}`
+    const res = await DeviceArchiveApi.getDeviceArchiveRecord(id)
+    const name = res?.name || res?.sn || `设备#${id}`
     equipmentCache.set(id, name)
     if (String(props.equipmentId) !== String(id)) return
     displayName.value = name

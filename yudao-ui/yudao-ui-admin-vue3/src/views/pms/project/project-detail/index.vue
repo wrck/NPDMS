@@ -845,6 +845,13 @@ import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as SrvReportApi from '@/api/pms/service/srv-report'
 import * as SrvIssueApi from '@/api/pms/service/srv-issue'
 import * as DocTemplateApi from '@/api/pms/engineering/doc-template'
+// 设备序列号域（Demo 1.1.1 序列号详情 / 1.1.1.1 配置Log）
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import * as DeviceConfigLogApi from '@/api/pms/asset/device/archive'
+// 物料换货协同（Demo 2.2.1 物料选择，推送CRM）
+import * as MaterialExchangeApi from '@/api/pms/engineering/material-exch'
+// 满意度调查（Demo 6.2；6.1/6.2 问卷推送由满意度模块承接）
+import * as SatisfactionApi from '@/api/pms/acceptance/satisfaction'
 
 defineOptions({ name: 'PmsProjectDetail' })
 
@@ -909,10 +916,20 @@ const overviewSteps = [
 // ============ 左侧导轨：③ 业务中心（按功能分组） ============
 const businessGroups = [
   {
+    key: 'asset',
+    title: '设备序列号',
+    flowSteps: [
+      { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu' },
+      { key: 'config-log', label: '配置Log', icon: 'ep:document' }
+    ],
+    parallelItems: []
+  },
+  {
     key: 'engineering',
     title: '工程实施',
     flowSteps: [
       { key: 'site-survey', label: '现场工勘', icon: 'ep:position' },
+      { key: 'material-exch', label: '物料换货', icon: 'ep:sort' },
       { key: 'requirement', label: '需求分析', icon: 'ep:document-copy' },
       { key: 'briefing', label: '工程交底', icon: 'ep:notebook-2' }
     ],
@@ -961,6 +978,7 @@ const businessGroups = [
     title: '验收收尾',
     flowSteps: [
       { key: 'completion-certificate', label: '完工证明', icon: 'ep:medal' },
+      { key: 'satisfaction', label: '满意度调查', icon: 'ep:star' },
       { key: 'acceptance', label: '验收管理', icon: 'ep:circle-check' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked' },
       { key: 'project-closure', label: '项目闭环', icon: 'ep:lock' },
@@ -979,7 +997,57 @@ const businessGroups = [
 ]
 
 // ============ 通用模块配置（配置驱动，按 projectId 加载真实数据） ============
+// 项目级配置Log：后端分页仅支持按设备过滤，先取项目设备再合并各设备日志（Demo 1.1.1.1）
+const loadProjectConfigLogs = async (pid: number, pageNo: number, pageSize: number) => {
+  const eqRes = await DeviceArchiveApi.getDeviceArchivePage({ projectId: pid, pageNo: 1, pageSize: 200 })
+  const equipments = eqRes.list || []
+  const serialMap = new Map<number, string>(equipments.map((e: any) => [e.id, e.sn]))
+  const logLists = await Promise.all(
+    equipments.map((e: any) =>
+      DeviceConfigLogApi.getDeviceConfigLogPage({ deviceId: e.id, pageNo: 1, pageSize: pageNo * pageSize })
+        .then((res: any) =>
+          (res.list || []).map((log: any) => ({ ...log, serialNumber: serialMap.get(log.deviceId) ?? log.deviceId }))
+        )
+        .catch(() => [] as any[])
+    )
+  )
+  const merged = logLists
+    .flat()
+    .sort((a: any, b: any) => String(b.collectedAt || b.createTime || '').localeCompare(String(a.collectedAt || a.createTime || '')))
+  return { list: merged.slice((pageNo - 1) * pageSize, pageNo * pageSize), total: merged.length }
+}
+
 const moduleConfigs: Record<string, ModuleConfig> = {
+  // --- 设备序列号：流程步骤（Demo 1.1.1 / 1.1.1.1） ---
+  'sn-result': {
+    key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', path: '/pms/asset/device-archive',
+    load: (pid, pageNo, pageSize) => DeviceArchiveApi.getDeviceArchivePage({ projectId: pid, pageNo, pageSize }),
+    get: (id) => DeviceArchiveApi.getDeviceArchiveRecord(id),
+    columns: [
+      { prop: 'serialNumber', label: '序列号', width: 140 },
+      { prop: 'name', label: '设备名称', minWidth: 150 },
+      { prop: 'model', label: '产品型号', width: 110 },
+      { prop: 'location', label: '安装位置', minWidth: 130 },
+      { prop: 'warrantyStartDate', label: '维保开始', width: 110, type: 'time' },
+      { prop: 'warrantyEndDate', label: '维保结束', width: 110, type: 'time' },
+      { prop: 'status', label: '状态', width: 90, type: 'status' }
+    ],
+    statusMap: { 0: { label: '在库', tone: 'gray' }, 1: { label: '在用', tone: 'blue' }, 2: { label: '维修中', tone: 'yellow' }, 3: { label: '已报废', tone: 'red' }, 4: { label: '已借出', tone: 'green' } },
+    actions: []
+  },
+  'config-log': {
+    key: 'config-log', label: '配置Log', icon: 'ep:document', path: '/pms/asset/device-config-log',
+    load: loadProjectConfigLogs,
+    columns: [
+      { prop: 'serialNumber', label: '序列号', width: 140 },
+      { prop: 'configType', label: '配置类型', width: 110 },
+      { prop: 'collectedAt', label: '采集时间', width: 130, type: 'time' },
+      { prop: 'sourceSystem', label: '来源系统', width: 100 },
+      { prop: 'fileHash', label: '文件哈希', minWidth: 150 },
+      { prop: 'remark', label: '备注', minWidth: 120 }
+    ],
+    actions: []
+  },
   // --- 工程实施：流程步骤 ---
   'site-survey': {
     key: 'site-survey', label: '现场工勘', icon: 'ep:position', path: '/pms/engineering/preparation/sol-site-survey',
@@ -994,6 +1062,26 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ],
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待确认', tone: 'yellow' }, 2: { label: '已确认', tone: 'blue' }, 3: { label: '已归档', tone: 'green' } },
     actions: []
+  },
+  // 物料换货（Demo 2.2.1 物料选择，提交后审批，通过后推送CRM）
+  'material-exch': {
+    key: 'material-exch', label: '物料换货', icon: 'ep:sort', path: '/pms/eng-material-exch',
+    load: (pid, pageNo, pageSize) => MaterialExchangeApi.getMaterialExchangePage({ projectId: pid, pageNo, pageSize }),
+    get: (id) => MaterialExchangeApi.getMaterialExchange(id),
+    columns: [
+      { prop: 'code', label: '编码', width: 130 },
+      { prop: 'materialName', label: '物料名称', minWidth: 140 },
+      { prop: 'materialCode', label: '物料编码', width: 120 },
+      { prop: 'quantity', label: '数量', width: 70 },
+      { prop: 'reason', label: '不符合项说明', minWidth: 150 },
+      { prop: 'crmPushStatus', label: 'CRM推送', width: 90 },
+      { prop: 'status', label: '状态', width: 90, type: 'status' }
+    ],
+    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '已提交', tone: 'blue' }, 2: { label: '审批中', tone: 'yellow' }, 3: { label: '已通过', tone: 'green' }, 4: { label: '已驳回', tone: 'red' }, 5: { label: '已撤回', tone: 'gray' }, 6: { label: '已终止', tone: 'gray' } },
+    actions: [
+      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => MaterialExchangeApi.submitMaterialExchange(r.id), confirm: '提交该换货申请？' },
+      { label: '推送CRM', type: 'success', show: (r) => r.status === 3 && !r.crmPushStatus, run: (r) => MaterialExchangeApi.pushCrmMaterialExchange(r.id), confirm: '推送该换货单到CRM？' }
+    ]
   },
   'requirement': {
     key: 'requirement', label: '需求分析', icon: 'ep:document-copy', path: '/pms/engineering/preparation/sol-requirement',
@@ -1314,6 +1402,26 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => CompletionCertApi.submitCompletionCertificate(r.id), confirm: '提交该完工证明？' },
       { label: '客户确认', type: 'success', show: (r) => r.status === 1, run: (r) => CompletionCertApi.customerConfirmCompletionCertificate(r.id), confirm: '客户确认该完工证明？' },
       { label: '归档', type: 'info', show: (r) => r.status === 2, run: (r) => CompletionCertApi.archiveCompletionCertificate(r.id), confirm: '归档该完工证明？' }
+    ]
+  },
+  // 满意度调查（Demo 6.2；后端为结果视图数组接口，包装为 {list,total}；现场培训/满意度问卷推送均由该模块承接）
+  'satisfaction': {
+    key: 'satisfaction', label: '满意度调查', icon: 'ep:star', path: '/pms/project/satisfaction',
+    load: async (pid, pageNo, pageSize) => {
+      // 未纳入项目树治理范围的项目，后端返回 1014024033；详情视图面向任意项目，按空数据处理
+      const all = await SatisfactionApi.listResults(pid).catch(() => [] as SatisfactionApi.ResultView[])
+      return { list: (all || []).slice((pageNo - 1) * pageSize, pageNo * pageSize), total: (all || []).length }
+    },
+    columns: [
+      { prop: 'taskId', label: '任务编号', width: 90 },
+      { prop: 'questionnaireId', label: '问卷编号', width: 90 },
+      { prop: 'score', label: '得分', width: 70 },
+      { prop: 'threshold', label: '达标线', width: 70 },
+      { prop: 'resultStatus', label: '结果状态', width: 90 },
+      { prop: 'passed', label: '是否达标', width: 80 }
+    ],
+    actions: [
+      { label: '下载报告', show: (r) => !!r.resultId, run: (r) => SatisfactionApi.getResultDownload(r.resultId, 1) }
     ]
   },
   'acceptance': {

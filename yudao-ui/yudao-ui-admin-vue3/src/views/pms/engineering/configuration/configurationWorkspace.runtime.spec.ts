@@ -6,7 +6,7 @@ import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/plat
 
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/api/pms/project/project', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
-vi.mock('@/api/pms/asset/equipment', () => ({ __v_isRef: false, getEquipmentPage: vi.fn() }))
+vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
 vi.mock('@/components/EquipmentTag/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: vi.fn(), createConfiguration: vi.fn(), updateConfiguration: vi.fn(), deleteConfiguration: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_ENG_STATUS: 'configuration' }, getIntDictOptions: () => [] }))

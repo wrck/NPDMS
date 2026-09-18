@@ -177,10 +177,10 @@
           <el-form-item label="设备编号" prop="equipmentId">
             <PmsEntitySelect
               v-model="form.equipmentId"
-              :api="EquipmentApi.getEquipmentPage"
-              :label-field="['serialNumber','name']"
+              :api="DeviceArchiveApi.getDeviceArchivePage"
+              :label-field="['sn','name']"
               value-field="id"
-              query-field="serialNumber"
+              query-field="sn"
               placeholder="请选择设备"
             />
           </el-form-item>
@@ -445,7 +445,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as ProjectApi from '@/api/pms/project/project'
-import * as EquipmentApi from '@/api/pms/asset/equipment'
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import * as SrvRuleApi from '@/api/pms/service/srv-rule'
 import type { SrvTaskVO, SrvExecutionVO, SrvOfflineFileVO } from '@/api/pms/service/srv-task'
 

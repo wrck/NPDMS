@@ -1,16 +1,10 @@
 package cn.iocoder.yudao.module.pms.asset.service.equipment;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentDO;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentVersionDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentVersionMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
-import cn.iocoder.yudao.module.pms.asset.enums.EquipmentChangeTypeEnum;
 import cn.iocoder.yudao.module.pms.asset.enums.LocationResolutionStatus;
 import cn.iocoder.yudao.module.pms.asset.service.location.DeviceLocationEffectiveService;
 import cn.iocoder.yudao.module.pms.asset.service.location.SiteLocationTreeService;
@@ -24,14 +18,13 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.*;
 
 /**
- * 设备当前位置生效服务。只消费公开命令，不读取工程实施域内部数据。
+ * 设备当前位置生效服务（ast_device 承载，pms_equipment 兜底分支已随旧链退役）。
+ * 只消费公开命令，不读取工程实施域内部数据。
  */
 @Service
 @RequiredArgsConstructor
 public class EquipmentLocationEffectiveService {
 
-    private final EquipmentMapper equipmentMapper;
-    private final EquipmentVersionMapper equipmentVersionMapper;
     private final SiteMapper siteMapper;
     private final SiteLocationTreeService siteLocationTreeService;
     private final DeviceLocationEffectiveService deviceLocationEffectiveService;
@@ -40,39 +33,9 @@ public class EquipmentLocationEffectiveService {
     public void effect(EquipmentLocationEffectiveCommand command) {
         validateCommand(command);
         validateLocation(command);
-        if (deviceLocationEffectiveService.effect(command)) {
-            return;
-        }
-        EquipmentDO before = equipmentMapper.selectById(command.equipmentId());
-        if (before == null) {
+        if (!deviceLocationEffectiveService.effect(command)) {
             throw exception(AST_EQUIPMENT_NOT_EXISTS);
         }
-        if (Objects.equals(before.getLocationSourceInstallationId(), command.installationId())) {
-            return;
-        }
-
-        EquipmentDO update = new EquipmentDO();
-        update.setId(before.getId());
-        update.setSiteId(command.siteId());
-        update.setSiteLocationId(command.siteLocationId());
-        update.setLocation(command.locationText());
-        update.setLocationResolutionStatus(command.resolutionStatus());
-        update.setLocationSnapshot(command.locationSnapshot());
-        update.setLocationEffectiveFrom(command.effectiveFrom());
-        update.setLocationSourceInstallationId(command.installationId());
-        if (equipmentMapper.updateLocationIfMatch(update, before.getVersion()) == 0) {
-            throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
-        }
-
-        EquipmentDO after = equipmentMapper.selectById(before.getId());
-        EquipmentVersionDO version = new EquipmentVersionDO();
-        version.setEquipmentId(before.getId());
-        version.setVersionNo(equipmentVersionMapper.selectMaxVersionNo(before.getId()) + 1);
-        version.setChangeType(EquipmentChangeTypeEnum.LOCATION_EFFECTIVE);
-        version.setChangeDescription("安装位置生效，来源安装记录：" + command.installationId());
-        version.setBeforeSnapshot(JsonUtils.toJsonString(before));
-        version.setAfterSnapshot(JsonUtils.toJsonString(after));
-        equipmentVersionMapper.insert(version);
     }
 
     private void validateCommand(EquipmentLocationEffectiveCommand command) {
