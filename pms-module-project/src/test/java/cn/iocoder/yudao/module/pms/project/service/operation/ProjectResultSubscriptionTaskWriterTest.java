@@ -98,6 +98,19 @@ class ProjectResultSubscriptionTaskWriterTest {
         assertEquals(f.scan().getId().longValue(),history.get("subscriptionEvidence").get(0).get("scanId").longValue());
         assertTrue(success.getFirst().eventType().equals("TaskCompleted"));verifyNoInteractions(business);
     }
+    @Test void evaluatedOutboxNotificationReachesTheRealFormalWriter() {
+        f.seed(1,"object","r1",null,Validity.CURRENT);f.tick();
+        var admission=mock(ProjectTaskAdmissionService.class);
+        when(admission.activateEligible(any(),any(),any())).thenReturn(new ProjectTaskAdmissionService.Result(false,false));
+        var processor=f.recovery.proxy(new ProjectResultEvidenceProcessor(f.recovery.contexts,f.evidence,admission,
+                mock(ProjectStageAdmissionService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService.class),
+                writer,mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectStageCompletionService.class),f.recovery.outbox,mock(OperationAuditApi.class)));
+        var event=ResultEvidenceEvaluatedEvent.create(ResultSubscriptionWakeup.create(f.recovery.row()),f.scan());
+        assertEquals("ADVANCED",processor.process(event));
+        verify(tasks).updateLifecycleIfMatch(any());
+        assertEquals(1,success.size());verifyNoInteractions(business);
+    }
+
     @Test void staleEvidenceRulesAndStartedChildrenRemainMandatoryCompletionGuards() {
         f.seed(1,"object","r1",null,Validity.CURRENT);f.tick();f.recovery.committed=8;
         assertFalse(complete().completed());f.recovery.committed=7;

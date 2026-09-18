@@ -19,9 +19,11 @@ public class ProjectResultSubscriptionDelivery {
     private final ProjectResultSubscriptionFanout fanout;
     @jakarta.annotation.Resource
     private org.springframework.beans.factory.ObjectProvider<ProjectResultEvidenceScanner> evidence;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<ProjectResultEvidenceProcessor> evaluated;
 
     public static Set<String> eventTypes() {
-        return Set.of(BusinessResultChange.EVENT_TYPE, ResultSubscriptionWakeup.EVENT_TYPE, ResultSubscriptionFanoutEvent.EVENT_TYPE, ResultEvidenceScanEvent.EVENT_TYPE);
+        return Set.of(BusinessResultChange.EVENT_TYPE, ResultSubscriptionWakeup.EVENT_TYPE, ResultSubscriptionFanoutEvent.EVENT_TYPE, ResultEvidenceScanEvent.EVENT_TYPE, ResultEvidenceEvaluatedEvent.EVENT_TYPE);
     }
     public boolean deliver(PlatformOutboxMessageDTO message) {
         if (message == null || !Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())
@@ -32,7 +34,13 @@ public class ProjectResultSubscriptionDelivery {
         if (json == null || !json.isObject() || !json.path("eventVersion").isIntegralNumber()
                 || !"1".equals(json.path("eventVersion").asText()) || !Objects.equals(message.eventId(), json.path("eventId").asText()))
             throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
-        if (ResultEvidenceScanEvent.EVENT_TYPE.equals(message.eventType())) {
+        if (ResultEvidenceEvaluatedEvent.EVENT_TYPE.equals(message.eventType())) {
+            requireNumbers(json, "scanId");
+            requireNumbers(json.path("target"), "eventVersion", "tenantId", "projectId", "subscriptionId", "planVersionId", "executionId", "contractId");
+            var event = read(message.payload(), ResultEvidenceEvaluatedEvent.class);
+            if (!Objects.equals(message.tenantId(), event.target().tenantId())) throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
+            evaluated.getObject().process(event);
+        } else if (ResultEvidenceScanEvent.EVENT_TYPE.equals(message.eventType())) {
             requireNumbers(json, "subscriptionVersion");
             requireNumbers(json.path("target"), "eventVersion", "tenantId", "projectId", "subscriptionId", "planVersionId", "executionId", "contractId");
             var event = read(message.payload(), ResultEvidenceScanEvent.class);
