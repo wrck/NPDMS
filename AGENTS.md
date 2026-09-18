@@ -1,14 +1,5 @@
 # 项目实施约束
 
-## 事实来源
-
-- 本仓库是业务、设计、实现、测试与验收证据的唯一事实源，不再维护外部规格仓快照或第二套Feature状态源。
-- 权威优先级固定为：`PRD > Engineering Constitution > SDS > Feature Spec > Technical Plan > Task > Code > Test / Runtime Evidence`。下游可以细化上游，但不得静默改变业务语义。
-- 修改设计或代码前，按上述权威顺序读取 `docs/baseline/prd-v1.8.md`、`docs/engineering/00-engineering-chain.md`、`docs/README.md`、相关SDS、Feature Spec和当前Task中的任务相关章节。先用Requirement ID、路径和索引定位，不要求通读无关分册；本轮已读且未变化的内容不重复加载。纯文字或排版更正只读目标文件及适用文档规则，不借此跳过实际业务契约。
-- 规格与实现变更在同一分支内按上游到下游推进：契约变化先按[工程链2.7](docs/engineering/00-engineering-chain.md#27-sds变更边界)选择并修订权威位置，再修改代码、迁移和测试，最后按影响更新追溯投影与证据；契约未变不制造规格修订。SDS只在通用系统设计、通用模型、API或设计约束变化时修改，其他Feature细化和局部实现归Feature Spec、Task或代码，不联动SDS。禁止下游事实反向覆盖正式规格。
-- `tasks/plan.md` 和 `tasks/todo.md` 已标记为历史材料，不再生成或驱动新开发任务。
-- 本项目禁止使用项目记忆补全需求、设计或验收结论；不确定事项必须回到仓库文档或标记为【待确认】。
-
 ## 实施优先、按变更验证（2026-09-08需求方批准）
 
 - 默认“确认需求与影响 → 实现 → 针对性验证和自审 → 一次记录结果”。串行局部改动不强制独立计划或DU；并行Feature/Task首次认领及Owner/业务职责/排他边界变更先提交到master，再按生效边界写入。普通进度不要求逐次提交，实施分支不要求包含认领提交。详细规则只在[工程链第2、6章](docs/engineering/00-engineering-chain.md)维护。
@@ -46,15 +37,6 @@
 - 实施任务遵循`READ -> PLAN -> IMPLEMENT -> TEST -> SELF-REVIEW -> REPORT`，这些是工作职责，不要求每步新建文档或等待确认；只读任务不进入IMPLEMENT。
 - 开始时一次说明交付物、完成条件、修改文件、Requirement ID或治理批准依据、实际领域/API/数据库/权限/状态机影响、验证和风险。小改动在对话中给出短计划；多步工作复用当前Task/DU，不另建重复计划或审批表。
 - 结束时先报告完成范围和结果，再给变更文件、需求覆盖、实际验证、未执行项及原因、剩余限制。自审与独立审查、代码存在与功能验收明确区分，不重复粘贴全过程。
-
-## 项目级 Skills
-
-项目技能位于`.agents/skills/`，只在任务匹配时读取对应入口；不为每次编辑同时加载全部流程。
-
-- [npdms-change-delivery](.agents/skills/npdms-change-delivery/SKILL.md)：需要衔接规格、DU、实现与验证的Feature/Task或工程治理变更。
-- [npdms-implementation-review](.agents/skills/npdms-implementation-review/SKILL.md)：按Requirement/Feature核对工程链与实现现状；仅在用户要求时回写状态。
-
-Skill提供执行方法，不产生新的业务语义、审批权、永久状态或Git授权。通用Skill示例与项目已批准规则不一致时，遵循更高优先级指令及本项目正式规则，并指出实际冲突；不能把Skill自身的额外流程当成项目Gate。项目技能名称独立，不假定会覆盖或合并全局同名Skill；不修改全局Skills、插件或配置来完成仓库内任务。
 
 ## 技术基线
 
