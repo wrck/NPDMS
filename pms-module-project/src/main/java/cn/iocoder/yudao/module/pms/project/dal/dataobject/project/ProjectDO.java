@@ -17,6 +17,15 @@ import lombok.EqualsAndHashCode;
 @TableName("pms_project")
 @Data
 @EqualsAndHashCode(callSuper = true)
+@Deprecated
+/**
+ * PMS 项目权威主数据 DO（旧链）
+ *
+ * @deprecated 旧 {@code pms_project} 已冻结只读（AI-MIG-000 / V260 全量前向导入）。
+ * 口径A（V254 有承接领域）的领域服务已直接读写新权威主档 {@code proj_project}
+ * （ProjectMasterDO）；本 DO 仅保留口径A 范围外旧链过渡消费方使用，
+ * 不得在新增实现中引用。
+ */
 public class ProjectDO extends TenantBaseDO {
 
     /**

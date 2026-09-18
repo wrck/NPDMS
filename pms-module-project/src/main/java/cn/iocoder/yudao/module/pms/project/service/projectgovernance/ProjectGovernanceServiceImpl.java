@@ -5,9 +5,10 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.vo.ProjectGovernanceApproveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.vo.ProjectGovernancePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.vo.ProjectGovernanceSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectGovernanceActionDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterLegacyConvert;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectGovernanceActionMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,10 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.GOVER
  * 项目状态约定：0立项待指派 / 1进行中 / 2已完成 / 3已关闭
  * - ROLLBACK：执行时将项目状态置回 0（待指派），清空项目经理
  * - DIRECT_CLOSE：执行时将项目状态置为 3（已关闭）
+ * <p>
+ * 项目主档操作已迁新权威主档 {@code proj_project}（AI-MIG-000 口径A 有承接领域 /
+ * V260 已全量前向导入）；粗化状态按 V260 契约双向映射（0->S0 / 3->S6，逆向终态
+ * 还原 S6->3）。动作审计字段（before/after Integer 粗化状态）沿用旧口径。
  */
 @Service
 @Validated
@@ -59,8 +64,8 @@ public class ProjectGovernanceServiceImpl implements ProjectGovernanceService {
 
     @Resource
     private ProjectGovernanceActionMapper projectGovernanceActionMapper;
-    @Resource
-    private ProjectMapper projectMapper;
+    @Resource(name = "projectMasterMapper")
+    private ProjectMasterMapper projectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -176,29 +181,32 @@ public class ProjectGovernanceServiceImpl implements ProjectGovernanceService {
      * - DIRECT_CLOSE：项目状态置为 3（已关闭）
      */
     private void executeGovernanceAction(ProjectGovernanceActionDO existing, ProjectGovernanceActionDO updateObj) {
-        ProjectDO project = projectMapper.selectById(existing.getProjectId());
+        ProjectMasterDO project = projectMapper.selectById(existing.getProjectId());
         if (project == null) {
             throw exception(GOVERNANCE_ACTION_PROJECT_NOT_EXISTS);
         }
-        // 记录执行前状态
-        updateObj.setBeforeProjectStatus(project.getStatus());
-        updateObj.setBeforeManagerUserId(project.getManagerUserId());
+        // 记录执行前状态（动作审计沿用旧 Integer 粗化口径，逆向终态还原见转换器）
+        updateObj.setBeforeProjectStatus(
+                ProjectMasterLegacyConvert.toLegacyStatus(project.getStatus()));
+        updateObj.setBeforeManagerUserId(project.getManagerId());
 
-        ProjectDO projectUpdate = new ProjectDO();
+        ProjectMasterDO projectUpdate = new ProjectMasterDO();
         projectUpdate.setId(project.getId());
         if (ACTION_TYPE_ROLLBACK.equals(existing.getActionType())) {
-            // 回退：状态置为待指派，清空项目经理
-            projectUpdate.setStatus(PROJECT_STATUS_PENDING_ASSIGN);
-            projectUpdate.setManagerUserId(null);
+            // 回退：状态置为待指派（S0），清空项目经理
+            projectUpdate.setStatus(
+                    ProjectMasterLegacyConvert.toMasterStatus(PROJECT_STATUS_PENDING_ASSIGN));
+            projectUpdate.setManagerId(null);
             updateObj.setAfterProjectStatus(PROJECT_STATUS_PENDING_ASSIGN);
             updateObj.setAfterManagerUserId(null);
             log.info("[executeGovernanceAction][项目 id={} 回退总部，原状态={} 原经理={}]",
-                    project.getId(), project.getStatus(), project.getManagerUserId());
+                    project.getId(), project.getStatus(), project.getManagerId());
         } else if (ACTION_TYPE_DIRECT_CLOSE.equals(existing.getActionType())) {
-            // 关闭：状态置为已关闭
-            projectUpdate.setStatus(PROJECT_STATUS_CLOSED);
+            // 关闭：状态置为已关闭（S6）
+            projectUpdate.setStatus(
+                    ProjectMasterLegacyConvert.toMasterStatus(PROJECT_STATUS_CLOSED));
             updateObj.setAfterProjectStatus(PROJECT_STATUS_CLOSED);
-            updateObj.setAfterManagerUserId(project.getManagerUserId());
+            updateObj.setAfterManagerUserId(project.getManagerId());
             log.info("[executeGovernanceAction][项目 id={} 直接关闭，原状态={}]", project.getId(), project.getStatus());
         } else {
             throw exception(GOVERNANCE_ACTION_TYPE_INVALID);

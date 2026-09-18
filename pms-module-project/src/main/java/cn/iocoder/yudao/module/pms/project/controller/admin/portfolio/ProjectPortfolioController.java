@@ -11,9 +11,9 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.portfolio.vo.Project
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioMemberDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioRuleDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.portfolio.ProjectPortfolioRuleMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.service.portfolio.ProjectPortfolioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,8 +42,8 @@ public class ProjectPortfolioController {
     private ProjectPortfolioService portfolioService;
     @Resource
     private ProjectPortfolioRuleMapper ruleMapper;
-    @Resource
-    private ProjectMapper projectMapper;
+    @Resource(name = "projectMasterMapper")
+    private ProjectMasterMapper projectMapper;
 
     @PostMapping("/create")
     @Operation(summary = "创建项目组合")
@@ -122,17 +122,17 @@ public class ProjectPortfolioController {
         // 批量查询项目信息
         Set<Long> projectIds = members.stream().map(ProjectPortfolioMemberDO::getProjectId)
                 .collect(Collectors.toSet());
-        Map<Long, ProjectDO> projectMap = projectIds.isEmpty() ? Map.of()
+        Map<Long, ProjectMasterDO> projectMap = projectIds.isEmpty() ? Map.of()
                 : projectMapper.selectByIds(projectIds).stream()
-                .collect(Collectors.toMap(ProjectDO::getId, p -> p));
+                .collect(Collectors.toMap(ProjectMasterDO::getId, p -> p));
         // 组装返回 VO
         List<ProjectPortfolioMemberRespVO> result = new ArrayList<>();
         for (ProjectPortfolioMemberDO member : members) {
             ProjectPortfolioMemberRespVO respVO = BeanUtils.toBean(member, ProjectPortfolioMemberRespVO.class);
-            ProjectDO project = projectMap.get(member.getProjectId());
+            ProjectMasterDO project = projectMap.get(member.getProjectId());
             if (project != null) {
-                respVO.setProjectCode(project.getCode());
-                respVO.setProjectName(project.getName());
+                respVO.setProjectCode(project.getProjectCode());
+                respVO.setProjectName(project.getProjectName());
             }
             result.add(respVO);
         }

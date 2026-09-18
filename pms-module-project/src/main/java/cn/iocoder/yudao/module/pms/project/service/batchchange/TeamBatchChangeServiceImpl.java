@@ -7,11 +7,11 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.batchchange.vo.TeamB
 import cn.iocoder.yudao.module.pms.project.controller.admin.batchchange.vo.TeamBatchChangeSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange.TeamBatchChangeDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange.TeamBatchChangeItemDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.batchchange.TeamBatchChangeItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.batchchange.TeamBatchChangeMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectteam.ProjectTeamMemberMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +34,11 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 
 /**
  * PMS 团队批量变更 Service 实现（FR-PROJ-014）。
+ * <p>
+ * 项目主档引用新权威 {@code proj_project}（AI-MIG-000 / V260 全量前向导入）；
+ * 旧 {@code pms_project} 已冻结只读。自有批次表 {@code proj_team_batch_change*}
+ * 为 V254 CURRENT_FORWARD 当前承载。团队成员表 {@code pms_project_team_member}
+ * 保持 pms_ 前缀（V254 本脚本不动），仍为当前承载。
  * <p>
  * 创建批次时按源用户与范围生成明细；执行时逐条更新团队成员 user_id，
  * 部分失败时批次状态为部分成功(2)，明细逐条返回成功/失败结果与原因。
@@ -65,8 +70,8 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
     private TeamBatchChangeItemMapper batchChangeItemMapper;
     @Resource
     private ProjectTeamMemberMapper projectTeamMemberMapper;
-    @Resource
-    private ProjectMapper projectMapper;
+    @Resource(name = "projectMasterMapper")
+    private ProjectMasterMapper projectMapper;
 
     @Override
     @Transactional
@@ -88,7 +93,7 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
                 .map(ProjectTeamMemberDO::getProjectId).collect(Collectors.toSet());
         Map<Long, String> projectNameMap = projectIds.isEmpty() ? Map.of()
                 : projectMapper.selectByIds(projectIds).stream()
-                .collect(Collectors.toMap(ProjectDO::getId, ProjectDO::getName));
+                .collect(Collectors.toMap(ProjectMasterDO::getId, ProjectMasterDO::getProjectName));
         // 5. 写入批次
         TeamBatchChangeDO batch = BeanUtils.toBean(createReqVO, TeamBatchChangeDO.class);
         batch.setBatchNo(batchNo);

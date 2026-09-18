@@ -15,6 +15,15 @@ import java.util.List;
  * PMS 项目 Mapper
  */
 @Mapper
+@Deprecated
+/**
+ * PMS 项目 Mapper（旧链）
+ *
+ * @deprecated 旧 {@code pms_project} 已冻结只读（AI-MIG-000 / V260 全量前向导入）。
+ * 口径A（V254 有承接领域）的领域服务已直接读写新权威主档 {@code proj_project}
+ * （ProjectMasterMapper）；本 Mapper 仅保留口径A 范围外旧链过渡消费方使用，
+ * 不得在新增实现中引用。
+ */
 public interface ProjectMapper extends BaseMapperX<ProjectDO> {
 
     default PageResult<ProjectDO> selectPage(ProjectPageReqVO reqVO) {

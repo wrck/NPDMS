@@ -4,9 +4,8 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectteam.ProjectTeamMemberMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -29,8 +28,8 @@ public class ProjectTeamServiceImpl implements ProjectTeamService {
     @Resource
     private ProjectTeamMemberMapper projectTeamMemberMapper;
 
-    @Resource
-    private ProjectMapper projectMapper;
+    @Resource(name = "projectMasterMapper")
+    private ProjectMasterMapper projectMapper;
 
     @Override
     public Long createProjectTeamMember(ProjectTeamMemberSaveReqVO createReqVO) {
@@ -95,8 +94,7 @@ public class ProjectTeamServiceImpl implements ProjectTeamService {
         if (projectId == null) {
             return;
         }
-        ProjectDO project = projectMapper.selectById(projectId);
-        if (project == null) {
+        if (projectMapper.selectById(projectId) == null) {
             throw exception(PROJECT_TEAM_PROJECT_NOT_EXISTS);
         }
     }

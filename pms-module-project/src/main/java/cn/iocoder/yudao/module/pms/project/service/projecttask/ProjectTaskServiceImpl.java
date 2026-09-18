@@ -6,9 +6,8 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.Proje
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskTreeRespVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -39,8 +38,8 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     @Resource
     private ProjectTaskMapper projectTaskMapper;
 
-    @Resource
-    private ProjectMapper projectMapper;
+    @Resource(name = "projectMasterMapper")
+    private ProjectMasterMapper projectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -282,8 +281,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         if (projectId == null) {
             return;
         }
-        ProjectDO project = projectMapper.selectById(projectId);
-        if (project == null) {
+        if (projectMapper.selectById(projectId) == null) {
             throw exception(PROJECT_TASK_PROJECT_NOT_EXISTS);
         }
     }
