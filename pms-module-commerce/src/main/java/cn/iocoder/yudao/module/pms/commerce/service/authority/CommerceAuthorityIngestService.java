@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.AuthorityR
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.AuthorityScopeDetailsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.AuthorityScopeImpactQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.AuthorityScopeReleaseUpdate;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.AuthoritySourceKeysQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.AuthoritySourceQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.ContractAuthorityUpdate;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.OrderLineAuthorityUpdate;
@@ -47,6 +48,7 @@ public class CommerceAuthorityIngestService {
 
     private static final String SCOPE_CODE = "COM:AUTHORITY:INGEST";
     private static final String CONFIRMED = "CONFIRMED";
+    private static final int OWNER_BATCH_SIZE = 1000;
 
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final AuthorityPayloadCanonicalizer canonicalizer;
@@ -114,12 +116,8 @@ public class CommerceAuthorityIngestService {
         for (CommerceContractFact fact : command.contracts()) {
             applyContract(command, fact, changes);
         }
-        for (CommerceSalesOrderFact fact : command.salesOrders()) {
-            applySalesOrder(command, fact, changes);
-        }
-        for (CommerceOrderLineFact fact : command.orderLines()) {
-            applyOrderLine(command, fact, changes);
-        }
+        applySalesOrders(command, changes);
+        applyOrderLines(command, changes);
         for (CommerceOrderContractRelationFact fact : command.orderContractRelations()) {
             applyRelation(command, fact, changes);
         }
@@ -156,18 +154,34 @@ public class CommerceAuthorityIngestService {
         changes.changed = true;
     }
 
-    private void applySalesOrder(CommerceAuthorityBatchCommand command, CommerceSalesOrderFact fact,
-                                 BatchChanges changes) {
-        SalesOrderDO current = salesOrderMapper.selectBySourceForUpdate(sourceQuery(command, fact.sourceKey()));
-        if (current == null) {
-            requireCreate(fact.expectedPreviousSourceVersion(), "salesOrder", fact.sourceKey());
-            SalesOrderDO row = base(new SalesOrderDO(), command.tenantId());
-            copySalesOrder(row, command, fact);
-            row.setVersion(0);
-            requireWrite(salesOrderMapper.insert(row), "销售订单Owner创建失败");
-            changes.changed = true;
+    private void applySalesOrders(CommerceAuthorityBatchCommand command, BatchChanges changes) {
+        if (command.salesOrders().isEmpty()) {
             return;
         }
+        List<String> keys = command.salesOrders().stream().map(CommerceSalesOrderFact::sourceKey).toList();
+        Map<String, SalesOrderDO> currentByKey = lockSalesOrders(command, keys);
+        List<SalesOrderDO> created = new ArrayList<>();
+        for (CommerceSalesOrderFact fact : command.salesOrders()) {
+            SalesOrderDO current = currentByKey.get(fact.sourceKey());
+            if (current == null) {
+                requireCreate(fact.expectedPreviousSourceVersion(), "salesOrder", fact.sourceKey());
+                SalesOrderDO row = base(new SalesOrderDO(), command.tenantId());
+                row.setId(IdWorker.getId());
+                copySalesOrder(row, command, fact);
+                row.setVersion(0);
+                created.add(row);
+                continue;
+            }
+            applyExistingSalesOrder(command, fact, current, changes);
+        }
+        if (!created.isEmpty()) {
+            requireBatchWrite(salesOrderMapper.insertBatch(created, OWNER_BATCH_SIZE), "销售订单Owner批量创建失败");
+            changes.changed = true;
+        }
+    }
+
+    private void applyExistingSalesOrder(CommerceAuthorityBatchCommand command, CommerceSalesOrderFact fact,
+                                         SalesOrderDO current, BatchChanges changes) {
         if (replayOrRequirePredecessor(current.getSourceVersion(), fact.sourceVersion(),
                 fact.expectedPreviousSourceVersion(), canonicalizer.orderPayload(current),
                 canonicalizer.orderPayload(fact), "salesOrder", fact.sourceKey())) {
@@ -181,28 +195,39 @@ public class CommerceAuthorityIngestService {
         changes.changed = true;
     }
 
-    private void applyOrderLine(CommerceAuthorityBatchCommand command, CommerceOrderLineFact fact,
-                                BatchChanges changes) {
-        SalesOrderDO order = salesOrderMapper.selectBySourceForUpdate(
-                sourceQuery(command, fact.salesOrderSourceKey()));
-        if (order == null || !Objects.equals(command.tenantId(), order.getTenantId())
-                || !Objects.equals(command.sourceSystem(), order.getSourceSystem())
-                || !CONFIRMED.equals(order.getAuthorityStatus())
-                || order.getCompanyCode() == null || order.getCompanyCode().isBlank()
-                || order.getOrderType() == null || order.getOrderType().isBlank()
-                || order.getOrderNo() == null || order.getOrderNo().isBlank()) {
-            throw failure(OWNER_DATA_CORRUPTED, "订单行引用的ERP销售订单Owner不存在或身份损坏");
-        }
-        SalesOrderLineDO current = orderLineMapper.selectBySourceForUpdate(sourceQuery(command, fact.sourceKey()));
-        if (current == null) {
-            requireCreate(fact.expectedPreviousSourceVersion(), "orderLine", fact.sourceKey());
-            SalesOrderLineDO row = base(new SalesOrderLineDO(), command.tenantId());
-            copyOrderLine(row, command, fact, order);
-            row.setVersion(0);
-            requireWrite(orderLineMapper.insert(row), "订单行Owner创建失败");
-            changes.changed = true;
+    private void applyOrderLines(CommerceAuthorityBatchCommand command, BatchChanges changes) {
+        if (command.orderLines().isEmpty()) {
             return;
         }
+        List<String> parentKeys = command.orderLines().stream().map(CommerceOrderLineFact::salesOrderSourceKey)
+                .distinct().sorted().toList();
+        Map<String, SalesOrderDO> parents = lockSalesOrders(command, parentKeys);
+        List<String> lineKeys = command.orderLines().stream().map(CommerceOrderLineFact::sourceKey).toList();
+        Map<String, SalesOrderLineDO> currentByKey = lockOrderLines(command, lineKeys);
+        List<SalesOrderLineDO> created = new ArrayList<>();
+        for (CommerceOrderLineFact fact : command.orderLines()) {
+            SalesOrderDO order = parents.get(fact.salesOrderSourceKey());
+            requireValidOrderOwner(command, order);
+            SalesOrderLineDO current = currentByKey.get(fact.sourceKey());
+            if (current == null) {
+                requireCreate(fact.expectedPreviousSourceVersion(), "orderLine", fact.sourceKey());
+                SalesOrderLineDO row = base(new SalesOrderLineDO(), command.tenantId());
+                row.setId(IdWorker.getId());
+                copyOrderLine(row, command, fact, order);
+                row.setVersion(0);
+                created.add(row);
+                continue;
+            }
+            applyExistingOrderLine(command, fact, order, current, changes);
+        }
+        if (!created.isEmpty()) {
+            requireBatchWrite(orderLineMapper.insertBatch(created, OWNER_BATCH_SIZE), "订单行Owner批量创建失败");
+            changes.changed = true;
+        }
+    }
+
+    private void applyExistingOrderLine(CommerceAuthorityBatchCommand command, CommerceOrderLineFact fact,
+                                        SalesOrderDO order, SalesOrderLineDO current, BatchChanges changes) {
         String currentPayload = Objects.equals(current.getOrderId(), order.getId())
                 ? canonicalizer.linePayload(current, fact.salesOrderSourceKey())
                 : "OWNER_PARENT_MISMATCH";
@@ -221,6 +246,45 @@ public class CommerceAuthorityIngestService {
             freezeAffectedScopes(command, current.getId(), fact);
         }
         changes.changed = true;
+    }
+
+    private Map<String, SalesOrderDO> lockSalesOrders(CommerceAuthorityBatchCommand command, List<String> keys) {
+        Map<String, SalesOrderDO> result = new LinkedHashMap<>();
+        for (int start = 0; start < keys.size(); start += OWNER_BATCH_SIZE) {
+            List<String> page = keys.subList(start, Math.min(start + OWNER_BATCH_SIZE, keys.size()));
+            for (SalesOrderDO row : salesOrderMapper.selectBySourcesForUpdate(
+                    new AuthoritySourceKeysQuery(command.tenantId(), command.sourceSystem(), page))) {
+                if (result.put(row.getSourceKey(), row) != null) {
+                    throw failure(OWNER_DATA_CORRUPTED, "销售订单来源身份重复: " + row.getSourceKey());
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<String, SalesOrderLineDO> lockOrderLines(CommerceAuthorityBatchCommand command, List<String> keys) {
+        Map<String, SalesOrderLineDO> result = new LinkedHashMap<>();
+        for (int start = 0; start < keys.size(); start += OWNER_BATCH_SIZE) {
+            List<String> page = keys.subList(start, Math.min(start + OWNER_BATCH_SIZE, keys.size()));
+            for (SalesOrderLineDO row : orderLineMapper.selectBySourcesForUpdate(
+                    new AuthoritySourceKeysQuery(command.tenantId(), command.sourceSystem(), page))) {
+                if (result.put(row.getSourceKey(), row) != null) {
+                    throw failure(OWNER_DATA_CORRUPTED, "订单行来源身份重复: " + row.getSourceKey());
+                }
+            }
+        }
+        return result;
+    }
+
+    private void requireValidOrderOwner(CommerceAuthorityBatchCommand command, SalesOrderDO order) {
+        if (order == null || !Objects.equals(command.tenantId(), order.getTenantId())
+                || !Objects.equals(command.sourceSystem(), order.getSourceSystem())
+                || !CONFIRMED.equals(order.getAuthorityStatus())
+                || order.getCompanyCode() == null || order.getCompanyCode().isBlank()
+                || order.getOrderType() == null || order.getOrderType().isBlank()
+                || order.getOrderNo() == null || order.getOrderNo().isBlank()) {
+            throw failure(OWNER_DATA_CORRUPTED, "订单行引用的ERP销售订单Owner不存在或身份损坏");
+        }
     }
 
     private void applyRelation(CommerceAuthorityBatchCommand command,
@@ -563,6 +627,12 @@ public class CommerceAuthorityIngestService {
 
     private void requireWrite(int affected, String message) {
         if (affected != 1) {
+            throw new IllegalStateException(message);
+        }
+    }
+
+    private void requireBatchWrite(Boolean success, String message) {
+        if (!Boolean.TRUE.equals(success)) {
             throw new IllegalStateException(message);
         }
     }

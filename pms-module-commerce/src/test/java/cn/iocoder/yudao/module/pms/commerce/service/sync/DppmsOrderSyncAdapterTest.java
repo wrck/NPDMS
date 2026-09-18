@@ -25,12 +25,30 @@ class DppmsOrderSyncAdapterTest {
     @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
+    @Test void descriptorExposesStreamingCapability() {
+        assertTrue(adapter.supportsStreaming());
+        assertTrue(adapter.descriptor().supportsStreaming());
+    }
+
     @Test void previewGroupsIdenticalHeadsAndDoesNotWrite() {
         var changes=adapter.preview(batch(row("LINE","3"),row("ORDER","1"),row("ORDER","2")));
         assertEquals(3,changes.size());
         assertTrue(changes.stream().allMatch(c->"CREATED".equals(c.action())));
         verifyNoInteractions(authority);
         verify(mapper).selectOrders(argThat(q->q.tenantId()==1 && q.orderNumbers().equals(List.of("R-1"))));
+    }
+
+    @Test void orderOnlyChunkNeverQueriesOrderLines() {
+        when(mapper.selectOrders(any())).thenReturn(List.of(),List.of(order()));
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            CommerceAuthorityBatchCommand command=inv.getArgument(0);
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+
+        var changes=adapter.apply(batch(row("ORDER","1")));
+
+        assertEquals(101L,changes.getFirst().targetId());
+        verify(mapper,never()).selectLines(any());
     }
 
     @Test void applyUsesAuthorityApiForSignedReturnsAndMapsEveryOriginalId() {
