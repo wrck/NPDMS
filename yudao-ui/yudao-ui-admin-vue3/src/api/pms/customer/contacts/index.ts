@@ -1,5 +1,20 @@
 import request from '@/config/axios'
-import type { CustomerContactVO } from '@/api/pms/project/customer-contact'
+
+export interface CustomerContactVO {
+  id?: number
+  customerId?: number
+  name: string
+  department?: string
+  title?: string
+  mobile?: string
+  phone?: string
+  email?: string
+  primaryFlag: boolean
+  status: number
+  remark?: string
+  version?: number
+  createTime?: string
+}
 
 export interface ContactVO extends CustomerContactVO {
   customerName?: string

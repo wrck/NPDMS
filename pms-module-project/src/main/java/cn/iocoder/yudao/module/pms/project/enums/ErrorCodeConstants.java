@@ -9,18 +9,9 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  */
 public interface ErrorCodeConstants {
 
-    // ========== 客户模块 1-014-001-000 ==========
-    ErrorCode CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_001_000, "客户不存在");
-    ErrorCode CUSTOMER_CODE_DUPLICATE = new ErrorCode(1_014_001_001, "客户编码已存在");
-    ErrorCode CUSTOMER_LEGACY_ROUTE_READ_ONLY = new ErrorCode(1_014_001_002,
-            "CUSTOMER_LEGACY_ROUTE_READ_ONLY：旧客户入口已退役为历史只读，请改用 /pms/customers");
+    // ========== 客户模块 1-014-001-000（客户/联系人旧链错误码已随旧链退役，段位保留不重用） ==========
     ErrorCode PROJECT_CUSTOMER_UNAVAILABLE = new ErrorCode(1_014_001_003,
             "所属客户不存在或不可用于新项目关系");
-
-    // ========== 客户联系人模块 1-014-002-000 ==========
-    ErrorCode CUSTOMER_CONTACT_NOT_EXISTS = new ErrorCode(1_014_002_000, "客户联系人不存在");
-    ErrorCode CUSTOMER_CONTACT_PRIMARY_DUPLICATE = new ErrorCode(1_014_002_001, "该客户已存在主联系人");
-    ErrorCode CUSTOMER_CONTACT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_002_002, "所属客户不存在");
 
     // ========== 项目主表模块 1-014-003-000 ==========
     ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");

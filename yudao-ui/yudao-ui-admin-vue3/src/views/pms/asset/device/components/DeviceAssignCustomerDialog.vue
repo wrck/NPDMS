@@ -30,7 +30,7 @@
 import { reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as DeviceApi from '@/api/pms/asset/device'
-import * as CustomerApi from '@/api/pms/project/customer'
+import * as CustomerApi from '@/api/pms/customer'
 import type { DeviceSummaryVO } from '@/api/pms/asset/device'
 const emit = defineEmits<{ success: [] }>()
 const message = useMessage()

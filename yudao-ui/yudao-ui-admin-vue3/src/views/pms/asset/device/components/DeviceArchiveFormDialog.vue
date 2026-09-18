@@ -60,7 +60,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import type { DeviceArchiveSaveReqVO, DeviceArchiveVO } from '@/api/pms/asset/device/archive'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as CustomerApi from '@/api/pms/project/customer'
+import * as CustomerApi from '@/api/pms/customer'
 
 const props = defineProps<{ lockedProjectId?: number | string }>()
 const emit = defineEmits<{ success: [] }>()

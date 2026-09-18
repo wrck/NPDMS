@@ -123,7 +123,7 @@
 
 <script lang="ts" setup>
 import * as LocationApi from '@/api/pms/asset/location'
-import * as CustomerApi from '@/api/pms/project/customer'
+import * as CustomerApi from '@/api/pms/customer'
 import LocationTreeDrawer from './LocationTreeDrawer.vue'
 
 defineOptions({ name: 'PmsAssetSite' })
@@ -132,7 +132,7 @@ const loading = ref(false)
 const list = ref<LocationApi.SiteVO[]>([])
 const total = ref(0)
 const addresses = ref<LocationApi.AddressVO[]>([])
-const customers = ref<CustomerApi.CustomerVO[]>([])
+const customers = ref<CustomerApi.CustomerRespVO[]>([])
 const addressOptions = computed(() =>
   addresses.value.filter(
     (item): item is LocationApi.AddressVO & { id: number } => item.id !== undefined
@@ -140,7 +140,7 @@ const addressOptions = computed(() =>
 )
 const customerOptions = computed(() =>
   customers.value.filter(
-    (item): item is CustomerApi.CustomerVO & { id: number } => item.id !== undefined
+    (item): item is CustomerApi.CustomerRespVO & { id: number } => item.id !== undefined
   )
 )
 const queryFormRef = ref()

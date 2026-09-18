@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import * as CustomerApi from '@/api/pms/project/customer'
+import * as CustomerApi from '@/api/pms/customer'
 
 defineOptions({ name: 'CustomerTag' })
 

@@ -188,7 +188,7 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CompletionCertificateApi from '@/api/pms/acceptance/completion-certificate'
 import * as ProjectApi from '@/api/pms/project/project'
-import * as CustomerApi from '@/api/pms/project/customer'
+import * as CustomerApi from '@/api/pms/customer'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 
 defineOptions({ name: 'PmsCompletionCertificate' })
