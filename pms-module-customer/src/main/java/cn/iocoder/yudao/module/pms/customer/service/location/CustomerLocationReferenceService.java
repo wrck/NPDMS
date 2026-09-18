@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.customer.service.location;
 
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.AddressRespDTO;
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteRespDTO;
 import cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO;
 import cn.iocoder.yudao.module.pms.customer.dal.dataobject.location.CustomerLocationReferenceDO;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper;
@@ -44,7 +46,7 @@ public class CustomerLocationReferenceService {
         if (customer == null || !Objects.equals(customer.getTenantId(), command.tenantId())) {
             throw new IllegalArgumentException("客户地点引用跨租户或客户不存在");
         }
-        validateLocation(command);
+        String addressSnapshot = resolveAddressSnapshot(command);
         LocalDateTime now = LocalDateTime.now();
         CustomerLocationReferenceDO current = locationReferenceMapper.selectCurrent(
                 new CurrentCustomerLocationQuery(command.tenantId(), command.customerId(), command.locationType()));
@@ -60,6 +62,8 @@ public class CustomerLocationReferenceService {
         reference.setSourceVersion(command.sourceVersion());
         reference.setEffectiveFrom(now);
         locationReferenceMapper.insert(reference);
+        customer.setAddress(addressSnapshot);
+        customerMasterMapper.updateById(customer);
         return reference;
     }
 
@@ -72,11 +76,24 @@ public class CustomerLocationReferenceService {
         }
     }
 
-    private void validateLocation(CustomerLocationCommand command) {
+    private String resolveAddressSnapshot(CustomerLocationCommand command) {
         if ("ADDRESS".equals(command.locationType())) {
-            assetLocationApi.getAddress(command.locationId(), command.sourceVersion());
-            return;
+            return composeAddressSnapshot("ADDRESS",
+                    assetLocationApi.getAddress(command.locationId(), command.sourceVersion()), null);
         }
-        assetLocationApi.getSite(command.locationId(), command.sourceVersion());
+        SiteRespDTO site = assetLocationApi.getSite(command.locationId(), command.sourceVersion());
+        return composeAddressSnapshot("SITE", site.addressId() == null ? null
+                : assetLocationApi.getAddress(site.addressId(), null), site);
+    }
+
+    static String composeAddressSnapshot(String locationType, AddressRespDTO address, SiteRespDTO site) {
+        if ("ADDRESS".equals(locationType)) {
+            return address == null ? null : address.fullAddress();
+        }
+        if (site == null) {
+            return null;
+        }
+        String addressText = address == null ? null : address.fullAddress();
+        return addressText == null || addressText.isBlank() ? site.name() : site.name() + "（" + addressText + "）";
     }
 }

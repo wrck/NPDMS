@@ -41,7 +41,7 @@ public class CustomerMasterDO extends TenantBaseDO {
     private String expendName;
     private String industryCode;
     private String industryName;
-    private String legacyAddressSnapshot;
+    private String address;
     private String remark;
     @Version
     private Integer version;

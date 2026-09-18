@@ -32,6 +32,7 @@ public class CustomerRespVO {
     private String expendName;
     private String industryCode;
     private String industryName;
+    private String address;
     private String remark;
     private Integer version;
     private String creator;

@@ -76,6 +76,7 @@ export interface CustomerRespVO {
   expendName?: string
   industryCode: string
   industryName?: string
+  address?: string
   remark?: string
   version: number
   creator?: string
