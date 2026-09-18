@@ -7,6 +7,7 @@ on:
       - '.github/workflows/template-execution-decoupling.yml'
       - 'pms-module-project/**'
       - 'pms-module-platform/**'
+      - 'pms-module-engineering/**'
       - 'yudao-framework/**'
       - 'pom.xml'
   workflow_dispatch:
@@ -43,13 +44,13 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - name: Compile dependencies and run template, plan and runtime graph tests
+      - name: Compile dependencies and run template, plan and owner operation tests
         shell: bash
         run: |
           set -euo pipefail
-          mvn -B -ntp -pl pms-module-project -am \
+          mvn -B -ntp -pl pms-module-project,pms-module-engineering -am \
             -DskipITs=true \
-            '-Dtest=*Template*Test,*ProjectPlan*Test,*ProjectRuntimeGraph*Test' \
+            '-Dtest=*Template*Test,*ProjectPlan*Test,*ProjectRuntimeGraph*Test,*Operation*Test' \
             -Dsurefire.failIfNoSpecifiedTests=false test 2>&1 | tee "${RUNNER_TEMP}/template-tests.log"
       # 离线复现只归档编译器及依赖文件，不导出任何 Maven/Runner 凭据配置。
       - name: Prepare opt-in offline compiler and dependency bundle
@@ -82,11 +83,16 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
 
-          reports = list(Path('pms-module-project/target/surefire-reports').glob('TEST-*.xml'))
+          modules = ('pms-module-project', 'pms-module-engineering')
+          reports = [path for module in modules
+                     for path in (Path(module) / 'target/surefire-reports').glob('TEST-*.xml')]
           required = {
               'TemplateExecutionSnapshotReaderTest',
               'ProjectTemplatePublishedSnapshotBoundaryTest',
               'ProjectRuntimeGraphSnapshotFormatTest',
+              'TemplateSiteSurveyOperationInputTest',
+              'TemplateRequirementOperationInputTest',
+              'TemplateAcceptanceOperationInputTest',
           }
           observed = set()
           totals = dict.fromkeys(('tests', 'failures', 'errors', 'skipped'), 0)
@@ -110,5 +116,7 @@ jobs:
             ${{ runner.temp }}/template-tests.log
             pms-module-project/target/surefire-reports/*.xml
             pms-module-project/target/surefire-reports/*.txt
+            pms-module-engineering/target/surefire-reports/*.xml
+            pms-module-engineering/target/surefire-reports/*.txt
           if-no-files-found: error
           retention-days: 14
