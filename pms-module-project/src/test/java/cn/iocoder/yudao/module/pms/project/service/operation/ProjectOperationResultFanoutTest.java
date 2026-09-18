@@ -24,7 +24,7 @@ class ProjectOperationResultFanoutTest {
         var project=new ProjectMasterDO();project.setId(9L);project.setTenantId(1L);project.setActivePlanVersionId(20L);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
         var plan=new ProjectPlanVersionDO();plan.setId(20L);plan.setProjectId(9L);plan.setTenantId(1L);
-        plan.setExecutionSnapshot("{\"tasks\":[{\"nodeKey\":\"a\",\"binding\":{\"targetContextCode\":\"SOL\",\"targetObjectType\":\"SITE_SURVEY\",\"operationContract\":{}}},{\"nodeKey\":\"b\",\"binding\":{\"targetContextCode\":\"SOL\",\"targetObjectType\":\"SITE_SURVEY\",\"operationContract\":{}}}]}");
+        plan.setExecutionSnapshot("{\"executionSchemaVersion\":2,\"tasks\":[{\"nodeKey\":\"a\",\"binding\":{\"targetContextCode\":\"SOL\",\"targetObjectType\":\"SITE_SURVEY\",\"operationContract\":{}}},{\"nodeKey\":\"b\",\"binding\":{\"targetContextCode\":\"SOL\",\"targetObjectType\":\"SITE_SURVEY\",\"operationContract\":{}}}]}");
         when(plans.selectEffective(any())).thenReturn(plan);when(nodes.selectCurrent(any())).thenReturn(List.of(round(30L,10L,"a"),round(31L,11L,"b")));
         when(commands.execute(any(),anyString(),eq(ProjectOperationResultFanout.Receipt.class),any(),any())).thenAnswer(invocation ->
                 new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,

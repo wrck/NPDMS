@@ -12,11 +12,15 @@ import static org.mockito.Mockito.*;
 class EngineeringRuleReevaluationEventsTest {
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"RequirementAnalysis", "SiteSurvey"})
-    void emitsOnlyScopedWakeupWithoutBusinessBodyOrCompletionClaim(String aggregateType) {
+    @SuppressWarnings("unchecked")
+    void emitsOnlyScopedWakeupWhenNoOwnerResultSourceIsInstalled(String aggregateType) {
         var outbox = mock(PlatformBusinessEventApi.class);
         TenantContextHolder.setTenantId(7L);
         try {
-            new EngineeringRuleReevaluationEvents(outbox).changed(9L, aggregateType, 11L, 3L, "owner-change");
+            org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.api.workbinding.operation.OwnerOperationResultSource> sources =
+                    mock(org.springframework.beans.factory.ObjectProvider.class);
+            when(sources.orderedStream()).thenAnswer(ignored -> java.util.stream.Stream.empty());
+            new EngineeringRuleReevaluationEvents(outbox, sources).changed(9L, aggregateType, 11L, 3L, "owner-change");
             var event = ArgumentCaptor.forClass(BusinessEvent.class);
             verify(outbox).append(eq(aggregateType), eq("11"), event.capture());
             var payload = JsonUtils.parseObject(event.getValue().eventPayload(), ProjectRuleReevaluationRequested.class);
