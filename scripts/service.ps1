@@ -142,6 +142,15 @@ function Start-Backend {
     } finally { Pop-Location }
   }
   $env = Get-Env
+  # Reuse the local DPAPI-protected datasource key when no explicit key was supplied.
+  $syncKeyFile = Join-Path $root '.run/sync-encryptor-key.clixml'
+  if (-not $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD -and (Test-Path -LiteralPath $syncKeyFile)) {
+    $syncKey = Import-Clixml -LiteralPath $syncKeyFile
+    $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD = [System.Net.NetworkCredential]::new('', $syncKey).Password
+    if ([System.Text.Encoding]::UTF8.GetByteCount($env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD) -notin @(16, 24, 32)) {
+      throw '本地数据源加密密钥长度无效，停止启动。'
+    }
+  }
   $java = Join-Path (Get-Java25) 'bin\java.exe'
   $dsUrl = "jdbc:mysql://127.0.0.1:$($env['NPDMS_MYSQL_PORT'])/$($env['NPDMS_DB_NAME'])?" +
     'useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true' +
