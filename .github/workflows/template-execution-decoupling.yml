@@ -1,0 +1,201 @@
+name: Template execution decoupling regression
+
+on:
+  push:
+    branches: [codex/liteflow-remediation]
+    paths:
+      - '.github/workflows/template-execution-decoupling.yml'
+      - 'pms-module-project/**'
+      - 'pms-module-platform/**'
+      - 'pms-module-engineering/**'
+      - 'yudao-framework/**'
+      - 'yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/**'
+      - 'yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/**'
+      - 'yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/**'
+      - 'yudao-ui/yudao-ui-admin-vue3/src/router/modules/**'
+      - 'pom.xml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: template-execution-decoupling-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Template and plan regression (Java 25)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      # The opt-in bundle contains only tracked source, never checkout credentials or runner settings.
+      - name: Archive the exact source for reproduction
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[复现包]')
+        run: git archive --format=tar --output="${RUNNER_TEMP}/template-source.tar" HEAD
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[复现包]')
+        with:
+          name: template-source-${{ github.sha }}
+          path: ${{ runner.temp }}/template-source.tar
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compile dependencies and run template, plan and owner operation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -ntp -pl pms-module-project,pms-module-engineering -am \
+            -DskipITs=true \
+            '-Dtest=*Template*Test,*ProjectPlan*Test,*ProjectRuntimeGraph*Test,*Operation*Test' \
+            -Dsurefire.failIfNoSpecifiedTests=false test 2>&1 | tee "${RUNNER_TEMP}/template-tests.log"
+      # 离线复现只归档编译器及依赖文件，不导出任何 Maven/Runner 凭据配置。
+      - name: Prepare opt-in offline compiler and dependency bundle
+        if: always() && contains(github.event.head_commit.message, '[离线复现]')
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="${RUNNER_TEMP}/template-offline"
+          mkdir -p "${bundle}/jdk" "${bundle}/maven" "${bundle}/repository"
+          cp -a "${JAVA_HOME}/." "${bundle}/jdk/"
+          maven_home="$(dirname "$(dirname "$(readlink -f "$(command -v mvn)")")")"
+          for part in bin boot lib LICENSE NOTICE; do
+            test ! -e "${maven_home}/${part}" || cp -a "${maven_home}/${part}" "${bundle}/maven/"
+          done
+          # 不读取 ~/.m2/settings.xml、toolchains.xml、.git 或环境变量转储。
+          cp -a "${HOME}/.m2/repository/." "${bundle}/repository/"
+          tar -C "${bundle}" -czf "${RUNNER_TEMP}/template-offline.tar.gz" jdk maven repository
+      - uses: actions/upload-artifact@v4
+        if: always() && contains(github.event.head_commit.message, '[离线复现]')
+        with:
+          name: template-offline-${{ github.sha }}
+          path: ${{ runner.temp }}/template-offline.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+      - name: Require real test reports with no failures or skipped tests
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          modules = ('pms-module-project', 'pms-module-engineering')
+          reports = [path for module in modules
+                     for path in (Path(module) / 'target/surefire-reports').glob('TEST-*.xml')]
+          required = {
+              'TemplateExecutionSnapshotReaderTest',
+              'ProjectTemplatePublishedSnapshotBoundaryTest',
+              'ProjectRuntimeGraphSnapshotFormatTest',
+              'TemplateSiteSurveyOperationInputTest',
+              'TemplateRequirementOperationInputTest',
+              'TemplateAcceptanceOperationInputTest',
+          }
+          observed = set()
+          totals = dict.fromkeys(('tests', 'failures', 'errors', 'skipped'), 0)
+          for path in reports:
+              suite = ET.parse(path).getroot()
+              count = int(suite.get('tests', '0'))
+              if count:
+                  observed.add(suite.get('name', '').rsplit('.', 1)[-1])
+              for field in totals:
+                  totals[field] += int(suite.get(field, '0'))
+          print(totals)
+          missing = required - observed
+          if missing or totals['tests'] == 0 or any(totals[key] for key in ('failures', 'errors', 'skipped')):
+              raise SystemExit(f'Template regression evidence incomplete: missing={sorted(missing)}, totals={totals}')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: template-regression-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/template-tests.log
+            pms-module-project/target/surefire-reports/*.xml
+            pms-module-project/target/surefire-reports/*.txt
+            pms-module-engineering/target/surefire-reports/*.xml
+            pms-module-engineering/target/surefire-reports/*.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  frontend:
+    name: Business view and operation host regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yudao-ui/yudao-ui-admin-vue3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install the frozen frontend dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.5 --activate
+          pnpm install --frozen-lockfile
+      - name: Run the Node-native input, recovery and presentation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --test src/components/BusinessView/*.node.test.mjs \
+            src/api/pms/engineering/site-survey/operationInput.node.test.mjs \
+            2>&1 | tee "${RUNNER_TEMP}/presentation-node.log"
+      - name: Run real Vue component and operation host tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec vitest run --config vitest.pms-file.config.ts \
+            src/components/BusinessView/*.runtime.spec.ts \
+            --reporter=default --reporter=junit --outputFile.junit="${RUNNER_TEMP}/presentation-junit.xml" \
+            2>&1 | tee "${RUNNER_TEMP}/presentation-components.log"
+      - name: Require executed component test evidence
+        if: always()
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import os
+          import xml.etree.ElementTree as ET
+          report = Path(os.environ['RUNNER_TEMP']) / 'presentation-junit.xml'
+          root = ET.parse(report).getroot()
+          cases = list(root.iter('testcase'))
+          if not cases or any(any(case.find(tag) is not None for tag in ('failure', 'error', 'skipped')) for case in cases):
+              raise SystemExit('Component test evidence is missing, failed or skipped')
+          print(f'Executed component cases: {len(cases)}')
+          PYCODE
+      - name: Prepare opt-in frontend dependency reproduction bundle
+        if: always() && contains(github.event.head_commit.message, '[前端复现]')
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d node_modules
+          tar --exclude='*.ttf' --exclude='*.otf' --exclude='*.woff' --exclude='*.woff2' \
+            --exclude='*.eot' --exclude='.npmrc' --exclude='.cache' --exclude='.vite' \
+            -czf "${RUNNER_TEMP}/template-frontend-dependencies.tar.gz" node_modules
+      - uses: actions/upload-artifact@v4
+        if: always() && contains(github.event.head_commit.message, '[前端复现]')
+        with:
+          name: template-frontend-dependencies-${{ github.sha }}
+          path: ${{ runner.temp }}/template-frontend-dependencies.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: template-frontend-regression-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/presentation-node.log
+            ${{ runner.temp }}/presentation-components.log
+            ${{ runner.temp }}/presentation-junit.xml
+          if-no-files-found: error
+          retention-days: 14

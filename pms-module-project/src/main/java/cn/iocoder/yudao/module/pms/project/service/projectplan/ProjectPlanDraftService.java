@@ -135,9 +135,18 @@ public class ProjectPlanDraftService {
         var project = lockActive(scope);
         var draft = requireDraft(scope, draftId, expectedVersion, project.getActivePlanVersionId());
         var effective = plans.selectEffective(scope);
-        if (effective == null) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
+        if (effective == null || !Objects.equals(effective.getId(), project.getActivePlanVersionId())
+                || !Objects.equals(effective.getTenantId(), scope.tenantId())
+                || !Objects.equals(effective.getProjectId(), projectId)
+                || !"EFFECTIVE".equals(effective.getStatus())) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
+        TemplateExecutionSnapshot before;
+        try {
+            before = TemplateExecutionSnapshotReader.read(effective.getExecutionSnapshot());
+        } catch (RuntimeException invalidSnapshot) {
+            throw exception(PROJECT_PLAN_CHANGE_INVALID);
+        }
         var designer = definition(draft).designer();
-        var compilation = compiler.compile(designer);
+        var compilation = compiler.compileVersioned(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
         issues.addAll(dependencies.validateProjectChanges(definition(effective).designer(), designer, publishing));
         issues.addAll(ruleValidator.validate(designer));
@@ -146,13 +155,11 @@ public class ProjectPlanDraftService {
         var ownerPlan = new ProjectPlanDeliverablePlanner.Plan(List.of(), List.of(), List.of());
         var milestonePlan = new ProjectPlanMilestoneInstaller.Plan(List.of(), List.of(), List.of());
         var gatePlan = new ProjectPlanGateInstaller.Plan(List.of(), List.of(), List.of());
-        TemplateExecutionSnapshot before = null;
         List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO> rounds = List.of();
         List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO> stageRows = List.of();
         List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO> taskRows = List.of();
         if (compilation.valid()) {
             var query = new ProjectRuntimeGraphQuery(scope.tenantId(), projectId);
-            before = JsonUtils.parseObject(effective.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
             rounds = executions.selectCurrentForUpdate(scope);
             stageRows = graph.selectStagesForUpdate(query);
             taskRows = graph.selectTasksForUpdate(query);

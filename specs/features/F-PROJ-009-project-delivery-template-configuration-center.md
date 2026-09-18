@@ -190,3 +190,10 @@ Project运行表继续复用既有实例结构，并保存编译节点键及权�
 ## 当前验证状态
 
 截至2026-09-12专项规格落库：代码级review与回归测试代码已经提交，但当前分支没有open PR、HEAD无GitHub combined status，也无可重跑的PR-triggered workflow run；当前执行环境无法直接联网clone仓库。因此**本轮尚无实际Maven、前端测试/构建、CI或真实浏览器通过证据**。该限制只影响Feature Ready/Implementation Done Gate，不回退已经明确的架构和数据契约。
+
+
+## 2026-09-17 版本优先发布格式补充
+
+适用ADR-2026-09-17-template-execution-version-first及SDS04a第14节。本文前述schema/compiler/hash组合继续约束旧execution schema 2；新execution schema 3改为完整冻结内容、不可变发布revision和精确版本Reader，不新增Hash。Designer版本不因执行产物格式变化而要求业务用户配置第二组技术版本。
+
+新格式必须保存全部节点配置、版本内规则及其已编译程序/决策闭包；Reader拒绝缺失、未知、重复与悬空结构，不通过当前Compiler或Designer修复坏快照。模板和计划全部直接消费者接线、不可变写保护及新旧格式回归齐备前，不启用新发布。此设计补充不代表Feature Ready、Done或真实验收通过，实施事实只见指定进度记录。

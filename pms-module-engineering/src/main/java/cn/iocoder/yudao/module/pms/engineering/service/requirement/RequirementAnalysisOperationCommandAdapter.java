@@ -31,7 +31,10 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
     }
     @Override public ProjectOperationResult invoke(String code, ProjectOperationCommand command) {
         authorizeReplay(code, command);
-        if (command.input().has("execution") || command.input().has("tenantId")) throw exception(BAD_REQUEST, "UNTRUSTED_EXECUTION_INPUT");
+        try {
+            ProjectOperationInput.object(command.input());
+            if (code.endsWith(".CREATE")) ProjectOperationInput.fields(command.input(), Set.of());
+        } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
         String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + command.nodeKind() + ":" + command.nodeId() + ":" + command.idempotencyKey());
         EntityVersionProvider.Revision result;
         if (code.endsWith(".CREATE")) {
@@ -45,12 +48,18 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
                 throw exception(BAD_REQUEST, "BUSINESS_VERSION_CONFLICT");
             var ref = current.revisionRef();
             if (code.endsWith(".SAVE")) {
-                var input = JsonUtils.convertObject(command.input(), RequirementAnalysisEntityCommands.Patch.class);
+                RequirementAnalysisEntityCommands.Patch input;
+                try { input = ProjectOperationInput.read(JsonUtils.getObjectMapper(), command.input(), RequirementAnalysisEntityCommands.Patch.class); }
+                catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
                 result = commands.getObject().save(ref, command.expectedBusinessVersion(),
                         new RequirementAnalysisEntityCommands.Patch(input.values(), input.extensionDefinitionRevisionId(), input.expectedExtensionVersion(),
                                 input.extensionValues(), command.execution()), actor(), key);
             } else {
-                String reason = command.input().path("reason").asText(null);
+                String reason;
+                try {
+                    ProjectOperationInput.fields(command.input(), Set.of("reason"));
+                    reason = ProjectOperationInput.optionalText(command.input(), "reason");
+                } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
                 var action = new RequirementAnalysisEntityCommands.Action(reason, command.execution());
                 result = code.endsWith(".COMPLETE") ? commands.getObject().complete(ref, command.expectedBusinessVersion(), action, actor(), key)
                         : commands.getObject().copy(ref, command.expectedBusinessVersion(), action, actor(), key);

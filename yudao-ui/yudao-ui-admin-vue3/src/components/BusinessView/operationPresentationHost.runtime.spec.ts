@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, shallowRef } from 'vue'
-import { mount, flushPromises } from '@vue/test-utils'
+import { defineComponent, h, nextTick, shallowRef } from 'vue'
+import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import { editingTargetKey, useOperationHost } from './operationHost'
 import type { BusinessViewTarget } from './registry'
@@ -31,6 +31,9 @@ function harness() {
   } }))
   return { active, wrapper, get state() { return state } }
 }
+const flushPromises = async () => {
+  for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
+}
 beforeEach(() => vi.clearAllMocks())
 describe('capability presentation is independent from business authorization', () => {
   for (const status of ['READ_ONLY', 'UNAVAILABLE']) {
@@ -56,7 +59,7 @@ describe('capability presentation is independent from business authorization', (
         expect(view.state.presentationReadonly.value).toBe(false)
         expect(view.state.allowedActions.value).toContain('CREATE')
         expect(view.state.client.value).toBe(client)
-      } finally { view.wrapper.unmount() }
+      } finally { view.wrapper.app.unmount() }
     })
   }
   it('retains only readable actions when presentation is missing', async () => {
@@ -67,6 +70,6 @@ describe('capability presentation is independent from business authorization', (
       expect(view.state.presentationReadonly.value).toBe(true)
       expect(view.state.allowedActions.value).toEqual(['QUERY'])
       expect(view.state.client.value).toBeDefined()
-    } finally { view.wrapper.unmount() }
+    } finally { view.wrapper.app.unmount() }
   })
 })

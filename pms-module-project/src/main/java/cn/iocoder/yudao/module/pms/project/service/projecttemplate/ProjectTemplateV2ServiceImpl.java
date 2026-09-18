@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.Templ
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
@@ -25,6 +26,7 @@ import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -51,12 +53,12 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public Long createProjectTemplate(ProjectTemplateDO template) {
         Long id = super.createProjectTemplate(template);
-        ProjectTemplateRevisionDO draft = requireDraft(id);
+        ProjectTemplateRevisionDO draft = requireWritableDraft(id);
         ProjectTemplateRevisionDO initial = new ProjectTemplateRevisionDO();
         initial.setId(draft.getId());
         initial.setDesignerSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
         initial.setDesignerDocument(JsonUtils.toJsonString(new TemplateDesignerDocument()));
-        v2RevisionMapper.updateById(initial);
+        requireOne(v2RevisionMapper.updateById(initial));
         return id;
     }
 
@@ -81,7 +83,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateDesigner(Long templateId, TemplateDesignerDocument submitted) {
         ProjectTemplateDO template = lockV2Template(templateId);
-        ProjectTemplateRevisionDO draft = requireDraft(templateId);
+        ProjectTemplateRevisionDO draft = requireWritableDraft(templateId);
         if (!TemplateRules.canEditDraft(template.getStatus(), draft.getStatus())) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
         }
@@ -107,7 +109,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         update.setProcessDefinitionVersion("");
         update.setClosurePolicy(designer.getClosurePolicy() == null ? null : JsonUtils.toJsonString(designer.getClosurePolicy()));
         update.setValidationSummary(null);
-        v2RevisionMapper.updateById(update);
+        requireOne(v2RevisionMapper.updateById(update));
         incrementV2Version(templateId);
     }
 
@@ -126,6 +128,12 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content) {
         Objects.requireNonNull(content, "template content");
+        lockV2Template(templateId);
+        ProjectTemplateRevisionDO draft = requireWritableDraft(templateId);
+        if (hasText(draft.getDesignerDocument()) && !cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionConfiguration.nodes(
+                JsonUtils.parseObject(draft.getDesignerDocument(), TemplateDesignerDocument.class)).isEmpty()) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "旧content接口不能覆盖独立执行配置；请使用Designer草稿入口");
+        }
         v2LegacyAssembler.resolve(content, false);
         updateProjectTemplateDesigner(templateId, TemplateDesignerDocument.fromResolvedLegacy(content));
     }
@@ -143,7 +151,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         ProjectTemplateRevisionDO revision = v2RevisionMapper.selectByTemplateIdAndRevisionNo(templateId, revisionNo);
         if (revision == null) throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         if (hasText(revision.getExecutionSnapshot())) {
-            return verifiedExecutionSnapshot(revision).toRuntimeContent();
+            return verifiedExecutionSnapshot(revision, templateId, revisionNo).toRuntimeContent();
         }
         if (TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus()) && hasV2PublicationMetadata(revision)) {
             throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
@@ -162,7 +170,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
             throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         }
-        return verifiedExecutionSnapshot(revision);
+        return verifiedExecutionSnapshot(revision, templateId, revisionNo);
     }
 
     @Override
@@ -177,10 +185,10 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
                     v2RevisionMapper.selectPublishedListByTemplateId(activeTemplate.getId());
             if (published.isEmpty()) continue;
             ProjectTemplateRevisionDO latest = published.getFirst();
-            if (!isV2RuntimeEligible(latest)) continue;
+            if (!isV2RuntimeEligible(latest) && !TemplateVersionPublication.applies(latest)) continue;
             TemplateExecutionSnapshot snapshot;
             try {
-                snapshot = verifiedExecutionSnapshot(latest);
+                snapshot = verifiedExecutionSnapshot(latest, activeTemplate.getId(), latest.getRevisionNo());
             } catch (RuntimeException ex) {
                 continue;
             }
@@ -219,7 +227,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         } catch (RuntimeException ex) {
             return Validation.of(List.of(new Issue("designer", "IMPORT_INVALID", safeMessage(ex))));
         }
-        List<Issue> issues = new ArrayList<>(templateCompiler.compile(designer).issues());
+        List<Issue> issues = new ArrayList<>(templateCompiler.compileVersioned(designer).issues());
         issues.addAll(dependencyValidator.validate(designer, false));
         issues.addAll(rulePublicationValidator.validate(designer));
         return Validation.of(dedupe(issues));
@@ -229,13 +237,13 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public void publishProjectTemplate(Long id) {
         ProjectTemplateDO template = lockV2Template(id);
-        ProjectTemplateRevisionDO draft = requireDraft(id);
+        ProjectTemplateRevisionDO draft = requireWritableDraft(id);
         if (!TemplateRules.canPublish(template.getStatus(), true)) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
         }
 
         TemplateDesignerDocument designer = getDraftDesigner(id);
-        TemplateCompiler.Compilation compilation = templateCompiler.compile(designer);
+        TemplateCompiler.Compilation compilation = templateCompiler.compileVersioned(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
         issues.addAll(dependencyValidator.validate(designer, true));
         issues.addAll(rulePublicationValidator.validate(designer));
@@ -248,6 +256,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         TemplateExecutionSnapshot snapshot = compilation.snapshot();
         int nextRevisionNo = nextV2RevisionNo(id);
         ProjectTemplateRevisionDO published = new ProjectTemplateRevisionDO();
+        published.setTenantId(template.getTenantId());
         published.setTemplateId(id);
         published.setRevisionNo(nextRevisionNo);
         published.setStatus(TemplateRules.REVISION_STATUS_PUBLISHED);
@@ -263,19 +272,19 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         published.setDefinitionSnapshot(designer.getSourceEvidence() == null ? null : JsonUtils.toJsonString(designer.getSourceEvidence()));
         published.setDesignerSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
         published.setDesignerDocument(JsonUtils.toJsonString(designer));
-        published.setExecutionSchemaVersion(TemplateExecutionSnapshot.SCHEMA_VERSION);
+        published.setExecutionSchemaVersion(snapshot.getExecutionSchemaVersion());
         published.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
-        published.setCompilerVersion(TemplateCompiler.COMPILER_VERSION);
+        published.setCompilerVersion(snapshot.getCompilerVersion());
         published.setSnapshotHash(compilation.snapshotHash());
-        published.setValidationSummary("V2编译发布校验通过");
+        published.setValidationSummary("完整版本冻结发布校验通过");
         published.setPublishedBy(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
         published.setPublishedTime(LocalDateTime.now());
-        v2RevisionMapper.insert(published);
+        requireOne(v2RevisionMapper.insert(published));
 
         ProjectTemplateDO status = new ProjectTemplateDO();
         status.setId(id);
         status.setStatus(TemplateRules.STATUS_ACTIVE);
-        v2TemplateMapper.updateById(status);
+        requireOne(v2TemplateMapper.updateById(status));
         incrementV2Version(id);
     }
 
@@ -302,11 +311,56 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
 
     private TemplateDesignerDocument designerForRevision(Long templateId, int revisionNo) {
         ProjectTemplateRevisionDO revision = v2RevisionMapper.selectByTemplateIdAndRevisionNo(templateId, revisionNo);
-        if (revision == null) throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
-        if (hasText(revision.getDesignerDocument()))
-            return JsonUtils.parseObject(revision.getDesignerDocument(), TemplateDesignerDocument.class);
+        if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())) {
+            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
+        }
+        if (TemplateVersionPublication.applies(revision)) {
+            return readVersionedPublication(revision, templateId, revisionNo).designer();
+        }
+        // Copying a published V2 revision must not bypass the runtime integrity boundary.
+        if (hasText(revision.getExecutionSnapshot()) || hasV2PublicationMetadata(revision)) {
+            verifiedExecutionSnapshot(revision);
+            if (!hasText(revision.getDesignerDocument())) {
+                throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID,
+                        "V2发布版本缺少冻结Designer，禁止退回Legacy复制路径");
+            }
+            TemplateDesignerDocument designer;
+            try {
+                JsonNode document = JsonUtils.parseObject(revision.getDesignerDocument(), JsonNode.class);
+                JsonNode schema = document == null || !document.isObject() ? null : document.get("schemaVersion");
+                if (!Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION).equals(revision.getDesignerSchemaVersion())
+                        || schema == null || !schema.isIntegralNumber()
+                        || !Integer.toString(TemplateDesignerDocument.SCHEMA_VERSION).equals(schema.asText())) {
+                    throw new IllegalArgumentException("PUBLISHED_DESIGNER_SCHEMA_UNSUPPORTED");
+                }
+                designer = JsonUtils.parseObject(revision.getDesignerDocument(), TemplateDesignerDocument.class);
+            } catch (RuntimeException ex) {
+                throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2发布版本冻结Designer无法解析或schema不受支持");
+            }
+            if (designer == null || !Integer.valueOf(TemplateDesignerDocument.SCHEMA_VERSION)
+                    .equals(designer.getSchemaVersion())) {
+                throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2发布版本冻结Designer的schema不受支持");
+            }
+            return designer;
+        }
         TemplateDefinitionContent legacy = super.getRevisionContent(templateId, revisionNo);
         return TemplateDesignerDocument.fromResolvedLegacy(legacy);
+    }
+
+    private TemplateExecutionSnapshot verifiedExecutionSnapshot(ProjectTemplateRevisionDO revision,
+                                                                  Long templateId, Integer revisionNo) {
+        return TemplateVersionPublication.applies(revision)
+                ? readVersionedPublication(revision, templateId, revisionNo).snapshot()
+                : verifiedExecutionSnapshot(revision);
+    }
+
+    private TemplateVersionPublication.Frozen readVersionedPublication(ProjectTemplateRevisionDO revision,
+                                                                        Long templateId, Integer revisionNo) {
+        try {
+            return TemplateVersionPublication.read(revision, TenantContextHolder.getRequiredTenantId(), templateId, revisionNo);
+        } catch (RuntimeException invalid) {
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "版本冻结内容无效：" + safeMessage(invalid));
+        }
     }
 
     private TemplateExecutionSnapshot verifiedExecutionSnapshot(ProjectTemplateRevisionDO revision) {
@@ -316,7 +370,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         }
         TemplateExecutionSnapshot snapshot;
         try {
-            snapshot = JsonUtils.parseObject(revision.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+            snapshot = TemplateExecutionSnapshotReader.read(revision.getExecutionSnapshot());
         } catch (RuntimeException ex) {
             throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, "V2执行快照无法解析");
         }
@@ -400,10 +454,26 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         return draft;
     }
 
+    private ProjectTemplateRevisionDO requireWritableDraft(Long templateId) {
+        ProjectTemplateRevisionDO draft = requireDraft(templateId);
+        if (draft.getId() == null || draft.getId() <= 0
+                || !Objects.equals(templateId, draft.getTemplateId())
+                || !Objects.equals(TenantContextHolder.getRequiredTenantId(), draft.getTenantId())
+                || !Integer.valueOf(TemplateRules.DRAFT_REVISION_NO).equals(draft.getRevisionNo())
+                || !TemplateRules.REVISION_STATUS_DRAFT.equals(draft.getStatus())) {
+            throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
+        }
+        return draft;
+    }
+
+    private void requireOne(int affected) {
+        if (affected != 1) throw exception(DeliveryConfigurationErrors.VERSION_CONFLICT);
+    }
+
     private int nextV2RevisionNo(Long templateId) {
         return v2RevisionMapper.selectPublishedListByTemplateId(templateId).stream()
                 .map(ProjectTemplateRevisionDO::getRevisionNo).filter(no -> no != null && no > 0)
-                .max(Integer::compareTo).map(no -> no + 1).orElse(1);
+                .max(Integer::compareTo).map(Math::incrementExact).orElse(1);
     }
 
     private void incrementV2Version(Long templateId) {
@@ -417,7 +487,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         update.setId(draft.getId());
         update.setValidationSummary(summary.length() > 1000 ? summary.substring(0, 1000) : summary);
         update.setClosurePolicy(draft.getClosurePolicy());
-        v2RevisionMapper.updateById(update);
+        requireOne(v2RevisionMapper.updateById(update));
     }
 
     private List<Issue> dedupe(List<Issue> issues) {

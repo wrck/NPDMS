@@ -26,7 +26,7 @@ import java.util.Objects;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID;
 
-/** SOL freezes its originating node round in the existing execution-contract snapshot, not a second rules source. */
+/** Ordinary writes reuse frozen Owner configuration; explicit project entries still validate their selected node. */
 @Service
 @RequiredArgsConstructor
 public class RequirementAnalysisExecutionAccess {
@@ -134,11 +134,7 @@ public class RequirementAnalysisExecutionAccess {
     }
 
     public ProjectWorkBindingFact currentBinding(Long projectId, String snapshot, ProjectBusinessExecutionSelection requested) {
-        Frozen frozen = snapshot == null ? null
-                : JsonUtils.parseObject(snapshot, Frozen.class);
-        requireFrozenIdentity(frozen);
-        if (!Objects.equals(projectId, frozen.binding().projectId()))
-            throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+        Frozen frozen = frozen(projectId, snapshot);
         if (requested != null) requireSelection(projectId, requested);
         Long stageId = requested == null ? frozen.binding().projectStageId()
                 : requested.stage() == null ? null : requested.stage().stageId();
@@ -151,6 +147,29 @@ public class RequirementAnalysisExecutionAccess {
                 || !Objects.equals(taskId,binding.projectTaskId())) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
         // Explicit shared-node handling never rewrites the record's originating contract/round.
         return binding;
+    }
+
+    /** Configuration availability only; callers must still check current Owner permission, state and versions. */
+    public boolean canUseFrozenConfiguration(Long projectId, String snapshot) {
+        try { return frozen(projectId, snapshot) != null; }
+        catch (RuntimeException invalid) { return false; }
+    }
+
+    /** Historical node identity is provenance, not a requirement that the originating round remains writable. */
+    public Frozen frozen(Long projectId, String snapshot) {
+        Frozen frozen;
+        try { frozen = snapshot == null ? null : JsonUtils.parseObject(snapshot, Frozen.class); }
+        catch (RuntimeException invalid) { throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID); }
+        requireFrozenIdentity(frozen);
+        var source = frozen.binding();
+        var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
+        if (projectId == null || projectId <= 0 || !Objects.equals(projectId, source.projectId())
+                || !Objects.equals(target.workBindingTypeCode(), source.workBindingTypeCode())
+                || !Objects.equals(target.targetContextCode(), source.targetContextCode())
+                || !Objects.equals(target.targetObjectType(), source.targetObjectType())
+                || !Objects.equals(target.targetObjectKey(), source.targetObjectKey()))
+            throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+        return frozen;
     }
 
     private void requireSelection(Long projectId, ProjectBusinessExecutionSelection requested) {

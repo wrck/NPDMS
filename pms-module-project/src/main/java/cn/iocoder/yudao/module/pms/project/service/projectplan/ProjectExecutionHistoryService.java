@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -54,7 +55,7 @@ public class ProjectExecutionHistoryService {
         Map<Long, TemplateExecutionSnapshot> snapshots = new HashMap<>();
         Map<Long, Integer> revisions = new HashMap<>();
         var history = versions.stream().map(plan -> {
-            snapshots.put(plan.getId(), JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class));
+            snapshots.put(plan.getId(), TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot()));
             revisions.put(plan.getId(), plan.getRevisionNo());
             return new Plan(plan.getId(), plan.getRevisionNo(), plan.getStatus(), plan.getEffectiveAt(), plan.getClosedAt(),
                     plan.getClosureResult() == null ? null : JsonUtils.parseObject(plan.getClosureResult(), RuleEvaluation.class));

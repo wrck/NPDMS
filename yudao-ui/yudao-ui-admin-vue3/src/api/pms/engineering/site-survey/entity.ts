@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import { siteSurveyOperationInput } from './operationInput'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
@@ -65,14 +66,14 @@ export const getFormSchema = (revisionId: number, revisionVersion: number) => re
 export const createSiteSurvey = async (data: SiteSurveyVO) => {
   const client = selectionClient(data.execution)
   if (!client) return request.post({ url: `${baseUrl}/create`, data })
-  const { execution: _execution, ...input } = data
+  const input = siteSurveyOperationInput(data)
   const result = await client.execute({ operationCode: 'SOL.SITE_SURVEY.CREATE', input })
   return (result.response as { id: number }).id
 }
 export const updateSiteSurvey = async (data: SiteSurveyVO) => {
   const client = selectionClient(data.execution)
   if (!client) return request.put({ url: `${baseUrl}/update`, data })
-  const { execution: _execution, ...input } = data
+  const input = siteSurveyOperationInput(data)
   await client.execute({ operationCode: 'SOL.SITE_SURVEY.UPDATE', objectId: data.id, expectedBusinessVersion: data.version, input })
   return true
 }

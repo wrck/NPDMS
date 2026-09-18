@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionKin
 import cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateVersionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -22,17 +24,30 @@ import java.util.Set;
 public class TemplateCompiler {
 
     public static final String COMPILER_VERSION = "template-liteflow-2";
+    public static final String VERSIONED_COMPILER_VERSION = "template-version-3";
     private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler ruleCompiler =
             new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler();
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private TemplateOperationCompilation operationCompilation;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemplateExecutionConfigurationCompilation executionConfigurations;
 
     public record Compilation(TemplateExecutionSnapshot snapshot, String snapshotHash, List<Issue> issues) {
         public boolean valid() { return issues.isEmpty(); }
     }
 
+    /** 保留格式2编译入口及原Hash，历史读取不得调用任何编译入口。 */
     public Compilation compile(TemplateDesignerDocument source) {
+        return compile(source, false);
+    }
+
+    /** 新发布和显式计划变更保存完整版本，不再计算新的快照Hash。 */
+    public Compilation compileVersioned(TemplateDesignerDocument source) {
+        return compile(source, true);
+    }
+
+    private Compilation compile(TemplateDesignerDocument source, boolean versioned) {
         List<Issue> issues = new ArrayList<>();
         if (source == null) {
             issues.add(new Issue("designer", "REQUIRED", "模板设计文档不能为空"));
@@ -49,6 +64,14 @@ public class TemplateCompiler {
         }
         requireCollections(source, issues);
         if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
+
+        if (!cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionConfiguration.nodes(source).isEmpty()) {
+            if (!versioned) issues.add(new Issue("execution", "VERSIONED_SNAPSHOT_REQUIRED", "独立执行配置不能发布为历史格式2"));
+            else if (executionConfigurations == null)
+                issues.add(new Issue("execution", "EXECUTION_CONFIGURATION_NOT_INSTALLED", "独立执行配置编译未装配"));
+            else issues.addAll(executionConfigurations.prepare(source));
+            if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
+        }
 
         validateNodes(source, issues);
         validateGraph(source, issues);
@@ -68,6 +91,19 @@ public class TemplateCompiler {
 
         TemplateExecutionSnapshot snapshot = buildSnapshot(source);
         operations.install(snapshot);
+        if (versioned) {
+            snapshot.setExecutionSchemaVersion(TemplateVersionSnapshot.SCHEMA_VERSION);
+            snapshot.setCompilerVersion(VERSIONED_COMPILER_VERSION);
+            try {
+                // 发布使用与全部运行消费者相同的Reader验证实际持久化表示。
+                snapshot = TemplateExecutionSnapshotReader.read(
+                        cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(snapshot));
+            } catch (RuntimeException invalid) {
+                return new Compilation(null, null,
+                        List.of(new Issue("executionSnapshot", "INCOMPLETE_VERSION_SNAPSHOT", invalid.getMessage())));
+            }
+            return new Compilation(snapshot, null, List.of());
+        }
         return new Compilation(snapshot, TemplateExecutionSnapshotHasher.hash(snapshot), List.of());
     }
 
@@ -426,6 +462,7 @@ public class TemplateCompiler {
         TemplateExecutionSnapshot.StageContract target = new TemplateExecutionSnapshot.StageContract();
         target.setLifecycleStage(source.getLifecycleStage());
         target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
+        target.setExecution(copy(source.getExecution()));
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setSortOrder(source.getSortOrder()); target.setEntryCriteria(source.getEntryCriteria()); target.setExitCriteria(source.getExitCriteria());
         target.setStart(source.getStart()); target.setTerminal(source.getTerminal()); target.setBinding(binding(source.getWorkBinding()));
@@ -442,6 +479,7 @@ public class TemplateCompiler {
     private TemplateExecutionSnapshot.TaskContract task(TemplateDesignerDocument.TaskNode source) {
         TemplateExecutionSnapshot.TaskContract target = new TemplateExecutionSnapshot.TaskContract();
         target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
+        target.setExecution(copy(source.getExecution()));
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setParentTaskCode(source.getParentTaskCode()); target.setStageCode(source.getStageCode()); target.setPriority(source.getPriority());
         target.setSortOrder(source.getSortOrder()); target.setEstimatedHours(source.getEstimatedHours()); target.setSatisfactionTiming(source.getSatisfactionTiming());

@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO;
@@ -50,7 +50,7 @@ public class ProjectRuleTimerDelivery {
         var scope = new ProjectPlanScopeQuery(tenant, timer.projectId());
         var plan = plans.selectEffective(scope);
         if (plan == null || !timer.planVersionId().equals(plan.getId())) return false;
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var rounds = executions.selectCurrentForUpdate(scope);
         if (timer.anchorExecutionId() != null && rounds.stream().noneMatch(round -> timer.anchorExecutionId().equals(round.getId()))) return true;
         boolean wakeDependents;

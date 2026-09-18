@@ -31,6 +31,9 @@ public class SiteSurveyBusinessViewProvider implements BusinessViewComponentProv
     }
 
     @Override
+    public java.util.Set<String> pagePaths() { return java.util.Set.of("/pms/delivery-business/site-survey"); }
+
+    @Override
     public boolean canConfigure(Context context, ConfigurationAction action) {
         if (!trusted(context) || action == null) return false;
         return switch (action) {

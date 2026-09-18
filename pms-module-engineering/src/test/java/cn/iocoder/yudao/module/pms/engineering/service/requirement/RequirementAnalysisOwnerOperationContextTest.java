@@ -102,7 +102,7 @@ class RequirementAnalysisOwnerOperationContextTest {
     @Test void failedInsertDoesNotRegisterOrInitializeAnUncreatedRevision() {
         for (String action : List.of("CREATE", "COPY")) {
             var f = new Fixture(false, action);
-            when(f.mapper.insertRevision(any())).thenReturn(0);
+            doReturn(0).when(f.mapper).insertRevision(any());
             try (var verified = ProjectVerifiedOperationScope.open(f.frame(action))) {
                 assertThrows(RuntimeException.class, () -> f.invoke(action));
                 verifyNoInteractions(f.forms, f.extensions, f.files);

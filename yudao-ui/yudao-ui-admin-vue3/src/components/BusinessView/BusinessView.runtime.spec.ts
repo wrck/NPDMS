@@ -5,6 +5,7 @@ import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requi
 import { businessViewTargetKey, resolveBusinessView, type BusinessViewTarget } from './registry'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
+import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
 import {
   mount,
@@ -19,6 +20,9 @@ vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboard
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
+vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
+vi.mock('@/config/axios', () => ({ default: { post: vi.fn() } }))
+vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } } }))
 const confirm = vi.hoisted(() => vi.fn(async (): Promise<void> => undefined))
 vi.mock('@/hooks/web/useMessage', () => ({
   useMessage: () => ({ confirm, warning: vi.fn(), success: vi.fn(), info: vi.fn() })
@@ -136,6 +140,12 @@ const requirementView = (id: string | number = 91, state = 'DRAFT', allowedActio
 beforeEach(() => {
   vi.clearAllMocks()
   confirm.mockResolvedValue(undefined)
+  // These existing Owner-page cases exercise the legacy binding; controlled routing has separate suites.
+  vi.mocked(inspectOperationCapabilities).mockImplementation(async (query) => ({
+    node: { projectId: query.projectId, id: query.nodeId, kind: query.nodeKind,
+      code: 'legacy-node', name: '原业务页面', status: 'IN_PROGRESS' },
+    execution: null, actions: [], presentation: { status: 'AVAILABLE' }, reason: 'LEGACY_BINDING'
+  }))
   const storage = new Map<string, string>()
   vi.stubGlobal('sessionStorage', {
     getItem: (key: string) => storage.get(key) ?? null,

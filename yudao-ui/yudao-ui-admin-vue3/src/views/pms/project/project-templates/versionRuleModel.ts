@@ -99,6 +99,11 @@ export function ruleUses(document: TemplateDesignerDocument, key: string): strin
     reference(node.admissionRuleKey, `${label} · 准入`)
     reference(node.completionRuleKey, `${label} · 完成`)
     reference(node.exitRuleKey, `${label} · 退出`)
+    for (const operation of node.execution?.operations ?? []) {
+      const action = operation.operationCode ?? operation.permissionCode
+      if (operation.pre.mode === 'RULE') reference(operation.pre.ruleKey, `${label} · ${action} · 前置`)
+      if (operation.post.mode === 'RULE') reference(operation.post.ruleKey, `${label} · ${action} · 后置`)
+    }
     const contract = (node.workBinding as OperationWorkBindingSpec | undefined)?.operationContract
     if (Array.isArray(contract?.operations)) for (const operation of contract.operations) {
       if (operation?.pre?.mode === 'RULE') reference(operation.pre.ruleKey, `${label} · ${operation.operationCode} · 前置`)

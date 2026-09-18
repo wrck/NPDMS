@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.api.workbinding;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import tools.jackson.databind.node.ObjectNode;
@@ -65,7 +66,7 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 || blank(contract.getSourceNodeKey()) || invalidVersion(stage.getVersion())
                 || contract.getBindingVersion() == null || contract.getBindingVersion() <= 0)
             throw exception(PROJECT_TASK_QUERY_INVALID);
-        var snapshot = JsonUtils.parseObject(contract.getDefinitionSnapshot(), cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(contract.getDefinitionSnapshot());
         var frozen = snapshot.getStages().stream().filter(node -> contract.getSourceNodeKey().equals(node.getNodeKey())
                 && stage.getCode().equals(node.getCode())).toList();
         if (frozen.size() != 1 || frozen.getFirst().getBinding() == null) throw exception(PROJECT_TASK_QUERY_INVALID);

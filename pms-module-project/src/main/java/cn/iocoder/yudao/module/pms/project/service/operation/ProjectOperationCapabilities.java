@@ -4,13 +4,26 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessEx
 import cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationRuleEvaluator.Evaluation;
 import tools.jackson.databind.JsonNode;
 import java.util.List;
+import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /** A versioned observation only. Commands must independently reauthorize and revalidate. */
 public record ProjectOperationCapabilities(Node node, ProjectBusinessExecutionSelection execution,
         List<Action> actions, Presentation presentation, String ownerFactVersion, String reason) {
     public ProjectOperationCapabilities { actions = List.copyOf(actions); }
     public record Node(Long projectId, String kind, Long id, String code, String name, String status) { }
-    public record Presentation(JsonNode registration, String status, String reason) { }
+    public record Presentation(JsonNode registration, String status, String reason,
+            @JsonInclude(JsonInclude.Include.NON_NULL) String pageUrl,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Map<String, String> query) {
+        public Presentation {
+            registration = registration == null ? null : registration.deepCopy();
+            query = query == null ? null : Map.copyOf(query);
+        }
+        public Presentation(JsonNode registration, String status, String reason) {
+            this(registration, status, reason, null, null);
+        }
+        @Override public JsonNode registration() { return registration == null ? null : registration.deepCopy(); }
+    }
     public record Action(String operationCode, int operationVersion, String label, boolean ownerPermitted,
             boolean executionPermitted, boolean runtimeAvailable, Evaluation pre, Evaluation post,
             boolean allowed, String reason) { }

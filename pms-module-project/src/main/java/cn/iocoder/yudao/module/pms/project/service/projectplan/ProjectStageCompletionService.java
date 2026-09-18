@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 
@@ -72,7 +73,7 @@ public class ProjectStageCompletionService {
         var scope = new ProjectPlanScopeQuery(tenantId, projectId);
         var plan = plans.selectEffective(scope);
         if (plan == null || !Objects.equals(plan.getId(),project.getActivePlanVersionId())) return new Completion(0, true);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var query = new ProjectRuntimeGraphQuery(tenantId, projectId);
         var stageRows = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stageId,stage.getId())).toList();
         if (stageRows.size()!=1) return new Completion(0,true);

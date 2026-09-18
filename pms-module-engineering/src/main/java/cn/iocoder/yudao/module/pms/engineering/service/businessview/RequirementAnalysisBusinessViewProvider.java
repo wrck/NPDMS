@@ -32,6 +32,9 @@ public class RequirementAnalysisBusinessViewProvider implements BusinessViewComp
     }
 
     @Override
+    public java.util.Set<String> pagePaths() { return java.util.Set.of("/pms/delivery-business/requirement-analysis"); }
+
+    @Override
     public boolean canConfigure(Context context, ConfigurationAction action) {
         if (!trusted(context) || action == null) return false;
         String permission = switch (action) {

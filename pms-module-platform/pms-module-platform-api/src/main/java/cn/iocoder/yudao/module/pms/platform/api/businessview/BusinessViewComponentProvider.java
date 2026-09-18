@@ -12,6 +12,9 @@ public interface BusinessViewComponentProvider {
 
     Component component();
 
+    /** Code-owned embedded page routes; never an HTTP command or an object permission grant. */
+    default java.util.Set<String> pagePaths() { return java.util.Set.of(); }
+
     /** Recheck existing Owner configuration permissions for the authenticated context. */
     boolean canConfigure(Context context, ConfigurationAction action);
 

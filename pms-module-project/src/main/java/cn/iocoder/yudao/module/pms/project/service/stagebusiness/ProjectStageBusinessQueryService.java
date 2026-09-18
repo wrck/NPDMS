@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.stagebusiness;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewQueryApi;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewRevision;
@@ -13,7 +14,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntime
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -47,7 +47,7 @@ public class ProjectStageBusinessQueryService {
                 || contract.getEffectiveTo() != null)
             return unavailable(projectId, stageCode, stage, contract, "STAGE_CONTRACT_STALE");
         try {
-            var snapshot = JsonUtils.parseObject(contract.getDefinitionSnapshot(), TemplateExecutionSnapshot.class);
+            var snapshot = TemplateExecutionSnapshotReader.read(contract.getDefinitionSnapshot());
             var frozenNodes = snapshot.getStages().stream().filter(node ->
                     contract.getSourceNodeKey().equals(node.getNodeKey()) && stageCode.equals(node.getCode())).toList();
             if (frozenNodes.size() != 1)

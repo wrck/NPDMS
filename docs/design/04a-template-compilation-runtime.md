@@ -335,3 +335,74 @@ Legacy Import只允许复制能证明的事实。缺图、缺rule、缺Owner、�
 10. 当前模板UI真实保存、validate、publish、创建Project和工作区消费浏览器闭环。
 
 通过代码存在、单个单测或Schema可执行均不能单独宣称Feature Done。
+
+
+## 13. 2026-09-17补充：按原权限码选择业务操作（P1.01）
+
+适用PM-03配置目录及PM-11直接消费者；依据[版本优先决策](../decisions/ADR-2026-09-17-template-execution-version-first.md)。本节是配置查询契约，不改变本分册schema2历史读取/Hash、业务运行授权或快照格式；新的版本冻结行为在P1.02另行接线。
+
+`ProjectBusinessOperationProvider`可提供 `permissionCodes()`：原operationCode到原业务功能权限码的受信映射。默认空映射保持旧Provider兼容，仍可按原精确版本查找，但不参与权限码简写；不从ownerAction、名称或前缀猜权限。映射只能指向该Provider自己登记的操作，空值/未知键/重复精确操作启动拒绝。
+
+现有 `GET /api/v1/pms/project-templates/operation-catalog` 保留原参数和六个响应字段，增加可空 `permissionCode`。旧调用和底层operationVersion保持兼容，该版本由注册信息提供，不增加用户必填的版本组合。
+
+新增同资源只读 `GET /api/v1/pms/project-templates/operation-catalog/resolve`：必填ownerContext、objectType、permissionCode，可选原operationCode；不接受客户端操作版本。两个接口均要求 `pms:project-template:update` 或 `pms:project-plan:manage`，不开放未授权的公共目录。
+
+响应仍使用原CommonResult，data为 `{status, selected, candidates}`。配置选择状态为：
+
+| status | 语义 |
+|---|---|
+| RESOLVED | 恰有一个元数据项；selected为该项 |
+| NOT_FOUND | 当前Owner/实体/权限/可选动作范围没有匹配 |
+| AMBIGUOUS_OPERATION | 共用权限映射多个动作；需选择原动作，不取第一条 |
+| AMBIGUOUS_VERSION | 相同动作存在多个已登记候选版本；无明确部署预设时拒绝自动选择，不取latest/默认1 |
+| INVALID_REQUEST | 空白/缺少必要选择字段；selected为空 |
+
+除了RESOLVED，selected均为空；候选排序只为稳定呈现，不作为执行策略。请求缺少必需HTTP参数仍按Spring原400错误处理；选择无匹配/歧义是正常只读结果而非服务错误。非法登记属于服务配置错误，不能静默覆盖。
+
+每个候选仅暴露原业务操作、权限及检查点/可用性元数据，不暴露Java类或方法名。RESOLVED不等于用户有业务权限或操作可运行；runtimeAvailable仍为独立观察，不能用它筛掉某个版本后偷偷选另一个版本。
+
+P1.01只接通目录及前端类型化调用，不使新权限码配置直接进入旧命令执行器。后续编译必须将选择出的既有操作身份内联到模板发布版本；提交仍重新核对真实Owner授权、数据范围、对象/业务版本和节点资格。无任何Hash新增，无数据库/状态写入，页面URL不参与命令路由。
+
+
+## 14. 版本优先执行格式（2026-09-17，PM-03）
+
+本节落实ADR-2026-09-17-template-execution-version-first，只替代新格式的发布/读取技术约束，不重写schema 2历史，也不改变业务权限、Owner或正式状态转换。
+
+### 14.1 格式与身份
+
+`executionSchemaVersion=2`继续使用原compiler元数据和固定snapshot_hash算法；禁止扩展其摘要投影后回写旧版本。新格式为`executionSchemaVersion=3`，复用原模板身份及发布revisionNo、原Designer和完整ExecutionSnapshot模型，不增设模板根、policyHash、selectorHash或业务DTO版本组合。
+
+格式3的身份由持久化发布行的租户、templateId、revisionNo及项目计划引用确定，不由JSON顺序或新摘要确定。发布行同时冻结Designer和完整执行内容；匹配、收口、节点准入/完成/准出、规则定义、编译程序、内联决策表、操作规则及全部节点/关系/绑定配置随同一次发布保存。新增执行字段必须纳入冻结和回读测试。
+
+### 14.2 读取边界
+
+统一Reader先检查原始JSON必须为对象并明确携带整数格式版本，拒绝重复JSON属性、尾随第二文档、缺失版本、类型强转和未知格式。格式2保持原数据绑定与摘要语义；格式3 额外拒绝未知模型字段、缺少必要集合/程序、悬空或重复节点/规则、缺少决策表闭包和操作程序与版本内规则不一致。字符串读取绑定原文，不能因JSON树中转改变原始小数精度。
+
+格式3规则程序只能来自发布编译器；读取只检查冻结结构/引用完整性，不调用当前Compiler、当前Definition、最新预设、业务写命令或实时规则求值。完整性校验不是授权；当前租户、权限、项目资格和业务事实仍在原办理边界重验。
+
+模板版本查看、匹配、复制、项目创建/计划初始化、计划预览/启用、规则推进、门禁、返工、定时器和业务上下文的快照消费均经同一版本Reader。查询返回不可用或写入拒绝沿原边界处理；不能读失败后猜测Legacy、选择旧发布版本或把缺失规则当NONE。真正Legacy历史仍走其已冻结合同的原Reader。
+
+### 14.3 新发布启用条件
+
+格式3的持久化发布必须先完成Compiler、发布记录、复制、所有直接Reader及数据库约束接线；仅Reader已存在不授权新发布。新发布不计算或要求snapshot_hash，旧格式2读取仍必须验证旧Hash。已发布同版本禁止更新/删除，修订产生新发布行；运行计划继续引用原版本，显式计划变更才影响后续执行。迁移仅准备前向代码，不由普通提交自动执行。
+
+## 15. 节点独立执行配置（PM-03，版本优先）
+
+Designer的Stage/Task可选`execution`与主WorkBinding并列，不改变原绑定身份。其`operations`、`subscriptions`、`presentation`分别可省略，空集合表示无该项；显式null、未知字段和无效引用拒绝，不把缺失PRE/POST解释为NONE。旧文档无该字段时原序列化与解释不变；此字段不进入格式2发布。
+
+操作只保存`ownerContext/entityType/permissionCode`、必要的原`operationCode`及`pre/post`（NONE或RULE+版本内ruleKey）。原业务输入由已有类型化命令处理器承接，不让模板填写Java类、写API或输入版本。新编译按P1.01目录唯一解析，冻结真实operationCode；既有operationVersion仅进入原运行子契约。PRE/POST规则及间接决策表复用原编译器内联，配置权限不是运行授权。首批操作须与该节点主绑定的Owner/实体一致；重复解析到同一操作、共用权限未消歧、精确运行处理器缺失均禁止发布。
+
+订阅保存版本内唯一`key`、`ownerContext/entityType/resultType`、`scope`及内联`policy`。scope支持PROJECT（本项目的Owner对象）或OBJECTS（明确字符串objectIds集合）；不接受固定租户/主体。policy明确`acquisition`（REUSE_EXISTING/NEW_RESULT/PINNED_RESULT）、`validity`（HISTORICAL_FACT/CURRENT_VALID）、`selection`（EXACT_ONE/ANY_MATCHING/ALL_EXPECTED）。PINNED_RESULT必须明确pinnedResultId；ALL_EXPECTED首批只支持完整显式对象集合。ID不转为浮点数。只有订阅的节点无需操作、处理器或页面即可保存，但实际结果来源、证据和恢复消费者接通前不得发布对应订阅。
+
+presentation保存`pageUrl`和独立字符串query映射，只用于展示。路由安全和实际受信路由接线完成前不能发布。可保存草稿不等于可运行；编译返回具体路径和未安装能力，不生成半接线快照。
+
+新旧配置不并行维护两份可编辑操作真值：有execution.operations时不得另填workBinding.operationContract；后者只由编译器派生供既有运行消费者读取。草稿归一化/复制保留完整execution，全部RULE引用参与原共享规则校验。旧content写入口无法承载execution时拒绝覆盖已有新配置，用户继续使用原/draft入口；身份更新和真正旧草稿兼容不变。格式3冻结后按同一Reader核对execution与派生操作/规则的一致性，运行不重新按权限选择最新操作。
+
+
+## 16. 原业务输入与页面语法边界（PM-03）
+
+受控操作只使用代码登记的原SaveReq/Command类型，不从模板、URL或JSON字段加载类名、方法或Bean。业务输入必须是JSON对象；项目执行身份由独立通道提供，输入中的execution/tenantId（包括显式null）拒绝。在保留原ObjectMapper的日期和数值模块的前提下，单次读取拒绝未知类型化字段、小数转整数和null转原始数值默认值，不修改全局序列化设置。动态表单的values/businessValues/extensionValues保持原Map语义，由Owner继续校验字段和值，不能递归删除同名合法业务字段。
+
+类型化输入后仍执行原权限、对象归属、期望版本、Bean Validation和Owner命令；请求内已提供的对象/版本不得被通道值静默覆盖。仅需对象身份的动作拒绝额外业务字段。报告的原DraftReqVO/PublishReqVO/RevokeReqVO约束继续校验；更新的reportVersionId属于已有路径传输字段，显式取出并校验后把其余内容绑定原请求，转换为原DraftContent/Command；发布/撤销只接受各原命令实际消费的输入。输入无效返回原BAD_REQUEST，不泄露原始请求或Java类型信息，不产生业务写入。旧普通Controller和DTO保持不变；工勘受控客户端只移除查询投影字段，保留原写字段和动态表单内容。
+
+新execution.presentation保存时先检查站内绝对路径与独立query；拒绝协议/authority、片段、路径穿越、反斜线、路径百分号编码及已知API根。参数名不接受身份、凭据、重定向或原型污染字段；参数值逐项UTF-8编码，字符串ID不转浮点。该语法校验不证明路由存在或授权，不调用业务命令；发布还须命中受信页面登记及已安装消费者，页面和结果能力缺失继续拒绝相应发布。历史无execution的文档及格式2算法不变，不批量改写旧快照。

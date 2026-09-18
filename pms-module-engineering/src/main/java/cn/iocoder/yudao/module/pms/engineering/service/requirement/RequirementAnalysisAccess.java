@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipan
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectVerifiedOperationScope;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -82,8 +83,14 @@ public class RequirementAnalysisAccess {
 
     public RequirementAnalysisExecutionAccess.Frozen lockExecution(Long projectId, String snapshot,
             ProjectBusinessExecutionSelection selection, EntityActor actor, Long targetRevisionId) {
+        var frame = ProjectVerifiedOperationScope.current();
+        if (actor == null && frame != null && "SOL".equals(frame.ownerContext())
+                && "REQUIREMENT_ANALYSIS".equals(frame.objectType()))
+            throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
         if (actor != null) selection = ProjectOwnerOperationScope.executionFor(actor.tenantId(), actor.userId(), projectId,
                 "SOL", "REQUIREMENT_ANALYSIS", targetRevisionId == null ? null : targetRevisionId.toString(), selection);
+        // Owner authorization and row concurrency are enforced by the caller; the source round is only provenance.
+        if (selection == null && snapshot != null) return executions.frozen(projectId, snapshot);
         ProjectWorkBindingFact binding;
         if (selection != null) {
             binding = executions.lockRequested(projectId, selection);

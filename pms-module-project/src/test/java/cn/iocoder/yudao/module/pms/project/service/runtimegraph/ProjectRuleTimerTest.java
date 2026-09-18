@@ -42,6 +42,7 @@ class ProjectRuleTimerTest {
 
     @BeforeEach void setup() {
         org.springframework.test.util.ReflectionTestUtils.setField(taskAdmission, "timers", mock(ProjectRuleTimerScheduler.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(taskAdmission, "lifecycle", tasks);
         TenantContextHolder.setTenantId(7L);
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(51L);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
@@ -139,7 +140,7 @@ class ProjectRuleTimerTest {
         verifyNoInteractions(events, tasks, stages, admission, closure);
     }
 
-    @Test void taskAdmissionPreservesUnknownAndNeverStartsBusinessWork() {
+    @Test void taskAdmissionPreservesUnknownAndStartsOnlyTheFormalProjectTaskLifecycle() {
         round.setNodeKind("TASK");
         var node = new TemplateExecutionSnapshot.TaskContract(); node.setNodeKey("prep"); node.setAdmissionRuleKey("time");
         snapshot.setTasks(List.of(node)); snapshot.setStages(List.of()); saveSnapshot();
@@ -153,11 +154,15 @@ class ProjectRuleTimerTest {
         when(admission.taskAdmissionFact(project,task,contract)).thenReturn(RuleFact.known(false));
         assertTrue(service.deliver(timer(ProjectRuleTimer.Purpose.ADMISSION)));
         verify(executions, never()).activateIfPending(any());
+        verifyNoInteractions(tasks);
         when(admission.taskAdmissionFact(project,task,contract)).thenReturn(RuleFact.known(true));
         when(executions.activateIfPending(any())).thenReturn(1);
-        assertTrue(service.deliver(timer(ProjectRuleTimer.Purpose.ADMISSION)));
+        var admissionTimer = timer(ProjectRuleTimer.Purpose.ADMISSION);
+        assertTrue(service.deliver(admissionTimer));
         verify(executions).activateIfPending(argThat(write -> write.planVersionId()==51L && write.nodeInstanceId()==11L && write.nodeKind().equals("TASK")));
-        verifyNoInteractions(tasks, stages, closure);
+        verify(tasks).startAdmittedTask(eq(project), eq(task), eq(contract), eq(admissionTimer.eventId()));
+        verifyNoMoreInteractions(tasks);
+        verifyNoInteractions(stages, closure);
     }
 
     @Test void relativeActivationRegistersOnActivationAndBindsTheActualExecution() {

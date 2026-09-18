@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
@@ -9,7 +10,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPl
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.*;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler;
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleEvaluationService;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
@@ -97,7 +97,7 @@ public class ProjectTaskPlanCompletionService {
         if (!plan.getId().equals(round.getPlanVersionId()) || !Objects.equals(binding.getId(),round.getContractId())
                 || !Objects.equals(binding.getSourceNodeKey(),round.getNodeKey()) || !"ACTIVE".equals(round.getStatus()))
             return unknown(reference,"TASK_EXECUTION_ROUND_STALE");
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(),TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var definitions = snapshot.getTasks().stream().filter(node -> round.getNodeKey().equals(node.getNodeKey())
                 && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
         if (definitions.size()!=1) return unknown(reference,"TASK_PLAN_DEFINITION_UNAVAILABLE");

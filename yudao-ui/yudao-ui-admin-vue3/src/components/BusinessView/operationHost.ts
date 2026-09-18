@@ -4,6 +4,7 @@ import request from '@/config/axios'
 import { service } from '@/config/axios/service'
 import { OperationClient, routeSelection, captureOperationResponse, type Result, type Selection } from './operationClient'
 import type { BusinessViewTarget } from './registry'
+import { validateBusinessPage, pagePresentationKey, type PagePresentation } from './presentationRoute'
 import { operationPresentation } from './operationPresentation'
 
 export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
@@ -31,6 +32,8 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
   const observation = shallowRef<OperationCapabilities>()
   const client = shallowRef<OperationClient>()
   const routingExecution = shallowRef<Selection>()
+  const routingPresentation = shallowRef<PagePresentation>()
+  let presentationObserved = false
   const uncertain = shallowRef(false)
   const recovering = shallowRef(false)
   const receipt = shallowRef<Result>()
@@ -77,6 +80,27 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
         throw new Error('EXECUTION_CONTRACT_CHANGED_REOPEN_REQUIRED')
       }
       if (requiresReopen.value) throw new Error('EXECUTION_CONTRACT_CHANGED_REOPEN_REQUIRED')
+      const page = value.presentation
+      if (page?.pageUrl != null && (page.status === 'UNAVAILABLE' || page.query == null)) {
+        if (presentationObserved && routingPresentation.value?.pageUrl !== page.pageUrl) {
+          requiresReopen.value = true; client.value?.invalidate()
+        }
+        throw new Error(page.reason || 'PRESENTATION_ROUTE_UNAVAILABLE')
+      }
+      let candidate: PagePresentation | undefined
+      if (page?.pageUrl != null) {
+        candidate = { pageUrl: page.pageUrl, query: { ...page.query! } }
+        validateBusinessPage(active.value, candidate)
+        const actual = page.registration, expected = active.value.registration
+        if (!actual || String(actual.id) !== String(expected.id) || actual.ownerContext !== expected.ownerContext
+          || actual.entityType !== expected.entityType || actual.componentKey !== expected.componentKey
+          || actual.componentVersion !== expected.componentVersion || actual.viewSource !== expected.viewSource)
+          throw new Error('PRESENTATION_REGISTRATION_MISMATCH')
+      }
+      if (presentationObserved && pagePresentationKey(candidate) !== pagePresentationKey(routingPresentation.value)) {
+        requiresReopen.value = true; client.value?.invalidate()
+        throw new Error('PRESENTATION_CHANGED_REOPEN_REQUIRED')
+      }
       if (nextMode === 'LEGACY') {
         client.value?.invalidate(); client.value = undefined; mode.value = 'LEGACY'
       } else {
@@ -100,6 +124,8 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
         }
         if (value.execution) routingExecution.value = value.execution as Selection
       }
+      routingPresentation.value = candidate
+      presentationObserved = true
       if (previous && previous.node.status !== value.node.status) changed()
       if (follow && ++poll < 6 && !['DONE', 'CLOSED', 'COMPLETED'].includes(value.node.status)) {
         timer = setTimeout(() => void refresh(true), Math.min(1000 * 2 ** poll, 8000))
@@ -118,13 +144,15 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     return { ...context, ...(selected.task ? { taskExecution: selected.task } : { stageExecution: selected.stage }) } as typeof context
   })
   // Presentation can restrict this view without changing Owner command authorization or the recovery client.
-  const presentation = computed(() => operationPresentation(mode.value, observation.value?.presentation))
-  const presentationReadonly = computed(() => presentation.value.readonly)
+  const configuredPresentation = computed(() => !!routingPresentation.value || observation.value?.presentation?.pageUrl != null)
+  const presentation = computed(() => operationPresentation(configuredPresentation.value ? 'CONTROLLED' : mode.value, observation.value?.presentation))
+  const presentationReadonly = computed(() => presentation.value.readonly || configuredPresentation.value && !!failure.value)
   const presentationReason = computed(() => presentation.value.reason)
   const allowedActions = computed(() => {
     const target = active.value
     if (requiresReopen.value) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
-    if (mode.value === 'INDEPENDENT' || mode.value === 'LEGACY') return target.allowedActions
+    if (mode.value === 'INDEPENDENT' || mode.value === 'LEGACY') return configuredPresentation.value && (presentationReadonly.value || checking.value || failure.value)
+      ? target.allowedActions.includes('QUERY') ? ['QUERY'] : [] : target.allowedActions
     const readable = target.allowedActions.includes('QUERY') ? ['QUERY'] : []
     if (presentationReadonly.value || checking.value || uncertain.value || recovering.value || failure.value || observation.value?.reason || !client.value) return readable
     const selectedObject = target.resolvedContext.businessObjectId != null
@@ -155,24 +183,26 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     }
     client.value?.invalidate(); client.value = undefined; routingExecution.value = undefined; uncertain.value = false
     requiresReopen.value = false; mode.value = 'CHECKING'; failure.value = ''
-    receipt.value = undefined
+    receipt.value = undefined; routingPresentation.value = undefined; presentationObserved = false
     await refresh()
   }
   let previousTarget = ''
   watch(() => {
     const target = query()
-    return JSON.stringify([target, active.value.resolvedContext.taskExecution, active.value.resolvedContext.stageExecution])
+    return JSON.stringify([editingTargetKey(active.value), target, active.value.resolvedContext.taskExecution, active.value.resolvedContext.stageExecution])
   }, () => {
     const target = query()
-    const identity = JSON.stringify(target && [target.projectId, target.nodeKind, target.nodeId])
+    // BusinessViewHost changes this only after its original dirty/pending-command leave guard succeeds.
+    const identity = editingTargetKey(active.value)
     if (identity !== previousTarget) {
       client.value?.invalidate(); client.value = undefined
       routingExecution.value = undefined; uncertain.value = false
       mode.value = 'CHECKING'; requiresReopen.value = false; receipt.value = undefined
+      routingPresentation.value = undefined; presentationObserved = false
       previousTarget = identity
     }
     poll = 0; if (timer) clearTimeout(timer); void refresh()
   }, { immediate: true })
   onBeforeUnmount(() => { disposed = true; generation++; client.value?.invalidate(); if (timer) clearTimeout(timer) })
-  return { observation, client, receipt, failure, checking, mode, decorated, allowedActions, presentationReadonly, presentationReason, requiresReopen, uncertain, recovering, recover, refresh, reopen }
+  return { observation, client, routingPresentation, receipt, failure, checking, mode, decorated, allowedActions, presentationReadonly, presentationReason, requiresReopen, uncertain, recovering, recover, refresh, reopen }
 }

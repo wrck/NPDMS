@@ -126,12 +126,14 @@ public final class TemplateRuleCollection {
             for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
                 use(rules, owners, key, "stage:" + node.getNodeKey());
             operationUses(node.getWorkBinding(), rules, owners, "stage:" + node.getNodeKey());
+            executionUses(node.getExecution(), node.getWorkBinding(), rules, owners, "stage:" + node.getNodeKey());
         }
         if (document.getTasks() != null) for (var node : document.getTasks()) {
             if (node == null) continue;
             for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
                 use(rules, owners, key, "task:" + node.getNodeKey());
             operationUses(node.getWorkBinding(), rules, owners, "task:" + node.getNodeKey());
+            executionUses(node.getExecution(), node.getWorkBinding(), rules, owners, "task:" + node.getNodeKey());
         }
         if (document.getTransitions() != null) for (var edge : document.getTransitions())
             if (edge != null) use(rules, owners, edge.getConditionRuleKey(), "edge:" + edge.getEdgeKey());
@@ -139,6 +141,21 @@ public final class TemplateRuleCollection {
             if (users.size() > 1 && !rules.get(key).shared())
                 throw new IllegalArgumentException("多个节点使用同一规则必须显式共享: " + key + " " + users);
         });
+    }
+
+    private static void executionUses(JsonNode value, TemplateDesignerDocument.WorkBindingSpec binding,
+            Map<String, VersionRule> rules, Map<String, Set<String>> owners, String owner) {
+        if (value == null) return;
+        var config = TemplateExecutionConfiguration.read(value);
+        if (!config.operations().isEmpty() && binding != null && binding.getOperationContract() != null)
+            throw new IllegalArgumentException("执行配置和旧操作子契约不能同时编辑: " + owner);
+        for (var operation : config.operations()) {
+            for (var check : List.of(operation.pre(), operation.post())) {
+                if (!"RULE".equals(check.mode())) continue;
+                condition(rules, check.ruleKey());
+                use(rules, owners, check.ruleKey(), owner);
+            }
+        }
     }
 
     private static void operationUses(TemplateDesignerDocument.WorkBindingSpec binding,

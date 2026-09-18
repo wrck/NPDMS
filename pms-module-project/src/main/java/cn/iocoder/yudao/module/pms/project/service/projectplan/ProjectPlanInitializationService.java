@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectSt
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionContractSet;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,20 +33,31 @@ public class ProjectPlanInitializationService {
     public void initialize(ProjectMasterDO project, TemplateExecutionSnapshot snapshot,
                            List<ProjectStageExecutionContractDO> stageContracts,
                            List<ProjectTaskExecutionContractDO> taskContracts) {
+        if (project == null || project.getId() == null || project.getTenantId() == null
+                || project.getLifecycleTemplateId() == null || project.getLifecycleTemplateRevisionId() == null
+                || project.getLifecycleTemplateRevisionNo() == null) {
+            throw new IllegalArgumentException("PUBLISHED_TEMPLATE_IDENTITY_REQUIRED");
+        }
         if (project.getActivePlanVersionId() != null) throw new IllegalArgumentException("PROJECT_PLAN_ALREADY_INITIALIZED");
         var source = templates.getRevisionById(project.getLifecycleTemplateRevisionId());
         if (source == null || !"PUBLISHED".equals(source.getStatus()) || source.getDesignerDocument() == null
+                || source.getDesignerDocument().isBlank()
                 || !Objects.equals(source.getTenantId(), project.getTenantId())
                 || !Objects.equals(source.getId(), project.getLifecycleTemplateRevisionId())
                 || !Objects.equals(source.getTemplateId(), project.getLifecycleTemplateId())
                 || !Objects.equals(source.getRevisionNo(), project.getLifecycleTemplateRevisionNo()))
             throw new IllegalArgumentException("PUBLISHED_DESIGNER_REQUIRED");
-        if (stageContracts.size() != snapshot.getStages().size() || taskContracts.size() != snapshot.getTasks().size())
-            throw new IllegalArgumentException("FROZEN_CONTRACT_SET_INCOMPLETE");
+        // Re-read the exact publication, never latest or a freshly compiled Designer.
+        TemplateExecutionSnapshot published = templates.getExecutionSnapshot(source.getTemplateId(), source.getRevisionNo());
+        if (snapshot == null || published == null || !published.equals(snapshot)) {
+            throw new IllegalArgumentException("PUBLISHED_EXECUTION_SNAPSHOT_MISMATCH");
+        }
+        TemplateExecutionSnapshotReader.validate(published);
+        requireContracts(project, published, stageContracts, taskContracts);
         var plan = new ProjectPlanVersionDO();
         plan.setTenantId(project.getTenantId()); plan.setProjectId(project.getId()); plan.setRevisionNo(1);
         plan.setStatus("EFFECTIVE"); plan.setSourceTemplateRevisionId(source.getId());
-        plan.setDesignerDocument(source.getDesignerDocument()); plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        plan.setDesignerDocument(source.getDesignerDocument()); plan.setExecutionSnapshot(JsonUtils.toJsonString(published));
         plan.setEffectiveAt(LocalDateTime.now()); plan.setVersion(0);
         if (plans.insert(plan) != 1) throw new IllegalStateException("PROJECT_PLAN_INITIALIZATION_FAILED");
         for (var contract : stageContracts)
@@ -54,7 +67,28 @@ public class ProjectPlanInitializationService {
         if (plans.attachInitialPlan(new ProjectPlanVersionMapper.InitialPlanBinding(project.getTenantId(), project.getId(), plan.getId())) != 1)
             throw new IllegalStateException("PROJECT_PLAN_BINDING_CONFLICT");
         project.setActivePlanVersionId(plan.getId());
-        timers.schedule(project.getId(), plan.getId(), snapshot, null);
+        timers.schedule(project.getId(), plan.getId(), published, null);
+    }
+
+    private void requireContracts(ProjectMasterDO project, TemplateExecutionSnapshot snapshot,
+                                  List<ProjectStageExecutionContractDO> stages,
+                                  List<ProjectTaskExecutionContractDO> tasks) {
+        if (snapshot.getStages() == null || snapshot.getTasks() == null || stages == null || tasks == null
+                || stages.stream().anyMatch(row -> row == null
+                    || !Objects.equals(project.getTenantId(), row.getTenantId())
+                    || !Objects.equals(project.getId(), row.getProjectId()))
+                || tasks.stream().anyMatch(row -> row == null
+                    || !Objects.equals(project.getTenantId(), row.getTenantId()))) {
+            throw new IllegalArgumentException("FROZEN_CONTRACT_SCOPE_MISMATCH");
+        }
+        TemplateExecutionContractSet.requireExact(snapshot.getStages().stream()
+                        .map(node -> node == null ? null : node.getNodeKey()).toList(),
+                stages.stream().map(row -> new TemplateExecutionContractSet.Identity(
+                        row.getSourceNodeKey(), row.getStageId(), row.getId())).toList());
+        TemplateExecutionContractSet.requireExact(snapshot.getTasks().stream()
+                        .map(node -> node == null ? null : node.getNodeKey()).toList(),
+                tasks.stream().map(row -> new TemplateExecutionContractSet.Identity(
+                        row.getSourceNodeKey(), row.getProjectTaskId(), row.getId())).toList());
     }
 
     private void insertRound(ProjectMasterDO project, ProjectPlanVersionDO plan, String kind, Long instanceId, String nodeKey, Long contractId) {

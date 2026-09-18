@@ -21,4 +21,14 @@ public class RequirementAnalysisOperationProvider implements ProjectBusinessOper
                 new ProjectBusinessOperationDescriptor("SOL.REQUIREMENT_ANALYSIS.COPY", 1, "SOL", "REQUIREMENT_ANALYSIS", "复制需求分析修订", "CREATE_DRAFT",
                         Set.of("PRE", "POST"), RequirementAnalysisEntityCommands.class, "copy"));
     }
+
+    /** Native functional permissions; actual Owner methods still authorize every command. */
+    @Override
+    public java.util.Map<String, String> permissionCodes() {
+        return java.util.Map.of(
+                "SOL.REQUIREMENT_ANALYSIS.CREATE", "pms:requirement-analysis:manage",
+                "SOL.REQUIREMENT_ANALYSIS.SAVE", "pms:requirement-analysis:manage",
+                "SOL.REQUIREMENT_ANALYSIS.COMPLETE", "pms:requirement-analysis:manage",
+                "SOL.REQUIREMENT_ANALYSIS.COPY", "pms:requirement-analysis:manage");
+    }
 }

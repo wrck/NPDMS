@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -207,7 +208,7 @@ public class ProjectReworkService {
         var plan = plans.selectEffective(scope);
         if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         var query = new ProjectRuntimeGraphQuery(scope.tenantId(), scope.projectId());
-        return new Runtime(project, JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class),
+        return new Runtime(project, TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot()),
                 lock ? executions.selectCurrentForUpdate(scope) : executions.selectCurrent(scope),
                 lock ? graph.selectTasksForUpdate(query) : graph.selectTasks(query),
                 lock ? graph.selectStagesForUpdate(query) : graph.selectStages(query));

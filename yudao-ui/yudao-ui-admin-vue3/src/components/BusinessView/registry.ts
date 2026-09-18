@@ -1,4 +1,5 @@
 import { markRaw, type Component } from 'vue'
+import { businessPageRoutes, validatePagePresentation, type PagePresentation } from './presentationRoute'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platform/business-view'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
@@ -24,6 +25,7 @@ export interface BusinessViewTarget {
   resolvedContext: BusinessViewResolvedContext
   allowedActions: string[]
   readonly?: boolean
+  presentation?: PagePresentation
 }
 interface Adapter {
   componentKey: string
@@ -31,18 +33,15 @@ interface Adapter {
   entityType: string
   ownerContext: string
   viewSource: 'PAGE' | 'DYNAMIC_FORM'
+  pageUrl?: string
   component: Component
   resolve: (target: BusinessViewTarget) => Record<string, unknown> | undefined
 }
 const positiveId = isBusinessViewId
-// Add new dedicated pages here plus their Owner provider. No URL, import path or script from metadata.
+// Paths only select these statically imported components; URL metadata never becomes an import or command.
 const adapters: readonly Adapter[] = [
   {
-    componentKey: 'ACC_ACCEPTANCE_REPORT',
-    componentVersion: '1',
-    entityType: 'ACCEPTANCE',
-    ownerContext: 'ACC',
-    viewSource: 'PAGE',
+    ...businessPageRoutes.ACC_ACCEPTANCE_REPORT,
     component: markRaw(AcceptanceReportPage),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null &&
@@ -52,11 +51,7 @@ const adapters: readonly Adapter[] = [
         : undefined
   },
   {
-    componentKey: 'SOL_SITE_SURVEY',
-    componentVersion: '1',
-    entityType: 'SITE_SURVEY',
-    ownerContext: 'SOL',
-    viewSource: 'PAGE',
+    ...businessPageRoutes.SOL_SITE_SURVEY,
     component: markRaw(SiteSurveyPage),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null &&
@@ -82,11 +77,7 @@ const adapters: readonly Adapter[] = [
         : undefined
   },
   {
-    componentKey: 'PROJ_REQUIREMENT_ANALYSIS',
-    componentVersion: '1',
-    entityType: 'REQUIREMENT_ANALYSIS',
-    ownerContext: 'SOL',
-    viewSource: 'PAGE',
+    ...businessPageRoutes.PROJ_REQUIREMENT_ANALYSIS,
     component: markRaw(ProjectRequirementAnalysisPanel),
       resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
@@ -139,9 +130,15 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
   const context = adapter.resolve(target)
   if (!context)
     return { error: '缺少已授权的业务上下文或冻结修订不匹配；注册元数据不能替代对象授权。' }
+  let pageUrl: string | undefined
+  if (target.presentation) {
+    try { pageUrl = validatePagePresentation(target.presentation, adapter.pageUrl, target.resolvedContext) }
+    catch { return { error: '页面路径或参数与冻结Owner上下文不匹配，禁止回退到默认页面。' } }
+  }
   const readonly = target.readonly === true || registration.status === 'DISABLED'
   return {
     component: adapter.component,
+    pageUrl,
     props: {
       ...context,
       readonly,

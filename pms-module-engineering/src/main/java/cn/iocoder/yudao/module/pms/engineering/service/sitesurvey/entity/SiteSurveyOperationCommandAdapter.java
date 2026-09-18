@@ -45,7 +45,10 @@ public class SiteSurveyOperationCommandAdapter implements ProjectBusinessOperati
     @Override public ProjectOperationResult invoke(String code, ProjectOperationCommand command) {
         authorizeReplay(code, command);
         var service = services.getObject(); var mapper = mappers.getObject();
-        if (command.input().has("execution") || command.input().has("tenantId")) throw exception(BAD_REQUEST, "UNTRUSTED_EXECUTION_INPUT");
+        try {
+            ProjectOperationInput.object(command.input());
+            if (!code.endsWith(".CREATE") && !code.endsWith(".UPDATE")) ProjectOperationInput.fields(command.input(), Set.of());
+        } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
         Long id = null;
         if (!code.endsWith(".CREATE")) {
             try { id = Long.valueOf(command.objectId()); } catch (RuntimeException invalid) { throw exception(BAD_REQUEST, "BUSINESS_OBJECT_REQUIRED"); }
@@ -54,9 +57,13 @@ public class SiteSurveyOperationCommandAdapter implements ProjectBusinessOperati
                     || !Objects.equals(row.getVersion(), command.expectedBusinessVersion())) throw exception(BAD_REQUEST, "BUSINESS_VERSION_CONFLICT");
         } else if (command.objectId() != null) throw exception(BAD_REQUEST, "CREATE_OBJECT_MUST_BE_ABSENT");
         if (code.endsWith(".CREATE") || code.endsWith(".UPDATE")) {
-            var input = JsonUtils.convertObject(command.input(), SiteSurveyEntitySaveReqVO.class);
+            SiteSurveyEntitySaveReqVO input;
+            try { input = ProjectOperationInput.read(JsonUtils.getObjectMapper(), command.input(), SiteSurveyEntitySaveReqVO.class); }
+            catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
             if (input == null || input.getProjectId() != null && !command.projectId().equals(input.getProjectId())
                     || input.getId() != null && !Objects.equals(id, input.getId())) throw exception(BAD_REQUEST, "BUSINESS_OBJECT_MISMATCH");
+            if (input.getVersion() != null && !Objects.equals(input.getVersion(), command.expectedBusinessVersion()))
+                throw exception(BAD_REQUEST, "BUSINESS_VERSION_CONFLICT");
             input.setProjectId(command.projectId()); input.setId(id); input.setExecution(command.execution());
             input.setVersion(command.expectedBusinessVersion());
             if (!validators.getObject().validate(input).isEmpty()) throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID");
