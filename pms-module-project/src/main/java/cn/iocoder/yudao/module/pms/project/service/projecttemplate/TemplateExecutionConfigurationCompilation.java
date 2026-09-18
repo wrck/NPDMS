@@ -19,6 +19,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class TemplateExecutionConfigurationCompilation {
     private final ProjectBusinessOperationRegistry registry;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private TemplatePresentationRoutes presentationRoutes;
 
     public List<Issue> prepare(TemplateDesignerDocument normalized) {
         List<Issue> issues = new ArrayList<>();
@@ -27,9 +29,15 @@ public class TemplateExecutionConfigurationCompilation {
             if (!config.subscriptions().isEmpty())
                 issues.add(new Issue(node.path() + ".subscriptions", "RESULT_SUBSCRIPTION_NOT_INSTALLED",
                         "独立结果订阅的来源、证据和恢复尚未接通；可保存草稿，不能发布"));
-            if (config.presentation() != null)
-                issues.add(new Issue(node.path() + ".presentation", "PRESENTATION_ROUTE_NOT_INSTALLED",
-                        "页面安全路由尚未接通；可保存草稿，不能发布"));
+            if (config.presentation() != null) {
+                try {
+                    if (presentationRoutes == null) throw new IllegalArgumentException("PRESENTATION_ROUTE_NOT_INSTALLED");
+                    presentationRoutes.validate(config.presentation(), node.binding());
+                } catch (IllegalArgumentException invalid) {
+                    issues.add(new Issue(node.path() + ".presentation", invalid.getMessage(),
+                            "页面路径、冻结业务视图或参数不匹配已部署登记；可保留草稿，不能发布"));
+                }
+            }
             if (config.operations().isEmpty()) continue;
             List<TemplateOperationContract.Operation> resolved = new ArrayList<>();
             var unique = new HashSet<String>();

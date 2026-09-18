@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionConfiguration;
+import tools.jackson.databind.JsonNode;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -44,7 +46,15 @@ public class ProjectOperationContextResolver {
 
     public record Context(Long tenantId, Long actorId, ProjectMasterDO project, Node node,
             ProjectNodeExecutionDO round, TemplateExecutionSnapshot.BindingContract binding,
-            ProjectBusinessExecutionSelection selection, boolean permitted, String reason) { }
+            ProjectBusinessExecutionSelection selection, boolean permitted, String reason,
+            TemplateExecutionConfiguration.Presentation presentation) {
+        public Context(Long tenantId, Long actorId, ProjectMasterDO project, Node node,
+                ProjectNodeExecutionDO round, TemplateExecutionSnapshot.BindingContract binding,
+                ProjectBusinessExecutionSelection selection, boolean permitted, String reason) {
+            this(tenantId, actorId, project, node, round, binding, selection, permitted, reason, null);
+        }
+    }
+    private record FrozenNode(TemplateExecutionSnapshot.BindingContract binding, JsonNode execution) { }
 
     public Context resolve(Long projectId, String kind, Long nodeId, ProjectBusinessExecutionSelection expected) {
         Long tenant = TenantContextHolder.getRequiredTenantId(), actor = SecurityFrameworkUtils.getLoginUserId();
@@ -84,11 +94,14 @@ public class ProjectOperationContextResolver {
             var frozen = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
             var bindings = "TASK".equals(kind) ? frozen.getTasks().stream()
                     .filter(node -> Objects.equals(node.getNodeKey(), round.getNodeKey()) && summary.code().equals(node.getCode()))
-                    .map(TemplateExecutionSnapshot.TaskContract::getBinding).toList()
+                    .map(node -> new FrozenNode(node.getBinding(), node.getExecution())).toList()
                     : frozen.getStages().stream()
                     .filter(node -> Objects.equals(node.getNodeKey(), round.getNodeKey()) && summary.code().equals(node.getCode()))
-                    .map(TemplateExecutionSnapshot.StageContract::getBinding).toList();
+                    .map(node -> new FrozenNode(node.getBinding(), node.getExecution())).toList();
             if (bindings.size() != 1) return unavailable(tenant, actor, project, summary, "FROZEN_NODE_NOT_UNIQUE");
+            var matched = bindings.getFirst();
+            var presentation = matched.execution() == null ? null
+                    : TemplateExecutionConfiguration.read(matched.execution()).presentation();
             ProjectBusinessExecutionSelection selection;
             boolean permitted;
             if ("TASK".equals(kind)) {
@@ -108,8 +121,8 @@ public class ProjectOperationContextResolver {
                         && edit != null && edit.fullProjectIds() != null && edit.fullProjectIds().contains(projectId);
             }
             if (expected != null && !expected.equals(selection))
-                return new Context(tenant, actor, project, summary, round, bindings.getFirst(), selection, false, "EXECUTION_VERSION_CONFLICT");
-            return new Context(tenant, actor, project, summary, round, bindings.getFirst(), selection, permitted, null);
+                return new Context(tenant, actor, project, summary, round, matched.binding(), selection, false, "EXECUTION_VERSION_CONFLICT", presentation);
+            return new Context(tenant, actor, project, summary, round, matched.binding(), selection, permitted, null, presentation);
         } catch (RuntimeException unavailable) {
             return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_UNAVAILABLE");
         }

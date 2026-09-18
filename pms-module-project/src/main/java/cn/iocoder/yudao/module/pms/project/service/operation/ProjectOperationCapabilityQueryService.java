@@ -26,6 +26,8 @@ public class ProjectOperationCapabilityQueryService {
     private final List<ProjectBusinessOperationAccessProvider> owners;
     private final ProjectOperationRuleEvaluator evaluator;
     private final BusinessViewQueryApi views;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplatePresentationRoutes presentationRoutes;
 
     @Transactional(readOnly = true)
     public ProjectOperationCapabilities inspect(Long projectId, String kind, Long nodeId, String objectId,
@@ -33,7 +35,7 @@ public class ProjectOperationCapabilityQueryService {
         if (objectId != null && (objectId.isBlank() || objectId.length() > 128)) throw new IllegalArgumentException("BUSINESS_OBJECT_ID_INVALID");
         var context = contexts.resolve(projectId, kind, nodeId, expected);
         var binding = context.binding();
-        var presentation = presentation(binding);
+        var presentation = presentation(context, objectId);
         if (context.reason() != null) return new ProjectOperationCapabilities(context.node(), context.selection(),
                 List.of(), presentation, null, context.reason());
         if (binding == null || binding.getOperationContract() == null)
@@ -73,6 +75,26 @@ public class ProjectOperationCapabilityQueryService {
         return new ProjectOperationCapabilities(context.node(), context.selection(), actions, presentation, factVersion, ownerError);
     }
 
+    private ProjectOperationCapabilities.Presentation presentation(ProjectOperationContextResolver.Context context, String objectId) {
+        var observation = presentation(context.binding());
+        var configured = context.presentation();
+        if (configured == null) return observation;
+        try {
+            if (presentationRoutes == null) throw new IllegalArgumentException("PRESENTATION_ROUTE_NOT_INSTALLED");
+            presentationRoutes.validate(configured, context.binding());
+            if ("UNAVAILABLE".equals(observation.status()))
+                return new ProjectOperationCapabilities.Presentation(null, "UNAVAILABLE", observation.reason(), configured.pageUrl(), null);
+            var query = cn.iocoder.yudao.module.pms.project.domain.template.TemplatePresentationContract
+                    .resolve(configured, context.project().getId(), objectId);
+            return new ProjectOperationCapabilities.Presentation(observation.registration(), observation.status(),
+                    observation.reason(), configured.pageUrl(), query);
+        } catch (RuntimeException unavailable) {
+            // Keep the configured path: an unavailable new view must not masquerade as a legacy binding.
+            return new ProjectOperationCapabilities.Presentation(null, "UNAVAILABLE", "PRESENTATION_ROUTE_UNAVAILABLE",
+                    configured.pageUrl(), null);
+        }
+    }
+
     private ProjectOperationCapabilities.Presentation presentation(TemplateExecutionSnapshot.BindingContract binding) {
         if (binding == null || binding.getBusinessViewSnapshot() == null)
             return new ProjectOperationCapabilities.Presentation(null, "UNAVAILABLE", "VIEW_NOT_BOUND");
@@ -85,6 +107,7 @@ public class ProjectOperationCapabilityQueryService {
                     || !Objects.equals(current.entityType(), binding.getTargetObjectType())
                     || !Objects.equals(current.componentKey(), binding.getComponentKey())
                     || !Objects.equals(current.componentVersion(), frozen.componentVersion())
+                    || !Objects.equals(current.viewSource(), frozen.viewSource())
                     || !Objects.equals(current.dynamicFormRevisionId(), frozen.dynamicFormRevisionId())
                     || !Set.of("PUBLISHED", "DISABLED").contains(current.status())) throw new IllegalArgumentException("VIEW_INVALID");
             return new ProjectOperationCapabilities.Presentation(JsonUtils.parseTree(JsonUtils.toJsonString(current)),

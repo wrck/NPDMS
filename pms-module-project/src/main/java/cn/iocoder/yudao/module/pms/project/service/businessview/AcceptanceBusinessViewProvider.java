@@ -31,6 +31,9 @@ public class AcceptanceBusinessViewProvider implements BusinessViewComponentProv
     }
 
     @Override
+    public java.util.Set<String> pagePaths() { return java.util.Set.of("/pms/project/acceptance-report"); }
+
+    @Override
     public boolean canConfigure(Context context, ConfigurationAction action) {
         if (!trusted(context) || action == null) return false;
         return switch (action) {

@@ -206,7 +206,7 @@ public final class TemplateVersionSnapshot {
         if (value == null) return;
         var config = TemplateExecutionConfiguration.read(value);
         require(config.subscriptions().isEmpty(), "独立订阅运行消费者尚未接通");
-        require(config.presentation() == null, "安全页面路由尚未接通");
+        if (config.presentation() != null) TemplatePresentationContract.validate(config.presentation(), binding);
         if (config.operations().isEmpty()) return;
         require(binding != null && binding.getOperationContract() != null, "独立操作缺少冻结运行绑定");
         ObjectNode authoring = ((ObjectNode) binding.getOperationContract()).deepCopy();

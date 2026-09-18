@@ -27,7 +27,7 @@ export interface OperationCapabilities {
   node: { projectId: BusinessViewId; kind: 'TASK' | 'STAGE'; id: BusinessViewId; code: string; name: string; status: string }
   execution?: ExecutionSelection | null
   actions: OperationCapability[]
-  presentation: { registration?: BusinessViewRegistrationVO | null; status: 'AVAILABLE' | 'READ_ONLY' | 'UNAVAILABLE'; reason?: string | null }
+  presentation: { registration?: BusinessViewRegistrationVO | null; status: 'AVAILABLE' | 'READ_ONLY' | 'UNAVAILABLE'; reason?: string | null; pageUrl?: string; query?: Record<string, string> | null }
   ownerFactVersion?: string | null
   reason?: string | null
 }

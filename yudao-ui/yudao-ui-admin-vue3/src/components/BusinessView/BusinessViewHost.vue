@@ -1,7 +1,7 @@
 <template>
-  <section class="business-view-host" aria-label="业务视图">
-    <section v-if="operation.requiresReopen.value || operation.mode.value !== 'INDEPENDENT' && operation.mode.value !== 'LEGACY'" aria-label="项目执行规则">
-      <el-alert v-if="operation.failure.value || operation.observation.value?.reason"
+  <section class="business-view-host" aria-label="业务视图" :data-page-url="resolved.pageUrl">
+    <section v-if="operation.routingPresentation.value || operation.observation.value?.presentation?.pageUrl || operation.requiresReopen.value || operation.mode.value !== 'INDEPENDENT' && operation.mode.value !== 'LEGACY'" aria-label="项目执行规则">
+      <el-alert v-if="operation.failure.value || operation.observation.value?.reason && operation.observation.value.reason !== 'LEGACY_BINDING'"
         :title="operation.failure.value || operation.observation.value?.reason || ''" type="warning" :closable="false" />
       <el-alert v-if="operation.presentationReason.value" :title="operation.presentationReason.value"
         type="warning" :closable="false" />
@@ -43,7 +43,7 @@ const active = shallowRef(capture())
 const operation = useOperationHost(active, () => emit('changed'))
 provide(operationClientKey, operation.client)
 const activeKey = computed(() => editingTargetKey(active.value))
-const resolved = computed(() => resolveBusinessView({ ...active.value, resolvedContext: operation.decorated.value,
+const resolved = computed(() => resolveBusinessView({ ...active.value, presentation: operation.routingPresentation.value, resolvedContext: operation.decorated.value,
   allowedActions: operation.allowedActions.value, readonly: active.value.readonly || operation.requiresReopen.value || operation.presentationReadonly.value }))
 const contentRef = ref<{ requestLeave?: () => Promise<boolean>; discardChanges?: () => boolean; isDirty?: () => boolean }>()
 const dirty = ref(false)
