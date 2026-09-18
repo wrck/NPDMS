@@ -24,6 +24,8 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class ProjectPlanInitializationService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionInstaller resultSubscriptions;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
     private final ProjectTemplateService templates;
@@ -67,6 +69,8 @@ public class ProjectPlanInitializationService {
         if (plans.attachInitialPlan(new ProjectPlanVersionMapper.InitialPlanBinding(project.getTenantId(), project.getId(), plan.getId())) != 1)
             throw new IllegalStateException("PROJECT_PLAN_BINDING_CONFLICT");
         project.setActivePlanVersionId(plan.getId());
+        if (cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionContract.present(published))
+            resultSubscriptions.synchronize(project.getId(), plan.getId(), published);
         timers.schedule(project.getId(), plan.getId(), published, null);
     }
 

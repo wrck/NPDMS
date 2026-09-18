@@ -205,7 +205,6 @@ public final class TemplateVersionSnapshot {
     private static void execution(JsonNode value, TemplateExecutionSnapshot.BindingContract binding) {
         if (value == null) return;
         var config = TemplateExecutionConfiguration.read(value);
-        require(config.subscriptions().isEmpty(), "独立订阅运行消费者尚未接通");
         if (config.presentation() != null) TemplatePresentationContract.validate(config.presentation(), binding);
         if (config.operations().isEmpty()) return;
         require(binding != null && binding.getOperationContract() != null, "独立操作缺少冻结运行绑定");
