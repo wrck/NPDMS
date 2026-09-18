@@ -3,7 +3,7 @@
     <el-alert title="V1.7 工期倒排已冻结，仅保留历史查询；当前工期请在项目详情的“项目工期”中维护。" type="info" :closable="false" />
     <el-form :model="query" inline class="query-form">
       <el-form-item label="项目">
-        <PmsEntitySelect v-model="query.projectId" :api="ProjectApi.getProjectPage" label-field="name" value-field="id" query-field="name" clearable />
+        <PmsEntitySelect v-model="query.projectId" :api="ProjectApi.getProjectPage" label-field="projectName" value-field="id" query-field="projectName" clearable />
       </el-form-item>
       <el-form-item><el-button @click="load"><Icon icon="ep:search" />查询</el-button></el-form-item>
     </el-form>
@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { dateFormatter } from '@/utils/formatTime'
 import * as ScheduleApi from '@/api/pms/engineering/schedule-backward'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import type { ScheduleBackwardItemVO, ScheduleBackwardVO } from '@/api/pms/engineering/schedule-backward'
 

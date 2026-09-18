@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
 
 defineOptions({ name: 'ProjectTag' })
 
@@ -32,7 +32,7 @@ const loadProjectName = async (id: number) => {
   }
   try {
     const res = await ProjectApi.getProject(id)
-    const name = res?.name || `项目#${id}`
+    const name = res?.projectName || `项目#${id}`
     projectCache.set(id, name)
     projectName.value = name
   } catch {

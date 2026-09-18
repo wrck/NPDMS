@@ -5,7 +5,7 @@ import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('@/api/pms/project/project', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
 vi.mock('@/components/EquipmentTag/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: vi.fn(), createConfiguration: vi.fn(), updateConfiguration: vi.fn(), deleteConfiguration: vi.fn() }))

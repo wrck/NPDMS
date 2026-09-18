@@ -5,7 +5,7 @@ import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('@/api/pms/project/project', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
 vi.mock('@/api/pms/engineering/arrival', () => ({ getArrivalPage: vi.fn(), createArrival: vi.fn(), updateArrival: vi.fn(), deleteArrival: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_ARRIVAL_STATUS: 'arrival' }, getIntDictOptions: () => [] }))

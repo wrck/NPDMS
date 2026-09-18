@@ -7,7 +7,7 @@ import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/plat
 const permissions = vi.hoisted(() => ({ write: true }))
 const warning = vi.hoisted(() => vi.fn())
 vi.mock('@/utils/permission', () => ({ checkPermi: () => permissions.write }))
-vi.mock('@/api/pms/project/project', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/engineering/solution', () => ({ getSolutionPage: vi.fn(), getSolution: vi.fn(), createSolution: vi.fn(), updateSolution: vi.fn(), deleteSolution: vi.fn(), generateDraft: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_APPROVAL_STATUS: 'approval', PMS_REVIEW_LEVEL: 'review' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning, success: vi.fn(), delConfirm: vi.fn() }) }))

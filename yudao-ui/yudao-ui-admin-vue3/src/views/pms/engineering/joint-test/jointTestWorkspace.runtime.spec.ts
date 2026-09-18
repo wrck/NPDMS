@@ -6,7 +6,7 @@ import { mount, passthrough, tableColumn, findByTestId, type TestNode } from '@/
 
 const warning = vi.hoisted(() => vi.fn())
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('@/api/pms/project/project', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
 vi.mock('@/components/EquipmentTag/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/engineering/joint-test', () => ({ getJointTestPage: vi.fn(), createJointTest: vi.fn(), updateJointTest: vi.fn(), deleteJointTest: vi.fn(), failJointTest: vi.fn() }))

@@ -35,7 +35,7 @@ export interface MaterialExchangeVO {
 
 const baseUrl = '/pms/imp-material-exch'
 
-export const getMaterialExchangePage = (params: PageParam) =>
+export const getMaterialExchangePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getMaterialExchange = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
