@@ -252,15 +252,15 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         draft.setVersion(1);
         draft.setCreator(actor.userId().toString());
         draft.setUpdater(draft.getCreator());
-        draft.setProjectTemplateId(execution.binding().projectTemplateId());
-        draft.setProjectTemplateRevisionId(execution.binding().templateRevisionId());
+        draft.setProjectTemplateId(execution.projectTemplateId());
+        draft.setProjectTemplateRevisionId(execution.templateRevisionId());
         draft.setExecutionSnapshot(JsonUtils.toJsonString(execution));
         return draft;
     }
 
     private void bindInitialForm(RequirementAnalysisRevisionDO row, EntityActor actor,
                                  RequirementAnalysisExecutionAccess.Frozen execution) {
-        var formRevision = execution.binding().dynamicFormTemplateRevisionId();
+        var formRevision = execution.formRevisionId();
         if (formRevision == null) return;
         Map<String, String> fields = new LinkedHashMap<>();
         FIELDS.fields().forEach(field -> fields.put(cn.hutool.core.util.StrUtil.toUnderlineCase(field.code()).toUpperCase(java.util.Locale.ROOT), field.code()));

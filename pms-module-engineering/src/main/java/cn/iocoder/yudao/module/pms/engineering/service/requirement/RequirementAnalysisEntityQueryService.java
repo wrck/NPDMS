@@ -39,10 +39,14 @@ public class RequirementAnalysisEntityQueryService {
         boolean explicitEntry = stageId != null || taskId != null;
         boolean existing = effective != null || draft != null;
         boolean canCreate = !explicitEntry && existing;
-        if (explicitEntry || !existing) try {
+        if (!explicitEntry && !existing && manager) try {
+            canCreate = access.initialConfiguration(projectId, actor) != null;
+        } catch (RuntimeException unavailable) {
+            // Missing or ambiguous configuration disables creation, not the independent read path.
+        }
+        if (explicitEntry) try {
             var binding = stageId != null ? bindings.inspectStage(new ProjectWorkBindingStageFactQuery(projectId, stageId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
-                    : taskId != null ? bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, taskId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
-                    : bindings.inspect(new ProjectWorkBindingFactQuery(projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+                    : bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, taskId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
             if (binding != null) {
                 selected = executions.observeCurrent(binding);
                 canCreate = executions.canCreate(binding);

@@ -141,7 +141,7 @@ class RequirementAnalysisOwnerOperationContextTest {
             };
             executions = new RequirementAnalysisExecutionAccess(nodes, bindings, guard);
             access = spy(new RequirementAnalysisAccess(mapper, mock(ProjectScopeApi.class), mock(ProjectParticipantFactApi.class),
-                    mock(PermissionApi.class), bindings, executions));
+                    mock(PermissionApi.class), bindings, executions, null));
             // Stub external project-authorization collaborators only, not the execution/target checks under test.
             doNothing().when(access).requireRead(anyLong(), any(), anyBoolean());
             doNothing().when(access).lockScope(anyLong(), any());

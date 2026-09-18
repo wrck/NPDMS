@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessConfigurationApi.Configuration;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
 import cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor;
@@ -136,6 +137,17 @@ public class RequirementAnalysisExecutionAccess {
     public ProjectWorkBindingFact currentBinding(Long projectId, String snapshot, ProjectBusinessExecutionSelection requested) {
         Frozen frozen = frozen(projectId, snapshot);
         if (requested != null) requireSelection(projectId, requested);
+        if (frozen.configuration() != null) {
+            if (requested == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            var selected = requested.stage() != null
+                    ? bindings.inspectStage(new ProjectWorkBindingStageFactQuery(projectId, requested.stage().stageId(), ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
+                    : bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, requested.task().taskId(), ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+            if (!RequirementAnalysisConfiguration.matches(frozen.configuration(), selected)
+                    || !Objects.equals(requested.stage() == null ? null : requested.stage().stageId(), selected.projectStageId())
+                    || !Objects.equals(requested.task() == null ? null : requested.task().taskId(), selected.projectTaskId()))
+                throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            return selected;
+        }
         Long stageId = requested == null ? frozen.binding().projectStageId()
                 : requested.stage() == null ? null : requested.stage().stageId();
         Long taskId = requested == null ? frozen.binding().projectTaskId()
@@ -161,6 +173,10 @@ public class RequirementAnalysisExecutionAccess {
         try { frozen = snapshot == null ? null : JsonUtils.parseObject(snapshot, Frozen.class); }
         catch (RuntimeException invalid) { throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID); }
         requireFrozenIdentity(frozen);
+        if (frozen.configuration() != null) {
+            RequirementAnalysisConfiguration.require(frozen.configuration(), frozen.configuration().tenantId(), projectId);
+            return frozen;
+        }
         var source = frozen.binding();
         var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
         if (projectId == null || projectId <= 0 || !Objects.equals(projectId, source.projectId())
@@ -208,6 +224,12 @@ public class RequirementAnalysisExecutionAccess {
 
     private void requireFrozenIdentity(Frozen frozen) {
         if (frozen == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+        if (frozen.configuration() != null) {
+            if (frozen.binding() != null || frozen.execution() != null || frozen.stageExecution() != null)
+                throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            RequirementAnalysisConfiguration.require(frozen.configuration(), frozen.configuration().tenantId(), frozen.configuration().projectId());
+            return;
+        }
         boolean stage = isStage(frozen.binding());
         if (stage ? frozen.execution() != null || frozen.stageExecution() == null
                 || !Objects.equals(stageQuery(frozen.binding()), frozen.stageExecution().query())
@@ -216,5 +238,15 @@ public class RequirementAnalysisExecutionAccess {
             throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
     }
 
-    public record Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution) { }
+    public record Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            Configuration configuration) {
+        public Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution) {
+            this(binding, execution, stageExecution, null);
+        }
+        public Long projectTemplateId() { return configuration == null ? binding.projectTemplateId() : configuration.projectTemplateId(); }
+        public Long templateRevisionId() { return configuration == null ? binding.templateRevisionId() : configuration.templateRevisionId(); }
+        public Long formRevisionId() { return configuration == null ? binding.dynamicFormTemplateRevisionId()
+                : RequirementAnalysisConfiguration.form(configuration.parameters()).revisionId(); }
+    }
 }

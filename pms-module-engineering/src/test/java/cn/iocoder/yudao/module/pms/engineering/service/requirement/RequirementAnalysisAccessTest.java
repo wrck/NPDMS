@@ -16,7 +16,7 @@ class RequirementAnalysisAccessTest {
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectParticipantFactApi participants = mock(ProjectParticipantFactApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
-    private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(null, scopes, participants, permissions, null, null);
+    private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(null, scopes, participants, permissions, null, null, null);
     private final EntityActor actor = new EntityActor(1L, 9L, null);
 
     private void allowed() {
