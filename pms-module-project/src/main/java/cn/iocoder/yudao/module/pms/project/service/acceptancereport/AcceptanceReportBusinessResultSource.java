@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResult
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceReportVersionMapper;
 import lombok.RequiredArgsConstructor;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -13,13 +15,20 @@ import java.util.Set;
 /** A published report is a report result, never an assertion that its acceptance activity completed. */
 @Component
 @RequiredArgsConstructor
-public class AcceptanceReportBusinessResultSource implements BusinessResultSource {
+public class AcceptanceReportBusinessResultSource implements BusinessResultChangeSource {
     public static final Type TYPE = new Type("ACC", "ACCEPTANCE", "REPORT_VERSION_PUBLISHED");
     private static final Descriptor DESCRIPTOR = new Descriptor(TYPE, true, true, true);
     private final AcceptanceActivityMapper activities;
     private final AcceptanceReportVersionMapper reports;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
+
+    @Override public Query changeQuery(BusinessOperationResultEvent event) {
+        if (event == null || !TYPE.ownerContext().equals(event.ownerContext()) || !TYPE.entityType().equals(event.objectType()))
+            throw new IllegalArgumentException("RESULT_EVENT_TYPE_INVALID");
+        if (event.revisionId() == null) throw new IllegalArgumentException("REPORT_RESULT_EVENT_IDENTITY_INVALID");
+        return new Query(event.tenantId(), event.projectId(), TYPE, event.objectId(), event.revisionId());
+    }
 
     @Override public Observation inspect(Query query) {
         if (query == null || !TYPE.equals(query.type())

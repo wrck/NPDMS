@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.Requi
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementRevisionQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource;
 import lombok.RequiredArgsConstructor;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -13,12 +15,20 @@ import java.util.Objects;
 /** Frozen revision IDs remain stable when effective markers and optimistic versions later change. */
 @Component
 @RequiredArgsConstructor
-public class RequirementAnalysisBusinessResultSource implements BusinessResultSource {
+public class RequirementAnalysisBusinessResultSource implements BusinessResultChangeSource {
     public static final Type TYPE = new Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED");
     private static final Descriptor DESCRIPTOR = new Descriptor(TYPE, true, true, true);
     private final RequirementAnalysisMapper revisions;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
+
+    @Override public Query changeQuery(BusinessOperationResultEvent event) {
+        if (event == null || !TYPE.ownerContext().equals(event.ownerContext()) || !TYPE.entityType().equals(event.objectType()))
+            throw new IllegalArgumentException("RESULT_EVENT_TYPE_INVALID");
+        if (event.revisionId() == null || !event.revisionId().equals(event.objectId()))
+            throw new IllegalArgumentException("REQUIREMENT_RESULT_EVENT_IDENTITY_INVALID");
+        return new Query(event.tenantId(), event.projectId(), TYPE, null, event.revisionId());
+    }
 
     @Override public Observation inspect(Query query) {
         if (query == null || !TYPE.equals(query.type())

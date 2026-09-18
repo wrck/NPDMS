@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.Requirement
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.*;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.*;
 import org.junit.jupiter.api.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
+import java.util.UUID;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -88,6 +90,17 @@ class RequirementAnalysisBusinessResultSourceTest {
         assertThrows(IllegalArgumentException.class, () -> source.inspect(new Query(1L,3L,new Type("OTHER","REQUIREMENT_ANALYSIS","REQUIREMENT_ANALYSIS_COMPLETED"),"100","40")));
         for (String id : new String[]{"040", "40.0", "+40", "-1", "9223372036854775808"})
             assertThrows(IllegalArgumentException.class, () -> source.inspect(new Query(1L,3L,exact.type(),"100",id)));
+        verifyNoInteractions(mapper);
+    }
+
+    @Test void originalOwnerEventMapsToNativeLookupWithoutCreatingAResult() {
+        var type=RequirementAnalysisBusinessResultSource.TYPE;
+        var event=new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,type.ownerContext(),type.entityType(),
+                "40","40",2,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
+        var query=source.changeQuery(event);
+        assertEquals(type,query.type());assertEquals(3L,query.projectId());
+        assertNull(query.objectId());assertEquals("40",query.resultId());
+        assertTrue(source.declaresFormation(event));
         verifyNoInteractions(mapper);
     }
 }

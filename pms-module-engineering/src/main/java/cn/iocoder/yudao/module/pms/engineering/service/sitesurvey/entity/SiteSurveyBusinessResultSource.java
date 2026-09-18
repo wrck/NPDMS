@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource;
 import lombok.RequiredArgsConstructor;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -11,12 +13,19 @@ import java.util.Objects;
 /** A survey confirms once; archiving retains that result, but its mutable row is not a revision history. */
 @Component
 @RequiredArgsConstructor
-public class SiteSurveyBusinessResultSource implements BusinessResultSource {
+public class SiteSurveyBusinessResultSource implements BusinessResultChangeSource {
     public static final Type TYPE = new Type("SOL", "SITE_SURVEY", "SURVEY_CONFIRMED");
     private static final Descriptor DESCRIPTOR = new Descriptor(TYPE, true, false, false);
     private final SiteSurveyEntityMapper surveys;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
+
+    @Override public Query changeQuery(BusinessOperationResultEvent event) {
+        if (event == null || !TYPE.ownerContext().equals(event.ownerContext()) || !TYPE.entityType().equals(event.objectType()))
+            throw new IllegalArgumentException("RESULT_EVENT_TYPE_INVALID");
+        if (event.revisionId() != null) throw new IllegalArgumentException("SURVEY_RESULT_EVENT_IDENTITY_INVALID");
+        return new Query(event.tenantId(), event.projectId(), TYPE, event.objectId(), null);
+    }
 
     @Override public Observation inspect(Query query) {
         if (query == null || !TYPE.equals(query.type())

@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.*;
 import org.junit.jupiter.api.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
+import java.util.UUID;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -57,5 +59,16 @@ class SiteSurveyBusinessResultSourceTest {
     @Test void deletedAndAbsentRowsAreNotSuccessfulFacts() {
         row.setDeleted(true); assertEquals(Status.NOT_FOUND,source.inspect(query).status());
         when(mapper.selectById(40L)).thenReturn(null); assertEquals(Status.NOT_FOUND,source.inspect(query).status());
+    }
+
+    @Test void originalOwnerEventMapsToNativeLookupWithoutCreatingAResult() {
+        var type=SiteSurveyBusinessResultSource.TYPE;
+        var event=new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,type.ownerContext(),type.entityType(),
+                "40",null,2,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
+        var query=source.changeQuery(event);
+        assertEquals(type,query.type());assertEquals(3L,query.projectId());
+        assertEquals("40",query.objectId());assertNull(query.resultId());
+        assertTrue(source.declaresFormation(event));
+        verifyNoInteractions(mapper);
     }
 }

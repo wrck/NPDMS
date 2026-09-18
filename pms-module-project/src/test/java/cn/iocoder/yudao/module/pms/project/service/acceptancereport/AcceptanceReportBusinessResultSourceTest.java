@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResult
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.*;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.*;
 import org.junit.jupiter.api.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
+import java.util.UUID;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -86,6 +88,17 @@ class AcceptanceReportBusinessResultSourceTest {
     }
     @Test void invalidTenantDoesNotReadAnyOwnerData() {
         assertThrows(IllegalArgumentException.class,()->source.inspect(new Query(2L,3L,exact.type(),"100","40")));
+        verifyNoInteractions(activities,reports);
+    }
+
+    @Test void originalOwnerEventMapsToNativeLookupWithoutCreatingAResult() {
+        var type=AcceptanceReportBusinessResultSource.TYPE;
+        var event=new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,type.ownerContext(),type.entityType(),
+                "100","40",2,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
+        var query=source.changeQuery(event);
+        assertEquals(type,query.type());assertEquals(3L,query.projectId());
+        assertEquals("100",query.objectId());assertEquals("40",query.resultId());
+        assertTrue(source.declaresFormation(event));
         verifyNoInteractions(activities,reports);
     }
 }

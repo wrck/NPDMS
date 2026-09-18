@@ -4,6 +4,9 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.*;
 import org.springframework.stereotype.Component;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent;
+import java.util.Comparator;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +32,37 @@ public final class ProjectBusinessResultSources {
     public Descriptor descriptor(Type type) {
         var found = sources.get(type);
         return found == null ? null : found.descriptor();
+    }
+
+    public List<Type> changeTypes(BusinessOperationResultEvent event) {
+        return sources.values().stream().filter(value -> value.source() instanceof BusinessResultChangeSource)
+                .map(value -> value.descriptor().type())
+                .filter(type -> type.ownerContext().equals(event.ownerContext()) && type.entityType().equals(event.objectType()))
+                .sorted(Comparator.comparing(Type::resultType)).toList();
+    }
+
+    public boolean changeSupported(Type type) {
+        var value = sources.get(type);
+        return value != null && value.source() instanceof BusinessResultChangeSource;
+    }
+
+    public Query changeQuery(Type type, BusinessOperationResultEvent event) {
+        var query = changeSource(type).changeQuery(event);
+        if (query == null || !type.equals(query.type()) || !Objects.equals(event.tenantId(), query.tenantId())
+                || !Objects.equals(event.projectId(), query.projectId()))
+            throw new IllegalStateException("RESULT_EVENT_QUERY_MISMATCH");
+        return query;
+    }
+
+    public boolean declaresFormation(Type type, BusinessOperationResultEvent event) {
+        return changeSource(type).declaresFormation(event);
+    }
+
+    private BusinessResultChangeSource changeSource(Type type) {
+        var registered = sources.get(type);
+        if (registered == null || !(registered.source() instanceof BusinessResultChangeSource changes))
+            throw new IllegalArgumentException("RESULT_CHANGE_SOURCE_UNAVAILABLE");
+        return changes;
     }
 
     public Observation inspect(Query query) {

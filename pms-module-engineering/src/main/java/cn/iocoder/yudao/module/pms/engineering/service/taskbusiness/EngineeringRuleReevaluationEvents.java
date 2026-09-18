@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.*;
 import lombok.RequiredArgsConstructor;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.ProjectBusinessResultRecordingApi;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 public class EngineeringRuleReevaluationEvents {
+    private final ObjectProvider<ProjectBusinessResultRecordingApi> resultRecording;
     private final PlatformBusinessEventApi outbox;
     private final ObjectProvider<OwnerOperationResultSource> sources;
 
@@ -40,6 +42,7 @@ public class EngineeringRuleReevaluationEvents {
         if (result == null) return; // Deleted/legacy records keep their real legacy wakeup, not a fabricated success fact.
         var committed = BusinessOperationResultEvent.create(tenant,projectId,"OWNER." + aggregateType + ".CHANGED",
                 event.eventId(),result,actorId,correlationId);
+        resultRecording.getObject().record(committed);
         outbox.append(result.objectType(),result.objectId(),new BusinessEvent(committed.eventId(),
                 BusinessOperationResultEvent.EVENT_TYPE,JsonUtils.toJsonString(committed)));
     }
