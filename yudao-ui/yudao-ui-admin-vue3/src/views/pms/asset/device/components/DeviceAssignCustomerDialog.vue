@@ -2,10 +2,19 @@
   <Dialog v-model="visible" title="调整客户归属" width="520px">
     <el-form :model="form" label-width="100px">
       <el-form-item label="当前客户">{{ summary?.customerId || '--' }}</el-form-item>
-      <el-form-item label="目标客户"
-        ><el-input-number v-model="form.customerId" :min="1"
-      /></el-form-item>
-      <el-form-item label="关系类型"><el-input v-model="form.relationshipType" /></el-form-item>
+      <el-form-item label="目标客户">
+        <PmsEntitySelect
+          v-model="form.customerId"
+          :api="CustomerApi.getCustomerPage"
+          :label-field="['code', 'name']"
+          value-field="id"
+          query-field="name"
+          placeholder="请选择目标客户"
+        />
+      </el-form-item>
+      <el-form-item label="关系类型">
+        <el-tag>DIRECT 直接归属</el-tag>
+      </el-form-item>
       <el-form-item label="变更原因"
         ><el-input v-model="form.reason" type="textarea"
       /></el-form-item>
@@ -21,6 +30,7 @@
 import { reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as DeviceApi from '@/api/pms/asset/device'
+import * as CustomerApi from '@/api/pms/project/customer'
 import type { DeviceSummaryVO } from '@/api/pms/asset/device'
 const emit = defineEmits<{ success: [] }>()
 const message = useMessage()
@@ -40,8 +50,8 @@ const open = (value: DeviceSummaryVO) => {
   visible.value = true
 }
 const submit = async () => {
-  if (!summary.value || !form.customerId || !form.relationshipType.trim() || !form.reason.trim())
-    return message.warning('请填写客户、关系类型和变更原因')
+  if (!summary.value || !form.customerId || !form.reason.trim())
+    return message.warning('请填写目标客户和变更原因')
   loading.value = true
   try {
     await DeviceApi.assignCustomer(

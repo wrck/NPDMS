@@ -16,6 +16,12 @@
       <el-form-item>
         <el-button @click="handleQuery"><Icon icon="ep:search" />查询</el-button>
         <el-button @click="resetQuery"><Icon icon="ep:refresh" />重置</el-button>
+        <el-button
+          type="primary"
+          @click="formDialog?.open()"
+          v-hasPermi="['pms:device:create']"
+          ><Icon icon="ep:plus" />新增设备</el-button
+        >
       </el-form-item>
     </el-form>
   </ContentWrap>
@@ -23,6 +29,13 @@
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" @row-click="openDetail">
       <el-table-column prop="sn" label="设备SN" min-width="160" fixed="left" />
+      <el-table-column prop="name" label="设备名称" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <dict-tag v-if="row.status" :type="DICT_TYPE.PMS_DEVICE_STATUS" :value="row.status" />
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="productCode" label="产品编码" min-width="120" />
       <el-table-column prop="productModel" label="产品型号" min-width="140" />
       <el-table-column prop="shipmentTime" label="最新发货" min-width="170" />
@@ -33,10 +46,27 @@
       <el-table-column prop="warrantyStatus" label="维保状态" min-width="100" />
       <el-table-column prop="conpVersion" label="当前CONP" min-width="180" show-overflow-tooltip />
       <el-table-column prop="syncStatus" label="来源状态" min-width="120" />
-      <el-table-column label="操作" width="90" fixed="right">
-        <template #default="{ row }"
-          ><el-button link @click.stop="openDetail(row)">详情</el-button></template
-        >
+      <el-table-column label="操作" width="240" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" @click.stop="openDetail(row)">详情</el-button>
+          <el-button
+            link
+            type="primary"
+            @click.stop="openEdit(row)"
+            v-hasPermi="['pms:device:update']"
+            >编辑</el-button
+          >
+          <el-button
+            link
+            type="warning"
+            @click.stop="openStatusChange(row)"
+            v-hasPermi="['pms:device:status-change']"
+            >状态变更</el-button
+          >
+          <el-button link type="danger" @click.stop="remove(row)" v-hasPermi="['pms:device:delete']"
+            >删除</el-button
+          >
+        </template>
       </el-table-column>
     </el-table>
     <Pagination
@@ -59,6 +89,11 @@
         }}</span>
       </div>
       <div class="detail-actions">
+        <el-button
+          v-hasPermi="['pms:device:status-change']"
+          @click="statusChangeDialog?.open(detail.archive!)"
+          >状态变更</el-button
+        >
         <el-button @click="assignmentHistoryDrawer?.open(detail.summary.deviceId)"
           >项目历史</el-button
         >
@@ -108,11 +143,22 @@
   <DeviceAssemblyTreeDrawer ref="assemblyTreeDrawer" />
   <DeviceAssignProjectDialog ref="assignProjectDialog" @success="refreshDetail" />
   <DeviceAssignCustomerDialog ref="assignCustomerDialog" @success="refreshDetail" />
+  <DeviceArchiveFormDialog ref="formDialog" @success="refreshAll" />
+  <DeviceArchiveStatusChangeDialog ref="statusChangeDialog" @success="refreshAll" />
 </template>
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useMessage } from '@/hooks/web/useMessage'
+import { DICT_TYPE } from '@/utils/dict'
 import * as DeviceApi from '@/api/pms/asset/device'
-import type { DeviceDetailVO, DeviceListVO, DevicePageReqVO } from '@/api/pms/asset/device'
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import type {
+  DeviceDetailVO,
+  DeviceListVO,
+  DevicePageReqVO,
+  DeviceSummaryVO
+} from '@/api/pms/asset/device'
+import type { DeviceArchiveVO } from '@/api/pms/asset/device/archive'
 import DeviceSummaryPanel from './components/DeviceSummaryPanel.vue'
 import DeviceFactoryPanel from './components/DeviceFactoryPanel.vue'
 import DeviceOfficialInfoPanel from './components/DeviceOfficialInfoPanel.vue'
@@ -125,13 +171,16 @@ import DeviceCustomerRelationshipDrawer from './components/DeviceCustomerRelatio
 import DeviceAssemblyTreeDrawer from './components/DeviceAssemblyTreeDrawer.vue'
 import DeviceAssignProjectDialog from './components/DeviceAssignProjectDialog.vue'
 import DeviceAssignCustomerDialog from './components/DeviceAssignCustomerDialog.vue'
+import DeviceArchiveFormDialog from './components/DeviceArchiveFormDialog.vue'
+import DeviceArchiveStatusChangeDialog from './components/DeviceArchiveStatusChangeDialog.vue'
 
 defineOptions({ name: 'PmsAssetDeviceWorkbench' })
+const message = useMessage()
 const loading = ref(false)
 const detailLoading = ref(false)
 const rows = ref<DeviceListVO[]>([])
 const total = ref(0)
-const detail = ref<DeviceDetailVO>()
+const detail = ref<DeviceDetailVO & { archive?: DeviceArchiveVO }>()
 const activeTab = ref('factory')
 const query = reactive<DevicePageReqVO>({ pageNo: 1, pageSize: 10 })
 const assignmentHistoryDrawer = ref<InstanceType<typeof DeviceAssignmentHistoryDrawer>>()
@@ -139,6 +188,8 @@ const customerRelationshipDrawer = ref<InstanceType<typeof DeviceCustomerRelatio
 const assemblyTreeDrawer = ref<InstanceType<typeof DeviceAssemblyTreeDrawer>>()
 const assignProjectDialog = ref<InstanceType<typeof DeviceAssignProjectDialog>>()
 const assignCustomerDialog = ref<InstanceType<typeof DeviceAssignCustomerDialog>>()
+const formDialog = ref<InstanceType<typeof DeviceArchiveFormDialog>>()
+const statusChangeDialog = ref<InstanceType<typeof DeviceArchiveStatusChangeDialog>>()
 
 const load = async () => {
   loading.value = true
@@ -161,19 +212,52 @@ const resetQuery = () => {
   query.customerId = undefined
   handleQuery()
 }
-const openDetail = async (row: DeviceListVO) => {
+const loadArchive = async (deviceId: number) => {
+  try {
+    return await DeviceArchiveApi.getDeviceArchiveRecord(deviceId)
+  } catch {
+    return undefined
+  }
+}
+const openDetail = async (row: DeviceListVO | DeviceSummaryVO) => {
+  const deviceId = row.deviceId
   detailLoading.value = true
   try {
-    detail.value = await DeviceApi.getDevice(row.deviceId)
+    const [data, archive] = await Promise.all([
+      DeviceApi.getDevice(deviceId),
+      loadArchive(deviceId)
+    ])
+    detail.value = { ...data, archive }
     activeTab.value = 'factory'
   } finally {
     detailLoading.value = false
   }
 }
+const openEdit = async (row: DeviceListVO) => {
+  const archive = await loadArchive(row.deviceId)
+  if (!archive) return message.error('设备档案不存在')
+  formDialog.value?.open(archive)
+}
+const openStatusChange = async (row: DeviceListVO) => {
+  const archive = await loadArchive(row.deviceId)
+  if (!archive) return message.error('设备档案不存在')
+  statusChangeDialog.value?.open(archive)
+}
+const remove = async (row: DeviceListVO) => {
+  await message.delConfirm()
+  await DeviceArchiveApi.deleteDeviceArchive(row.deviceId)
+  message.success('删除成功')
+  if (detail.value?.summary.deviceId === row.deviceId) {
+    detail.value = undefined
+  }
+  await load()
+}
 const refreshDetail = async () => {
   if (!detail.value) return
-  const currentId = detail.value.summary.deviceId
-  detail.value = await DeviceApi.getDevice(currentId)
+  await openDetail(detail.value.summary)
+}
+const refreshAll = async () => {
+  await refreshDetail()
   await load()
 }
 onMounted(load)

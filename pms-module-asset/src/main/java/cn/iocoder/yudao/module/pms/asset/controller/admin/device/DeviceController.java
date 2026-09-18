@@ -204,7 +204,8 @@ public class DeviceController {
 
     private static DeviceListRespVO toListResp(DeviceListProjection item) {
         return new DeviceListRespVO(
-                item.deviceId(), item.sn(), item.productCode(), item.productModel(), item.productName(),
+                item.deviceId(), item.sn(), item.name(), item.status(), item.productCode(),
+                item.productModel(), item.productName(),
                 item.shipmentTime(), item.packageNo(), item.contractNo(), item.shipmentRecordId(),
                 item.projectId(), item.customerId(), item.warrantyStartDate(), item.warrantyEndDate(),
                 item.warrantyStatus(), item.conpVersion(), item.conpType(), item.conpSeries(),

@@ -43,6 +43,8 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column prop="projectId" label="所属项目" width="100" />
+      <el-table-column prop="customerId" label="所属客户" width="100" />
       <el-table-column
         prop="warrantyEndDate"
         label="保修截止"
@@ -75,61 +77,6 @@
       @pagination="load"
     />
   </ContentWrap>
-
-  <Dialog v-model="visible" :title="form.id ? '编辑设备' : '新增设备'" width="640px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <el-form-item label="序列号" prop="sn">
-        <el-input v-model="form.sn" :disabled="!!form.id" />
-      </el-form-item>
-      <el-form-item label="设备名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-      <el-form-item label="设备型号"><el-input v-model="form.productModel" /></el-form-item>
-      <el-form-item label="所属客户">
-        <PmsEntitySelect
-          v-model="form.customerId"
-          :api="CustomerApi.getCustomerPage"
-          :label-field="['code', 'name']"
-          value-field="id"
-          query-field="name"
-          placeholder="请选择客户"
-        />
-      </el-form-item>
-      <el-form-item label="所属项目">
-        <PmsEntitySelect
-          v-model="form.projectId"
-          :api="ProjectApi.getProjectPage"
-          label-field="projectName"
-          value-field="id"
-          query-field="projectName"
-          placeholder="请选择项目"
-          :disabled="projectLocked"
-        />
-      </el-form-item>
-      <el-alert type="info" :closable="false" show-icon class="mb-16px">
-        设备当前位置由安装完成动作生效，此处仅维护设备档案。
-      </el-alert>
-      <el-form-item label="保修开始日期">
-        <el-date-picker
-          v-model="form.warrantyStartDate"
-          type="date"
-          value-format="YYYY-MM-DD"
-          class="!w-220px"
-        />
-      </el-form-item>
-      <el-form-item label="保修结束日期">
-        <el-date-picker
-          v-model="form.warrantyEndDate"
-          type="date"
-          value-format="YYYY-MM-DD"
-          class="!w-220px"
-        />
-      </el-form-item>
-      <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-    </template>
-  </Dialog>
 
   <Dialog v-model="detailVisible" title="设备当前位置与变更轨迹" width="760px">
     <el-descriptions v-if="detail" :column="2" border>
@@ -172,63 +119,24 @@
     </el-timeline>
   </Dialog>
 
-  <Dialog v-model="statusVisible" title="设备状态变更" width="520px">
-    <el-form ref="statusFormRef" :model="statusForm" :rules="statusRules" label-width="120px">
-      <el-form-item label="设备编号" prop="id">
-        <el-input-number
-          v-model="statusForm.id"
-          :min="1"
-          controls-position="right"
-          :disabled="true"
-        />
-      </el-form-item>
-      <el-form-item label="动作" prop="action">
-        <el-select v-model="statusForm.action" class="!w-220px" @change="onActionChange">
-          <el-option value="DEPLOY" label="DEPLOY 部署" />
-          <el-option value="REPORT_FAULT" label="REPORT_FAULT 故障上报" />
-          <el-option value="START_REPAIR" label="START_REPAIR 开始维修" />
-          <el-option value="COMPLETE_REPAIR" label="COMPLETE_REPAIR 完成维修" />
-          <el-option value="SCRAP" label="SCRAP 报废" />
-        </el-select>
-      </el-form-item>
-      <el-form-item
-        v-if="statusForm.action === 'COMPLETE_REPAIR'"
-        label="目标状态"
-        prop="targetStatus"
-      >
-        <el-select v-model="statusForm.targetStatus" class="!w-220px">
-          <el-option value="IN_STOCK" label="IN_STOCK 在库" />
-          <el-option value="IN_USE" label="IN_USE 在用" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="变更描述"
-        ><el-input v-model="statusForm.changeDescription" type="textarea"
-      /></el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="statusVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="saveStatusChange">提交</el-button>
-    </template>
-  </Dialog>
+  <DeviceArchiveFormDialog ref="formDialog" :locked-project-id="projectId" @success="load" />
+  <DeviceArchiveStatusChangeDialog ref="statusChangeDialog" @success="load" />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
-import type { DeviceArchiveVO, DeviceArchiveStatusChangeReqVO } from '@/api/pms/asset/device/archive'
-import type { DeviceArchiveVersionVO } from '@/api/pms/asset/device/archive'
-import * as ProjectApi from '@/api/pms/project/projects'
-import * as CustomerApi from '@/api/pms/project/customer'
+import type { DeviceArchiveVO, DeviceArchiveVersionVO } from '@/api/pms/asset/device/archive'
+import DeviceArchiveFormDialog from '../components/DeviceArchiveFormDialog.vue'
+import DeviceArchiveStatusChangeDialog from '../components/DeviceArchiveStatusChangeDialog.vue'
 
 defineOptions({ name: 'PmsAssetDeviceArchive' })
 const props = defineProps<{ projectId?: number | string }>()
-const projectLocked = computed(() => props.projectId != null)
 const message = useMessage()
 const loading = ref(false)
-const saving = ref(false)
 const rows = ref<DeviceArchiveVO[]>([])
 const total = ref(0)
 const query = reactive({
@@ -239,33 +147,11 @@ const query = reactive({
   projectId: props.projectId as number | undefined,
   status: undefined as string | undefined
 })
-const visible = ref(false)
 const detailVisible = ref(false)
 const detail = ref<DeviceArchiveVO>()
 const locationHistory = ref<DeviceArchiveVersionVO[]>([])
-const formRef = ref()
-const form = reactive<DeviceArchiveVO>({
-  sn: '',
-  name: ''
-})
-const rules = {
-  sn: [{ required: true, message: '请输入序列号' }],
-  name: [{ required: true, message: '请输入设备名称' }]
-}
-
-const statusVisible = ref(false)
-const statusFormRef = ref()
-const statusForm = reactive<DeviceArchiveStatusChangeReqVO>({
-  id: 0,
-  action: 'DEPLOY',
-  targetStatus: undefined,
-  changeDescription: ''
-})
-const statusRules = {
-  id: [{ required: true, message: '请输入设备编号' }],
-  action: [{ required: true, message: '请选择动作' }],
-  targetStatus: [{ required: true, message: '请选择目标状态' }]
-}
+const formDialog = ref<InstanceType<typeof DeviceArchiveFormDialog>>()
+const statusChangeDialog = ref<InstanceType<typeof DeviceArchiveStatusChangeDialog>>()
 
 const load = async () => {
   loading.value = true
@@ -278,47 +164,7 @@ const load = async () => {
   }
 }
 const open = (row?: DeviceArchiveVO) => {
-  Object.assign(
-    form,
-    {
-      id: undefined,
-      sn: '',
-      name: '',
-      productModel: '',
-      customerId: undefined,
-      projectId: projectLocked.value ? (props.projectId as number) : undefined,
-      warrantyStartDate: undefined,
-      warrantyEndDate: undefined,
-      remark: ''
-    },
-    row || {}
-  )
-  visible.value = true
-}
-const save = async () => {
-  await formRef.value.validate()
-  saving.value = true
-  try {
-    const payload = {
-      id: form.id,
-      sn: form.sn,
-      name: form.name,
-      productModel: form.productModel,
-      customerId: form.customerId,
-      projectId: form.projectId,
-      warrantyStartDate: form.warrantyStartDate,
-      warrantyEndDate: form.warrantyEndDate,
-      remark: form.remark,
-    }
-    form.id
-      ? await DeviceArchiveApi.updateDeviceArchive(form.id, payload)
-      : await DeviceArchiveApi.createDeviceArchive(payload)
-    message.success('保存成功')
-    visible.value = false
-    await load()
-  } finally {
-    saving.value = false
-  }
+  formDialog.value?.open(row)
 }
 const openDetail = async (row: DeviceArchiveVO) => {
   const [current, versions] = await Promise.all([
@@ -338,30 +184,7 @@ const remove = async (row: DeviceArchiveVO) => {
   await load()
 }
 const openStatusChange = (row: DeviceArchiveVO) => {
-  Object.assign(statusForm, {
-    id: row.id,
-    action: 'DEPLOY',
-    targetStatus: undefined,
-    changeDescription: ''
-  })
-  statusVisible.value = true
-}
-const onActionChange = () => {
-  if (statusForm.action !== 'COMPLETE_REPAIR') {
-    statusForm.targetStatus = undefined
-  }
-}
-const saveStatusChange = async () => {
-  await statusFormRef.value.validate()
-  saving.value = true
-  try {
-    await DeviceArchiveApi.changeDeviceArchiveStatus(statusForm.id!, statusForm)
-    message.success('状态变更成功')
-    statusVisible.value = false
-    await load()
-  } finally {
-    saving.value = false
-  }
+  statusChangeDialog.value?.open(row)
 }
 onMounted(load)
 watch(
@@ -369,9 +192,7 @@ watch(
   async () => {
     query.pageNo = 1
     query.projectId = props.projectId as number | undefined
-    visible.value = false
     detailVisible.value = false
-    statusVisible.value = false
     await load()
   }
 )

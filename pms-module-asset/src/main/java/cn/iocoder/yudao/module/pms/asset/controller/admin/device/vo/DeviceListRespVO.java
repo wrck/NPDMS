@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 public record DeviceListRespVO(
         Long deviceId,
         String sn,
+        String name,
+        String status,
         String productCode,
         String productModel,
         String productName,

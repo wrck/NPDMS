@@ -97,6 +97,8 @@
     <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
         SELECT d.id AS device_id,
                d.sn,
+               d.name,
+               d.status,
                d.product_code,
                d.product_model,
                d.product_name,
