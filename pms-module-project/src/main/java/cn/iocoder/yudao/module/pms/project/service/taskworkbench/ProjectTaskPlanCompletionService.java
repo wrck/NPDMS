@@ -27,6 +27,8 @@ import java.util.*;
 public class ProjectTaskPlanCompletionService {
     @jakarta.annotation.Resource
     private ProjectTaskApprovalService approvals;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard> resultEvidence;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
     private final ProjectRuntimeGraphMapper graph;
@@ -38,16 +40,20 @@ public class ProjectTaskPlanCompletionService {
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executionApi;
     private final cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectGateRuleService gateRules;
 
-    public record Result(RuleEvaluation completion, RuleEvaluation exit, Map<String,Object> evidence, RuleEvaluation gate) {
-        public Result(RuleEvaluation completion, RuleEvaluation exit, Map<String,Object> evidence) {
-            this(completion, exit, evidence, null);
+    public record Result(RuleEvaluation completion, RuleEvaluation exit, Map<String,Object> evidence, RuleEvaluation gate, RuleEvaluation subscription) {
+        public Result(RuleEvaluation completion, RuleEvaluation exit, Map<String,Object> evidence, RuleEvaluation gate) {
+            this(completion,exit,evidence,gate,null);
         }
-        public boolean matched() { return completion.matched() && exit.matched() && (gate == null || gate.matched()); }
+        public Result(RuleEvaluation completion, RuleEvaluation exit, Map<String,Object> evidence) {
+            this(completion, exit, evidence, null, null);
+        }
+        public boolean matched() { return completion.matched() && exit.matched() && (gate == null || gate.matched()) && (subscription == null || subscription.matched()); }
         public List<String> unmet() {
             List<String> codes = new ArrayList<>();
             if (!completion.matched()) codes.add(completion.reasonCode() == null ? "COMPLETION_NOT_MATCHED" : completion.reasonCode());
             if (!exit.matched()) codes.add(exit.reasonCode() == null ? "EXIT_NOT_MATCHED" : exit.reasonCode());
             if (gate != null && !gate.matched()) codes.add(gate.reasonCode() == null ? "GATE_NOT_PASSED" : gate.reasonCode());
+            if (subscription != null && !subscription.matched()) codes.add(subscription.reasonCode());
             return List.copyOf(codes);
         }
     }
@@ -168,7 +174,15 @@ public class ProjectTaskPlanCompletionService {
             evidence.put("gate", gateResult);
             if (evaluated.gateSnapshot() != null) evidence.put("gateSnapshot", evaluated.gateSnapshot());
         }
-        return new Result(completionResult,exitResult,Collections.unmodifiableMap(evidence),gateResult);
+        RuleEvaluation subscriptionResult = null;
+        if (cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard.configured(node.getExecution())) {
+            var proof=resultEvidence.getObject().lock(snapshot,plan,round);
+            subscriptionResult=new RuleEvaluation(reference+":subscription", proof.ready()?RuleEvaluation.Outcome.MATCHED:RuleEvaluation.Outcome.NOT_MATCHED,
+                    proof.reason(),List.of(),List.of(),List.of());
+            evidence.put("subscription",subscriptionResult);
+            if (proof.ready()) evidence.put("subscriptionEvidence",proof.receipts());
+        }
+        return new Result(completionResult,exitResult,Collections.unmodifiableMap(evidence),gateResult,subscriptionResult);
     }
     private Result unknown(String reference,String reason) {
         var result = new RuleEvaluation(reference,RuleEvaluation.Outcome.UNKNOWN,reason,List.of(),List.of(),List.of());

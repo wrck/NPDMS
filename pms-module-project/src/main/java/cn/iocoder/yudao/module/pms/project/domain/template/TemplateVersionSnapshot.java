@@ -205,6 +205,10 @@ public final class TemplateVersionSnapshot {
     private static void execution(JsonNode value, TemplateExecutionSnapshot.BindingContract binding) {
         if (value == null) return;
         var config = TemplateExecutionConfiguration.read(value);
+        // 旧验收专用完成通道尚未接入证据校验，不能通过新增配置绕过正式完成条件。
+        require(config.subscriptions().isEmpty() || binding == null
+                || !"ACC".equals(binding.getTargetContextCode()) || !"AcceptanceActivity".equals(binding.getTargetObjectType()),
+                "LEGACY_ACCEPTANCE_SUBSCRIPTION_UNSUPPORTED");
         if (config.presentation() != null) TemplatePresentationContract.validate(config.presentation(), binding);
         if (config.operations().isEmpty()) return;
         require(binding != null && binding.getOperationContract() != null, "独立操作缺少冻结运行绑定");

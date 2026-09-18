@@ -232,6 +232,10 @@ public class ProjectTaskLifecycleService {
             roundEvidence.put("gateSnapshot", completion.businessEvidence().get("gateSnapshot"));
             roundEvidence.put("businessFacts", completion.businessEvidence().get("businessFacts"));
             roundEvidence.put("approval", completion.businessEvidence().get("approval"));
+            if (completion.businessEvidence().containsKey("subscriptionEvidence")) {
+                roundEvidence.put("subscription",completion.businessEvidence().get("subscription"));
+                roundEvidence.put("subscriptionEvidence",completion.businessEvidence().get("subscriptionEvidence"));
+            }
         }
         if ("CANCEL".equals(action)) roundEvidence.put("reason", reason);
         if (nodeExecutions.recordTaskTransition(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper.TaskTransition(

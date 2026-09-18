@@ -48,6 +48,8 @@ public class ProjectStageCompletionService {
     private ProjectCurrentStageService currentStages;
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard> resultEvidence;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
@@ -146,11 +148,17 @@ public class ProjectStageCompletionService {
             } catch (RuntimeException invalidDefinition) { unknown = true; continue; }
             unknown |= completion.outcome() == RuleEvaluation.Outcome.UNKNOWN || exit.outcome() == RuleEvaluation.Outcome.UNKNOWN;
             if (!completion.matched() || !exit.matched()) continue;
+            java.util.List<cn.iocoder.yudao.module.pms.project.domain.rule.ResultEvidenceReceipt> subscriptionEvidence = null;
+            if (cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard.configured(definition.getExecution())) {
+                var proof=resultEvidence.getObject().lock(snapshot,plan,round);
+                if (!proof.ready()) continue;
+                subscriptionEvidence=proof.receipts();
+            }
             var now = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
             String evidence = JsonUtils.toJsonString(new StageCompletionEvidence(round.getId(), plan.getId(), completion, exit,
                     ownerLinks.stream().map(link -> new StageCompletionEvidence.BusinessResult(link.id(),binding.getTargetContextCode(),
                             binding.getTargetObjectType(),link.objectId(),link.factVersion())).toList(),
-                    cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks), approval));
+                    cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks), approval, subscriptionEvidence));
             if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, projectId, stage.getId(), stage.getVersion(),
                     "ACTIVE", "DONE", actorId == null ? "project-rules" : actorId.toString(), now)) != 1
                     || executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(tenantId, projectId, round.getId(),
