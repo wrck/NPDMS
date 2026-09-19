@@ -52,6 +52,7 @@ class ProjectTaskQueryServiceTest {
     @Mock ProjectTaskAssignmentMapper assignmentMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
     @Mock TaskBindingHostRegistry bindingRegistry;
+    @Mock cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
     @Mock PermissionCommonApi permissionApi;
 
     private ProjectTaskQueryService service;
@@ -60,7 +61,7 @@ class ProjectTaskQueryServiceTest {
     void setUp() {
         service = new ProjectTaskQueryService(projectMapper, projectTreeVersionMapper,
                 projectTreeScopeService, memberMapper, stageMapper, taskMapper, assignmentMapper,
-                contractMapper, bindingRegistry, permissionApi);
+                contractMapper, bindingRegistry, subscriptionObservations, permissionApi);
     }
 
     @Test

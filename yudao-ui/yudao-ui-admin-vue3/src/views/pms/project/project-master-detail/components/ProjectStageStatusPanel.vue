@@ -42,6 +42,9 @@
           <span v-else-if="executionFor(row.stageCode)"
             >第 {{ executionFor(row.stageCode)?.roundNo }} 轮</span
           >
+          <div v-if="executionFor(row.stageCode)?.subscriptions" class="subscription-badge">
+            {{ subscriptionSummary(executionFor(row.stageCode)?.subscriptions) }}
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -90,7 +93,8 @@ import { getProjectInstances, type ProjectInstancesVO, type ProjectMasterVO } fr
 import {
   getNodeExecutions,
   submitStageExecution,
-  type NodeExecution
+  type NodeExecution,
+  type NodeSubscriptionRound
 } from '@/api/pms/project/projects/nodeExecutions'
 import { useMessage } from '@/hooks/web/useMessage'
 import ProjectExecutionHistory from './ProjectExecutionHistory.vue'
@@ -156,6 +160,25 @@ let requestSequence = 0
 const statusLabel = (status: string) =>
   ({ PENDING: '等待准入', ACTIVE: '进行中', DONE: '已完成', TERMINATED: '已终止' })[status] ??
   status
+// 订阅阶段的只读等待摘要；等待原因来自后端已登记的评估记录，刷新不产生业务写入。
+const WAIT_REASON_LABELS: Record<string, string> = {
+  EVALUATION_PENDING: '待评估',
+  EVALUATION_OUTDATED: '评估待更新',
+  EVALUATION_SCANNING: '正在扫描',
+  NO_QUALIFIED_RESULT: '尚无合格结果',
+  EXPECTED_OBJECTS_MISSING: '缺少预期结果',
+  RESULT_AMBIGUOUS: '结果歧义',
+  RESULT_SOURCE_UNAVAILABLE: '来源不可用',
+  EVIDENCE_SATISFIED: '证据已满足'
+}
+const subscriptionSummary = (round?: NodeSubscriptionRound) => {
+  if (!round?.subscriptions?.length) return '订阅：待评估'
+  if (round.roundEnded) return '订阅：本轮已结束，复核中'
+  const waiting = round.subscriptions.filter((item) => item.waitReason !== 'EVIDENCE_SATISFIED')
+  if (!waiting.length) return '订阅：证据已满足'
+  const reason = waiting[0].waitReason
+  return `订阅：${WAIT_REASON_LABELS[reason] ?? reason}`
+}
 const load = async () => {
   const request = ++requestSequence
   loading.value = true
@@ -194,6 +217,11 @@ watch([() => props.projectId, () => props.project.version], load, { immediate: t
   margin: 0;
 }
 .stage-status-header p {
+  color: var(--el-text-color-secondary);
+}
+.subscription-badge {
+  margin-top: 2px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 </style>

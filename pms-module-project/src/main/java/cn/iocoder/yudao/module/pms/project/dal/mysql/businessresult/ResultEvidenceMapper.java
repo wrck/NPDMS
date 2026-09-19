@@ -14,8 +14,14 @@ public interface ResultEvidenceMapper {
     int insertItem(@Param("row") ResultEvidenceItemDO row);
     List<ResultEvidenceItemDO> selectItems(@Param("query") Items query);
     boolean hasInvalidatedItems(@Param("query") HistoricalComparison query);
+    /** 只读展示查询：当前订阅检查点对应的最新扫描；无记录返回null。 */
+    ResultEvidenceScanDO selectScanForSubscription(@Param("query") SubscriptionScan query);
+    /** 只读展示查询：单次扫描内去重的不合格原因码，按limit有界返回，不解释为完整集合。 */
+    java.util.List<String> selectDistinctReasons(@Param("query") ScanReasons query);
 
     record ScanIdentity(Long tenantId, Long projectId, Long subscriptionId, Integer subscriptionVersion) { }
+    record SubscriptionScan(Long tenantId, Long projectId, Long subscriptionId, Integer subscriptionVersion) { }
+    record ScanReasons(Long tenantId, Long projectId, Long scanId, int limit) { }
     record ScanId(Long tenantId, Long projectId, Long id) { }
     record Progress(Long tenantId, Long projectId, Long id, int expectedVersion, long afterCandidateId, String accumulator, String status) { }
     record Items(Long tenantId, Long projectId, Long scanId, long afterId, int limit) { }

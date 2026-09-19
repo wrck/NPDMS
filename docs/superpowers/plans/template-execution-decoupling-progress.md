@@ -53,10 +53,10 @@
 | P3 | CODE_COMPLETE_PENDING_VERIFICATION | 复用三类权威来源、事务变化日志和形成边界；待集中验证 |
 | P4 | CODE_COMPLETE_PENDING_VERIFICATION | 发布与安装统一要求事务屏障，复用分页及恢复；待集中验证 |
 | P5 | CODE_COMPLETE_PENDING_VERIFICATION | 已完成证据失效记录影响并保留历史；待集中验证 |
-| P6 | CODE_COMPLETE_PENDING_VERIFICATION | POST接入显式事务结果事实，复用原输入及同事务执行；待集中验证 |
-| P7 | CODE_COMPLETE_PENDING_VERIFICATION | 公共入口按原冻结操作版本分派；待集中验证 |
-| P8 | CODE_COMPLETE_PENDING_VERIFICATION | 新执行配置编辑器及纯订阅任务展示已接线；待集中验证 |
-| P9 | SOURCE_REVIEW_COMPLETE_PENDING_VERIFICATION | 本轮源码自审及发现的整改已完成；真实验证NOT_RUN |
+| P6 | CODE_COMPLETE_PENDING_VERIFICATION | POST接入显式事务结果事实；R01～R03整改后自审确认，待集中验证 |
+| P7 | CODE_COMPLETE_PENDING_VERIFICATION | 公共入口按原冻结操作版本分派；R04整改后自审确认，待集中验证 |
+| P8 | CODE_COMPLETE_PENDING_VERIFICATION | 新执行配置编辑器及纯订阅任务展示已接线；R05整改后自审确认，待集中验证 |
+| P9 | VERIFIED_SOURCE_AND_UNIT_PENDING_BUSINESS_CHAIN | R01～R05集中验证完成：源码/自测/真实DB-API/浏览器分层通过；订阅任务业务链与真实事务场景NOT_RUN（数据边界） |
 
 ## 2026-09-19 按阶段完成至P9的源码调整
 
@@ -100,6 +100,70 @@
 已沿发布/冻结Reader、独立Owner写入、事务结果日志、订阅安装/恢复、证据扫描/正式推进、原回执恢复及编辑/运行页面逐段核对。跨阶段整改包括实际工勘权限映射、订阅发布能力、显式移除操作契约、已完成原证据失效、通用版本分派、POST结果事实和纯订阅任务误提示。没有改写已发布版本、旧Hasher、历史完成证据或数据库运行数据。
 
 本轮仅完成源码阅读、修改与自审。测试、编译、类型检查、迁移验证、真实数据库/API/浏览器验收均为NOT_RUN，历史PASS不继承为本轮PASS。按用户要求，已生成测试文件保留，未继续补写测试。后续集中验证应覆盖：发布与冻结往返、三组实际入口权限、POST失败的真实事务/Outbox回滚、同对象新结果及有界恢复、完成后证据失效、旧版本回执重放、页面保存重开/未知结果恢复及纯订阅正式推进。
+
+## 2026-09-19 R01～R05整改实施（依据计划I17）
+
+上一轮P1～P9工作区改动已按需求方授权提交为`03c0e580a`（含I17整改方案落字）。本轮按I17.2顺序处理五组确定缺口：R01～R04经逐项核对已在`03c0e580a`源码中满足并记录复核证据，R05为本次新增实现。以下均为源码层结论，测试、编译、类型检查与运行验收仍为NOT_RUN，不构成任何PASS。
+
+### R01：POST事务结果字段发布校验（复核确认，无新增改动）
+
+按I17.3六项实施点逐项核对`03c0e580a`中的`ProjectRulePublicationValidator`：`RuleUse`按实际使用位置（模板匹配、收口、节点准入/完成/退出、依赖条件、操作PRE/POST、新旧`execution.operations`/`operationContract`）确定字段范围；仅当规则全部使用位置为POST时开放`transactionResult.*`，共享引用继承全部检查点并通过`decisionUses`传递到被引用决策表；字段存在性、值类型与决策表输入按合并目录校验；未引用规则保持ORDINARY不自动获得POST能力。链条一致性：编辑器仅在POST上下文加载`operation-result-fields`（`RuleEditor.vue`），冻结`TemplateOperationCompilation.supports`按POST扩充目录，运行`ProjectOperationRuleEvaluator`仅经`ProjectOperationResultFields`取值。同字段用于PRE、匹配或节点位置仍被拒绝。
+
+### R02：畸形响应保留待确认请求（复核确认，无新增改动）
+
+按I17.4核对`operationClient.ts`：顺序为收到响应→`validateEnvelope`封套校验→`entry.validateResult`正文校验→登记结果→清理隐式请求→刷新展示；封套校验覆盖必要字段、值类型、Owner/实体身份（`transport.resultIdentity`），保留字符串ID精度。三组受信适配器均按动作提供正文校验（`siteSurveyResult`/`requirementAnalysisResult`/`acceptanceReportResult`），校验方式随意图捕获固定，恢复不切换解释。畸形或身份不符抛普通Error不清除待确认记录，`hasUncertain`阻止新意图；恢复请求被拒绝不清除记录、不解释为已回滚；`submitted`投影失败不影响已校验业务成功。创建/复制不要求返回对象等于输入，无修订业务不强制`revisionId`。
+
+### R03：异步预检前完整捕获操作意图（复核确认，无新增改动）
+
+按I17.5核对：`execute`在首次异步等待前同步捕获操作编码、对象身份（字符串化）、输入副本、预期版本来源（含函数引用）、幂等键与结果校验方式；指纹、能力预检与请求构造均使用捕获值，不再读取可变intent。首次取得版本后固定到提交封套；重试复用`entry.command`原封套与原键，不再次获取版本或能力。同键异意图冲突、执行中合并与未知请求阻止新意图的既有规则保留。
+
+### R04：精确版本接入与业务动作登记（复核确认，无新增改动）
+
+按I17.6核对：客户端已删除`operationVersion === 1`过滤，按冻结能力返回唯一绑定；零匹配、多匹配与不支持版本分别报`OPERATION_NOT_BOUND`/`OPERATION_BINDING_AMBIGUOUS`/原reason。C0三组14项动作完整迁入三份受信适配登记（`siteSurveyOperationActions`、`requirementAnalysisOperationActions`、`acceptanceReportOperationActions`），公共宿主只经`businessOperationAliases`按精确Owner/实体/组件匹配读取映射，无C0枚举或业务实体分支；未知映射不放行，文件写权限仍单独处理。
+
+### R05：实际订阅状态与等待原因（本次新增实现）
+
+- 新增共享只读查询`ProjectResultSubscriptionObservationQuery`：按租户、项目、当前轮次（`current_marker=1`）与订阅身份读取既有订阅、扫描与证据记录；只读无锁，不触发扫描、安装、返工或任何Writer。调用方（任务工作台、节点执行列表）先完成原有项目/任务访问授权。
+- 新增Mapper只读查询（XML，场景化Query对象）：`ResultSubscriptionMapper.selectByExecutions`（限定当前轮次集合，空集合不查询）、`ResultEvidenceMapper.selectScanForSubscription`（当前订阅检查点的最新扫描）、`selectDistinctReasons`（有界去重原因码，LIMIT 20，不解释为完整集合）。
+- 摘要内容：订阅局部标识、来源类型、扫描状态与版本核对、合格/检查数量、缺失对象（来自冻结范围与累积器，有界）及有界安全原因码。等待原因为封闭集合：`EVALUATION_PENDING`（缺记录，待评估）、`EVALUATION_OUTDATED`（旧扫描只显示待更新，不显示为当前已满足）、`EVALUATION_SCANNING`、`NO_QUALIFIED_RESULT`、`EXPECTED_OBJECTS_MISSING`、`RESULT_AMBIGUOUS`、`RESULT_SOURCE_UNAVAILABLE`、`EVIDENCE_SATISFIED`。结论解释复用`ResultEvidencePolicy.decide`，不建立第二套完成真值；摘要损坏时显示待评估，不构造替代结论。
+- 消费接入：任务工作台`getWorkbench`对`RESULT_SUBSCRIPTION`绑定返回可选`resultSubscriptions`（查询失败按既有模式设置`RESULT_SUBSCRIPTION_FACT_UNAVAILABLE`，不破坏工作台）；节点执行列表`ExecutionView`新增可选订阅观察，任务与阶段共用同一查询。工作台响应不新增任务状态或完成真值字段。
+- 前端：`ProjectFlowPanel.vue`固定说明替换为实际订阅评估表（等待原因、合格数量、缺失对象、已观察原因、历史轮复核提示），刷新仅读取；`ProjectStageStatusPanel.vue`推进轨为订阅阶段显示紧凑等待摘要。`TaskStateActions.vue`继续隐藏订阅任务手工提交/完成，服务端授权与状态机仍是最终判断。
+
+### 本轮验证边界
+
+本轮仅完成源码修改、逐项复核与自审。按I17.1约束未运行构建、测试、类型检查或运行验收，全部NOT_RUN；`03c0e580a`之前的历史PASS不继承为本轮PASS。R01～R04未新增生产代码改动，R05新增改动涉及上列文件。I17.8集中验证场景（发布与冻结、请求安全与恢复、通用接入、订阅展示、真实事务与运行页面）待下一阶段执行，其中订阅展示场景新增覆盖：扫描中、无结果、歧义、来源不可用、待评估与过期扫描的展示边界，以及集合读取有界与刷新无副作用。
+
+## 2026-09-19 R01～R05集中验证实际结果（需求方指令）
+
+按I17.8集中验证执行；源码、自测、真实数据库/API、浏览器证据分层记账。验证环境：本工作区独立`npdms-verify` compose栈（MySQL 8.4:13306/Redis:16379，全新卷）+ JDK25后端58080 + Vite前端18084；后端以`.env`数据源参数启动。原始`npdms`项目MySQL/Redis容器因旧.env丢失且卷凭据不可恢复而停止（数据卷`npdms_npdms-mysql-data`保留未动）；测试期间创建的`.env`、`.env.env.local`为本地验证文件，未提交。
+
+### 源码层
+
+- 后端`mvn -pl pms-module-project -am test-compile`：主代码编译通过；两个既有测试类（`ProjectStageSubmissionServiceTest`、`ProjectTaskQueryServiceTest`）构造器因R05新增依赖参数编译失败，已按最小适配补mock参数后通过（自测层）。
+- 前端`vue-tsc --noEmit`：本次改动触碰的文件零错误；仅存的14个错误全部位于未跟踪的WMS遗留文件（`src/views/wms/order/shipment/*`，被.gitignore忽略的并行会话残留），与本次改动无关。
+
+### 自测层（既有测试复用，全部通过）
+
+- 后端专项影响面（rule/operation/projecttemplate/taskworkbench全包+计划提交服务）：925个测试，除2个既有失败外全部通过。
+- Node客户端恢复测试（operationClient/selfReview/presentation/site-survey input，node --test）：44/44通过，覆盖R02/R03恢复语义。
+- 前端受影响spec（vitest pms-file配置）：BusinessView、执行配置编辑器、执行历史、工勘/需求分析/验收API等受影响范围全绿。
+- 对照实验：以git stash在HEAD（无R05）重跑全部失败用例，失败集合完全一致（11失败+7错误）——R05引入零回归。18个既有失败归属：生命周期校验类（99a603be7，早于专项基线）、projectmember/mock装配类与交付域迁移类（对应测试与主代码均非本专项触碰）、`ResultSubscriptionTaskContractTest`（断言滞后于03c0e580a已批准移除无条件拒绝，本次对齐为`RESULT_SOURCE_UNAVAILABLE`，保护意图不变）。
+- 验证中发现并修复的真实缺陷：①迁移文件版本重复（V251/V252/V253/V254各两份，并行合并产物，全新库必失败）——工程域两个对齐文件重编号为V301~V304；②`V289__equipment_migration_ddl_completion.sql`与V285重复的非幂等RENAME（全新库必失败，V285已完整覆盖）——移除重复段并注明；③`SpringJdbcStreamingReader`经`@Import`按无参构造器实例化导致应用启动失败（62d4d285e构造器改造的漏网）——改为组件扫描+`@Autowired`显式构造器；④`ExecutionConfigurationEditor.vue`以getter数组watch绑定，父组件重渲染即重置已加载目录——改为多源逐值watch（由批次自带的未执行spec暴露）。
+
+### 真实数据库/API层
+
+- 迁移：全新库应用238个迁移至V293成功（含专项V251~254）。V294起因`proj_project_portfolio`等遗留表在任何迁移中都未建而失败——迁移集整体依赖一份无法从迁移复现的历史状态，属专项之外的数据迁移治理缺口，已记录未修复。
+- API（真实登录令牌调用）：R01元数据`operation-result-fields`返回3个transactionResult字段；`rules/fields`、`result-catalog`返回登记来源与真实能力位（工勘exactLookup=false与适配器一致）；`node-executions`（项目1001，无生效计划）返回空集无异常；不存在任务的工作台访问被授权边界拒绝（1014024045）。R05观察字段接线在真实服务上无副作用执行。
+
+### 浏览器层（真实页面）
+
+- 登录→工作台→项目详情（PROJ-2026-001）→阶段状态面板→阶段工作台抽屉全程可用：本次改动的`ProjectStageStatusPanel`（阶段表+本轮办理列）与`ProjectFlowPanel`（阶段视图，含STAGE_CONTRACT_NOT_FROZEN正确降级提示）真实渲染无控制台错误、无失败请求；截图留存。
+- 纯订阅任务的订阅评估表展示、发布/冻结往返、畸形响应恢复、旧版本回执重放、真实事务回滚：需种子无法提供的生效计划+订阅任务业务链，NOT_RUN（数据边界，非功能缺失；对应后端行为已由自测层单测覆盖）。
+
+### 环境遗留状态
+
+- `npdms-verify`栈与验证用后端（58080）、前端（18084）仍在运行，供复验；`npdms`项目原mysql/redis容器处于停止状态，数据卷未动。
+- 本轮全部生产代码与测试适配改动未提交；`V289`、V301~V304重编号为集成修复，建议随本批提交。
 
 以下章节均为此前提交时点的历史记录，其中“下一项”“未启用”“未完成”和环境限制仅对当时有效，不覆盖上面的当前阶段状态。
 

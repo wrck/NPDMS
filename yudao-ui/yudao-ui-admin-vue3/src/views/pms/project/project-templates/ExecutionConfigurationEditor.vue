@@ -115,7 +115,9 @@ const source = (item: ExecutionSubscription) => results.value.find(candidate => 
 const resultNames: Record<string, string> = { SURVEY_CONFIRMED: '工勘确认结果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析完成结果', REPORT_VERSION_PUBLISHED: '验收报告发布结果' }
 const resultLabel = (item: { entityType: string; resultType: string }) => resultNames[item.resultType] ?? `${item.entityType} · ${item.resultType}`
 const operationLabel = (code?: string) => operations.value.find(item => item.operationCode === code)?.label ?? code ?? '权限对应动作'
-watch(() => [props.binding?.targetContextCode, props.binding?.targetObjectType, props.readonly] as const, async ([owner, type, readonly]) => {
+// 多源watch逐值比较：父组件以新对象字面量传入结构相同的binding时不得重置已加载目录。
+watch([() => props.binding?.targetContextCode, () => props.binding?.targetObjectType, () => props.readonly],
+  async ([owner, type, readonly]) => {
   const current = ++generation
   loading.value = true; error.value = ''; operations.value = []; results.value = []
   if (readonly) { loading.value = false; return }

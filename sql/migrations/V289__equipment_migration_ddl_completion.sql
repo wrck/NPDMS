@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `ast_device_version` (
   KEY `idx_ast_device_version_device` (`tenant_id`, `device_id`, `version_no`)
 ) ENGINE = InnoDB COMMENT = 'AST 设备档案版本历史（追加只读）';
 
--- 配置日志表跟随设备档案迁移（新链 DeviceConfigurationLogQueryService 已按 ast_device 主体消费本表）
-RENAME TABLE `pms_equipment_config_log` TO `ast_device_config_log`;
-ALTER TABLE `ast_device_config_log` RENAME COLUMN `equipment_id` TO `device_id`;
+-- 配置日志表跟随设备档案迁移（新链 DeviceConfigurationLogQueryService 已按 ast_device 主体消费本表）。
+-- 本仓库整合后的 V285 已包含 ast_device_version 建表与 pms_equipment_config_log→ast_device_config_log 改名，
+-- 此处原保留的两行 RENAME 在全新库上必然失败（目标表已存在）；并行残缺副本场景由 flyway repair 处理差异。
+-- 2026-09-19 集中验证修复：移除与 V285 重复的非幂等改名语句。

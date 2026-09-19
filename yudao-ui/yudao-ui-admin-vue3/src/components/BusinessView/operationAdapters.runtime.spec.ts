@@ -9,9 +9,27 @@ vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: 
 vi.mock('@/config/axios/service', () => ({ service: vi.fn() }))
 const vector = { task: { projectId: 1, taskId: 2, executionContractId: 3, contractVersion: 1,
   planVersionId: 4, executionId: 5 }, stage: null }
+const surveyResultCodes: Record<string, string> = { CREATE: 'SURVEY_DRAFT_SAVED', UPDATE: 'SURVEY_DRAFT_SAVED',
+  DELETE: 'SURVEY_DELETED', CONFIRM: 'SURVEY_CONFIRMED', REJECT: 'SURVEY_REJECTED', ARCHIVE: 'SURVEY_ARCHIVED' }
+// 受信适配器按实际契约校验返回正文；fake回执必须满足各Owner的validateResult，而不是通用占位值。
+function resultFor(code: string) {
+  const action = code.split('.')[2]
+  if (code.startsWith('SOL.SITE_SURVEY.')) return { ownerContext: 'SOL', objectType: 'SITE_SURVEY',
+    resultCode: surveyResultCodes[action], objectId: '8', objectVersion: 4, businessFactVersion: 'v4',
+    revisionId: null, replayed: false, response: { id: 8, version: 4, deleted: action === 'DELETE' } }
+  if (code.startsWith('SOL.REQUIREMENT_ANALYSIS.')) return { ownerContext: 'SOL', objectType: 'REQUIREMENT_ANALYSIS',
+    resultCode: action === 'COMPLETE' ? 'REQUIREMENT_ANALYSIS_COMPLETED' : 'REQUIREMENT_ANALYSIS_DRAFT_SAVED',
+    objectId: '8', revisionId: '8', objectVersion: 4, businessFactVersion: 'v4', replayed: false,
+    response: { ref: { entity: { ownerModule: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', entityId: 77 }, revisionId: 8 },
+      version: 4, revisionNo: 1, effective: false, state: action === 'COMPLETE' ? 'FROZEN' : 'DRAFT', sourceRevisionId: 8 } }
+  return { ownerContext: 'ACC', objectType: 'ACCEPTANCE',
+    resultCode: action === 'PUBLISH' ? 'REPORT_VERSION_PUBLISHED' : action === 'REVOKE' ? 'REPORT_VERSION_REVOKED' : 'REPORT_DRAFT_SAVED',
+    objectId: '8', revisionId: '89', objectVersion: 4, businessFactVersion: 'v4', replayed: false,
+    response: { acceptanceId: 8, reportVersionId: 89, reportVersionNo: 2, reportStatus: action === 'PUBLISH' ? 'EFFECTIVE'
+      : action === 'REVOKE' ? 'REVOKED' : 'DRAFT', replayed: false } }
+}
 function clientFor(code: string) {
-  const submit = vi.fn().mockResolvedValue({ ownerContext: 'OWNER', objectType: 'ENTITY', objectId: '8',
-    objectVersion: 4, businessFactVersion: 'v4', resultCode: 'SAVED', response: { id: 8 }, replayed: false })
+  const submit = vi.fn().mockResolvedValue(resultFor(code))
   const client = new OperationClient({ projectId: 1, nodeKind: 'TASK', nodeId: 2 }, vector, {
     inspect: vi.fn().mockResolvedValue({ node: { projectId: 1, kind: 'TASK', id: 2, status: 'ACTIVE' }, execution: vector,
       ownerFactVersion: 'observed-v3', actions: [{ operationCode: code, operationVersion: 1, allowed: true }] }),

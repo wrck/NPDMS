@@ -27,7 +27,9 @@ class ProjectStageSubmissionServiceTest {
     final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
     final ProjectRuntimeCoordinator coordinator = mock(ProjectRuntimeCoordinator.class);
     final ProjectMasterMapper projectRows = mock(ProjectMasterMapper.class);
-    final ProjectStageSubmissionService service = new ProjectStageSubmissionService(projects, plans, executions, scopes, permissions, commands, coordinator, projectRows);
+    final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery observations =
+            mock(cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery.class);
+    final ProjectStageSubmissionService service = new ProjectStageSubmissionService(projects, plans, executions, scopes, permissions, commands, coordinator, projectRows, observations);
     ProjectNodeExecutionDO round;
     ProjectMasterDO project;
     ProjectPlanVersionDO plan;

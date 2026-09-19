@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
@@ -36,11 +37,13 @@ public class ProjectStageSubmissionService {
     private final PlatformCommandExecutionApi commands;
     private final ProjectRuntimeCoordinator coordinator;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projectRows;
+    private final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
 
     public record Command(Long projectId, Long executionId, Integer expectedVersion, String note) { }
     public record Submitted(Long executionId, Integer roundNo, String status, Integer version) { }
     public record ExecutionView(Long id, Long planVersionId, String nodeKey, String nodeKind, String nodeCode, String name,
-                                Integer roundNo, String status, Integer version, boolean canSubmit) { }
+                                Integer roundNo, String status, Integer version, boolean canSubmit,
+                                cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery.RoundObservation subscriptions) { }
 
     public List<ExecutionView> list(Long projectId, Long actorId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
@@ -53,12 +56,17 @@ public class ProjectStageSubmissionService {
         boolean editable = project != null && "ACTIVE".equals(project.getLifecycleStatus())
                 && permissions.hasAnyPermissions(actorId, "pms:project-task:execute")
                 && hasScope(tenantId, projectId, actorId, ProjectScopeApi.ACTION_EDIT);
-        return executions.selectCurrent(scope).stream().map(round -> {
+        var rounds = executions.selectCurrent(scope);
+        // 只读订阅观察：仅带订阅行的轮次有条目，任务/阶段共用同一查询服务。
+        var observations = subscriptionObservations.forExecutionIds(tenantId, projectId,
+                rounds.stream().map(ProjectNodeExecutionDO::getId).toList());
+        return rounds.stream().map(round -> {
             var definition = snapshot.getStages().stream().filter(node -> round.getNodeKey().equals(node.getNodeKey())).findFirst().orElse(null);
             boolean nativeStage = definition != null && definition.getBinding() != null && "STAGE_NATIVE".equals(definition.getBinding().getType());
             return new ExecutionView(round.getId(), round.getPlanVersionId(), round.getNodeKey(), round.getNodeKind(),
                     definition == null ? round.getNodeKey() : definition.getCode(), definition == null ? round.getNodeKey() : definition.getName(), round.getRoundNo(), round.getStatus(), round.getVersion(),
-                    editable && nativeStage && "ACTIVE".equals(round.getStatus()) && round.getSubmittedAt() == null);
+                    editable && nativeStage && "ACTIVE".equals(round.getStatus()) && round.getSubmittedAt() == null,
+                    observations.get(round.getId()));
         }).toList();
     }
 

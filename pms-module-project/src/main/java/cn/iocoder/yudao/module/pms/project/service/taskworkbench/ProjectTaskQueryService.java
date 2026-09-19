@@ -66,6 +66,7 @@ public class ProjectTaskQueryService {
     private final ProjectTaskAssignmentMapper assignmentMapper;
     private final ProjectTaskExecutionContractMapper contractMapper;
     private final TaskBindingHostRegistry bindingRegistry;
+    private final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
     private final PermissionCommonApi permissionApi;
 
     public ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor) {
@@ -167,6 +168,14 @@ public class ProjectTaskQueryService {
         response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
+        if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode())) {
+            try {
+                response.setResultSubscriptions(subscriptionObservations.forNode(
+                        actor.tenantId(), value.task().getProjectId(), "TASK", taskId));
+            } catch (RuntimeException unavailable) {
+                response.setRecoverableError("RESULT_SUBSCRIPTION_FACT_UNAVAILABLE");
+            }
+        }
         if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
             try { response.setApproval(taskApprovals.view(actor.tenantId(), value.task().getProjectId(), taskId, contract)); }
             catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }

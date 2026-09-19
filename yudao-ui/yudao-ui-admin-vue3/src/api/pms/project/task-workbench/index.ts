@@ -78,6 +78,28 @@ export interface TaskDetail extends TaskNode {
   actualEndTime?: string
 }
 
+export interface TaskSubscriptionObservation {
+  subscriptionKey: string
+  resultType: string
+  waitReason: string
+  scanStatus?: string
+  scanCurrent: boolean
+  examined: number
+  eligible: number
+  missingObjects: string[]
+  reasons: string[]
+}
+
+export interface TaskSubscriptionRound {
+  executionId: number | string
+  planVersionId: number | string
+  nodeKey: string
+  nodeKind: 'STAGE' | 'TASK'
+  roundStatus: string
+  roundEnded: boolean
+  subscriptions: TaskSubscriptionObservation[]
+}
+
 export interface TaskWorkbench {
   task: TaskDetail
   executionContractId?: number
@@ -88,6 +110,7 @@ export interface TaskWorkbench {
   factVersion?: string
   recoverableError?: string
   approval?: TaskApprovalView
+  resultSubscriptions?: TaskSubscriptionRound[]
 }
 
 export interface TaskApprovalSubmission {

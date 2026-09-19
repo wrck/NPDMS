@@ -15,4 +15,6 @@ public class ProjectTaskWorkbenchRespVO {
     private String factVersion;
     private String recoverableError;
     private cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.View approval;
+    /** 纯订阅任务的可选只读观察；仅RESULT_SUBSCRIPTION绑定返回，不构成第二套任务完成真值。 */
+    private java.util.List<cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery.RoundObservation> resultSubscriptions;
 }

@@ -33,6 +33,12 @@
           AND channel_id=#{query.channelId} AND id &gt; #{query.afterId} AND phase != 'RETIRED' AND deleted=0
         ORDER BY id LIMIT #{query.limit}
     </select>
+    <select id="selectByExecutions" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.ResultSubscriptionDO">
+        SELECT * FROM proj_result_subscription WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND phase != 'RETIRED' AND deleted=0
+          AND execution_id IN <foreach collection="query.executionIds" item="executionId" open="(" separator="," close=")">#{executionId}</foreach>
+        ORDER BY execution_id, id
+    </select>
     <update id="retire">
         UPDATE proj_result_subscription SET phase='RETIRED',version=version+1
         WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.id}
