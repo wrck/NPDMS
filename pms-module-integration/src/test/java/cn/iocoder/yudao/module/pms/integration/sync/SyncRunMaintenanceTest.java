@@ -93,7 +93,7 @@ class SyncRunMaintenanceTest {
         assertEquals("FAILED",page.getStatus());
         assertEquals(10L,task.getActiveRunId());
         assertEquals(0,task.getRetryAttempt());
-        verify(tasks,never()).updateById(any());
+        verify(tasks,never()).updateById(any(SyncTaskDO.class));
         verify(batchLauncher).recover(1L,11L);
     }
 

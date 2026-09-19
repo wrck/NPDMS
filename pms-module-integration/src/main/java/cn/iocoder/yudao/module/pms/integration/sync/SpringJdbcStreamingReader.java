@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.infra.api.db.ExternalDataSourceApi;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 import java.nio.charset.StandardCharsets;
@@ -90,7 +91,7 @@ public class SpringJdbcStreamingReader {
         final int chunkSize=definition.effectiveChunkSize();
         final long maxBytes=definition.maxBytes();
         final String[] previous={checkpoint==null?null:checkpoint.toString()};
-        jdbc.execute(con->{
+        jdbc.execute((PreparedStatementCreator)con->{
             PreparedStatement ps=con.prepareStatement(query,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
             ps.setFetchSize(fetchSize);
             if(definition.queryTimeoutSeconds()>0)ps.setQueryTimeout(definition.queryTimeoutSeconds());
