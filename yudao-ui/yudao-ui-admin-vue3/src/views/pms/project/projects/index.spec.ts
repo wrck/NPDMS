@@ -83,7 +83,7 @@ describe('F-PROJ-001 creation submission state', () => {
 
   it('keeps legacy survey read-only, installation atomic and equipment location read-only', () => {
     const surveySource = readFileSync(
-      new URL('../../engineering/site-survey/index.vue', import.meta.url),
+      new URL('../../delivery-business/site-survey/index.vue', import.meta.url),
       'utf8'
     )
     const installationSource = readFileSync(
