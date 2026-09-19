@@ -5,7 +5,8 @@ export interface PagePresentation { pageUrl: string; query: Readonly<Record<stri
 export const businessPageRoutes = {
   ACC_ACCEPTANCE_REPORT: { componentKey: 'ACC_ACCEPTANCE_REPORT', componentVersion: '1', ownerContext: 'ACC', entityType: 'ACCEPTANCE', viewSource: 'PAGE', pageUrl: '/pms/project/acceptance-report' },
   SOL_SITE_SURVEY: { componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/site-survey' },
-  PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis' }
+  PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis' },
+  PLN_CONSTRUCTION_PLAN: { componentKey: 'PLN_CONSTRUCTION_PLAN', componentVersion: '1', ownerContext: 'PLN', entityType: 'CONSTRUCTION_PLAN', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/duration' }
 } as const
 
 export interface PageIdentity { ownerContext: string; entityType: string; componentKey: string; componentVersion: string; viewSource: string }

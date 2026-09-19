@@ -9,6 +9,7 @@ import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requi
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index.vue'
+import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
@@ -95,6 +96,14 @@ const adapters: readonly Adapter[] = [
             ...(resolvedContext.stageExecution ? { stageExecution: resolvedContext.stageExecution } : {}),
             ...(resolvedContext.taskExecution ? { taskExecution: resolvedContext.taskExecution } : {}),
             ...(resolvedContext.businessObjectId == null ? {} : { revisionId: resolvedContext.businessObjectId }) }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.PLN_CONSTRUCTION_PLAN,
+    component: markRaw(ProjectDurationPanel),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) } }
         : undefined
   },
   {

@@ -22,6 +22,7 @@ vi.mock('@/views/pms/delivery-business/site-survey/index.vue', async () => {
 })
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning: vi.fn() }) }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
