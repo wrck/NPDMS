@@ -35,9 +35,6 @@ public class TemplateExecutionConfigurationCompilation {
                     issues.add(new Issue(path, "RESULT_SOURCE_UNAVAILABLE", "结果来源目录未安装"));
                 else issues.addAll(resultCapabilities.validate(config.subscriptions().get(i), path));
             }
-            if (!config.subscriptions().isEmpty())
-                issues.add(new Issue(node.path() + ".subscriptions", "RESULT_SUBSCRIPTION_NOT_INSTALLED",
-                        "独立结果订阅的来源、证据和恢复尚未接通；可保存草稿，不能发布"));
             if (config.presentation() != null) {
                 try {
                     if (presentationRoutes == null) throw new IllegalArgumentException("PRESENTATION_ROUTE_NOT_INSTALLED");
@@ -47,7 +44,11 @@ public class TemplateExecutionConfigurationCompilation {
                             "页面路径、冻结业务视图或参数不匹配已部署登记；可保留草稿，不能发布"));
                 }
             }
-            if (config.operations().isEmpty()) continue;
+            if (config.operations().isEmpty()) {
+                if (node.value().has("operations") && node.binding() != null)
+                    node.binding().setOperationContract(null);
+                continue;
+            }
             List<TemplateOperationContract.Operation> resolved = new ArrayList<>();
             var unique = new HashSet<String>();
             for (int i = 0; i < config.operations().size(); i++) {

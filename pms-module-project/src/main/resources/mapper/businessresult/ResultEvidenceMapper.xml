@@ -25,4 +25,16 @@
         SELECT * FROM proj_result_evidence_item WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
           AND scan_id=#{query.scanId} AND id &gt; #{query.afterId} ORDER BY id LIMIT #{query.limit}
     </select>
+    <select id="hasInvalidatedItems" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM proj_result_evidence_item original
+            LEFT JOIN proj_result_evidence_item current_item
+              ON current_item.tenant_id=original.tenant_id AND current_item.project_id=original.project_id
+             AND current_item.scan_id=#{query.currentScanId} AND current_item.candidate_id=original.candidate_id
+             AND current_item.object_id=original.object_id AND current_item.result_id=original.result_id
+            WHERE original.tenant_id=#{query.tenantId} AND original.project_id=#{query.projectId}
+              AND original.scan_id=#{query.originalScanId} AND original.eligibility='ELIGIBLE'
+              AND (current_item.id IS NULL OR current_item.eligibility != 'ELIGIBLE')
+        )
+    </select>
 </mapper>

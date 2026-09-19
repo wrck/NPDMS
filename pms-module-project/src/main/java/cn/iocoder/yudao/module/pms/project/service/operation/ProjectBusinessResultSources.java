@@ -37,6 +37,13 @@ public final class ProjectBusinessResultSources {
         return found == null ? null : found.descriptor();
     }
 
+    public List<Descriptor> descriptors() {
+        return sources.values().stream().map(Registered::descriptor)
+                .sorted(Comparator.comparing((Descriptor value) -> value.type().ownerContext())
+                        .thenComparing(value -> value.type().entityType()).thenComparing(value -> value.type().resultType()))
+                .toList();
+    }
+
     public boolean inventorySupported(Type type) {
         var source = sources.get(type);
         return source != null && source.source() instanceof BusinessResultInventorySource;

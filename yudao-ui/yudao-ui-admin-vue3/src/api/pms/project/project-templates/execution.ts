@@ -1,4 +1,20 @@
 /** 配置只选择业务动作和结果，不携带业务DTO技术版本或调用类名。 */
+import request from '@/config/axios'
+
+export interface BusinessResultDescriptor {
+  ownerContext: string
+  entityType: string
+  resultType: string
+  currentLookup: boolean
+  exactLookup: boolean
+  historicalLookup: boolean
+  inventory: boolean
+  changes: boolean
+  commitBarrier: boolean
+}
+export const getBusinessResultCatalog = () => request.get<BusinessResultDescriptor[]>({
+  url: '/api/v1/pms/project-templates/result-catalog'
+})
 export type ExecutionCheck = { mode: 'NONE' } | { mode: 'RULE'; ruleKey: string }
 export interface ExecutionOperation {
   ownerContext: string

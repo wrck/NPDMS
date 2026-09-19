@@ -203,12 +203,18 @@
               >保存时完成业务绑定；若完成条件原先共享，将为当前节点保留独立修改，不影响其他节点。</p
             >
             <OperationContractEditor
-              v-if="runtimeNode.workBinding && ['BUSINESS_OBJECT', 'BUSINESS_COMPONENT'].includes(runtimeNode.workBinding.type)"
+              v-if="runtimeNode.workBinding && hasOperationContract(runtimeNode) && !runtimeNode.execution?.operations?.length"
               :key="`operations-${runtimeNode.nodeKey}`"
               :binding="runtimeNode.workBinding"
               :document="content"
               :readonly="nodeReadonly || pendingBindings.has(runtimeNode.nodeKey)"
               @update:binding="setOperationBinding"
+            />
+            <ExecutionConfigurationEditor
+              :key="`execution-${runtimeNode.nodeKey}`"
+              :model-value="runtimeNode.execution" :binding="runtimeNode.workBinding" :document="content"
+              :readonly="nodeReadonly || pendingBindings.has(runtimeNode.nodeKey)"
+              @update:model-value="setExecutionConfiguration" @pure-subscription="setPureSubscription"
             />
             <RuleSlotEditor
               v-model="runtimeNode.admissionRuleKey"
@@ -347,6 +353,8 @@ import {
 import { constantRule, copyVersionRule, createVersionRule, ruleUsedForMatching, ruleUses } from './versionRuleModel'
 import RuleSlotEditor from './RuleSlotEditor.vue'
 import OperationContractEditor from './OperationContractEditor.vue'
+import ExecutionConfigurationEditor from './ExecutionConfigurationEditor.vue'
+import type { NodeExecutionConfiguration } from '@/api/pms/project/project-templates/execution'
 import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templates/operations'
 import { readOperationContract, withOperationContract } from './operationContract'
 import RuleSimulationPanel from './RuleSimulationPanel.vue'
@@ -595,10 +603,36 @@ const setOperationBinding = (binding: OperationWorkBindingSpec) => {
   node.workBinding = binding
   emit('dirty-change', true)
 }
+const setExecutionConfiguration = (configuration: NodeExecutionConfiguration) => {
+  const node = runtimeNode.value
+  if (!node || nodeReadonly.value || pendingBindings.has(node.nodeKey)) return
+  if (node.execution?.operations && configuration.operations && !configuration.operations.length && node.workBinding)
+    delete (node.workBinding as OperationWorkBindingSpec).operationContract
+  node.execution = configuration
+  emit('dirty-change', true)
+}
+const setPureSubscription = async () => {
+  const node = runtimeNode.value, document = props.content
+  if (!node || nodeReadonly.value || pendingBindings.has(node.nodeKey) || !node.execution?.subscriptions?.length
+    || node.execution.operations?.length || hasOperationContract(node)) return
+  try {
+    await ElMessageBox.confirm('改为仅订阅结果，将移除本节点的办理绑定和页面，并将完成条件改为无附加条件；仍须满足全部订阅、准入及退出规则。已有项目不受草稿编辑影响。', '仅订阅结果')
+  } catch { return }
+  if (runtimeNode.value !== node || props.content !== document || nodeReadonly.value || pendingBindings.has(node.nodeKey)
+    || !node.execution?.subscriptions?.length || node.execution.operations?.length || hasOperationContract(node)) return
+  delete node.workBinding; delete node.permission; delete node.execution.presentation
+  node.completionRuleKey = createVersionRule(document, `${node.name} · 结果订阅完成`, {
+    predicate: 'CONSTANT', parameters: { value: true }
+  }).key
+  delete node.completionRule
+  if (node.source) { delete node.source.workBindingRevisionId; delete node.source.completionRuleRevisionId }
+  businessOpen.value = false
+  emit('dirty-change', true)
+}
 const hasOperationContract = (node: DesignerStageNode | DesignerTaskNode) =>
   (node.workBinding as OperationWorkBindingSpec | undefined)?.operationContract !== undefined
 const requireOperationRemoval = (node: DesignerStageNode | DesignerTaskNode): boolean => {
-  if (!hasOperationContract(node)) return true
+  if (!hasOperationContract(node) && !node.execution?.operations?.length && !node.execution?.presentation) return true
   failure.value = '请先明确移除业务操作子契约，再切换为其他办理类型；不会静默丢弃前后置规则。'
   return false
 }
@@ -858,9 +892,12 @@ const prepareSave = async () => {
     assertCurrent()
     const previous = node.workBinding as OperationWorkBindingSpec | undefined
     const operationContract = readOperationContract(previous?.operationContract)
-    if (operationContract && (previous?.targetContextCode !== prepared.workBinding.targetContextCode
+    if ((operationContract || node.execution?.operations?.length) && (previous?.targetContextCode !== prepared.workBinding.targetContextCode
       || previous?.targetObjectType !== prepared.workBinding.targetObjectType))
       throw new Error('新业务类型与已有操作子契约不一致，请先明确移除操作配置；原草稿未被覆盖。')
+    if (node.execution?.presentation && (previous?.componentKey !== prepared.workBinding.componentKey
+      || previous?.targetContextCode !== prepared.workBinding.targetContextCode || previous?.targetObjectType !== prepared.workBinding.targetObjectType))
+      throw new Error('新业务视图与已有页面配置不一致，请先明确移除页面配置；原草稿未被覆盖。')
     node.workBinding = operationContract
       ? withOperationContract(prepared.workBinding, operationContract) : prepared.workBinding
     node.permission = prepared.permission

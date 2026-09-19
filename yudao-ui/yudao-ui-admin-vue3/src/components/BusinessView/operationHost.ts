@@ -4,24 +4,11 @@ import request from '@/config/axios'
 import { service } from '@/config/axios/service'
 import { OperationClient, routeSelection, captureOperationResponse, type Result, type Selection } from './operationClient'
 import type { BusinessViewTarget } from './registry'
-import { validateBusinessPage, pagePresentationKey, type PagePresentation } from './presentationRoute'
+import { validateBusinessPage, pagePresentationKey, businessOperationAliases, type PagePresentation } from './presentationRoute'
 import { operationPresentation } from './operationPresentation'
 
 export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
 export const useOperationClient = () => inject(operationClientKey, shallowRef<OperationClient>())
-const aliases: Record<string, string[]> = {
-  'SOL.SITE_SURVEY.CREATE': ['CREATE'], 'SOL.SITE_SURVEY.UPDATE': ['UPDATE'],
-  'SOL.SITE_SURVEY.DELETE': ['DELETE'], 'SOL.SITE_SURVEY.CONFIRM': ['CONFIRM'],
-  'SOL.SITE_SURVEY.REJECT': ['REJECT'], 'SOL.SITE_SURVEY.ARCHIVE': ['ARCHIVE'],
-  'SOL.REQUIREMENT_ANALYSIS.CREATE': ['CREATE', 'CREATE_INITIAL_DRAFT'],
-  'SOL.REQUIREMENT_ANALYSIS.SAVE': ['PATCH_FORM'],
-  'SOL.REQUIREMENT_ANALYSIS.COMPLETE': ['COMPLETE'],
-  'SOL.REQUIREMENT_ANALYSIS.COPY': ['CREATE_DRAFT'],
-  'ACC.ACCEPTANCE_REPORT.CREATE_DRAFT': ['UPDATE'],
-  'ACC.ACCEPTANCE_REPORT.UPDATE_DRAFT': ['UPDATE'],
-  'ACC.ACCEPTANCE_REPORT.PUBLISH': ['PUBLISH'], 'ACC.ACCEPTANCE_REPORT.REVOKE': ['REVOKE']
-}
-export function operationAliases(code: string): string[] { return aliases[code] || [] }
 export function editingTargetKey(target: BusinessViewTarget): string {
   const view = target.registration, context = target.resolvedContext
   // Execution versions and registry enable/disable updates do not change an Owner editing buffer.
@@ -112,6 +99,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
         }
         if (value.execution && !client.value) {
           const created: OperationClient = markRaw(new OperationClient(target, value.execution, {
+            resultIdentity: { ownerContext: active.value.registration.ownerContext, objectType: active.value.registration.entityType },
             inspect: input => inspectOperationCapabilities(input),
             submit: (code, command, key) => request.post<Result>({ url: `/api/v1/pms/project-execution/operations/${encodeURIComponent(code)}`,
               data: command, headers: { 'Idempotency-Key': key },
@@ -159,7 +147,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     const ownerAliases = new Set(target.allowedActions)
     const result = new Set(readable)
     for (const action of observation.value?.actions || []) {
-      const candidates = operationAliases(action.operationCode)
+      const candidates = businessOperationAliases(target.registration, action.operationCode)
       // A list has no selected object: preserve only Owner-provided list actions. The command inspects its actual row.
       const permitted = selectedObject ? action.allowed : action.executionPermitted && action.runtimeAvailable
         && ['MATCHED', 'NO_ADDITIONAL_RULE'].includes(action.pre.outcome)

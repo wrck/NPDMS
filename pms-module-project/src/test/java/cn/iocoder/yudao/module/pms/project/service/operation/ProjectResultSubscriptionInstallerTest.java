@@ -73,6 +73,7 @@ class ProjectResultSubscriptionInstallerTest {
         round.setNodeInstanceId(4L);round.setNodeKey("stage");round.setContractId(30L);round.setCurrentMarker(1);round.setStatus("PENDING");
         when(projects.selectByIdForUpdate(3L)).thenReturn(project);when(plans.selectEffective(any())).thenReturn(plan);when(rounds.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         when(sources.descriptor(TYPE)).thenReturn(new Descriptor(TYPE,true,true,true));when(sources.changeSupported(TYPE)).thenReturn(true);when(sources.inventorySupported(TYPE)).thenReturn(true);
+        when(sources.commitBarrierSupported(TYPE)).thenReturn(true);
         when(journal.capture(1L,3L,TYPE)).thenReturn(new ProjectBusinessResultJournal.Boundary(new Channel(1L,1L,3L,TYPE),7));
     }
     @AfterEach void after(){TenantContextHolder.clear();jdbc.execute("SHUTDOWN");}

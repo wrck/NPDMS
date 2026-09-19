@@ -114,7 +114,7 @@ public class ProjectControlledOperationExecutor {
                 throw new IllegalStateException("OWNER_RESULT_IDENTITY_INVALID");
             // Owner writes may update project facts. Do not evaluate POST against the pre-command object.
             var after = projects.selectById(request.projectId());
-            var post = evaluator.evaluate(reference + ":POST", contract, selected.getFirst().post(), after);
+            var post = evaluator.evaluate(reference + ":POST", contract, selected.getFirst().post(), after, response);
             if (!post.permits()) throw exception(BAD_REQUEST, post.reason() == null ? "OPERATION_POST_NOT_MATCHED" : post.reason());
             if (!response.replayed()) sinks.getObject().append(code, version, current, response, tenant, actor, correlation);
             return response;

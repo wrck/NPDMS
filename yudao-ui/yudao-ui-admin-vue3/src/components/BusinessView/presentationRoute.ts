@@ -1,16 +1,28 @@
 import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
+import { siteSurveyOperationActions } from '@/api/pms/engineering/site-survey/operationActions'
+import { requirementAnalysisOperationActions } from '@/api/pms/engineering/requirement-analysis/operationActions'
+import { acceptanceReportOperationActions } from '@/api/pms/acceptance/acceptance-report/operationActions'
 
 export interface PagePresentation { pageUrl: string; query: Readonly<Record<string, string>> }
 /** The single code-owned directory for embedded routes; the Vue registry adds only static components. */
 export const businessPageRoutes = {
-  ACC_ACCEPTANCE_REPORT: { componentKey: 'ACC_ACCEPTANCE_REPORT', componentVersion: '1', ownerContext: 'ACC', entityType: 'ACCEPTANCE', viewSource: 'PAGE', pageUrl: '/pms/project/acceptance-report' },
-  SOL_SITE_SURVEY: { componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/site-survey' },
-  PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis' },
+  ACC_ACCEPTANCE_REPORT: { componentKey: 'ACC_ACCEPTANCE_REPORT', componentVersion: '1', ownerContext: 'ACC', entityType: 'ACCEPTANCE', viewSource: 'PAGE', pageUrl: '/pms/project/acceptance-report', operationActions: acceptanceReportOperationActions },
+  SOL_SITE_SURVEY: { componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/site-survey', operationActions: siteSurveyOperationActions },
+  PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis', operationActions: requirementAnalysisOperationActions },
   PLN_CONSTRUCTION_PLAN: { componentKey: 'PLN_CONSTRUCTION_PLAN', componentVersion: '1', ownerContext: 'PLN', entityType: 'CONSTRUCTION_PLAN', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/duration' }
 } as const
 
 export interface PageIdentity { ownerContext: string; entityType: string; componentKey: string; componentVersion: string; viewSource: string }
 export interface PageContext { project?: { id?: string | number }; businessObjectId?: string | number }
+
+/** Only the exact code-owned view adapter supplies aliases; registration JSON cannot grant actions. */
+export function businessOperationAliases(view: PageIdentity, code: string): string[] {
+  const matches = Object.values(businessPageRoutes).filter(item => item.ownerContext === view.ownerContext
+    && item.entityType === view.entityType && item.componentKey === view.componentKey
+    && item.componentVersion === view.componentVersion && item.viewSource === view.viewSource)
+  if (matches.length !== 1 || !('operationActions' in matches[0])) return []
+  return [...(matches[0].operationActions[code] ?? [])]
+}
 
 /** Only echoes the selected Owner context. Never use these values to construct props or command input. */
 export function validatePagePresentation(value: PagePresentation, path: string | undefined, context: PageContext): string {

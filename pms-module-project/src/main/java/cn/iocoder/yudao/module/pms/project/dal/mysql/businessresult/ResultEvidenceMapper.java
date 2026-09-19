@@ -13,9 +13,11 @@ public interface ResultEvidenceMapper {
     int advance(@Param("query") Progress query);
     int insertItem(@Param("row") ResultEvidenceItemDO row);
     List<ResultEvidenceItemDO> selectItems(@Param("query") Items query);
+    boolean hasInvalidatedItems(@Param("query") HistoricalComparison query);
 
     record ScanIdentity(Long tenantId, Long projectId, Long subscriptionId, Integer subscriptionVersion) { }
     record ScanId(Long tenantId, Long projectId, Long id) { }
     record Progress(Long tenantId, Long projectId, Long id, int expectedVersion, long afterCandidateId, String accumulator, String status) { }
     record Items(Long tenantId, Long projectId, Long scanId, long afterId, int limit) { }
+    record HistoricalComparison(Long tenantId, Long projectId, Long originalScanId, Long currentScanId) { }
 }

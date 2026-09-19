@@ -27,6 +27,7 @@
           :document="document"
           :model-value="operation.post.mode === 'RULE' ? operation.post.ruleKey : undefined"
           :label="`${operationLabel(operation)} · 后置`"
+          operation-post
           :readonly="readonly"
           empty-text="NONE：不增加操作后置条件；不能用异步完成条件代替本事务结果校验。"
           @update:model-value="setRule(operation.operationCode, 'post', $event)"

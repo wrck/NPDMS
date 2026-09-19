@@ -2,6 +2,7 @@ import request from '@/config/axios'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import { selectionClient } from '@/components/BusinessView/operationClient'
+import { requirementAnalysisResult } from './operationResults'
 
 export type EntityId = string | number
 export interface Revision {
@@ -64,26 +65,26 @@ export const create = async (projectId: EntityId, key: string, execution?: Proje
   const client = selectionClient(execution)
   if (!client) return request.post<Revision>({ url: baseUrl, data: { projectId, execution }, headers: { 'Idempotency-Key': key } })
   if (String(projectId) !== String(client.target.projectId)) throw new Error('BUSINESS_PROJECT_MISMATCH')
-  return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.CREATE', input: {}, key })).response as Revision
+  return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.CREATE', input: {}, key, validateResult: requirementAnalysisResult('CREATE') })).response as Revision
 }
 export const save = async (revision: Revision, data: Patch, key: string) => {
   const client = selectionClient(data.execution)
   if (!client) return request.put<Revision>({ method: 'PATCH', url: revisionUrl(revision), data, headers: headers(revision, key) })
   const { execution: _execution, ...input } = data
   return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.SAVE', objectId: revision.ref.revisionId,
-    expectedBusinessVersion: revision.version, input, key })).response as Revision
+    expectedBusinessVersion: revision.version, input, key, validateResult: requirementAnalysisResult('SAVE') })).response as Revision
 }
 export const complete = async (revision: Revision, key: string, execution?: ProjectBusinessExecutionSelection) => {
   const client = selectionClient(execution)
   if (!client) return request.post<Revision>({ url: `${revisionUrl(revision)}/complete`, data: { execution }, headers: headers(revision, key) })
   return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.COMPLETE', objectId: revision.ref.revisionId,
-    expectedBusinessVersion: revision.version, input: {}, key })).response as Revision
+    expectedBusinessVersion: revision.version, input: {}, key, validateResult: requirementAnalysisResult('COMPLETE') })).response as Revision
 }
 export const copy = async (revision: Revision, key: string, execution?: ProjectBusinessExecutionSelection, reason?: string) => {
   const client = selectionClient(execution)
   if (!client) return request.post<Revision>({ url: `${revisionUrl(revision)}/copy`, data: { reason, execution }, headers: headers(revision, key) })
   return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.COPY', objectId: revision.ref.revisionId,
-    expectedBusinessVersion: revision.version, input: { reason }, key })).response as Revision
+    expectedBusinessVersion: revision.version, input: { reason }, key, validateResult: requirementAnalysisResult('COPY') })).response as Revision
 }
 export const revisions = (entityId: EntityId, beforeId?: EntityId, limit = 20) =>
   request.get<Revision[]>({ url: `${baseUrl}/${entityId}/revisions`, params: { beforeId, limit } })

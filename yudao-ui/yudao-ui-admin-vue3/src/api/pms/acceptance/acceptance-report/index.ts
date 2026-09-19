@@ -1,6 +1,7 @@
 import request from '@/config/axios'
 import { service } from '@/config/axios/service'
 import type { OperationClient } from '@/components/BusinessView/operationClient'
+import { acceptanceReportResult } from './operationResults'
 export type AcceptanceType = 'PRELIMINARY' | 'FINAL'
 export type ReportStatus = 'DRAFT' | 'EFFECTIVE' | 'SUPERSEDED' | 'REVOKED'
 export interface AcceptanceActivityVO {
@@ -32,8 +33,8 @@ const baseUrl = '/api/v1/pms/acceptances'
 export const getActivities = (projectId?: number) => request.get<AcceptanceActivityVO[]>({ url: baseUrl, params: { projectId } })
 export const getActivity = (acceptanceId: number) => request.get<AcceptanceActivityVO>({ url: `${baseUrl}/${acceptanceId}` })
 export const getReportVersions = (acceptanceId: number) => request.get<AcceptanceReportVersionVO[]>({ url: `${baseUrl}/${acceptanceId}/report-versions` })
-async function controlled(client: OperationClient, code: string, id: number, version: number, input: Record<string, unknown>, key?: string): Promise<ReportCommandResult> {
-  const result = await client.execute({ operationCode: `ACC.ACCEPTANCE_REPORT.${code}`, objectId: id, expectedBusinessVersion: version, input, key })
+async function controlled(client: OperationClient, code: 'CREATE_DRAFT' | 'UPDATE_DRAFT' | 'PUBLISH' | 'REVOKE', id: number, version: number, input: Record<string, unknown>, key?: string): Promise<ReportCommandResult> {
+  const result = await client.execute({ operationCode: `ACC.ACCEPTANCE_REPORT.${code}`, objectId: id, expectedBusinessVersion: version, input, key, validateResult: acceptanceReportResult(code) })
   return { ...(result.response as ReportCommandResult), activityVersion: result.objectVersion, replayed: result.replayed }
 }
 export const createDraft = (acceptanceId: number, data: DraftContent, activityVersion: number, client?: OperationClient) => client

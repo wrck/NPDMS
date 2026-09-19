@@ -40,11 +40,11 @@ public class SiteSurveyOperationProvider implements ProjectBusinessOperationProv
     @Override
     public java.util.Map<String, String> permissionCodes() {
         return java.util.Map.of(
-                "SOL.SITE_SURVEY.CREATE", "pms:eng-site-survey:create",
-                "SOL.SITE_SURVEY.UPDATE", "pms:eng-site-survey:update",
-                "SOL.SITE_SURVEY.DELETE", "pms:eng-site-survey:delete",
-                "SOL.SITE_SURVEY.CONFIRM", "pms:eng-site-survey:update",
-                "SOL.SITE_SURVEY.REJECT", "pms:eng-site-survey:update",
-                "SOL.SITE_SURVEY.ARCHIVE", "pms:eng-site-survey:update");
+                "SOL.SITE_SURVEY.CREATE", "pms:sol-site-survey:create",
+                "SOL.SITE_SURVEY.UPDATE", "pms:sol-site-survey:update",
+                "SOL.SITE_SURVEY.DELETE", "pms:sol-site-survey:delete",
+                "SOL.SITE_SURVEY.CONFIRM", "pms:sol-site-survey:update",
+                "SOL.SITE_SURVEY.REJECT", "pms:sol-site-survey:update",
+                "SOL.SITE_SURVEY.ARCHIVE", "pms:sol-site-survey:update");
     }
 }

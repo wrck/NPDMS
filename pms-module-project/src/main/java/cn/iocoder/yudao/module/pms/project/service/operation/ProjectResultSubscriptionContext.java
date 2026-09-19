@@ -16,8 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import java.util.Set;
 
-/** 锁顺序与订阅安装一致。旧消息只退休原订阅，不查找新的替代轮次。 */
+/** 锁顺序与订阅安装一致。完成历史继续观察证据失效；其他旧消息只退休原订阅，不查找替代轮次。 */
 @Service
 @RequiredArgsConstructor
 public class ProjectResultSubscriptionContext {
@@ -44,11 +45,13 @@ public class ProjectResultSubscriptionContext {
         if (rounds == null) throw new IllegalStateException("SUBSCRIPTION_EXECUTION_UNAVAILABLE");
         var matches = rounds.stream().filter(round -> round != null && Objects.equals(round.getId(), row.getExecutionId())).toList();
         if (matches.size() > 1) throw new IllegalStateException("SUBSCRIPTION_EXECUTION_AMBIGUOUS");
-        if (matches.isEmpty()) return retire(row);
-        var round = matches.getFirst();
+        var round = matches.isEmpty() ? executions.selectById(row.getExecutionId()) : matches.getFirst();
+        if (round == null) return retire(row);
+        boolean completedHistory = round.getEndedAt() != null && Set.of("DONE", "COMPLETED").contains(round.getStatus());
+        if (matches.isEmpty() && !completedHistory) return retire(row);
         if (!Objects.equals(row.getTenantId(), round.getTenantId()) || !Objects.equals(row.getProjectId(), round.getProjectId()))
             throw new IllegalStateException("SUBSCRIPTION_EXECUTION_SCOPE_MISMATCH");
-        if (!Integer.valueOf(1).equals(round.getCurrentMarker()) || !Objects.equals(row.getPlanVersionId(), round.getPlanVersionId())
+        if ((!completedHistory && !Integer.valueOf(1).equals(round.getCurrentMarker())) || !Objects.equals(row.getPlanVersionId(), round.getPlanVersionId())
                 || !Objects.equals(row.getContractId(), round.getContractId()) || !Objects.equals(row.getNodeKind(), round.getNodeKind())
                 || !Objects.equals(row.getNodeKey(), round.getNodeKey()) || !Objects.equals(row.getNodeId(), round.getNodeInstanceId())
                 || round.getEndedAt() == null && !Objects.equals(project.getActivePlanVersionId(), row.getPlanVersionId())) return retire(row);

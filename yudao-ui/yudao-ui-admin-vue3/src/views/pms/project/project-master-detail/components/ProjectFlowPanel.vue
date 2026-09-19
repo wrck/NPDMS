@@ -179,6 +179,7 @@ v-if="workbench?.task.version != null" ref="maintenanceRef" :project-id="project
           v-if="businessBound && workbench?.task.version != null"
           :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新业务结果</el-button>
         <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新审批结果</el-button>
+        <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新任务状态</el-button>
       </div>
       <TaskBusinessPanel
         v-if="businessBound && workbench?.task.version != null"
@@ -194,6 +195,11 @@ v-if="workbench?.task.version != null" ref="maintenanceRef" :project-id="project
       <TaskApprovalPanel
 v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         :key="`approval-${workbench.task.taskId}`" :workbench="workbench" @changed="handleBusinessChanged" />
+      <el-alert
+        v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'"
+        type="info" :closable="false" show-icon
+        title="本任务订阅业务结果，满足订阅和节点完成条件后由系统推进。业务办理请使用对应业务入口；刷新只读取当前任务状态。"
+      />
       <el-alert
         v-else
         type="info"

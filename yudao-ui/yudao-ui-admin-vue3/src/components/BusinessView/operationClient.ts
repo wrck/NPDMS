@@ -11,9 +11,10 @@ export interface Capability {
   reason?: string | null
   actions: Array<{ operationCode: string; operationVersion: number; allowed: boolean; reason?: string | null }>
 }
-export interface Intent { operationCode: string; objectId?: Id; expectedBusinessVersion?: number | (() => Promise<number>); input: Record<string, unknown>; key?: string }
+export interface Intent { operationCode: string; objectId?: Id; expectedBusinessVersion?: number | (() => Promise<number>); input: Record<string, unknown>; key?: string; validateResult?: (result: Result, command: Readonly<Command>) => void }
 export interface Command extends Target { execution: Selection; objectId?: string; expectedBusinessVersion?: number; expectedObjectFactVersion?: string | null; input: Record<string, unknown> }
 export interface Transport {
+  resultIdentity?: { ownerContext: string; objectType: string }
   inspect(query: Target & { objectId?: string }): Promise<Capability>
   submit(code: string, command: Command, key: string): Promise<Result>
   newKey(): string
@@ -55,6 +56,23 @@ export function captureOperationResponse(value: unknown): unknown {
 interface Pending {
   code: string; fingerprint: string; key: string; implicit: boolean; sent: boolean
   command?: Command; result?: Result; promise?: Promise<Result>
+  validateResult?: Intent['validateResult']
+}
+export function resultRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+export function requireOperationResult(valid: unknown): asserts valid {
+  if (!valid) throw new Error('OPERATION_RESULT_INVALID_RETRY_REQUIRED')
+}
+function validateEnvelope(value: unknown, identity?: Transport['resultIdentity']): asserts value is Result {
+  requireOperationResult(resultRecord(value))
+  const text = (item: unknown) => typeof item === 'string' && item.trim().length > 0
+  requireOperationResult(text(value.ownerContext) && text(value.objectType) && text(value.objectId)
+    && (value.revisionId == null || text(value.revisionId))
+    && Number.isInteger(value.objectVersion) && Number(value.objectVersion) >= 0
+    && text(value.businessFactVersion) && text(value.resultCode) && typeof value.replayed === 'boolean'
+    && Object.hasOwn(value, 'response'))
+  if (identity) requireOperationResult(value.ownerContext === identity.ownerContext && value.objectType === identity.objectType)
 }
 /** One editing session pins a round. Retiring it forbids new work, not recovery of an already sent command. */
 export class OperationClient {
@@ -64,9 +82,11 @@ export class OperationClient {
   private readonly pending = new Map<string, Pending>()
   readonly target: Target
   private readonly transport: Transport
+  private readonly resultIdentity: Transport['resultIdentity']
   constructor(target: Target, selection: Selection, transport: Transport) {
     this.target = copy(target)
     this.transport = transport
+    this.resultIdentity = transport.resultIdentity ? { ...transport.resultIdentity } : undefined
     this.anchor = selectionIdentity(selection)
     const row = selection.task || selection.stage!
     if (String(row.projectId) !== String(target.projectId) || String(row.taskId ?? row.stageId) !== String(target.nodeId)
@@ -88,29 +108,34 @@ export class OperationClient {
   async execute(intent: Intent): Promise<Result> {
     if (!intent.operationCode || !intent.input || Array.isArray(intent.input)) throw new Error('OPERATION_INPUT_INVALID')
     if ('execution' in intent.input || 'tenantId' in intent.input || 'actorId' in intent.input) throw new Error('UNTRUSTED_EXECUTION_INPUT')
+    const { operationCode, expectedBusinessVersion, key, validateResult } = intent
+    const objectId = intent.objectId == null ? undefined : String(intent.objectId)
     const input = copy(intent.input)
-    const fingerprint = stableJson([intent.operationCode, intent.objectId == null ? null : String(intent.objectId),
-      typeof intent.expectedBusinessVersion === 'number' ? intent.expectedBusinessVersion : null, input])
-    const index = intent.key ? `key:${intent.operationCode}:${intent.key}` : fingerprint
+    const fingerprint = stableJson([operationCode, objectId ?? null,
+      typeof expectedBusinessVersion === 'number' ? expectedBusinessVersion : null, input])
+    const index = key ? `key:${operationCode}:${key}` : fingerprint
     let entry = this.pending.get(index)
     if (entry && entry.fingerprint !== fingerprint) throw new Error('OPERATION_KEY_CONFLICT')
     if (!entry && this.hasUncertain()) throw new Error('OPERATION_RESULT_UNCERTAIN_RETRY_REQUIRED')
     if (!this.live && !entry?.sent) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
     if (!entry) {
-      entry = { code: intent.operationCode, fingerprint, key: intent.key || this.transport.newKey(), implicit: !intent.key, sent: false }
+      entry = { code: operationCode, fingerprint, key: key || this.transport.newKey(), implicit: !key, sent: false, validateResult }
       this.pending.set(index, entry)
     }
     return this.run(index, entry, async () => {
-      const expectedVersion = typeof intent.expectedBusinessVersion === 'function'
-        ? await intent.expectedBusinessVersion() : intent.expectedBusinessVersion
-      const capability = await this.transport.inspect({ ...this.target, objectId: intent.objectId == null ? undefined : String(intent.objectId) })
+      const expectedVersion = typeof expectedBusinessVersion === 'function'
+        ? await expectedBusinessVersion() : expectedBusinessVersion
+      const capability = await this.transport.inspect({ ...this.target, objectId })
       if (!this.live || !this.matches(capability.execution)) throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
       if (String(capability.node.projectId) !== String(this.target.projectId) || String(capability.node.id) !== String(this.target.nodeId)
         || capability.node.kind !== this.target.nodeKind) throw new Error('EXECUTION_CONTEXT_MISMATCH')
-      const actions = capability.actions.filter(action => action.operationCode === intent.operationCode && action.operationVersion === 1)
-      if (capability.reason || actions.length !== 1 || !actions[0].allowed) throw new Error(capability.reason || actions[0]?.reason || 'OPERATION_NOT_ALLOWED')
-      if (intent.objectId != null && (!Number.isInteger(expectedVersion) || Number(expectedVersion) < 0 || !capability.ownerFactVersion)) throw new Error('BUSINESS_VERSION_REQUIRED')
-      return { ...this.target, execution: copy(capability.execution!), objectId: intent.objectId == null ? undefined : String(intent.objectId),
+      const actions = capability.actions.filter(action => action.operationCode === operationCode)
+      if (capability.reason) throw new Error(capability.reason)
+      if (actions.length !== 1) throw new Error(actions.length ? 'OPERATION_BINDING_AMBIGUOUS' : 'OPERATION_NOT_BOUND')
+      if (!Number.isInteger(actions[0].operationVersion) || actions[0].operationVersion < 1 || !actions[0].allowed)
+        throw new Error(actions[0].reason || 'OPERATION_NOT_ALLOWED')
+      if (objectId != null && (!Number.isInteger(expectedVersion) || Number(expectedVersion) < 0 || !capability.ownerFactVersion)) throw new Error('BUSINESS_VERSION_REQUIRED')
+      return { ...this.target, execution: copy(capability.execution!), objectId,
         expectedBusinessVersion: expectedVersion, expectedObjectFactVersion: capability.ownerFactVersion, input }
     })
   }
@@ -127,6 +152,8 @@ export class OperationClient {
       // Retried requests never acquire a new key, context, payload or capability observation.
       entry.sent = true
       const result = await this.transport.submit(entry.code, copy(entry.command), entry.key)
+      validateEnvelope(result, this.resultIdentity)
+      entry.validateResult?.(result, copy(entry.command))
       entry.result = copy(result)
       // A later identical click without an explicit key is a new business intent, not a permanent replay.
       if (entry.implicit) this.pending.delete(index)
