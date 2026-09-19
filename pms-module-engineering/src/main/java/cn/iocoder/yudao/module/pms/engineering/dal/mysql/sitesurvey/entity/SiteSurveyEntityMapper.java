@@ -12,6 +12,9 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface SiteSurveyEntityMapper extends BaseMapperX<SiteSurveyEntityDO> {
+    java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SurveyResultInventoryQuery query);
+
     java.util.List<SiteSurveyEntityDO> selectAssociationPage(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityAssociationPageQuery query);
     java.util.List<SiteSurveyEntityDO> selectTaskCandidates(@org.apache.ibatis.annotations.Param("query")

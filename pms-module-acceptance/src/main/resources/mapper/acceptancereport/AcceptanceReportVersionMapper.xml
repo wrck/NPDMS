@@ -50,4 +50,21 @@
         FOR UPDATE
     </select>
 
+
+    <select id="selectResultInventory" resultType="java.lang.String">
+        SELECT r.id FROM acc_acceptance_report_version r JOIN acc_acceptance a ON a.id=r.acceptance_id AND a.tenant_id=r.tenant_id AND a.deleted=0
+        WHERE r.tenant_id=#{query.tenantId} AND a.project_id=#{query.projectId} AND r.deleted=0
+          AND r.report_status IN ('EFFECTIVE','SUPERSEDED','REVOKED')
+        <if test="!query.historical">AND r.report_status='EFFECTIVE'</if>
+        <if test="query.afterId != null">AND r.id &gt; #{query.afterId}</if>
+        <if test="query.objectIds != null">
+            <choose>
+                <when test="query.objectIds.size() > 0">
+                    AND r.acceptance_id IN <foreach collection="query.objectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND 1=0</otherwise>
+            </choose>
+        </if>
+        ORDER BY r.id ASC LIMIT #{query.limit}
+    </select>
 </mapper>

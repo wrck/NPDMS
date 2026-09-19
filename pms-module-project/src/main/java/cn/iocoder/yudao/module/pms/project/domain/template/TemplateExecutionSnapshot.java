@@ -238,6 +238,8 @@ public class TemplateExecutionSnapshot {
             target.setDefinitionVersion(SCHEMA_VERSION);
             target.setSourceNodeKey(source.getNodeKey());
             target.setBindingViewSnapshot(source.getBinding() == null ? null : copy(source.getBinding().getBusinessViewSnapshot()));
+            if (source.getBinding() == null && Integer.valueOf(TemplateVersionSnapshot.SCHEMA_VERSION).equals(executionSchemaVersion))
+                ResultSubscriptionTaskContract.project(source,executionSchemaVersion,target);
             content.getTasks().add(target);
         }
         for (MilestoneContract source : milestones) {

@@ -302,11 +302,18 @@ public class TemplateCompiler {
         for (int i = 0; i < source.getTasks().size(); i++) {
             TemplateDesignerDocument.TaskNode task = source.getTasks().get(i);
             if (task == null) continue;
-            validateBinding(task.getWorkBinding(), false, "tasks[" + i + "].workBinding", issues);
-            validatePermission(task.getPermission(), "tasks[" + i + "].permission", issues);
+            boolean resultOnly = task.getWorkBinding() == null
+                    && cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.pure(task.getExecution());
+            if (resultOnly) {
+                if (task.getPermission() != null) issues.add(new Issue("tasks[" + i + "].permission", "SUBSCRIPTION_PERMISSION_NOT_APPLICABLE",
+                        "纯订阅不声明业务办理权限；项目任务查询及管理仍使用原权限"));
+            } else {
+                validateBinding(task.getWorkBinding(), false, "tasks[" + i + "].workBinding", issues);
+                validatePermission(task.getPermission(), "tasks[" + i + "].permission", issues);
+            }
             if (task.getCompletionRule() == null || task.getCompletionRule().getExpression() == null) {
                 issues.add(new Issue("tasks[" + i + "].completionRule", "REQUIRED", "任务必须配置完成规则"));
-            } else if (task.getWorkBinding() != null && !isNative(task.getWorkBinding().getType())
+            } else if ((resultOnly || task.getWorkBinding() != null && !isNative(task.getWorkBinding().getType()))
                     && isNativeCompletion(task.getCompletionRule().getExpression())) {
                 issues.add(new Issue("tasks[" + i + "].completionRule", "OWNER_FACT_REQUIRED",
                         "非原生绑定必须使用真实Owner完成事实，不能沿用原生手工完成"));

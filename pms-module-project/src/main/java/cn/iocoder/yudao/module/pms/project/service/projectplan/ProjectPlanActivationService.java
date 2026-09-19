@@ -23,6 +23,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 @RequiredArgsConstructor
 public class ProjectPlanActivationService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionInstaller resultSubscriptions;
+    @jakarta.annotation.Resource
     private ProjectCurrentStageService currentStages;
     private final ProjectPlanDraftService drafts;
     private final PlatformCommandExecutionApi commands;
@@ -66,6 +68,8 @@ public class ProjectPlanActivationService {
                     activation.activate(new ProjectPlanVersionMapper.Activation(scope.tenantId(),scope.projectId(),prepared.effective().getId(),command.draftId(),
                             prepared.draft().getVersion(),prepared.project().getVersion(),JsonUtils.toJsonString(prepared.after()),now,actorId.toString()),
                             installed.continuing(),installed.removed());
+                    if (cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionContract.present(prepared.after()))
+                        resultSubscriptions.synchronize(scope.projectId(), command.draftId(), prepared.after());
                     timers.schedule(scope.projectId(), command.draftId(), prepared.after(), null);
                     if (installed.tasksChanged()) progress.recompute(scope.tenantId(),scope.projectId(),prepared.project().getTaskProgressVersion(),now);
                     return new Applied(scope.projectId(),command.draftId(),prepared.draft().getRevisionNo(),currentStages.synchronize(scope.projectId()));

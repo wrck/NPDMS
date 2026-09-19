@@ -39,6 +39,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 @RequiredArgsConstructor
 public class ProjectReworkService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionInstaller resultSubscriptions;
+    @jakarta.annotation.Resource
     private ProjectCurrentStageService currentStages;
     public static final String PERMISSION = "pms:project-plan:rework";
     private final ProjectScopeApi scopes;
@@ -138,6 +140,8 @@ public class ProjectReworkService {
                 command.expectedProjectVersion(), actorId.toString())) != 1) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         if (plan.targets().stream().anyMatch(target -> "TASK".equals(target.node().nodeKind())))
             progress.recompute(scope.tenantId(), scope.projectId(), runtime.project().getTaskProgressVersion(), now);
+        if (cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionContract.present(runtime.snapshot()))
+            resultSubscriptions.synchronize(scope.projectId(), command.planVersionId(), runtime.snapshot());
         timers.schedule(scope.projectId(), command.planVersionId(), runtime.snapshot(),
                 result.stream().map(NewExecution::executionId).collect(java.util.stream.Collectors.toSet()));
         return new Result(scope.projectId(), command.planVersionId(), currentStages.synchronize(scope.projectId()), List.copyOf(result));

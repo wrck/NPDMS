@@ -20,7 +20,7 @@ class EngineeringRuleReevaluationEventsTest {
             org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.api.workbinding.operation.OwnerOperationResultSource> sources =
                     mock(org.springframework.beans.factory.ObjectProvider.class);
             when(sources.orderedStream()).thenAnswer(ignored -> java.util.stream.Stream.empty());
-            new EngineeringRuleReevaluationEvents(outbox, sources).changed(9L, aggregateType, 11L, 3L, "owner-change");
+            new EngineeringRuleReevaluationEvents(mock(org.springframework.beans.factory.ObjectProvider.class), outbox, sources).changed(9L, aggregateType, 11L, 3L, "owner-change");
             var event = ArgumentCaptor.forClass(BusinessEvent.class);
             verify(outbox).append(eq(aggregateType), eq("11"), event.capture());
             var payload = JsonUtils.parseObject(event.getValue().eventPayload(), ProjectRuleReevaluationRequested.class);

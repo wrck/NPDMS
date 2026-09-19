@@ -74,10 +74,12 @@ public class ProjectRuntimeGraphFreezer {
                 throw new IllegalArgumentException("V2模板不得使用旧验收任务保留码：" + task.getCode()
                         + "；请用ACC WorkBinding/CompletionRule显式表达验收");
             }
-            if (task.getBinding() == null || blank(task.getBinding().getType())) {
+            boolean resultOnly = Integer.valueOf(cn.iocoder.yudao.module.pms.project.domain.template.TemplateVersionSnapshot.SCHEMA_VERSION)
+                    .equals(snapshot.getExecutionSchemaVersion()) && task.getBinding() == null
+                    && cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.pure(task.getExecution());
+            if (!resultOnly && (task.getBinding() == null || blank(task.getBinding().getType())))
                 throw new IllegalArgumentException("COMPILED_TASK_BINDING_REQUIRED");
-            }
-            if (task.getPermission() == null) throw new IllegalArgumentException("COMPILED_TASK_PERMISSION_REQUIRED");
+            if (!resultOnly && task.getPermission() == null) throw new IllegalArgumentException("COMPILED_TASK_PERMISSION_REQUIRED");
             requireObject(task.getCompletionRule(), "COMPILED_TASK_COMPLETION_RULE_REQUIRED");
         }
 

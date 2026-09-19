@@ -35,7 +35,7 @@ class RequirementAnalysisIndependentRevisionOperationTest {
     private final ProjectWorkBindingFactApi bindings = mock(ProjectWorkBindingFactApi.class);
     private final ProjectBusinessExecutionApi guard = mock(ProjectBusinessExecutionApi.class);
     private final RequirementAnalysisExecutionAccess executions = new RequirementAnalysisExecutionAccess(nodes, bindings, guard);
-    private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions);
+    private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions, null);
     private final EntityActor actor = new EntityActor(1L, 9L, "independent");
     private final RequirementAnalysisRevisionDO row = new RequirementAnalysisRevisionDO();
     private final ProjectTaskExecutionContext origin = new ProjectTaskExecutionContext(20L, 1, 30L, 1, 40L, 1,

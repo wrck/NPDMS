@@ -15,6 +15,9 @@ import java.util.List;
 
 @Mapper
 public interface AcceptanceReportVersionMapper extends BaseMapperX<AcceptanceReportVersionDO> {
+    java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.ReportResultInventoryQuery query);
+
 
     default List<AcceptanceReportVersionDO> selectByAcceptanceId(Long acceptanceId) {
         return selectList(new LambdaQueryWrapperX<AcceptanceReportVersionDO>()

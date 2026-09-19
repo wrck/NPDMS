@@ -99,4 +99,21 @@
         WHERE deleted = b'0' AND tenant_id = #{update.tenantId} AND id = #{update.revisionId} AND version = #{update.expectedVersion}
             AND revision_state = 'FROZEN' AND effective_marker IS NULL
     </update>
+
+    <select id="selectResultInventory" resultType="java.lang.String">
+        SELECT id FROM sol_requirement_analysis_revision
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=0
+          AND revision_state = 'FROZEN'
+        <if test="!query.historical">AND effective_marker=1</if>
+        <if test="query.afterId != null">AND id &gt; #{query.afterId}</if>
+        <if test="query.objectIds != null">
+            <choose>
+                <when test="query.objectIds.size() > 0">
+                    AND entity_id IN <foreach collection="query.objectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND 1=0</otherwise>
+            </choose>
+        </if>
+        ORDER BY id ASC LIMIT #{query.limit}
+    </select>
 </mapper>

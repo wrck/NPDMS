@@ -70,7 +70,8 @@ public final class TemplateVersionSnapshot {
             require(task != null, "任务为空");
             node(task.getNodeKey(), task.getCode(), nodeKeys, tasks, task);
             require(text(task.getName()) && stages.containsKey(task.getStageCode()), "任务所属阶段缺失");
-            require(task.getBinding() != null && task.getPermission() != null, "任务执行契约缺失");
+            boolean resultOnly = task.getBinding() == null && ResultSubscriptionTaskContract.pure(task.getExecution());
+            require(resultOnly ? task.getPermission() == null : task.getBinding() != null && task.getPermission() != null, "任务执行契约缺失");
             nodeRules(programs, rules, task.getAdmissionRuleKey(), task.getCompletionRuleKey(), task.getExitRuleKey(), task.getCompletionRule());
             binding(task.getBinding(), programs);
             execution(task.getExecution(), task.getBinding());
@@ -205,7 +206,10 @@ public final class TemplateVersionSnapshot {
     private static void execution(JsonNode value, TemplateExecutionSnapshot.BindingContract binding) {
         if (value == null) return;
         var config = TemplateExecutionConfiguration.read(value);
-        require(config.subscriptions().isEmpty(), "独立订阅运行消费者尚未接通");
+        // 旧验收专用完成通道尚未接入证据校验，不能通过新增配置绕过正式完成条件。
+        require(config.subscriptions().isEmpty() || binding == null
+                || !"ACC".equals(binding.getTargetContextCode()) || !"AcceptanceActivity".equals(binding.getTargetObjectType()),
+                "LEGACY_ACCEPTANCE_SUBSCRIPTION_UNSUPPORTED");
         if (config.presentation() != null) TemplatePresentationContract.validate(config.presentation(), binding);
         if (config.operations().isEmpty()) return;
         require(binding != null && binding.getOperationContract() != null, "独立操作缺少冻结运行绑定");

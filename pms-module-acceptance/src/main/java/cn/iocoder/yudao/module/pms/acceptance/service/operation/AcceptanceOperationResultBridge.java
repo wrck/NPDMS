@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.*;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceActivityMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.event.AcceptanceReportVersionChangedMessage;
 import lombok.RequiredArgsConstructor;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.ProjectBusinessResultRecordingApi;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ import java.util.Objects;
 @Component
 @RequiredArgsConstructor
 public class AcceptanceOperationResultBridge {
+    private final ObjectProvider<ProjectBusinessResultRecordingApi> resultRecording;
     private final ObjectProvider<AcceptanceActivityMapper> activities;
     private final ObjectProvider<PlatformBusinessEventApi> outbox;
     @EventListener
@@ -47,6 +49,7 @@ public class AcceptanceOperationResultBridge {
                 revoked ? "REPORT_VERSION_REVOKED" : "REPORT_VERSION_PUBLISHED",null,false);
         var event = BusinessOperationResultEvent.create(tenant,activity.getProjectId(),"OWNER.ACCEPTANCE_REPORT.CHANGED",
                 message.eventId(),result,nativeEvent.publisherActorUserId(),message.eventId());
+        resultRecording.getObject().record(event);
         outbox.getObject().append("ACCEPTANCE",result.objectId(),new BusinessEvent(event.eventId(),
                 BusinessOperationResultEvent.EVENT_TYPE,JsonUtils.toJsonString(event)));
     }

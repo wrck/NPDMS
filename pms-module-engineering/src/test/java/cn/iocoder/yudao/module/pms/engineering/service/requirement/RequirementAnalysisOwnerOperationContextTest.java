@@ -1,6 +1,12 @@
 package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.hutool.crypto.digest.DigestUtil;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationCommand;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationControlScope;
+import org.springframework.beans.factory.ObjectProvider;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementRevisionQuery;
@@ -111,6 +117,70 @@ class RequirementAnalysisOwnerOperationContextTest {
         }
     }
 
+    @Test void actualAdapterCarriesTheStableCommandTraceThroughAllOwnerCallbacks() {
+        TenantContextHolder.setTenantId(1L);
+        try (var security = mockStatic(SecurityFrameworkUtils.class)) {
+            security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(2L);
+            for (boolean stage : new boolean[]{false, true}) {
+                for (String action : List.of("CREATE", "SAVE", "COMPLETE", "COPY")) {
+                    var f = new Fixture(stage, action);
+                    doReturn(true).when(f.access).isManager(eq(3L), any());
+                    var adapter = new RequirementAnalysisOperationCommandAdapter(of(f.commands), of(f.access));
+                    String code = "SOL.REQUIREMENT_ANALYSIS." + action;
+                    String kind = stage ? "STAGE" : "TASK";
+                    String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + kind + ":4:retry-key");
+                    var facts = new ArrayList<PlatformCommandExecutionApi.SuccessFacts>();
+                    doAnswer(call -> {
+                        var result = call.<Supplier<EntityVersionProvider.Revision>>getArgument(3).get();
+                        facts.add(call.<java.util.function.Function<EntityVersionProvider.Revision,
+                                PlatformCommandExecutionApi.SuccessFacts>>getArgument(4).apply(result));
+                        return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
+                    }).when(f.idempotency).execute(any(), anyString(), eq(EntityVersionProvider.Revision.class), any(), any());
+                    var input = JsonUtils.parseTree(action.equals("SAVE")
+                            ? "{\"values\":{},\"expectedExtensionVersion\":0}" : "{}");
+                    String originalInput = input.toString();
+                    var request = new ProjectOperationCommand(3L, kind, 4L, f.selection,
+                            action.equals("CREATE") ? null : "40", 1, "v1", input, "retry-key");
+                    try (var verified = ProjectVerifiedOperationScope.open(f.frame(action))) {
+                        var result = adapter.invoke(code, request);
+                        assertNotNull(result);
+                        assertEquals(originalInput, input.toString());
+                        assertEquals(1, facts.size());
+                        assertEquals(key, facts.getFirst().correlationId());
+                        assertTrue(facts.getFirst().businessEvents() == null || facts.getFirst().businessEvents().isEmpty());
+                        verify(f.audit, atLeastOnce()).record(eq(1L), eq(2L), eq(key), anyString(), anyString(),
+                                anyString(), anyString(), anyMap());
+                        if (action.equals("COMPLETE")) {
+                            var eventOrder = inOrder(f.events);
+                            eventOrder.verify(f.events).formed(3L, "RequirementAnalysis", 40L, 2L, key);
+                            eventOrder.verify(f.events).changed(3L, "RequirementAnalysis", 40L, 2L, key);
+                        } else verifyNoInteractions(f.events);
+                        assertFalse(f.checked.isEmpty());
+                        assertTrue(f.checked.stream().allMatch(write -> write.operationCode().equals(code)));
+                        assertThrows(IllegalStateException.class, () -> f.request("40"));
+                    }
+                    assertNull(ProjectVerifiedOperationScope.current());
+                    assertNull(f.request("40").ownerProof());
+                }
+            }
+        } finally { TenantContextHolder.clear(); }
+    }
+
+    @Test void onlyAuditedRequirementCommandsDeclareProjectEntryOnlyControl() {
+        var provider = new RequirementAnalysisOperationProvider();
+        var scopes = provider.controlScopes();
+        assertEquals(provider.operations().stream().map(operation -> operation.operationCode()).collect(java.util.stream.Collectors.toSet()), scopes.keySet());
+        assertEquals(4, scopes.size());
+        assertTrue(scopes.values().stream().allMatch(scope -> scope == ProjectOperationControlScope.PROJECT_ENTRY_ONLY));
+        assertThrows(UnsupportedOperationException.class, scopes::clear);
+    }
+
+    @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T instance) {
+        ObjectProvider<T> result = mock(ObjectProvider.class);
+        when(result.getObject()).thenReturn(instance);
+        return result;
+    }
+
     private static final class Fixture {
         final EntityActor actor = new EntityActor(1L, 2L, "unit-test");
         final ProjectBusinessExecutionSelection selection;
@@ -122,6 +192,8 @@ class RequirementAnalysisOwnerOperationContextTest {
         final EntityExtensionApi extensions = mock(EntityExtensionApi.class);
         final EntityVersionApi versions = mock(EntityVersionApi.class);
         final RequirementAnalysisRevisionFiles files = mock(RequirementAnalysisRevisionFiles.class);
+        final OperationAuditApi audit = mock(OperationAuditApi.class);
+        final EngineeringRuleReevaluationEvents events = mock(EngineeringRuleReevaluationEvents.class);
         final PlatformCommandExecutionApi idempotency = mock(PlatformCommandExecutionApi.class);
         final Map<Long, RequirementAnalysisRevisionDO> rows = new LinkedHashMap<>();
         final AtomicReference<RequirementAnalysisDO> current = new AtomicReference<>();
@@ -141,12 +213,12 @@ class RequirementAnalysisOwnerOperationContextTest {
             };
             executions = new RequirementAnalysisExecutionAccess(nodes, bindings, guard);
             access = spy(new RequirementAnalysisAccess(mapper, mock(ProjectScopeApi.class), mock(ProjectParticipantFactApi.class),
-                    mock(PermissionApi.class), bindings, executions));
+                    mock(PermissionApi.class), bindings, executions, null));
             // Stub external project-authorization collaborators only, not the execution/target checks under test.
             doNothing().when(access).requireRead(anyLong(), any(), anyBoolean());
             doNothing().when(access).lockScope(anyLong(), any());
             provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files,
-                    mock(OperationAuditApi.class), mock(EngineeringRuleReevaluationEvents.class));
+                    audit, events);
             commands = new RequirementAnalysisEntityCommands(provider, access, versions, extensions, idempotency);
             when(nodes.inspect(any())).thenReturn(selection.task());
             when(nodes.inspectStage(any())).thenReturn(selection.stage());
