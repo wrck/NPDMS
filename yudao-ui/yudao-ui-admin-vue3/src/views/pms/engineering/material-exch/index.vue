@@ -1,7 +1,7 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
@@ -161,10 +161,35 @@
   <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
     <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+      <!-- Demo 2.2.1 物料选择：从项目设备档案勾选物料行带入既有字段，不符合项说明填入下方换货原因 -->
+      <el-form-item v-if="!form.id" label="物料选择" prop="materialPick">
+        <div class="material-pick">
+          <el-table
+            v-loading="pickLoading"
+            :data="pickDevices"
+            size="small"
+            border
+            max-height="220"
+            highlight-current-row
+            @current-change="onPickDevice"
+          >
+            <el-table-column type="index" label="勾选" width="60" align="center" />
+            <el-table-column prop="sn" label="序列号" min-width="140" />
+            <el-table-column prop="productModel" label="产品编码" min-width="120" />
+            <el-table-column prop="name" label="产品名称" min-width="140" show-overflow-tooltip />
+            <el-table-column label="操作" width="70" align="center">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="applyPickedDevice(row)">带入</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="material-pick-tip">选中设备后点击「带入」补全关联设备/物料名称/编码；不符合项说明请填写下方「换货原因」。</div>
+        </div>
+      </el-form-item>
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
-            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
+            <el-input v-if="sourceSurveyId || props.projectId" :model-value="sourceSurveyId ? `工勘所属项目 #${form.projectId}` : projectLabel" disabled />
             <PmsEntitySelect
               v-else
               v-model="form.projectId"
@@ -371,6 +396,7 @@ import ProjectTag from '@/components/ProjectTag/index.vue'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialExch' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const route = useRoute()
 const router = useRouter()
@@ -383,13 +409,46 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: undefined as number | undefined,
+  projectId: props.projectId as number | undefined,
   code: '',
   name: '',
   exchangeType: '',
   crmPushStatus: '',
   status: undefined as number | undefined
 })
+
+// Demo 2.2.1 物料选择辅助块：候选设备来自项目设备档案，带入后仍走既有保存链路
+const pickLoading = ref(false)
+const pickDevices = ref<DeviceArchiveApi.DeviceArchiveVO[]>([])
+const projectLabel = ref('')
+const loadPickDevices = async () => {
+  pickLoading.value = true
+  try {
+    const data = await DeviceArchiveApi.getDeviceArchivePage({ projectId: form.projectId, pageNo: 1, pageSize: 100 })
+    pickDevices.value = data.list || []
+  } catch {
+    pickDevices.value = []
+  } finally {
+    pickLoading.value = false
+  }
+}
+const onPickDevice = () => {}
+const applyPickedDevice = (device: DeviceArchiveApi.DeviceArchiveVO) => {
+  form.equipmentId = device.id as number
+  form.materialName = device.name || form.materialName
+  form.materialCode = device.productModel || form.materialCode
+  form.quantity = form.quantity ?? 1
+  form.unit = form.unit || '台'
+}
+const loadProjectLabel = async () => {
+  if (!props.projectId || projectLabel.value) return
+  try {
+    const detail = await ProjectApi.getProject(props.projectId)
+    projectLabel.value = detail?.projectName ? `${detail.projectName}（#${props.projectId}）` : `#${props.projectId}`
+  } catch {
+    projectLabel.value = `#${props.projectId}`
+  }
+}
 
 const load = async () => {
   loading.value = true
@@ -440,7 +499,7 @@ const openCreate = () => {
   form.version = undefined
   Object.assign(form, {
     id: undefined,
-    projectId: undefined,
+    projectId: props.projectId,
     code: '',
     name: '',
     exchangeType: 'INCOMPATIBLE',
@@ -457,6 +516,10 @@ const openCreate = () => {
     applyTime: '',
     remark: ''
   })
+  if (props.projectId) {
+    loadProjectLabel()
+    loadPickDevices()
+  }
   formVisible.value = true
 }
 const openEdit = async (row: MaterialExchangeVO) => {
@@ -566,3 +629,16 @@ watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) =>
   } catch(error) { message.warning(error instanceof Error ? error.message : '工勘来源读取失败') }
 }, { immediate: true })
 </script>
+
+<style lang="scss" scoped>
+.material-pick {
+  width: 100%;
+}
+
+.material-pick-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+</style>
