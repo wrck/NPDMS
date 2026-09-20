@@ -82,4 +82,15 @@
           AND deleted = b'0'
         ORDER BY id
     </select>
+    <update id="updateReconciliationObservation">
+        UPDATE plt_collection_task
+        SET technical_stage = 'RECONCILING',
+            external_status = #{update.externalStatus}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND status = #{update.expectedStatus}
+          AND technical_stage = #{update.expectedTechnicalStage}
+          AND deleted = b'0'
+    </update>
+
 </mapper>

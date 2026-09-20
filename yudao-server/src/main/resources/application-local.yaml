@@ -268,6 +268,13 @@ pms:
   integration:
     collection-guard:
       base-url: ${NPDMS_COLLECTION_GUARD_BASE_URL:}
+    device-ops:
+      enabled: ${NPDMS_DEVICE_OPS_ENABLED:true}
+      base-url: ${NPDMS_DEVICE_OPS_BASE_URL:http://127.0.0.1:48181}
+      namespace: ${NPDMS_DEVICE_OPS_NAMESPACE:npdms}
+      command-timeout-seconds: ${NPDMS_DEVICE_OPS_COMMAND_TIMEOUT_SECONDS:30}
+      parse-timeout-seconds: ${NPDMS_DEVICE_OPS_PARSE_TIMEOUT_SECONDS:30}
+      device-connect-timeout-seconds: ${NPDMS_DEVICE_OPS_DEVICE_CONNECT_TIMEOUT_SECONDS:10}
   project:
     governance:
       guard:
