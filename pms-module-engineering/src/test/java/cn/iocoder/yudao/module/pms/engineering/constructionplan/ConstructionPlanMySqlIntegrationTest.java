@@ -286,8 +286,8 @@ class ConstructionPlanMySqlIntegrationTest {
         return jdbcTemplate.queryForObject("SELECT "
                 + "(SELECT COUNT(*) FROM sol_schedule_backward) + "
                 + "(SELECT COUNT(*) FROM sol_schedule_backward_item) + "
-                + "(SELECT COUNT(*) FROM pms_plan_change_request) + "
-                + "(SELECT COUNT(*) FROM pms_plan_change_phase_snapshot)", Long.class);
+                + "(SELECT COUNT(*) FROM pms_plan_change_request_retired) + "
+                + "(SELECT COUNT(*) FROM pms_plan_change_phase_snapshot_retired)", Long.class);
     }
 
     private CreateInitialDurationCommand command(String key, String digest) {

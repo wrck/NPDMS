@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://iocoder.cn/pms/sol/stage-plan">
+    <process id="pms-sol-stage-plan" name="阶段施工计划审批" isExecutable="true">
+        <startEvent id="start"/>
+        <sequenceFlow id="flow-start-approve" sourceRef="start" targetRef="serviceManagerApprove"/>
+        <userTask id="serviceManagerApprove" name="服务经理审批" flowable:candidateStrategy="35"/>
+        <sequenceFlow id="flow-approve-end" sourceRef="serviceManagerApprove" targetRef="end"/>
+        <endEvent id="end"/>
+    </process>
+    <bpmndi:BPMNDiagram id="stagePlanDiagram">
+        <bpmndi:BPMNPlane id="stagePlanPlane" bpmnElement="pms-sol-stage-plan">
+            <bpmndi:BPMNShape id="startShape" bpmnElement="start"><dc:Bounds x="100" y="122" width="36" height="36"/></bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="approvalShape" bpmnElement="serviceManagerApprove"><dc:Bounds x="200" y="100" width="140" height="80"/></bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="endShape" bpmnElement="end"><dc:Bounds x="404" y="122" width="36" height="36"/></bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge id="startApprovalEdge" bpmnElement="flow-start-approve"><di:waypoint x="136" y="140"/><di:waypoint x="200" y="140"/></bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge id="approvalEndEdge" bpmnElement="flow-approve-end"><di:waypoint x="340" y="140"/><di:waypoint x="404" y="140"/></bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</definitions>

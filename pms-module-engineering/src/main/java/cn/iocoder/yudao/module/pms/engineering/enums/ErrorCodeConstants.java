@@ -243,6 +243,25 @@ public interface ErrorCodeConstants {
     ErrorCode PREPARATION_READINESS_VERSION_CONFLICT = new ErrorCode(1_011_024_011, "工勘就绪事实已变更，请刷新后重试");
     ErrorCode PREPARATION_COMMAND_INVALID = new ErrorCode(1_011_024_012, "工勘准备命令参数无效");
     ErrorCode PREPARATION_PROJECT_FACT_INVALID = new ErrorCode(1_011_024_013, "工勘准备项目资格或主体事实无效");
+    // ========== 现场培训 training 1-011-025-000（ACC-01）==========
+    ErrorCode TRAINING_NOT_EXISTS = new ErrorCode(1_011_025_000, "现场培训记录不存在");
+    ErrorCode TRAINING_CODE_DUPLICATE = new ErrorCode(1_011_025_001, "培训记录编码已存在: {}");
+    ErrorCode TRAINING_STATUS_INVALID = new ErrorCode(1_011_025_002, "现场培训记录当前状态不允许该操作");
+    ErrorCode TRAINING_VERSION_NOT_MATCH = new ErrorCode(1_011_025_003, "现场培训记录版本号已变更，请刷新后重试");
+    ErrorCode TRAINING_TOKEN_INVALID = new ErrorCode(1_011_025_004, "培训确认链接无效、已过期或已使用");
+    ErrorCode TRAINING_ARGUMENT_INVALID = new ErrorCode(1_011_025_005, "现场培训参数无效");
+
+    // ========== 阶段施工计划 stage plan 1-011-026-000（PLN-01/04）==========
+    ErrorCode STAGE_PLAN_BATCH_NOT_EXISTS = new ErrorCode(1_011_026_000, "阶段施工计划批次不存在");
+    ErrorCode STAGE_PLAN_ACTIVE_BATCH_EXISTS = new ErrorCode(1_011_026_001, "项目已存在进行中的阶段施工计划批次，不可重复创建");
+    ErrorCode STAGE_PLAN_STATUS_INVALID = new ErrorCode(1_011_026_002, "阶段施工计划批次当前状态不允许该操作");
+    ErrorCode STAGE_PLAN_VERSION_NOT_MATCH = new ErrorCode(1_011_026_003, "阶段施工计划批次已变更，请刷新后重试");
+    ErrorCode STAGE_PLAN_NO_STAGES = new ErrorCode(1_011_026_004, "项目下无阶段事实，无法制定阶段施工计划");
+    ErrorCode STAGE_PLAN_DATE_INVALID = new ErrorCode(1_011_026_005, "阶段计划日期无效：{}");
+    ErrorCode STAGE_PLAN_BPM_CONFIG_INVALID = new ErrorCode(1_011_026_006, "阶段施工计划审批流程未配置或发起失败");
+    ErrorCode STAGE_PLAN_BPM_ASSOCIATION_INVALID = new ErrorCode(1_011_026_007, "阶段施工计划审批回执与批次不匹配");
+    ErrorCode STAGE_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_026_008, "阶段施工计划参数无效");
+
     // ========== 工期倒排 1-014-020-000（自 project 模块随 SOL/PLN 归属迁入，数值不变）==========
     ErrorCode SCHEDULE_BACKWARD_NOT_EXISTS = new ErrorCode(1_014_020_000, "工期倒排记录不存在");
     ErrorCode SCHEDULE_BACKWARD_NO_PHASES = new ErrorCode(1_014_020_001, "项目暂无阶段，无法倒排");

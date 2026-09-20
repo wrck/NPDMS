@@ -374,6 +374,8 @@ pms:
   sol:
     duration-change:
       process-definition-key: ${PMS_SOL_DURATION_CHANGE_PROCESS_KEY:pms-sol-duration-change}
+    stage-plan:
+      process-definition-key: ${PMS_SOL_STAGE_PLAN_PROCESS_KEY:pms-sol-stage-plan}
   project:
     progress-policy:
       process-definition-key: ${PMS_PROGRESS_POLICY_PROCESS_KEY:project-progress-policy}

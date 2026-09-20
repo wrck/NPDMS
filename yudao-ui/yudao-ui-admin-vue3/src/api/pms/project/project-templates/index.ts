@@ -50,6 +50,7 @@ export interface RuleSpec {
 }
 
 export interface DesignerStageNode {
+  schedulePercentage?: number
   execution?: NodeExecutionConfiguration
   lifecycleStage?: string
   admissionRuleKey?: string

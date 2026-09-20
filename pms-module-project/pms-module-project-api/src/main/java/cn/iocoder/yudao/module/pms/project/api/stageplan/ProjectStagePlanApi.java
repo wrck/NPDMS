@@ -5,6 +5,16 @@ import java.util.List;
 
 /** SOL 施工计划倒排消费的 PROJ 阶段计划契约：阶段事实只读与计划起止日期受控写入。 */
 public interface ProjectStagePlanApi {
+    /** Calculate from the project's frozen plan and current planned acceptance times. No writes. */
+    ScheduleCalculation calculateSchedule(Long tenantId, Long projectId, LocalDate start, LocalDate end);
+    List<TaskPlan> listTaskPlans(Long tenantId, Long projectId);
+    int applyTaskPlanDates(Long tenantId, Long projectId, List<TaskPlan> tasks);
+
+    record TaskPlan(Long taskId, Long parentTaskId, String stageCode, String name, Integer version,
+                    LocalDate planStart, LocalDate planEnd, LocalDate acceptanceTime) { }
+
+    record ScheduleCalculation(Long sourcePlanVersionId, LocalDate start, LocalDate end,
+                               List<StagePlanDate> stages, String inputSnapshot) { }
 
     /** 项目下阶段计划事实（按原排序返回）；含建议起止与计划起止日期、状态与版本。 */
     List<StagePlanFact> listStages(Long tenantId, Long projectId);

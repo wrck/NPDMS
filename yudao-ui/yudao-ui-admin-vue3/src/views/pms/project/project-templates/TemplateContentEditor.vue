@@ -96,7 +96,7 @@
                 <span class="field-hint"
                   >用于项目当前阶段汇总，不限制自定义阶段的并行办理。</span
                 > </el-form-item
-              ><el-form-item label="终点"
+              ><el-form-item label="施工计划工期占比（%）"><el-input-number v-model="(selected.node as DesignerStageNode).schedulePercentage" :min="0.01" :max="100" :precision="2" /><span class="field-hint">参与施工计划的阶段合计须为100%；留空不参与自动推算。发布后随项目计划冻结。</span></el-form-item><el-form-item label="终点"
                 ><el-switch v-model="(selected.node as DesignerStageNode).terminal" /><span
                   class="field-hint"
                   >终点不等于自动关闭项目，仍由项目收口条件判断。</span
