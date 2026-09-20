@@ -30,3 +30,51 @@ SOL继续唯一拥有正文与生命周期；当前实体与修订继承同一�
 ## 页面崩溃修复边界（2026-09-20）
 
 需求方报告白屏、转圈及切页残留；实际首发错误为RevisionFiles初始化直接调用不可用的crypto.randomUUID。追加RevisionFiles.vue及测试；其直接消费者dynamicFormRuntime.ts、PmsFileUploader.vue、PmsFileReferenceList.vue仅将UUID调用改为已有generateUUID，保留幂等语义、权限及文件协议，不修改公共UUID实现。
+
+## 全局兼容修复授权（2026-09-21）
+
+需求方明确要求全局修复crypto.randomUUID。追加以下前端文件，只替换UUID生成来源并补充import及针对性测试，保留业务、幂等、权限与并行修改；复用utils/index.ts的generateUUID，不改服务端Java UUID或Node测试工具。
+
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/commerce/commerceInteraction.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/customerInteraction.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/DecisionTableConditionEditor.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/decisionTableModel.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/editorModel.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/ruleTreeModel.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/StageGraphDesigner.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/templateCanvasModel.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/TemplateContentEditor.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/versionRuleModel.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/submissionIdempotency.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/preparationInteraction.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectAuthorizationPanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationFormDrawer.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectGovernancePanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectPlanEditor.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectProgressPanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectSplitWizard.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectStageGatePanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectStageStatusPanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectTreePanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/requirementAnalysisInteraction.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisSectionCard.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/platform/business-view/index.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/platform/dynamic-form/components/PmsFileArtifactField.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival-acceptance/arrivalAcceptanceInteraction.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/TrainingPrintTemplates.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cutover-task/cutoverTaskInteraction.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/contacts/index.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device/components/DeviceAssignCustomerDialog.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device/components/DeviceAssignProjectDialog.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance-report/detail.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance-report/ReportDraftEditor.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/satisfaction/TaskPanel.vue`
+- `yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationHost.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/api/pms/integration/index.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/designerAssets.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/directBinding.ts`
+- `yudao-ui/yudao-ui-admin-vue3/src/api/pms/acceptance/satisfaction/index.ts`
+
+验证可覆盖上述同目录现有测试，新增公共UUID兼容/禁止浏览器直接调用回归测试。
