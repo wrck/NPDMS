@@ -43,6 +43,8 @@ public class RequirementAnalysisEntityCommands {
             access.lock(ref.revisionId(), expectedVersion, actor, request.execution(), true);
             var target = EntityDataRef.revision(ref);
             if (request.extensionValues() != null) {
+                if (request.extensionValues().keySet().stream().anyMatch(code -> RequirementAnalysisFields.property(code) != null))
+                    throw exception(cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_CONTENT_INVALID);
                 extensions.save(new EntityExtensionApi.Save(target, actor, expectedVersion, request.expectedExtensionVersion(),
                         request.extensionDefinitionRevisionId(), request.extensionValues()));
             }

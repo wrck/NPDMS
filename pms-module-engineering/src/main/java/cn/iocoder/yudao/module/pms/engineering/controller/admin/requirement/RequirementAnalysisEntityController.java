@@ -47,6 +47,11 @@ public class RequirementAnalysisEntityController {
         var left = new RevisionRef(entity(entityId), leftRevisionId);
         var right = new RevisionRef(entity(entityId), rightRevisionId);
         var differences = new java.util.ArrayList<>(versions.compare(left, right, actor()));
+        // Legacy extension values remain immutable source evidence, not a second business field.
+        differences.removeIf(difference -> {
+            String property = RequirementAnalysisFields.property(difference.fieldCode());
+            return property != null && !property.equals(difference.fieldCode());
+        });
         differences.addAll(queries.attachmentDifferences(left, right, actor()));
         return success(differences);
     }

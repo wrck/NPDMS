@@ -1,5 +1,6 @@
 <template>
   <ContentWrap>
+    <el-alert title="旧需求分析仅供历史查看；新增和修改请进入项目的需求分析。接口规划可继续在此维护。" type="info" :closable="false" class="mb-16px" />
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
       <el-form-item label="项目编号" prop="projectId">
         <PmsEntitySelect
@@ -38,7 +39,7 @@
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-requirement:create']"
-          ><Icon icon="ep:plus" />新增需求</el-button
+          ><Icon icon="ep:plus" />新增接口规划</el-button
         >
       </el-form-item>
     </el-form>
@@ -58,13 +59,14 @@
       </el-table-column>
       <el-table-column label="操作" width="340" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-requirement:update']"
+          <el-button v-if="row.requirementType !== 'INTERFACE'" link type="primary" @click="openForm(row)">查看</el-button>
+          <el-button v-else link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-requirement:update']"
             >编辑</el-button
           >
           <el-button
             link
             type="success"
-            v-if="row.status === 0"
+            v-if="row.requirementType === 'INTERFACE' && row.status === 0"
             @click="handleAction(row, 'submit')"
             v-hasPermi="['pms:sol-requirement:update']"
             >提交</el-button
@@ -72,7 +74,7 @@
           <el-button
             link
             type="primary"
-            v-if="row.status === 1"
+            v-if="row.requirementType === 'INTERFACE' && row.status === 1"
             @click="handleAction(row, 'markEffective')"
             v-hasPermi="['pms:sol-requirement:update']"
             >标记生效</el-button
@@ -80,12 +82,12 @@
           <el-button
             link
             type="info"
-            v-if="row.status === 2"
+            v-if="row.requirementType === 'INTERFACE' && row.status === 2"
             @click="handleAction(row, 'archive')"
             v-hasPermi="['pms:sol-requirement:update']"
             >归档</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-requirement:delete']"
+          <el-button v-if="row.requirementType === 'INTERFACE'" link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-requirement:delete']"
             >删除</el-button
           >
         </template>
@@ -99,8 +101,8 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑需求' : '新增需求'" width="820px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+  <Dialog v-model="formVisible" :title="historicalReadonly ? '查看历史需求' : form.id ? '编辑接口规划' : '新增接口规划'" width="820px">
+    <el-form ref="formRef" :model="form" :rules="rules" :disabled="historicalReadonly" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目编号" prop="projectId">
@@ -120,7 +122,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="需求类型" prop="requirementType">
-            <el-select v-model="form.requirementType" :disabled="!!form.id" class="!w-full">
+            <el-select v-model="form.requirementType" disabled class="!w-full">
               <el-option
                 v-for="dict in getStrDictOptions(DICT_TYPE.PMS_REQUIREMENT_TYPE)"
                 :key="dict.value"
@@ -132,7 +134,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="需求背景" prop="background">
-            <Editor v-model="form.background" height="200px" />
+            <Editor :readonly="historicalReadonly" v-model="form.background" height="200px" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -164,7 +166,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="接口内容" prop="interfaceContent">
-            <Editor v-model="form.interfaceContent" height="200px" />
+            <Editor :readonly="historicalReadonly" v-model="form.interfaceContent" height="200px" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -176,13 +178,13 @@
     </el-form>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="!historicalReadonly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as RequirementApi from '@/api/pms/engineering/requirement'
@@ -206,7 +208,8 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<RequirementVO>({ projectId: 0, code: '', name: '', requirementType: 'BUSINESS' })
+const form = reactive<RequirementVO>({ projectId: 0, code: '', name: '', requirementType: 'INTERFACE' })
+const historicalReadonly = computed(() => !!form.id && form.requirementType !== 'INTERFACE')
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   name: [{ required: true, message: '请输入需求名称' }],
@@ -231,7 +234,7 @@ const openForm = (row?: RequirementVO) => {
       projectId: 0,
       code: '',
       name: '',
-      requirementType: 'BUSINESS',
+      requirementType: 'INTERFACE',
       background: '',
       topology: '',
       transmission: '',
@@ -251,6 +254,7 @@ const openForm = (row?: RequirementVO) => {
   formVisible.value = true
 }
 const save = async () => {
+  if (historicalReadonly.value) return
   await formRef.value.validate()
   saving.value = true
   try {
@@ -263,12 +267,14 @@ const save = async () => {
   }
 }
 const remove = async (row: RequirementVO) => {
+  if (row.requirementType !== 'INTERFACE') return
   await message.delConfirm()
   await RequirementApi.deleteRequirement(row.id!)
   message.success('删除成功')
   await load()
 }
 const handleAction = async (row: RequirementVO, action: 'submit' | 'markEffective' | 'archive') => {
+  if (row.requirementType !== 'INTERFACE') return
   const actionText = { submit: '提交', markEffective: '标记生效', archive: '归档' }[action]
   await message.confirm(`确认${actionText}需求【${row.name}】？`)
   if (action === 'submit') await RequirementApi.submitRequirement(row.id!)

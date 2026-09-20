@@ -10,6 +10,19 @@
 > 已取消输入：2026-08-27旧Technical Plan及其Implementation审查
 > 文件生命周期动作边界：`GO / NPDMS-FSOL003-FILE-LIFECYCLE-ACTION-MAPPING-20260828-01`；本聚焦规格修订仍须独立锁定
 
+## 2026-09-20 实体字段收敛差量（需求方确认）
+
+本差量承接已切换的独立需求分析实现，替代下文旧`sol_preparation.entity_value_json`作为现行正文载体的对应描述；不改历史验收结论。
+
+- SOL以`sol_requirement_analysis`保存当前有效正文，`sol_requirement_analysis_revision`保存独立修订；修订继承同一业务字段定义，保留单草稿、不可变完成版、来源与乐观锁。
+- 当前页面的11项核心正文及以下8项结构化字段均为数据库实体字段：`transmissionCurrentOptions`、`trafficNewConnections`、`trafficConcurrency`、`trafficThroughput`、`businessDeviceDetails`、`ipManagementResources`、`ipPublicResources`、`operationsManagementOptions`。标量使用独立文本列；多选和业务明细使用独立JSON列及明确的列表/明细类型，不放入通用扩展值。
+- 业务明细字段为`deviceName/serialNumber/businessName/businessSubnet/businessImportance/interfaces/customerBusinessOwner/remark`；沿用现有界面定义，不新增业务状态或外部接口规划语义。
+- 只有模板自定义项由公共扩展能力保存。现有大写表单编码是实体属性的绑定别名；固定业务字段不得通过扩展写入接口形成第二份正文。模板中没有新增字段的旧R1仍可创建、读取和修订。
+- 新增前向迁移以同租户、SOL Owner、实体ID和修订ID精确承接既有扩展数据到新增列，保留原扩展值、冻结绑定、版本号、完成事实和审计作为来源。查询投影、复制和对比排除固定字段的旧扩展别名，显式清空不能被旧值回填。
+- 本次不删除旧表或自动转换更早模块的状态，不把接口规划混入PRE-04。实际迁移与浏览器验收以本轮真实证据为准。
+
+- 本次追加批准：旧 `/pms/sol-requirement` 的 BUSINESS 新增、修改、删除和状态操作全部关闭，旧记录仅历史只读；INTERFACE 继续原功能，禁止将接口规划改写为 BUSINESS。旧记录不删除、不自动转换状态；需求分析新增修改统一使用当前实体入口。
+
 ## 1. 目标
 
 在SOL建立PRE-04需求分析业务真值，并把已完成的F-PLT-002共享动态表单作为唯一表单载体。项目模板管理员在WorkBinding配置中选择一个明确的已发布PRE-04兼容动态表单修订；项目实例化时自动冻结该修订，项目经理进入需求分析后直接填写，不再进行项目内人工选模。

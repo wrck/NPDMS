@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import java.util.List;
 
 /** Current effective business content. Revision and form metadata belong to separate capabilities. */
 @Data
@@ -30,6 +31,14 @@ public class RequirementAnalysisDO extends TenantBaseDO {
     private String securityProtection;
     private String operationsRequirement;
     private String loggingRequirement;
+    private List<String> transmissionCurrentOptions;
+    private String trafficNewConnections;
+    private String trafficConcurrency;
+    private String trafficThroughput;
+    private List<RequirementAnalysisBusinessDetail> businessDeviceDetails;
+    private String ipManagementResources;
+    private String ipPublicResources;
+    private List<String> operationsManagementOptions;
     @JsonIgnore private String statusCode;
     @Version @JsonIgnore private Integer version;
 }

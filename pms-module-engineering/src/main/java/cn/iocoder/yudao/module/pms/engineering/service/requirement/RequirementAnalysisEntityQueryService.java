@@ -73,8 +73,8 @@ public class RequirementAnalysisEntityQueryService {
         Map<String, Object> values = new LinkedHashMap<>();
         provider.read(target, actor).forEach((code, fact) -> { if (fact.readable()) values.put(code, fact.value()); });
         var extra = extensions.read(target, actor);
-        values.putAll(extra.fields());
-        var form = forms.layout(target, actor);
+        values.putAll(RequirementAnalysisFields.extensions(extra.fields()));
+        var form = RequirementAnalysisFields.layout(forms.layout(target, actor));
         var entity = mapper.selectCurrent(new RequirementEntityQuery(actor.tenantId(), row.getEntityId()));
         boolean manager = access.isManager(row.getProjectId(), actor);
         boolean draft = "DRAFT".equals(row.getRevisionState());

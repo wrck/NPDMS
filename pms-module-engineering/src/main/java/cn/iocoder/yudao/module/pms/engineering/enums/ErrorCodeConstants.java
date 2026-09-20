@@ -56,6 +56,7 @@ public interface ErrorCodeConstants {
     ErrorCode REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID = new ErrorCode(1_011_002_008, "需求分析项目资格或主体事实无效");
     ErrorCode REQUIREMENT_ANALYSIS_COMMAND_INVALID = new ErrorCode(1_011_002_009, "需求分析命令参数无效");
     ErrorCode REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE = new ErrorCode(1_011_002_010, "已完成需求分析事实不可用");
+    ErrorCode REQUIREMENT_LEGACY_BUSINESS_READ_ONLY = new ErrorCode(1_011_002_011, "旧需求分析仅供历史查看，请在项目需求分析中新增或修改");
 
     // ========== 实施方案 solution 1-011-003-000 ==========
     ErrorCode SOLUTION_NOT_EXISTS = new ErrorCode(1_011_003_000, "实施方案不存在");
@@ -151,6 +152,7 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_EXCH_PROJECT_NOT_EXISTS = new ErrorCode(1_011_014_004, "所属项目不存在");
     ErrorCode MATERIAL_EXCH_CRM_ALREADY_PUSHED = new ErrorCode(1_011_014_005, "换货协同单已推送CRM，无法重复推送");
     ErrorCode MATERIAL_EXCH_CRM_NOT_CONNECTED = new ErrorCode(1_011_014_006, "CRM外部接口未接入，当前仅保留扩展入口，不执行推送");
+    ErrorCode MATERIAL_EXCH_SERIAL_QUANTITY_INVALID = new ErrorCode(1_011_014_007, "换货数量必须与所选设备序列号数量一致");
 
     // ========== 工程交底书 briefing 1-011-015-000 ==========
     ErrorCode BRIEFING_NOT_EXISTS = new ErrorCode(1_011_015_000, "工程交底书不存在");
@@ -260,7 +262,7 @@ public interface ErrorCodeConstants {
     ErrorCode STAGE_PLAN_DATE_INVALID = new ErrorCode(1_011_026_005, "阶段计划日期无效：{}");
     ErrorCode STAGE_PLAN_BPM_CONFIG_INVALID = new ErrorCode(1_011_026_006, "阶段施工计划审批流程未配置或发起失败");
     ErrorCode STAGE_PLAN_BPM_ASSOCIATION_INVALID = new ErrorCode(1_011_026_007, "阶段施工计划审批回执与批次不匹配");
-    ErrorCode STAGE_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_026_008, "阶段施工计划参数无效");
+    ErrorCode STAGE_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_026_008, "阶段施工计划参数无效：{}");
 
     // ========== 工期倒排 1-014-020-000（自 project 模块随 SOL/PLN 归属迁入，数值不变）==========
     ErrorCode SCHEDULE_BACKWARD_NOT_EXISTS = new ErrorCode(1_014_020_000, "工期倒排记录不存在");

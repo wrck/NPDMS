@@ -40,6 +40,26 @@ import static org.mockito.Mockito.*;
  */
 @SuppressWarnings("try")
 class RequirementAnalysisOwnerOperationContextTest {
+    @Test void copyKeepsPromotedFieldsInBodyAndOnlyCopiesCustomExtensions() {
+        var f = new Fixture(false, "COPY");
+        f.source.setTransmissionCurrentOptions(List.of("IPv6"));
+        f.source.setTrafficConcurrency("100");
+        var historical = Map.<String, Object>of("TRANSMISSION_CURRENT_OPTIONS", List.of("IPv6"),
+                "TRAFFIC_CONCURRENCY", "100", "CUSTOM_FLAG", false);
+        when(f.extensions.read(eq(EntityDataRef.revision(f.source.revisionRef())), eq(f.actor)))
+                .thenReturn(new EntityExtensionApi.Values(91L, historical, 3));
+        try (var verified = ProjectVerifiedOperationScope.open(f.frame("COPY"))) {
+            var result = f.invoke("COPY");
+            var copied = f.rows.get(result.ref().revisionId());
+            assertEquals(List.of("IPv6"), copied.getTransmissionCurrentOptions());
+            assertEquals("100", copied.getTrafficConcurrency());
+            verify(f.extensions).save(argThat(command -> command.fields().equals(Map.of("CUSTOM_FLAG", false))
+                    && command.definitionRevisionId().equals(91L)));
+            verify(f.extensions, never()).copy(any(), any(), anyInt(), any());
+            assertEquals(3, historical.size());
+        }
+    }
+
     @Test void allFourOperationsCarryTheirOwnIdentityInBothNodeKinds() {
         for (boolean stage : new boolean[]{false, true}) {
             for (String action : List.of("CREATE", "SAVE", "COMPLETE", "COPY")) {
@@ -218,7 +238,8 @@ class RequirementAnalysisOwnerOperationContextTest {
             doNothing().when(access).requireRead(anyLong(), any(), anyBoolean());
             doNothing().when(access).lockScope(anyLong(), any());
             provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files,
-                    audit, events);
+                    audit, events, RequirementAnalysisTestForms.published());
+            when(extensions.read(any(), any())).thenReturn(new EntityExtensionApi.Values(null, Map.of(), 0));
             commands = new RequirementAnalysisEntityCommands(provider, access, versions, extensions, idempotency);
             when(nodes.inspect(any())).thenReturn(selection.task());
             when(nodes.inspectStage(any())).thenReturn(selection.stage());

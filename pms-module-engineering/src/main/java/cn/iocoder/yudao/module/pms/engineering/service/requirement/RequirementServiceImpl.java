@@ -34,6 +34,7 @@ public class RequirementServiceImpl implements RequirementService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createRequirement(RequirementSaveReqVO createReqVO) {
+        validateInterfaceType(createReqVO.getRequirementType());
         RequirementDO requirement = BeanUtils.toBean(createReqVO, RequirementDO.class);
         requirement.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 EngineeringRecordCodeGenerator.REQUIREMENT, requirementMapper,
@@ -52,6 +53,9 @@ public class RequirementServiceImpl implements RequirementService {
     @Transactional(rollbackFor = Exception.class)
     public void updateRequirement(RequirementSaveReqVO updateReqVO) {
         RequirementDO existing = validateRequirementExists(updateReqVO.getId());
+        if (updateReqVO.getRequirementType() != null) {
+            validateInterfaceType(updateReqVO.getRequirementType());
+        }
         validateVersion(existing, updateReqVO.getVersion());
         RequirementDO update = BeanUtils.toBean(updateReqVO, RequirementDO.class);
         requirementMapper.updateById(update);
@@ -105,7 +109,14 @@ public class RequirementServiceImpl implements RequirementService {
         if (requirement == null) {
             throw exception(REQUIREMENT_NOT_EXISTS);
         }
+        validateInterfaceType(requirement.getRequirementType());
         return requirement;
+    }
+
+    private void validateInterfaceType(String requirementType) {
+        if (!"INTERFACE".equals(requirementType)) {
+            throw exception(REQUIREMENT_LEGACY_BUSINESS_READ_ONLY);
+        }
     }
 
     private void validateVersion(RequirementDO requirement, Integer version) {

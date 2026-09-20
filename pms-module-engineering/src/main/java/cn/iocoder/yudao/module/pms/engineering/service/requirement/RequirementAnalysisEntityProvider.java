@@ -33,6 +33,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
     private final RequirementAnalysisRevisionFiles files;
     private final OperationAuditApi audit;
     private final EngineeringRuleReevaluationEvents events;
+    private final cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi businessForms;
 
     @Override public String ownerModule() { return "SOL"; }
     @Override public String entityType() { return "REQUIREMENT_ANALYSIS"; }
@@ -152,7 +153,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
                 "SOL.REQUIREMENT_ANALYSIS.COPY", 1, source.getId().toString(), draft.getId().toString());
         var from = EntityDataRef.revision(source.revisionRef());
         var to = EntityDataRef.revision(draft.revisionRef());
-        extensions.copy(from, to, draft.getVersion(), actor);
+        copyExtensions(from, to, draft.getVersion(), actor);
         forms.copy(from, to, draft.getVersion(), actor);
         files.copy(source.revisionRef(), draft.revisionRef(), actor);
         record("REQUIREMENT_ANALYSIS_CREATE_DRAFT", draft, actor);
@@ -221,7 +222,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         }
         var from = EntityDataRef.revision(ref);
         var to = EntityDataRef.current(ref.entity());
-        extensions.copy(from, to, replacement.getVersion(), actor);
+        copyExtensions(from, to, replacement.getVersion(), actor);
         forms.copy(from, to, replacement.getVersion(), actor);
         if (effective != null && mapper.clearEffective(new RequirementActivationUpdate(actor.tenantId(), effective.getId(),
                 effective.getVersion(), actor.userId().toString())) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
@@ -264,9 +265,27 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         var formRevision = execution.formRevisionId();
         if (formRevision == null) return;
         Map<String, String> fields = new LinkedHashMap<>();
-        FIELDS.fields().forEach(field -> fields.put(cn.hutool.core.util.StrUtil.toUnderlineCase(field.code()).toUpperCase(java.util.Locale.ROOT), field.code()));
+        var revision = businessForms.inspectRevisionForUsage(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery(
+                actor.tenantId(), actor.userId(), new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey(ownerModule(), entityType()),
+                formRevision, formUsage(), cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE, null));
+        revision.fields().stream().filter(field -> !field.controlledFile()).forEach(field -> {
+            String property = RequirementAnalysisFields.property(field.fieldKey());
+            if (property != null) fields.put(field.fieldKey(), property);
+        });
         forms.bind(new EntityFormApi.Bind(EntityDataRef.revision(row.revisionRef()), actor, row.getVersion(),
                 0, formRevision, null, fields, true));
+    }
+
+    private void copyExtensions(EntityDataRef source, EntityDataRef target, int targetVersion, EntityActor actor) {
+        var original = extensions.read(source, actor);
+        var actual = RequirementAnalysisFields.extensions(original.fields());
+        if (actual.size() == original.fields().size()) {
+            extensions.copy(source, target, targetVersion, actor);
+        } else {
+            var previous = extensions.read(target, actor);
+            extensions.save(new EntityExtensionApi.Save(target, actor, targetVersion, previous.version(),
+                    original.definitionRevisionId(), actual));
+        }
     }
 
     private RequirementAnalysisRevisionDO revision(EntityDataRef target, EntityActor actor) {

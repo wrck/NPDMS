@@ -53,7 +53,9 @@ class RequirementAnalysisIndependentCreationTest {
 
     @BeforeEach void setUp() {
         access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions, of(configuration));
-        provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files, audit, events);
+        provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files, audit, events,
+                RequirementAnalysisTestForms.published());
+        when(extensions.read(any(), any())).thenReturn(new EntityExtensionApi.Values(null, Map.of(), 0));
         when(configuration.resolve(any())).thenReturn(config(PARAMETERS));
         when(permissions.hasAnyPermissions(eq(19L), any(String[].class))).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
