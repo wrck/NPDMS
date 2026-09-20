@@ -133,7 +133,7 @@ public class NormalClosureApplicationService {
                         application.getProjectVersion(), application.getTreeVersion(), actor.userId(), actor.correlationId(),
                         applicationId, application.getSnapshotId(), application.getReviewerUserId(),
                         application.getFromStage(), application.getServiceManagerUserId(),
-                        original.getSourceDigest(), processInstanceId));
+                        original.getSourceDigest(), processInstanceId, application.getVersion()));
             }
             for (var review : reviews) appendReview(application, review);
             if (mapper.decideApplicationIfMatch(new NormalClosureMapper.ApplicationDecision(tenantId, context.projectId(), applicationId,

@@ -13,7 +13,8 @@ public interface ProjectClosureExitApi {
                                Long expectedTreeVersion, Long actorId, String correlationId,
                                Long applicationId, Long snapshotId, Long expectedReviewerUserId,
                                String expectedFromStage, Long expectedServiceManagerUserId,
-                               String expectedSourceDigest, String processInstanceId) {
+                               String expectedSourceDigest, String processInstanceId,
+                               Integer sourceRecordRevision) {
     }
 
     record ClosureExitResult(Long exitRecordId, Long afterProjectVersion, Long stageInstanceId,

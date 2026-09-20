@@ -59,6 +59,8 @@ public class NormalClosureExitExecutor implements ProjectClosureExitApi {
         exit.setStageInstanceId(stage.getId()); exit.setTemplateRevisionId(templateRevisionId);
         exit.setScopeVersion(context.treeVersion()); exit.setGateSnapshotRef(command.snapshotId());
         exit.setSourceContext("ACC"); exit.setSourceRecordId(command.applicationId());
+        exit.setSourceRecordRevision(Objects.requireNonNull(command.sourceRecordRevision(),
+                "sourceRecordRevision is required by uk_per_source"));
         exit.setBeforeLifecycleStatus("ACTIVE"); exit.setAfterLifecycleStatus("NORMAL_CLOSED");
         exit.setBeforeProjectVersion(project.getVersion()); exit.setAfterProjectVersion(project.getVersion() + 1);
         exit.setProcessInstanceId(command.processInstanceId());
