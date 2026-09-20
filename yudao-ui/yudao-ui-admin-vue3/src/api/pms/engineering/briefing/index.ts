@@ -2,7 +2,7 @@ import request from '@/config/axios'
 
 export interface BriefingVO {
   id?: number
-  code: string
+  code?: string
   projectId: number
   name: string
   briefingType?: string

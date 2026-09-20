@@ -12,9 +12,6 @@
           class="!w-220px"
         />
       </el-form-item>
-      <el-form-item label="编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-180px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-180px" @keyup.enter="load" />
       </el-form-item>
@@ -48,7 +45,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" empty-text="暂无交底书数据">
-      <el-table-column prop="code" label="编号" width="160" />
       <el-table-column prop="projectId" label="项目" min-width="180">
         <template #default="{ row }">
           <ProjectTag :project-id="row.projectId" />
@@ -150,11 +146,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 BR-2026-001" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -212,7 +203,6 @@
   <!-- 明细对话框 -->
   <Dialog v-model="detailVisible" title="交底书明细" width="960px">
     <el-descriptions :column="2" border class="mb-15px">
-      <el-descriptions-item label="编号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目">
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
@@ -234,7 +224,15 @@
       <el-descriptions-item label="发布时间">{{ current.publishTime || '-' }}</el-descriptions-item>
       <el-descriptions-item label="文件" :span="2">
         <span v-if="current.fileName">{{ current.fileName }}（{{ current.fileSize }} 字节）</span>
-        <span v-else>-</span>
+        <el-link
+          v-if="current.fileUrl"
+          :href="current.fileUrl"
+          target="_blank"
+          type="primary"
+          class="ml-10px"
+          >下载</el-link
+        >
+        <span v-if="!current.fileName && !current.fileUrl">-</span>
       </el-descriptions-item>
       <el-descriptions-item label="交底内容" :span="2">
         <div v-html="current.content"></div>
@@ -249,7 +247,6 @@
   <!-- 生成对话框 -->
   <Dialog v-model="generateVisible" title="生成交底书" width="560px">
     <el-form :model="generateForm" label-width="120px">
-      <el-form-item label="交底书">{{ generateForm.code }}</el-form-item>
       <el-form-item label="模板ID" prop="templateId">
         <el-input-number v-model="generateForm.templateId" :min="0" class="!w-full" placeholder="可选，关联交底书模板ID" />
       </el-form-item>
@@ -315,7 +312,6 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: undefined as number | undefined,
-  code: '',
   name: '',
   briefingType: '',
   status: undefined as number | undefined
@@ -337,7 +333,6 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<BriefingVO>({
   projectId: undefined!,
-  code: '',
   name: '',
   briefingType: 'STANDARD',
   content: '',
@@ -347,7 +342,6 @@ const form = reactive<BriefingVO>({
 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入编号' }],
   name: [{ required: true, message: '请输入名称' }],
   briefingType: [{ required: true, message: '请选择类型' }]
 }
@@ -356,7 +350,6 @@ const openCreate = () => {
   Object.assign(form, {
     id: undefined,
     projectId: undefined,
-    code: '',
     name: '',
     briefingType: 'STANDARD',
     content: '',
@@ -402,7 +395,6 @@ const openDetail = async (row: BriefingVO) => {
 const generateVisible = ref(false)
 const generateForm = reactive({
   id: undefined as number | undefined,
-  code: '',
   templateId: undefined as number | undefined,
   sourceSnapshot: '',
   version: 0
@@ -410,7 +402,6 @@ const generateForm = reactive({
 const handleGenerate = (row: BriefingVO) => {
   Object.assign(generateForm, {
     id: row.id,
-    code: row.code,
     templateId: row.templateId,
     sourceSnapshot: row.sourceSnapshot || '',
     version: row.version

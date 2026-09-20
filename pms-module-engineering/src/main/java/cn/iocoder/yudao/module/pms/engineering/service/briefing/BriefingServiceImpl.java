@@ -2,20 +2,27 @@ package cn.iocoder.yudao.module.pms.engineering.service.briefing;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingApproveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingGenerateReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.BriefingDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.BriefingMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.util.HtmlUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -64,16 +71,21 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Resource
     private BriefingMapper briefingMapper;
+    @Resource
+    private FileApi fileApi;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createBriefing(BriefingSaveReqVO createReqVO) {
-        // 1. 校验编号全局唯一
-        validateCodeUnique(createReqVO.getCode(), null);
-        // 2. 校验项目存在
+        // 1. 校验项目存在
         validateProjectExists(createReqVO.getProjectId());
-        // 3. 转换并写入，初始状态为草稿
+        // 2. 转换并写入，初始状态为草稿；编号由系统按项目编码自动生成
         BriefingDO entity = BeanUtils.toBean(createReqVO, BriefingDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.BRIEFING, briefingMapper,
+                BriefingDO::getProjectId, BriefingDO::getCode));
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
             entity.setVersion(0);
@@ -95,11 +107,7 @@ public class BriefingServiceImpl implements BriefingService {
         validateStatus(existing, STATUS_DRAFT);
         // 3. 乐观锁版本校验
         validateVersion(existing, updateReqVO.getVersion());
-        // 4. 编号不可变
-        if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
-            throw exception(BRIEFING_CODE_DUPLICATE, updateReqVO.getCode());
-        }
-        // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
+        // 4. 更新（乐观锁由 MyBatis-Plus @Version 自动处理；编号由系统生成不可改）
         BriefingDO update = BeanUtils.toBean(updateReqVO, BriefingDO.class);
         briefingMapper.updateById(update);
     }
@@ -150,21 +158,20 @@ public class BriefingServiceImpl implements BriefingService {
         if (reqVO.getSourceSnapshot() != null) {
             entity.setSourceSnapshot(reqVO.getSourceSnapshot());
         }
-        // 5. 生成内容：按模板快照 + 前序基线数据快照组装内容（此处简化为占位逻辑）
-        // 实际生成逻辑可扩展为调用文档生成引擎或模板渲染服务
+        // 5. 内容：保留人工填写内容；未填写时由交底书自身真实数据组装，不生成占位文案
         if (StringUtils.isBlank(entity.getContent())) {
-            entity.setContent("自动生成的交底书内容（基于模板与前序基线数据）。");
+            entity.setContent(renderBriefingContent(entity));
         }
-        // 6. 生成文件元数据（占位逻辑，实际可调用文件生成服务）
-        if (StringUtils.isBlank(entity.getFileUrl())) {
-            entity.setFileUrl("/pms/briefing/files/" + entity.getCode() + ".pdf");
-            entity.setFileName(entity.getCode() + ".pdf");
-            entity.setFileSize(102400L);
-            entity.setFileChecksum("auto-" + entity.getCode());
-        }
+        // 6. 生成真实文件写入平台文件服务，取得真实访问地址、大小与校验和；
+        //    每次从草稿生成都按当前内容重新出文件，驳回后再次生成反映最新编辑
+        byte[] document = renderBriefingDocument(entity);
+        String fileUrl = fileApi.createFile(document, entity.getCode() + ".html", "briefing", "text/html");
+        entity.setFileUrl(fileUrl);
+        entity.setFileName(entity.getCode() + ".html");
+        entity.setFileSize((long) document.length);
+        entity.setFileChecksum(sha256Hex(document));
         // 7. 更新状态为已生成，记录生成时间
         entity.setStatus(STATUS_GENERATED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setGenerateTime(LocalDateTime.now());
         briefingMapper.updateById(entity);
     }
@@ -192,7 +199,6 @@ public class BriefingServiceImpl implements BriefingService {
         }
         // 5. 更新状态、审核人、审核时间、审核意见
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         if (reqVO.getApproverUserId() != null) {
             entity.setApproverUserId(reqVO.getApproverUserId());
         }
@@ -212,7 +218,6 @@ public class BriefingServiceImpl implements BriefingService {
         validateStatus(entity, STATUS_AUDITED);
         // 3. 更新状态与发布时间
         entity.setStatus(STATUS_PUBLISHED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setPublishTime(LocalDateTime.now());
         briefingMapper.updateById(entity);
     }
@@ -229,22 +234,45 @@ public class BriefingServiceImpl implements BriefingService {
         }
         // 3. 更新状态为已作废
         entity.setStatus(STATUS_TERMINATED);
-        entity.setVersion(entity.getVersion() + 1);
         briefingMapper.updateById(entity);
     }
 
     // ==================== 内部工具方法 ====================
 
-    private void validateCodeUnique(String code, Long excludeId) {
-        if (StringUtils.isBlank(code)) {
-            return;
+    /**
+     * 由交底书自身真实数据组装缺省内容；模板与来源快照按原样呈现，不宣称已完成模板校验。
+     */
+    private String renderBriefingContent(BriefingDO entity) {
+        StringBuilder content = new StringBuilder("工程交底书 ").append(entity.getCode());
+        if (StringUtils.isNotBlank(entity.getName())) {
+            content.append("：").append(entity.getName());
         }
-        BriefingDO existing = briefingMapper.selectByCode(code);
-        if (existing == null) {
-            return;
+        content.append("。交底类型：").append(StringUtils.defaultIfBlank(entity.getBriefingType(), "STANDARD"));
+        if (entity.getTemplateId() != null) {
+            content.append("。模板编号：").append(entity.getTemplateId());
         }
-        if (excludeId == null || !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(BRIEFING_CODE_DUPLICATE, code);
+        if (StringUtils.isNotBlank(entity.getSourceSnapshot())) {
+            content.append("。来源基线快照：").append(entity.getSourceSnapshot());
+        }
+        if (StringUtils.isNotBlank(entity.getRemark())) {
+            content.append("。备注：").append(entity.getRemark());
+        }
+        return content.toString();
+    }
+
+    private byte[] renderBriefingDocument(BriefingDO entity) {
+        String html = "<!DOCTYPE html><html lang=\"zh-CN\"><head><meta charset=\"UTF-8\"><title>"
+                + HtmlUtils.htmlEscape(entity.getCode()) + "</title></head><body><h1>工程交底书</h1><pre>"
+                + HtmlUtils.htmlEscape(entity.getContent()) + "</pre></body></html>";
+        return html.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String sha256Hex(byte[] content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(content));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256摘要算法不可用", ex);
         }
     }
 
