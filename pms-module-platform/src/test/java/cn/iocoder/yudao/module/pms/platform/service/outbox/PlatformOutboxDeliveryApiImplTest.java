@@ -108,6 +108,17 @@ class PlatformOutboxDeliveryApiImplTest {
         verify(mapper).selectDueForUpdate(new DueOutboxListQuery(7L, types, due, 50));
     }
 
+    @Test void ruleWorkerCanClaimS5ResultPipelineEventTypesForRecovery() {
+        var due = LocalDateTime.of(2026, 9, 20, 15, 0);
+        var types = Set.of("ProjectRuleReevaluationRequested", "ProjectRuleTimerRequested", "ProjectChildClosureChanged",
+                "PMS.BusinessOperationResultCommitted.v1", "PMS.ProjectBusinessResultTarget.v1",
+                "PMS.BusinessResultChangeCommitted.v1", "PMS.ResultSubscriptionWakeup.v1",
+                "PMS.ResultSubscriptionFanout.v1", "PMS.ResultEvidenceScan.v1", "PMS.ResultEvidenceEvaluated.v1");
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+        service.claimDue(new PlatformOutboxClaimQuery(due, 50, types));
+        verify(mapper).selectDueForUpdate(new DueOutboxListQuery(7L, types, due, 50));
+    }
+
     @Test
     void claimDueSupportsImplementationEvidencePublishedEventType() {
         LocalDateTime dueAt = LocalDateTime.of(2026, 8, 30, 12, 0);
