@@ -159,7 +159,7 @@
             <span v-else class="text-gray-400">不限</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态" min-width="160" align="center" show-overflow-tooltip>
           <template #default="{ row }">
             <ProjectStatusTag :project="row" />
           </template>
@@ -187,7 +187,7 @@
           width="170"
           :formatter="dateFormatter"
         />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="275" fixed="right">
           <template #default="{ row }">
             <el-button
               link
@@ -205,13 +205,15 @@
             >
               编辑
             </el-button>
+            <el-button link type="primary" v-hasPermi="['pms:project:update']"
+              @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
               type="success"
-              @click="openAssign(row)"
-              v-hasPermi="['pms:project:assign']"
+              @click="goMembers(row)"
+              v-hasPermi="['pms:project:query']"
             >
-              指派服务经理
+              项目成员
             </el-button>
           </template>
         </el-table-column>
@@ -880,122 +882,8 @@
       </template>
     </Dialog>
 
-    <!-- ============ 指派服务经理弹窗 ============ -->
-    <Dialog v-model="assignVisible" title="指派服务经理" :width="assignDialogWidth">
-      <el-form
-        ref="assignFormRef"
-        :model="assignForm"
-        :rules="assignRules"
-        :label-position="mobile ? 'top' : 'right'"
-        label-width="110px"
-      >
-        <el-form-item label="项目">
-          <el-input
-            :model-value="`${assignTarget?.projectCode} ${assignTarget?.projectName}`"
-            disabled
-          />
-        </el-form-item>
-        <el-alert type="info" :closable="false" show-icon class="mb-12px">
-          下单办事处：{{ assignTarget?.departmentCode || '-' }}
-          {{ assignTarget?.departmentName || '未记录名称' }}；所属公司：
-          {{ assignTarget?.companyName || assignTarget?.companyCode || '-' }}
-        </el-alert>
-        <el-form-item label="服务层级" prop="levelCode">
-          <el-select v-model="assignForm.levelCode" class="!w-full">
-            <el-option label="一级服务经理（L1）" value="L1" />
-            <el-option label="二级服务经理（L2）" value="L2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="责任类型" prop="assignmentType">
-          <el-radio-group v-model="assignForm.assignmentType">
-            <el-radio-button value="PRIMARY">主责</el-radio-button>
-            <el-radio-button value="COLLABORATOR">协同</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="assignSites.length" label="实施站点" prop="siteId">
-          <el-select
-            v-model="assignForm.siteId"
-            class="!w-full"
-            placeholder="请选择项目实施站点"
-            @change="suggestDepartment"
-          >
-            <el-option
-              v-for="item in assignSites"
-              :key="item.siteId"
-              :label="`${item.siteCodeSnapshot || ''} ${item.siteNameSnapshot || ''}`"
-              :value="item.siteId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-alert
-          v-else
-          type="warning"
-          :closable="false"
-          show-icon
-          class="mb-12px"
-          title="站点待维护：本次仅按项目和办事处范围人工确认，不进行地点自动解析。"
-        />
-        <el-form-item label="服务办事处" prop="departmentCode">
-          <el-select
-            v-model="assignForm.departmentCode"
-            filterable
-            class="!w-full"
-            placeholder="选择或人工确认办事处"
-            @change="handleAssignDepartmentChange"
-          >
-            <el-option
-              v-for="item in assignDepartments"
-              :key="item.id"
-              :label="`${item.code} ${item.name}`"
-              :value="item.code"
-            />
-          </el-select>
-        </el-form-item>
-        <el-alert
-          :type="assignSuggestion ? 'success' : 'info'"
-          :closable="false"
-          show-icon
-          class="mb-12px"
-        >
-          {{ assignSuggestion || '当前站点无区划映射建议，请人工选择服务办事处。' }}
-        </el-alert>
-        <el-form-item label="服务经理" prop="managerId">
-          <el-select
-            v-model="assignForm.managerId"
-            filterable
-            remote
-            clearable
-            class="!w-full"
-            placeholder="请先确认办事处，再搜索精确候选"
-            :remote-method="searchAssignCandidates"
-            :loading="assignCandidateLoading"
-          >
-            <el-option
-              v-for="item in assignCandidates"
-              :key="item.userId"
-              :label="`${item.nickname || item.username}（${item.employeeNo || item.username}）· ${item.departmentCode}`"
-              :value="item.userId"
-            />
-          </el-select>
-          <div class="form-helper">
-            候选仅来自当前项目公司与确认办事处的有效人员；提交时会再次刷新。
-          </div>
-        </el-form-item>
-        <el-form-item label="指派原因" prop="changeReason">
-          <el-input
-            v-model="assignForm.changeReason"
-            type="textarea"
-            :maxlength="500"
-            show-word-limit
-            placeholder="请填写指派或改派原因"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="assignVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitAssign">确认指派</el-button>
-      </template>
-    </Dialog>
+    <!-- ============ 更正客户弹窗（与 inheritance 列表共用组件） ============ -->
+    <CustomerCorrectionDialog ref="customerCorrectionRef" @updated="load" />
   </div>
 </template>
 
@@ -1004,8 +892,9 @@ import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreati
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
  *
- * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认+可选指派）
- * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）/ 指派服务经理。
+ * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认提交）
+ * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）
+ * / 更正客户 / 项目成员（列表样式与按钮对齐 inheritance 项目列表）。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
@@ -1019,8 +908,6 @@ import type {
   ProjectInstancesVO,
   ProjectMemberAssignmentVO,
   ProjectSiteReqVO,
-  ProjectSiteVO,
-  ServiceManagerCandidateVO,
   TemplateCandidateVO
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
@@ -1034,6 +921,7 @@ import * as LocationApi from '@/api/pms/asset/location'
 import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
+import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
 import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
 import { closedProjectStatuses } from './projectStatus'
 
@@ -1043,7 +931,6 @@ const message = useMessage()
 const router = useRouter()
 const mobile = useMediaQuery('(max-width: 767px)')
 const wizardWidth = computed(() => (mobile.value ? '96%' : '880px'))
-const assignDialogWidth = computed(() => (mobile.value ? '96%' : '560px'))
 
 // ============ 列表 ============
 const loading = ref(false)
@@ -1164,7 +1051,6 @@ const createIdempotency = createSubmissionIdempotencyState()
 const createErrorMessage = ref('')
 const companies = ref<CompanyVO[]>([])
 const departments = ref<DeptVO[]>([])
-const assignDepartments = computed(() => departments.value.filter((item) => item.id && item.code))
 const availableSites = ref<SiteVO[]>([])
 const primarySiteIndex = ref(0)
 
@@ -1393,6 +1279,16 @@ const goDetail = (row: ProjectMasterVO) => {
   })
 }
 
+/** 项目成员：工作台成员页签 */
+const goMembers = (row: ProjectMasterVO) => {
+  router.push({
+    path: '/pms/project-management/project-master-detail',
+    query: { projectId: row.id, tab: 'members' }
+  })
+}
+
+const customerCorrectionRef = ref<InstanceType<typeof CustomerCorrectionDialog>>()
+
 const openDetail = async (row: ProjectMasterVO) => {
   detailTab.value = 'base'
   detailVisible.value = true
@@ -1487,186 +1383,6 @@ const submitEdit = async () => {
     message.success('更新成功')
     editVisible.value = false
     await load()
-  } finally {
-    saving.value = false
-  }
-}
-
-// ============ 指派服务经理 ============
-const assignVisible = ref(false)
-const assignFormRef = ref()
-const assignTarget = ref<ProjectMasterVO | null>(null)
-const assignSites = ref<ProjectSiteVO[]>([])
-const assignSuggestion = ref('')
-const assignCandidates = ref<ServiceManagerCandidateVO[]>([])
-const assignCandidateLoading = ref(false)
-const assignForm = reactive({
-  managerId: undefined as number | undefined,
-  levelCode: 'L1' as 'L1' | 'L2',
-  assignmentType: 'PRIMARY' as 'PRIMARY' | 'COLLABORATOR',
-  siteId: undefined as number | undefined,
-  departmentCode: '',
-  changeReason: ''
-})
-const assignRules = {
-  managerId: [{ required: true, message: '请选择精确候选服务经理', trigger: 'change' }],
-  levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }],
-  siteId: [
-    {
-      validator: (_rule: unknown, value: number | undefined, callback: (error?: Error) => void) => {
-        if (assignForm.levelCode === 'L2' && !value)
-          callback(new Error('L2服务经理必须选择实施站点'))
-        else callback()
-      },
-      trigger: 'change'
-    }
-  ],
-  departmentCode: [{ required: true, message: '请选择服务办事处', trigger: 'change' }],
-  assignmentType: [{ required: true, message: '请选择责任类型', trigger: 'change' }],
-  changeReason: [{ required: true, message: '请填写指派原因', trigger: 'blur' }]
-}
-const PROJECT_VERSION_CONFLICT_CODE = 1014024014
-const assignIdempotency = createSubmissionIdempotencyState()
-
-const openAssign = async (row: ProjectMasterVO) => {
-  const [project, sites] = await Promise.all([
-    ProjectsApi.getProject(row.id!),
-    ProjectsApi.getProjectSites(row.id!)
-  ])
-  assignTarget.value = project
-  assignSites.value = sites || []
-  Object.assign(assignForm, {
-    managerId: undefined,
-    levelCode: 'L1',
-    assignmentType: 'PRIMARY',
-    siteId: assignSites.value.find((item) => item.primarySite)?.siteId,
-    departmentCode: project.departmentCode || '',
-    changeReason: ''
-  })
-  assignIdempotency.reset()
-  assignVisible.value = true
-  await suggestDepartment(assignForm.siteId)
-}
-
-const suggestDepartment = async (siteId?: number) => {
-  assignSuggestion.value = ''
-  assignForm.managerId = undefined
-  assignCandidates.value = []
-  const site = assignSites.value.find((item) => item.siteId === siteId)
-  if (!site?.addressSnapshot) {
-    await loadAssignCandidates()
-    return
-  }
-  try {
-    const address = JSON.parse(site.addressSnapshot) as { districtCode?: string }
-    if (address.districtCode) {
-      const mapping = await LocationApi.resolveAreaDepartment(address.districtCode, 'DISTRICT')
-      if (mapping?.departmentCode) {
-        assignForm.departmentCode = mapping.departmentCode
-        assignSuggestion.value = `已按区县 ${address.districtCode} 精确建议 ${mapping.departmentName || mapping.departmentCode}，可手动调整。`
-      }
-    }
-  } catch {
-    // 快照不可解析或无有效映射时保留人工指派。
-  }
-  await loadAssignCandidates()
-}
-
-const selectedAssignDepartment = () =>
-  assignDepartments.value.find((item) => item.code === assignForm.departmentCode)
-
-const loadAssignCandidates = async (keyword = '') => {
-  const projectId = assignTarget.value?.id
-  const department = selectedAssignDepartment()
-  if (!projectId || !department?.id || !assignForm.departmentCode) {
-    assignCandidates.value = []
-    return []
-  }
-  assignCandidateLoading.value = true
-  try {
-    const page = await ProjectsApi.getServiceManagerCandidates(projectId, {
-      siteId: assignForm.siteId,
-      departmentId: department.id,
-      departmentCode: assignForm.departmentCode,
-      keyword: keyword.trim() || undefined,
-      pageNo: 1,
-      pageSize: 100
-    })
-    assignCandidates.value = page.list || []
-    return assignCandidates.value
-  } finally {
-    assignCandidateLoading.value = false
-  }
-}
-
-const searchAssignCandidates = (keyword: string) => loadAssignCandidates(keyword)
-
-const handleAssignDepartmentChange = async () => {
-  assignForm.managerId = undefined
-  await loadAssignCandidates()
-}
-
-const submitAssign = async () => {
-  await assignFormRef.value?.validate()
-  if (assignTarget.value?.version === undefined) {
-    message.error('Project版本缺失，请重新加载项目后再指派')
-    return
-  }
-  const department = selectedAssignDepartment()
-  if (!department?.id) {
-    message.error('办事处部门数据已变化，请重新选择')
-    return
-  }
-  const selectedCandidate = assignCandidates.value.find(
-    (item) => item.userId === assignForm.managerId
-  )
-  if (!selectedCandidate) {
-    message.error('候选数据已变化，请重新选择服务经理')
-    return
-  }
-  const refreshedCandidates = await loadAssignCandidates(
-    selectedCandidate.employeeNo || selectedCandidate.username || selectedCandidate.nickname
-  )
-  if (!refreshedCandidates.some((item) => item.userId === assignForm.managerId)) {
-    assignForm.managerId = undefined
-    message.error('该人员已不在当前公司与办事处的有效候选中，请重新选择')
-    return
-  }
-  const payload = {
-    levelCode: assignForm.levelCode,
-    managerId: assignForm.managerId!,
-    siteId: assignForm.siteId,
-    assignmentType: assignForm.assignmentType,
-    departmentId: department.id,
-    departmentCode: assignForm.departmentCode,
-    changeReason: assignForm.changeReason
-  }
-  const requestIdentity = {
-    projectId: assignTarget.value.id,
-    expectedVersion: assignTarget.value.version,
-    payload
-  }
-  saving.value = true
-  try {
-    const result = await ProjectsApi.assignManager(
-      assignTarget.value.id!,
-      payload,
-      assignTarget.value.version,
-      assignIdempotency.keyFor(requestIdentity)
-    )
-    assignTarget.value.version = result.version
-    message.success('指派成功（旧区间已关闭，新区间生效）')
-    assignVisible.value = false
-    await load()
-    if (detailVisible.value && detail.value?.id === assignTarget.value?.id) {
-      members.value = await ProjectsApi.getProjectMembers(assignTarget.value!.id!)
-    }
-  } catch (error: any) {
-    if (error?.response?.data?.code === PROJECT_VERSION_CONFLICT_CODE && assignTarget.value?.id) {
-      assignTarget.value = await ProjectsApi.getProject(assignTarget.value.id)
-      assignIdempotency.reset()
-      message.warning('Project版本已变化，已重新加载，请确认后再次提交')
-    }
   } finally {
     saving.value = false
   }

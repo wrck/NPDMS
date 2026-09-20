@@ -162,7 +162,7 @@ import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as BatchChangeApi from '@/api/pms/project/batch-change'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import type { TeamBatchChangeItemVO, TeamBatchChangeVO } from '@/api/pms/project/batch-change'
 

@@ -124,6 +124,8 @@ public class ProjectMasterController {
     @Resource
     private ProjectServiceManagerQueryService projectServiceManagerQueryService;
     @Resource
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper projectPartyMapper;
+    @Resource
     private Environment environment;
 
     @PostMapping
@@ -196,6 +198,11 @@ public class ProjectMasterController {
     public CommonResult<ProjectRespVO> getProject(@PathVariable("id") Long id) {
         ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
         ProjectRespVO response = BeanUtils.toBean(project, ProjectRespVO.class);
+        response.setParties(projectPartyMapper.selectCurrent(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectPartyQuery(
+                        currentTenantId(), id, java.time.LocalDateTime.now())).stream()
+                .map(party -> new ProjectRespVO.Party(party.getPartyRole(), party.getPartyCode(), party.getPartyName()))
+                .toList());
         projectStatusPresentationService.populate(List.of(response));
         return success(response);
     }

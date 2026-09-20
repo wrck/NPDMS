@@ -35,6 +35,7 @@ export interface ProjectMasterVO {
   projectCategory?: string
   implementationMode?: string
   majorProjectLevel?: string | null
+  serviceLevelCode?: string | null
   contractNo?: string
   implementationLocation?: string
   locationResolutionStatus?: 'RESOLVED' | 'UNRESOLVED'
@@ -56,6 +57,20 @@ export interface ProjectMasterVO {
   progress?: number
   aggregationWeight?: number
   weightSource?: string
+  parties?: { role: string; code?: string; name?: string }[]
+  projectType?: string
+  marketCode?: string
+  marketName?: string
+  systemCode?: string
+  systemName?: string
+  expendCode?: string
+  expendName?: string
+  industryCode?: string
+  industryName?: string
+  customerProjectName?: string
+  salesType?: string
+  businessType?: string
+  notTrackReason?: string
   projectStartTime?: Date
   projectEndDate?: string
   createTime?: Date

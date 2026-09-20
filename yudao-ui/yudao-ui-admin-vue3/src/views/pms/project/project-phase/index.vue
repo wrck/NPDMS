@@ -4,10 +4,10 @@
       <el-form-item label="项目" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
-          :api="ProjectApi.getProjectPage"
-          label-field="name"
+          :api="ProjectsApi.getProjectPage"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -83,10 +83,10 @@
       <el-form-item label="项目" prop="projectId">
         <PmsEntitySelect
           v-model="form.projectId"
-          :api="ProjectApi.getProjectPage"
-          label-field="name"
+          :api="ProjectsApi.getProjectPage"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
         />
       </el-form-item>
@@ -106,16 +106,16 @@
         </el-select>
       </el-form-item>
       <el-form-item label="建议开始">
-        <el-date-picker v-model="form.suggestedStartTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="!w-220px" />
+        <el-date-picker v-model="form.suggestedStartTime" type="datetime" value-format="x" class="!w-220px" />
       </el-form-item>
       <el-form-item label="建议结束">
-        <el-date-picker v-model="form.suggestedEndTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="!w-220px" />
+        <el-date-picker v-model="form.suggestedEndTime" type="datetime" value-format="x" class="!w-220px" />
       </el-form-item>
       <el-form-item label="计划开始">
-        <el-date-picker v-model="form.planStartTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="!w-220px" />
+        <el-date-picker v-model="form.planStartTime" type="datetime" value-format="x" class="!w-220px" />
       </el-form-item>
       <el-form-item label="计划结束">
-        <el-date-picker v-model="form.planEndTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="!w-220px" />
+        <el-date-picker v-model="form.planEndTime" type="datetime" value-format="x" class="!w-220px" />
       </el-form-item>
       <el-form-item label="准入条件"><el-input v-model="form.entryCriteria" type="textarea" /></el-form-item>
       <el-form-item label="退出条件"><el-input v-model="form.exitCriteria" type="textarea" /></el-form-item>
@@ -168,7 +168,7 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectPhaseApi from '@/api/pms/project/project-phase'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectsApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import type { ProjectPhaseVO, ProjectPhaseCompleteReqVO } from '@/api/pms/project/project-phase'
 

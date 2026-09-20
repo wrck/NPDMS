@@ -75,6 +75,9 @@ public class ProjectRespVO {
     @Schema(description = "重大项目级别（NULL=不限）")
     private String majorProjectLevel;
 
+    @Schema(description = "服务等级编码（金/银/铜，pms_service_level 字典）")
+    private String serviceLevelCode;
+
     @Schema(description = "手工登记合同号")
     private String contractNo;
 
@@ -134,4 +137,51 @@ public class ProjectRespVO {
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
+    @Schema(description = "项目数据类型（保留来源编码）")
+    private String projectType;
+
+    @Schema(description = "市场编码")
+    private String marketCode;
+
+    @Schema(description = "市场名称")
+    private String marketName;
+
+    @Schema(description = "系统编码")
+    private String systemCode;
+
+    @Schema(description = "系统名称")
+    private String systemName;
+
+    @Schema(description = "拓展编码")
+    private String expendCode;
+
+    @Schema(description = "拓展名称")
+    private String expendName;
+
+    @Schema(description = "行业编码")
+    private String industryCode;
+
+    @Schema(description = "行业名称")
+    private String industryName;
+
+    @Schema(description = "客户项目名称")
+    private String customerProjectName;
+
+    @Schema(description = "销售类型")
+    private String salesType;
+
+    @Schema(description = "业务类型")
+    private String businessType;
+
+    @Schema(description = "不予跟踪原因")
+    private String notTrackReason;
+
+    @Schema(description = "业务层级编码")
+    private String businessLevelCode;
+
+    @Schema(description = "业务层级名称")
+    private String businessLevelName;
+
+    private java.util.List<Party> parties;
+    public record Party(String role, String code, String name) {}
 }
