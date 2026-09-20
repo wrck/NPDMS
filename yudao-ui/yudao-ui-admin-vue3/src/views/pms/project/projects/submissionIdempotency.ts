@@ -1,9 +1,10 @@
+import { generateUUID } from '@/utils'
 export interface SubmissionIdempotencyState {
   keyFor: (payload: unknown) => string
   reset: () => void
 }
 
-const defaultKeyFactory = () => `pms-${crypto.randomUUID()}`
+const defaultKeyFactory = () => `pms-${generateUUID()}`
 
 /** 同一未修改请求复用Key；请求内容变化后自动换Key。状态仅存在于当前页面内存。 */
 export const createSubmissionIdempotencyState = (

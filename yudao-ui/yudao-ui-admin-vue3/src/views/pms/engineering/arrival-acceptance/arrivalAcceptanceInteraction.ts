@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import dayjs from 'dayjs'
 import type { WireDateTime } from '@/api/pms/engineering/arrival-acceptance'
 
@@ -94,7 +95,7 @@ export const formatWireDateTime = (value?: WireDateTime | null): string => {
   return epoch === '' ? '-' : dayjs(epoch).format('YYYY-MM-DD HH:mm:ss')
 }
 
-export const createArrivalIntentStore = (factory: () => string = () => crypto.randomUUID()) => {
+export const createArrivalIntentStore = (factory: () => string = () => generateUUID()) => {
   const keys = new Map<string, string>()
   return {
     key(intent: string) {

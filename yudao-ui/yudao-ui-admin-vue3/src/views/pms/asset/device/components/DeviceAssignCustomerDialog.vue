@@ -27,6 +27,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as DeviceApi from '@/api/pms/asset/device'
@@ -58,7 +59,7 @@ const submit = async () => {
       summary.value.deviceId,
       { customerId: form.customerId, relationshipType: form.relationshipType, reason: form.reason },
       summary.value.customerAssignmentVersion,
-      crypto.randomUUID()
+      generateUUID()
     )
     message.success('客户归属已更新')
     visible.value = false

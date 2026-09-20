@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import * as Definitions from './definitions'
 import type { DefinitionRevision, DefinitionKind } from './definitions'
 import * as Views from '@/api/pms/platform/business-view'
@@ -82,7 +83,7 @@ export const stageFromDefinition = async (row: DefinitionRevision): Promise<Desi
   const completionId = target(row, 'completionRule')
   if (!bindingId || !permissionId || !completionId) throw new Error('阶段定义缺少绑定、权限或完成规则引用')
   return {
-    nodeKey: `stage:${crypto.randomUUID()}`,
+    nodeKey: `stage:${generateUUID()}`,
     code: String(row.payload.stageCode ?? ''),
     name: String(row.payload.name ?? row.definitionCode),
     lifecycleStage: row.payload.lifecycleStage as string | undefined,
@@ -109,8 +110,8 @@ export const taskFromDefinition = async (
   const completionId = target(row, 'completionRule')
   if (!bindingId || !permissionId || !completionId) throw new Error('任务定义缺少绑定、权限或完成规则引用')
   return {
-    nodeKey: `task:${crypto.randomUUID()}`,
-    code: `TASK_${crypto.randomUUID().replaceAll('-', '')}`,
+    nodeKey: `task:${generateUUID()}`,
+    code: `TASK_${generateUUID().replaceAll('-', '')}`,
     name: String(row.payload.name ?? row.definitionCode),
     stageCode,
     priority: Number(row.payload.priority ?? 0),
@@ -131,8 +132,8 @@ export const deliverableFromDefinition = async (
 ): Promise<DesignerDeliverableNode> => {
   if (!Definitions.availableDefinition(row, 'DELIVERABLE')) throw new Error('请选择已发布交付要求')
   return {
-    nodeKey: `deliverable:${crypto.randomUUID()}`,
-    code: `DEL_${crypto.randomUUID().replaceAll('-', '')}`,
+    nodeKey: `deliverable:${generateUUID()}`,
+    code: `DEL_${generateUUID().replaceAll('-', '')}`,
     name: String(row.payload.name ?? row.payload.deliverableType ?? row.definitionCode),
     stageCode,
     taskCode,

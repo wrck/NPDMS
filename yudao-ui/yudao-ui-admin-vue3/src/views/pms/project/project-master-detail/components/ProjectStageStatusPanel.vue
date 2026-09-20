@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { ref, watch } from 'vue'
 import { getProjectInstances, type ProjectInstancesVO, type ProjectMasterVO } from '@/api/pms/project/projects'
 import {
@@ -123,7 +124,7 @@ const openWorkbench = (stageCode: string) => {
 const message = useMessage()
 let submissionKey = ''
 watch(note, () => {
-  if (!submitting.value) submissionKey = crypto.randomUUID()
+  if (!submitting.value) submissionKey = generateUUID()
 })
 const executionFor = (code: string) =>
   executions.value.find((item) => item.nodeKind === 'STAGE' && item.nodeCode === code)
@@ -133,7 +134,7 @@ const openSubmission = (code: string) => {
   selected.value = execution
   submissionError.value = ''
   note.value = ''
-  submissionKey = crypto.randomUUID()
+  submissionKey = generateUUID()
   submissionVisible.value = true
 }
 const submit = async () => {

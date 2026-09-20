@@ -217,6 +217,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -374,7 +375,7 @@ const submitCreate = async () => {
         ...createForm,
         subjectUserId: createForm.subjectUserId!
       },
-      crypto.randomUUID()
+      generateUUID()
     )
     message.success('项目授权已创建')
     createVisible.value = false
@@ -400,7 +401,7 @@ const submitRevoke = async () => {
       revokeTarget.value.id,
       revokeTarget.value.version,
       revokeForm.reason,
-      crypto.randomUUID()
+      generateUUID()
     )
     message.success('项目授权已撤销')
     revokeVisible.value = false

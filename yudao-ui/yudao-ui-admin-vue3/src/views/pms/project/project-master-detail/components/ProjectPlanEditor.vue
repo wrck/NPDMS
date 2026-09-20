@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import TemplateContentEditor from '../../project-templates/TemplateContentEditor.vue'
@@ -162,7 +163,7 @@ const load = async () => {
   impact.value = undefined
   error.value = ''
   busy.value = true
-  createKey = crypto.randomUUID()
+  createKey = generateUUID()
   saveIntent = ''
   saveKey = ''
   applyKey = ''
@@ -213,7 +214,7 @@ const saveDraft = async () => {
     })
     if (intent !== saveIntent) {
       saveIntent = intent
-      saveKey = crypto.randomUUID()
+      saveKey = generateUUID()
     }
     const saved = await saveProjectPlanDraft(projectId, draft, prepared, saveKey)
     if (request !== generation || !state.value) return
@@ -265,7 +266,7 @@ const applyPlan = async () => {
     const intent = JSON.stringify({ projectId, expectedPreview: observed })
     if (applyIntent !== intent) {
       applyIntent = intent
-      applyKey = crypto.randomUUID()
+      applyKey = generateUUID()
     }
     const result = await applyProjectPlanDraft(projectId, observed, applyKey)
     if (request !== generation) return

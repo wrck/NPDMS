@@ -160,6 +160,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, reactive, ref, watch } from 'vue'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as CustomerApi from '@/api/pms/customer'
@@ -283,7 +284,7 @@ const addSelectedSources = async () => {
         expectedProjectVersion: context.value.project.projectVersion,
         primaryFlag: false,
         status: 0
-      }, crypto.randomUUID())
+      }, generateUUID())
       created++
     }
     sourceVisible.value = false
@@ -299,7 +300,7 @@ const open = (row?: ContactVO) => {
   if (!canEdit.value || (props.projectId && !customerId.value)) return
   createMode.value = 'new'; sourceRows.clear()
   form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: false, status: 0, customerId: customerId.value, ...row }
-  operationKey = crypto.randomUUID(); initialPrimary = !!row?.primaryFlag
+  operationKey = generateUUID(); initialPrimary = !!row?.primaryFlag
   baseline = JSON.stringify(form.value); visible.value = true
 }
 const beforeClose = async (done: () => void) => {

@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import type {
   DeliveryCanvasEdge,
@@ -42,7 +43,7 @@ export function createDeliveryNode(
   let sequence = 1
   while (keys.has(`${prefixes[kind]}${sequence}`)) sequence++
   const base = {
-    nodeKey: `${kind.toLowerCase()}:${suggested ?? crypto.randomUUID()}`,
+    nodeKey: `${kind.toLowerCase()}:${suggested ?? generateUUID()}`,
     code: `${prefixes[kind]}${sequence}`,
     name: names[kind]
   }

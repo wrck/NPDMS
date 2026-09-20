@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import type { VersionRule } from '@/api/pms/project/project-templates/rules'
 import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templates/operations'
@@ -17,7 +18,7 @@ export function createVersionRule(
   expression: JsonObject
 ): VersionRule {
   const rule: VersionRule = {
-    key: `rule_${crypto.randomUUID()}`,
+    key: `rule_${generateUUID()}`,
     name,
     kind: 'CONDITION',
     shared: false,
@@ -38,7 +39,7 @@ export function copyVersionRule(
     const source = document.rules?.find((rule) => rule.key === key)
     if (!source) throw new Error(`本版本不存在规则：${key}`)
     const result = clone(source)
-    result.key = `rule_${crypto.randomUUID()}`
+    result.key = `rule_${generateUUID()}`
     result.name = `${source.name}（独立）`
     result.shared = false
     copies.set(key, result)

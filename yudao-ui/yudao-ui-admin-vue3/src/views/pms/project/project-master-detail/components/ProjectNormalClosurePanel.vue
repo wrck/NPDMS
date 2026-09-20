@@ -52,6 +52,7 @@
   </ContentWrap>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
@@ -77,7 +78,7 @@ let generation = 0,
 // Keep the key even after success: the same submit payload is still the same intent.
 const keys = new Map<string, string>()
 const key = (value: string) => {
-  if (!keys.has(value)) keys.set(value, crypto.randomUUID())
+  if (!keys.has(value)) keys.set(value, generateUUID())
   return keys.get(value)!
 }
 const eligible = (action: string) => {

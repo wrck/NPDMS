@@ -1,6 +1,16 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ruleUses, copyVersionRule } from './versionRuleModel.ts'
+import { registerHooks } from 'node:module'
+
+// This native Node suite also loads the browser model's shared UUID utility.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    return nextResolve(specifier === '@/utils'
+      ? new URL('../../../../utils/index.ts', import.meta.url).href
+      : specifier, context)
+  }
+})
+const { ruleUses, copyVersionRule } = await import('./versionRuleModel.ts')
 
 const document = () => ({
   rules: [{ key: 'ready', name: '就绪', kind: 'CONDITION', shared: true,

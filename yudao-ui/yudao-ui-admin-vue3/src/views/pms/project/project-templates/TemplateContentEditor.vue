@@ -310,6 +310,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import type {
@@ -805,7 +806,7 @@ const copyAsset = async (definition: DefinitionRevision) => {
 }
 const addStrategy = () => {
   if (props.readonly || strategyConfirming.value) return
-  const key = `rule_${crypto.randomUUID()}`
+  const key = `rule_${generateUUID()}`
   ;(props.content.rules ??= []).push({
     key,
     name: '新策略',

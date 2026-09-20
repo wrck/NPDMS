@@ -1,10 +1,11 @@
+import { generateUUID } from '@/utils'
 import { add, getPathOfID, move, remove, update } from '@react-querybuilder/core'
 import type { RuleGroupType, RuleType } from '@react-querybuilder/core'
 import type { JsonObject } from '@/api/pms/project/project-templates'
 
 export type RuleTreeNode = RuleGroupType | RuleType
 const options = { freeze: false }
-const key = () => `condition_${crypto.randomUUID()}`
+const key = () => `condition_${generateUUID()}`
 const object = (value: unknown): JsonObject =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as JsonObject) : {}
 

@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -148,14 +149,14 @@ const createPolicy = async () => {
     await ProjectsApi.createProgressPolicy(props.projectId, {
       policyType: policyType.value,
       items: policyType.value === 'SYSTEM_EQUAL' ? [] : policyItems.value
-    }, crypto.randomUUID(), treeVersion)
+    }, generateUUID(), treeVersion)
     message.success('策略草稿已保存')
     policyVisible.value = false
     await load()
   } finally { saving.value = false }
 }
 const submitPolicy = async (policy: ProjectProgressPolicyVO) => {
-  await ProjectsApi.submitProgressPolicy(policy.id, policy.version, crypto.randomUUID())
+  await ProjectsApi.submitProgressPolicy(policy.id, policy.version, generateUUID())
   message.success('策略已提交审批')
   await load()
 }

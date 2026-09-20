@@ -208,6 +208,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { Editor } from '@/components/Editor'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import type { FileSelection } from '@/components/PmsFileArtifact'
@@ -412,7 +413,7 @@ const adoptCurrentAttachmentSet = () => {
   rememberAttachmentSync(draftAttachments.value)
 }
 
-const addAttachmentSlot = () => pendingSlots.value.push(crypto.randomUUID())
+const addAttachmentSlot = () => pendingSlots.value.push(generateUUID())
 const discardSlot = (slot: string) => {
   pendingSlots.value = pendingSlots.value.filter((value) => value !== slot)
 }

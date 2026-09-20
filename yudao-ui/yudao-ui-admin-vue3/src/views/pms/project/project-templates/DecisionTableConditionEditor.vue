@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, ref } from 'vue'
 import type { JsonObject, JsonValue } from '@/api/pms/project/project-templates'
 import type {
@@ -117,7 +118,7 @@ const forkTable = () => {
   emit('change', {
     ...props.parameters,
     ruleKey: undefined,
-    table: { ...JSON.parse(JSON.stringify(table.value)), key: `table_${crypto.randomUUID()}` }
+    table: { ...JSON.parse(JSON.stringify(table.value)), key: `table_${generateUUID()}` }
   })
 }
 const close = async (done?: () => void) => {

@@ -305,6 +305,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
@@ -441,7 +442,7 @@ const submitAction = async () => {
     message.warning('请完整填写每一项遗留事项')
     return
   }
-  idempotencyKey.value ||= crypto.randomUUID()
+  idempotencyKey.value ||= generateUUID()
   submitting.value = true
   try {
     if (currentAction.value === 'ROLLBACK') {

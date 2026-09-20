@@ -160,6 +160,7 @@
     >
   </el-dialog>
 </template>
+import { generateUUID } from '@/utils'
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
@@ -263,7 +264,7 @@ const closeGrant = () => {
 const openAssisted = (task: TaskView) => {
   if (!writableTask(task)) return
   selected.value = task
-  assistedRequestId.value = crypto.randomUUID()
+  assistedRequestId.value = generateUUID()
   assisted.customerContactRef = ''
   assisted.answerSnapshot = '{\n  "answers": []\n}'
   assistedSignatureFiles.value = []
@@ -405,7 +406,7 @@ const submitRecollect = async () => {
   const version = contextVersion
   await Api.recollect(selected.value.id, {
     priorResultId: selected.value.resultId,
-    remediationRequestId: crypto.randomUUID(),
+    remediationRequestId: generateUUID(),
     evidenceSummary: recollectForm.evidenceSummary,
     evidenceFileFactVersion: recollectForm.evidenceFileFactVersion || undefined
   })

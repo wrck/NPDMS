@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import { computed, inject, markRaw, onBeforeUnmount, shallowRef, watch, type InjectionKey, type ShallowRef } from 'vue'
 import { inspectOperationCapabilities, type OperationCapabilities, type CapabilityQuery } from '@/api/pms/project/execution-operations'
 import request from '@/config/axios'
@@ -117,7 +118,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
               data: command, headers: { 'Idempotency-Key': key },
               transformResponse: [...(Array.isArray(service.defaults.transformResponse) ? service.defaults.transformResponse
                 : service.defaults.transformResponse ? [service.defaults.transformResponse] : []), captureOperationResponse] }),
-            newKey: () => crypto.randomUUID(), submitted,
+            newKey: () => generateUUID(), submitted,
             pendingChanged: pending => { if (!disposed && client.value === created) uncertain.value = pending }
           }))
           client.value = created

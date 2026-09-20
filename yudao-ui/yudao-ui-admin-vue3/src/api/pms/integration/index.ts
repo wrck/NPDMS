@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import request from '@/config/axios'
 export type Id = string | number
 export interface Page<T> {
@@ -190,7 +191,7 @@ export const startRun = (
     data: {
       taskId: task.id,
       expectedVersion: task.version,
-      requestKey: crypto.randomUUID(),
+      requestKey: generateUUID(),
       preview,
       full,
       adoptExisting,

@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import type { UploadFile, UploadInstance } from 'element-plus'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as FileApi from '@/api/pms/platform/file'
@@ -110,7 +111,7 @@ const submit = async () => {
   progress.value = 0
   stage.value = 'UPLOADING'
   try {
-    attempt.value ||= { initKey: crypto.randomUUID(), completeKey: crypto.randomUUID(),
+    attempt.value ||= { initKey: generateUUID(), completeKey: generateUUID(),
       ownerExecutionContext: selectedExecutionContext.value }
     const initialized =
       attempt.value.initialized ||

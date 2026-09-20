@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import request from '@/config/axios'
 
 export interface QuestionnaireOption {
@@ -190,7 +191,7 @@ export const publishRevision = (templateId: number, revision: TemplateRevision) 
   request.post({
     url: `/api/v1/pms/satisfaction-questionnaire-templates/${templateId}/revisions/${revision.id}/actions/publish`,
     data: { expectedRevisionVersion: revision.version },
-    headers: { 'Idempotency-Key': crypto.randomUUID() }
+    headers: { 'Idempotency-Key': generateUUID() }
   })
 
 export const listTasks = (projectId?: number) =>
@@ -200,7 +201,7 @@ export const assignTask = (task: TaskView, assignedToUserId: number) =>
   request.post({
     url: `/api/v1/pms/satisfaction-tasks/${task.id}/actions/assign`,
     data: { assignedToUserId, expectedTaskVersion: task.version },
-    headers: { 'Idempotency-Key': crypto.randomUUID() }
+    headers: { 'Idempotency-Key': generateUUID() }
   })
 
 export const createGrant = (taskId: number, expiresAt: number) =>
@@ -253,7 +254,7 @@ export const invalidateResult = (result: ResultView, reasonCode: string, reasonS
   request.post({
     url: `/api/v1/pms/satisfaction-results/${result.resultId}/actions/invalidate`,
     data: { expectedResultVersion: result.factVersion, reasonCode, reasonSummary },
-    headers: { 'Idempotency-Key': crypto.randomUUID() }
+    headers: { 'Idempotency-Key': generateUUID() }
   })
 
 export const getResultDownload = (resultId: number, sequence: number) =>
@@ -265,7 +266,7 @@ export const requestResultExport = (projectId: number, fields: string[], include
   request.post<ExportTask>({
     url: '/api/v1/pms/satisfaction-results/exports',
     data: { projectId, fields, includeFiles },
-    headers: { 'Idempotency-Key': crypto.randomUUID() }
+    headers: { 'Idempotency-Key': generateUUID() }
   })
 
 export const getExportTask = (taskId: number) =>

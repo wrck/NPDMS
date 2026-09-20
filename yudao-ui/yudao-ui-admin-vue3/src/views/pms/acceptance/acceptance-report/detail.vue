@@ -32,6 +32,7 @@
   <ReportVersionHistoryDrawer ref="historyRef" :allowed-actions="allowedActions" />
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
@@ -55,7 +56,7 @@ const activity = ref<AcceptanceActivityVO>()
 const versions = ref<AcceptanceReportVersionVO[]>([])
 const editorRef = ref<InstanceType<typeof ReportDraftEditor>>()
 const historyRef = ref<InstanceType<typeof ReportVersionHistoryDrawer>>()
-const revokeKey = ref(crypto.randomUUID())
+const revokeKey = ref(generateUUID())
 const current = computed(() => versions.value.find(item => item.reportStatus === 'EFFECTIVE'))
 const draft = computed(() => versions.value.find(item => item.reportStatus === 'DRAFT'))
 let sequence = 0
@@ -116,7 +117,7 @@ const revoke = async () => {
   try {
     await ReportApi.revokeCurrentVersion(target, report, revokeKey.value, openedClient)
     if (token !== sequence) return false
-    revokeKey.value = crypto.randomUUID(); message.success('当前报告版本已撤销'); await reload()
+    revokeKey.value = generateUUID(); message.success('当前报告版本已撤销'); await reload()
     return true
   } finally { revoking.value = false; emit('dirty-change', isDirty()) }
 }

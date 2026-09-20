@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type {
   DesignerTaskNode,
   JsonObject,
@@ -141,9 +142,9 @@ export const prepareTaskBinding = async (
   let intent = session.get(signature)
   if (!intent) {
     intent = {
-      token: crypto.randomUUID().replaceAll('-', ''),
-      viewCreateKey: crypto.randomUUID(),
-      viewPublishKey: crypto.randomUUID()
+      token: generateUUID().replaceAll('-', ''),
+      viewCreateKey: generateUUID(),
+      viewPublishKey: generateUUID()
     }
     session.set(signature, intent)
   }

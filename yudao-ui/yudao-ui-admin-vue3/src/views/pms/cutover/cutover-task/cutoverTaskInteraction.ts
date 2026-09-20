@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type {
   CreateContextCandidate,
   CreateCutoverTaskRequest,
@@ -6,7 +7,7 @@ import type {
   WireDateTime
 } from '@/api/pms/cutover/cutover-task'
 
-export const newIntentKey = () => crypto.randomUUID()
+export const newIntentKey = () => generateUUID()
 
 export const parseSerials = (value: string) => {
   const values = value

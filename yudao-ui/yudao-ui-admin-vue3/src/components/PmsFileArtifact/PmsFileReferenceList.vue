@@ -54,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { useMessage } from '@/hooks/web/useMessage'
 import download from '@/utils/download'
 import * as FileApi from '@/api/pms/platform/file'
@@ -155,7 +156,7 @@ const detach = async () => {
     prompt.value
   ])
   if (detachAttempt.value?.signature !== signature) {
-    detachAttempt.value = { signature, idempotencyKey: crypto.randomUUID() }
+    detachAttempt.value = { signature, idempotencyKey: generateUUID() }
   }
   const result = await FileApi.detachReference(
     selected.referenceId,

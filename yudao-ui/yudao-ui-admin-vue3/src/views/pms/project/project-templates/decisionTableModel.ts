@@ -1,7 +1,8 @@
+import { generateUUID } from '@/utils'
 import type { DecisionTableDefinition } from '@/api/pms/project/project-templates/rules'
 
 export const newDecisionTable = (): DecisionTableDefinition => ({
-  key: `table_${crypto.randomUUID()}`,
+  key: `table_${generateUUID()}`,
   name: '规则决策表',
   decisionKey: 'decision',
   inputFields: { inputValue: '' },

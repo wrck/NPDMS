@@ -84,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, ref, watch } from 'vue'
 import type { DesignerTransitionNode, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import RuleDecisionDesigner from './RuleDecisionDesigner.vue'
@@ -175,7 +176,7 @@ const selectNode = (code: string) => {
   let transitionCode = baseCode; let suffix = 2
   while (transitions.some((edge) => edge.code === transitionCode)) transitionCode = `${baseCode}_${suffix++}`
   const edge: DesignerTransitionNode = {
-    edgeKey: `transition:${crypto.randomUUID()}`,
+    edgeKey: `transition:${generateUUID()}`,
     code: transitionCode,
     fromStageCode: linkSource.value,
     toStageCode: code,

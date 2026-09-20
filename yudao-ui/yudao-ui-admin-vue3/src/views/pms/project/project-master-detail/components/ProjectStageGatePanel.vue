@@ -99,6 +99,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectsApi from '@/api/pms/project/projects'
@@ -161,7 +162,7 @@ const recheckProgress = async () => {
   try {
     await loadReadiness()
     if (!readiness.value?.advanceAllowed || !readiness.value.nextStage) return
-    await ProjectsApi.advanceProjectStage(props.projectId, readiness.value, crypto.randomUUID())
+    await ProjectsApi.advanceProjectStage(props.projectId, readiness.value, generateUUID())
     message.success('阶段已按冻结关系推进')
     emit('changed')
     await loadReadiness()
@@ -182,7 +183,7 @@ const startProcess = async (gateReferenceId: number) => {
       props.projectId,
       gateReferenceId,
       readiness.value.projectVersion,
-      crypto.randomUUID()
+      generateUUID()
     )
     message.success('审批流程已发起，请在流程工作台完成审批')
     await loadReadiness()

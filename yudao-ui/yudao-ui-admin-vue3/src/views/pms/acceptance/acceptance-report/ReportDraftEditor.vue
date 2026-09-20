@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
@@ -68,8 +69,8 @@ const activity = ref<AcceptanceActivityVO>()
 const draftId = ref<number>()
 const draftNo = ref<number>()
 const uploadedCount = ref(0)
-const referenceKey = ref(crypto.randomUUID())
-const publishKey = ref(crypto.randomUUID())
+const referenceKey = ref(generateUUID())
+const publishKey = ref(generateUUID())
 const form = reactive<ReportApi.DraftContent>({})
 const uploaderRef = ref<{ isBusy: () => boolean; hasPendingFile: () => boolean }>()
 const uploadSession = ref(0)
@@ -119,8 +120,8 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   draftId.value = draft?.id
   draftNo.value = draft?.reportVersionNo
   uploadedCount.value = draft?.attachments.length || 0
-  referenceKey.value = crypto.randomUUID()
-  publishKey.value = crypto.randomUUID()
+  referenceKey.value = generateUUID()
+  publishKey.value = generateUUID()
   Object.assign(form, {
     expectedReportVersionNo: draft?.reportVersionNo,
     acceptanceTime: draft?.acceptanceTime,
@@ -148,7 +149,7 @@ const saveDraft = async () => {
     draftNo.value = result.reportVersionNo
     form.expectedReportVersionNo = result.reportVersionNo
     if (result.activityVersion != null) activity.value = { ...activity.value, version: result.activityVersion }
-    publishKey.value = crypto.randomUUID()
+    publishKey.value = generateUUID()
     baseline.value = savedSnapshot
     message.success('草稿已保存')
     emit('changed')
@@ -161,7 +162,7 @@ const saveDraft = async () => {
 const attachmentCompleted = () => {
   if (!visible.value) return
   uploadedCount.value += 1
-  referenceKey.value = crypto.randomUUID()
+  referenceKey.value = generateUUID()
   emit('changed')
 }
 
