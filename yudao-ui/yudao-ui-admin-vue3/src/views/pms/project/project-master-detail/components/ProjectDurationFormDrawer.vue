@@ -122,6 +122,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useMediaQuery } from '@vueuse/core'
@@ -392,7 +393,7 @@ const save = async () => {
           expectedProjectVersion: props.project.version || 0,
           ...durationPayload()
         },
-        crypto.randomUUID()
+        generateUUID()
       )
       if (version !== contextVersion) return
       message.success('项目工期已生效')
@@ -406,7 +407,7 @@ const save = async () => {
           reasonDetail: form.reasonDetail || undefined
         },
         plan.value!.planVersion,
-        crypto.randomUUID()
+        generateUUID()
       )
       if (version !== contextVersion) return
       message.success('工期变更草稿已保存')

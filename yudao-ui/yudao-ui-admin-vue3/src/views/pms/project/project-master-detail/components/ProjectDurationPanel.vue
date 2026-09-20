@@ -154,6 +154,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -247,7 +248,7 @@ const submitDraft = async () => {
       currentDraft.changeId,
       projectVersion,
       currentDraft.version,
-      crypto.randomUUID()
+      generateUUID()
     )
     if (version !== contextVersion) return
     emit('changed')
