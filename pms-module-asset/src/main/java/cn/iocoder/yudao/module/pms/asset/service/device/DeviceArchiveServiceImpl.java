@@ -30,7 +30,7 @@ import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQU
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_STATUS_INVALID;
 
 /**
- * 设备档案管理 Service 实现（ast_device 承载，自 pms_equipment 旧链承接）。
+ * 设备档案管理 Service 实现（ast_device 承载，自 pms_equipment_retired 旧链承接）。
  * <p>
  * SN 租户内唯一；状态变更通过 {@link DeviceStatusRules} 状态机校验；
  * 每次创建/修改/状态变更追加一条 {@code ast_device_version} 记录（追加只读）。

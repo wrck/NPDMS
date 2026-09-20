@@ -36,7 +36,16 @@ public class DeviceConfigurationLogQueryService {
     }
 
     public PageResult<DeviceConfigLogDO> getPage(DeviceConfigurationLogPageReqVO reqVO) {
-        return configurationLogMapper.selectPage(reqVO);
+        if (reqVO.getProjectId() == null) {
+            return configurationLogMapper.selectPage(reqVO);
+        }
+        // 项目维度：先解析项目下设备集合；空集合直接返回空结果，不扩大查询范围
+        List<Long> deviceIds = deviceMapper.selectIdsByTenantAndProject(
+                TenantContextHolder.getRequiredTenantId(), reqVO.getProjectId());
+        if (deviceIds.isEmpty()) {
+            return PageResult.empty();
+        }
+        return configurationLogMapper.selectPageByDevices(reqVO, deviceIds);
     }
 
     public List<DeviceConfigurationLogMetadata> getList(Long tenantId, Long userId, Long deviceId) {

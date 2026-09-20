@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 设备档案分页查询 Request VO（ast_device 承载，自 pms_equipment 旧链分页承接）。
+ * 设备档案分页查询 Request VO（ast_device 承载，自 pms_equipment_retired 旧链分页承接）。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -2,10 +2,13 @@ package cn.iocoder.yudao.module.pms.engineering.service.configuration;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.asset.api.device.DeviceConfigLogRecordApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceConfigLogRecordCommand;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.configuration.vo.ConfigurationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.configuration.vo.ConfigurationSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.ConfigurationMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,17 +31,25 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Resource
     private ConfigurationMapper configurationMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
+
+    @Resource
+    private DeviceConfigLogRecordApi deviceConfigLogRecordApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createConfiguration(ConfigurationSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         ConfigurationDO configuration = BeanUtils.toBean(createReqVO, ConfigurationDO.class);
+        configuration.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.CONFIGURATION, configurationMapper,
+                ConfigurationDO::getProjectId, ConfigurationDO::getCode));
         configuration.setStatus(0); // 状态只由现有动作接口推进
         if (configuration.getVersion() == null) {
             configuration.setVersion(0);
         }
         configurationMapper.insert(configuration);
+        archiveConfigLog(configuration, null);
         return configuration.getId();
     }
 
@@ -47,12 +58,12 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     public void updateConfiguration(ConfigurationSaveReqVO updateReqVO) {
         ConfigurationDO existing = validateConfigurationExists(updateReqVO.getId());
         validateStatus(existing, 0, 1, 3);
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         ConfigurationDO update = BeanUtils.toBean(updateReqVO, ConfigurationDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
         updateRecord(update);
+        archiveConfigLog(update, existing.getConfigLogUrl());
     }
 
     @Override
@@ -102,19 +113,30 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     // ==================== 内部工具方法 ====================
 
+    /**
+     * 配置 Log 归档设备档案（EXE-03：手动上传为独立合法来源）。
+     * 上传了 Log 且设备已关联时写入 ast_device_config_log，同一 Log 地址不重复记录；
+     * 设备档案 Owner 校验失败随当前事务回滚，不伪装成功。
+     */
+    private void archiveConfigLog(ConfigurationDO configuration, String previousConfigLogUrl) {
+        String configLogUrl = configuration.getConfigLogUrl();
+        if (configLogUrl == null || configLogUrl.isBlank()
+                || configLogUrl.equals(previousConfigLogUrl)
+                || configuration.getEquipmentId() == null) {
+            return;
+        }
+        DeviceConfigLogRecordCommand command = new DeviceConfigLogRecordCommand(
+                configuration.getEquipmentId(), "MANUAL_UPLOAD", "PMS", null,
+                configLogUrl, null, "配置调试 " + configuration.getCode() + " 手动上传");
+        deviceConfigLogRecordApi.recordConfigLog(command);
+    }
+
     private ConfigurationDO validateConfigurationExists(Long id) {
         ConfigurationDO configuration = configurationMapper.selectById(id);
         if (configuration == null) {
             throw exception(CONFIGURATION_NOT_EXISTS);
         }
         return configuration;
-    }
-
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        ConfigurationDO existing = configurationMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(CONFIGURATION_CODE_DUPLICATE);
-        }
     }
 
     private void validateVersion(ConfigurationDO configuration, Integer version) {

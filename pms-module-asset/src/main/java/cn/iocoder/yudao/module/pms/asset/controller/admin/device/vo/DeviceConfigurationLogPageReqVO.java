@@ -18,6 +18,9 @@ public class DeviceConfigurationLogPageReqVO extends PageParam {
 
     private Long deviceId;
 
+    /** 所属项目编号：传入时按项目下设备集合筛选，项目无设备返回空结果 */
+    private Long projectId;
+
     private String configType;
 
     private String sourceSystem;

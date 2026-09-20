@@ -57,6 +57,7 @@ export interface DeviceConfigLogVO {
 
 export interface DeviceConfigLogPageParam extends PageParam {
   deviceId?: number | string
+  projectId?: number | string
   configType?: string
   sourceSystem?: string
 }

@@ -30,4 +30,19 @@ public interface DeviceConfigLogMapper extends BaseMapperX<DeviceConfigLogDO> {
                 .betweenIfPresent(DeviceConfigLogDO::getCollectedAt, reqVO.getCollectedAt())
                 .orderByDesc(DeviceConfigLogDO::getCollectedAt));
     }
+
+    /**
+     * 项目维度分页；deviceIds 为调用方已解析的项目设备集合（空集合须由调用方先行短路）。
+     */
+    default PageResult<DeviceConfigLogDO> selectPageByDevices(DeviceConfigurationLogPageReqVO reqVO,
+                                                              java.util.Collection<Long> deviceIds) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<DeviceConfigLogDO>()
+                .eqIfPresent(DeviceConfigLogDO::getDeviceId, reqVO.getDeviceId())
+                .in(DeviceConfigLogDO::getDeviceId, deviceIds)
+                .eqIfPresent(DeviceConfigLogDO::getConfigType, reqVO.getConfigType())
+                .likeIfPresent(DeviceConfigLogDO::getSourceSystem, reqVO.getSourceSystem())
+                .eqIfPresent(DeviceConfigLogDO::getFileHash, reqVO.getFileHash())
+                .betweenIfPresent(DeviceConfigLogDO::getCollectedAt, reqVO.getCollectedAt())
+                .orderByDesc(DeviceConfigLogDO::getCollectedAt));
+    }
 }

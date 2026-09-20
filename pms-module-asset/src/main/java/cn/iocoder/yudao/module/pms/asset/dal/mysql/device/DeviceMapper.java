@@ -32,6 +32,15 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .eq(DeviceDO::getId, id));
     }
 
+    /** 按租户+项目查询设备编号集合（配置日志项目维度筛选）。 */
+    default List<Long> selectIdsByTenantAndProject(Long tenantId, Long projectId) {
+        return selectList(new LambdaQueryWrapperX<DeviceDO>()
+                .select(DeviceDO::getId)
+                .eq(DeviceDO::getTenantId, tenantId)
+                .eq(DeviceDO::getProjectId, projectId))
+                .stream().map(DeviceDO::getId).toList();
+    }
+
     /** 客户删除守卫：按租户+客户统计设备引用数。 */
     default Long selectCountByCustomer(Long tenantId, Long customerId) {
         return selectCount(new LambdaQueryWrapperX<DeviceDO>()
@@ -51,7 +60,7 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .in(DeviceDO::getSn, sns));
     }
 
-    /** 设备档案分页（ast_device 承载，自 pms_equipment 旧链分页承接）。 */
+    /** 设备档案分页（ast_device 承载，自 pms_equipment_retired 旧链分页承接）。 */
     default PageResult<DeviceDO> selectArchivePage(Long tenantId, DeviceArchivePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DeviceDO>()
                 .eq(DeviceDO::getTenantId, tenantId)

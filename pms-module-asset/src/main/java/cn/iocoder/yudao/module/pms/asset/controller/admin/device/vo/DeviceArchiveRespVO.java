@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * 设备档案 Response VO（ast_device 承载，自 pms_equipment 旧链 RespVO 承接）。
+ * 设备档案 Response VO（ast_device 承载，自 pms_equipment_retired 旧链 RespVO 承接）。
  * <p>
  * 位置文本不再作为独立档案字段：ast_device 以 siteId/siteLocationId/locationResolutionStatus/
  * locationSnapshot/locationEffectiveFrom 表达当前位置，由安装完成动作生效。

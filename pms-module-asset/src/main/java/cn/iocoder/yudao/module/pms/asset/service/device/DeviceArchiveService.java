@@ -10,7 +10,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceVersionDO;
 import java.util.List;
 
 /**
- * 设备档案管理 Service（ast_device/ast_device_version 承载，自 pms_equipment 旧链承接）。
+ * 设备档案管理 Service（ast_device/ast_device_version 承载，自 pms_equipment_retired 旧链承接）。
  */
 public interface DeviceArchiveService {
 
