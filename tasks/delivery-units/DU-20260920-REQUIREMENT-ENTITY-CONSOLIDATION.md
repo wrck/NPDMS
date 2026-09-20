@@ -22,3 +22,7 @@ SOL继续唯一拥有正文与生命周期；当前实体与修订继承同一�
 ## 完成条件
 
 固定字段保存与回读、旧绑定和历史兼容、修订复制、扩展隔离、租户/权限/并发失败路径及附件批处理定向验证。数据库与浏览器未实际执行的部分如实保留，不能用编译代替业务验收。
+
+## 追加授权与边界（2026-09-20）
+
+需求方确认旧 sol-requirement 的 BUSINESS 写入口收敛为历史只读，INTERFACE 保持功能。追加 RequirementServiceImpl、ErrorCodeConstants 中专用错误码、旧 engineering/requirement/index.vue 及对应测试；不删除旧记录、不转换旧状态。实体收敛同时覆盖 RequirementAnalysisFields、EntityController 比较投影及 ImportMapper 类型映射。
