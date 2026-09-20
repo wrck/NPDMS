@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.integration.sync;
 import cn.iocoder.yudao.module.infra.api.db.ExternalDataSourceApi;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.util.TablesNamesFinder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
@@ -17,6 +18,8 @@ import java.util.function.Consumer;
 public class SpringJdbcStreamingReader {
     private final Optional<ExternalDataSourceApi> sources;
 
+    // 双构造并存时 Spring 无法自动选定注入构造器，缺 @Autowired 会退化为默认构造器实例化而启动失败。
+    @Autowired
     public SpringJdbcStreamingReader(Optional<ExternalDataSourceApi> sources) {
         this.sources=sources;
     }

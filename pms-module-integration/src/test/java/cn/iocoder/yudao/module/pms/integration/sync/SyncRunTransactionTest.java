@@ -179,9 +179,12 @@ class SyncRunTransactionTest {
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding",Integer.class));
         assertEquals(upper,context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
         runner.execute(id);
-        run(false);
+        String originalFields=jdbc.queryForObject("SELECT fields_json FROM int_sync_binding",String.class);
+        Long replay=run(false);
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM system_company",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT version FROM system_company",Integer.class));
+        assertEquals(replay,jdbc.queryForObject("SELECT last_run_id FROM int_sync_binding",Long.class));
+        assertEquals(originalFields,jdbc.queryForObject("SELECT fields_json FROM int_sync_binding",String.class));
     }
     @Test void evidenceFailureRollsBackOwnerAndMappingWithoutAdvancingCheckpoint()throws Exception {
         SyncEvidenceService evidence=org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(SyncEvidenceService.class));
@@ -206,6 +209,14 @@ class SyncRunTransactionTest {
         assertEquals(id,maintenance.getId());assertNotNull(maintenance.getConfigSnapshot());
         assertNull(maintenance.getResultJson());assertNull(maintenance.getEvidenceJson());
         assertEquals(512*1024,runner.required(id).getResultJson().length());
+        var cacheState=mapper.selectCacheState(new SyncQueries.Id(1L,id));
+        assertNull(cacheState.getResultJson());assertNull(cacheState.getEvidenceJson());
+        assertNull(mapper.selectCacheState(new SyncQueries.Id(2L,id)));
+        assertEquals(0,mapper.markCacheRefreshed(new SyncQueries.Id(2L,id)));
+        runner.refreshCache(id);
+        assertFalse(runner.required(id).getCachePending());
+        assertEquals(512*1024,runner.required(id).getResultJson().length());
+        assertEquals(512*1024,runner.required(id).getEvidenceJson().length());
         query.setTenantId(2L);assertTrue(mapper.selectPage(query).getList().isEmpty());
     }
     @Test void secondAdapterUsesTheSamePreviewCommitMappingAndReplayEngine()throws Exception {

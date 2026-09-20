@@ -93,6 +93,26 @@ class SyncConfigurationTest {
                 .columns(List.of("id")).filters(List.of(new SyncDefinition.Filter("id","OR","x"))).build();
         assertThrows(IllegalArgumentException.class,()->MysqlSyncReader.compile(source));
     }
+    @Test void compilesWhitelistedFunctionFiltersWithBoundValues() {
+        var source=SyncDefinition.Source.builder().readMode("TABLE").table("ehr_department").sourceKey("depID")
+                .columns(List.of("depID","depCode","depGrade"))
+                .filters(List.of(new SyncDefinition.Filter("depCode","=",6,"LENGTH"),
+                        new SyncDefinition.Filter("depGrade","<=",2),
+                        new SyncDefinition.Filter("depName","IS NULL",null,"TRIM")))
+                .build();
+        var result=MysqlSyncReader.compile(source);
+        assertTrue(result.sql().contains("LENGTH(`depCode`) = ?"));
+        assertTrue(result.sql().contains("`depGrade` <= ?"));
+        assertTrue(result.sql().contains("TRIM(`depName`) IS NULL"));
+        assertEquals(List.of(6,2),result.values());
+    }
+    @Test void rejectsUnknownFilterFunctions() {
+        for(String function:List.of("SLEEP","LENGTHB","concat")) {
+            var source=SyncDefinition.Source.builder().readMode("TABLE").table("company").sourceKey("id")
+                    .columns(List.of("id")).filters(List.of(new SyncDefinition.Filter("id","=",1,function))).build();
+            assertThrows(IllegalArgumentException.class,()->MysqlSyncReader.compile(source),function);
+        }
+    }
     @Test void integerConversionDoesNotTruncate() {
         assertEquals(7L,SyncFieldMapper.convert("7","LONG"));
         assertThrows(ArithmeticException.class,()->SyncFieldMapper.convert("7.5","LONG"));

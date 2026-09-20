@@ -80,6 +80,16 @@ public class DataSyncController {
     public CommonResult<SyncDefinition> orderTemplate(@RequestParam Long connectionId){
         connections.required(connectionId);return success(DppmsOrderSyncTemplate.create(connectionId));
     }
+    @GetMapping("/templates/dppms-execution-orders")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> executionOrderTemplate(@RequestParam Long connectionId){
+        connections.required(connectionId);return success(DppmsExecutionOrderSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/payment-plan-acceptance")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> paymentAcceptanceTemplate(@RequestParam Long connectionId){
+        connections.required(connectionId);return success(PaymentPlanSyncTemplate.create(connectionId));
+    }
     @GetMapping("/tasks/{id}")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<SyncTaskService.View> task(@PathVariable Long id){return success(tasks.get(id));}

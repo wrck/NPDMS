@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.PaymentAcceptanceMapper">
+    <select id="selectTargets" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.PaymentAcceptanceTarget">
+        SELECT n.id, n.project_id, n.version, n.acceptance_time, b.id AS binding_id, b.source_owner, b.source_key
+        FROM
+        <choose><when test="query.nodeType == 'STAGE'">proj_project_stage n</when><otherwise>proj_project_task n</otherwise></choose>
+        INNER JOIN proj_project p ON p.id = n.project_id AND p.tenant_id = n.tenant_id
+        LEFT JOIN proj_payment_acceptance_binding b ON b.tenant_id = n.tenant_id AND b.node_id = n.id AND b.node_type = #{query.nodeType}
+        WHERE n.tenant_id = #{query.tenantId} AND p.contract_no = #{query.contractNo}
+          AND p.deleted = 0 AND n.deleted = 0 AND p.lifecycle_status = 'ACTIVE'
+        <choose><when test="query.nodeType == 'STAGE'">AND n.stage_code = #{query.nodeCode}</when><otherwise>AND n.task_code = #{query.nodeCode}</otherwise></choose>
+        ORDER BY p.id, n.id
+        <if test="query.lock">FOR UPDATE</if>
+    </select>
+    <insert id="bind">
+        INSERT INTO proj_payment_acceptance_binding (id,tenant_id,node_type,node_id,source_owner,source_key,creator,updater)
+        VALUES (#{query.id},#{query.tenantId},#{query.nodeType},#{query.nodeId},#{query.sourceOwner},#{query.sourceKey},'payment_plan_sync','payment_plan_sync')
+    </insert>
+    <update id="updateAcceptance">
+        UPDATE <choose><when test="query.nodeType == 'STAGE'">proj_project_stage</when><otherwise>proj_project_task</otherwise></choose>
+        SET acceptance_time = #{query.acceptanceTime}, version = version + 1, updater = 'payment_plan_sync', update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND id = #{query.nodeId}
+          AND version = #{query.expectedVersion} AND deleted = 0
+    </update>
+</mapper>

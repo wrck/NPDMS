@@ -67,7 +67,10 @@ public class SyncDefinition {
         private List<Filter> filters;
         private List<Mapping> mappings;
     }
-    public record Filter(String column,String operator,Object value) {}
+    /** function wraps the column in a whitelist-only scalar function, e.g. LENGTH(depCode)=6. */
+    public record Filter(String column,String operator,Object value,String function) {
+        public Filter(String column,String operator,Object value) { this(column,operator,value,null); }
+    }
     @Data @Builder(toBuilder=true) @NoArgsConstructor @AllArgsConstructor(access=AccessLevel.PRIVATE)
     @JsonAutoDetect(fieldVisibility=JsonAutoDetect.Visibility.ANY, getterVisibility=JsonAutoDetect.Visibility.NONE)
     @Accessors(fluent=true)

@@ -113,20 +113,24 @@ public class SyncRunService {
         var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
         boolean acquired=false;
         List<SyncEvidenceService.Evidence> evidence=List.of();
+        var timing=new org.springframework.util.StopWatch();
         try {
             acquired=lock.tryLock(1,TimeUnit.SECONDS);
             if(!acquired)throw new IllegalStateException("目标范围正在由另一任务同步");
             updateStatus(runId,"READING");
             var task=taskService.required(r.getTaskId());
+            timing.start("read");
             var resolved=connections.resolve(d);
             var snapshot=r.getPageNumber()==null?reader.read(resolved,task.getCheckpoint(),r.getFullSnapshot()):
                     reader.readPage(resolved,JsonUtils.parseObject(r.getPagingJson(),SyncPagingState.class));
+            timing.stop();timing.start("stage");
             tx().executeWithoutResult(status->{
                 var current=required(runId);current.setSourceUpper(snapshot.upper());
                 current.setReadCount(snapshot.objects().stream().mapToInt(o->o.rows().size()).sum());
                 runs.updateById(current);
             });
             evidence=evidenceService.stage(runId,d,snapshot);
+            timing.stop();timing.start("plan");
             var es=evidence;
             tx().executeWithoutResult(status->{
                 var current=required(runId);current.setSourceUpper(snapshot.upper()).setEvidenceJson(JsonUtils.toJsonString(es));
@@ -136,8 +140,10 @@ public class SyncRunService {
             if((d.clearBeforeLoad()||d.resetMappingsBeforeLoad())&&snapshot.objects().stream().allMatch(o->o.rows().isEmpty()))
                 throw new IllegalArgumentException("来源为空，拒绝清空目标组织或重置映射");
             var adapter=validator.adapter(d.adapter());
-            List<DataSyncAdapter.Binding> existing=(d.clearBeforeLoad()||d.resetMappingsBeforeLoad())?List.of():
-                    adapter.requiresAllBindings()?loadBindings(task.getId()):loadPageBindings(task.getId(),d,snapshot);
+            List<SyncBindingDO> bindingRows=(d.clearBeforeLoad()||d.resetMappingsBeforeLoad())?List.of():
+                    adapter.requiresAllBindings()?bindings.selectTask(new SyncQueries.Task(SyncTaskService.tenant(),task.getId()))
+                            :loadPageBindingRows(task.getId(),d,snapshot);
+            var existing=bindingFacts(bindingRows);
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();
             rows=protectNewer(rows,existing,stale);
@@ -160,6 +166,7 @@ public class SyncRunService {
             // Formal execution does not run preview a second time. apply() executes inside this transaction;
             // any returned conflict is converted to an exception so all target writes roll back atomically.
             updateStatus(runId,"APPLYING");
+            timing.stop();timing.start("apply");
             var finalEvidence=evidence;
             tx().executeWithoutResult(status->{
                 if(d.clearBeforeLoad()) {
@@ -181,8 +188,11 @@ public class SyncRunService {
                 if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))throw new IllegalArgumentException("写入时发生业务冲突");
                 verifyPrimaryKeys(batch,changes);
                 List<DataSyncAdapter.Change> finalChanges=markStale(changes,stale);
-                persistBindings(t,d,finalChanges,runId);
+                timing.stop();timing.start("bindings");
+                persistBindings(t,d,finalChanges,runId,bindingRows);
+                timing.stop();timing.start("evidence");
                 evidenceService.complete(runId,d,finalEvidence,adapter.descriptor(),finalChanges.stream().filter(c->!"CLEARED".equals(c.action())).toList(),false);
+                timing.stop();timing.start("finish");
                 var current=required(runId);current.setStatus("SUCCESS").setResultJson(JsonUtils.toJsonString(finalChanges))
                         .setSummaryJson(summary(finalChanges)).setFinishedAt(LocalDateTime.now()).setCachePending(true);runs.updateById(current);
                 if(r.getPageNumber()!=null) { advancePage(r,d,snapshot,finalChanges);return; }
@@ -206,7 +216,12 @@ public class SyncRunService {
                 });
             }
             throw exception;
-        } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
+        } finally {
+            if(timing.isRunning())timing.stop();
+            log.info("Data sync run={} page={} phasesMs={}",runId,r.getPageNumber(),
+                    Arrays.stream(timing.getTaskInfo()).map(t->t.getTaskName()+":"+t.getTimeMillis()).toList());
+            if(acquired&&lock.isHeldByCurrentThread())lock.unlock();
+        }
     }
 
     private void executeStreaming(Long runId,SyncDefinition d)throws Exception {
@@ -275,7 +290,8 @@ public class SyncRunService {
             var state=current.getPagingJson()==null?SyncStreamingState.start(chunk.upper()):
                     JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
             if(state.sourceIndex()!=chunk.sourceIndex())throw new IllegalStateException("流式来源断点与当前游标不一致");
-            var existing=loadPageBindings(task.getId(),d,snapshot);
+            var bindingRows=loadPageBindingRows(task.getId(),d,snapshot);
+            var existing=bindingFacts(bindingRows);
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
             var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
@@ -286,7 +302,7 @@ public class SyncRunService {
                 throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
             verifyPrimaryKeys(batch,changes);
             var finalChanges=markStale(changes,stale);
-            if(!current.getPreview())persistBindings(t,d,finalChanges,runId);
+            if(!current.getPreview())persistBindings(t,d,finalChanges,runId,bindingRows);
             evidenceService.complete(runId,d,evidence,adapter.descriptor(),
                     current.getPreview()?List.of():finalChanges,false);
             state=state.committed(chunk.lastKey(),chunk.rows().size());
@@ -378,10 +394,13 @@ public class SyncRunService {
         mergeSummary(root,changes);runs.updateById(root);
     }
     public void refreshCache(Long runId) {
-        var r=required(runId);if(!"SUCCESS".equals(r.getStatus())||!r.getCachePending())return;
+        var query=new SyncQueries.Id(SyncTaskService.tenant(),runId);
+        var r=tx().execute(s->runs.selectCacheState(query));
+        if(r==null)throw new IllegalArgumentException("运行记录不存在");
+        if(!"SUCCESS".equals(r.getStatus())||!r.getCachePending())return;
         try {
             validator.adapter(JsonUtils.parseObject(r.getConfigSnapshot(),SyncDefinition.class).adapter()).refreshCaches();
-            tx().executeWithoutResult(s->{var row=required(runId);row.setCachePending(false);runs.updateById(row);});
+            tx().executeWithoutResult(s->runs.markCacheRefreshed(query));
         }catch(RuntimeException ex){
             log.warn("Organization cache refresh pending for run {}: {}",runId,ex.getClass().getSimpleName());
         }
@@ -410,45 +429,54 @@ public class SyncRunService {
             } finally {lock.unlock();}
         }
     }
-    private void persistBindings(SyncTaskDO task,SyncDefinition d,List<DataSyncAdapter.Change> changes,Long runId) {
+    private void persistBindings(SyncTaskDO task,SyncDefinition d,List<DataSyncAdapter.Change> changes,Long runId,
+                                 List<SyncBindingDO> bindingRows) {
         boolean targetShared=validator.adapter(d.adapter()).sharesTargetAcrossSources();
         Map<String,SyncBindingDO> existing=new HashMap<>();
-        Map<String,List<String>> keys=new LinkedHashMap<>();
-        changes.stream().filter(c->c.targetId()!=null).forEach(c->keys.computeIfAbsent(c.object(),k->new ArrayList<>()).add(c.sourceKey()));
-        keys.forEach((object,sourceKeys)->selectPageBindings(task.getId(),object,sourceKeys)
-                .forEach(b->existing.put(b.getObjectKey()+":"+b.getSourceKey(),b)));
+        // All binding writers hold the same adapter lock; reuse this chunk's protected snapshot.
+        bindingRows.forEach(b->existing.put(b.getObjectKey()+":"+b.getSourceKey(),b));
         List<SyncBindingDO> created=new ArrayList<>(),updated=new ArrayList<>();
+        List<Long> unchanged=new ArrayList<>();
         for(var c:changes) {
             if(c.targetId()==null||Set.of("SKIPPED","CLEARED").contains(c.action()))continue;
             var b=existing.get(c.object()+":"+c.sourceKey());boolean fresh=b==null;
+            String fieldsJson=JsonUtils.toJsonString(c.after());
+            if(!fresh && Objects.equals(b.getTargetId(),c.targetId())
+                    && (Objects.equals(b.getFieldsJson(),fieldsJson)
+                        || Objects.equals(JsonUtils.parseTree(b.getFieldsJson()),JsonUtils.parseTree(fieldsJson)))
+                    && Boolean.TRUE.equals(b.getTargetShared())==targetShared) {
+                unchanged.add(b.getId());continue;
+            }
             if(fresh)b=new SyncBindingDO().setTaskId(task.getId()).setObjectKey(c.object()).setSourceKey(c.sourceKey())
                     .setSourceObject(d.sources().stream().filter(s->s.object().equals(c.object())).findFirst().orElseThrow().sourceObject());
-            b.setTenantId(task.getTenantId());b.setTargetId(c.targetId()).setFieldsJson(JsonUtils.toJsonString(c.after())).setLastRunId(runId);
+            b.setTenantId(task.getTenantId());b.setTargetId(c.targetId()).setFieldsJson(fieldsJson).setLastRunId(runId);
             b.setTargetShared(targetShared);
             if(fresh) {b.setCreator("data_sync");b.setUpdater("data_sync");created.add(b);}
             else {b.setUpdater("data_sync");b.setUpdateTime(LocalDateTime.now());updated.add(b);}
         }
         if(!created.isEmpty())bindings.insertBatch(created,1000);
         if(!updated.isEmpty())bindings.updateBatch(updated,1000);
+        for(int start=0;start<unchanged.size();start+=1000)
+            bindings.updateLastRun(new SyncQueries.BindingRun(task.getTenantId(),task.getId(),runId,
+                    unchanged.subList(start,Math.min(start+1000,unchanged.size())),LocalDateTime.now()));
     }
-    private List<DataSyncAdapter.Binding> loadBindings(Long taskId) {
-        return bindings.selectTask(new SyncQueries.Task(SyncTaskService.tenant(),taskId)).stream()
+    private static List<DataSyncAdapter.Binding> bindingFacts(List<SyncBindingDO> rows) {
+        return rows.stream()
                 .map(b->new DataSyncAdapter.Binding(b.getObjectKey(),b.getSourceKey(),b.getTargetId(),JsonUtils.parseMap(b.getFieldsJson()))).toList();
     }
-    private List<DataSyncAdapter.Binding> loadPageBindings(Long taskId,SyncDefinition definition,MysqlSyncReader.Snapshot snapshot) {
-        List<DataSyncAdapter.Binding> result=new ArrayList<>();
+    private List<SyncBindingDO> loadPageBindingRows(Long taskId,SyncDefinition definition,MysqlSyncReader.Snapshot snapshot) {
+        List<SyncBindingDO> result=new ArrayList<>();
         for(var object:snapshot.objects()) {
             var source=definition.sources().stream().filter(s->s.object().equals(object.object())).findFirst().orElseThrow();
             var keys=object.rows().stream().map(r->r.get(source.sourceKey()).toString()).toList();
-            selectPageBindings(taskId,object.object(),keys).forEach(b->result.add(new DataSyncAdapter.Binding(
-                    b.getObjectKey(),b.getSourceKey(),b.getTargetId(),JsonUtils.parseMap(b.getFieldsJson()))));
+            result.addAll(selectPageBindings(taskId,object.object(),source.sourceObject(),keys));
         }
         return result;
     }
-    private List<SyncBindingDO> selectPageBindings(Long taskId,String object,List<String> keys) {
+    private List<SyncBindingDO> selectPageBindings(Long taskId,String object,String sourceObject,List<String> keys) {
         List<SyncBindingDO> result=new ArrayList<>();
         for(int start=0;start<keys.size();start+=1000)
-            result.addAll(bindings.selectSourceKeys(new SyncQueries.SourceKeys(SyncTaskService.tenant(),taskId,object,
+            result.addAll(bindings.selectSourceKeys(new SyncQueries.SourceKeys(SyncTaskService.tenant(),taskId,object,sourceObject,
                     keys.subList(start,Math.min(start+1000,keys.size())))));
         return result;
     }

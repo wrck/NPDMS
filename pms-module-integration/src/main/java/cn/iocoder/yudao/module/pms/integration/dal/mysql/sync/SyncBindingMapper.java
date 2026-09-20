@@ -15,10 +15,12 @@ public interface SyncBindingMapper extends BaseMapperX<SyncBindingDO> {
         if(query.sourceKeys()==null || query.sourceKeys().isEmpty()) return List.of();
         return selectList(new LambdaQueryWrapperX<SyncBindingDO>()
             .eq(SyncBindingDO::getTenantId,query.tenantId()).eq(SyncBindingDO::getTaskId,query.taskId())
+            .eq(SyncBindingDO::getSourceObject,query.sourceObject())
             .eq(SyncBindingDO::getObjectKey,query.object()).in(SyncBindingDO::getSourceKey,query.sourceKeys()));
     }
     int deleteAdapterBindings(SyncQueries.AdapterScope query);
     int deleteTaskBindings(SyncQueries.Task query);
+    int updateLastRun(SyncQueries.BindingRun query);
     default SyncBindingDO selectScoped(SyncQueries.Id query) {
         return selectOne(new LambdaQueryWrapperX<SyncBindingDO>().eq(SyncBindingDO::getTenantId,query.tenantId())
             .eq(SyncBindingDO::getId,query.id()));

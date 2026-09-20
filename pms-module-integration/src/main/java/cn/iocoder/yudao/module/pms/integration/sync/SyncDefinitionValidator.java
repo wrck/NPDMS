@@ -86,7 +86,7 @@ public class SyncDefinitionValidator {
             for(var m:s.mappings()) {
                 if(!mapped.add(m.target())||object.fields().stream().noneMatch(f->f.name().equals(m.target())))
                     throw new IllegalArgumentException("未知或重复目标字段");
-                if(!Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","ENUM","CONSTANT","REFERENCE").contains(m.conversion()))
+                if(!Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","ENUM","LOOKUP","CONSTANT","REFERENCE").contains(m.conversion()))
                     throw new IllegalArgumentException("转换方式无效");
                 if(!"CONSTANT".equals(m.conversion())) MysqlSyncReader.identifier(m.source());
             }

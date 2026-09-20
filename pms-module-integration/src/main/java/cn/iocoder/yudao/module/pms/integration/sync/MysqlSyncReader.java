@@ -26,6 +26,7 @@ public class MysqlSyncReader {
     public record Table(String name, String type) {}
     public record Metadata(List<Table> tables) {}
     private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+    static final Set<String> FILTER_FUNCTIONS=Set.of("LENGTH","CHAR_LENGTH","UPPER","LOWER","TRIM","ABS");
     private static final Pattern UNSAFE = Pattern.compile(
             "(?i)\\b(INTO|OUTFILE|DUMPFILE|FOR\\s+UPDATE|FOR\\s+SHARE|LOCK\\s+IN|SLEEP|BENCHMARK|GET_LOCK|RELEASE_LOCK|LOAD_FILE)\\b|:=|@");
 
@@ -182,6 +183,10 @@ public class MysqlSyncReader {
         List<String> predicates=new ArrayList<>();
         for(var f:source.filters()==null?List.<SyncDefinition.Filter>of():source.filters()) {
             String col=identifier(f.column());
+            if(f.function()!=null&&!f.function().isBlank()) {
+                if(!FILTER_FUNCTIONS.contains(f.function())) throw new IllegalArgumentException("不支持的筛选函数: "+f.function());
+                col=f.function()+"("+col+")";
+            }
             if(Set.of("IS NULL","IS NOT NULL").contains(f.operator())) predicates.add(col+" "+f.operator());
             else if("IN".equals(f.operator())) {
                 if(!(f.value() instanceof List<?> list)) throw new IllegalArgumentException("IN 筛选必须是数组");
