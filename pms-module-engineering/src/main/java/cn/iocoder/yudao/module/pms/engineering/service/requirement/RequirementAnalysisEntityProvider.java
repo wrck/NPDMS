@@ -266,7 +266,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         Map<String, String> fields = new LinkedHashMap<>();
         FIELDS.fields().forEach(field -> fields.put(cn.hutool.core.util.StrUtil.toUnderlineCase(field.code()).toUpperCase(java.util.Locale.ROOT), field.code()));
         forms.bind(new EntityFormApi.Bind(EntityDataRef.revision(row.revisionRef()), actor, row.getVersion(),
-                0, formRevision, null, fields));
+                0, formRevision, null, fields, true));
     }
 
     private RequirementAnalysisRevisionDO revision(EntityDataRef target, EntityActor actor) {

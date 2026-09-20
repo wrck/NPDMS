@@ -1,6 +1,6 @@
 <template>
   <section class="requirement-form-shell" aria-label="需求分析动态表单">
-    <div v-form-create-keyboard-rows="!editable" class="form-host">
+    <div v-form-create-keyboard-rows="!editable" class="form-host" :class="{ 'is-readonly': !editable }">
       <form-create
         v-model="values"
         v-model:api="formApi"
@@ -64,7 +64,8 @@ const pendingKey = computed(
 const dirty = computed(() =>
   Object.keys(changedOrdinaryValues(values.value, baseline.value, ordinaryFields.value)).length > 0
 )
-const cloneValues = (source: JsonObject): JsonObject => structuredClone(toRaw(source))
+// Form values are JSON; nested arrays/rows can still be Vue proxies after mapping field keys.
+const cloneValues = (source: JsonObject): JsonObject => JSON.parse(JSON.stringify(source))
 
 const readPending = (): JsonObject | undefined => {
   const raw = sessionStorage.getItem(pendingKey.value)
@@ -94,6 +95,18 @@ const apply = (detail: View, preserve?: JsonObject) => {
         type: 'input', props: { type: 'textarea' }, validate: field.required ? [{ required: true, message: '请填写此项' }] : [] })) }
   const fields = collectValueFields(decoded.rule as JsonObject[])
   const visit = (rules: JsonObject[]) => rules.forEach(rule => {
+    // Display-only layout: preserve the frozen field bindings, validation and stored values.
+    const code = detail.form?.binding.fieldBindings[String(rule.field)] || String(rule.field)
+    const titles: Record<string, string> = {
+      TRANSMISSION_REQUIREMENT: '传输现状说明', TRAFFIC_REQUIREMENT: '流量现状说明',
+      BUSINESS_REQUIREMENT: '运行业务情况说明', IP_PLANNING: 'IP资源情况说明',
+      REDUNDANCY_REQUIREMENT: '冗余备份要求', SECURITY_PROTECTION: '本机防护要求',
+      OPERATIONS_REQUIREMENT: '运维管理要求', LOGGING_REQUIREMENT: '日志留存要求'
+    }
+    if (titles[code]) rule.title = titles[code]
+    if (rule.type === 'Editor') {
+      rule.props = { height: '180px', ...((rule.props as JsonObject) || {}) }
+    }
     if (rule.type === 'PmsFileArtifact' && typeof rule.field === 'string') {
       const set = detail.attachments.find(item => item.key.purposeCode === `FORM_FIELD_ATTACHMENT/${rule.field}`)
       rule.type = 'RequirementRevisionFiles'
@@ -108,7 +121,9 @@ const apply = (detail: View, preserve?: JsonObject) => {
   values.value = { ...cloneValues(baseline.value), ...(preserve || {}) }
   editorReadonlyDefaults.clear()
   updateEditorReadonly(decoded.rule as JsonObject[])
-  render.option = { ...decoded.option, submitBtn: false, resetBtn: false }
+  render.option = { ...decoded.option,
+    form: { ...(((decoded.option as JsonObject).form as JsonObject) || {}), labelPosition: 'top' },
+    submitBtn: false, resetBtn: false }
   render.rule = decoded.rule as JsonObject[]
   ordinaryFields.value = fields.ordinary
 }
@@ -142,9 +157,15 @@ const save = async () => {
     message.info('普通字段没有变化')
     return true
   }
-  const payload = { ...businessPatch(props.detail, patch.values), ...(execution ? { execution } : {}) }
-  const intent = stableCommandIntent(`requirement-save:${entityId}`, { version: props.detail.revision.version, payload })
   sessionStorage.setItem(cacheKey, JSON.stringify(patch.values))
+  let payload: ReturnType<typeof businessPatch> & { execution?: typeof execution }
+  try {
+    payload = { ...businessPatch(props.detail, patch.values), ...(execution ? { execution } : {}) }
+  } catch (error) {
+    message.warning(error instanceof Error ? error.message : '表单字段绑定无效，已保留填写内容')
+    return false
+  }
+  const intent = stableCommandIntent(`requirement-save:${entityId}`, { version: props.detail.revision.version, payload })
   saving.value = true
   try {
     await RequirementAnalysisApi.save(props.detail.revision, payload, intent.key)
@@ -234,6 +255,17 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
 .form-host {
   width: 100%;
 }
+
+.form-host :deep(.el-form-item) { margin-bottom: 24px; }
+.form-host :deep(.el-form-item__label) { font-weight: 600; color: var(--el-text-color-primary); }
+.form-host :deep(.el-form-item__content > div:has(.w-e-text-container)) { width: 100%; border-color: var(--el-border-color); border-radius: var(--el-border-radius-base); overflow: hidden; }
+.form-host.is-readonly :deep(.el-form-item__content > div > div:has(> .w-e-text-container)) { height: auto !important; }
+.form-host.is-readonly :deep(.w-e-toolbar) { display: none; }
+.form-host.is-readonly :deep(.w-e-text-container) { height: auto !important; min-height: 64px; background: var(--el-fill-color-extra-light); }
+.form-host.is-readonly :deep(.w-e-scroll) { overflow: visible; }
+.form-host.is-readonly :deep(.el-form-item.is-required > .el-form-item__label::before) { display: none; }
+.form-host :deep(.el-checkbox-group) { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.form-host :deep(.el-checkbox) { margin-right: 0; }
 
 @media (width <= 767px) {
   .form-actions,

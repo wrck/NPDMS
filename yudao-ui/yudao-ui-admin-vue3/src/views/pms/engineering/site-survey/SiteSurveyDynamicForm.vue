@@ -70,7 +70,16 @@ const load = async () => {
       items.forEach((rule) => {
         if (!rule || typeof rule !== 'object') return
         if (rule.type in businessComponents) {
-          if (rule.type === 'SurveyOutsourceShortcut') integratedOutsource = true
+          if (rule.type === 'SurveyOutsourceShortcut') {
+            integratedOutsource = true
+            // Demo 2.2 第8项联动：模板含第8项时才启用 是→显示/否→隐藏清空 的可见性契约
+            rule.props = {
+              ...rule.props,
+              hasManufacturerQuestion: decoded.rule.some(
+                (item: any) => item?.field === 'extra_manufacturerInstallation'
+              )
+            }
+          }
           rule.props = {
             ...rule.props,
             getSurvey: () => props.modelValue,

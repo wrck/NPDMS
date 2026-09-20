@@ -11,6 +11,7 @@ import java.util.List;
 
 @Mapper
 public interface ExternalKeyMappingMapper extends BaseMapperX<ExternalKeyMappingDO> {
+    int insertRows(@org.apache.ibatis.annotations.Param("rows") List<ExternalKeyMappingDO> rows);
 
     default List<ExternalKeyMappingDO> selectSourcePage(MigrationSourcePageQuery query) {
         if (query.sourceRecordIds() == null || query.sourceRecordIds().isEmpty()) return List.of();

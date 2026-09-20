@@ -1,5 +1,6 @@
 <template>
-  <div class="controlled-file-field">
+  <details class="controlled-file-field">
+    <summary>附件<span v-if="current.length">（{{ current.length }}）</span><span v-else> · {{ canWrite ? '添加文件' : '暂无文件' }}</span></summary>
     <div v-for="fact in current" :key="fact.referenceKey" class="file-slot">
       <PmsFileReferenceList
         owner-context="SOL"
@@ -44,7 +45,7 @@
       @completed="handleCompleted"
     />
     <el-empty v-else-if="!current.length" description="暂无文件材料" :image-size="56" />
-  </div>
+  </details>
 </template>
 
 <script setup lang="ts">
@@ -140,4 +141,10 @@ watch(
     width: 100%;
   }
 }
+</style>
+
+<style scoped>
+summary { cursor: pointer; color: var(--el-color-primary); font-size: 13px; padding: 8px 0; }
+summary span { color: var(--el-text-color-secondary); }
+details[open] summary { margin-bottom: 8px; }
 </style>

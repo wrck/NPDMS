@@ -28,7 +28,7 @@ export interface FormLayout {
   rendererVersion: string
   formConfJson: string
   formRulesJson: string
-  fields: Array<{ fieldKey: string; controlledFile: boolean; required: boolean }>
+  fields: Array<{ fieldKey: string; componentType?: string; controlledFile: boolean; required: boolean }>
 }
 export interface View {
   projectId: EntityId

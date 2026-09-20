@@ -225,6 +225,31 @@ class PlatformMigrationEvidenceMySqlTest {
     }
 
     @Test
+    void largeSourcePagesRemainAtomicAcrossInsertPackets() {
+        var created = createBatch(prefix + "-large-source", 3);
+        String payload = "{\"value\":\"" + "x".repeat(1536 * 1024) + "\"}";
+        var time = LocalDateTime.now().withNano(0);
+        var records = java.util.stream.IntStream.range(0, 3).mapToObj(index ->
+                new AppendMigrationSourceRecordCommand(TENANT_ID, created.batchId(), "ERP", "orders",
+                        "large-" + index, null, payload, SHA256, time, prefix + "-large-source")).toList();
+        var page = new AppendMigrationSourceRecordsCommand(records);
+        transactionTemplate.executeWithoutResult(status -> {
+            assertEquals(3, api.appendSourceRecords(page).size());
+            status.setRollbackOnly();
+        });
+        assertEquals(0L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_migration_source_record WHERE tenant_id=? AND batch_id=?",
+                Long.class, TENANT_ID, created.batchId()));
+        var inserted = api.appendSourceRecords(page);
+        assertEquals(inserted.stream().map(MigrationSourceRecordFact::sourceRecordId).toList(),
+                api.appendSourceRecords(page).stream().map(MigrationSourceRecordFact::sourceRecordId).toList());
+        assertEquals(List.of(1536 * 1024, 1536 * 1024, 1536 * 1024), jdbcTemplate.queryForList(
+                "SELECT CHAR_LENGTH(JSON_UNQUOTE(JSON_EXTRACT(source_payload,'$.value'))) "
+                        + "FROM plt_migration_source_record WHERE tenant_id=? AND batch_id=?",
+                Integer.class, TENANT_ID, created.batchId()));
+    }
+
+    @Test
     void claimRequiresCallerTransactionAndLeavesStagedBatchUntouched() {
         MigrationBatchFact created = createBatch(prefix + "-mandatory", 0);
         stage(created, 0);

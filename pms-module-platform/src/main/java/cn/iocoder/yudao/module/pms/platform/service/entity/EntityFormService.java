@@ -74,13 +74,18 @@ public class EntityFormService implements EntityFormApi {
             throw exception(ENTITY_VALUE_INVALID);
         }
         Long definitionId = command.extensionDefinitionRevisionId();
+        Map<String, String> bindings = new LinkedHashMap<>(command.fieldBindings());
+        if (command.bindRemainingFields()) {
+            schema.ordinaryFieldKeys().forEach(key -> bindings.putIfAbsent(key, key));
+            if (new HashSet<>(bindings.values()).size() != bindings.size()) throw exception(ENTITY_VALUE_INVALID);
+        }
         if (definitionId == null) {
             // A published layout is already authorized above. Materialize its extension definition
             // before the first business save; operators need no template-management permission.
             var definitions = schema.descriptors().stream()
-                    .filter(field -> command.fieldBindings().containsKey(field.fieldKey())
-                            && !fields.contains(command.fieldBindings().get(field.fieldKey())))
-                    .map(field -> EntityExtensionValidation.fromForm(field, command.fieldBindings().get(field.fieldKey())))
+                    .filter(field -> bindings.containsKey(field.fieldKey())
+                            && !fields.contains(bindings.get(field.fieldKey())))
+                    .map(field -> EntityExtensionValidation.fromForm(field, bindings.get(field.fieldKey())))
                     .toList();
             if (!definitions.isEmpty()) definitionId = definitionForForm(command, definitions);
         }
@@ -88,7 +93,7 @@ public class EntityFormService implements EntityFormApi {
             extensions.definition(definitionId, entity, command.actor()).fields()
                     .forEach(field -> fields.add(field.code()));
         }
-        if (!fields.containsAll(command.fieldBindings().values())) throw exception(ENTITY_VALUE_INVALID);
+        if (!fields.containsAll(bindings.values())) throw exception(ENTITY_VALUE_INVALID);
         var old = mapper.lockBinding(EntityValueQuery.of(command.target()));
         if ((old == null ? 0 : old.getVersion()) != command.expectedBindingVersion()) throw exception(ENTITY_VALUE_VERSION_CONFLICT);
         var row = old == null ? new EntityFormBindingDO() : old;
@@ -99,7 +104,7 @@ public class EntityFormService implements EntityFormApi {
         row.setRevisionId(command.target().revisionId() == null ? 0L : command.target().revisionId());
         row.setFormRevisionId(command.formRevisionId());
         row.setExtensionDefinitionRevisionId(definitionId);
-        row.setFieldBindingsJson(JsonUtils.toJsonString(command.fieldBindings()));
+        row.setFieldBindingsJson(JsonUtils.toJsonString(bindings));
         row.setUpdater(command.actor().userId().toString());
         if (old == null) {
             row.setId(IdWorker.getId());

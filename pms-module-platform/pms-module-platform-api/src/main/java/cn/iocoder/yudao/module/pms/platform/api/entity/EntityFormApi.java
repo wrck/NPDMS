@@ -14,7 +14,14 @@ public interface EntityFormApi {
     record Binding(Long formRevisionId, Long extensionDefinitionRevisionId, Map<String, String> fieldBindings, int version) {}
     record Bind(EntityDataRef target, EntityActor actor, Integer expectedEntityVersion,
                 int expectedBindingVersion, Long formRevisionId, Long extensionDefinitionRevisionId,
-                Map<String, String> fieldBindings) {}
+                Map<String, String> fieldBindings, boolean bindRemainingFields) {
+        public Bind(EntityDataRef target, EntityActor actor, Integer expectedEntityVersion,
+                    int expectedBindingVersion, Long formRevisionId, Long extensionDefinitionRevisionId,
+                    Map<String, String> fieldBindings) {
+            this(target, actor, expectedEntityVersion, expectedBindingVersion, formRevisionId,
+                    extensionDefinitionRevisionId, fieldBindings, false);
+        }
+    }
     record Layout(Binding binding, Long templateId, int revisionNo, int formVersion,
                   String engineCode, String designerVersion, String rendererVersion,
                   String formConfJson, String formRulesJson, List<DynamicFormFieldDescriptor> fields) {}

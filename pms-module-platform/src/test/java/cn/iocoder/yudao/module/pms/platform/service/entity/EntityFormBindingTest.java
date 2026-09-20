@@ -81,6 +81,21 @@ class EntityFormBindingTest {
         verify(mapper, never()).insertDefinition(any());
     }
 
+    @Test void optInBindingPersistsAdditionalCheckboxAndBusinessDetailRows() {
+        revision.setFormRulesJson("[{\"type\":\"input\",\"field\":\"power\"},"
+                + "{\"type\":\"checkbox\",\"field\":\"tags\",\"options\":[{\"value\":\"A\"}]},"
+                + "{\"type\":\"group\",\"field\":\"devices\",\"props\":{\"rule\":[{\"type\":\"input\",\"field\":\"serial\"}]}},"
+                + "{\"type\":\"PmsFileArtifact\",\"field\":\"ATTACHMENT\"}]");
+        var binding = service.bind(new EntityFormApi.Bind(target, actor, 1, 0, 10L, null,
+                Map.of("power", "powerSupply"), true));
+        assertEquals(Map.of("power", "powerSupply", "tags", "tags", "devices", "devices"), binding.fieldBindings());
+        var values = Map.<String, Object>of("tags", List.of("A"), "devices", List.of(Map.of("serial", "SN001")));
+        assertEquals(values, extensions.save(new EntityExtensionApi.Save(target, actor, 1, 0,
+                binding.extensionDefinitionRevisionId(), values)).fields());
+        assertThrows(RuntimeException.class, () -> extensions.save(new EntityExtensionApi.Save(target, actor, 1, 0,
+                binding.extensionDefinitionRevisionId(), Map.of("devices", List.of("wrong row type")))));
+    }
+
     @Test void rejectedOwnerWriteAndUnpublishedTemplateCannotCreateDefinitions() {
         doThrow(new IllegalStateException("frozen")).when(registry).lockForWrite(any(), any(), any());
         assertThrows(IllegalStateException.class, () -> service.bind(command()));

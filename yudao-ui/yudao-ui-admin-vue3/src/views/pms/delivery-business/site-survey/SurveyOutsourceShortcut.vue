@@ -1,5 +1,5 @@
 <template>
-  <section v-if="survey" class="shortcut" aria-label="整单转包">
+  <section v-if="survey && outsourceEligible" class="shortcut" aria-label="整单转包">
     <el-checkbox
       :model-value="!!survey.outsourceRequired"
       :disabled="readonly"
@@ -26,16 +26,38 @@
   </section>
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watchEffect } from 'vue'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import { outsourceDetailUrl } from './siteSurveyOutsource'
+import { extractSurveyValues } from './siteSurveyForm'
 const props = defineProps<{
   getSurvey?: () => SiteSurveyVO
   readonly?: boolean
+  hasManufacturerQuestion?: boolean
   updateRequired?: (value: boolean) => void
   launch?: (kind: string) => void
 }>()
 const survey = computed(() => props.getSurvey?.())
+// Demo 2.2 第8项联动：模板含第8项时，仅“上架加电需要原厂实施”为是才展示外包子块，
+// 选否时清空未提交的转包标记（不撤回已提交申请）；模板缺该项时保持原可见性。
+const manufacturerValue = computed(() => {
+  if (props.hasManufacturerQuestion !== true || !survey.value) return undefined
+  return (extractSurveyValues(survey.value) as Record<string, unknown>)['extra_manufacturerInstallation']
+})
+const outsourceEligible = computed(() => {
+  if (props.hasManufacturerQuestion !== true) return true
+  return manufacturerValue.value === true
+})
+watchEffect(() => {
+  if (
+    props.hasManufacturerQuestion === true &&
+    manufacturerValue.value === false &&
+    survey.value?.outsourceRequired &&
+    !survey.value.outsourceRequestId &&
+    !props.readonly
+  )
+    props.updateRequired?.(false)
+})
 </script>
 <style scoped>
 .shortcut {

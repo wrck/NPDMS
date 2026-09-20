@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, ref, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '@/api/pms/engineering/requirement-analysis/entity'
 import type { View } from '@/api/pms/engineering/requirement-analysis/entity'
@@ -30,6 +30,18 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
 describe('independent requirement entity form', () => {
+  it('initializes unpublished values for R2 multi-select and device rows as arrays and saves them as extensions', () => {
+    const view = detail()
+    view.form!.binding.fieldBindings.tags = 'tags'
+    view.form!.binding.fieldBindings.devices = 'devices'
+    view.form!.fields = [
+      { fieldKey: 'tags', componentType: 'checkbox', controlledFile: false, required: false },
+      { fieldKey: 'devices', componentType: 'group', controlledFile: false, required: false }
+    ]
+    expect(formValues(view)).toMatchObject({ tags: [], devices: [] })
+    expect(businessPatch(view, { tags: ['IPv6'], devices: [{ serialNumber: 'SN001' }] }).extensionValues)
+      .toMatchObject({ tags: ['IPv6'], devices: [{ serialNumber: 'SN001' }] })
+  })
   it('maps fixed and extension fields without losing false, zero or untouched extensions', () => {
     const view = detail()
     expect(formValues(view)).toEqual({ PROJECT_BACKGROUND: 'original', count: 4, enabled: true })
@@ -46,6 +58,15 @@ describe('independent requirement entity form', () => {
     expect(await form.value.save()).toBe(true)
     expect(api.save).toHaveBeenCalledWith(view.revision, { values: { projectBackground: 'changed' }, expectedExtensionVersion: 3, extensionDefinitionRevisionId: '80', extensionValues: { count: 0, enabled: false } }, expect.any(String))
     expect(reload).toHaveBeenCalledOnce(); expect(form.value.isDirty()).toBe(false)
+    mounted.app.unmount()
+  })
+  it('reopens nested reactive extension rows without cloning a Vue proxy', async () => {
+    const view = reactive(detail()), form = ref<any>()
+    view.form!.binding.fieldBindings.devices = 'devices'
+    view.values.devices = [{ serialNumber: 'SN001' }]
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: view, ref: form }) }), {}, { 'form-create': renderer })
+    await nextTick()
+    expect(form.value.isDirty()).toBe(false)
     mounted.app.unmount()
   })
   it('keeps local changes on failed save and prevents writing a frozen revision', async () => {

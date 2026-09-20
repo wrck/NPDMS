@@ -77,7 +77,16 @@ const load = async () => {
         if (rule.type === 'checkbox' && rule.field in initialValues && initialValues[rule.field] == null)
           initialValues[rule.field] = []
         if (rule.type in businessComponents) {
-          if (rule.type === 'SurveyOutsourceShortcut') integratedOutsource = true
+          if (rule.type === 'SurveyOutsourceShortcut') {
+            integratedOutsource = true
+            // Demo 2.2 第8项联动：模板含第8项时才启用 是→显示/否→隐藏清空 的可见性契约
+            rule.props = {
+              ...rule.props,
+              hasManufacturerQuestion: decoded.rule.some(
+                (item: any) => item?.field === 'extra_manufacturerInstallation'
+              )
+            }
+          }
           rule.type = `Entity${rule.type}`
           rule.props = {
             ...rule.props,
