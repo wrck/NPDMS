@@ -39,7 +39,9 @@ public class YudaoMybatisAutoConfiguration {
         // 动态 SQL 智能优化支持本地缓存加速解析，更完善的租户复杂 XML 动态 SQL 支持，静态注入缓存
         JsqlParserGlobal.setJsqlParseCache(new JdkSerialCaffeineJsqlParseCache(
                 (cache) -> cache.maximumSize(1024)
-                        .expireAfterWrite(5, TimeUnit.SECONDS))
+                        // ASTs are keyed by SQL text and deserialized per use, before tenant injection.
+                        // Keep hot batch statements instead of reparsing them every five seconds.
+                        .expireAfterAccess(5, TimeUnit.MINUTES))
         );
     }
 
