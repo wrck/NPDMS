@@ -273,7 +273,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         published.setDesignerSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
         published.setDesignerDocument(JsonUtils.toJsonString(designer));
         published.setExecutionSchemaVersion(snapshot.getExecutionSchemaVersion());
-        published.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        published.setExecutionSnapshot(TemplateExecutionSnapshot.freezeJson(snapshot));
         published.setCompilerVersion(snapshot.getCompilerVersion());
         published.setSnapshotHash(compilation.snapshotHash());
         published.setValidationSummary("完整版本冻结发布校验通过");

@@ -4,24 +4,25 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvrule.vo.SrvRulePageReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvrule.SrvRuleDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvrule.SrvRuleRetiredDO;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface SrvRuleMapper extends BaseMapperX<SrvRuleDO> {
+@Deprecated
+public interface SrvRuleMapper extends BaseMapperX<SrvRuleRetiredDO> {
 
-    default SrvRuleDO selectByCode(String code) {
-        return selectOne(SrvRuleDO::getCode, code);
+    default SrvRuleRetiredDO selectByCodeRetired(String code) {
+        return selectOne(SrvRuleRetiredDO::getCode, code);
     }
 
-    default PageResult<SrvRuleDO> selectPage(SrvRulePageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<SrvRuleDO>()
-                .likeIfPresent(SrvRuleDO::getCode, reqVO.getCode())
-                .likeIfPresent(SrvRuleDO::getName, reqVO.getName())
-                .eqIfPresent(SrvRuleDO::getRuleType, reqVO.getRuleType())
-                .eqIfPresent(SrvRuleDO::getStatus, reqVO.getStatus())
-                .betweenIfPresent(SrvRuleDO::getEffectiveTime, reqVO.getEffectiveTime())
-                .orderByDesc(SrvRuleDO::getId));
+    default PageResult<SrvRuleRetiredDO> selectPageRetired(SrvRulePageReqVO reqVO) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<SrvRuleRetiredDO>()
+                .likeIfPresent(SrvRuleRetiredDO::getCode, reqVO.getCode())
+                .likeIfPresent(SrvRuleRetiredDO::getName, reqVO.getName())
+                .eqIfPresent(SrvRuleRetiredDO::getRuleType, reqVO.getRuleType())
+                .eqIfPresent(SrvRuleRetiredDO::getStatus, reqVO.getStatus())
+                .betweenIfPresent(SrvRuleRetiredDO::getEffectiveTime, reqVO.getEffectiveTime())
+                .orderByDesc(SrvRuleRetiredDO::getId));
     }
 
 }

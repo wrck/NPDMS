@@ -1,8 +1,10 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -37,6 +39,9 @@ public class TemplateExecutionSnapshot {
 
     @Data
     public static class StageContract {
+        /** PLN-01: optional participation percentage; absent stages are not auto-scheduled. */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private java.math.BigDecimal schedulePercentage;
         private String lifecycleStage;
         private String admissionRuleKey;
         private String completionRuleKey;
@@ -174,6 +179,28 @@ public class TemplateExecutionSnapshot {
     }
 
     /**
+     * 再冻结必须保持发布原文语义：全局mapper的ALWAYS包含策略会把缺省可选字段改写成JSON null，
+     * JSON null反序列化成JsonNode字段后是NullNode而非null，会误伤连线条件等结构校验；
+     * 因此这里的bean→JsonNode重序列化固定使用NON_NULL，与JsonUtils默认及发布口径一致。
+     */
+    private static final JsonMapper REFREEZE_MAPPER = JsonMapper.builder()
+            .changeDefaultPropertyInclusion(value -> JsonInclude.Value.construct(
+                    JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
+            .build();
+
+    private static JsonNode refreeze(Object value) {
+        return JsonUtils.parseObject(REFREEZE_MAPPER.writeValueAsString(value), JsonNode.class);
+    }
+
+    /**
+     * 快照bean的持久化/校验序列化统一走这里：与toRuntimeContent的再冻结同口径（NON_NULL），
+     * 保证落库表示与发布原文一致，供全部运行消费者用同一Reader回读校验。
+     */
+    public static String freezeJson(TemplateExecutionSnapshot snapshot) {
+        return REFREEZE_MAPPER.writeValueAsString(snapshot);
+    }
+
+    /**
      * Compatibility projection for unchanged Project/Task initialization code. This conversion uses
      * only the immutable snapshot and never reads DefinitionRevision tables.
      */
@@ -190,7 +217,7 @@ public class TemplateExecutionSnapshot {
         content.setClosurePolicy(closurePolicy == null || closurePolicy.isNull() ? null
                 : new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(closurePolicy));
         content.setDefinitionSnapshot(null);
-        content.setExecutionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(this), JsonNode.class));
+        content.setExecutionSnapshot(refreeze(this));
 
         for (StageContract source : stages) {
             TemplateDefinitionContent.StageDef target = new TemplateDefinitionContent.StageDef();
@@ -206,10 +233,8 @@ public class TemplateExecutionSnapshot {
             target.setStart(source.getStart());
             target.setTerminal(source.getTerminal());
             target.setSourceNodeKey(source.getNodeKey());
-            target.setBindingSnapshot(source.getBinding() == null ? null
-                    : JsonUtils.parseObject(JsonUtils.toJsonString(source.getBinding()), JsonNode.class));
-            target.setPermissionSnapshot(source.getPermission() == null ? null
-                    : JsonUtils.parseObject(JsonUtils.toJsonString(source.getPermission()), JsonNode.class));
+            target.setBindingSnapshot(source.getBinding() == null ? null : refreeze(source.getBinding()));
+            target.setPermissionSnapshot(source.getPermission() == null ? null : refreeze(source.getPermission()));
             target.setCompletionRuleSnapshot(copy(source.getCompletionRule()));
             content.getStages().add(target);
         }
@@ -231,7 +256,7 @@ public class TemplateExecutionSnapshot {
             applyBinding(target, source.getBinding());
             if (source.getPermission() != null) {
                 target.setPermissionPolicyRef(source.getPermission().getPolicyRef());
-                target.setPermissionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(source.getPermission()), JsonNode.class));
+                target.setPermissionSnapshot(refreeze(source.getPermission()));
             }
             applyRule(target, source.getCompletionRule());
             target.setGateRef(source.getGateRef());

@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberRetiredDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectteam.ProjectTeamMemberMapper;
 import jakarta.annotation.Resource;
@@ -20,9 +20,11 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 
 /**
  * PMS 项目团队 Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class ProjectTeamServiceImpl implements ProjectTeamService {
 
     @Resource
@@ -32,20 +34,20 @@ public class ProjectTeamServiceImpl implements ProjectTeamService {
     private ProjectMasterMapper projectMapper;
 
     @Override
-    public Long createProjectTeamMember(ProjectTeamMemberSaveReqVO createReqVO) {
+    public Long createProjectTeamMemberRetired(ProjectTeamMemberSaveReqVO createReqVO) {
         // 校验项目存在
         validateProjectExists(createReqVO.getProjectId());
         // 校验同项目下 (userId, roleCode) 唯一
         validateTeamMemberUnique(null, createReqVO.getProjectId(),
                 createReqVO.getUserId(), createReqVO.getRoleCode());
         // 插入团队成员
-        ProjectTeamMemberDO member = BeanUtils.toBean(createReqVO, ProjectTeamMemberDO.class);
+        ProjectTeamMemberRetiredDO member = BeanUtils.toBean(createReqVO, ProjectTeamMemberRetiredDO.class);
         projectTeamMemberMapper.insert(member);
         return member.getId();
     }
 
     @Override
-    public void updateProjectTeamMember(ProjectTeamMemberSaveReqVO updateReqVO) {
+    public void updateProjectTeamMemberRetired(ProjectTeamMemberSaveReqVO updateReqVO) {
         // 校验存在
         validateTeamMemberExists(updateReqVO.getId());
         // 校验项目存在
@@ -54,12 +56,12 @@ public class ProjectTeamServiceImpl implements ProjectTeamService {
         validateTeamMemberUnique(updateReqVO.getId(), updateReqVO.getProjectId(),
                 updateReqVO.getUserId(), updateReqVO.getRoleCode());
         // 更新团队成员
-        ProjectTeamMemberDO updateObj = BeanUtils.toBean(updateReqVO, ProjectTeamMemberDO.class);
+        ProjectTeamMemberRetiredDO updateObj = BeanUtils.toBean(updateReqVO, ProjectTeamMemberRetiredDO.class);
         projectTeamMemberMapper.updateById(updateObj);
     }
 
     @Override
-    public void deleteProjectTeamMember(Long id) {
+    public void deleteProjectTeamMemberRetired(Long id) {
         // 校验存在
         validateTeamMemberExists(id);
         // 删除团队成员
@@ -67,18 +69,18 @@ public class ProjectTeamServiceImpl implements ProjectTeamService {
     }
 
     @Override
-    public ProjectTeamMemberDO getProjectTeamMember(Long id) {
+    public ProjectTeamMemberRetiredDO getProjectTeamMemberRetired(Long id) {
         return projectTeamMemberMapper.selectById(id);
     }
 
     @Override
-    public PageResult<ProjectTeamMemberDO> getProjectTeamMemberPage(ProjectTeamMemberPageReqVO pageReqVO) {
-        return projectTeamMemberMapper.selectPage(pageReqVO);
+    public PageResult<ProjectTeamMemberRetiredDO> getProjectTeamMemberPageRetired(ProjectTeamMemberPageReqVO pageReqVO) {
+        return projectTeamMemberMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public List<ProjectTeamMemberDO> getTeamListByProjectId(Long projectId) {
-        return projectTeamMemberMapper.selectListByProjectId(projectId);
+    public List<ProjectTeamMemberRetiredDO> getTeamListByProjectIdRetired(Long projectId) {
+        return projectTeamMemberMapper.selectListByProjectIdRetired(projectId);
     }
 
     private void validateTeamMemberExists(Long id) {
@@ -100,8 +102,8 @@ public class ProjectTeamServiceImpl implements ProjectTeamService {
     }
 
     private void validateTeamMemberUnique(Long id, Long projectId, Long userId, String roleCode) {
-        ProjectTeamMemberDO existing = projectTeamMemberMapper
-                .selectByProjectIdAndUserIdAndRoleCode(projectId, userId, roleCode);
+        ProjectTeamMemberRetiredDO existing = projectTeamMemberMapper
+                .selectByProjectIdAndUserIdAndRoleCodeRetired(projectId, userId, roleCode);
         if (existing == null) {
             return;
         }

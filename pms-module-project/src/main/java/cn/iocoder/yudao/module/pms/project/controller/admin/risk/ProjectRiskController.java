@@ -26,11 +26,13 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  * 管理后台 - PMS 项目风险 Controller（FR-PROJ-026 / T-V1-PROJ-009）。
  * <p>
  * 路径前缀 {@code /pms/project-risk}，对应菜单权限 {@code pms:project-risk:*}。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Tag(name = "管理后台 - PMS 项目风险")
 @RestController
 @RequestMapping("/pms/project-risk")
 @Validated
+@Deprecated
 public class ProjectRiskController {
 
     @Resource
@@ -40,14 +42,14 @@ public class ProjectRiskController {
     @Operation(summary = "创建项目风险")
     @PreAuthorize("@ss.hasPermission('pms:project-risk:create')")
     public CommonResult<Long> createRisk(@Valid @RequestBody ProjectRiskSaveReqVO createReqVO) {
-        return success(projectRiskService.createRisk(createReqVO));
+        return success(projectRiskService.createRiskRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新项目风险")
     @PreAuthorize("@ss.hasPermission('pms:project-risk:create')")
     public CommonResult<Boolean> updateRisk(@Valid @RequestBody ProjectRiskSaveReqVO updateReqVO) {
-        projectRiskService.updateRisk(updateReqVO);
+        projectRiskService.updateRiskRetired(updateReqVO);
         return success(true);
     }
 
@@ -56,7 +58,7 @@ public class ProjectRiskController {
     @Parameter(name = "id", description = "风险编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-risk:create')")
     public CommonResult<Boolean> deleteRisk(@RequestParam("id") Long id) {
-        projectRiskService.deleteRisk(id);
+        projectRiskService.deleteRiskRetired(id);
         return success(true);
     }
 
@@ -65,7 +67,7 @@ public class ProjectRiskController {
     @Parameter(name = "ids", description = "风险编号列表，逗号分隔", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-risk:create')")
     public CommonResult<Boolean> deleteRiskList(@RequestParam("ids") Collection<Long> ids) {
-        projectRiskService.deleteRiskList(ids);
+        projectRiskService.deleteRiskListRetired(ids);
         return success(true);
     }
 
@@ -74,7 +76,7 @@ public class ProjectRiskController {
     @Parameter(name = "id", description = "风险编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-risk:query')")
     public CommonResult<ProjectRiskRespVO> getRisk(@RequestParam("id") Long id) {
-        ProjectRiskDO risk = projectRiskService.getRisk(id);
+        ProjectRiskDO risk = projectRiskService.getRiskRetired(id);
         return success(BeanUtils.toBean(risk, ProjectRiskRespVO.class));
     }
 
@@ -82,7 +84,7 @@ public class ProjectRiskController {
     @Operation(summary = "分页查询项目风险")
     @PreAuthorize("@ss.hasPermission('pms:project-risk:query')")
     public CommonResult<PageResult<ProjectRiskRespVO>> getRiskPage(@Validated ProjectRiskPageReqVO pageReqVO) {
-        PageResult<ProjectRiskDO> pageResult = projectRiskService.getRiskPage(pageReqVO);
+        PageResult<ProjectRiskDO> pageResult = projectRiskService.getRiskPageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ProjectRiskRespVO.class));
     }
 
@@ -92,7 +94,7 @@ public class ProjectRiskController {
     @PreAuthorize("@ss.hasPermission('pms:project-risk:query')")
     public CommonResult<List<ProjectRiskRespVO>> getRiskListByProjectId(
             @RequestParam("projectId") Long projectId) {
-        List<ProjectRiskDO> list = projectRiskService.getRiskListByProjectId(projectId);
+        List<ProjectRiskDO> list = projectRiskService.getRiskListByProjectIdRetired(projectId);
         return success(BeanUtils.toBean(list, ProjectRiskRespVO.class));
     }
 
@@ -102,7 +104,7 @@ public class ProjectRiskController {
     public CommonResult<Boolean> transitionStatus(@RequestParam("riskId") Long riskId,
                                                   @RequestParam("targetStatus") Integer targetStatus,
                                                   @RequestParam(value = "version", required = false) Integer version) {
-        projectRiskService.transitionStatus(riskId, targetStatus, version);
+        projectRiskService.transitionStatusRetired(riskId, targetStatus, version);
         return success(true);
     }
 }

@@ -5,7 +5,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskApproveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.risk.CutRiskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.domain.CutTaskStatusRules;
@@ -24,10 +24,12 @@ import static cn.iocoder.yudao.module.pms.cutover.enums.ErrorCodeConstants.*;
 
 /**
  * PMS 割接任务 Service 实现（FR-CUT-001 / FR-CUT-002 / FR-CUT-003 / FR-CUT-006）。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
 @Slf4j
+@Deprecated
 public class CutTaskServiceImpl implements CutTaskService {
 
     @Resource
@@ -37,11 +39,11 @@ public class CutTaskServiceImpl implements CutTaskService {
     private CutRiskMapper cutRiskMapper;
 
     @Override
-    public Long createCutTask(CutTaskSaveReqVO createReqVO) {
+    public Long createCutTaskRetired(CutTaskSaveReqVO createReqVO) {
         // 1. 校验编码在项目内唯一
         validateCodeUniqueInProject(null, createReqVO.getProjectId(), createReqVO.getCode());
         // 2. 转换并写入，初始状态为草稿
-        CutTaskDO entity = BeanUtils.toBean(createReqVO, CutTaskDO.class);
+        CutTaskRetiredDO entity = BeanUtils.toBean(createReqVO, CutTaskRetiredDO.class);
         entity.setStatus(CutStatusEnum.CUT_TASK_DRAFT);
         if (StringUtils.isBlank(entity.getRiskLevel())) {
             entity.setRiskLevel("C");
@@ -57,9 +59,9 @@ public class CutTaskServiceImpl implements CutTaskService {
     }
 
     @Override
-    public void updateCutTask(CutTaskSaveReqVO updateReqVO) {
+    public void updateCutTaskRetired(CutTaskSaveReqVO updateReqVO) {
         // 1. 校验存在
-        CutTaskDO existing = validateCutTaskExists(updateReqVO.getId());
+        CutTaskRetiredDO existing = validateCutTaskExistsRetired(updateReqVO.getId());
         // 2. 编码不可变
         if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
             throw exception(CUT_TASK_CODE_DUPLICATE, updateReqVO.getCode());
@@ -69,24 +71,24 @@ public class CutTaskServiceImpl implements CutTaskService {
             throw exception(CUT_TASK_STATUS_INVALID);
         }
         // 4. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
-        CutTaskDO update = BeanUtils.toBean(updateReqVO, CutTaskDO.class);
+        CutTaskRetiredDO update = BeanUtils.toBean(updateReqVO, CutTaskRetiredDO.class);
         cutTaskMapper.updateById(update);
     }
 
     @Override
-    public void deleteCutTask(Long id) {
-        validateCutTaskExists(id);
+    public void deleteCutTaskRetired(Long id) {
+        validateCutTaskExistsRetired(id);
         cutTaskMapper.deleteById(id);
     }
 
     @Override
-    public CutTaskDO getCutTask(Long id) {
+    public CutTaskRetiredDO getCutTaskRetired(Long id) {
         return cutTaskMapper.selectById(id);
     }
 
     @Override
-    public CutTaskDO validateCutTaskExists(Long id) {
-        CutTaskDO entity = cutTaskMapper.selectById(id);
+    public CutTaskRetiredDO validateCutTaskExistsRetired(Long id) {
+        CutTaskRetiredDO entity = cutTaskMapper.selectById(id);
         if (entity == null) {
             throw exception(CUT_TASK_NOT_FOUND);
         }
@@ -94,17 +96,17 @@ public class CutTaskServiceImpl implements CutTaskService {
     }
 
     @Override
-    public PageResult<CutTaskDO> getCutTaskPage(CutTaskPageReqVO pageReqVO) {
-        return cutTaskMapper.selectPage(pageReqVO);
+    public PageResult<CutTaskRetiredDO> getCutTaskPageRetired(CutTaskPageReqVO pageReqVO) {
+        return cutTaskMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public List<CutTaskDO> getCutTaskListByProject(Long projectId) {
-        return cutTaskMapper.selectListByProject(projectId);
+    public List<CutTaskRetiredDO> getCutTaskListByProjectRetired(Long projectId) {
+        return cutTaskMapper.selectListByProjectRetired(projectId);
     }
 
     @Override
-    public void validateProjectCutoverReady(Long projectId) {
+    public void validateProjectCutoverReadyRetired(Long projectId) {
         // FR-CUT-001 前置门禁：前序必填、测试、方案审批和资源准备全部通过。
         // 跨模块前序依赖（工程实施域方案审批等）通过应用层 API/事件对接，此处仅校验本域可判定条件。
         if (projectId == null) {
@@ -114,18 +116,18 @@ public class CutTaskServiceImpl implements CutTaskService {
     }
 
     @Override
-    public void submitForReview(Long id) {
+    public void submitForReviewRetired(Long id) {
         // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
+        CutTaskRetiredDO entity = validateCutTaskExistsRetired(id);
         // 2. 前置门禁：校验本域风险均已闭环
-        Long notClosedRisk = cutRiskMapper.selectCountByTaskNotClosed(id);
+        Long notClosedRisk = cutRiskMapper.selectCountByTaskNotClosedRetired(id);
         if (notClosedRisk != null && notClosedRisk > 0) {
             throw exception(CUT_RISK_NOT_CLOSED, id);
         }
         // 3. 状态机校验：0草稿 → 2待评审
         CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.SUBMIT_FOR_REVIEW);
         // 4. 更新状态
-        CutTaskDO update = new CutTaskDO();
+        CutTaskRetiredDO update = new CutTaskRetiredDO();
         update.setId(id);
         update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.SUBMIT_FOR_REVIEW));
         update.setVersion(entity.getVersion());
@@ -133,13 +135,13 @@ public class CutTaskServiceImpl implements CutTaskService {
     }
 
     @Override
-    public void approve(CutTaskApproveReqVO reqVO) {
+    public void approveRetired(CutTaskApproveReqVO reqVO) {
         // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(reqVO.getId());
+        CutTaskRetiredDO entity = validateCutTaskExistsRetired(reqVO.getId());
         // 2. 状态机校验：2待评审 → 3闭环中
         CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.APPROVE);
         // 3. 更新状态与评审意见
-        CutTaskDO update = new CutTaskDO();
+        CutTaskRetiredDO update = new CutTaskRetiredDO();
         update.setId(reqVO.getId());
         update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.APPROVE));
         update.setApprovalOpinion(reqVO.getApprovalOpinion());
@@ -148,13 +150,13 @@ public class CutTaskServiceImpl implements CutTaskService {
     }
 
     @Override
-    public void reject(CutTaskApproveReqVO reqVO) {
+    public void rejectRetired(CutTaskApproveReqVO reqVO) {
         // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(reqVO.getId());
+        CutTaskRetiredDO entity = validateCutTaskExistsRetired(reqVO.getId());
         // 2. 状态机校验：2待评审 → 1准备中
         CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.REJECT);
         // 3. 更新状态与评审意见
-        CutTaskDO update = new CutTaskDO();
+        CutTaskRetiredDO update = new CutTaskRetiredDO();
         update.setId(reqVO.getId());
         update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.REJECT));
         update.setApprovalOpinion(reqVO.getApprovalOpinion());
@@ -166,7 +168,7 @@ public class CutTaskServiceImpl implements CutTaskService {
         if (StringUtils.isBlank(code) || projectId == null) {
             return;
         }
-        CutTaskDO existing = cutTaskMapper.selectByProjectCode(projectId, code);
+        CutTaskRetiredDO existing = cutTaskMapper.selectByProjectCodeRetired(projectId, code);
         if (existing == null) {
             return;
         }

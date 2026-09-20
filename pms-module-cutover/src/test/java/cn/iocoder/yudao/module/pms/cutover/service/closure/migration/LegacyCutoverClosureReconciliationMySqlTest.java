@@ -81,12 +81,12 @@ class LegacyCutoverClosureReconciliationMySqlTest {
         TenantContextHolder.setTenantId(tenantId);
         String release = "fcut006-closure-" + tenantId;
         MigrationBatchFact batch = migrationApi.createImportBatch(new CreateImportBatchCommand(tenantId,
-                "CUT", "CUTOVER_CLOSURE_CURRENT_FORWARD", release, "NPDMS_LEGACY", "pms_cut_execution",
+                "CUT", "CUTOVER_CLOSURE_CURRENT_FORWARD", release, "NPDMS_LEGACY", "pms_cut_execution_retired",
                 "FCUT006_LEGACY_V1", 1, "a".repeat(64), LocalDateTime.now(), null, null,
                 release + "-create", release + "-create"));
         batchId = batch.batchId();
         migrationApi.appendSourceRecord(new AppendMigrationSourceRecordCommand(tenantId, batchId,
-                "NPDMS_LEGACY", "pms_cut_execution", "301", "STEP-301",
+                "NPDMS_LEGACY", "pms_cut_execution_retired", "301", "STEP-301",
                 LegacyCutoverClosureRowClassifierTest.payload(tenantId), "b".repeat(64), LocalDateTime.now(),
                 release + "-source"));
         migrationApi.markStagedReady(new MarkStagedReadyCommand(tenantId, batchId, batch.version(),

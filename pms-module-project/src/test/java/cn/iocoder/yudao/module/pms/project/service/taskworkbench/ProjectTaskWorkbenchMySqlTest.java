@@ -62,7 +62,7 @@ class ProjectTaskWorkbenchMySqlTest extends TaskWorkbenchMySqlTestSupport {
         assertEquals(List.of(grandchild), ids(query(ProjectTaskTreeQuery.Mode.LOCATE,
                 null, grandchild, null, null)));
         assertEquals(0L, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM pms_project_task WHERE project_id=?", Long.class, projectId));
+                "SELECT COUNT(*) FROM pms_project_task_retired WHERE project_id=?", Long.class, projectId));
     }
 
     private List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO> query(

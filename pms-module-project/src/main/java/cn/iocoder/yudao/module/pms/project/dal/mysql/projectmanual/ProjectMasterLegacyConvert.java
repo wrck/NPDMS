@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 /**
  * 项目主档新旧形状转换（AI-MIG-000 / 09-database-design 修订017 / ADR-0022）
  * <p>
- * 旧 {@code pms_project}（ProjectDO）已冻结只读；V260 已将全部存量行前向导入
+ * 旧 {@code pms_project_retired}（ProjectRetiredDO）已冻结只读；V260 已将全部存量行前向导入
  * 新权威主档 {@code proj_project}（ProjectMasterDO）。按口径A（V254 有承接领域），
  * 治理/组合/任务/团队/客户守卫的领域服务直接读写新主档；本转换承载领域间的状态
  * 契约映射（治理动作审计的 Integer 粗化状态、组合 STATUS 规则值前向映射）。

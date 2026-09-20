@@ -31,7 +31,7 @@ public class LegacyCutoverPlanReconciliationService {
     static final String OWNER_CONTEXT = "CUT";
     static final String PURPOSE = "CUTOVER_PLAN_CURRENT_FORWARD";
     static final String SOURCE_SYSTEM = "NPDMS_LEGACY";
-    static final String SOURCE_TABLE = "pms_cut_plan";
+    static final String SOURCE_TABLE = "pms_cut_plan_retired";
     private static final int PAGE_SIZE = 500;
     private static final Snowflake ID_GENERATOR = IdUtil.getSnowflake();
 

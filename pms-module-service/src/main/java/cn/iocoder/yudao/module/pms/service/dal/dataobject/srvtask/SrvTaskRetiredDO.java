@@ -10,11 +10,13 @@ import java.time.LocalDateTime;
 
 /**
  * 巡检任务主表 DO
- */
-@TableName("pms_srv_task")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_srv_task_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_srv_task_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SrvTaskDO extends TenantBaseDO {
+@Deprecated
+public class SrvTaskRetiredDO extends TenantBaseDO {
 
     /**
      * 任务编号

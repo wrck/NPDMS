@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskPageReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvtask.query.InspectionGovernanceGuardQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -12,35 +12,36 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 @Mapper
-public interface SrvTaskMapper extends BaseMapperX<SrvTaskDO> {
+@Deprecated
+public interface SrvTaskMapper extends BaseMapperX<SrvTaskRetiredDO> {
 
-    default SrvTaskDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(new LambdaQueryWrapperX<SrvTaskDO>()
-                .eq(SrvTaskDO::getProjectId, projectId)
-                .eq(SrvTaskDO::getCode, code));
+    default SrvTaskRetiredDO selectByProjectIdAndCodeRetired(Long projectId, String code) {
+        return selectOne(new LambdaQueryWrapperX<SrvTaskRetiredDO>()
+                .eq(SrvTaskRetiredDO::getProjectId, projectId)
+                .eq(SrvTaskRetiredDO::getCode, code));
     }
 
-    default PageResult<SrvTaskDO> selectPage(SrvTaskPageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<SrvTaskDO>()
-                .eqIfPresent(SrvTaskDO::getProjectId, reqVO.getProjectId())
-                .eqIfPresent(SrvTaskDO::getEquipmentId, reqVO.getEquipmentId())
-                .likeIfPresent(SrvTaskDO::getCode, reqVO.getCode())
-                .likeIfPresent(SrvTaskDO::getName, reqVO.getName())
-                .eqIfPresent(SrvTaskDO::getInspectionMode, reqVO.getInspectionMode())
-                .eqIfPresent(SrvTaskDO::getSourceType, reqVO.getSourceType())
-                .eqIfPresent(SrvTaskDO::getStatus, reqVO.getStatus())
-                .betweenIfPresent(SrvTaskDO::getScheduledTime, reqVO.getScheduledTime())
-                .betweenIfPresent(SrvTaskDO::getActualTime, reqVO.getActualTime())
-                .orderByDesc(SrvTaskDO::getId));
+    default PageResult<SrvTaskRetiredDO> selectPageRetired(SrvTaskPageReqVO reqVO) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<SrvTaskRetiredDO>()
+                .eqIfPresent(SrvTaskRetiredDO::getProjectId, reqVO.getProjectId())
+                .eqIfPresent(SrvTaskRetiredDO::getEquipmentId, reqVO.getEquipmentId())
+                .likeIfPresent(SrvTaskRetiredDO::getCode, reqVO.getCode())
+                .likeIfPresent(SrvTaskRetiredDO::getName, reqVO.getName())
+                .eqIfPresent(SrvTaskRetiredDO::getInspectionMode, reqVO.getInspectionMode())
+                .eqIfPresent(SrvTaskRetiredDO::getSourceType, reqVO.getSourceType())
+                .eqIfPresent(SrvTaskRetiredDO::getStatus, reqVO.getStatus())
+                .betweenIfPresent(SrvTaskRetiredDO::getScheduledTime, reqVO.getScheduledTime())
+                .betweenIfPresent(SrvTaskRetiredDO::getActualTime, reqVO.getActualTime())
+                .orderByDesc(SrvTaskRetiredDO::getId));
     }
 
-    default List<SrvTaskDO> selectListForGovernanceGuard(InspectionGovernanceGuardQuery query) {
+    default List<SrvTaskRetiredDO> selectListForGovernanceGuardRetired(InspectionGovernanceGuardQuery query) {
         if (query.projectIds().isEmpty()) {
             return List.of();
         }
-        return selectListForGovernanceGuard0(query);
+        return selectListForGovernanceGuard0Retired(query);
     }
 
-    List<SrvTaskDO> selectListForGovernanceGuard0(@Param("query") InspectionGovernanceGuardQuery query);
+    List<SrvTaskRetiredDO> selectListForGovernanceGuard0Retired(@Param("query") InspectionGovernanceGuardQuery query);
 
 }

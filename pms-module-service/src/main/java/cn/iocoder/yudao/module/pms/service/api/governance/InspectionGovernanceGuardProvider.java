@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceBlocker;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardProviderApi;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvtask.SrvTaskMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvtask.query.InspectionGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.service.domain.SrvTaskStatusRules;
@@ -40,13 +40,13 @@ public class InspectionGovernanceGuardProvider implements ProjectGovernanceGuard
         if (query.projectIds().isEmpty()) {
             return fact(List.of(), List.of());
         }
-        List<SrvTaskDO> tasks = taskMapper.selectListForGovernanceGuard(
+        List<SrvTaskRetiredDO> tasks = taskMapper.selectListForGovernanceGuardRetired(
                 new InspectionGovernanceGuardQuery(query.tenantId(), query.projectIds()));
         validateScope(query, tasks);
         List<String> facts = tasks.stream().map(InspectionGovernanceGuardProvider::canonicalFact).sorted().toList();
         List<ProjectGovernanceBlocker> blockers = tasks.stream()
                 .filter(task -> !SrvTaskStatusRules.isTerminal(task.getStatus()))
-                .sorted(Comparator.comparing(SrvTaskDO::getProjectId).thenComparing(SrvTaskDO::getId))
+                .sorted(Comparator.comparing(SrvTaskRetiredDO::getProjectId).thenComparing(SrvTaskRetiredDO::getId))
                 .map(InspectionGovernanceGuardProvider::toBlocker).toList();
         return fact(facts, blockers);
     }
@@ -57,7 +57,7 @@ public class InspectionGovernanceGuardProvider implements ProjectGovernanceGuard
         }
     }
 
-    private static void validateScope(ProjectGovernanceGuardQuery query, List<SrvTaskDO> tasks) {
+    private static void validateScope(ProjectGovernanceGuardQuery query, List<SrvTaskRetiredDO> tasks) {
         if (tasks.stream().anyMatch(task -> !Objects.equals(task.getTenantId(), query.tenantId())
                 || !query.projectIds().contains(task.getProjectId()))) {
             throw new IllegalStateException("inspection guard query returned out-of-scope fact");
@@ -71,7 +71,7 @@ public class InspectionGovernanceGuardProvider implements ProjectGovernanceGuard
         return new ProjectGovernanceProviderFact(PROVIDER_CODE, FACT_VERSION, watermark, digest(facts), blockers);
     }
 
-    private static String canonicalFact(SrvTaskDO task) {
+    private static String canonicalFact(SrvTaskRetiredDO task) {
         return value(task.getProjectId()) + "|" + value(task.getId()) + "|" + value(task.getStatus())
                 + "|" + value(task.getVersion()) + "|" + value(task.getUpdateTime());
     }
@@ -81,7 +81,7 @@ public class InspectionGovernanceGuardProvider implements ProjectGovernanceGuard
         return fields[0] + "|" + fields[1] + "|" + fields[3] + "|" + fields[4];
     }
 
-    private static ProjectGovernanceBlocker toBlocker(SrvTaskDO task) {
+    private static ProjectGovernanceBlocker toBlocker(SrvTaskRetiredDO task) {
         return new ProjectGovernanceBlocker("INSPECTION_TASK", String.valueOf(task.getId()),
                 statusName(task.getStatus()), "NON_TERMINAL_INSPECTION_TASK", "巡检任务阻断");
     }

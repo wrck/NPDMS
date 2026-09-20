@@ -8,7 +8,9 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectPr
  * <p>
  * 聚合项目基本信息、客户信息、阶段汇总、任务汇总、风险汇总与团队成员列表；
  * 总体进度按 60% 任务 + 40% 阶段加权计算。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
+@Deprecated
 public interface ProjectPanoramicService {
 
     /**
@@ -17,7 +19,7 @@ public interface ProjectPanoramicService {
      * @param projectId 项目编号
      * @return 项目全景
      */
-    ProjectPanoramicRespVO getProjectPanoramic(Long projectId);
+    ProjectPanoramicRespVO getProjectPanoramicRetired(Long projectId);
 
     /**
      * 查询项目进度。
@@ -25,5 +27,5 @@ public interface ProjectPanoramicService {
      * @param projectId 项目编号
      * @return 项目进度
      */
-    ProjectProgressRespVO getProjectProgress(Long projectId);
+    ProjectProgressRespVO getProjectProgressRetired(Long projectId);
 }

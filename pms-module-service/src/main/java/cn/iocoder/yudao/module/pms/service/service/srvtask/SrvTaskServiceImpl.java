@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvtask.SrvTaskMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,11 @@ import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.SRV_T
 
 /**
  * 巡检任务 Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class SrvTaskServiceImpl implements SrvTaskService {
 
     /**
@@ -54,11 +56,11 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     private SrvTaskMapper srvTaskMapper;
 
     @Override
-    public Long createSrvTask(SrvTaskSaveReqVO createReqVO) {
+    public Long createSrvTaskRetired(SrvTaskSaveReqVO createReqVO) {
         // 校验项目内编码唯一
         validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
         // 插入
-        SrvTaskDO task = BeanUtils.toBean(createReqVO, SrvTaskDO.class);
+        SrvTaskRetiredDO task = BeanUtils.toBean(createReqVO, SrvTaskRetiredDO.class);
         if (task.getStatus() == null) {
             task.setStatus(STATUS_DRAFT);
         }
@@ -73,23 +75,23 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     @Override
-    public void updateSrvTask(SrvTaskSaveReqVO updateReqVO) {
-        SrvTaskDO existing = validateSrvTaskExists(updateReqVO.getId());
+    public void updateSrvTaskRetired(SrvTaskSaveReqVO updateReqVO) {
+        SrvTaskRetiredDO existing = validateSrvTaskExists(updateReqVO.getId());
         // 校验项目内编码唯一
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
         // 仅草稿态允许修改核心字段
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(SRV_TASK_STATUS_INVALID);
         }
-        SrvTaskDO updateObj = BeanUtils.toBean(updateReqVO, SrvTaskDO.class);
+        SrvTaskRetiredDO updateObj = BeanUtils.toBean(updateReqVO, SrvTaskRetiredDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         srvTaskMapper.updateById(updateObj);
     }
 
     @Override
-    public void deleteSrvTask(Long id) {
-        SrvTaskDO existing = validateSrvTaskExists(id);
+    public void deleteSrvTaskRetired(Long id) {
+        SrvTaskRetiredDO existing = validateSrvTaskExists(id);
         // 仅草稿或已取消状态允许删除
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_CANCELLED)) {
@@ -99,31 +101,31 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     @Override
-    public PageResult<SrvTaskDO> getSrvTaskPage(SrvTaskPageReqVO pageReqVO) {
-        return srvTaskMapper.selectPage(pageReqVO);
+    public PageResult<SrvTaskRetiredDO> getSrvTaskPageRetired(SrvTaskPageReqVO pageReqVO) {
+        return srvTaskMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public SrvTaskDO getSrvTask(Long id) {
+    public SrvTaskRetiredDO getSrvTaskRetired(Long id) {
         return srvTaskMapper.selectById(id);
     }
 
     @Override
-    public void validateEquipmentAccount(Long id) {
-        SrvTaskDO task = validateSrvTaskExists(id);
+    public void validateEquipmentAccountRetired(Long id) {
+        SrvTaskRetiredDO task = validateSrvTaskExists(id);
         // 执行设备账号有效性校验：本实现保留为占位逻辑，由集成层补充实际校验规则
         String checkResult = (task.getEquipmentId() == null)
                 ? "未关联设备，无需校验"
                 : "设备账号校验通过";
-        SrvTaskDO updateObj = new SrvTaskDO();
+        SrvTaskRetiredDO updateObj = new SrvTaskRetiredDO();
         updateObj.setId(id);
         updateObj.setAccountCheckResult(checkResult);
         srvTaskMapper.updateById(updateObj);
     }
 
     @Override
-    public void submitSrvTask(Long id) {
-        SrvTaskDO task = validateSrvTaskExists(id);
+    public void submitSrvTaskRetired(Long id) {
+        SrvTaskRetiredDO task = validateSrvTaskExists(id);
         if (!Objects.equals(task.getStatus(), STATUS_DRAFT)) {
             throw exception(SRV_TASK_STATUS_INVALID);
         }
@@ -131,12 +133,12 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     @Override
-    public void startExecution(Long id) {
-        SrvTaskDO task = validateSrvTaskExists(id);
+    public void startExecutionRetired(Long id) {
+        SrvTaskRetiredDO task = validateSrvTaskExists(id);
         if (!Objects.equals(task.getStatus(), STATUS_PENDING)) {
             throw exception(SRV_TASK_STATUS_INVALID);
         }
-        SrvTaskDO updateObj = new SrvTaskDO();
+        SrvTaskRetiredDO updateObj = new SrvTaskRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_EXECUTING);
         updateObj.setActualTime(LocalDateTime.now());
@@ -144,8 +146,8 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     @Override
-    public void completeExecution(Long id) {
-        SrvTaskDO task = validateSrvTaskExists(id);
+    public void completeExecutionRetired(Long id) {
+        SrvTaskRetiredDO task = validateSrvTaskExists(id);
         if (!Objects.equals(task.getStatus(), STATUS_EXECUTING)) {
             throw exception(SRV_TASK_STATUS_INVALID);
         }
@@ -153,8 +155,8 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     @Override
-    public void confirmReport(Long id) {
-        SrvTaskDO task = validateSrvTaskExists(id);
+    public void confirmReportRetired(Long id) {
+        SrvTaskRetiredDO task = validateSrvTaskExists(id);
         if (!Objects.equals(task.getStatus(), STATUS_PENDING_CONFIRM)) {
             throw exception(SRV_TASK_STATUS_INVALID);
         }
@@ -162,8 +164,8 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     @Override
-    public void cancelSrvTask(Long id) {
-        SrvTaskDO task = validateSrvTaskExists(id);
+    public void cancelSrvTaskRetired(Long id) {
+        SrvTaskRetiredDO task = validateSrvTaskExists(id);
         if (!Objects.equals(task.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(task.getStatus(), STATUS_PENDING)) {
             throw exception(SRV_TASK_STATUS_INVALID);
@@ -172,17 +174,17 @@ public class SrvTaskServiceImpl implements SrvTaskService {
     }
 
     private void updateStatus(Long id, int status) {
-        SrvTaskDO updateObj = new SrvTaskDO();
+        SrvTaskRetiredDO updateObj = new SrvTaskRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(status);
         srvTaskMapper.updateById(updateObj);
     }
 
-    private SrvTaskDO validateSrvTaskExists(Long id) {
+    private SrvTaskRetiredDO validateSrvTaskExists(Long id) {
         if (id == null) {
             throw exception(SRV_TASK_NOT_EXISTS);
         }
-        SrvTaskDO task = srvTaskMapper.selectById(id);
+        SrvTaskRetiredDO task = srvTaskMapper.selectById(id);
         if (task == null) {
             throw exception(SRV_TASK_NOT_EXISTS);
         }
@@ -193,7 +195,7 @@ public class SrvTaskServiceImpl implements SrvTaskService {
         if (projectId == null || code == null) {
             return;
         }
-        SrvTaskDO existing = srvTaskMapper.selectByProjectIdAndCode(projectId, code);
+        SrvTaskRetiredDO existing = srvTaskMapper.selectByProjectIdAndCodeRetired(projectId, code);
         if (existing == null) {
             return;
         }

@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.risk.vo.CutRiskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.risk.vo.CutRiskSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.risk.CutRiskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.risk.CutRiskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.risk.CutRiskMapper;
 import cn.iocoder.yudao.module.pms.cutover.enums.CutStatusEnum;
 import jakarta.annotation.Resource;
@@ -21,21 +21,23 @@ import static cn.iocoder.yudao.module.pms.cutover.enums.ErrorCodeConstants.*;
 
 /**
  * PMS 割接风险 Service 实现（FR-CUT-004 / FR-CUT-006）。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
 @Slf4j
+@Deprecated
 public class CutRiskServiceImpl implements CutRiskService {
 
     @Resource
     private CutRiskMapper cutRiskMapper;
 
     @Override
-    public Long createCutRisk(CutRiskSaveReqVO createReqVO) {
+    public Long createCutRiskRetired(CutRiskSaveReqVO createReqVO) {
         // 1. 校验编码在任务内唯一
         validateCodeUniqueInTask(null, createReqVO.getTaskId(), createReqVO.getCode());
         // 2. 转换并写入，初始状态为待处理
-        CutRiskDO entity = BeanUtils.toBean(createReqVO, CutRiskDO.class);
+        CutRiskRetiredDO entity = BeanUtils.toBean(createReqVO, CutRiskRetiredDO.class);
         entity.setStatus(CutStatusEnum.CUT_RISK_OPEN);
         if (StringUtils.isBlank(entity.getRiskType())) {
             entity.setRiskType("RISK");
@@ -45,9 +47,9 @@ public class CutRiskServiceImpl implements CutRiskService {
     }
 
     @Override
-    public void updateCutRisk(CutRiskSaveReqVO updateReqVO) {
+    public void updateCutRiskRetired(CutRiskSaveReqVO updateReqVO) {
         // 1. 校验存在
-        CutRiskDO existing = validateCutRiskExists(updateReqVO.getId());
+        CutRiskRetiredDO existing = validateCutRiskExistsRetired(updateReqVO.getId());
         // 2. 编码不可变
         if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
             throw exception(CUT_RISK_CODE_DUPLICATE, updateReqVO.getCode());
@@ -57,24 +59,24 @@ public class CutRiskServiceImpl implements CutRiskService {
             throw exception(CUT_RISK_STATUS_INVALID);
         }
         // 4. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
-        CutRiskDO update = BeanUtils.toBean(updateReqVO, CutRiskDO.class);
+        CutRiskRetiredDO update = BeanUtils.toBean(updateReqVO, CutRiskRetiredDO.class);
         cutRiskMapper.updateById(update);
     }
 
     @Override
-    public void deleteCutRisk(Long id) {
-        validateCutRiskExists(id);
+    public void deleteCutRiskRetired(Long id) {
+        validateCutRiskExistsRetired(id);
         cutRiskMapper.deleteById(id);
     }
 
     @Override
-    public CutRiskDO getCutRisk(Long id) {
+    public CutRiskRetiredDO getCutRiskRetired(Long id) {
         return cutRiskMapper.selectById(id);
     }
 
     @Override
-    public CutRiskDO validateCutRiskExists(Long id) {
-        CutRiskDO entity = cutRiskMapper.selectById(id);
+    public CutRiskRetiredDO validateCutRiskExistsRetired(Long id) {
+        CutRiskRetiredDO entity = cutRiskMapper.selectById(id);
         if (entity == null) {
             throw exception(CUT_RISK_NOT_FOUND);
         }
@@ -82,22 +84,22 @@ public class CutRiskServiceImpl implements CutRiskService {
     }
 
     @Override
-    public PageResult<CutRiskDO> getCutRiskPage(CutRiskPageReqVO pageReqVO) {
-        return cutRiskMapper.selectPage(pageReqVO);
+    public PageResult<CutRiskRetiredDO> getCutRiskPageRetired(CutRiskPageReqVO pageReqVO) {
+        return cutRiskMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public List<CutRiskDO> getCutRiskListByTask(Long taskId) {
-        return cutRiskMapper.selectListByTask(taskId);
+    public List<CutRiskRetiredDO> getCutRiskListByTaskRetired(Long taskId) {
+        return cutRiskMapper.selectListByTaskRetired(taskId);
     }
 
     @Override
-    public void startProcess(Long id) {
-        CutRiskDO entity = validateCutRiskExists(id);
+    public void startProcessRetired(Long id) {
+        CutRiskRetiredDO entity = validateCutRiskExistsRetired(id);
         if (!Objects.equals(CutStatusEnum.CUT_RISK_OPEN, entity.getStatus())) {
             throw exception(CUT_RISK_STATUS_INVALID);
         }
-        CutRiskDO update = new CutRiskDO();
+        CutRiskRetiredDO update = new CutRiskRetiredDO();
         update.setId(id);
         update.setStatus(CutStatusEnum.CUT_RISK_PROCESSING);
         update.setVersion(entity.getVersion());
@@ -105,12 +107,12 @@ public class CutRiskServiceImpl implements CutRiskService {
     }
 
     @Override
-    public void close(Long id) {
-        CutRiskDO entity = validateCutRiskExists(id);
+    public void closeRetired(Long id) {
+        CutRiskRetiredDO entity = validateCutRiskExistsRetired(id);
         if (Objects.equals(CutStatusEnum.CUT_RISK_CLOSED, entity.getStatus())) {
             throw exception(CUT_RISK_STATUS_INVALID);
         }
-        CutRiskDO update = new CutRiskDO();
+        CutRiskRetiredDO update = new CutRiskRetiredDO();
         update.setId(id);
         update.setStatus(CutStatusEnum.CUT_RISK_CLOSED);
         update.setVersion(entity.getVersion());
@@ -118,13 +120,13 @@ public class CutRiskServiceImpl implements CutRiskService {
     }
 
     @Override
-    public void suspend(Long id) {
-        CutRiskDO entity = validateCutRiskExists(id);
+    public void suspendRetired(Long id) {
+        CutRiskRetiredDO entity = validateCutRiskExistsRetired(id);
         if (Objects.equals(CutStatusEnum.CUT_RISK_CLOSED, entity.getStatus())
                 || Objects.equals(CutStatusEnum.CUT_RISK_SUSPENDED, entity.getStatus())) {
             throw exception(CUT_RISK_STATUS_INVALID);
         }
-        CutRiskDO update = new CutRiskDO();
+        CutRiskRetiredDO update = new CutRiskRetiredDO();
         update.setId(id);
         update.setStatus(CutStatusEnum.CUT_RISK_SUSPENDED);
         update.setVersion(entity.getVersion());
@@ -135,7 +137,7 @@ public class CutRiskServiceImpl implements CutRiskService {
         if (StringUtils.isBlank(code) || taskId == null) {
             return;
         }
-        CutRiskDO existing = cutRiskMapper.selectByTaskCode(taskId, code);
+        CutRiskRetiredDO existing = cutRiskMapper.selectByTaskCodeRetired(taskId, code);
         if (existing == null) {
             return;
         }

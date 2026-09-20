@@ -36,7 +36,7 @@ class LegacyCutoverPlanReconciliationServiceTest {
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
         MigrationBatchFact batch = new MigrationBatchFact(71L, 1L, "CUT", "CUTOVER_PLAN_CURRENT_FORWARD",
-                "release-plan-1", "NPDMS_LEGACY", "pms_cut_plan", MigrationBatchStatus.RECONCILING,
+                "release-plan-1", "NPDMS_LEGACY", "pms_cut_plan_retired", MigrationBatchStatus.RECONCILING,
                 1, 0, 0, 0, null, 3, LocalDateTime.of(2026, 9, 1, 10, 0));
         var source = LegacyCutoverPlanRowConverterTest.source(81L, 71L,
                 LegacyCutoverPlanRowConverterTest.legacyPayload(false));

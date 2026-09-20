@@ -75,7 +75,7 @@ class CutoverPlanQueryServiceTest {
         plan.setCutoverTaskId(50L); plan.setRevisionNo(1); plan.setOriginCode("LEGACY_FORWARD");
         plan.setStatusCode(null); plan.setCurrentMarker(null); plan.setLegacyPlanId(701L); plan.setLegacyStatusRaw(2);
         plan.setVersion(0); plan.setSourceSnapshot("""
-                {"sourceTable":"pms_cut_plan","sourceId":701,"sourceTenantId":1,"sourceTaskId":50,
+                {"sourceTable":"pms_cut_plan_retired","sourceId":701,"sourceTenantId":1,"sourceTaskId":50,
                  "sourceVersion":3,"sourceStatusRaw":2,"mappingVersion":"FCUT004_LEGACY_V1",
                  "code":"CUT-LEGACY-001","name":"旧割接方案","level":"A","remark":"历史备注"}
                 """);

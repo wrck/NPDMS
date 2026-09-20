@@ -13,7 +13,7 @@ class LegacyCutoverClosureRowClassifierTest {
     void retainsStructurallyValidLegacyStepWithoutCreatingClosureFacts() {
         long tenantId = 91L;
         MigrationSourceRecordFact source = new MigrationSourceRecordFact(101L, tenantId, 201L,
-                "NPDMS_LEGACY", "pms_cut_execution", "301", "STEP-301",
+                "NPDMS_LEGACY", "pms_cut_execution_retired", "301", "STEP-301",
                 payload(tenantId), "a".repeat(64), LocalDateTime.of(2026, 9, 2, 8, 0), null);
 
         assertEquals(LegacyCutoverClosureRowClassifier.Disposition.RETAINED,

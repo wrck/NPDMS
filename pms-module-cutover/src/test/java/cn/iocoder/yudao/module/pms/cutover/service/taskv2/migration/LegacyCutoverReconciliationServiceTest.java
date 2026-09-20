@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.migration.LegacyCutoverReconciliationMapper;
@@ -36,13 +36,13 @@ class LegacyCutoverReconciliationServiceTest {
         LegacyCutoverReconciliationMapper reconciliationMapper = mock(LegacyCutoverReconciliationMapper.class);
         CutoverTaskMapper targetMapper = mock(CutoverTaskMapper.class);
         MigrationBatchFact batch = new MigrationBatchFact(71L, 1L, "CUT",
-                "CUTOVER_TASK_CURRENT_FORWARD", "release-1", "NPDMS_LEGACY", "pms_cut_task",
+                "CUTOVER_TASK_CURRENT_FORWARD", "release-1", "NPDMS_LEGACY", "pms_cut_task_retired",
                 MigrationBatchStatus.RECONCILING, 1, 0, 0, 0, null, 3,
                 LocalDateTime.of(2026, 8, 31, 4, 0));
         MigrationSourceRecordFact source = new MigrationSourceRecordFact(81L, 1L, 71L,
-                "NPDMS_LEGACY", "pms_cut_task", "91", "CUT-91", "{}", "0".repeat(64),
+                "NPDMS_LEGACY", "pms_cut_task_retired", "91", "CUT-91", "{}", "0".repeat(64),
                 LocalDateTime.of(2026, 8, 31, 4, 1), null);
-        CutTaskDO legacy = legacyTask();
+        CutTaskRetiredDO legacy = legacyTask();
         ProjectOrganizationFact project = new ProjectOrganizationFact(100L, 5, 200L, 300L, "OFFICE-300");
 
         when(migrationApi.claimStagedBatch(any())).thenReturn(new MigrationBatchClaimResult(true, batch));
@@ -54,7 +54,7 @@ class LegacyCutoverReconciliationServiceTest {
         when(targetMapper.insert(any(CutoverTaskDO.class))).thenReturn(1);
         when(migrationApi.appendExternalMapping(any())).thenAnswer(invocation -> null);
         when(migrationApi.completeReconciliation(any())).thenReturn(new MigrationBatchFact(71L, 1L, "CUT",
-                "CUTOVER_TASK_CURRENT_FORWARD", "release-1", "NPDMS_LEGACY", "pms_cut_task",
+                "CUTOVER_TASK_CURRENT_FORWARD", "release-1", "NPDMS_LEGACY", "pms_cut_task_retired",
                 MigrationBatchStatus.COMPLETED, 1, 1, 0, 0, null, 4,
                 LocalDateTime.of(2026, 8, 31, 4, 0)));
 
@@ -84,18 +84,18 @@ class LegacyCutoverReconciliationServiceTest {
         LegacyCutoverReconciliationMapper reconciliationMapper = mock(LegacyCutoverReconciliationMapper.class);
         CutoverTaskMapper targetMapper = mock(CutoverTaskMapper.class);
         MigrationBatchFact batch = new MigrationBatchFact(72L, 1L, "CUT",
-                "CUTOVER_TASK_CURRENT_FORWARD", "release-2", "NPDMS_LEGACY", "pms_cut_task",
+                "CUTOVER_TASK_CURRENT_FORWARD", "release-2", "NPDMS_LEGACY", "pms_cut_task_retired",
                 MigrationBatchStatus.RECONCILING, 3, 0, 0, 0, null, 5,
                 LocalDateTime.of(2026, 8, 31, 5, 0));
         List<MigrationSourceRecordFact> sources = List.of(
                 source(82L, 72L, "92"), source(83L, 72L, "93"), source(84L, 72L, "94"));
-        CutTaskDO deleted = legacyTask();
+        CutTaskRetiredDO deleted = legacyTask();
         deleted.setId(92L);
         deleted.setDeleted(true);
-        CutTaskDO invalid = legacyTask();
+        CutTaskRetiredDO invalid = legacyTask();
         invalid.setId(93L);
         invalid.setCode(" ");
-        CutTaskDO conflict = legacyTask();
+        CutTaskRetiredDO conflict = legacyTask();
         conflict.setId(94L);
         conflict.setCode("CUT-94");
 
@@ -130,12 +130,12 @@ class LegacyCutoverReconciliationServiceTest {
 
     private static MigrationSourceRecordFact source(Long sourceRecordId, Long batchId, String sourcePk) {
         return new MigrationSourceRecordFact(sourceRecordId, 1L, batchId,
-                "NPDMS_LEGACY", "pms_cut_task", sourcePk, "CUT-" + sourcePk, "{}", "0".repeat(64),
+                "NPDMS_LEGACY", "pms_cut_task_retired", sourcePk, "CUT-" + sourcePk, "{}", "0".repeat(64),
                 LocalDateTime.of(2026, 8, 31, 5, 1), null);
     }
 
-    private static CutTaskDO legacyTask() {
-        CutTaskDO source = new CutTaskDO();
+    private static CutTaskRetiredDO legacyTask() {
+        CutTaskRetiredDO source = new CutTaskRetiredDO();
         source.setId(91L);
         source.setTenantId(1L);
         source.setProjectId(100L);

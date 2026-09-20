@@ -14,11 +14,13 @@ import java.time.LocalDateTime;
  * PMS 项目任务 WBS DO
  *
  * 物化路径模型：path 格式 /{rootId}/.../{selfId}/，depth 从 0 开始。
- */
-@TableName("pms_project_task")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_project_task_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_project_task_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectTaskDO extends TenantBaseDO {
+@Deprecated
+public class ProjectTaskRetiredDO extends TenantBaseDO {
 
     /**
      * 任务编号

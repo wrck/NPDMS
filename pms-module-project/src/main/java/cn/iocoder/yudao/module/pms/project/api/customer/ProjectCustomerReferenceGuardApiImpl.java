@@ -17,7 +17,7 @@ public class ProjectCustomerReferenceGuardApiImpl implements ProjectCustomerRefe
 
     @Override
     public CustomerReferenceGuardResult check(CustomerReferenceGuardQuery query) {
-        // AI-MIG-000 口径A：引用计数只查新权威主档 proj_project；旧 pms_project 已冻结，
+        // AI-MIG-000 口径A：引用计数只查新权威主档 proj_project；旧 pms_project_retired 已冻结，
         // V260 已全量前向导入（含旧历史行的客户引用），删除保护由新主档计数完整覆盖。
         long count = projectMapper.selectCountCustomerReferences(
                 new CustomerProjectReferenceQuery(query.tenantId(), query.customerId()));

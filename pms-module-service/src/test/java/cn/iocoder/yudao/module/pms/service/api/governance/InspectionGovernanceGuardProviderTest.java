@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.service.api.governance;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvtask.SrvTaskMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +47,7 @@ class InspectionGovernanceGuardProviderTest {
 
     @Test
     void shouldBlockNonTerminalAndUnknownButAllowTerminalTasks() {
-        when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(
+        when(taskMapper.selectListForGovernanceGuardRetired(any())).thenReturn(List.of(
                 task(1L, 201L, 3, 1), task(1L, 202L, 4, 1), task(2L, 203L, 99, 1)));
 
         ProjectGovernanceProviderFact fact = provider.inspect(query(Set.of(2L, 1L)));
@@ -70,20 +70,20 @@ class InspectionGovernanceGuardProviderTest {
 
     @Test
     void shouldRejectOutOfScopePersistenceFact() {
-        SrvTaskDO task = task(1L, 201L, 4, 1);
+        SrvTaskRetiredDO task = task(1L, 201L, 4, 1);
         task.setProjectId(2L);
-        when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(task));
+        when(taskMapper.selectListForGovernanceGuardRetired(any())).thenReturn(List.of(task));
 
         assertThrows(IllegalStateException.class, () -> provider.inspect(query(Set.of(1L))));
     }
 
     @Test
     void shouldKeepDigestStableAcrossOrderAndChangeWatermarkWithVersion() {
-        SrvTaskDO first = task(1L, 201L, 4, 1);
-        SrvTaskDO second = task(2L, 202L, 5, 1);
-        SrvTaskDO changed = task(1L, 201L, 4, 2);
+        SrvTaskRetiredDO first = task(1L, 201L, 4, 1);
+        SrvTaskRetiredDO second = task(2L, 202L, 5, 1);
+        SrvTaskRetiredDO changed = task(1L, 201L, 4, 2);
         changed.setUpdateTime(first.getUpdateTime().plusSeconds(1));
-        when(taskMapper.selectListForGovernanceGuard(any()))
+        when(taskMapper.selectListForGovernanceGuardRetired(any()))
                 .thenReturn(List.of(first, second), List.of(second, first), List.of(changed, second));
 
         ProjectGovernanceProviderFact before = provider.inspect(query(Set.of(1L, 2L)));
@@ -100,8 +100,8 @@ class InspectionGovernanceGuardProviderTest {
         return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "REOPEN", CHECKED_AT);
     }
 
-    private static SrvTaskDO task(Long projectId, Long id, Integer status, Integer version) {
-        SrvTaskDO task = new SrvTaskDO();
+    private static SrvTaskRetiredDO task(Long projectId, Long id, Integer status, Integer version) {
+        SrvTaskRetiredDO task = new SrvTaskRetiredDO();
         task.setTenantId(TENANT_ID);
         task.setProjectId(projectId);
         task.setId(id);

@@ -16,6 +16,15 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectStageInstanceMapper extends BaseMapperX<ProjectStageInstanceDO> {
+    default int updateSchedule(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectNodeScheduleUpdate query) {
+        var update = new ProjectStageInstanceDO();
+        update.setPlanStartTime(query.start().atStartOfDay()); update.setPlanEndTime(query.end().atStartOfDay());
+        update.setVersion(query.expectedVersion() + 1);
+        return update(update, new LambdaQueryWrapperX<ProjectStageInstanceDO>()
+                .eq(ProjectStageInstanceDO::getId, query.nodeId()).eq(ProjectStageInstanceDO::getProjectId, query.projectId())
+                .eq(ProjectStageInstanceDO::getTenantId, query.tenantId()).eq(ProjectStageInstanceDO::getVersion, query.expectedVersion()));
+    }
+
 
     default List<ProjectStageInstanceDO> selectActiveForStatus(
             cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery query) {

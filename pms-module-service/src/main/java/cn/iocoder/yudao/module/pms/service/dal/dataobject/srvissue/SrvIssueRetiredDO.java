@@ -10,11 +10,13 @@ import java.time.LocalDateTime;
 
 /**
  * 巡检问题与整改 DO
- */
-@TableName("pms_srv_issue")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_srv_issue_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_srv_issue_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SrvIssueDO extends TenantBaseDO {
+@Deprecated
+public class SrvIssueRetiredDO extends TenantBaseDO {
 
     /**
      * 问题编号

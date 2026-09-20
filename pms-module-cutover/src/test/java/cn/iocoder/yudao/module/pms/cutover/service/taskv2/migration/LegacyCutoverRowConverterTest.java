@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -23,7 +23,7 @@ class LegacyCutoverRowConverterTest {
     void convertsQualifiedLegacyRowToReadOnlyProjection() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 8, 1, 9, 0);
         LocalDateTime updatedAt = LocalDateTime.of(2026, 8, 2, 10, 30);
-        CutTaskDO source = new CutTaskDO();
+        CutTaskRetiredDO source = new CutTaskRetiredDO();
         source.setId(101L);
         source.setTenantId(1L);
         source.setProjectId(201L);

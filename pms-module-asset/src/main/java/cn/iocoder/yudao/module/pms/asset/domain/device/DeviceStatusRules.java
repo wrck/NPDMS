@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.asset.domain.device;
 import cn.iocoder.yudao.module.pms.asset.enums.DeviceArchiveStatusEnum;
 
 /**
- * 设备档案状态机规则（FR-RES-001，自 pms_equipment 状态机承接为 String 值域）。
+ * 设备档案状态机规则（FR-RES-001，自 pms_equipment_retired 状态机承接为 String 值域）。
  * 仅做规则校验，不依赖持久化层；调用方在校验通过后自行写库。
  */
 public final class DeviceStatusRules {

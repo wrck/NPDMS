@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvexecution.vo.SrvExecutionPageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvexecution.vo.SrvExecutionSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvexecution.SrvExecutionDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvexecution.SrvExecutionRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvexecution.SrvExecutionMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,11 @@ import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.SRV_E
 
 /**
  * 巡检执行记录 Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class SrvExecutionServiceImpl implements SrvExecutionService {
 
     /**
@@ -46,10 +48,10 @@ public class SrvExecutionServiceImpl implements SrvExecutionService {
     private SrvExecutionMapper srvExecutionMapper;
 
     @Override
-    public Long createSrvExecution(SrvExecutionSaveReqVO createReqVO) {
+    public Long createSrvExecutionRetired(SrvExecutionSaveReqVO createReqVO) {
         // 校验任务内编码唯一
         validateCodeUnique(null, createReqVO.getTaskId(), createReqVO.getCode());
-        SrvExecutionDO execution = BeanUtils.toBean(createReqVO, SrvExecutionDO.class);
+        SrvExecutionRetiredDO execution = BeanUtils.toBean(createReqVO, SrvExecutionRetiredDO.class);
         if (execution.getStatus() == null) {
             execution.setStatus(STATUS_PENDING);
         }
@@ -58,38 +60,38 @@ public class SrvExecutionServiceImpl implements SrvExecutionService {
     }
 
     @Override
-    public void updateSrvExecution(SrvExecutionSaveReqVO updateReqVO) {
-        SrvExecutionDO existing = validateSrvExecutionExists(updateReqVO.getId());
+    public void updateSrvExecutionRetired(SrvExecutionSaveReqVO updateReqVO) {
+        SrvExecutionRetiredDO existing = validateSrvExecutionExists(updateReqVO.getId());
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getTaskId(), updateReqVO.getCode());
-        SrvExecutionDO updateObj = BeanUtils.toBean(updateReqVO, SrvExecutionDO.class);
+        SrvExecutionRetiredDO updateObj = BeanUtils.toBean(updateReqVO, SrvExecutionRetiredDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         srvExecutionMapper.updateById(updateObj);
     }
 
     @Override
-    public void deleteSrvExecution(Long id) {
+    public void deleteSrvExecutionRetired(Long id) {
         validateSrvExecutionExists(id);
         srvExecutionMapper.deleteById(id);
     }
 
     @Override
-    public PageResult<SrvExecutionDO> getSrvExecutionPage(SrvExecutionPageReqVO pageReqVO) {
-        return srvExecutionMapper.selectPage(pageReqVO);
+    public PageResult<SrvExecutionRetiredDO> getSrvExecutionPageRetired(SrvExecutionPageReqVO pageReqVO) {
+        return srvExecutionMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public SrvExecutionDO getSrvExecution(Long id) {
+    public SrvExecutionRetiredDO getSrvExecutionRetired(Long id) {
         return srvExecutionMapper.selectById(id);
     }
 
     @Override
-    public void startExecution(Long id) {
-        SrvExecutionDO execution = validateSrvExecutionExists(id);
+    public void startExecutionRetired(Long id) {
+        SrvExecutionRetiredDO execution = validateSrvExecutionExists(id);
         if (!Objects.equals(execution.getStatus(), STATUS_PENDING)) {
             throw exception(SRV_EXECUTION_STATUS_INVALID);
         }
-        SrvExecutionDO updateObj = new SrvExecutionDO();
+        SrvExecutionRetiredDO updateObj = new SrvExecutionRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_EXECUTING);
         updateObj.setExecutionTime(LocalDateTime.now());
@@ -97,8 +99,8 @@ public class SrvExecutionServiceImpl implements SrvExecutionService {
     }
 
     @Override
-    public void completeExecution(Long id) {
-        SrvExecutionDO execution = validateSrvExecutionExists(id);
+    public void completeExecutionRetired(Long id) {
+        SrvExecutionRetiredDO execution = validateSrvExecutionExists(id);
         if (!Objects.equals(execution.getStatus(), STATUS_EXECUTING)) {
             throw exception(SRV_EXECUTION_STATUS_INVALID);
         }
@@ -106,8 +108,8 @@ public class SrvExecutionServiceImpl implements SrvExecutionService {
     }
 
     @Override
-    public void markAbnormal(Long id) {
-        SrvExecutionDO execution = validateSrvExecutionExists(id);
+    public void markAbnormalRetired(Long id) {
+        SrvExecutionRetiredDO execution = validateSrvExecutionExists(id);
         if (!Objects.equals(execution.getStatus(), STATUS_PENDING)
                 && !Objects.equals(execution.getStatus(), STATUS_EXECUTING)) {
             throw exception(SRV_EXECUTION_STATUS_INVALID);
@@ -116,17 +118,17 @@ public class SrvExecutionServiceImpl implements SrvExecutionService {
     }
 
     private void updateStatus(Long id, int status) {
-        SrvExecutionDO updateObj = new SrvExecutionDO();
+        SrvExecutionRetiredDO updateObj = new SrvExecutionRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(status);
         srvExecutionMapper.updateById(updateObj);
     }
 
-    private SrvExecutionDO validateSrvExecutionExists(Long id) {
+    private SrvExecutionRetiredDO validateSrvExecutionExists(Long id) {
         if (id == null) {
             throw exception(SRV_EXECUTION_NOT_EXISTS);
         }
-        SrvExecutionDO execution = srvExecutionMapper.selectById(id);
+        SrvExecutionRetiredDO execution = srvExecutionMapper.selectById(id);
         if (execution == null) {
             throw exception(SRV_EXECUTION_NOT_EXISTS);
         }
@@ -137,7 +139,7 @@ public class SrvExecutionServiceImpl implements SrvExecutionService {
         if (taskId == null || code == null) {
             return;
         }
-        SrvExecutionDO existing = srvExecutionMapper.selectByTaskIdAndCode(taskId, code);
+        SrvExecutionRetiredDO existing = srvExecutionMapper.selectByTaskIdAndCodeRetired(taskId, code);
         if (existing == null) {
             return;
         }

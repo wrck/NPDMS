@@ -6,7 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskRespVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.service.service.srvtask.SrvTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +23,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RestController
 @RequestMapping("/pms/srv-task")
 @Validated
+@Deprecated
 public class SrvTaskController {
 
     @Resource
@@ -32,14 +33,14 @@ public class SrvTaskController {
     @Operation(summary = "创建巡检任务")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:create')")
     public CommonResult<Long> createSrvTask(@Valid @RequestBody SrvTaskSaveReqVO createReqVO) {
-        return success(srvTaskService.createSrvTask(createReqVO));
+        return success(srvTaskService.createSrvTaskRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新巡检任务")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> updateSrvTask(@Valid @RequestBody SrvTaskSaveReqVO updateReqVO) {
-        srvTaskService.updateSrvTask(updateReqVO);
+        srvTaskService.updateSrvTaskRetired(updateReqVO);
         return success(true);
     }
 
@@ -48,7 +49,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:delete')")
     public CommonResult<Boolean> deleteSrvTask(@RequestParam("id") Long id) {
-        srvTaskService.deleteSrvTask(id);
+        srvTaskService.deleteSrvTaskRetired(id);
         return success(true);
     }
 
@@ -56,7 +57,7 @@ public class SrvTaskController {
     @Operation(summary = "获得巡检任务分页")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:query')")
     public CommonResult<PageResult<SrvTaskRespVO>> getSrvTaskPage(@Validated SrvTaskPageReqVO pageReqVO) {
-        PageResult<SrvTaskDO> pageResult = srvTaskService.getSrvTaskPage(pageReqVO);
+        PageResult<SrvTaskRetiredDO> pageResult = srvTaskService.getSrvTaskPageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SrvTaskRespVO.class));
     }
 
@@ -65,7 +66,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:query')")
     public CommonResult<SrvTaskRespVO> getSrvTask(@RequestParam("id") Long id) {
-        SrvTaskDO task = srvTaskService.getSrvTask(id);
+        SrvTaskRetiredDO task = srvTaskService.getSrvTaskRetired(id);
         return success(BeanUtils.toBean(task, SrvTaskRespVO.class));
     }
 
@@ -74,7 +75,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> validateEquipmentAccount(@RequestParam("id") Long id) {
-        srvTaskService.validateEquipmentAccount(id);
+        srvTaskService.validateEquipmentAccountRetired(id);
         return success(true);
     }
 
@@ -83,7 +84,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> submitSrvTask(@RequestParam("id") Long id) {
-        srvTaskService.submitSrvTask(id);
+        srvTaskService.submitSrvTaskRetired(id);
         return success(true);
     }
 
@@ -92,7 +93,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> startExecution(@RequestParam("id") Long id) {
-        srvTaskService.startExecution(id);
+        srvTaskService.startExecutionRetired(id);
         return success(true);
     }
 
@@ -101,7 +102,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> completeExecution(@RequestParam("id") Long id) {
-        srvTaskService.completeExecution(id);
+        srvTaskService.completeExecutionRetired(id);
         return success(true);
     }
 
@@ -110,7 +111,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> confirmReport(@RequestParam("id") Long id) {
-        srvTaskService.confirmReport(id);
+        srvTaskService.confirmReportRetired(id);
         return success(true);
     }
 
@@ -119,7 +120,7 @@ public class SrvTaskController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> cancelSrvTask(@RequestParam("id") Long id) {
-        srvTaskService.cancelSrvTask(id);
+        srvTaskService.cancelSrvTaskRetired(id);
         return success(true);
     }
 

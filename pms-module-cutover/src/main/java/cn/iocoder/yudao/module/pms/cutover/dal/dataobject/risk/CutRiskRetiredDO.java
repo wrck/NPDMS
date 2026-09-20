@@ -10,12 +10,14 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 割接风险与调研清单 DO（FR-CUT-004 / FR-CUT-006）。
  * <p>
- * 对应表 {@code pms_cut_risk}，按割接任务维度维护风险/调研项。
- */
-@TableName("pms_cut_risk")
+ * 对应表 {@code pms_cut_risk_retired}，按割接任务维度维护风险/调研项。
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_cut_risk_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_cut_risk_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CutRiskDO extends TenantBaseDO {
+@Deprecated
+public class CutRiskRetiredDO extends TenantBaseDO {
 
     @TableId
     private Long id;

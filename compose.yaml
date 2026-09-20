@@ -13,6 +13,8 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      # 本地测试库允许应用账号创建触发器（V310 退役只读触发器依赖；生产禁用 binlog 或用 DBA 流程）
+      - --log-bin-trust-function-creators=1
     ports:
       - "${NPDMS_MYSQL_PORT:-13306}:3306"
     volumes:

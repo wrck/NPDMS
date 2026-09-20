@@ -121,7 +121,7 @@ public final class ProjectStageScheduleRules {
         BigDecimal total = BigDecimal.ZERO;
         for (StageAllocation stage : stages) {
             require(stage != null && positive(stage.stageId()) && stage.stageCode() != null
-                            && stage.stageCode().matches("S[0-6]"), "阶段身份无效");
+                            && cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator.stageCode(stage.stageCode()), "阶段身份无效");
             require(ids.add(stage.stageId()) && codes.add(stage.stageCode()), "实际计划路径包含重复阶段");
             require(stage.percentage() != null && stage.percentage().signum() > 0
                             && stage.percentage().compareTo(ONE_HUNDRED) <= 0,

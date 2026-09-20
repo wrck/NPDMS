@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvrule.vo.SrvRulePageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvrule.vo.SrvRuleSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvrule.SrvRuleDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvrule.SrvRuleRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvrule.SrvRuleMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -19,9 +19,11 @@ import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.SRV_R
 
 /**
  * 巡检规则 Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class SrvRuleServiceImpl implements SrvRuleService {
 
     /**
@@ -41,11 +43,11 @@ public class SrvRuleServiceImpl implements SrvRuleService {
     private SrvRuleMapper srvRuleMapper;
 
     @Override
-    public Long createSrvRule(SrvRuleSaveReqVO createReqVO) {
+    public Long createSrvRuleRetired(SrvRuleSaveReqVO createReqVO) {
         // 校验编码唯一
         validateCodeUnique(null, createReqVO.getCode());
         // 插入
-        SrvRuleDO rule = BeanUtils.toBean(createReqVO, SrvRuleDO.class);
+        SrvRuleRetiredDO rule = BeanUtils.toBean(createReqVO, SrvRuleRetiredDO.class);
         if (rule.getStatus() == null) {
             rule.setStatus(STATUS_DRAFT);
         }
@@ -54,40 +56,40 @@ public class SrvRuleServiceImpl implements SrvRuleService {
     }
 
     @Override
-    public void updateSrvRule(SrvRuleSaveReqVO updateReqVO) {
-        SrvRuleDO existing = validateSrvRuleExists(updateReqVO.getId());
+    public void updateSrvRuleRetired(SrvRuleSaveReqVO updateReqVO) {
+        SrvRuleRetiredDO existing = validateSrvRuleExists(updateReqVO.getId());
         // 校验编码唯一
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getCode());
         // 已发布或已停用的规则不允许修改核心字段
-        SrvRuleDO updateObj = BeanUtils.toBean(updateReqVO, SrvRuleDO.class);
+        SrvRuleRetiredDO updateObj = BeanUtils.toBean(updateReqVO, SrvRuleRetiredDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         srvRuleMapper.updateById(updateObj);
     }
 
     @Override
-    public void deleteSrvRule(Long id) {
+    public void deleteSrvRuleRetired(Long id) {
         validateSrvRuleExists(id);
         srvRuleMapper.deleteById(id);
     }
 
     @Override
-    public PageResult<SrvRuleDO> getSrvRulePage(SrvRulePageReqVO pageReqVO) {
-        return srvRuleMapper.selectPage(pageReqVO);
+    public PageResult<SrvRuleRetiredDO> getSrvRulePageRetired(SrvRulePageReqVO pageReqVO) {
+        return srvRuleMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public SrvRuleDO getSrvRule(Long id) {
+    public SrvRuleRetiredDO getSrvRuleRetired(Long id) {
         return srvRuleMapper.selectById(id);
     }
 
     @Override
-    public void publishSrvRule(Long id) {
-        SrvRuleDO rule = validateSrvRuleExists(id);
+    public void publishSrvRuleRetired(Long id) {
+        SrvRuleRetiredDO rule = validateSrvRuleExists(id);
         if (!Integer.valueOf(STATUS_DRAFT).equals(rule.getStatus())) {
             throw exception(SRV_RULE_STATUS_INVALID);
         }
-        SrvRuleDO updateObj = new SrvRuleDO();
+        SrvRuleRetiredDO updateObj = new SrvRuleRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_PUBLISHED);
         updateObj.setEffectiveTime(LocalDateTime.now());
@@ -95,22 +97,22 @@ public class SrvRuleServiceImpl implements SrvRuleService {
     }
 
     @Override
-    public void disableSrvRule(Long id) {
-        SrvRuleDO rule = validateSrvRuleExists(id);
+    public void disableSrvRuleRetired(Long id) {
+        SrvRuleRetiredDO rule = validateSrvRuleExists(id);
         if (!Integer.valueOf(STATUS_PUBLISHED).equals(rule.getStatus())) {
             throw exception(SRV_RULE_STATUS_INVALID);
         }
-        SrvRuleDO updateObj = new SrvRuleDO();
+        SrvRuleRetiredDO updateObj = new SrvRuleRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_DISABLED);
         srvRuleMapper.updateById(updateObj);
     }
 
-    private SrvRuleDO validateSrvRuleExists(Long id) {
+    private SrvRuleRetiredDO validateSrvRuleExists(Long id) {
         if (id == null) {
             throw exception(SRV_RULE_NOT_EXISTS);
         }
-        SrvRuleDO rule = srvRuleMapper.selectById(id);
+        SrvRuleRetiredDO rule = srvRuleMapper.selectById(id);
         if (rule == null) {
             throw exception(SRV_RULE_NOT_EXISTS);
         }
@@ -121,7 +123,7 @@ public class SrvRuleServiceImpl implements SrvRuleService {
         if (code == null) {
             return;
         }
-        SrvRuleDO existing = srvRuleMapper.selectByCode(code);
+        SrvRuleRetiredDO existing = srvRuleMapper.selectByCodeRetired(code);
         if (existing == null) {
             return;
         }

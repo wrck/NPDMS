@@ -3,42 +3,44 @@ package cn.iocoder.yudao.module.pms.cutover.service.risk;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.risk.vo.CutRiskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.risk.vo.CutRiskSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.risk.CutRiskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.risk.CutRiskRetiredDO;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 /**
  * PMS 割接风险 Service 接口（FR-CUT-004 / FR-CUT-006）。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
+@Deprecated
 public interface CutRiskService {
 
-    Long createCutRisk(@Valid CutRiskSaveReqVO createReqVO);
+    Long createCutRiskRetired(@Valid CutRiskSaveReqVO createReqVO);
 
-    void updateCutRisk(@Valid CutRiskSaveReqVO updateReqVO);
+    void updateCutRiskRetired(@Valid CutRiskSaveReqVO updateReqVO);
 
-    void deleteCutRisk(Long id);
+    void deleteCutRiskRetired(Long id);
 
-    CutRiskDO getCutRisk(Long id);
+    CutRiskRetiredDO getCutRiskRetired(Long id);
 
-    CutRiskDO validateCutRiskExists(Long id);
+    CutRiskRetiredDO validateCutRiskExistsRetired(Long id);
 
-    PageResult<CutRiskDO> getCutRiskPage(CutRiskPageReqVO pageReqVO);
+    PageResult<CutRiskRetiredDO> getCutRiskPageRetired(CutRiskPageReqVO pageReqVO);
 
-    List<CutRiskDO> getCutRiskListByTask(Long taskId);
+    List<CutRiskRetiredDO> getCutRiskListByTaskRetired(Long taskId);
 
     /**
      * 开始处理（0待处理 → 1处理中）
      */
-    void startProcess(Long id);
+    void startProcessRetired(Long id);
 
     /**
      * 闭环（1处理中 → 2已闭环）
      */
-    void close(Long id);
+    void closeRetired(Long id);
 
     /**
      * 挂起（0待处理/1处理中 → 3已挂起）
      */
-    void suspend(Long id);
+    void suspendRetired(Long id);
 }

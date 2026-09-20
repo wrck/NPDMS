@@ -8,7 +8,7 @@ import cn.iocoder.yudao.module.pms.service.controller.admin.srvissue.vo.SrvIssue
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvissue.vo.SrvIssuePageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvissue.vo.SrvIssueRespVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvissue.vo.SrvIssueSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvissue.SrvIssueDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvissue.SrvIssueRetiredDO;
 import cn.iocoder.yudao.module.pms.service.service.srvissue.SrvIssueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,6 +27,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RestController
 @RequestMapping("/pms/srv-issue")
 @Validated
+@Deprecated
 public class SrvIssueController {
 
     @Resource
@@ -36,14 +37,14 @@ public class SrvIssueController {
     @Operation(summary = "创建巡检问题")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:create')")
     public CommonResult<Long> createSrvIssue(@Valid @RequestBody SrvIssueSaveReqVO createReqVO) {
-        return success(srvIssueService.createSrvIssue(createReqVO));
+        return success(srvIssueService.createSrvIssueRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新巡检问题")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:update')")
     public CommonResult<Boolean> updateSrvIssue(@Valid @RequestBody SrvIssueSaveReqVO updateReqVO) {
-        srvIssueService.updateSrvIssue(updateReqVO);
+        srvIssueService.updateSrvIssueRetired(updateReqVO);
         return success(true);
     }
 
@@ -52,7 +53,7 @@ public class SrvIssueController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:delete')")
     public CommonResult<Boolean> deleteSrvIssue(@RequestParam("id") Long id) {
-        srvIssueService.deleteSrvIssue(id);
+        srvIssueService.deleteSrvIssueRetired(id);
         return success(true);
     }
 
@@ -60,7 +61,7 @@ public class SrvIssueController {
     @Operation(summary = "获得巡检问题分页")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:query')")
     public CommonResult<PageResult<SrvIssueRespVO>> getSrvIssuePage(@Validated SrvIssuePageReqVO pageReqVO) {
-        PageResult<SrvIssueDO> pageResult = srvIssueService.getSrvIssuePage(pageReqVO);
+        PageResult<SrvIssueRetiredDO> pageResult = srvIssueService.getSrvIssuePageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SrvIssueRespVO.class));
     }
 
@@ -69,7 +70,7 @@ public class SrvIssueController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:query')")
     public CommonResult<SrvIssueRespVO> getSrvIssue(@RequestParam("id") Long id) {
-        SrvIssueDO issue = srvIssueService.getSrvIssue(id);
+        SrvIssueRetiredDO issue = srvIssueService.getSrvIssueRetired(id);
         return success(BeanUtils.toBean(issue, SrvIssueRespVO.class));
     }
 
@@ -78,7 +79,7 @@ public class SrvIssueController {
     @Parameter(name = "taskId", description = "任务编号", required = true, example = "100")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:query')")
     public CommonResult<List<SrvIssueRespVO>> getSrvIssueListByTask(@RequestParam("taskId") Long taskId) {
-        List<SrvIssueDO> list = srvIssueService.getSrvIssueListByTask(taskId);
+        List<SrvIssueRetiredDO> list = srvIssueService.getSrvIssueListByTaskRetired(taskId);
         return success(BeanUtils.toBean(list, SrvIssueRespVO.class));
     }
 
@@ -86,7 +87,7 @@ public class SrvIssueController {
     @Operation(summary = "分派问题")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:update')")
     public CommonResult<Boolean> assignIssue(@Valid @RequestBody SrvIssueAssignReqVO reqVO) {
-        srvIssueService.assignIssue(reqVO);
+        srvIssueService.assignIssueRetired(reqVO);
         return success(true);
     }
 
@@ -94,7 +95,7 @@ public class SrvIssueController {
     @Operation(summary = "提交整改方案")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:update')")
     public CommonResult<Boolean> resolveIssue(@Valid @RequestBody SrvIssueActionReqVO reqVO) {
-        srvIssueService.resolveIssue(reqVO);
+        srvIssueService.resolveIssueRetired(reqVO);
         return success(true);
     }
 
@@ -102,7 +103,7 @@ public class SrvIssueController {
     @Operation(summary = "验证问题")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:update')")
     public CommonResult<Boolean> verifyIssue(@Valid @RequestBody SrvIssueActionReqVO reqVO) {
-        srvIssueService.verifyIssue(reqVO);
+        srvIssueService.verifyIssueRetired(reqVO);
         return success(true);
     }
 
@@ -111,7 +112,7 @@ public class SrvIssueController {
     @Parameter(name = "taskId", description = "任务编号", required = true, example = "100")
     @PreAuthorize("@ss.hasPermission('pms:srv-issue:query')")
     public CommonResult<Boolean> validateInspectionClosure(@RequestParam("taskId") Long taskId) {
-        return success(srvIssueService.validateInspectionClosure(taskId));
+        return success(srvIssueService.validateInspectionClosureRetired(taskId));
     }
 
 }

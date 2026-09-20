@@ -12,13 +12,15 @@ import java.time.LocalDateTime;
 /**
  * PMS 项目阶段 DO（FR-PROJ-017 / T-V1-PROJ-007、FR-PROJ-016 / T-V1-PROJ-008）。
  * <p>
- * 对应表 {@code pms_project_phase}，承载项目实际阶段（从模板实例化或手工创建）。
+ * 对应表 {@code pms_project_phase_retired}，承载项目实际阶段（从模板实例化或手工创建）。
  * 唯一索引 {@code (project_id, code)} 保证项目内阶段编码唯一；阶段顺序通过 {@link #sort} 控制。
- */
-@TableName("pms_project_phase")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_project_phase_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_project_phase_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectPhaseDO extends TenantBaseDO {
+@Deprecated
+public class ProjectPhaseRetiredDO extends TenantBaseDO {
 
     @TableId
     private Long id;

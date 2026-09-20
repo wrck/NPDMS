@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.api.governance;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.cutover.domain.CutTaskStatusRules;
@@ -40,13 +40,13 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         if (query.projectIds().isEmpty()) {
             return fact(List.of(), List.of());
         }
-        List<CutTaskDO> tasks = taskMapper.selectListForGovernanceGuard(
+        List<CutTaskRetiredDO> tasks = taskMapper.selectListForGovernanceGuardRetired(
                 new CutoverGovernanceGuardQuery(query.tenantId(), query.projectIds()));
         validateScope(query, tasks);
         List<String> facts = tasks.stream().map(CutoverGovernanceGuardProvider::canonicalFact).sorted().toList();
         List<ProjectGovernanceBlocker> blockers = tasks.stream()
                 .filter(task -> !CutTaskStatusRules.isTerminal(task.getStatus()))
-                .sorted(Comparator.comparing(CutTaskDO::getProjectId).thenComparing(CutTaskDO::getId))
+                .sorted(Comparator.comparing(CutTaskRetiredDO::getProjectId).thenComparing(CutTaskRetiredDO::getId))
                 .map(CutoverGovernanceGuardProvider::toBlocker).toList();
         return fact(facts, blockers);
     }
@@ -57,7 +57,7 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         }
     }
 
-    private static void validateScope(ProjectGovernanceGuardQuery query, List<CutTaskDO> tasks) {
+    private static void validateScope(ProjectGovernanceGuardQuery query, List<CutTaskRetiredDO> tasks) {
         if (tasks.stream().anyMatch(task -> !Objects.equals(task.getTenantId(), query.tenantId())
                 || !query.projectIds().contains(task.getProjectId()))) {
             throw new IllegalStateException("cutover guard query returned out-of-scope fact");
@@ -71,7 +71,7 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         return new ProjectGovernanceProviderFact(PROVIDER_CODE, FACT_VERSION, watermark, digest(facts), blockers);
     }
 
-    private static String canonicalFact(CutTaskDO task) {
+    private static String canonicalFact(CutTaskRetiredDO task) {
         return value(task.getProjectId()) + "|" + value(task.getId()) + "|" + value(task.getStatus())
                 + "|" + value(task.getVersion()) + "|" + value(task.getUpdateTime());
     }
@@ -81,7 +81,7 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         return fields[0] + "|" + fields[1] + "|" + fields[3] + "|" + fields[4];
     }
 
-    private static ProjectGovernanceBlocker toBlocker(CutTaskDO task) {
+    private static ProjectGovernanceBlocker toBlocker(CutTaskRetiredDO task) {
         return new ProjectGovernanceBlocker("CUTOVER_TASK", String.valueOf(task.getId()),
                 statusName(task.getStatus()), "NON_TERMINAL_CUTOVER_TASK", "割接任务阻断");
     }

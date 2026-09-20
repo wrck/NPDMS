@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.api.governance;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
@@ -47,7 +47,7 @@ class CutoverGovernanceGuardProviderTest {
 
     @Test
     void shouldBlockNonTerminalAndUnknownButAllowTerminalTasks() {
-        when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(
+        when(taskMapper.selectListForGovernanceGuardRetired(any())).thenReturn(List.of(
                 task(1L, 101L, 2, 1), task(1L, 102L, 6, 1), task(2L, 103L, 99, 1)));
 
         ProjectGovernanceProviderFact fact = provider.inspect(query(Set.of(2L, 1L)));
@@ -70,20 +70,20 @@ class CutoverGovernanceGuardProviderTest {
 
     @Test
     void shouldRejectOutOfScopePersistenceFact() {
-        CutTaskDO task = task(1L, 101L, 6, 1);
+        CutTaskRetiredDO task = task(1L, 101L, 6, 1);
         task.setTenantId(8L);
-        when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(task));
+        when(taskMapper.selectListForGovernanceGuardRetired(any())).thenReturn(List.of(task));
 
         assertThrows(IllegalStateException.class, () -> provider.inspect(query(Set.of(1L))));
     }
 
     @Test
     void shouldKeepDigestStableAcrossOrderAndChangeWatermarkWithVersion() {
-        CutTaskDO first = task(1L, 101L, 6, 1);
-        CutTaskDO second = task(2L, 102L, 7, 1);
-        CutTaskDO changed = task(1L, 101L, 6, 2);
+        CutTaskRetiredDO first = task(1L, 101L, 6, 1);
+        CutTaskRetiredDO second = task(2L, 102L, 7, 1);
+        CutTaskRetiredDO changed = task(1L, 101L, 6, 2);
         changed.setUpdateTime(first.getUpdateTime().plusSeconds(1));
-        when(taskMapper.selectListForGovernanceGuard(any()))
+        when(taskMapper.selectListForGovernanceGuardRetired(any()))
                 .thenReturn(List.of(first, second), List.of(second, first), List.of(changed, second));
 
         ProjectGovernanceProviderFact before = provider.inspect(query(Set.of(1L, 2L)));
@@ -100,8 +100,8 @@ class CutoverGovernanceGuardProviderTest {
         return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "ROLLBACK", CHECKED_AT);
     }
 
-    private static CutTaskDO task(Long projectId, Long id, Integer status, Integer version) {
-        CutTaskDO task = new CutTaskDO();
+    private static CutTaskRetiredDO task(Long projectId, Long id, Integer status, Integer version) {
+        CutTaskRetiredDO task = new CutTaskRetiredDO();
         task.setTenantId(TENANT_ID);
         task.setProjectId(projectId);
         task.setId(id);

@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.migration.LegacyCutoverReconciliationMapper;
@@ -28,14 +28,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/** pms_cut_task到cut_task的受控只读投影核对；不注册自动Job。 */
+/** pms_cut_task_retired到cut_task的受控只读投影核对；不注册自动Job。 */
 @Service
 public class LegacyCutoverReconciliationService {
 
     static final String OWNER_CONTEXT = "CUT";
     static final String PURPOSE = "CUTOVER_TASK_CURRENT_FORWARD";
     static final String SOURCE_SYSTEM = "NPDMS_LEGACY";
-    static final String SOURCE_TABLE = "pms_cut_task";
+    static final String SOURCE_TABLE = "pms_cut_task_retired";
     private static final int PAGE_SIZE = 500;
     private static final Snowflake ID_GENERATOR = IdUtil.getSnowflake();
 
@@ -102,7 +102,7 @@ public class LegacyCutoverReconciliationService {
             appendIssue(tenantId, batchId, source, "SOURCE_DATA_INVALID", correlationId);
             return Outcome.ISSUE;
         }
-        CutTaskDO legacy = reconciliationMapper.selectSourceForUpdate(
+        CutTaskRetiredDO legacy = reconciliationMapper.selectSourceForUpdate(
                 LegacyCutoverReconciliationQuery.source(tenantId, legacyTaskId));
         if (legacy == null) {
             appendIssue(tenantId, batchId, source, "SOURCE_DATA_INVALID", correlationId);

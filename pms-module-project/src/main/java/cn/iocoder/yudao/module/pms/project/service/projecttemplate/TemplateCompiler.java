@@ -96,8 +96,7 @@ public class TemplateCompiler {
             snapshot.setCompilerVersion(VERSIONED_COMPILER_VERSION);
             try {
                 // 发布使用与全部运行消费者相同的Reader验证实际持久化表示。
-                snapshot = TemplateExecutionSnapshotReader.read(
-                        cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(snapshot));
+                snapshot = TemplateExecutionSnapshotReader.read(TemplateExecutionSnapshot.freezeJson(snapshot));
             } catch (RuntimeException invalid) {
                 return new Compilation(null, null,
                         List.of(new Issue("executionSnapshot", "INCOMPLETE_VERSION_SNAPSHOT", invalid.getMessage())));
@@ -129,6 +128,9 @@ public class TemplateCompiler {
             if (!DeliveryDefinitionPayloadValidator.stageCode(stage.getCode()) || !stageCodes.add(stage.getCode()))
                 issues.add(new Issue(path + ".code", "INVALID_STAGE_CODE", "阶段编码须唯一且不超过32个字符"));
             if (blank(stage.getName())) issues.add(new Issue(path + ".name", "REQUIRED", "阶段名称不能为空"));
+            if (stage.getSchedulePercentage() != null && (stage.getSchedulePercentage().signum() <= 0
+                    || stage.getSchedulePercentage().compareTo(new java.math.BigDecimal("100")) > 0))
+                issues.add(new Issue(path + ".schedulePercentage", "INVALID_SCHEDULE_PERCENTAGE", "施工计划占比必须大于0且不超过100%"));
             if (stage.getLifecycleStage() == null || !stage.getLifecycleStage().matches("S[0-6]"))
                 issues.add(new Issue(path + ".lifecycleStage", "INVALID_LIFECYCLE_STAGE", "请选择标准生命周期阶段 S0～S6"));
         }
@@ -468,6 +470,7 @@ public class TemplateCompiler {
     private TemplateExecutionSnapshot.StageContract stage(TemplateDesignerDocument.StageNode source) {
         TemplateExecutionSnapshot.StageContract target = new TemplateExecutionSnapshot.StageContract();
         target.setLifecycleStage(source.getLifecycleStage());
+        target.setSchedulePercentage(source.getSchedulePercentage());
         target.setAdmissionRuleKey(source.getAdmissionRuleKey()); target.setCompletionRuleKey(source.getCompletionRuleKey()); target.setExitRuleKey(source.getExitRuleKey());
         target.setExecution(copy(source.getExecution()));
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());

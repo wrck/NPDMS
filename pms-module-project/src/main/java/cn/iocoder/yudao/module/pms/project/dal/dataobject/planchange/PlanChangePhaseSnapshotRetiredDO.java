@@ -12,11 +12,13 @@ import java.time.LocalDateTime;
  * PMS 计划变更阶段快照 DO（FR-PROJ-020 / T-V2-PROJ-003）
  * <p>
  * 记录变更前后阶段计划时间，便于版本回溯和差异比较
- */
-@TableName("pms_plan_change_phase_snapshot")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_plan_change_phase_snapshot_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_plan_change_phase_snapshot_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class PlanChangePhaseSnapshotDO extends TenantBaseDO {
+@Deprecated
+public class PlanChangePhaseSnapshotRetiredDO extends TenantBaseDO {
 
     @TableId
     private Long id;

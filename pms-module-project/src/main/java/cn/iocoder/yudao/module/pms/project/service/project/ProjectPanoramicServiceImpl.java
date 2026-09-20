@@ -6,10 +6,10 @@ import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectPanoramicRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectProgressRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberRespVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseRetiredDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectRetiredDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberRetiredDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.risk.ProjectRiskDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
@@ -32,10 +32,12 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  * <p>
  * 聚合项目基本信息、客户信息、阶段汇总、任务汇总、风险汇总与团队成员列表；
  * 总体进度按 60% 任务 + 40% 阶段加权计算。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
 @Slf4j
+@Deprecated
 public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
 
     /**
@@ -81,9 +83,9 @@ public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
     private ProjectTeamMemberMapper projectTeamMemberMapper;
 
     @Override
-    public ProjectPanoramicRespVO getProjectPanoramic(Long projectId) {
+    public ProjectPanoramicRespVO getProjectPanoramicRetired(Long projectId) {
         // 1. 校验项目存在并装配基本信息
-        ProjectDO project = projectMapper.selectById(projectId);
+        ProjectRetiredDO project = projectMapper.selectById(projectId);
         if (project == null) {
             throw exception(PROJECT_NOT_EXISTS);
         }
@@ -109,7 +111,7 @@ public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
         }
 
         // 3. 阶段汇总（一次查询后在内存按状态分组，避免多次 count 查询）
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(projectId);
+        List<ProjectPhaseRetiredDO> phases = projectPhaseMapper.selectListByProjectIdRetired(projectId);
         respVO.setPhaseTotalCount(phases.size());
         respVO.setPhaseNotStartedCount((int) phases.stream()
                 .filter(p -> Objects.equals(p.getStatus(), PHASE_STATUS_NOT_STARTED)).count());
@@ -121,7 +123,7 @@ public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
                 .filter(p -> Objects.equals(p.getStatus(), PHASE_STATUS_SKIPPED)).count());
 
         // 4. 任务汇总
-        List<ProjectTaskDO> tasks = projectTaskMapper.selectListByProjectId(projectId);
+        List<ProjectTaskRetiredDO> tasks = projectTaskMapper.selectListByProjectIdRetired(projectId);
         respVO.setTaskTotalCount(tasks.size());
         respVO.setTaskCompletedCount((int) tasks.stream()
                 .filter(t -> Objects.equals(t.getStatus(), TASK_STATUS_COMPLETED)).count());
@@ -146,29 +148,29 @@ public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
                 .filter(r -> Objects.equals(r.getStatus(), RISK_STATUS_OCCURRED)).count());
 
         // 6. 团队成员列表
-        List<ProjectTeamMemberDO> members = projectTeamMemberMapper.selectListByProjectId(projectId);
+        List<ProjectTeamMemberRetiredDO> members = projectTeamMemberMapper.selectListByProjectIdRetired(projectId);
         respVO.setTeamMembers(BeanUtils.toBean(members, ProjectTeamMemberRespVO.class));
 
         return respVO;
     }
 
     @Override
-    public ProjectProgressRespVO getProjectProgress(Long projectId) {
+    public ProjectProgressRespVO getProjectProgressRetired(Long projectId) {
         // 1. 校验项目存在
-        ProjectDO project = projectMapper.selectById(projectId);
+        ProjectRetiredDO project = projectMapper.selectById(projectId);
         if (project == null) {
             throw exception(PROJECT_NOT_EXISTS);
         }
 
         // 2. 阶段进度 = 已完成阶段数 / 阶段总数 * 100（阶段总数为 0 时记 0）
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(projectId);
+        List<ProjectPhaseRetiredDO> phases = projectPhaseMapper.selectListByProjectIdRetired(projectId);
         int phaseTotal = phases.size();
         long phaseCompleted = phases.stream()
                 .filter(p -> Objects.equals(p.getStatus(), PHASE_STATUS_COMPLETED)).count();
         int phaseProgress = phaseTotal == 0 ? 0 : (int) Math.round(phaseCompleted * 100.0d / phaseTotal);
 
         // 3. 任务进度 = 已完成任务数 / 任务总数 * 100（任务总数为 0 时记 0）
-        List<ProjectTaskDO> tasks = projectTaskMapper.selectListByProjectId(projectId);
+        List<ProjectTaskRetiredDO> tasks = projectTaskMapper.selectListByProjectIdRetired(projectId);
         int taskTotal = tasks.size();
         long taskCompleted = tasks.stream()
                 .filter(t -> Objects.equals(t.getStatus(), TASK_STATUS_COMPLETED)).count();

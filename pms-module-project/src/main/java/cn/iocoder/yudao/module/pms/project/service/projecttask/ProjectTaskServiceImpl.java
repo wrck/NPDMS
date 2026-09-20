@@ -6,7 +6,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.Proje
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskTreeRespVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
 import jakarta.annotation.Resource;
@@ -30,9 +30,11 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 
 /**
  * PMS 项目任务 WBS Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class ProjectTaskServiceImpl implements ProjectTaskService {
 
     @Resource
@@ -43,11 +45,11 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createProjectTask(ProjectTaskSaveReqVO createReqVO) {
+    public Long createProjectTaskRetired(ProjectTaskSaveReqVO createReqVO) {
         // 校验项目存在
         validateProjectExists(createReqVO.getProjectId());
         // 校验父任务存在（如果指定）
-        ProjectTaskDO parent = null;
+        ProjectTaskRetiredDO parent = null;
         if (createReqVO.getParentId() != null) {
             parent = projectTaskMapper.selectById(createReqVO.getParentId());
             if (parent == null) {
@@ -61,7 +63,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         // 校验任务编码在项目内唯一（仅在 code 非空时校验）
         validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
         // 插入任务
-        ProjectTaskDO task = BeanUtils.toBean(createReqVO, ProjectTaskDO.class);
+        ProjectTaskRetiredDO task = BeanUtils.toBean(createReqVO, ProjectTaskRetiredDO.class);
         if (task.getStatus() == null) {
             task.setStatus(0);
         }
@@ -89,7 +91,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         } else {
             newPath = "/" + task.getId() + "/";
         }
-        ProjectTaskDO treeUpdate = new ProjectTaskDO();
+        ProjectTaskRetiredDO treeUpdate = new ProjectTaskRetiredDO();
         treeUpdate.setId(task.getId());
         treeUpdate.setRootId(rootId);
         treeUpdate.setPath(newPath);
@@ -98,9 +100,9 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     }
 
     @Override
-    public void updateProjectTask(ProjectTaskSaveReqVO updateReqVO) {
+    public void updateProjectTaskRetired(ProjectTaskSaveReqVO updateReqVO) {
         // 校验存在
-        ProjectTaskDO existing = validateTaskExists(updateReqVO.getId());
+        ProjectTaskRetiredDO existing = validateTaskExists(updateReqVO.getId());
         // 校验项目存在
         validateProjectExists(updateReqVO.getProjectId());
         // 校验父任务一致（不允许通过 update 改父，必须走 move 接口）
@@ -110,7 +112,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         // 校验任务编码在项目内唯一
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
         // 更新任务（保留树字段）
-        ProjectTaskDO updateObj = BeanUtils.toBean(updateReqVO, ProjectTaskDO.class);
+        ProjectTaskRetiredDO updateObj = BeanUtils.toBean(updateReqVO, ProjectTaskRetiredDO.class);
         updateObj.setParentId(null);
         updateObj.setRootId(null);
         updateObj.setPath(null);
@@ -119,11 +121,11 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     }
 
     @Override
-    public void deleteProjectTask(Long id) {
+    public void deleteProjectTaskRetired(Long id) {
         // 校验存在
         validateTaskExists(id);
         // 校验是否存在子任务
-        List<ProjectTaskDO> children = projectTaskMapper.selectListByParentId(id);
+        List<ProjectTaskRetiredDO> children = projectTaskMapper.selectListByParentIdRetired(id);
         if (children != null && !children.isEmpty()) {
             throw exception(PROJECT_TASK_HAS_CHILDREN);
         }
@@ -132,27 +134,27 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     }
 
     @Override
-    public ProjectTaskDO getProjectTask(Long id) {
+    public ProjectTaskRetiredDO getProjectTaskRetired(Long id) {
         return projectTaskMapper.selectById(id);
     }
 
     @Override
-    public PageResult<ProjectTaskDO> getProjectTaskPage(ProjectTaskPageReqVO pageReqVO) {
-        return projectTaskMapper.selectPage(pageReqVO);
+    public PageResult<ProjectTaskRetiredDO> getProjectTaskPageRetired(ProjectTaskPageReqVO pageReqVO) {
+        return projectTaskMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public List<ProjectTaskTreeRespVO> getProjectTaskTree(Long projectId) {
+    public List<ProjectTaskTreeRespVO> getProjectTaskTreeRetired(Long projectId) {
         // 查询项目下所有任务
-        List<ProjectTaskDO> all = projectTaskMapper.selectListByProjectId(projectId);
+        List<ProjectTaskRetiredDO> all = projectTaskMapper.selectListByProjectIdRetired(projectId);
         // 构建 id -> node 映射
         Map<Long, ProjectTaskTreeRespVO> nodeMap = new LinkedHashMap<>();
-        for (ProjectTaskDO t : all) {
+        for (ProjectTaskRetiredDO t : all) {
             nodeMap.put(t.getId(), BeanUtils.toBean(t, ProjectTaskTreeRespVO.class));
         }
         // 构建森林
         List<ProjectTaskTreeRespVO> roots = new ArrayList<>();
-        for (ProjectTaskDO t : all) {
+        for (ProjectTaskRetiredDO t : all) {
             ProjectTaskTreeRespVO node = nodeMap.get(t.getId());
             if (t.getParentId() == null) {
                 roots.add(node);
@@ -175,27 +177,27 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
     }
 
     @Override
-    public List<ProjectTaskDO> getProjectTaskDescendants(Long taskId) {
-        ProjectTaskDO task = projectTaskMapper.selectById(taskId);
+    public List<ProjectTaskRetiredDO> getProjectTaskDescendantsRetired(Long taskId) {
+        ProjectTaskRetiredDO task = projectTaskMapper.selectById(taskId);
         if (task == null || task.getPath() == null) {
             return new ArrayList<>();
         }
-        List<ProjectTaskDO> list = projectTaskMapper.selectListByPathPrefix(task.getPath());
+        List<ProjectTaskRetiredDO> list = projectTaskMapper.selectListByPathPrefixRetired(task.getPath());
         list.removeIf(p -> p.getId().equals(taskId));
-        list.sort(Comparator.comparing(ProjectTaskDO::getPath, Comparator.nullsLast(Comparator.naturalOrder())));
+        list.sort(Comparator.comparing(ProjectTaskRetiredDO::getPath, Comparator.nullsLast(Comparator.naturalOrder())));
         return list;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void moveProjectTask(ProjectTaskMoveReqVO reqVO) {
+    public void moveProjectTaskRetired(ProjectTaskMoveReqVO reqVO) {
         // 校验待移动任务存在
-        ProjectTaskDO task = projectTaskMapper.selectById(reqVO.getTaskId());
+        ProjectTaskRetiredDO task = projectTaskMapper.selectById(reqVO.getTaskId());
         if (task == null) {
             throw exception(PROJECT_TASK_NOT_EXISTS);
         }
         // 计算新的父任务、根、深度
-        ProjectTaskDO newParent = null;
+        ProjectTaskRetiredDO newParent = null;
         if (reqVO.getTargetParentId() != null && reqVO.getTargetParentId() > 0) {
             newParent = projectTaskMapper.selectById(reqVO.getTargetParentId());
             if (newParent == null) {
@@ -228,7 +230,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         }
         String newPath = newParentPath + task.getId() + "/";
         // 更新当前任务
-        ProjectTaskDO updateObj = new ProjectTaskDO();
+        ProjectTaskRetiredDO updateObj = new ProjectTaskRetiredDO();
         updateObj.setId(task.getId());
         updateObj.setParentId(newParent != null ? newParent.getId() : null);
         updateObj.setRootId(newRootId);
@@ -237,14 +239,14 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         projectTaskMapper.updateById(updateObj);
         // 更新所有后代
         if (oldPath != null && !oldPath.equals(newPath)) {
-            List<ProjectTaskDO> descendants = projectTaskMapper.selectListByPathPrefix(oldPath);
+            List<ProjectTaskRetiredDO> descendants = projectTaskMapper.selectListByPathPrefixRetired(oldPath);
             int depthDelta = newDepth - (task.getDepth() != null ? task.getDepth() : 0);
-            for (ProjectTaskDO desc : descendants) {
+            for (ProjectTaskRetiredDO desc : descendants) {
                 if (desc.getId().equals(task.getId())) {
                     continue;
                 }
                 String descNewPath = newPath + desc.getPath().substring(oldPath.length());
-                ProjectTaskDO descUpdate = new ProjectTaskDO();
+                ProjectTaskRetiredDO descUpdate = new ProjectTaskRetiredDO();
                 descUpdate.setId(desc.getId());
                 descUpdate.setRootId(newRootId);
                 descUpdate.setPath(descNewPath);
@@ -266,11 +268,11 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         }
     }
 
-    private ProjectTaskDO validateTaskExists(Long id) {
+    private ProjectTaskRetiredDO validateTaskExists(Long id) {
         if (id == null) {
             return null;
         }
-        ProjectTaskDO task = projectTaskMapper.selectById(id);
+        ProjectTaskRetiredDO task = projectTaskMapper.selectById(id);
         if (task == null) {
             throw exception(PROJECT_TASK_NOT_EXISTS);
         }
@@ -290,7 +292,7 @@ public class ProjectTaskServiceImpl implements ProjectTaskService {
         if (code == null || code.isEmpty()) {
             return;
         }
-        ProjectTaskDO existing = projectTaskMapper.selectByProjectIdAndCode(projectId, code);
+        ProjectTaskRetiredDO existing = projectTaskMapper.selectByProjectIdAndCodeRetired(projectId, code);
         if (existing == null) {
             return;
         }

@@ -4,10 +4,10 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhasePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhaseSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseRetiredDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
 import cn.iocoder.yudao.module.pms.project.domain.task.TaskStatusRules;
 import jakarta.annotation.Resource;
@@ -30,10 +30,12 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
  * <p>
  * 阶段顺序通过 {@code sort} 升序控制；开始某阶段前需校验前序阶段已完成或已跳过。
  * 完成门禁包含：项目下全部任务为已完成或已取消、exit_criteria 已记录；超期/临期阶段按 plan_end_time 判定。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
 @Slf4j
+@Deprecated
 public class ProjectPhaseServiceImpl implements ProjectPhaseService {
 
     /** 阶段状态：未开始 */
@@ -48,20 +50,20 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     @Resource
     private ProjectPhaseMapper projectPhaseMapper;
     @Resource
-    private ProjectMapper projectMapper;
+    private ProjectMasterMapper projectMasterMapper;
     @Resource
     private ProjectTaskMapper projectTaskMapper;
 
     @Override
-    public Long createPhase(ProjectPhaseSaveReqVO createReqVO) {
-        // 1. 校验项目存在
-        if (projectMapper.selectById(createReqVO.getProjectId()) == null) {
+    public Long createPhaseRetired(ProjectPhaseSaveReqVO createReqVO) {
+        // 1. 校验项目存在（权威主档 proj_project；旧 pms_project_retired 已冻结只读）
+        if (projectMasterMapper.selectById(createReqVO.getProjectId()) == null) {
             throw exception(PROJECT_NOT_EXISTS);
         }
         // 2. 校验阶段编码项目内唯一
         validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
         // 3. 写入
-        ProjectPhaseDO phase = BeanUtils.toBean(createReqVO, ProjectPhaseDO.class);
+        ProjectPhaseRetiredDO phase = BeanUtils.toBean(createReqVO, ProjectPhaseRetiredDO.class);
         if (phase.getSort() == null) {
             phase.setSort(0);
         }
@@ -73,9 +75,9 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     }
 
     @Override
-    public void updatePhase(ProjectPhaseSaveReqVO updateReqVO) {
+    public void updatePhaseRetired(ProjectPhaseSaveReqVO updateReqVO) {
         // 1. 校验存在
-        ProjectPhaseDO existing = validatePhaseExists(updateReqVO.getId());
+        ProjectPhaseRetiredDO existing = validatePhaseExistsRetired(updateReqVO.getId());
         // 2. 项目不可变
         if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) {
             throw exception(PROJECT_PHASE_NOT_EXISTS);
@@ -83,33 +85,33 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
         // 3. 校验编码唯一
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
         // 4. 更新（乐观锁由 @Version 自动处理）
-        ProjectPhaseDO update = BeanUtils.toBean(updateReqVO, ProjectPhaseDO.class);
+        ProjectPhaseRetiredDO update = BeanUtils.toBean(updateReqVO, ProjectPhaseRetiredDO.class);
         projectPhaseMapper.updateById(update);
     }
 
     @Override
-    public void deletePhase(Long id) {
+    public void deletePhaseRetired(Long id) {
         // 1. 校验存在
-        validatePhaseExists(id);
+        validatePhaseExistsRetired(id);
         // 2. 删除
         projectPhaseMapper.deleteById(id);
     }
 
     @Override
-    public void deletePhaseList(Collection<Long> ids) {
+    public void deletePhaseListRetired(Collection<Long> ids) {
         for (Long id : ids) {
-            deletePhase(id);
+            deletePhaseRetired(id);
         }
     }
 
     @Override
-    public ProjectPhaseDO getPhase(Long id) {
+    public ProjectPhaseRetiredDO getPhaseRetired(Long id) {
         return projectPhaseMapper.selectById(id);
     }
 
     @Override
-    public ProjectPhaseDO validatePhaseExists(Long id) {
-        ProjectPhaseDO phase = projectPhaseMapper.selectById(id);
+    public ProjectPhaseRetiredDO validatePhaseExistsRetired(Long id) {
+        ProjectPhaseRetiredDO phase = projectPhaseMapper.selectById(id);
         if (phase == null) {
             throw exception(PROJECT_PHASE_NOT_EXISTS);
         }
@@ -117,26 +119,26 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     }
 
     @Override
-    public PageResult<ProjectPhaseDO> getPhasePage(ProjectPhasePageReqVO pageReqVO) {
-        return projectPhaseMapper.selectPage(pageReqVO);
+    public PageResult<ProjectPhaseRetiredDO> getPhasePageRetired(ProjectPhasePageReqVO pageReqVO) {
+        return projectPhaseMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public List<ProjectPhaseDO> getPhaseListByProjectId(Long projectId) {
-        return projectPhaseMapper.selectListByProjectId(projectId);
+    public List<ProjectPhaseRetiredDO> getPhaseListByProjectIdRetired(Long projectId) {
+        return projectPhaseMapper.selectListByProjectIdRetired(projectId);
     }
 
     @Override
-    public void validateSequence(Long phaseId) {
-        ProjectPhaseDO phase = validatePhaseExists(phaseId);
+    public void validateSequenceRetired(Long phaseId) {
+        ProjectPhaseRetiredDO phase = validatePhaseExistsRetired(phaseId);
         // 若阶段已完成或已跳过，无需校验前序
         if (phase.getStatus() != null && (phase.getStatus() == PHASE_COMPLETED || phase.getStatus() == PHASE_SKIPPED)) {
             return;
         }
         // 查询同项目下排序靠前的全部阶段，须全部为已完成或已跳过
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(phase.getProjectId());
+        List<ProjectPhaseRetiredDO> phases = projectPhaseMapper.selectListByProjectIdRetired(phase.getProjectId());
         int currentSort = phase.getSort() != null ? phase.getSort() : 0;
-        for (ProjectPhaseDO prev : phases) {
+        for (ProjectPhaseRetiredDO prev : phases) {
             if (Objects.equals(prev.getId(), phase.getId())) {
                 continue;
             }
@@ -151,13 +153,13 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     }
 
     @Override
-    public GateCheckResult checkCompletionGate(Long phaseId) {
-        ProjectPhaseDO phase = validatePhaseExists(phaseId);
+    public GateCheckResultRetired checkCompletionGateRetired(Long phaseId) {
+        ProjectPhaseRetiredDO phase = validatePhaseExistsRetired(phaseId);
         StringBuilder reason = new StringBuilder();
         long unfinishedTaskCount = 0;
         // 1. 校验项目下全部任务为已完成或已取消
-        List<ProjectTaskDO> tasks = projectTaskMapper.selectListByProjectId(phase.getProjectId());
-        for (ProjectTaskDO task : tasks) {
+        List<ProjectTaskRetiredDO> tasks = projectTaskMapper.selectListByProjectIdRetired(phase.getProjectId());
+        for (ProjectTaskRetiredDO task : tasks) {
             int status = task.getStatus() != null ? task.getStatus() : TaskStatusRules.DRAFT;
             if (!TaskStatusRules.isFinished(status)) {
                 unfinishedTaskCount++;
@@ -174,24 +176,24 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
         // 3. 汇总
         boolean passed = unfinishedTaskCount == 0 && exitCriteriaDocumented;
         String reasonText = passed ? "门禁通过" : reason.toString();
-        return new GateCheckResult(passed, unfinishedTaskCount, exitCriteriaDocumented, reasonText);
+        return new GateCheckResultRetired(passed, unfinishedTaskCount, exitCriteriaDocumented, reasonText);
     }
 
     @Override
     @Transactional
-    public void completePhase(Long phaseId, String gateEvidence, Integer version) {
+    public void completePhaseRetired(Long phaseId, String gateEvidence, Integer version) {
         // 1. 校验阶段存在
-        ProjectPhaseDO phase = validatePhaseExists(phaseId);
+        ProjectPhaseRetiredDO phase = validatePhaseExistsRetired(phaseId);
         // 2. 执行门禁校验
-        GateCheckResult gateResult = checkCompletionGate(phaseId);
+        GateCheckResultRetired gateResult = checkCompletionGateRetired(phaseId);
         if (!gateResult.isPassed()) {
             throw exception(PROJECT_PHASE_GATE_NOT_PASSED, phase.getName(), gateResult.getReason());
         }
         // 3. 写入实际结束时间、状态、版本
-        ProjectPhaseDO update = new ProjectPhaseDO();
+        ProjectPhaseRetiredDO update = new ProjectPhaseRetiredDO();
         update.setId(phaseId);
         update.setStatus(PHASE_COMPLETED);
-        update.setActualEndTime(now());
+        update.setActualEndTime(nowRetired());
         update.setVersion(version);
         // 将门禁证据追加到 deviation_reason（保留历史记录）
         if (StringUtils.isNotBlank(gateEvidence)) {
@@ -205,22 +207,22 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     }
 
     @Override
-    public List<ProjectPhaseDO> getOverduePhases() {
-        return projectPhaseMapper.selectOverdueList(now());
+    public List<ProjectPhaseRetiredDO> getOverduePhasesRetired() {
+        return projectPhaseMapper.selectOverdueListRetired(nowRetired());
     }
 
     @Override
-    public List<ProjectPhaseDO> getUpcomingPhases(int daysWithin) {
+    public List<ProjectPhaseRetiredDO> getUpcomingPhasesRetired(int daysWithin) {
         if (daysWithin < 0) {
             daysWithin = 0;
         }
-        LocalDateTime from = now();
+        LocalDateTime from = nowRetired();
         LocalDateTime to = from.plusDays(daysWithin);
-        return projectPhaseMapper.selectUpcomingList(from, to);
+        return projectPhaseMapper.selectUpcomingListRetired(from, to);
     }
 
     @Override
-    public LocalDateTime now() {
+    public LocalDateTime nowRetired() {
         return LocalDateTime.now();
     }
 
@@ -230,7 +232,7 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
         if (StringUtils.isBlank(code)) {
             return;
         }
-        ProjectPhaseDO existing = projectPhaseMapper.selectByProjectAndCode(projectId, code);
+        ProjectPhaseRetiredDO existing = projectPhaseMapper.selectByProjectAndCodeRetired(projectId, code);
         if (existing == null) {
             return;
         }

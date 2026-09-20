@@ -116,14 +116,14 @@ class LegacyCutoverPlanReconciliationMySqlTest {
 
         String release = "fcut004-plan-" + suffix;
         MigrationBatchFact batch = migrationApi.createImportBatch(new CreateImportBatchCommand(
-                tenantId, "CUT", "CUTOVER_PLAN_CURRENT_FORWARD", release, "NPDMS_LEGACY", "pms_cut_plan",
+                tenantId, "CUT", "CUTOVER_PLAN_CURRENT_FORWARD", release, "NPDMS_LEGACY", "pms_cut_plan_retired",
                 "FCUT004_LEGACY_V1", 1, "a".repeat(64), LocalDateTime.now(), null, null,
                 release + "-create", release + "-create"));
         batchId = batch.batchId();
         String sourcePayload = LegacyCutoverPlanRowConverterTest.legacyPayload(false)
                 .replace("\"tenant_id\":1", "\"tenant_id\":" + tenantId);
         migrationApi.appendSourceRecord(new AppendMigrationSourceRecordCommand(tenantId, batchId,
-                "NPDMS_LEGACY", "pms_cut_plan", "91", "PLAN-91",
+                "NPDMS_LEGACY", "pms_cut_plan_retired", "91", "PLAN-91",
                 sourcePayload, "b".repeat(64), LocalDateTime.now(),
                 release + "-source"));
         migrationApi.markStagedReady(new MarkStagedReadyCommand(tenantId, batchId, batch.version(),

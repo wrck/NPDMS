@@ -7,7 +7,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhas
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhasePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhaseRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhaseSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseRetiredDO;
 import cn.iocoder.yudao.module.pms.project.service.phase.ProjectPhaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,11 +30,13 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  * <p>
  * 路径前缀 {@code /pms/project-phase}，对应菜单权限 {@code pms:project-phase:*}。
  * 提供阶段 CRUD、模板实例化、阶段顺序校验、完成门禁、超期与临期预警能力。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Tag(name = "管理后台 - PMS 项目阶段")
 @RestController
 @RequestMapping("/pms/project-phase")
 @Validated
+@Deprecated
 public class ProjectPhaseController {
 
     @Resource
@@ -44,14 +46,14 @@ public class ProjectPhaseController {
     @Operation(summary = "创建项目阶段")
     @PreAuthorize("@ss.hasPermission('pms:project-phase:update')")
     public CommonResult<Long> createPhase(@Valid @RequestBody ProjectPhaseSaveReqVO createReqVO) {
-        return success(projectPhaseService.createPhase(createReqVO));
+        return success(projectPhaseService.createPhaseRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新项目阶段")
     @PreAuthorize("@ss.hasPermission('pms:project-phase:update')")
     public CommonResult<Boolean> updatePhase(@Valid @RequestBody ProjectPhaseSaveReqVO updateReqVO) {
-        projectPhaseService.updatePhase(updateReqVO);
+        projectPhaseService.updatePhaseRetired(updateReqVO);
         return success(true);
     }
 
@@ -60,7 +62,7 @@ public class ProjectPhaseController {
     @Parameter(name = "id", description = "阶段编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-phase:update')")
     public CommonResult<Boolean> deletePhase(@RequestParam("id") Long id) {
-        projectPhaseService.deletePhase(id);
+        projectPhaseService.deletePhaseRetired(id);
         return success(true);
     }
 
@@ -69,7 +71,7 @@ public class ProjectPhaseController {
     @Parameter(name = "ids", description = "阶段编号列表，逗号分隔", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-phase:update')")
     public CommonResult<Boolean> deletePhaseList(@RequestParam("ids") Collection<Long> ids) {
-        projectPhaseService.deletePhaseList(ids);
+        projectPhaseService.deletePhaseListRetired(ids);
         return success(true);
     }
 
@@ -78,7 +80,7 @@ public class ProjectPhaseController {
     @Parameter(name = "id", description = "阶段编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-phase:query')")
     public CommonResult<ProjectPhaseRespVO> getPhase(@RequestParam("id") Long id) {
-        ProjectPhaseDO phase = projectPhaseService.getPhase(id);
+        ProjectPhaseRetiredDO phase = projectPhaseService.getPhaseRetired(id);
         return success(BeanUtils.toBean(phase, ProjectPhaseRespVO.class));
     }
 
@@ -86,7 +88,7 @@ public class ProjectPhaseController {
     @Operation(summary = "分页查询项目阶段")
     @PreAuthorize("@ss.hasPermission('pms:project-phase:query')")
     public CommonResult<PageResult<ProjectPhaseRespVO>> getPhasePage(@Validated ProjectPhasePageReqVO pageReqVO) {
-        PageResult<ProjectPhaseDO> pageResult = projectPhaseService.getPhasePage(pageReqVO);
+        PageResult<ProjectPhaseRetiredDO> pageResult = projectPhaseService.getPhasePageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ProjectPhaseRespVO.class));
     }
 
@@ -96,7 +98,7 @@ public class ProjectPhaseController {
     @PreAuthorize("@ss.hasPermission('pms:project-phase:query')")
     public CommonResult<List<ProjectPhaseRespVO>> getPhaseListByProjectId(
             @RequestParam("projectId") Long projectId) {
-        List<ProjectPhaseDO> list = projectPhaseService.getPhaseListByProjectId(projectId);
+        List<ProjectPhaseRetiredDO> list = projectPhaseService.getPhaseListByProjectIdRetired(projectId);
         return success(BeanUtils.toBean(list, ProjectPhaseRespVO.class));
     }
 
@@ -105,7 +107,7 @@ public class ProjectPhaseController {
     @Parameter(name = "phaseId", description = "阶段编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-phase:query')")
     public CommonResult<Boolean> validateSequence(@RequestParam("phaseId") Long phaseId) {
-        projectPhaseService.validateSequence(phaseId);
+        projectPhaseService.validateSequenceRetired(phaseId);
         return success(true);
     }
 
@@ -114,7 +116,7 @@ public class ProjectPhaseController {
     @Parameter(name = "phaseId", description = "阶段编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project-phase:gate')")
     public CommonResult<Map<String, Object>> checkCompletionGate(@RequestParam("phaseId") Long phaseId) {
-        ProjectPhaseService.GateCheckResult result = projectPhaseService.checkCompletionGate(phaseId);
+        ProjectPhaseService.GateCheckResultRetired result = projectPhaseService.checkCompletionGateRetired(phaseId);
         Map<String, Object> data = new HashMap<>();
         data.put("passed", result.isPassed());
         data.put("unfinishedTaskCount", result.getUnfinishedTaskCount());
@@ -127,7 +129,7 @@ public class ProjectPhaseController {
     @Operation(summary = "完成阶段（含门禁校验）")
     @PreAuthorize("@ss.hasPermission('pms:project-phase:gate')")
     public CommonResult<Boolean> completePhase(@Valid @RequestBody ProjectPhaseCompleteReqVO reqVO) {
-        projectPhaseService.completePhase(reqVO.getPhaseId(), reqVO.getGateEvidence(), reqVO.getVersion());
+        projectPhaseService.completePhaseRetired(reqVO.getPhaseId(), reqVO.getGateEvidence(), reqVO.getVersion());
         return success(true);
     }
 
@@ -135,7 +137,7 @@ public class ProjectPhaseController {
     @Operation(summary = "查询超期阶段列表")
     @PreAuthorize("@ss.hasPermission('pms:project-phase:query')")
     public CommonResult<List<ProjectPhaseRespVO>> getOverduePhases() {
-        List<ProjectPhaseDO> list = projectPhaseService.getOverduePhases();
+        List<ProjectPhaseRetiredDO> list = projectPhaseService.getOverduePhasesRetired();
         return success(BeanUtils.toBean(list, ProjectPhaseRespVO.class));
     }
 
@@ -145,7 +147,7 @@ public class ProjectPhaseController {
     @PreAuthorize("@ss.hasPermission('pms:project-phase:query')")
     public CommonResult<List<ProjectPhaseRespVO>> getUpcomingPhases(
             @RequestParam(value = "daysWithin", defaultValue = "7") int daysWithin) {
-        List<ProjectPhaseDO> list = projectPhaseService.getUpcomingPhases(daysWithin);
+        List<ProjectPhaseRetiredDO> list = projectPhaseService.getUpcomingPhasesRetired(daysWithin);
         return success(BeanUtils.toBean(list, ProjectPhaseRespVO.class));
     }
 }

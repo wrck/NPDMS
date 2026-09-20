@@ -8,11 +8,16 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.batchchange.vo.TeamB
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange.TeamBatchChangeDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange.TeamBatchChangeItemDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.batchchange.TeamBatchChangeItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.batchchange.TeamBatchChangeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectteam.ProjectTeamMemberMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectMemberIdentityQuery;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -36,12 +41,15 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
  * PMS 团队批量变更 Service 实现（FR-PROJ-014）。
  * <p>
  * 项目主档引用新权威 {@code proj_project}（AI-MIG-000 / V260 全量前向导入）；
- * 旧 {@code pms_project} 已冻结只读。自有批次表 {@code proj_team_batch_change*}
- * 为 V254 CURRENT_FORWARD 当前承载。团队成员表 {@code pms_project_team_member}
- * 保持 pms_ 前缀（V254 本脚本不动），仍为当前承载。
+ * 旧 {@code pms_project_retired} 已冻结只读。自有批次表 {@code proj_team_batch_change*}
+ * 为 V254 CURRENT_FORWARD 当前承载。成员数据读写统一走新区间制成员载体
+ * {@code proj_project_member_assignment}（旧 {@code pms_project_team_member_retired}
+ * 已随 pms_ 旧域退役为只读）；移交语义为关闭源成员区间 + 插入目标用户新区间，
+ * 遵循 OrdinaryProjectMemberService 的写入惯例（version 0、changeReason、生效窗口）。
  * <p>
- * 创建批次时按源用户与范围生成明细；执行时逐条更新团队成员 user_id，
- * 部分失败时批次状态为部分成功(2)，明细逐条返回成功/失败结果与原因。
+ * 创建批次时按源用户有效区间生成明细；执行时逐条完成区间移交，
+ * 部分失败时批次状态为部分成功(2)，明细逐条返回成功/失败结果与原因；
+ * 已成功明细在失败重试时直接计为成功，不重复移交。
  */
 @Service
 @Validated
@@ -69,9 +77,13 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
     @Resource
     private TeamBatchChangeItemMapper batchChangeItemMapper;
     @Resource
-    private ProjectTeamMemberMapper projectTeamMemberMapper;
+    private ProjectMemberAssignmentMapper memberAssignmentMapper;
     @Resource(name = "projectMasterMapper")
     private ProjectMasterMapper projectMapper;
+    @Resource
+    private AdminUserApi adminUserApi;
+    @Resource
+    private DeptApi deptApi;
 
     @Override
     @Transactional
@@ -82,15 +94,15 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
         }
         // 2. 生成批次编号
         String batchNo = generateBatchNo();
-        // 3. 查询源用户的团队成员记录
-        List<ProjectTeamMemberDO> sourceMembers = selectSourceMembers(
+        // 3. 查询源用户的有效成员区间
+        List<ProjectMemberAssignmentDO> sourceMembers = selectSourceMembers(
                 createReqVO.getSourceUserId(), createReqVO.getScopeType(), createReqVO.getProjectIds());
         if (sourceMembers.isEmpty()) {
             throw exception(TEAM_BATCH_CHANGE_NO_ITEMS);
         }
         // 4. 批量查询项目名称（冗余到明细）
         Set<Long> projectIds = sourceMembers.stream()
-                .map(ProjectTeamMemberDO::getProjectId).collect(Collectors.toSet());
+                .map(ProjectMemberAssignmentDO::getProjectId).collect(Collectors.toSet());
         Map<Long, String> projectNameMap = projectIds.isEmpty() ? Map.of()
                 : projectMapper.selectByIds(projectIds).stream()
                 .collect(Collectors.toMap(ProjectMasterDO::getId, ProjectMasterDO::getProjectName));
@@ -103,14 +115,14 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
         batch.setFailureCount(0);
         batchChangeMapper.insert(batch);
         // 6. 写入明细（待处理）
-        for (ProjectTeamMemberDO member : sourceMembers) {
+        for (ProjectMemberAssignmentDO member : sourceMembers) {
             TeamBatchChangeItemDO item = new TeamBatchChangeItemDO();
             item.setBatchId(batch.getId());
             item.setProjectId(member.getProjectId());
             item.setProjectName(projectNameMap.get(member.getProjectId()));
             item.setTeamMemberId(member.getId());
-            item.setBeforeRole(member.getRoleCode());
-            item.setAfterRole(member.getRoleCode());
+            item.setBeforeRole(member.getMemberRole());
+            item.setAfterRole(member.getMemberRole());
             item.setStatus(ITEM_PENDING);
             batchChangeItemMapper.insert(item);
         }
@@ -168,8 +180,12 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
         List<TeamBatchChangeItemDO> items = batchChangeItemMapper.selectListByBatchId(batchId);
         int successCount = 0;
         int failureCount = 0;
-        // 逐条处理：每条独立事务边界由外层 @Transactional 保证，但单条失败不中断整体
+        // 逐条处理：单条失败不中断整体；已成功明细不重复移交（区间制载体下重复执行会生成重复目标区间）
         for (TeamBatchChangeItemDO item : items) {
+            if (item.getStatus() != null && item.getStatus() == ITEM_SUCCESS) {
+                successCount++;
+                continue;
+            }
             try {
                 processOneItem(batch, item);
                 item.setStatus(ITEM_SUCCESS);
@@ -205,38 +221,102 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
     // ==================== 内部工具方法 ====================
 
     /**
-     * 处理单条明细：将团队成员 user_id 由源用户更新为目标用户，保留角色不变。
-     * 若目标用户在同项目已存在相同角色，抛异常标记失败（避免唯一约束冲突）。
+     * 处理单条明细：将成员区间移交目标用户，角色保持不变。
+     * 区间制载体 proj_project_member_assignment 的移交语义为
+     * 插入目标用户新区间（version 0、changeReason、当前时间起生效）后关闭源区间；
+     * 先插入后关闭，插入失败（并发冲突）时源区间保持不变。
+     * 若目标用户在同项目已有同角色有效区间，抛异常标记失败（避免重复成员）。
      */
     private void processOneItem(TeamBatchChangeDO batch, TeamBatchChangeItemDO item) {
-        ProjectTeamMemberDO member = projectTeamMemberMapper.selectById(item.getTeamMemberId());
-        if (member == null) {
+        ProjectMemberAssignmentDO source = memberAssignmentMapper.selectById(item.getTeamMemberId());
+        if (source == null) {
             throw new IllegalStateException("团队成员记录不存在");
         }
-        // 校验目标用户在同项目同角色是否已存在（避免唯一约束冲突）
-        ProjectTeamMemberDO duplicate = projectTeamMemberMapper
-                .selectByProjectIdAndUserIdAndRoleCode(member.getProjectId(),
-                        batch.getTargetUserId(), member.getRoleCode());
-        if (duplicate != null) {
+        String reason = "团队批量变更批次 " + batch.getBatchNo();
+        LocalDateTime now = LocalDateTime.now();
+        boolean sourceActive = "ACTIVE".equals(source.getStatus())
+                && (source.getEffectiveTo() == null || source.getEffectiveTo().isAfter(now));
+        adminUserApi.validateUser(batch.getTargetUserId());
+        // 锁定目标用户在同项目同角色的有效区间（防并发重复移交）
+        List<ProjectMemberAssignmentDO> targetActive = memberAssignmentMapper.selectActiveMemberIdentityForUpdate(
+                new ProjectMemberIdentityQuery(source.getTenantId(), source.getProjectId(),
+                        batch.getTargetUserId(), source.getMemberRole(), now));
+        if (!targetActive.isEmpty()) {
+            boolean created = targetActive.stream()
+                    .anyMatch(row -> reason.equals(row.getChangeReason()));
+            if (created && sourceActive) {
+                // 上次执行已插入目标区间但关闭源区间失败：补完成关闭（幂等续跑）
+                closeAssignment(source, reason, now);
+                return;
+            }
+            if (created) {
+                return;
+            }
             throw new IllegalStateException("目标用户在该项目已存在相同角色");
         }
-        // 更新 user_id（角色保持不变，完成角色移交）
-        ProjectTeamMemberDO update = new ProjectTeamMemberDO();
-        update.setId(member.getId());
-        update.setUserId(batch.getTargetUserId());
-        projectTeamMemberMapper.updateById(update);
+        if (!sourceActive) {
+            throw new IllegalStateException("源成员记录已失效");
+        }
+        // 先插入目标区间再关闭源区间
+        ProjectMemberAssignmentDO target = new ProjectMemberAssignmentDO();
+        target.setTenantId(source.getTenantId());
+        target.setProjectId(source.getProjectId());
+        target.setUserId(batch.getTargetUserId());
+        AdminUserRespDTO targetUser = adminUserApi.getUser(batch.getTargetUserId());
+        target.setMemberName(targetUser == null ? null : targetUser.getNickname());
+        if (targetUser != null && targetUser.getDeptId() != null) {
+            target.setDepartmentId(targetUser.getDeptId());
+            DeptRespDTO dept = deptApi.getDept(targetUser.getDeptId());
+            if (dept != null) {
+                target.setDepartmentCode(dept.getCode());
+                target.setDepartmentName(dept.getName());
+            }
+        }
+        target.setMemberRole(source.getMemberRole());
+        target.setAssignmentType(source.getAssignmentType());
+        target.setSiteId(source.getSiteId());
+        target.setResponsibility(source.getResponsibility());
+        target.setRemark(source.getRemark());
+        target.setChangeReason(reason);
+        target.setEffectiveFrom(now);
+        target.setStatus("ACTIVE");
+        target.setVersion(0);
+        if (memberAssignmentMapper.insert(target) != 1) {
+            throw exception(PROJECT_VERSION_CONFLICT);
+        }
+        closeAssignment(source, reason, now);
     }
 
     /**
-     * 按范围查询源用户的团队成员记录。
+     * 关闭成员区间：生效至当前时间并记录原因，口径同 OrdinaryProjectMemberService#close。
      */
-    private List<ProjectTeamMemberDO> selectSourceMembers(Long sourceUserId, String scopeType, List<Long> projectIds) {
-        LambdaQueryWrapperX<ProjectTeamMemberDO> wrapper = new LambdaQueryWrapperX<ProjectTeamMemberDO>()
-                .eq(ProjectTeamMemberDO::getUserId, sourceUserId);
-        if ("SELECTED".equalsIgnoreCase(scopeType) && projectIds != null && !projectIds.isEmpty()) {
-            wrapper.in(ProjectTeamMemberDO::getProjectId, new HashSet<>(projectIds));
+    private void closeAssignment(ProjectMemberAssignmentDO member, String reason, LocalDateTime now) {
+        ProjectMemberAssignmentDO close = new ProjectMemberAssignmentDO();
+        close.setId(member.getId());
+        close.setEffectiveTo(now);
+        close.setEndReason(reason);
+        close.setVersion(member.getVersion());
+        if (memberAssignmentMapper.updateById(close) != 1) {
+            throw exception(PROJECT_VERSION_CONFLICT);
         }
-        return projectTeamMemberMapper.selectList(wrapper);
+    }
+
+    /**
+     * 按范围查询源用户的有效成员区间（状态 ACTIVE 且当前时间落在生效窗口内）。
+     */
+    private List<ProjectMemberAssignmentDO> selectSourceMembers(Long sourceUserId, String scopeType, List<Long> projectIds) {
+        LocalDateTime now = LocalDateTime.now();
+        LambdaQueryWrapperX<ProjectMemberAssignmentDO> wrapper = new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getUserId, sourceUserId)
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE");
+        wrapper.and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
+                .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, now));
+        wrapper.and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
+                .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, now));
+        if ("SELECTED".equalsIgnoreCase(scopeType) && projectIds != null && !projectIds.isEmpty()) {
+            wrapper.in(ProjectMemberAssignmentDO::getProjectId, new HashSet<>(projectIds));
+        }
+        return memberAssignmentMapper.selectList(wrapper);
     }
 
     /**

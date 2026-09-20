@@ -73,7 +73,7 @@ public class LegacyCutoverPlanRowConverter {
         }
 
         Map<String, Object> snapshot = new LinkedHashMap<>();
-        snapshot.put("sourceTable", "pms_cut_plan");
+        snapshot.put("sourceTable", "pms_cut_plan_retired");
         snapshot.put("sourceId", sourceId);
         snapshot.put("sourceTenantId", sourceTenantId);
         snapshot.put("sourceTaskId", sourceTaskId);

@@ -5,7 +5,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.plan.vo.CutPlanApproveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.plan.vo.CutPlanPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.plan.vo.CutPlanSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutPlanDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutPlanRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutPlanMapper;
 import cn.iocoder.yudao.module.pms.cutover.enums.CutStatusEnum;
 import jakarta.annotation.Resource;
@@ -24,30 +24,32 @@ import static cn.iocoder.yudao.module.pms.cutover.enums.ErrorCodeConstants.*;
 
 /**
  * PMS 割接方案 Service 实现（FR-CUT-008 / FR-CUT-009）。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
 @Slf4j
+@Deprecated
 public class CutPlanServiceImpl implements CutPlanService {
 
     @Resource
     private CutPlanMapper cutPlanMapper;
 
     @Override
-    public Long createCutPlan(CutPlanSaveReqVO createReqVO) {
+    public Long createCutPlanRetired(CutPlanSaveReqVO createReqVO) {
         // 1. 校验编码在任务内唯一
         validateCodeUniqueInTask(null, createReqVO.getTaskId(), createReqVO.getCode());
         // 2. 转换并写入，初始状态为草稿
-        CutPlanDO entity = BeanUtils.toBean(createReqVO, CutPlanDO.class);
+        CutPlanRetiredDO entity = BeanUtils.toBean(createReqVO, CutPlanRetiredDO.class);
         entity.setStatus(CutStatusEnum.CUT_PLAN_DRAFT);
         cutPlanMapper.insert(entity);
         return entity.getId();
     }
 
     @Override
-    public void updateCutPlan(CutPlanSaveReqVO updateReqVO) {
+    public void updateCutPlanRetired(CutPlanSaveReqVO updateReqVO) {
         // 1. 校验存在
-        CutPlanDO existing = validateCutPlanExists(updateReqVO.getId());
+        CutPlanRetiredDO existing = validateCutPlanExistsRetired(updateReqVO.getId());
         // 2. 编码不可变
         if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
             throw exception(CUT_PLAN_CODE_DUPLICATE, updateReqVO.getCode());
@@ -62,24 +64,24 @@ public class CutPlanServiceImpl implements CutPlanService {
             throw exception(CUT_PLAN_BASELINE_LOCKED);
         }
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
-        CutPlanDO update = BeanUtils.toBean(updateReqVO, CutPlanDO.class);
+        CutPlanRetiredDO update = BeanUtils.toBean(updateReqVO, CutPlanRetiredDO.class);
         cutPlanMapper.updateById(update);
     }
 
     @Override
-    public void deleteCutPlan(Long id) {
-        validateCutPlanExists(id);
+    public void deleteCutPlanRetired(Long id) {
+        validateCutPlanExistsRetired(id);
         cutPlanMapper.deleteById(id);
     }
 
     @Override
-    public CutPlanDO getCutPlan(Long id) {
+    public CutPlanRetiredDO getCutPlanRetired(Long id) {
         return cutPlanMapper.selectById(id);
     }
 
     @Override
-    public CutPlanDO validateCutPlanExists(Long id) {
-        CutPlanDO entity = cutPlanMapper.selectById(id);
+    public CutPlanRetiredDO validateCutPlanExistsRetired(Long id) {
+        CutPlanRetiredDO entity = cutPlanMapper.selectById(id);
         if (entity == null) {
             throw exception(CUT_PLAN_NOT_FOUND);
         }
@@ -87,22 +89,22 @@ public class CutPlanServiceImpl implements CutPlanService {
     }
 
     @Override
-    public PageResult<CutPlanDO> getCutPlanPage(CutPlanPageReqVO pageReqVO) {
-        return cutPlanMapper.selectPage(pageReqVO);
+    public PageResult<CutPlanRetiredDO> getCutPlanPageRetired(CutPlanPageReqVO pageReqVO) {
+        return cutPlanMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public List<CutPlanDO> getCutPlanListByTask(Long taskId) {
-        return cutPlanMapper.selectListByTask(taskId);
+    public List<CutPlanRetiredDO> getCutPlanListByTaskRetired(Long taskId) {
+        return cutPlanMapper.selectListByTaskRetired(taskId);
     }
 
     @Override
-    public void submitForReview(Long id) {
-        CutPlanDO entity = validateCutPlanExists(id);
+    public void submitForReviewRetired(Long id) {
+        CutPlanRetiredDO entity = validateCutPlanExistsRetired(id);
         if (!Objects.equals(CutStatusEnum.CUT_PLAN_DRAFT, entity.getStatus())) {
             throw exception(CUT_PLAN_STATUS_INVALID);
         }
-        CutPlanDO update = new CutPlanDO();
+        CutPlanRetiredDO update = new CutPlanRetiredDO();
         update.setId(id);
         update.setStatus(CutStatusEnum.CUT_PLAN_PENDING_REVIEW);
         update.setVersion(entity.getVersion());
@@ -110,12 +112,12 @@ public class CutPlanServiceImpl implements CutPlanService {
     }
 
     @Override
-    public void approve(CutPlanApproveReqVO reqVO) {
-        CutPlanDO entity = validateCutPlanExists(reqVO.getId());
+    public void approveRetired(CutPlanApproveReqVO reqVO) {
+        CutPlanRetiredDO entity = validateCutPlanExistsRetired(reqVO.getId());
         if (!Objects.equals(CutStatusEnum.CUT_PLAN_PENDING_REVIEW, entity.getStatus())) {
             throw exception(CUT_PLAN_STATUS_INVALID);
         }
-        CutPlanDO update = new CutPlanDO();
+        CutPlanRetiredDO update = new CutPlanRetiredDO();
         update.setId(reqVO.getId());
         update.setStatus(CutStatusEnum.CUT_PLAN_APPROVED);
         update.setApprovedBy(getLoginUserId());
@@ -128,12 +130,12 @@ public class CutPlanServiceImpl implements CutPlanService {
     }
 
     @Override
-    public void reject(CutPlanApproveReqVO reqVO) {
-        CutPlanDO entity = validateCutPlanExists(reqVO.getId());
+    public void rejectRetired(CutPlanApproveReqVO reqVO) {
+        CutPlanRetiredDO entity = validateCutPlanExistsRetired(reqVO.getId());
         if (!Objects.equals(CutStatusEnum.CUT_PLAN_PENDING_REVIEW, entity.getStatus())) {
             throw exception(CUT_PLAN_STATUS_INVALID);
         }
-        CutPlanDO update = new CutPlanDO();
+        CutPlanRetiredDO update = new CutPlanRetiredDO();
         update.setId(reqVO.getId());
         update.setStatus(CutStatusEnum.CUT_PLAN_REJECTED);
         update.setApprovedBy(getLoginUserId());
@@ -144,12 +146,12 @@ public class CutPlanServiceImpl implements CutPlanService {
     }
 
     @Override
-    public void terminate(Long id) {
-        CutPlanDO entity = validateCutPlanExists(id);
+    public void terminateRetired(Long id) {
+        CutPlanRetiredDO entity = validateCutPlanExistsRetired(id);
         if (isTerminal(entity.getStatus())) {
             throw exception(CUT_PLAN_STATUS_INVALID);
         }
-        CutPlanDO update = new CutPlanDO();
+        CutPlanRetiredDO update = new CutPlanRetiredDO();
         update.setId(id);
         update.setStatus(CutStatusEnum.CUT_PLAN_TERMINATED);
         update.setVersion(entity.getVersion());
@@ -157,8 +159,8 @@ public class CutPlanServiceImpl implements CutPlanService {
     }
 
     @Override
-    public void validateTaskPlanApproved(Long taskId) {
-        Long count = cutPlanMapper.selectCountByTaskApproved(taskId);
+    public void validateTaskPlanApprovedRetired(Long taskId) {
+        Long count = cutPlanMapper.selectCountByTaskApprovedRetired(taskId);
         if (count == null || count <= 0) {
             throw exception(CUT_TASK_NOT_APPROVED, taskId);
         }
@@ -173,7 +175,7 @@ public class CutPlanServiceImpl implements CutPlanService {
     /**
      * 判断基线锁定关键字段是否变更：preCheck / procedure / rollback。
      */
-    private boolean isBaselineFieldsChanged(CutPlanDO existing, CutPlanSaveReqVO updateReqVO) {
+    private boolean isBaselineFieldsChanged(CutPlanRetiredDO existing, CutPlanSaveReqVO updateReqVO) {
         return !Objects.equals(existing.getPreCheck(), updateReqVO.getPreCheck())
                 || !Objects.equals(existing.getProcedure(), updateReqVO.getProcedure())
                 || !Objects.equals(existing.getRollback(), updateReqVO.getRollback());
@@ -183,7 +185,7 @@ public class CutPlanServiceImpl implements CutPlanService {
         if (StringUtils.isBlank(code) || taskId == null) {
             return;
         }
-        CutPlanDO existing = cutPlanMapper.selectByTaskCode(taskId, code);
+        CutPlanRetiredDO existing = cutPlanMapper.selectByTaskCodeRetired(taskId, code);
         if (existing == null) {
             return;
         }

@@ -19,6 +19,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RestController
 @RequestMapping("/pms/project-task")
 @Validated
+@Deprecated
 public class ProjectTaskController {
 
     @Resource
@@ -29,7 +30,7 @@ public class ProjectTaskController {
     @Parameter(name = "projectId", description = "项目编号", required = true, example = "2048")
     @PreAuthorize("@ss.hasPermission('pms:project-task:query')")
     public CommonResult<List<ProjectTaskTreeRespVO>> getProjectTaskTree(@RequestParam("projectId") Long projectId) {
-        return success(projectTaskService.getProjectTaskTree(projectId));
+        return success(projectTaskService.getProjectTaskTreeRetired(projectId));
     }
 
 }

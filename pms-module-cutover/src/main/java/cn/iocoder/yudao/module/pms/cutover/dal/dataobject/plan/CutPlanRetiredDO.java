@@ -12,13 +12,15 @@ import java.time.LocalDateTime;
 /**
  * PMS 割接方案 DO（FR-CUT-008 / FR-CUT-009）。
  * <p>
- * 对应表 {@code pms_cut_plan}，承载割接方案编制与评审。
+ * 对应表 {@code pms_cut_plan_retired}，承载割接方案编制与评审。
  * 评审通过后形成不可覆盖基线版本 {@link #baselineVersion}。
- */
-@TableName("pms_cut_plan")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_cut_plan_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_cut_plan_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CutPlanDO extends TenantBaseDO {
+@Deprecated
+public class CutPlanRetiredDO extends TenantBaseDO {
 
     @TableId
     private Long id;

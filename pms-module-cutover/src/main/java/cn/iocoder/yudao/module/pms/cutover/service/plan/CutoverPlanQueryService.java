@@ -289,7 +289,7 @@ public class CutoverPlanQueryService {
                                             String mappingVersion, String code, String name, String level,
                                             String remark) {
         private void validate() {
-            if (!"pms_cut_plan".equals(sourceTable) || sourceId == null || sourceId <= 0
+            if (!"pms_cut_plan_retired".equals(sourceTable) || sourceId == null || sourceId <= 0
                     || sourceTenantId == null || sourceTenantId <= 0 || sourceTaskId == null || sourceTaskId <= 0
                     || sourceVersion == null || sourceVersion < 0 || sourceStatusRaw == null
                     || sourceStatusRaw < 0 || sourceStatusRaw > 4

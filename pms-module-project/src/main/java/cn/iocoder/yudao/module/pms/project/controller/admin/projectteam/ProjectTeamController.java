@@ -6,7 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberRetiredDO;
 import cn.iocoder.yudao.module.pms.project.service.projectteam.ProjectTeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,6 +25,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RestController
 @RequestMapping("/pms/project-team")
 @Validated
+@Deprecated
 public class ProjectTeamController {
 
     @Resource
@@ -34,14 +35,14 @@ public class ProjectTeamController {
     @Operation(summary = "创建项目团队成员")
     @PreAuthorize("@ss.hasPermission('pms:project-team:create')")
     public CommonResult<Long> createProjectTeamMember(@Valid @RequestBody ProjectTeamMemberSaveReqVO createReqVO) {
-        return success(projectTeamService.createProjectTeamMember(createReqVO));
+        return success(projectTeamService.createProjectTeamMemberRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新项目团队成员")
     @PreAuthorize("@ss.hasPermission('pms:project-team:create')")
     public CommonResult<Boolean> updateProjectTeamMember(@Valid @RequestBody ProjectTeamMemberSaveReqVO updateReqVO) {
-        projectTeamService.updateProjectTeamMember(updateReqVO);
+        projectTeamService.updateProjectTeamMemberRetired(updateReqVO);
         return success(true);
     }
 
@@ -50,7 +51,7 @@ public class ProjectTeamController {
     @Parameter(name = "id", description = "团队成员编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:project-team:create')")
     public CommonResult<Boolean> deleteProjectTeamMember(@RequestParam("id") Long id) {
-        projectTeamService.deleteProjectTeamMember(id);
+        projectTeamService.deleteProjectTeamMemberRetired(id);
         return success(true);
     }
 
@@ -59,7 +60,7 @@ public class ProjectTeamController {
     @Parameter(name = "id", description = "团队成员编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:project-team:query')")
     public CommonResult<ProjectTeamMemberRespVO> getProjectTeamMember(@RequestParam("id") Long id) {
-        ProjectTeamMemberDO member = projectTeamService.getProjectTeamMember(id);
+        ProjectTeamMemberRetiredDO member = projectTeamService.getProjectTeamMemberRetired(id);
         return success(BeanUtils.toBean(member, ProjectTeamMemberRespVO.class));
     }
 
@@ -68,7 +69,7 @@ public class ProjectTeamController {
     @PreAuthorize("@ss.hasPermission('pms:project-team:query')")
     public CommonResult<PageResult<ProjectTeamMemberRespVO>> getProjectTeamMemberPage(
             @Validated ProjectTeamMemberPageReqVO pageReqVO) {
-        PageResult<ProjectTeamMemberDO> pageResult = projectTeamService.getProjectTeamMemberPage(pageReqVO);
+        PageResult<ProjectTeamMemberRetiredDO> pageResult = projectTeamService.getProjectTeamMemberPageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ProjectTeamMemberRespVO.class));
     }
 
@@ -78,7 +79,7 @@ public class ProjectTeamController {
     @PreAuthorize("@ss.hasPermission('pms:project-team:query')")
     public CommonResult<List<ProjectTeamMemberRespVO>> getProjectTeamListByProjectId(
             @RequestParam("projectId") Long projectId) {
-        List<ProjectTeamMemberDO> list = projectTeamService.getTeamListByProjectId(projectId);
+        List<ProjectTeamMemberRetiredDO> list = projectTeamService.getTeamListByProjectIdRetired(projectId);
         return success(BeanUtils.toBean(list, ProjectTeamMemberRespVO.class));
     }
 

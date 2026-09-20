@@ -48,7 +48,7 @@ class LegacyCutoverPlanRowConverterTest {
     }
 
     static MigrationSourceRecordFact source(Long sourceRecordId, Long batchId, String payload) {
-        return new MigrationSourceRecordFact(sourceRecordId, 1L, batchId, "NPDMS_LEGACY", "pms_cut_plan",
+        return new MigrationSourceRecordFact(sourceRecordId, 1L, batchId, "NPDMS_LEGACY", "pms_cut_plan_retired",
                 "91", "PLAN-91", payload, "0".repeat(64), LocalDateTime.of(2026, 9, 1, 10, 0), null);
     }
 

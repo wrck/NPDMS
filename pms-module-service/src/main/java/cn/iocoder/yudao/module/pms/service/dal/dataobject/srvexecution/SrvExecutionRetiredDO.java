@@ -10,11 +10,13 @@ import java.time.LocalDateTime;
 
 /**
  * 在线巡检执行记录 DO
- */
-@TableName("pms_srv_execution")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_srv_execution_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_srv_execution_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SrvExecutionDO extends TenantBaseDO {
+@Deprecated
+public class SrvExecutionRetiredDO extends TenantBaseDO {
 
     /**
      * 执行记录编号

@@ -6,7 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvofflinefile.vo.SrvOfflineFilePageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvofflinefile.vo.SrvOfflineFileRespVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvofflinefile.vo.SrvOfflineFileSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvofflinefile.SrvOfflineFileDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvofflinefile.SrvOfflineFileRetiredDO;
 import cn.iocoder.yudao.module.pms.service.service.srvofflinefile.SrvOfflineFileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +23,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RestController
 @RequestMapping("/pms/srv-offline-file")
 @Validated
+@Deprecated
 public class SrvOfflineFileController {
 
     @Resource
@@ -32,14 +33,14 @@ public class SrvOfflineFileController {
     @Operation(summary = "创建离线巡检文件")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:create')")
     public CommonResult<Long> createSrvOfflineFile(@Valid @RequestBody SrvOfflineFileSaveReqVO createReqVO) {
-        return success(srvOfflineFileService.createSrvOfflineFile(createReqVO));
+        return success(srvOfflineFileService.createSrvOfflineFileRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新离线巡检文件")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> updateSrvOfflineFile(@Valid @RequestBody SrvOfflineFileSaveReqVO updateReqVO) {
-        srvOfflineFileService.updateSrvOfflineFile(updateReqVO);
+        srvOfflineFileService.updateSrvOfflineFileRetired(updateReqVO);
         return success(true);
     }
 
@@ -48,7 +49,7 @@ public class SrvOfflineFileController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:delete')")
     public CommonResult<Boolean> deleteSrvOfflineFile(@RequestParam("id") Long id) {
-        srvOfflineFileService.deleteSrvOfflineFile(id);
+        srvOfflineFileService.deleteSrvOfflineFileRetired(id);
         return success(true);
     }
 
@@ -56,7 +57,7 @@ public class SrvOfflineFileController {
     @Operation(summary = "获得离线巡检文件分页")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:query')")
     public CommonResult<PageResult<SrvOfflineFileRespVO>> getSrvOfflineFilePage(@Validated SrvOfflineFilePageReqVO pageReqVO) {
-        PageResult<SrvOfflineFileDO> pageResult = srvOfflineFileService.getSrvOfflineFilePage(pageReqVO);
+        PageResult<SrvOfflineFileRetiredDO> pageResult = srvOfflineFileService.getSrvOfflineFilePageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SrvOfflineFileRespVO.class));
     }
 
@@ -65,7 +66,7 @@ public class SrvOfflineFileController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:query')")
     public CommonResult<SrvOfflineFileRespVO> getSrvOfflineFile(@RequestParam("id") Long id) {
-        SrvOfflineFileDO offlineFile = srvOfflineFileService.getSrvOfflineFile(id);
+        SrvOfflineFileRetiredDO offlineFile = srvOfflineFileService.getSrvOfflineFileRetired(id);
         return success(BeanUtils.toBean(offlineFile, SrvOfflineFileRespVO.class));
     }
 
@@ -74,7 +75,7 @@ public class SrvOfflineFileController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> startParse(@RequestParam("id") Long id) {
-        srvOfflineFileService.startParse(id);
+        srvOfflineFileService.startParseRetired(id);
         return success(true);
     }
 
@@ -83,7 +84,7 @@ public class SrvOfflineFileController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> parseSuccess(@RequestParam("id") Long id) {
-        srvOfflineFileService.parseSuccess(id);
+        srvOfflineFileService.parseSuccessRetired(id);
         return success(true);
     }
 
@@ -92,7 +93,7 @@ public class SrvOfflineFileController {
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:srv-task:update')")
     public CommonResult<Boolean> parseFailed(@RequestParam("id") Long id) {
-        srvOfflineFileService.parseFailed(id);
+        srvOfflineFileService.parseFailedRetired(id);
         return success(true);
     }
 

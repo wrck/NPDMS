@@ -14,13 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/** Classifies frozen pms_cut_execution rows; production code never reads the legacy table. */
+/** Classifies frozen pms_cut_execution_retired rows; production code never reads the legacy table. */
 public class LegacyCutoverClosureReconciliationService {
 
     static final String OWNER_CONTEXT = "CUT";
     static final String PURPOSE = "CUTOVER_CLOSURE_CURRENT_FORWARD";
     static final String SOURCE_SYSTEM = "NPDMS_LEGACY";
-    static final String SOURCE_TABLE = "pms_cut_execution";
+    static final String SOURCE_TABLE = "pms_cut_execution_retired";
     private static final int PAGE_SIZE = 500;
 
     private final PlatformMigrationEvidenceApi migrationApi;

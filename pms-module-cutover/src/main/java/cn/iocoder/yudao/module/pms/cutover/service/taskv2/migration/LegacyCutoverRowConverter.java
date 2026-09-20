@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.taskv2.migration;
 
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +12,7 @@ public final class LegacyCutoverRowConverter {
 
     public static final String MAPPING_VERSION = "F-CUT-002-PMS-CUT-TASK-V1";
 
-    public CutoverTaskDO convert(Long targetId, Long trustedTenantId, CutTaskDO source) {
+    public CutoverTaskDO convert(Long targetId, Long trustedTenantId, CutTaskRetiredDO source) {
         require(positive(targetId), "targetId非法");
         require(source != null && positive(source.getId()) && positive(trustedTenantId)
                 && Objects.equals(trustedTenantId, source.getTenantId()) && positive(source.getProjectId()),

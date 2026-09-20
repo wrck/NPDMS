@@ -2,7 +2,7 @@
   <main class="cutover-task-workbench">
     <ContentWrap>
       <el-form :model="query" inline class="-mb-15px filter-grid">
-        <el-form-item label="项目ID"><el-input v-model="query.projectId" clearable class="!w-180px" /></el-form-item>
+        <el-form-item v-if="!props.projectId" label="项目ID"><el-input v-model="query.projectId" clearable class="!w-180px" /></el-form-item>
         <el-form-item label="割接阶段">
           <el-select v-model="query.currentStage" clearable class="!w-140px"
             ><el-option
@@ -273,11 +273,14 @@ const rows = ref<CutoverTaskSummary[]>([])
 const approvalTodos = ref<CutoverApi.CutoverApprovalTodoItem[]>([])
 const reassignmentCandidates = ref<CutoverApi.CutoverApprovalReassignmentCandidate[]>([])
 const total = ref(0)
+// 项目详情页嵌入模式：传入 project-id 固定项目并隐藏项目筛选；独立路由页行为不变
+const props = defineProps<{ projectId?: number }>()
+
 const todoTotal = ref(0)
 const reassignmentTotal = ref(0)
 const detail = ref<CutoverTaskDetail | null>(null)
 const query = reactive({
-  projectId: '',
+  projectId: props.projectId ? String(props.projectId) : '',
   currentStage: undefined as CutoverApi.CutoverStage | undefined,
   taskStatus: undefined as CutoverApi.CutoverStatus | undefined,
   pageNo: 1,
@@ -364,7 +367,7 @@ const toggleKpis = async () => {
 }
 
 const resetQuery = () => {
-  Object.assign(query, { projectId: '', currentStage: undefined, taskStatus: undefined, pageNo: 1 })
+  Object.assign(query, { projectId: props.projectId ? String(props.projectId) : '', currentStage: undefined, taskStatus: undefined, pageNo: 1 })
   loadPage()
 }
 

@@ -365,7 +365,7 @@ public class OrdinaryProjectMemberService {
         close.setId(member.getId());
         close.setEffectiveTo(now);
         close.setEndReason(reason.trim());
-        close.setVersion(member.getVersion() == null ? 1 : member.getVersion() + 1);
+        close.setVersion(member.getVersion());
         if (memberMapper.updateById(close) != 1) throw exception(PROJECT_VERSION_CONFLICT);
     }
 

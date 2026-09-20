@@ -51,6 +51,9 @@ public class TemplateDesignerDocument {
 
     @Data
     public static class StageNode {
+        /** PLN-01: optional participation percentage; absent stages are not auto-scheduled. */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private java.math.BigDecimal schedulePercentage;
         /** Standard lifecycle classification, independent of the custom stage identity. */
         private String lifecycleStage;
         private String admissionRuleKey;

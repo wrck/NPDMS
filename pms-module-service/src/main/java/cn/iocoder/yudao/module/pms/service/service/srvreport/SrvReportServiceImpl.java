@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvreport.vo.SrvReportPageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvreport.vo.SrvReportSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvreport.SrvReportDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvreport.SrvReportRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvreport.SrvReportMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,11 @@ import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.SRV_R
 
 /**
  * 巡检报告 Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class SrvReportServiceImpl implements SrvReportService {
 
     /**
@@ -42,9 +44,9 @@ public class SrvReportServiceImpl implements SrvReportService {
     private SrvReportMapper srvReportMapper;
 
     @Override
-    public Long createSrvReport(SrvReportSaveReqVO createReqVO) {
+    public Long createSrvReportRetired(SrvReportSaveReqVO createReqVO) {
         validateCodeUnique(null, createReqVO.getTaskId(), createReqVO.getCode());
-        SrvReportDO report = BeanUtils.toBean(createReqVO, SrvReportDO.class);
+        SrvReportRetiredDO report = BeanUtils.toBean(createReqVO, SrvReportRetiredDO.class);
         if (report.getStatus() == null) {
             report.setStatus(STATUS_DRAFT);
         }
@@ -56,22 +58,22 @@ public class SrvReportServiceImpl implements SrvReportService {
     }
 
     @Override
-    public void updateSrvReport(SrvReportSaveReqVO updateReqVO) {
-        SrvReportDO existing = validateSrvReportExists(updateReqVO.getId());
+    public void updateSrvReportRetired(SrvReportSaveReqVO updateReqVO) {
+        SrvReportRetiredDO existing = validateSrvReportExists(updateReqVO.getId());
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getTaskId(), updateReqVO.getCode());
         // 已归档的报告不允许修改
         if (Objects.equals(existing.getStatus(), STATUS_ARCHIVED)) {
             throw exception(SRV_REPORT_STATUS_INVALID);
         }
-        SrvReportDO updateObj = BeanUtils.toBean(updateReqVO, SrvReportDO.class);
+        SrvReportRetiredDO updateObj = BeanUtils.toBean(updateReqVO, SrvReportRetiredDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         srvReportMapper.updateById(updateObj);
     }
 
     @Override
-    public void deleteSrvReport(Long id) {
-        SrvReportDO existing = validateSrvReportExists(id);
+    public void deleteSrvReportRetired(Long id) {
+        SrvReportRetiredDO existing = validateSrvReportExists(id);
         // 已归档的报告不允许删除
         if (Objects.equals(existing.getStatus(), STATUS_ARCHIVED)) {
             throw exception(SRV_REPORT_STATUS_INVALID);
@@ -80,22 +82,22 @@ public class SrvReportServiceImpl implements SrvReportService {
     }
 
     @Override
-    public PageResult<SrvReportDO> getSrvReportPage(SrvReportPageReqVO pageReqVO) {
-        return srvReportMapper.selectPage(pageReqVO);
+    public PageResult<SrvReportRetiredDO> getSrvReportPageRetired(SrvReportPageReqVO pageReqVO) {
+        return srvReportMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public SrvReportDO getSrvReport(Long id) {
+    public SrvReportRetiredDO getSrvReportRetired(Long id) {
         return srvReportMapper.selectById(id);
     }
 
     @Override
-    public void generateSrvReport(Long id) {
-        SrvReportDO report = validateSrvReportExists(id);
+    public void generateSrvReportRetired(Long id) {
+        SrvReportRetiredDO report = validateSrvReportExists(id);
         if (!Objects.equals(report.getStatus(), STATUS_DRAFT)) {
             throw exception(SRV_REPORT_STATUS_INVALID);
         }
-        SrvReportDO updateObj = new SrvReportDO();
+        SrvReportRetiredDO updateObj = new SrvReportRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_GENERATED);
         updateObj.setGeneratedTime(LocalDateTime.now());
@@ -103,8 +105,8 @@ public class SrvReportServiceImpl implements SrvReportService {
     }
 
     @Override
-    public void archiveSrvReport(Long id) {
-        SrvReportDO report = validateSrvReportExists(id);
+    public void archiveSrvReportRetired(Long id) {
+        SrvReportRetiredDO report = validateSrvReportExists(id);
         if (!Objects.equals(report.getStatus(), STATUS_GENERATED)) {
             throw exception(SRV_REPORT_STATUS_INVALID);
         }
@@ -112,17 +114,17 @@ public class SrvReportServiceImpl implements SrvReportService {
     }
 
     private void updateStatus(Long id, int status) {
-        SrvReportDO updateObj = new SrvReportDO();
+        SrvReportRetiredDO updateObj = new SrvReportRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(status);
         srvReportMapper.updateById(updateObj);
     }
 
-    private SrvReportDO validateSrvReportExists(Long id) {
+    private SrvReportRetiredDO validateSrvReportExists(Long id) {
         if (id == null) {
             throw exception(SRV_REPORT_NOT_EXISTS);
         }
-        SrvReportDO report = srvReportMapper.selectById(id);
+        SrvReportRetiredDO report = srvReportMapper.selectById(id);
         if (report == null) {
             throw exception(SRV_REPORT_NOT_EXISTS);
         }
@@ -133,7 +135,7 @@ public class SrvReportServiceImpl implements SrvReportService {
         if (taskId == null || code == null) {
             return;
         }
-        SrvReportDO existing = srvReportMapper.selectByTaskIdAndCode(taskId, code);
+        SrvReportRetiredDO existing = srvReportMapper.selectByTaskIdAndCodeRetired(taskId, code);
         if (existing == null) {
             return;
         }

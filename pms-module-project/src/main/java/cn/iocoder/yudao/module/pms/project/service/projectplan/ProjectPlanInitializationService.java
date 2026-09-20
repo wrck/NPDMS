@@ -59,7 +59,7 @@ public class ProjectPlanInitializationService {
         var plan = new ProjectPlanVersionDO();
         plan.setTenantId(project.getTenantId()); plan.setProjectId(project.getId()); plan.setRevisionNo(1);
         plan.setStatus("EFFECTIVE"); plan.setSourceTemplateRevisionId(source.getId());
-        plan.setDesignerDocument(source.getDesignerDocument()); plan.setExecutionSnapshot(JsonUtils.toJsonString(published));
+        plan.setDesignerDocument(source.getDesignerDocument()); plan.setExecutionSnapshot(TemplateExecutionSnapshot.freezeJson(published));
         plan.setEffectiveAt(LocalDateTime.now()); plan.setVersion(0);
         if (plans.insert(plan) != 1) throw new IllegalStateException("PROJECT_PLAN_INITIALIZATION_FAILED");
         for (var contract : stageContracts)

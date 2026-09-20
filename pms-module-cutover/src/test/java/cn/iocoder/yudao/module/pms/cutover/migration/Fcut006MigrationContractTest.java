@@ -32,8 +32,8 @@ class Fcut006MigrationContractTest {
                 .contains("'P6_CLOSURE_SUBMITTED'")
                 .contains("`from_stage` = 'P6'")
                 .contains("`to_stage` = 'P6'")
-                .doesNotContain("pms_cut_execution")
-                .doesNotContain("pms_cut_observation");
+                .doesNotContain("pms_cut_execution_retired")
+                .doesNotContain("pms_cut_observation_retired");
     }
 
     @Test

@@ -6,13 +6,13 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.planchange.vo.PlanCh
 import cn.iocoder.yudao.module.pms.project.controller.admin.planchange.vo.PlanChangePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.planchange.vo.PlanChangePhaseSnapshotItem;
 import cn.iocoder.yudao.module.pms.project.controller.admin.planchange.vo.PlanChangeSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.planchange.PlanChangePhaseSnapshotDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.planchange.PlanChangeRequestDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseRetiredDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.planchange.PlanChangePhaseSnapshotRetiredDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.planchange.PlanChangeRequestRetiredDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.planchange.PlanChangePhaseSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.planchange.PlanChangeRequestMapper;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectRetiredDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -40,10 +40,12 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PLAN_
  * <p>
  * 状态机：0草稿 → 1已提交 → 2审批中 → 3已通过 → 4已驳回 → 5已撤回 → 6已终止
  * 通过后生成新基线版本号；applyPlanChange 将快照写入项目阶段并形成新基线。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
 @Slf4j
+@Deprecated
 public class PlanChangeServiceImpl implements PlanChangeService {
 
     private static final int STATUS_DRAFT = 0;
@@ -65,7 +67,7 @@ public class PlanChangeServiceImpl implements PlanChangeService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createPlanChange(PlanChangeSaveReqVO createReqVO) {
+    public Long createPlanChangeRetired(PlanChangeSaveReqVO createReqVO) {
         // 校验单号唯一
         validateChangeNoUnique(null, createReqVO.getChangeNo());
         // 校验项目存在
@@ -73,7 +75,7 @@ public class PlanChangeServiceImpl implements PlanChangeService {
         // 校验快照非空且阶段存在
         validateSnapshots(createReqVO.getProjectId(), createReqVO.getPhaseSnapshots());
         // 插入主表
-        PlanChangeRequestDO entity = BeanUtils.toBean(createReqVO, PlanChangeRequestDO.class);
+        PlanChangeRequestRetiredDO entity = BeanUtils.toBean(createReqVO, PlanChangeRequestRetiredDO.class);
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -88,8 +90,8 @@ public class PlanChangeServiceImpl implements PlanChangeService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updatePlanChange(PlanChangeSaveReqVO updateReqVO) {
-        PlanChangeRequestDO existing = validateExists(updateReqVO.getId());
+    public void updatePlanChangeRetired(PlanChangeSaveReqVO updateReqVO) {
+        PlanChangeRequestRetiredDO existing = validateExists(updateReqVO.getId());
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
@@ -97,49 +99,49 @@ public class PlanChangeServiceImpl implements PlanChangeService {
         validateProjectExists(updateReqVO.getProjectId());
         validateSnapshots(updateReqVO.getProjectId(), updateReqVO.getPhaseSnapshots());
         // 更新主表（保留状态）
-        PlanChangeRequestDO updateObj = BeanUtils.toBean(updateReqVO, PlanChangeRequestDO.class);
+        PlanChangeRequestRetiredDO updateObj = BeanUtils.toBean(updateReqVO, PlanChangeRequestRetiredDO.class);
         updateObj.setStatus(existing.getStatus());
         planChangeRequestMapper.updateById(updateObj);
         // 重建快照
-        planChangePhaseSnapshotMapper.deleteByChangeRequestId(updateReqVO.getId());
+        planChangePhaseSnapshotMapper.deleteByChangeRequestIdRetired(updateReqVO.getId());
         saveSnapshots(updateReqVO.getId(), updateReqVO.getPhaseSnapshots());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deletePlanChange(Long id) {
-        PlanChangeRequestDO existing = validateExists(id);
+    public void deletePlanChangeRetired(Long id) {
+        PlanChangeRequestRetiredDO existing = validateExists(id);
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
-        planChangePhaseSnapshotMapper.deleteByChangeRequestId(id);
+        planChangePhaseSnapshotMapper.deleteByChangeRequestIdRetired(id);
         planChangeRequestMapper.deleteById(id);
     }
 
     @Override
-    public PageResult<PlanChangeRequestDO> getPlanChangePage(PlanChangePageReqVO pageReqVO) {
-        return planChangeRequestMapper.selectPage(pageReqVO);
+    public PageResult<PlanChangeRequestRetiredDO> getPlanChangePageRetired(PlanChangePageReqVO pageReqVO) {
+        return planChangeRequestMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public PlanChangeRequestDO getPlanChange(Long id) {
+    public PlanChangeRequestRetiredDO getPlanChangeRetired(Long id) {
         return planChangeRequestMapper.selectById(id);
     }
 
     @Override
-    public List<PlanChangePhaseSnapshotDO> getPhaseSnapshots(Long changeRequestId) {
-        return planChangePhaseSnapshotMapper.selectListByChangeRequestId(changeRequestId);
+    public List<PlanChangePhaseSnapshotRetiredDO> getPhaseSnapshotsRetired(Long changeRequestId) {
+        return planChangePhaseSnapshotMapper.selectListByChangeRequestIdRetired(changeRequestId);
     }
 
     @Override
-    public void submitPlanChange(Long id) {
-        PlanChangeRequestDO existing = validateExists(id);
+    public void submitPlanChangeRetired(Long id) {
+        PlanChangeRequestRetiredDO existing = validateExists(id);
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
-        PlanChangeRequestDO updateObj = new PlanChangeRequestDO();
+        PlanChangeRequestRetiredDO updateObj = new PlanChangeRequestRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_SUBMITTED);
         updateObj.setApplyTime(LocalDateTime.now());
@@ -147,15 +149,15 @@ public class PlanChangeServiceImpl implements PlanChangeService {
     }
 
     @Override
-    public void approvePlanChange(PlanChangeApproveReqVO reqVO) {
-        PlanChangeRequestDO existing = validateExists(reqVO.getId());
+    public void approvePlanChangeRetired(PlanChangeApproveReqVO reqVO) {
+        PlanChangeRequestRetiredDO existing = validateExists(reqVO.getId());
         // 已提交或审批中均可执行审批（支持一次直接审批或退回后再次审批）
         if (!Objects.equals(existing.getStatus(), STATUS_SUBMITTED)
                 && !Objects.equals(existing.getStatus(), STATUS_APPROVING)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
         String action = reqVO.getApproveAction();
-        PlanChangeRequestDO updateObj = new PlanChangeRequestDO();
+        PlanChangeRequestRetiredDO updateObj = new PlanChangeRequestRetiredDO();
         updateObj.setId(reqVO.getId());
         updateObj.setApproverUserId(reqVO.getApproverUserId());
         updateObj.setApproveTime(LocalDateTime.now());
@@ -187,21 +189,21 @@ public class PlanChangeServiceImpl implements PlanChangeService {
     }
 
     @Override
-    public void withdrawPlanChange(Long id) {
-        PlanChangeRequestDO existing = validateExists(id);
+    public void withdrawPlanChangeRetired(Long id) {
+        PlanChangeRequestRetiredDO existing = validateExists(id);
         if (!Objects.equals(existing.getStatus(), STATUS_SUBMITTED)
                 && !Objects.equals(existing.getStatus(), STATUS_APPROVING)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
-        PlanChangeRequestDO updateObj = new PlanChangeRequestDO();
+        PlanChangeRequestRetiredDO updateObj = new PlanChangeRequestRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_WITHDRAWN);
         planChangeRequestMapper.updateById(updateObj);
     }
 
     @Override
-    public void terminatePlanChange(Long id) {
-        PlanChangeRequestDO existing = validateExists(id);
+    public void terminatePlanChangeRetired(Long id) {
+        PlanChangeRequestRetiredDO existing = validateExists(id);
         if (Objects.equals(existing.getStatus(), STATUS_TERMINATED)) {
             return;
         }
@@ -209,7 +211,7 @@ public class PlanChangeServiceImpl implements PlanChangeService {
         if (Objects.equals(existing.getStatus(), STATUS_PASSED)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
-        PlanChangeRequestDO updateObj = new PlanChangeRequestDO();
+        PlanChangeRequestRetiredDO updateObj = new PlanChangeRequestRetiredDO();
         updateObj.setId(id);
         updateObj.setStatus(STATUS_TERMINATED);
         planChangeRequestMapper.updateById(updateObj);
@@ -217,18 +219,18 @@ public class PlanChangeServiceImpl implements PlanChangeService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void applyPlanChange(Long id) {
-        PlanChangeRequestDO existing = validateExists(id);
+    public void applyPlanChangeRetired(Long id) {
+        PlanChangeRequestRetiredDO existing = validateExists(id);
         if (!Objects.equals(existing.getStatus(), STATUS_PASSED)) {
             throw exception(PLAN_CHANGE_STATUS_INVALID);
         }
         // 应用快照到项目阶段
-        List<PlanChangePhaseSnapshotDO> snapshots = planChangePhaseSnapshotMapper.selectListByChangeRequestId(id);
+        List<PlanChangePhaseSnapshotRetiredDO> snapshots = planChangePhaseSnapshotMapper.selectListByChangeRequestIdRetired(id);
         if (snapshots == null || snapshots.isEmpty()) {
             throw exception(PLAN_CHANGE_NO_SNAPSHOTS);
         }
-        for (PlanChangePhaseSnapshotDO snapshot : snapshots) {
-            ProjectPhaseDO phaseUpdate = new ProjectPhaseDO();
+        for (PlanChangePhaseSnapshotRetiredDO snapshot : snapshots) {
+            ProjectPhaseRetiredDO phaseUpdate = new ProjectPhaseRetiredDO();
             phaseUpdate.setId(snapshot.getPhaseId());
             phaseUpdate.setPlanStartTime(snapshot.getAfterPlanStart());
             phaseUpdate.setPlanEndTime(snapshot.getAfterPlanEnd());
@@ -237,11 +239,11 @@ public class PlanChangeServiceImpl implements PlanChangeService {
         log.info("[applyPlanChange][变更单 id={} 已应用，共更新 {} 个阶段计划]", id, snapshots.size());
     }
 
-    private PlanChangeRequestDO validateExists(Long id) {
+    private PlanChangeRequestRetiredDO validateExists(Long id) {
         if (id == null) {
             throw exception(PLAN_CHANGE_NOT_EXISTS);
         }
-        PlanChangeRequestDO entity = planChangeRequestMapper.selectById(id);
+        PlanChangeRequestRetiredDO entity = planChangeRequestMapper.selectById(id);
         if (entity == null) {
             throw exception(PLAN_CHANGE_NOT_EXISTS);
         }
@@ -249,7 +251,7 @@ public class PlanChangeServiceImpl implements PlanChangeService {
     }
 
     private void validateChangeNoUnique(Long id, String changeNo) {
-        PlanChangeRequestDO existing = planChangeRequestMapper.selectByChangeNo(changeNo);
+        PlanChangeRequestRetiredDO existing = planChangeRequestMapper.selectByChangeNoRetired(changeNo);
         if (existing == null) {
             return;
         }
@@ -262,7 +264,7 @@ public class PlanChangeServiceImpl implements PlanChangeService {
         if (projectId == null) {
             throw exception(PLAN_CHANGE_PROJECT_NOT_EXISTS);
         }
-        ProjectDO project = projectMapper.selectById(projectId);
+        ProjectRetiredDO project = projectMapper.selectById(projectId);
         if (project == null) {
             throw exception(PLAN_CHANGE_PROJECT_NOT_EXISTS);
         }
@@ -283,9 +285,9 @@ public class PlanChangeServiceImpl implements PlanChangeService {
                 log.warn("[validateSnapshots][项目 id={} 的阶段 id={} 在快照中重复]", projectId, item.getPhaseId());
             }
         }
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(projectId);
+        List<ProjectPhaseRetiredDO> phases = projectPhaseMapper.selectListByProjectIdRetired(projectId);
         Set<Long> existingPhaseIds = new HashSet<>();
-        for (ProjectPhaseDO phase : phases) {
+        for (ProjectPhaseRetiredDO phase : phases) {
             existingPhaseIds.add(phase.getId());
         }
         for (Long phaseId : phaseIds) {
@@ -296,9 +298,9 @@ public class PlanChangeServiceImpl implements PlanChangeService {
     }
 
     private void saveSnapshots(Long changeRequestId, List<PlanChangePhaseSnapshotItem> snapshots) {
-        List<PlanChangePhaseSnapshotDO> doList = new ArrayList<>(snapshots.size());
+        List<PlanChangePhaseSnapshotRetiredDO> doList = new ArrayList<>(snapshots.size());
         for (PlanChangePhaseSnapshotItem item : snapshots) {
-            PlanChangePhaseSnapshotDO snapshot = BeanUtils.toBean(item, PlanChangePhaseSnapshotDO.class);
+            PlanChangePhaseSnapshotRetiredDO snapshot = BeanUtils.toBean(item, PlanChangePhaseSnapshotRetiredDO.class);
             snapshot.setId(null); // 强制新建
             snapshot.setChangeRequestId(changeRequestId);
             doList.add(snapshot);

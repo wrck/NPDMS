@@ -6,9 +6,12 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.acceptance.api.acceptance.ProjectAcceptanceFactApi;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosurePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosureSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
+import cn.iocoder.yudao.module.pms.project.api.reference.ProjectScopedCodes;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.ProjectClosureMapper;
 import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardResult;
 import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardService;
@@ -68,13 +71,9 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     private static final int STATUS_ARCHIVED = 5;
 
     /**
-     * 项目阶段状态：2已完成
+     * 阶段实例终态：DONE（proj_project_stage 承载；新域无"已跳过"，仅 DONE 视为完成）
      */
-    private static final int PHASE_STATUS_COMPLETED = 2;
-    /**
-     * 项目阶段状态：3已跳过
-     */
-    private static final int PHASE_STATUS_SKIPPED = 3;
+    private static final String STAGE_STATUS_DONE = "DONE";
     /**
      * 验收类型：终验
      */
@@ -95,7 +94,9 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     @Resource
     private ProjectClosureMapper projectClosureMapper;
     @Resource
-    private ProjectPhaseMapper projectPhaseMapper;
+    private ProjectMasterMapper projectMasterMapper;
+    @Resource
+    private ProjectStageInstanceMapper stageInstanceMapper;
     @Resource
     private ProjectAcceptanceFactApi projectAcceptanceFactApi;
     @Resource
@@ -103,10 +104,9 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
 
     @Override
     public Long createProjectClosure(ProjectClosureSaveReqVO createReqVO) {
-        // 校验项目内编码唯一
-        validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 插入
+        // 插入；编码由系统按项目编码自动生成
         ProjectClosureDO entity = BeanUtils.toBean(createReqVO, ProjectClosureDO.class);
+        entity.setCode(nextClosureCode(createReqVO.getProjectId()));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -120,9 +120,7 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     @Override
     public void updateProjectClosure(ProjectClosureSaveReqVO updateReqVO) {
         ProjectClosureDO existing = validateExists(updateReqVO.getId());
-        // 校验项目内编码唯一
-        validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
-        // 仅草稿态允许修改核心字段
+        // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -230,14 +228,13 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
      * 问题关闭、审批完成涉及跨模块，受领域边界约束留作占位。
      */
     private void validateClosureReadiness(ProjectClosureDO entity) {
-        // 1. 阶段完成：项目所有阶段必须为已完成或已跳过
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(entity.getProjectId());
-        if (phases != null && !phases.isEmpty()) {
-            for (ProjectPhaseDO phase : phases) {
-                if (!Objects.equals(phase.getStatus(), PHASE_STATUS_COMPLETED)
-                        && !Objects.equals(phase.getStatus(), PHASE_STATUS_SKIPPED)) {
+        // 1. 阶段完成：项目所有阶段实例必须为 DONE（proj_project_stage 承载，新域无"已跳过"）
+        List<ProjectStageInstanceDO> stages = stageInstanceMapper.selectListByProjectId(entity.getProjectId());
+        if (stages != null && !stages.isEmpty()) {
+            for (ProjectStageInstanceDO stage : stages) {
+                if (!Objects.equals(stage.getStatus(), STAGE_STATUS_DONE)) {
                     throw exception(ACC_PROJECT_CLOSURE_VALIDATION_FAILED,
-                            "阶段[" + phase.getName() + "]尚未完成");
+                            "阶段[" + stage.getName() + "]尚未完成");
                 }
             }
         }
@@ -269,17 +266,21 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
         return entity;
     }
 
-    private void validateCodeUnique(Long id, Long projectId, String code) {
-        if (projectId == null || code == null) {
-            return;
+    /**
+     * 生成项目内唯一的下一条闭环记录编码（"{项目编码}-BH-三位序号"），作为系统内部关联。
+     */
+    private String nextClosureCode(Long projectId) {
+        ProjectMasterDO project = projectMasterMapper.selectById(projectId);
+        if (project == null) {
+            throw new IllegalArgumentException("PROJECT_NOT_FOUND");
         }
-        ProjectClosureDO existing = projectClosureMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
+        if (project.getProjectCode() == null || project.getProjectCode().isBlank()) {
+            throw new IllegalArgumentException("PROJECT_CODE_MISSING");
         }
-        if (id == null || !id.equals(existing.getId())) {
-            throw exception(ACC_PROJECT_CLOSURE_CODE_DUPLICATE, code);
-        }
+        List<String> existing = projectClosureMapper.selectList(new LambdaQueryWrapperX<ProjectClosureDO>()
+                        .eq(ProjectClosureDO::getProjectId, projectId))
+                .stream().map(ProjectClosureDO::getCode).filter(Objects::nonNull).toList();
+        return ProjectScopedCodes.next(project.getProjectCode(), "BH", existing);
     }
 
 }

@@ -8,11 +8,13 @@ import lombok.EqualsAndHashCode;
 
 /**
  * PMS 项目团队成员 DO
- */
-@TableName("pms_project_team_member")
+  * @deprecated 已随 pms_* 旧域退役：对应表已更名 pms_project_team_member_retired 且数据库侧仅允许查询（INSERT/UPDATE/DELETE 被触发器拒绝）；仅保留存量只读兼容，禁止新代码引用。
+*/
+@TableName("pms_project_team_member_retired")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectTeamMemberDO extends TenantBaseDO {
+@Deprecated
+public class ProjectTeamMemberRetiredDO extends TenantBaseDO {
 
     /**
      * 团队成员编号

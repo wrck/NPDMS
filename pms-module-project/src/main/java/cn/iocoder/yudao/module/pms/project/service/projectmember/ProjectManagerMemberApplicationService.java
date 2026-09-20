@@ -119,7 +119,7 @@ public class ProjectManagerMemberApplicationService {
             var close = new ProjectMemberAssignmentDO();
             close.setId(old.getId());
             close.setEffectiveTo(now);
-            close.setVersion(old.getVersion() == null ? 1 : old.getVersion() + 1);
+            close.setVersion(old.getVersion());
             if (memberMapper.updateById(close) != 1) throw exception(PROJECT_VERSION_CONFLICT);
         }
         for (Long id : additions) {

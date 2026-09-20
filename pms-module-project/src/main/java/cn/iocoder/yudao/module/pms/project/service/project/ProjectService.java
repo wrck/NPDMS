@@ -2,14 +2,16 @@ package cn.iocoder.yudao.module.pms.project.service.project;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectPageReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectRetiredDO;
 
 /**
  * PMS 项目 Service 接口（旧链只读过渡，F-PM01 存量冻结）
  * <p>
  * 写方法已随 F-PM01 退役（新链 {@code ProjectManualCreationService} 承接）；
- * 本接口仅保留 get/page 只读查询，旧 pms_project 数据冻结待 AI-MIG-000。
- */
+ * 本接口仅保留 get/page 只读查询，旧 pms_project_retired 数据冻结待 AI-MIG-000。
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
+@Deprecated
 public interface ProjectService {
 
     /**
@@ -18,7 +20,7 @@ public interface ProjectService {
      * @param id 项目编号
      * @return 项目信息
      */
-    ProjectDO getProject(Long id);
+    ProjectRetiredDO getProjectRetired(Long id);
 
     /**
      * 获得项目分页列表（只读）
@@ -26,6 +28,6 @@ public interface ProjectService {
      * @param pageReqVO 分页条件
      * @return 项目分页列表
      */
-    PageResult<ProjectDO> getProjectPage(ProjectPageReqVO pageReqVO);
+    PageResult<ProjectRetiredDO> getProjectPageRetired(ProjectPageReqVO pageReqVO);
 
 }

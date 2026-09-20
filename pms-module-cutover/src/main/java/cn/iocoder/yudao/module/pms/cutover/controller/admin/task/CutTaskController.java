@@ -7,7 +7,7 @@ import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskAppro
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskRespVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
 import cn.iocoder.yudao.module.pms.cutover.service.task.CutTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,11 +32,13 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  * <p>
  * 路径前缀 {@code /pms/cut-task}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
  * 对应菜单权限 {@code pms:cut-task:*}。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Tag(name = "管理后台 - PMS 割接任务")
 @RestController
 @RequestMapping("/pms/cut-task")
 @Validated
+@Deprecated
 public class CutTaskController {
 
     @Resource
@@ -46,14 +48,14 @@ public class CutTaskController {
     @Operation(summary = "创建割接任务")
     @PreAuthorize("@ss.hasPermission('pms:cut-task:create')")
     public CommonResult<Long> createCutTask(@Valid @RequestBody CutTaskSaveReqVO createReqVO) {
-        return success(cutTaskService.createCutTask(createReqVO));
+        return success(cutTaskService.createCutTaskRetired(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新割接任务")
     @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
     public CommonResult<Boolean> updateCutTask(@Valid @RequestBody CutTaskSaveReqVO updateReqVO) {
-        cutTaskService.updateCutTask(updateReqVO);
+        cutTaskService.updateCutTaskRetired(updateReqVO);
         return success(true);
     }
 
@@ -62,7 +64,7 @@ public class CutTaskController {
     @Parameter(name = "id", description = "割接任务编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:cut-task:delete')")
     public CommonResult<Boolean> deleteCutTask(@RequestParam("id") Long id) {
-        cutTaskService.deleteCutTask(id);
+        cutTaskService.deleteCutTaskRetired(id);
         return success(true);
     }
 
@@ -71,7 +73,7 @@ public class CutTaskController {
     @Parameter(name = "id", description = "割接任务编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:cut-task:query')")
     public CommonResult<CutTaskRespVO> getCutTask(@RequestParam("id") Long id) {
-        CutTaskDO entity = cutTaskService.getCutTask(id);
+        CutTaskRetiredDO entity = cutTaskService.getCutTaskRetired(id);
         return success(BeanUtils.toBean(entity, CutTaskRespVO.class));
     }
 
@@ -79,7 +81,7 @@ public class CutTaskController {
     @Operation(summary = "分页查询割接任务")
     @PreAuthorize("@ss.hasPermission('pms:cut-task:query')")
     public CommonResult<PageResult<CutTaskRespVO>> getCutTaskPage(@Validated CutTaskPageReqVO pageReqVO) {
-        PageResult<CutTaskDO> pageResult = cutTaskService.getCutTaskPage(pageReqVO);
+        PageResult<CutTaskRetiredDO> pageResult = cutTaskService.getCutTaskPageRetired(pageReqVO);
         return success(BeanUtils.toBean(pageResult, CutTaskRespVO.class));
     }
 
@@ -88,7 +90,7 @@ public class CutTaskController {
     @Parameter(name = "id", description = "割接任务编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
     public CommonResult<Boolean> submitForReview(@RequestParam("id") Long id) {
-        cutTaskService.submitForReview(id);
+        cutTaskService.submitForReviewRetired(id);
         return success(true);
     }
 
@@ -96,7 +98,7 @@ public class CutTaskController {
     @Operation(summary = "评审通过（2待评审 → 3闭环中）")
     @PreAuthorize("@ss.hasPermission('pms:cut-task:audit')")
     public CommonResult<Boolean> approve(@Valid @RequestBody CutTaskApproveReqVO reqVO) {
-        cutTaskService.approve(reqVO);
+        cutTaskService.approveRetired(reqVO);
         return success(true);
     }
 
@@ -104,7 +106,7 @@ public class CutTaskController {
     @Operation(summary = "评审驳回（2待评审 → 1准备中）")
     @PreAuthorize("@ss.hasPermission('pms:cut-task:audit')")
     public CommonResult<Boolean> reject(@Valid @RequestBody CutTaskApproveReqVO reqVO) {
-        cutTaskService.reject(reqVO);
+        cutTaskService.rejectRetired(reqVO);
         return success(true);
     }
 

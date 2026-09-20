@@ -22,11 +22,13 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  * <p>
  * 路径前缀 {@code /pms/project-panoramic}，对应菜单权限 {@code pms:project-panoramic:query}。
  * 提供项目全景聚合与项目进度查询。
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Tag(name = "管理后台 - PMS 项目全景")
 @RestController
 @RequestMapping("/pms/project-panoramic")
 @Validated
+@Deprecated
 public class ProjectPanoramicController {
 
     @Resource
@@ -38,7 +40,7 @@ public class ProjectPanoramicController {
     @PreAuthorize("@ss.hasPermission('pms:project-panoramic:query')")
     public CommonResult<ProjectPanoramicRespVO> getProjectPanoramic(
             @RequestParam("projectId") Long projectId) {
-        return success(projectPanoramicService.getProjectPanoramic(projectId));
+        return success(projectPanoramicService.getProjectPanoramicRetired(projectId));
     }
 
     @GetMapping("/progress")
@@ -47,6 +49,6 @@ public class ProjectPanoramicController {
     @PreAuthorize("@ss.hasPermission('pms:project-panoramic:query')")
     public CommonResult<ProjectProgressRespVO> getProjectProgress(
             @RequestParam("projectId") Long projectId) {
-        return success(projectPanoramicService.getProjectProgress(projectId));
+        return success(projectPanoramicService.getProjectProgressRetired(projectId));
     }
 }

@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvofflinefile.vo.SrvOfflineFilePageReqVO;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvofflinefile.vo.SrvOfflineFileSaveReqVO;
-import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvofflinefile.SrvOfflineFileDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvofflinefile.SrvOfflineFileRetiredDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.srvofflinefile.SrvOfflineFileMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,11 @@ import static cn.iocoder.yudao.module.pms.service.enums.ErrorCodeConstants.SRV_O
 
 /**
  * 离线巡检文件 Service 实现类
- */
+  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
+*/
 @Service
 @Validated
+@Deprecated
 public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
 
     /**
@@ -46,9 +48,9 @@ public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
     private SrvOfflineFileMapper srvOfflineFileMapper;
 
     @Override
-    public Long createSrvOfflineFile(SrvOfflineFileSaveReqVO createReqVO) {
+    public Long createSrvOfflineFileRetired(SrvOfflineFileSaveReqVO createReqVO) {
         validateCodeUnique(null, createReqVO.getTaskId(), createReqVO.getCode());
-        SrvOfflineFileDO offlineFile = BeanUtils.toBean(createReqVO, SrvOfflineFileDO.class);
+        SrvOfflineFileRetiredDO offlineFile = BeanUtils.toBean(createReqVO, SrvOfflineFileRetiredDO.class);
         if (offlineFile.getParseStatus() == null) {
             offlineFile.setParseStatus(PARSE_STATUS_PENDING);
         }
@@ -57,38 +59,38 @@ public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
     }
 
     @Override
-    public void updateSrvOfflineFile(SrvOfflineFileSaveReqVO updateReqVO) {
-        SrvOfflineFileDO existing = validateSrvOfflineFileExists(updateReqVO.getId());
+    public void updateSrvOfflineFileRetired(SrvOfflineFileSaveReqVO updateReqVO) {
+        SrvOfflineFileRetiredDO existing = validateSrvOfflineFileExists(updateReqVO.getId());
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getTaskId(), updateReqVO.getCode());
-        SrvOfflineFileDO updateObj = BeanUtils.toBean(updateReqVO, SrvOfflineFileDO.class);
+        SrvOfflineFileRetiredDO updateObj = BeanUtils.toBean(updateReqVO, SrvOfflineFileRetiredDO.class);
         // 保持解析状态不被前端覆盖
         updateObj.setParseStatus(existing.getParseStatus());
         srvOfflineFileMapper.updateById(updateObj);
     }
 
     @Override
-    public void deleteSrvOfflineFile(Long id) {
+    public void deleteSrvOfflineFileRetired(Long id) {
         validateSrvOfflineFileExists(id);
         srvOfflineFileMapper.deleteById(id);
     }
 
     @Override
-    public PageResult<SrvOfflineFileDO> getSrvOfflineFilePage(SrvOfflineFilePageReqVO pageReqVO) {
-        return srvOfflineFileMapper.selectPage(pageReqVO);
+    public PageResult<SrvOfflineFileRetiredDO> getSrvOfflineFilePageRetired(SrvOfflineFilePageReqVO pageReqVO) {
+        return srvOfflineFileMapper.selectPageRetired(pageReqVO);
     }
 
     @Override
-    public SrvOfflineFileDO getSrvOfflineFile(Long id) {
+    public SrvOfflineFileRetiredDO getSrvOfflineFileRetired(Long id) {
         return srvOfflineFileMapper.selectById(id);
     }
 
     @Override
-    public void startParse(Long id) {
-        SrvOfflineFileDO offlineFile = validateSrvOfflineFileExists(id);
+    public void startParseRetired(Long id) {
+        SrvOfflineFileRetiredDO offlineFile = validateSrvOfflineFileExists(id);
         if (!Objects.equals(offlineFile.getParseStatus(), PARSE_STATUS_PENDING)) {
             throw exception(SRV_OFFLINE_FILE_STATUS_INVALID);
         }
-        SrvOfflineFileDO updateObj = new SrvOfflineFileDO();
+        SrvOfflineFileRetiredDO updateObj = new SrvOfflineFileRetiredDO();
         updateObj.setId(id);
         updateObj.setParseStatus(PARSE_STATUS_PARSING);
         updateObj.setParsedTime(LocalDateTime.now());
@@ -96,8 +98,8 @@ public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
     }
 
     @Override
-    public void parseSuccess(Long id) {
-        SrvOfflineFileDO offlineFile = validateSrvOfflineFileExists(id);
+    public void parseSuccessRetired(Long id) {
+        SrvOfflineFileRetiredDO offlineFile = validateSrvOfflineFileExists(id);
         if (!Objects.equals(offlineFile.getParseStatus(), PARSE_STATUS_PARSING)) {
             throw exception(SRV_OFFLINE_FILE_STATUS_INVALID);
         }
@@ -105,8 +107,8 @@ public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
     }
 
     @Override
-    public void parseFailed(Long id) {
-        SrvOfflineFileDO offlineFile = validateSrvOfflineFileExists(id);
+    public void parseFailedRetired(Long id) {
+        SrvOfflineFileRetiredDO offlineFile = validateSrvOfflineFileExists(id);
         if (!Objects.equals(offlineFile.getParseStatus(), PARSE_STATUS_PARSING)) {
             throw exception(SRV_OFFLINE_FILE_STATUS_INVALID);
         }
@@ -114,18 +116,18 @@ public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
     }
 
     private void updateParseStatus(Long id, int parseStatus) {
-        SrvOfflineFileDO updateObj = new SrvOfflineFileDO();
+        SrvOfflineFileRetiredDO updateObj = new SrvOfflineFileRetiredDO();
         updateObj.setId(id);
         updateObj.setParseStatus(parseStatus);
         updateObj.setParsedTime(LocalDateTime.now());
         srvOfflineFileMapper.updateById(updateObj);
     }
 
-    private SrvOfflineFileDO validateSrvOfflineFileExists(Long id) {
+    private SrvOfflineFileRetiredDO validateSrvOfflineFileExists(Long id) {
         if (id == null) {
             throw exception(SRV_OFFLINE_FILE_NOT_EXISTS);
         }
-        SrvOfflineFileDO offlineFile = srvOfflineFileMapper.selectById(id);
+        SrvOfflineFileRetiredDO offlineFile = srvOfflineFileMapper.selectById(id);
         if (offlineFile == null) {
             throw exception(SRV_OFFLINE_FILE_NOT_EXISTS);
         }
@@ -136,7 +138,7 @@ public class SrvOfflineFileServiceImpl implements SrvOfflineFileService {
         if (taskId == null || code == null) {
             return;
         }
-        SrvOfflineFileDO existing = srvOfflineFileMapper.selectByTaskIdAndCode(taskId, code);
+        SrvOfflineFileRetiredDO existing = srvOfflineFileMapper.selectByTaskIdAndCodeRetired(taskId, code);
         if (existing == null) {
             return;
         }
