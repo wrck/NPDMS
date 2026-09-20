@@ -65,7 +65,7 @@ import install from '@form-create/element-ui/auto-import'
 
 //======================= 自定义组件 =======================
 import { UploadFile, UploadImg, UploadImgs } from '@/components/UploadFile'
-import { useApiSelect } from '@/components/FormCreate'
+import { useApiSelect, registerSignaturePad } from '@/components/FormCreate'
 import { Editor } from '@/components/Editor'
 import DictSelect from '@/components/FormCreate/src/components/DictSelect.vue'
 import DeptSelect from '@/components/FormCreate/src/components/DeptSelect.vue'
@@ -131,4 +131,5 @@ export const setupFormCreate = (app: App<Element>) => {
   formCreate.use(install)
   app.use(formCreate)
   app.use(FcDesigner)
+  registerSignaturePad()
 }

@@ -2,77 +2,79 @@
   <main class="public-page">
     <section class="training-shell" aria-labelledby="training-title">
       <header>
-        <span class="eyebrow">现场培训记录确认</span>
-        <h1 id="training-title">请确认本次现场培训</h1>
-        <p v-if="record"
-          >链接有效至 {{ formatDate(record.tokenExpiresAt) }}。提交评价与签字后不可修改，记录将同步归档至项目交付件。</p
-        >
+        <span class="service-label">现场培训 · 客户确认</span>
+        <h1 id="training-title">{{ record?.status === 2 ? '感谢您的确认' : '请评价本次培训' }}</h1>
+        <p>核对培训内容，填写评价并手写签字。确认记录将归档至项目交付件。</p>
       </header>
-      <el-skeleton v-if="loading" :rows="7" animated aria-label="正在加载培训记录" />
-      <el-result v-else-if="errorMessage" icon="warning" title="链接暂不可用" :sub-title="errorMessage" />
-      <el-result v-else-if="record?.status === 2" icon="success" title="培训记录已确认" sub-title="感谢您的反馈。">
-        <template #extra>
-          <el-descriptions :column="1" border>
-            <el-descriptions-item label="签字人">{{ record.signConfirmerName }}</el-descriptions-item>
-            <el-descriptions-item label="确认时间">{{ formatDate(record.signTime) }}</el-descriptions-item>
-            <el-descriptions-item label="技术水平及表达能力">{{ record.skillRating }}</el-descriptions-item>
-            <el-descriptions-item label="培训内容及讲解效果">{{ record.effectRating }}</el-descriptions-item>
-            <el-descriptions-item label="培训满意度">{{ record.satisfactionRating }}</el-descriptions-item>
-          </el-descriptions>
-        </template>
-      </el-result>
-      <el-form v-else-if="record" label-position="top" class="training-form" @submit.prevent>
-        <article class="record-card">
-          <h2>培训信息</h2>
-          <el-descriptions :column="1" border>
-            <el-descriptions-item label="培训名称">{{ record.name }}（{{ record.code }}）</el-descriptions-item>
-            <el-descriptions-item label="培训类型">{{ record.trainingTypeLabels }}</el-descriptions-item>
-            <el-descriptions-item label="培训时间">{{ record.trainingTime }}</el-descriptions-item>
-            <el-descriptions-item label="培训工程师">{{ record.trainerName }}</el-descriptions-item>
-            <el-descriptions-item label="培训内容">
-              <pre class="content-pre">{{ record.content || '（未填写）' }}</pre>
-            </el-descriptions-item>
-          </el-descriptions>
-        </article>
-        <article class="record-card">
-          <h2>客户填写区域</h2>
-          <el-form-item label="培训工程师技术水平及表达能力" required>
-            <el-radio-group v-model="form.skillRating">
-              <el-radio v-for="option in qualityOptions" :key="option" :value="option" border>{{ option }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="培训内容及讲解效果" required>
-            <el-radio-group v-model="form.effectRating">
-              <el-radio v-for="option in qualityOptions" :key="option" :value="option" border>{{ option }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="培训满意度" required>
-            <el-radio-group v-model="form.satisfactionRating">
-              <el-radio v-for="option in satisfactionOptions" :key="option" :value="option" border>{{
-                option
-              }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="综合意见">
-            <el-input v-model="form.signOpinion" type="textarea" :rows="3" maxlength="500" show-word-limit />
-          </el-form-item>
-          <el-form-item label="签字人姓名" required>
-            <el-input v-model="form.signConfirmerName" maxlength="64" />
-          </el-form-item>
-        </article>
-        <el-button type="primary" size="large" class="submit-button" :loading="submitting" @click="submit"
-          >签字确认</el-button
+      <el-skeleton v-if="loading" :rows="7" animated />
+      <el-result
+        v-else-if="errorMessage"
+        icon="warning"
+        title="链接暂不可用"
+        :sub-title="errorMessage"
+      />
+      <template v-else-if="record">
+        <section class="record-summary">
+          <h2>{{ record.name }}</h2>
+          <p class="record-code">{{ record.code }}</p>
+          <dl>
+            <div
+              ><dt>培训类型</dt><dd>{{ record.trainingTypeLabels }}</dd></div
+            >
+            <div
+              ><dt>培训时间</dt><dd>{{ record.trainingTime }}</dd></div
+            >
+            <div
+              ><dt>培训工程师</dt><dd>{{ record.trainerName }}</dd></div
+            >
+          </dl>
+          <p class="training-content">{{ record.content || '未填写培训内容' }}</p>
+        </section>
+        <el-alert
+          v-if="record.status === 2"
+          type="success"
+          :closable="false"
+          :title="`已确认 · ${record.signConfirmerName} · ${formatDate(record.signTime)}`"
+        />
+        <div class="customer-confirmation-form">
+          <form-create
+            v-model="values"
+            v-model:api="formApi"
+            :rule="formRules"
+            :option="formOption"
+          />
+        </div>
+        <p v-if="record.status === 2 && !record.signatureImageDataUrl" class="record-code"
+          >此历史记录确认时未采集手写签字图片。</p
         >
-      </el-form>
+        <a
+          v-if="record.signatureImageDataUrl"
+          :href="record.signatureImageDataUrl"
+          download="客户手写签字.png"
+          class="signature-download"
+          >保存签字图片</a
+        >
+        <footer v-if="record.status !== 2">
+          <p
+            >链接有效至
+            {{ formatDate(record.tokenExpiresAt) }}。提交后不可修改，请确认由本人签字。</p
+          >
+          <el-button type="primary" size="large" :loading="submitting" @click="submit"
+            >签字并确认培训记录</el-button
+          >
+        </footer>
+      </template>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import type { Api, Rule } from '@form-create/element-ui'
 import { confirmPublicTraining, inspectPublicTraining } from '@/api/pms/engineering/training'
 import type { TrainingPublicVO } from '@/api/pms/engineering/training'
 import { formatDate } from '@/utils/formatTime'
+import { customerFormOption } from '@/components/FormCreate/src/customerConfirmation'
 
 defineOptions({ name: 'PmsTrainingRecordPublic' })
 const route = useRoute()
@@ -81,19 +83,15 @@ const loading = ref(true)
 const submitting = ref(false)
 const errorMessage = ref('')
 const record = ref<TrainingPublicVO>()
+const formApi = ref<Api>()
+const formRules = ref<Rule[]>([])
+const values = ref<Record<string, any>>({})
+const formOption = computed(() => ({
+  ...customerFormOption,
+  form: { ...customerFormOption.form, disabled: record.value?.status === 2 }
+}))
 const token = String(route.params.token || '')
 const tenantId = String(route.query.tenantId || '')
-const qualityOptions = ['很好', '良好', '一般', '差']
-const satisfactionOptions = ['非常满意', '较满意', '一般', '差']
-const form = reactive({
-  skillRating: '',
-  effectRating: '',
-  satisfactionRating: '',
-  signOpinion: '',
-  signConfirmerName: ''
-})
-
-
 const load = async () => {
   if (!token || !/^\d+$/.test(tenantId)) {
     errorMessage.value = '受控链接缺少有效租户信息。'
@@ -102,6 +100,25 @@ const load = async () => {
   }
   try {
     record.value = await inspectPublicTraining(token, tenantId)
+    formRules.value = JSON.parse(record.value.confirmationFormRules || '[]')
+    values.value = {
+      ...JSON.parse(record.value.confirmationValues || '{}'),
+      skillRating: record.value.skillRating,
+      effectRating: record.value.effectRating,
+      satisfactionRating: record.value.satisfactionRating,
+      signOpinion: record.value.signOpinion,
+      signConfirmerName: record.value.signConfirmerName,
+      signatureImageDataUrl: record.value.signatureImageDataUrl
+    }
+    if (record.value.status === 2)
+      formRules.value = formRules.value
+        .filter(
+          (rule) => rule.field !== 'signatureImageDataUrl' || !!record.value?.signatureImageDataUrl
+        )
+        .map((rule) => ({
+          ...rule,
+          props: { ...rule.props, disabled: true }
+        }))
   } catch {
     errorMessage.value = '链接已过期、已失效或无权访问。'
   } finally {
@@ -109,23 +126,28 @@ const load = async () => {
   }
 }
 const submit = async () => {
-  if (!form.skillRating || !form.effectRating || !form.satisfactionRating || !form.signConfirmerName.trim()) {
-    message.warning('请完成三项评价并填写签字人姓名')
+  if (submitting.value || !formApi.value) return
+  try {
+    await formApi.value.validate()
+  } catch {
+    message.warning('请完成评价、姓名和手写签字')
+    return
+  }
+  const { signatureImageDataUrl, ...answers } = values.value
+  if (!signatureImageDataUrl || !String(answers.signConfirmerName || '').trim()) {
+    message.warning('请填写姓名并手写签字')
     return
   }
   submitting.value = true
   try {
     await confirmPublicTraining(token, tenantId, {
-      skillRating: form.skillRating,
-      effectRating: form.effectRating,
-      satisfactionRating: form.satisfactionRating,
-      signOpinion: form.signOpinion,
-      signConfirmerName: form.signConfirmerName.trim()
+      ...answers,
+      signConfirmerName: String(answers.signConfirmerName).trim(),
+      signatureImageDataUrl,
+      confirmationValues: JSON.stringify(answers)
     })
-    message.success('确认成功')
+    message.success('培训记录已确认')
     await load()
-  } catch {
-    message.error('确认失败：链接可能已过期或已使用')
   } finally {
     submitting.value = false
   }
@@ -135,33 +157,102 @@ onMounted(load)
 
 <style scoped>
 .public-page {
-  min-height: 100vh;
-  background: #f5f7fa;
-  padding: 24px 12px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+  background: #f3f6fa;
+  padding: 32px 16px;
 }
 .training-shell {
-  max-width: 760px;
-  margin: 0 auto;
+  max-width: 720px;
+  margin: auto;
   background: #fff;
-  border-radius: 12px;
-  padding: 24px;
+  padding: 32px 40px;
+  border-top: 4px solid var(--el-color-primary);
+  box-sizing: border-box;
 }
-.eyebrow {
+.service-label {
   color: var(--el-color-primary);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
 }
-.record-card {
-  margin-bottom: 16px;
-  padding: 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
+h1 {
+  font-size: 26px;
+  margin: 10px 0;
+  color: var(--el-text-color-primary);
 }
-.content-pre {
+header p,
+footer p,
+.record-code {
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.record-summary {
+  margin: 28px 0;
+  padding: 20px;
+  background: #f7f9fc;
+}
+h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.record-code {
   margin: 0;
-  white-space: pre-wrap;
-  font-family: inherit;
 }
-.submit-button {
+dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  margin: 20px 0;
+}
+dt {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+dd {
+  margin: 0;
+  font-size: 14px;
+}
+.training-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+  margin: 0;
+}
+.customer-confirmation-form {
+  margin-top: 28px;
+}
+footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+footer .el-button {
   width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+}
+.signature-download {
+  display: inline-block;
+  padding: 12px 0;
+  color: var(--el-color-primary);
+}
+@media (max-width: 600px) {
+  .public-page {
+    padding: 0;
+  }
+  .training-shell {
+    padding: 24px 18px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 23px;
+  }
+  .record-summary {
+    padding: 16px;
+  }
 }
 </style>

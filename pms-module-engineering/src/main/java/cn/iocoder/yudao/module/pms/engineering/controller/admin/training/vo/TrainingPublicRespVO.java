@@ -54,4 +54,11 @@ public class TrainingPublicRespVO {
 
     @Schema(description = "客户综合意见（已确认时返回）")
     private String signOpinion;
+
+    /** Published customer confirmation template; frozen at issue time. */
+    private Long confirmationTemplateId;
+    private Long confirmationRevisionId;
+    private String confirmationFormRules;
+    private String confirmationValues;
+    private String signatureImageDataUrl;
 }

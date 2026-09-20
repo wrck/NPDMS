@@ -133,4 +133,14 @@ public class TrainingDO extends TenantBaseDO {
      */
     private String remark;
 
+
+    /** Published customer confirmation template; frozen at issue time. */
+    private Long confirmationTemplateId;
+    private Long confirmationRevisionId;
+    private String confirmationFormRules;
+    private String confirmationValues;
+    private String signatureImageDataUrl;
+    private Long printTemplateId;
+    private Long printRevisionId;
+    private String printLayoutSnapshot;
 }

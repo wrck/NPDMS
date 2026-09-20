@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @Schema(description = "管理后台 - 现场培训记录 Response VO")
 @Data
 public class TrainingRespVO {
+    private Long printTemplateId;
+    private Long printRevisionId;
 
     @Schema(description = "编号", example = "1024")
     private Long id;
@@ -93,4 +95,13 @@ public class TrainingRespVO {
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
+
+    /** Published customer confirmation template; frozen at issue time. */
+    private Long confirmationTemplateId;
+    private Long confirmationRevisionId;
+    private String confirmationFormRules;
+    private String confirmationValues;
+    private String signatureImageDataUrl;
+    @Schema(description = "已绑定的打印模板快照，仅管理端预览使用")
+    private String printLayoutSnapshot;
 }

@@ -10,6 +10,9 @@ import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGene
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.training.TrainingMapper;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.BeforeEach;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,6 +61,8 @@ class TrainingServiceTest {
         row.setTrainerName("王工");
         row.setStatus(0);
         row.setVersion(3);
+        row.setConfirmationRevisionId(100L);
+        row.setConfirmationFormRules(TrainingConfirmationForms.safeSnapshot(TrainingConfirmationForms.defaults()));
         when(trainingMapper.selectById(1L)).thenReturn(row);
         when(trainingMapper.updateById(any(TrainingDO.class))).thenReturn(1);
     }
@@ -111,6 +116,7 @@ class TrainingServiceTest {
         reqVO.setSatisfactionRating("非常满意");
         reqVO.setSignOpinion("培训扎实");
         reqVO.setSignConfirmerName("张三");
+        reqVO.setSignatureImageDataUrl(TrainingConfirmationFormsTest.png(true));
         service.confirmByToken("raw-token", reqVO);
 
         assertEquals(2, row.getStatus());
@@ -135,6 +141,8 @@ class TrainingServiceTest {
         String html = new String(contentCaptor.getValue(), StandardCharsets.UTF_8);
         assertTrue(html.contains("张三"));
         assertTrue(html.contains("培训扎实"));
+        assertTrue(html.contains("data:image/png;base64,"));
+        assertNotNull(row.getConfirmationValues());
         assertFalse(html.contains("□很好"));
 
         // 已确认后令牌不可再次确认（状态机防重放）
@@ -168,4 +176,41 @@ class TrainingServiceTest {
 
         assertNotEquals(first.getToken(), second.getToken());
     }
+    @Test
+    void staleConfirmationDoesNotArchive() throws Exception {
+        row.setStatus(1);
+        row.setTokenExpiresAt(LocalDateTime.now().plusDays(1));
+        when(trainingMapper.selectByDigest(anyString())).thenReturn(row);
+        when(trainingMapper.updateById(any(TrainingDO.class))).thenReturn(0);
+        TrainingPublicConfirmReqVO request = new TrainingPublicConfirmReqVO();
+        request.setSkillRating("很好"); request.setEffectRating("良好");
+        request.setSatisfactionRating("非常满意"); request.setSignConfirmerName("张三");
+        request.setSignatureImageDataUrl(TrainingConfirmationFormsTest.png(true));
+        assertThrows(RuntimeException.class, () -> service.confirmByToken("token", request));
+        verify(deliverableMapper, never()).insert(any(DeliverableDO.class));
+    }
+
+    @Test
+    void issueFreezesPublishedRevisionAndReissueDoesNotReadNewTemplate() {
+        var api = mock(DynamicFormBusinessInstanceApi.class);
+        ReflectionTestUtils.setField(service, "confirmationFormApi", api);
+        row.setConfirmationFormRules(null);
+        var fact = new DynamicFormRevisionFact(1L, TrainingConfirmationFormPolicy.KEY,
+                TrainingConfirmationForms.DEFAULT_TEMPLATE, 101L, 1, 1,
+                TrainingConfirmationFormPolicy.USAGE, null, "FORM_CREATE_ELEMENT_PLUS", "3.4.0", "3.2.38",
+                "{}", TrainingConfirmationForms.defaults(), java.util.List.of(), null);
+        when(api.inspectCurrentRevisionForUsage(any())).thenReturn(fact);
+        when(api.lockAndRevalidateRevisionForUsage(any())).thenReturn(fact);
+        TenantContextHolder.setTenantId(1L);
+        try {
+            service.issueTraining(1L);
+            String frozen = row.getConfirmationFormRules();
+            service.issueTraining(1L);
+            assertEquals(101L, row.getConfirmationRevisionId());
+            assertEquals(frozen, row.getConfirmationFormRules());
+            verify(api, times(1)).inspectCurrentRevisionForUsage(any());
+            verify(api, times(1)).lockAndRevalidateRevisionForUsage(any());
+        } finally { TenantContextHolder.clear(); }
+    }
+
 }

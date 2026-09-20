@@ -35,4 +35,10 @@ public class TrainingPublicConfirmReqVO {
     @NotBlank(message = "请填写签字人姓名")
     @Size(max = 64, message = "签字人姓名不能超过 64 个字符")
     private String signConfirmerName;
+    @NotBlank(message = "请手写签字")
+    @Size(max = 350000, message = "签字图片过大，请清空后重签")
+    private String signatureImageDataUrl;
+
+    @Size(max = 32768, message = "补充信息过长")
+    private String confirmationValues;
 }

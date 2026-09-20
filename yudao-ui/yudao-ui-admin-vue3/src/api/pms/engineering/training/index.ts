@@ -1,7 +1,11 @@
 import request from '@/config/axios'
+import { customerConfirmationBaseUrl } from '@/api/pms/customerConfirmation'
 
-/** 现场培训记录（ACC-01 / Demo 6.1） */
+/** 现场培训记录（ACC-01） */
 export interface TrainingVO {
+  printTemplateId?: number
+  printRevisionId?: number
+  printLayoutSnapshot?: string
   id?: number
   projectId?: number
   code?: string
@@ -19,9 +23,14 @@ export interface TrainingVO {
   skillRating?: string
   effectRating?: string
   satisfactionRating?: string
+  confirmationTemplateId?: number
+  confirmationRevisionId?: number
+  confirmationFormRules?: string
+  confirmationValues?: string
+  signatureImageDataUrl?: string
   signOpinion?: string
   signConfirmerName?: string
-  signTime?: string
+  signTime?: string | number
   fileUrl?: string
   fileName?: string
   fileSize?: number
@@ -41,6 +50,8 @@ export interface TrainingIssueVO {
 }
 
 const baseUrl = '/pms/imp-training'
+export const downloadTrainingPdf = (id: number) =>
+  request.download<Blob>({ url: `/api/v1/pms/training-records/${id}/pdf` })
 
 export const getTrainingPage = (params: PageParam & Record<string, any>) =>
   request.get<{ list: TrainingVO[]; total: number }>({ url: `${baseUrl}/page`, params })
@@ -65,20 +76,27 @@ export interface TrainingPublicVO {
   tokenExpiresAt: string
   status: number
   signConfirmerName?: string
-  signTime?: string
+  signTime?: string | number
   skillRating?: string
   effectRating?: string
   satisfactionRating?: string
+  confirmationTemplateId?: number
+  confirmationRevisionId?: number
+  confirmationFormRules?: string
+  confirmationValues?: string
+  signatureImageDataUrl?: string
   signOpinion?: string
 }
 export const inspectPublicTraining = (token: string, tenantId: string | number) =>
   request.get<TrainingPublicVO>({
     url: `/api/v1/pms/training-records/${encodeURIComponent(token)}`,
-    headers: tenantHeaders(tenantId)
+    baseURL: customerConfirmationBaseUrl(),
+    headers: { ...tenantHeaders(tenantId), isToken: false }
   })
 export const confirmPublicTraining = (token: string, tenantId: string | number, data: Record<string, any>) =>
   request.post<boolean>({
     url: `/api/v1/pms/training-records/${encodeURIComponent(token)}/confirm`,
     data,
-    headers: tenantHeaders(tenantId)
+    baseURL: customerConfirmationBaseUrl(),
+    headers: { ...tenantHeaders(tenantId), isToken: false }
   })

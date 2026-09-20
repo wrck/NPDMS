@@ -98,7 +98,8 @@
     "vue3-signature": "^0.4.4",
     "vuedraggable": "^4.1.0",
     "web-storage-cache": "^1.1.1",
-    "xml-js": "^1.6.11"
+    "xml-js": "^1.6.11",
+    "html2pdf.js": "0.14.0"
   },
   "devDependencies": {
     "@vue/test-utils": "2.5.1",

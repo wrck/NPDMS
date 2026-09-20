@@ -1,6 +1,13 @@
 package cn.iocoder.yudao.module.pms.engineering.service.training;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormCurrentRevisionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionRevalidationQuery;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.infra.api.file.FileApi;
@@ -70,8 +77,13 @@ public class TrainingServiceImpl implements TrainingService {
     private AdminUserApi adminUserApi;
     @Resource
     private FileApi fileApi;
+    @Resource
+    private DynamicFormBusinessInstanceApi confirmationFormApi;
+    @Resource
+    private TrainingPrintService trainingPrintService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createTraining(TrainingSaveReqVO createReqVO) {
         validateTrainingTypes(createReqVO.getTrainingTypes());
         TrainingDO entity = BeanUtils.toBean(createReqVO, TrainingDO.class);
@@ -87,11 +99,14 @@ public class TrainingServiceImpl implements TrainingService {
         entity.setTrainerUserId(trainerUserId);
         entity.setTrainerName(resolveUserNickname(trainerUserId));
         entity.setStatus(TrainingStatusEnum.DRAFT.getStatus());
+        if (entity.getConfirmationTemplateId() == null) entity.setConfirmationTemplateId(TrainingConfirmationForms.DEFAULT_TEMPLATE);
+        if (createReqVO.getPrintTemplateId() != null) trainingPrintService.capture(entity, createReqVO.getPrintTemplateId());
         trainingMapper.insert(entity);
         return entity.getId();
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateTraining(TrainingSaveReqVO updateReqVO) {
         TrainingDO existing = validateTrainingExists(updateReqVO.getId());
         // 仅草稿可修改（编码由系统生成，不可变更）
@@ -100,6 +115,9 @@ public class TrainingServiceImpl implements TrainingService {
         }
         validateTrainingTypes(updateReqVO.getTrainingTypes());
         TrainingDO update = BeanUtils.toBean(updateReqVO, TrainingDO.class);
+        if (updateReqVO.getPrintTemplateId() != null && (!Objects.equals(updateReqVO.getPrintTemplateId(), existing.getPrintTemplateId())
+                || existing.getPrintLayoutSnapshot() == null)) trainingPrintService.capture(update, updateReqVO.getPrintTemplateId());
+        if (update.getVersion() == null) update.setVersion(existing.getVersion());
         if (updateReqVO.getTrainingTypes() != null) {
             update.setTrainingTypes(String.join(",", updateReqVO.getTrainingTypes()));
         }
@@ -107,7 +125,7 @@ public class TrainingServiceImpl implements TrainingService {
                 && !Objects.equals(updateReqVO.getTrainerUserId(), existing.getTrainerUserId())) {
             update.setTrainerName(resolveUserNickname(updateReqVO.getTrainerUserId()));
         }
-        trainingMapper.updateById(update);
+        if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
     }
 
     @Override
@@ -138,10 +156,26 @@ public class TrainingServiceImpl implements TrainingService {
                 || Objects.equals(TrainingStatusEnum.VOID.getStatus(), existing.getStatus())) {
             throw exception(TRAINING_STATUS_INVALID);
         }
+        // Freeze once: reissuing a link must retain the original published questionnaire.
+        if (StringUtils.isBlank(existing.getConfirmationFormRules())) {
+            Long templateId = existing.getConfirmationTemplateId() == null
+                    ? TrainingConfirmationForms.DEFAULT_TEMPLATE : existing.getConfirmationTemplateId();
+            var fact = confirmationFormApi.inspectCurrentRevisionForUsage(new DynamicFormCurrentRevisionQuery(
+                    TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                    TrainingConfirmationFormPolicy.KEY, templateId, TrainingConfirmationFormPolicy.USAGE));
+            fact = confirmationFormApi.lockAndRevalidateRevisionForUsage(new DynamicFormRevisionRevalidationQuery(
+                    SecurityFrameworkUtils.getLoginUserId(), fact));
+            existing.setConfirmationTemplateId(templateId);
+            existing.setConfirmationRevisionId(fact.templateRevisionId());
+            existing.setConfirmationFormRules(TrainingConfirmationForms.safeSnapshot(fact.formRulesJson()));
+        }
         // 重新外发生成新令牌，原令牌因摘要替换自然失效
         String token = generateToken();
         TrainingDO update = new TrainingDO();
         update.setId(id);
+        update.setConfirmationTemplateId(existing.getConfirmationTemplateId());
+        update.setConfirmationRevisionId(existing.getConfirmationRevisionId());
+        update.setConfirmationFormRules(existing.getConfirmationFormRules());
         update.setSignTokenDigest(digest(token));
         update.setTokenExpiresAt(LocalDateTime.now().plusDays(TOKEN_VALID_DAYS));
         update.setStatus(TrainingStatusEnum.ISSUED.getStatus());
@@ -151,7 +185,7 @@ public class TrainingServiceImpl implements TrainingService {
         update.setFileName(existing.getFileName());
         update.setFileSize(existing.getFileSize());
         update.setFileChecksum(existing.getFileChecksum());
-        trainingMapper.updateById(update);
+        if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
         return new TrainingIssueRespVO(id, token, "/training-records/" + token,
                 update.getTokenExpiresAt(), fileUrl,
                 "外部推送通道（短信/钉钉）未接入，请复制确认链接线下发送给客户，有效期 7 天。");
@@ -172,7 +206,7 @@ public class TrainingServiceImpl implements TrainingService {
         // 作废同时清除令牌摘要，外发链接即刻失效
         update.setSignTokenDigest("");
         update.setVersion(existing.getVersion());
-        trainingMapper.updateById(update);
+        if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
     }
 
     @Override
@@ -186,7 +220,7 @@ public class TrainingServiceImpl implements TrainingService {
         update.setFileSize(existing.getFileSize());
         update.setFileChecksum(existing.getFileChecksum());
         update.setVersion(existing.getVersion());
-        trainingMapper.updateById(update);
+        if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
         return fileUrl;
     }
 
@@ -202,6 +236,9 @@ public class TrainingServiceImpl implements TrainingService {
         respVO.setContent(entity.getContent());
         respVO.setTokenExpiresAt(entity.getTokenExpiresAt());
         respVO.setStatus(entity.getStatus());
+        respVO.setConfirmationTemplateId(entity.getConfirmationTemplateId());
+        respVO.setConfirmationRevisionId(entity.getConfirmationRevisionId());
+        respVO.setConfirmationFormRules(confirmationRules(entity));
         if (Objects.equals(TrainingStatusEnum.CONFIRMED.getStatus(), entity.getStatus())) {
             respVO.setSignConfirmerName(entity.getSignConfirmerName());
             respVO.setSignTime(entity.getSignTime());
@@ -209,6 +246,8 @@ public class TrainingServiceImpl implements TrainingService {
             respVO.setEffectRating(entity.getEffectRating());
             respVO.setSatisfactionRating(entity.getSatisfactionRating());
             respVO.setSignOpinion(entity.getSignOpinion());
+            respVO.setConfirmationValues(entity.getConfirmationValues());
+            respVO.setSignatureImageDataUrl(entity.getSignatureImageDataUrl());
         }
         return respVO;
     }
@@ -224,10 +263,31 @@ public class TrainingServiceImpl implements TrainingService {
         validateRating(reqVO.getEffectRating(), SKILL_RATING_OPTIONS, "培训内容及讲解效果");
         validateRating(reqVO.getSatisfactionRating(), SATISFACTION_RATING_OPTIONS, "培训满意度");
 
+        String signature = TrainingSignatureImage.normalize(reqVO.getSignatureImageDataUrl());
+        String rules = confirmationRules(entity);
+        Map<String, Object> values = new LinkedHashMap<>();
+        if (StringUtils.isNotBlank(reqVO.getConfirmationValues())) {
+            var node = JsonUtils.parseTree(reqVO.getConfirmationValues());
+            if (node == null || !node.isObject()) throw exception(TRAINING_ARGUMENT_INVALID, "确认内容格式不正确");
+            values.putAll(JsonUtils.parseObject(reqVO.getConfirmationValues(), Map.class));
+        }
+        values.put("skillRating", reqVO.getSkillRating());
+        values.put("effectRating", reqVO.getEffectRating());
+        values.put("satisfactionRating", reqVO.getSatisfactionRating());
+        values.put("signConfirmerName", reqVO.getSignConfirmerName());
+        values.put("signOpinion", reqVO.getSignOpinion());
+        String acceptedValues = TrainingConfirmationForms.validateValues(rules, values);
+        // Persist only validated PNG and values from the frozen schema.
+        entity.setSignatureImageDataUrl(signature);
+        entity.setConfirmationFormRules(rules);
+        entity.setConfirmationValues(acceptedValues);
         // 先落客户确认信息，再把含客户填写区域的培训记录表上传文件服务
         TrainingDO update = new TrainingDO();
         update.setId(entity.getId());
         update.setStatus(TrainingStatusEnum.CONFIRMED.getStatus());
+        update.setSignatureImageDataUrl(signature);
+        update.setConfirmationFormRules(rules);
+        update.setConfirmationValues(acceptedValues);
         update.setSkillRating(reqVO.getSkillRating());
         update.setEffectRating(reqVO.getEffectRating());
         update.setSatisfactionRating(reqVO.getSatisfactionRating());
@@ -247,9 +307,14 @@ public class TrainingServiceImpl implements TrainingService {
         update.setFileName(entity.getFileName());
         update.setFileSize(entity.getFileSize());
         update.setFileChecksum(entity.getFileChecksum());
-        trainingMapper.updateById(update);
+        if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
 
         archiveConfirmedDeliverable(entity, update.getFileUrl());
+    }
+
+    private String confirmationRules(TrainingDO entity) {
+        return StringUtils.isBlank(entity.getConfirmationFormRules())
+                ? TrainingConfirmationForms.safeSnapshot(TrainingConfirmationForms.defaults()) : entity.getConfirmationFormRules();
     }
 
     private TrainingDO validateTrainingExists(Long id) {
@@ -404,6 +469,20 @@ public class TrainingServiceImpl implements TrainingService {
                     .append("<p>培训内容及讲解效果：□很好 □良好 □一般 □差</p>")
                     .append("<p>培训满意度：□非常满意 □较满意 □一般 □差</p>")
                     .append("<p>综合意见：</p><p>签字：______________　日期：____年__月__日</p>");
+        }
+        if (confirmed && StringUtils.isNotBlank(entity.getSignatureImageDataUrl())) {
+            html.append("<h2>客户手写签字</h2><img alt=\"客户手写签字\" style=\"max-width:100%;width:600px\" src=\"")
+                    .append(htmlEscape(entity.getSignatureImageDataUrl())).append("\">");
+        }
+        if (confirmed && StringUtils.isNotBlank(entity.getConfirmationValues())) {
+            var values = JsonUtils.parseTree(entity.getConfirmationValues());
+            Set<String> core = Set.of("skillRating", "effectRating", "satisfactionRating", "signOpinion", "signConfirmerName", "signatureImageDataUrl");
+            for (var rule : JsonUtils.parseTree(confirmationRules(entity))) {
+                String field = rule.path("field").asText();
+                if (!core.contains(field) && values.has(field)) html.append("<p>")
+                        .append(htmlEscape(rule.path("title").asText())).append("：")
+                        .append(htmlEscape(values.get(field).isTextual() ? values.get(field).asText() : values.get(field).toString())).append("</p>");
+            }
         }
         html.append("</body></html>");
         return html.toString();

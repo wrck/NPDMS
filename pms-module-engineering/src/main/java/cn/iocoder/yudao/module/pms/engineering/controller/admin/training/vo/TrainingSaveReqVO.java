@@ -54,4 +54,6 @@ public class TrainingSaveReqVO {
 
     @Schema(description = "备注")
     private String remark;
+    private Long confirmationTemplateId;
+    private Long printTemplateId;
 }
