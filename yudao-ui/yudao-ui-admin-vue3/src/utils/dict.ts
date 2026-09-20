@@ -380,7 +380,9 @@ export enum DICT_TYPE {
   PMS_RISK_LEVEL = 'pms_risk_level', // 项目风险等级
   PMS_PLAN_CHANGE_STATUS = 'pms_plan_change_status', // 计划变更状态
   PMS_DELIVERABLE_TYPE = 'pms_deliverable_type', // 交付件类型
-  PMS_DELIVERABLE_STATUS = 'pms_deliverable_status', // 交付件状态
+  PMS_DELIVERABLE_STATUS = 'pms_deliverable_status', // 交付件状态（验收侧交付件检查）
+  PMS_ENG_DELIVERABLE_TYPE = 'pms_eng_deliverable_type', // 交付件归集类型（工程归集件，FR-ENG-027）
+  PMS_ENG_DELIVERABLE_STATUS = 'pms_eng_deliverable_status', // 交付件归集状态（0待归集/1已归集/2已作废）
   PMS_ANNOUNCEMENT_TYPE = 'pms_announcement_type', // 公告类型
   PMS_AUTHORIZATION_TYPE = 'pms_authorization_type', // 授权类型
   PMS_BRIEFING_TYPE = 'pms_briefing_type', // 交底类型
@@ -402,6 +404,7 @@ export enum DICT_TYPE {
   PMS_LEFTOVER_STATUS = 'pms_leftover_status', // 遗留状态
   PMS_ACCEPTANCE_TYPE = 'pms_acceptance_type', // 验收类型
   PMS_DOCUMENT_TYPE = 'pms_document_type', // 文档类型
+  PMS_TRAINING_TYPE = 'pms_training_type', // 培训类型
   PMS_ACCEPTANCE_STATUS = 'pms_acceptance_status', // 验收状态
   PMS_INSPECTION_MODE = 'pms_inspection_mode', // 巡检模式
   PMS_SRV_TASK_STATUS = 'pms_srv_task_status', // 巡检任务状态

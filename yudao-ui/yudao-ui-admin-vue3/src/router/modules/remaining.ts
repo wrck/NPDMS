@@ -44,6 +44,16 @@ const remainingRouter: AppRouteRecordRaw[] = [
     }
   },
   {
+    path: '/training-records/:token',
+    name: 'PmsTrainingRecordPublic',
+    component: () => import('@/views/pms/engineering/training/public-confirm.vue'),
+    meta: {
+      hidden: true,
+      noTagsView: true,
+      title: '现场培训记录确认'
+    }
+  },
+  {
     path: '/pms/project/satisfaction',
     component: Layout,
     name: 'SatisfactionWorkbenchRoot',
