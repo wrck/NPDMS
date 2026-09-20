@@ -28,8 +28,16 @@
               row.preview ? '完整预览' : row.fullSnapshot ? '全量同步' : '增量同步'
             }}</template></el-table-column
           >
-          <el-table-column label="状态" min-width="180"
+          <el-table-column label="状态" min-width="140"
             ><template #default="{ row }">{{ runStatusLabel(row) }}</template></el-table-column
+          >
+          <el-table-column label="报错信息" min-width="220" show-overflow-tooltip
+            ><template #default="{ row }"
+              ><span v-if="row.errorMessage" style="color: var(--el-color-danger)">{{
+                row.errorMessage
+              }}</span
+              ><span v-else>—</span></template
+            ></el-table-column
           >
           <el-table-column label="开始时间" min-width="170"
             ><template #default="{ row }">{{
@@ -253,6 +261,13 @@ const runStatusLabel = (run: api.Run) =>
 const childPages = ref<api.Run[]>([]),
   childTotal = ref(0)
 const childPage = reactive({ pageNo: 1, pageSize: 20 })
+// 父组件通过清空 runId 表示返回列表（如 URL 无 run 参数时），需同步退出详情视图。
+watch(
+  () => props.runId,
+  (id) => {
+    if (!id) selected.value = undefined
+  }
+)
 const summary = computed(() => {
   try {
     const counts = JSON.parse(selected.value?.summaryJson || '{}') as Record<string, number>

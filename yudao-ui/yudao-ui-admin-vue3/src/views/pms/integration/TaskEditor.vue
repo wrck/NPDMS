@@ -313,6 +313,21 @@ const open = async (id?: api.Id) => {
 }
 const changeAdapter = async () => {
   if (!draft.value || !selectedAdapter.value) return
+  if (selectedAdapter.value.key === 'DPPMS_CRM_EXECUTION_ORDER') {
+    draft.value.definition = await api.getDppmsExecutionOrderTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 项目执行单常规头同步'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'PAYMENT_PLAN_ACCEPTANCE') {
+    draft.value.definition = await api.getPaymentAcceptanceTemplate(draft.value.definition.connectionId)
+    draft.value.name = '回款节点计划验收时间同步'
+    normalizePerformance()
+    message.info('请核对来源主键，并配置参考事件到目标类型、阶段或任务编码的映射；未配置的节点将记录异常。')
+    return
+  }
   if (selectedAdapter.value.key === 'DPPMS_ERP_ORDER') {
     draft.value.definition = await api.getDppmsOrderTemplate(draft.value.definition.connectionId)
     normalizePerformance()

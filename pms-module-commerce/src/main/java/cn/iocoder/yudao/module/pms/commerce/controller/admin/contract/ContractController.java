@@ -67,6 +67,26 @@ public class ContractController {
         });
     }
 
+    @GetMapping("/project/{projectId}/overview")
+    @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
+    public CommonResult<cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO> projectOverview(@PathVariable Long projectId) {
+        return withTenant(() -> {
+            Long userId = currentUserId();
+            boolean sensitive = canReadSensitive(userId);
+            var detail = accessService.getProjectCommerceDetail(currentTenantId(), userId, projectId);
+            return success(new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO(
+                detail.contracts().stream().map(c -> toResponse(c, sensitive)).toList(),
+                detail.orders().stream().map(o -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.Order(
+                    o.getId(), o.getOrderNo(), o.getCompanyName(), o.getOrderCreateTime())).toList(),
+                detail.executionOrders().stream().map(e -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.ExecutionOrder(
+                    e.getId(), e.getExecutionNo(), e.getSalesRepCode(), e.getSalesRepName(),
+                    e.getMarketName(), e.getSystemName(), e.getExpendName(), e.getIndustryName(),
+                    e.getDepartmentName(), e.getCompanyName(), e.getCustomerProjectName(), sensitive ? e.getFinalCustomerName() : null,
+                    sensitive ? e.getAgentName() : null, e.getProjectManagerName(), e.getServiceTypeName(), e.getChannelName(),
+                    e.getSubmitTime(), e.getSourceSystem(), e.getSourceSyncTime())).toList()));
+        });
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<ContractDetailRespVO> get(@PathVariable Long id) {

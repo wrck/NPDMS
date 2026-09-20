@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper">
+    <!-- Include deleted identities: a source replay must not recreate retired business keys. -->
+    <select id="selectIncoming" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO">
+        SELECT * FROM com_crm_execution_order
+        WHERE tenant_id = #{query.tenantId}
+          AND source_system = #{query.sourceSystem}
+        <choose>
+            <when test="query.executionNumbers != null and !query.executionNumbers.isEmpty()">
+                AND execution_no IN
+                <foreach collection="query.executionNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+</mapper>

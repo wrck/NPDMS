@@ -46,6 +46,44 @@ class ContractAccessServiceTest {
     }
 
     @Test
+    void projectOverviewRejectsInvisibleProjectBeforeReadingCommerce() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getProjectCommerceDetail(1L, 7L, 11L));
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void projectOverviewFailsClosedWhenScopeOwnerUnavailable() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveAllCurrent(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getProjectCommerceDetail(1L, 7L, 10L));
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(2L, 10L);
+        when(mapper.selectContracts(query)).thenReturn(List.of(new ContractDO(), new ContractDO()));
+        when(mapper.selectOrders(query)).thenReturn(List.of(new SalesOrderDO()));
+        when(mapper.selectExecutionOrders(query)).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO()));
+        var result = service.getProjectCommerceDetail(2L, 7L, 10L);
+        assertEquals(2, result.contracts().size());
+        assertEquals(1, result.orders().size());
+        assertEquals(1, result.executionOrders().size());
+        verify(projectScopeApi).resolveAllCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
+                2L, 7L, ProjectScopeApi.ACTION_VIEW));
+    }
+
+    @Test
     void shouldUseCompanyScopeAndAllLockedContractFilters() {
         when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(
                 scope(1L, "C01", 2), scope(2L, "C01", 3), scope(3L, "c01", 1)));

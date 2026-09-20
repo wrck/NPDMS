@@ -24,6 +24,7 @@ import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentSc
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -99,6 +100,19 @@ public class ContractAccessService {
         return new AccessScope(currentCompanyCodes(tenantId, subjectUserId, correlationId),
                 currentProjectIds(tenantId, subjectUserId));
     }
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper projectCommerceMapper;
+
+    public ProjectCommerceDetail getProjectCommerceDetail(Long tenantId, Long userId, Long projectId) {
+        if (!currentProjectIds(tenantId, userId).contains(projectId)) throw inaccessible();
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(tenantId, projectId);
+        return new ProjectCommerceDetail(projectCommerceMapper.selectContracts(query),
+                projectCommerceMapper.selectOrders(query), projectCommerceMapper.selectExecutionOrders(query));
+    }
+
+    public record ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {}
 
     private List<UserCompanyDepartmentScopeRespDTO> currentScopes(
             Long tenantId, Long subjectUserId, String correlationId) {

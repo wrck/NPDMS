@@ -29,7 +29,7 @@ export interface Source {
   syncPrimaryKey?: boolean
   updatedAt?: string
   columns: string[]
-  filters: { column: string; operator: string; value?: unknown }[]
+  filters: { column: string; operator: string; value?: unknown; function?: string | null }[]
   mappings: Mapping[]
 }
 export interface Definition {
@@ -136,6 +136,13 @@ export const getEhrTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/ehr', params: { connectionId } })
 export const getDppmsOrderTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-orders', params: { connectionId } })
+export const getDppmsExecutionOrderTemplate = (connectionId: Id) =>
+  request.get<Definition>({
+    url: base + '/templates/dppms-execution-orders',
+    params: { connectionId }
+  })
+export const getPaymentAcceptanceTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/payment-plan-acceptance', params: { connectionId } })
 export const getTasks = (params = { pageNo: 1, pageSize: 20 }) =>
   request.get<Page<Task>>({ url: base + '/tasks', params })
 export const getTask = (id: Id) => request.get<Task>({ url: base + '/tasks/' + id })
