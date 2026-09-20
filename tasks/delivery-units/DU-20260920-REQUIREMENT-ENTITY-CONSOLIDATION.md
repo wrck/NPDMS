@@ -26,3 +26,7 @@ SOL继续唯一拥有正文与生命周期；当前实体与修订继承同一�
 ## 追加授权与边界（2026-09-20）
 
 需求方确认旧 sol-requirement 的 BUSINESS 写入口收敛为历史只读，INTERFACE 保持功能。追加 RequirementServiceImpl、ErrorCodeConstants 中专用错误码、旧 engineering/requirement/index.vue 及对应测试；不删除旧记录、不转换旧状态。实体收敛同时覆盖 RequirementAnalysisFields、EntityController 比较投影及 ImportMapper 类型映射。
+
+## 页面崩溃修复边界（2026-09-20）
+
+需求方报告白屏、转圈及切页残留；实际首发错误为RevisionFiles初始化直接调用不可用的crypto.randomUUID。追加RevisionFiles.vue及测试；其直接消费者dynamicFormRuntime.ts、PmsFileUploader.vue、PmsFileReferenceList.vue仅将UUID调用改为已有generateUUID，保留幂等语义、权限及文件协议，不修改公共UUID实现。
