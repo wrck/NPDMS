@@ -37,4 +37,15 @@ public interface ProjectDeliverableSourceVersionMapper extends BaseMapperX<Proje
 
     java.util.List<ProjectDeliverableSourceVersionDO> selectPendingArchiveBySourceType(
             @Param("query") PendingArchiveSourceTypeQuery query);
+
+    /** 按交付件定义集合查询当前生效来源（只读投影用；空集合返回空列表）。 */
+    default java.util.List<ProjectDeliverableSourceVersionDO> selectListCurrentByDeliverableIds(
+            java.util.Collection<Long> deliverableIds) {
+        if (deliverableIds == null || deliverableIds.isEmpty()) {
+            return java.util.List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<ProjectDeliverableSourceVersionDO>()
+                .in(ProjectDeliverableSourceVersionDO::getDeliverableId, deliverableIds)
+                .eq(ProjectDeliverableSourceVersionDO::getRelationStatus, "CURRENT"));
+    }
 }

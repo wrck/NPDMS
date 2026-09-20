@@ -12,13 +12,10 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="交付件编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="类型" prop="deliverableType">
         <el-select v-model="query.deliverableType" clearable class="!w-160px">
           <el-option
-            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DOCUMENT_TYPE)"
+            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_ENG_DELIVERABLE_TYPE)"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value"
@@ -28,7 +25,7 @@
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-140px">
           <el-option
-            v-for="dict in getIntDictOptions(DICT_TYPE.PMS_DELIVERABLE_STATUS)"
+            v-for="dict in getIntDictOptions(DICT_TYPE.PMS_ENG_DELIVERABLE_STATUS)"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value"
@@ -45,18 +42,17 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="交付件编码" min-width="140" />
       <el-table-column prop="name" label="交付件名称" min-width="220" show-overflow-tooltip />
       <el-table-column prop="deliverableType" label="类型" width="110">
         <template #default="{ row }">
-          <dict-tag :type="DICT_TYPE.PMS_DOCUMENT_TYPE" :value="row.deliverableType" />
+          <dict-tag :type="DICT_TYPE.PMS_ENG_DELIVERABLE_TYPE" :value="row.deliverableType" />
         </template>
       </el-table-column>
       <el-table-column prop="fileUrl" label="文件地址" min-width="220" show-overflow-tooltip />
       <el-table-column prop="archivedTime" label="归集时间" width="160" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <dict-tag :type="DICT_TYPE.PMS_DELIVERABLE_STATUS" :value="row.status" />
+          <dict-tag :type="DICT_TYPE.PMS_ENG_DELIVERABLE_STATUS" :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="340" fixed="right">
@@ -121,18 +117,13 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="交付件编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="阶段编号" prop="phaseId"><el-input v-model="form.phaseId" /></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="类型" prop="deliverableType">
             <el-select v-model="form.deliverableType" class="!w-full">
               <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DOCUMENT_TYPE)"
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_ENG_DELIVERABLE_TYPE)"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
@@ -190,16 +181,14 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: '',
-  code: '',
   deliverableType: undefined,
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<DeliverableVO>({ projectId: 0, code: '', name: '', deliverableType: 'DAILY' })
+const form = reactive<DeliverableVO>({ projectId: 0, name: '', deliverableType: 'DAILY' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入交付件编码' }],
   name: [{ required: true, message: '请输入交付件名称' }],
   deliverableType: [{ required: true, message: '请选择类型' }]
 }
@@ -221,7 +210,6 @@ const openForm = (row?: DeliverableVO) => {
       id: undefined,
       projectId: 0,
       phaseId: undefined,
-      code: '',
       name: '',
       deliverableType: 'DAILY',
       sourceType: '',
@@ -255,13 +243,13 @@ const remove = async (row: DeliverableVO) => {
   await load()
 }
 const archive = async (row: DeliverableVO) => {
-  await message.confirm(`确认归集交付件【${row.code}】？归集后不可修改，仅可作废。`)
+  await message.confirm(`确认归集交付件【${row.name}】？归集后不可修改，仅可作废。`)
   await DeliverableApi.archiveDeliverable(row.id!)
   message.success('归集成功')
   await load()
 }
 const voidRow = async (row: DeliverableVO) => {
-  await message.confirm(`确认作废交付件【${row.code}】？`)
+  await message.confirm(`确认作废交付件【${row.name}】？`)
   await DeliverableApi.voidDeliverable(row.id!)
   message.success('作废成功')
   await load()

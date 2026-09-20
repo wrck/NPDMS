@@ -3,8 +3,11 @@ package cn.iocoder.yudao.module.pms.engineering.service.deliverable;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverablePageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverableSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverableSummaryItemVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import jakarta.validation.Valid;
+
+import java.util.List;
 
 /**
  * PMS 阶段交付件归集 Service 接口（FR-ENG-027）。
@@ -59,4 +62,11 @@ public interface DeliverableService {
      * 作废交付件（0待归集 / 1已归集 → 2已作废）
      */
     void voidDeliverable(Long id);
+
+    /**
+     * 按项目交付件汇总（6.4 / ACC-04）：
+     * 工程归集件 + 批准实施方案 + ACC 归档事实（初验/终验/满意度），
+     * 按 Demo 6 类合并输出；到货签收单与现场培训记录的自动归档未接通时如实标注。
+     */
+    List<DeliverableSummaryItemVO> getProjectSummary(Long projectId);
 }

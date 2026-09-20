@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverablePageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverableRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverableSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.DeliverableSummaryItemVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.service.deliverable.DeliverableService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
@@ -81,6 +84,14 @@ public class DeliverableController {
     public CommonResult<PageResult<DeliverableRespVO>> getDeliverablePage(@Validated DeliverablePageReqVO pageReqVO) {
         PageResult<DeliverableDO> pageResult = deliverableService.getDeliverablePage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, DeliverableRespVO.class));
+    }
+
+    @GetMapping("/project-summary")
+    @Operation(summary = "按项目交付件汇总（6.4：Demo 6 类 + 其他归集，含 ACC 归档事实）")
+    @Parameter(name = "projectId", description = "项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:imp-deliverable:query')")
+    public CommonResult<List<DeliverableSummaryItemVO>> getProjectSummary(@RequestParam("projectId") Long projectId) {
+        return success(deliverableService.getProjectSummary(projectId));
     }
 
     @PutMapping("/archive")

@@ -7,9 +7,14 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.Solu
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionGenerateDraftReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum;
 import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -30,14 +35,23 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 public class SolutionServiceImpl implements SolutionService {
 
+    /** 交付件来源类型：批准实施方案（4.1→6.4 自动归集）。 */
+    public static final String SOURCE_TYPE_SOLUTION = "SOLUTION";
+
     @Resource
     private SolutionMapper solutionMapper;
+    @Resource
+    private DeliverableMapper deliverableMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSolution(SolutionSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         SolutionDO solution = BeanUtils.toBean(createReqVO, SolutionDO.class);
+        solution.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.SOLUTION, solutionMapper,
+                SolutionDO::getProjectId, SolutionDO::getCode));
         solution.setStatus(0);
         solution.setVersion(0);
         solution.setBaselineVersion(null);
@@ -56,7 +70,6 @@ public class SolutionServiceImpl implements SolutionService {
     public void updateSolution(SolutionSaveReqVO updateReqVO) {
         SolutionDO existing = validateSolutionExists(updateReqVO.getId());
         validateStatus(existing, 0);
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         SolutionDO update = BeanUtils.toBean(updateReqVO, SolutionDO.class);
         update.setStatus(existing.getStatus());
@@ -113,10 +126,12 @@ public class SolutionServiceImpl implements SolutionService {
         }
         solution.setStatus(3);
         solution.setApprovalOpinion(reqVO.getApprovalOpinion());
-        solution.setApprovedBy(SecurityFrameworkUtils.getLoginUserId());
+        Long approverId = SecurityFrameworkUtils.getLoginUserId();
+        solution.setApprovedBy(approverId);
         solution.setApprovedTime(LocalDateTime.now());
         solution.setBaselineVersion(solution.getVersion() + 1); // 冻结基线版本
         updateRecord(solution);
+        archiveApprovedSolution(solution, approverId);
     }
 
     @Override
@@ -151,13 +166,13 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long generateDraft(SolutionGenerateDraftReqVO reqVO) {
-        // 1. 校验项目内方案编码唯一
-        validateCodeUnique(reqVO.getProjectId(), reqVO.getSolutionCode(), null);
-        // 2. 生成方案草稿
+        // 生成方案草稿，编码由系统按项目编码自动生成
         SolutionDO solution = new SolutionDO();
         solution.setProjectId(reqVO.getProjectId());
-        solution.setCode(reqVO.getSolutionCode());
-        solution.setName(reqVO.getSolutionName() != null ? reqVO.getSolutionName() : reqVO.getSolutionCode());
+        solution.setCode(recordCodeGenerator.next(reqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.SOLUTION, solutionMapper,
+                SolutionDO::getProjectId, SolutionDO::getCode));
+        solution.setName(reqVO.getSolutionName() != null ? reqVO.getSolutionName() : solution.getCode());
         solution.setSolutionType("IMPLEMENTATION");
         solution.setReviewLevel(0);
         solution.setStatus(0); // 草稿
@@ -168,19 +183,38 @@ public class SolutionServiceImpl implements SolutionService {
 
     // ==================== 内部工具方法 ====================
 
+    /**
+     * 批准方案同步归集交付件（4.1→6.4，ACC-04）：同一方案幂等，不覆盖既有归档记录。
+     * 方案基线一经批准即冻结，归档件直接进入已归集状态；失败随当前事务回滚。
+     */
+    private void archiveApprovedSolution(SolutionDO solution, Long approverId) {
+        if (deliverableMapper.selectByProjectAndSource(solution.getProjectId(), SOURCE_TYPE_SOLUTION, solution.getId()) != null) {
+            return;
+        }
+        DeliverableDO deliverable = new DeliverableDO();
+        deliverable.setProjectId(solution.getProjectId());
+        deliverable.setCode(recordCodeGenerator.next(solution.getProjectId(),
+                EngineeringRecordCodeGenerator.DELIVERABLE, deliverableMapper,
+                DeliverableDO::getProjectId, DeliverableDO::getCode));
+        deliverable.setName(StringUtils.defaultIfBlank(solution.getName(), solution.getCode())
+                + "（基线v" + solution.getBaselineVersion() + "）");
+        deliverable.setDeliverableType("IMPLEMENTATION");
+        deliverable.setSourceType(SOURCE_TYPE_SOLUTION);
+        deliverable.setSourceId(solution.getId());
+        deliverable.setStatus(EngStatusEnum.DELIVERABLE_ARCHIVED);
+        deliverable.setArchivedBy(approverId);
+        deliverable.setArchivedTime(LocalDateTime.now());
+        deliverable.setRemark("实施方案审批通过自动归档");
+        deliverable.setVersion(0);
+        deliverableMapper.insert(deliverable);
+    }
+
     private SolutionDO validateSolutionExists(Long id) {
         SolutionDO solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw exception(SOLUTION_NOT_EXISTS);
         }
         return solution;
-    }
-
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        SolutionDO existing = solutionMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(SOLUTION_CODE_DUPLICATE);
-        }
     }
 
     private void validateVersion(SolutionDO solution, Integer version) {

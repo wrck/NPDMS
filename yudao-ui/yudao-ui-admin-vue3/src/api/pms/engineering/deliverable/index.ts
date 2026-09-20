@@ -4,7 +4,7 @@ export interface DeliverableVO {
   id?: number
   projectId: number
   phaseId?: number
-  code: string
+  code?: string
   name: string
   deliverableType: string
   sourceType?: string
@@ -36,3 +36,19 @@ export const archiveDeliverable = (id: number, archivedBy?: number) =>
   request.put({ url: `${baseUrl}/archive`, params: { id, archivedBy } })
 export const voidDeliverable = (id: number) =>
   request.put({ url: `${baseUrl}/void`, params: { id } })
+
+export interface DeliverableSummaryItemVO {
+  category: string
+  code?: string
+  name?: string
+  sourceLabel?: string
+  status?: number
+  archivedTime?: Date
+  fileUrl?: string
+  sourceType?: string
+  sourceId?: number
+  remark?: string
+}
+
+export const getDeliverableProjectSummary = (projectId: number) =>
+  request.get({ url: `${baseUrl}/project-summary`, params: { projectId } })
