@@ -127,7 +127,6 @@ public class FormTemplateServiceImpl implements FormTemplateService {
         validateStatus(entity, STATUS_DRAFT);
         // 3. 更新状态
         entity.setStatus(STATUS_PUBLISHED);
-        entity.setVersion(entity.getVersion() + 1);
         formTemplateMapper.updateById(entity);
     }
 
@@ -140,7 +139,6 @@ public class FormTemplateServiceImpl implements FormTemplateService {
         validateStatus(entity, STATUS_PUBLISHED);
         // 3. 更新状态
         entity.setStatus(STATUS_DISABLED);
-        entity.setVersion(entity.getVersion() + 1);
         formTemplateMapper.updateById(entity);
     }
 
@@ -153,7 +151,6 @@ public class FormTemplateServiceImpl implements FormTemplateService {
         validateStatus(entity, STATUS_DISABLED);
         // 3. 更新状态
         entity.setStatus(STATUS_PUBLISHED);
-        entity.setVersion(entity.getVersion() + 1);
         formTemplateMapper.updateById(entity);
     }
 

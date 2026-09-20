@@ -141,7 +141,6 @@ public class RiskServiceImpl implements RiskService {
         validateVersion(entity, reqVO.getVersion());
         // 4. 更新状态、处理人、处理意见、处理时间
         entity.setStatus(STATUS_CONFIRMED);
-        entity.setVersion(entity.getVersion() + 1);
         if (reqVO.getHandlerUserId() != null) {
             entity.setHandlerUserId(reqVO.getHandlerUserId());
         }
@@ -167,7 +166,6 @@ public class RiskServiceImpl implements RiskService {
         log.info("[syncCrm][风险编号({}) 同步至 CRM]", entity.getCode());
         // 5. 更新状态、CRM同步标记与时间
         entity.setStatus(STATUS_CRM_SYNCED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setCrmSynced(true);
         entity.setCrmSyncTime(LocalDateTime.now());
         riskMapper.updateById(entity);
@@ -184,7 +182,6 @@ public class RiskServiceImpl implements RiskService {
         validateVersion(entity, reqVO.getVersion());
         // 4. 更新状态、处理人、处理意见、处理时间
         entity.setStatus(STATUS_CLOSED);
-        entity.setVersion(entity.getVersion() + 1);
         if (reqVO.getHandlerUserId() != null) {
             entity.setHandlerUserId(reqVO.getHandlerUserId());
         }

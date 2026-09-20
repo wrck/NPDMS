@@ -160,7 +160,6 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         validateStatus(entity, STATUS_DRAFT, STATUS_REJECTED, STATUS_RECALLED);
         // 3. 更新状态为已提交，记录提交人与提交时间
         entity.setStatus(STATUS_SUBMITTED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setSubmitTime(LocalDateTime.now());
         // 提交人预留扩展点：实际可从 SecurityFrameworkUtils 获取登录用户
         authorizationMapper.updateById(entity);
@@ -196,7 +195,6 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         }
         // 5. 更新状态、审批人、审批时间、审批意见
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         if (reqVO.getApproverUserId() != null) {
             entity.setApproverUserId(reqVO.getApproverUserId());
         }
@@ -216,7 +214,6 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 更新状态为已撤回，记录撤回时间
         entity.setStatus(STATUS_RECALLED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setRecallTime(LocalDateTime.now());
         authorizationMapper.updateById(entity);
     }
@@ -230,7 +227,6 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         validateStatus(entity, STATUS_APPROVED);
         // 3. 更新状态为已终止
         entity.setStatus(STATUS_TERMINATED);
-        entity.setVersion(entity.getVersion() + 1);
         authorizationMapper.updateById(entity);
     }
 

@@ -129,7 +129,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         }
         // 4. 更新状态
         entity.setStatus(STATUS_PUBLISHED);
-        entity.setVersion(entity.getVersion() + 1);
         announcementMapper.updateById(entity);
     }
 
@@ -142,7 +141,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         validateStatus(entity, STATUS_PUBLISHED);
         // 3. 更新状态
         entity.setStatus(STATUS_DISABLED);
-        entity.setVersion(entity.getVersion() + 1);
         announcementMapper.updateById(entity);
     }
 

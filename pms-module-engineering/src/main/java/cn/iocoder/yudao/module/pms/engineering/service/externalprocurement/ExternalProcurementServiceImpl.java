@@ -228,7 +228,6 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     private void updateStatus(ExternalProcurementDO entity, int newStatus,
                               Long approverUserId, String approveOpinion, String approveAction) {
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         // 审批类操作（PASS / REJECT / RETURN / TRANSFER / COUNTERSIGN）记录审批信息
         if (approverUserId != null) {
             entity.setApproverUserId(approverUserId);

@@ -167,7 +167,6 @@ public class FormInstanceServiceImpl implements FormInstanceService {
             entity.setRemark(reqVO.getRemark());
         }
         entity.setStatus(STATUS_FILLED);
-        entity.setVersion(entity.getVersion() + 1);
         formInstanceMapper.updateById(entity);
     }
 
@@ -180,7 +179,6 @@ public class FormInstanceServiceImpl implements FormInstanceService {
         validateStatus(entity, STATUS_PENDING, STATUS_FILLED, STATUS_REJECTED);
         // 3. 更新状态与提交时间
         entity.setStatus(STATUS_SUBMITTED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setSubmitTime(LocalDateTime.now());
         formInstanceMapper.updateById(entity);
     }
@@ -208,7 +206,6 @@ public class FormInstanceServiceImpl implements FormInstanceService {
         }
         // 5. 更新状态、审核人、审核时间、审核意见
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         if (reqVO.getApproverUserId() != null) {
             entity.setApproverUserId(reqVO.getApproverUserId());
         }
