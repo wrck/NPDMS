@@ -29,7 +29,7 @@ it('puts cached panel visibility on native hosts, independent of component root 
   }
   visit(ast)
   expect(invalid).toEqual([])
-  expect(hosts).toHaveLength(16)
+  expect(hosts).toHaveLength(19)
   const children = hosts.flatMap(node => node.children)
   const taskPanel = children.find(node => node.tag === 'ProjectTaskPanel')
   expect(taskPanel.props.find((prop: any) => prop.name === 'on' && prop.arg?.content === 'updated').exp.content).toBe('loadAll')

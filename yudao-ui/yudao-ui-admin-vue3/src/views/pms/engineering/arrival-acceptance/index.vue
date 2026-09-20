@@ -15,7 +15,7 @@
         </el-button>
       </header>
       <el-form :model="query" class="filter-bar" label-position="top">
-        <el-form-item label="项目">
+        <el-form-item v-if="!props.projectId" label="项目">
           <PmsEntitySelect
             v-model="query.projectId"
             :api="ProjectApi.getProjectPage"
@@ -186,6 +186,7 @@
       v-model="formVisible"
       :detail="editingDetail"
       :correction="correctionMode"
+      :locked-project-id="props.projectId"
       @create="createDraft"
       @patch="patchDraft"
       @correct="correctInformation"
@@ -274,6 +275,7 @@ import {
 } from './arrivalAcceptanceInteraction'
 
 defineOptions({ name: 'PmsArrivalAcceptance' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const { width } = useWindowSize()
 const intentStore = createArrivalIntentStore()
@@ -295,7 +297,7 @@ const query = reactive<{
   status?: ArrivalApi.ArrivalStatus
   pageNo: number
   pageSize: number
-}>({ pageNo: 1, pageSize: 20 })
+}>({ projectId: props.projectId, pageNo: 1, pageSize: 20 })
 const detailVisible = ref(false)
 const detail = ref<ArrivalDetail | null>(null)
 const formVisible = ref(false)
@@ -372,7 +374,7 @@ const loadPage = async () => {
   }
 }
 const resetQuery = () => {
-  Object.assign(query, { projectId: undefined, batchCode: undefined, status: undefined, pageNo: 1 })
+  Object.assign(query, { projectId: props.projectId, batchCode: undefined, status: undefined, pageNo: 1 })
   loadPage()
 }
 const loadDetail = async (id: ArrivalApi.WireLong) => {

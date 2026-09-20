@@ -51,8 +51,8 @@
             size="small"
             @click.stop="runAction(act, row)"
           >{{ act.label }}</el-button>
-          <el-button v-if="config.update" type="primary" link size="small" @click.stop="openEdit(row)">编辑</el-button>
-          <el-button v-if="config.delete" type="danger" link size="small" @click.stop="deleteRow(row)">删除</el-button>
+          <el-button v-if="config.update && canEditRow(row)" type="primary" link size="small" @click.stop="openEdit(row)">编辑</el-button>
+          <el-button v-if="config.delete && canDeleteRow(row)" type="danger" link size="small" @click.stop="deleteRow(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -171,6 +171,9 @@ export interface DeliveryModuleConfig {
   create?: (data: any) => Promise<any>
   update?: (data: any) => Promise<any>
   delete?: (id: number) => Promise<any>
+  /** 编辑/删除按钮按行隐藏（镜像后端状态机：如仅草稿可改），缺省全部显示 */
+  canEdit?: (row: any) => boolean
+  canDelete?: (row: any) => boolean
 }
 
 const props = defineProps<{ config: DeliveryModuleConfig; projectId: number }>()
@@ -209,12 +212,23 @@ const statusLabel = (row: any) =>
 const statusTone = (row: any) =>
   props.config.statusMap?.[row?.[statusField.value]]?.tone ?? 'gray'
 
-const enumLabel = (col: DeliveryModuleColumn, value: any) =>
-  (value == null || value === '' ? '-' : col.valueMap?.[value] ?? value)
+// enum 列：逗号分隔多值（如培训类型）逐段翻译，单值行为不变
+const enumLabel = (col: DeliveryModuleColumn, value: any) => {
+  if (value == null || value === '') return '-'
+  const raw = String(value)
+  if (!col.valueMap || !raw.includes(',')) return col.valueMap?.[raw] ?? raw
+  return raw
+    .split(',')
+    .filter(Boolean)
+    .map((v) => col.valueMap?.[v] ?? v)
+    .join('、')
+}
 const stripHtml = (value: any) =>
   (value == null || value === '' ? '-' : String(value).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() || '-')
 
 const visibleActions = (row: any) => (props.config.actions || []).filter((act) => !act.show || act.show(row))
+const canEditRow = (row: any) => !props.config.canEdit || props.config.canEdit(row)
+const canDeleteRow = (row: any) => !props.config.canDelete || props.config.canDelete(row)
 const hasActions = computed(
   () => (props.config.actions || []).length > 0 || !!props.config.update || !!props.config.delete
 )

@@ -251,7 +251,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as PortfolioApi from '@/api/pms/project/portfolio'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { PortfolioMemberVO, PortfolioRuleVO, PortfolioVO } from '@/api/pms/project/portfolio'
 
 defineOptions({ name: 'PmsProjectPortfolio' })

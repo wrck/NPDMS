@@ -121,6 +121,7 @@
 import type { UploadFile } from 'element-plus'
 import { useRoute } from 'vue-router'
 import * as Api from '@/api/pms/acceptance/satisfaction'
+import { formatDate } from '@/utils/formatTime'
 import type {
   GrantFileFact,
   PublicQuestionnaire,
@@ -262,7 +263,6 @@ const submit = async () => {
     submitting.value = false
   }
 }
-const formatDate = (value: string) => new Date(value).toLocaleString()
 onMounted(load)
 </script>
 

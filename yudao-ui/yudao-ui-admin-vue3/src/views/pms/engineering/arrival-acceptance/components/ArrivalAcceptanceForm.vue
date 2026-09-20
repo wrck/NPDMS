@@ -10,7 +10,7 @@
             value-field="id"
             query-field="projectName"
             placeholder="选择本人可编辑项目"
-            :disabled="Boolean(detail)"
+            :disabled="Boolean(detail) || Boolean(lockedProjectId)"
             data-testid="project-id"
           />
         </el-form-item>
@@ -87,8 +87,8 @@ import {
 import ArrivalLineEditor from './ArrivalLineEditor.vue'
 
 const props = withDefaults(
-  defineProps<{ modelValue: boolean; detail: ArrivalDetail | null; correction?: boolean }>(),
-  { correction: false }
+  defineProps<{ modelValue: boolean; detail: ArrivalDetail | null; correction?: boolean; lockedProjectId?: number }>(),
+  { correction: false, lockedProjectId: undefined }
 )
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -159,7 +159,7 @@ watch(
   ([opened, detail]) => {
     if (!opened) return
     Object.assign(form, {
-      projectId: detail?.projectId || '',
+      projectId: detail?.projectId || props.lockedProjectId || '',
       batchCode: detail?.batchCode || '',
       logisticsNo: detail?.logisticsNo || '',
       signerName: detail?.signerName || '',

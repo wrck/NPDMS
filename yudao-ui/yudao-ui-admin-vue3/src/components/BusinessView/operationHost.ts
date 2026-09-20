@@ -191,7 +191,6 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     const target = query()
     return JSON.stringify([editingTargetKey(active.value), target, active.value.resolvedContext.taskExecution, active.value.resolvedContext.stageExecution])
   }, () => {
-    const target = query()
     // BusinessViewHost changes this only after its original dirty/pending-command leave guard succeeds.
     const identity = editingTargetKey(active.value)
     if (identity !== previousTarget) {
