@@ -20,11 +20,6 @@ public class AcceptanceSaveReqVO {
     @NotNull(message = "所属项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "验收编码，项目内唯一", requiredMode = Schema.RequiredMode.REQUIRED, example = "ACC-001")
-    @NotBlank(message = "验收编码不能为空")
-    @Size(max = 64, message = "验收编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "验收名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "XX项目初验")
     @NotBlank(message = "验收名称不能为空")
     @Size(max = 128, message = "验收名称长度不能超过 128 个字符")

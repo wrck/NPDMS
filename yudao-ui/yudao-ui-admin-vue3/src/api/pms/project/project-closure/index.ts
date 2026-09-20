@@ -1,9 +1,10 @@
 import request from '@/config/axios'
+import { queryTree } from '@/api/pms/project/projects'
 
 export interface ProjectClosureVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   applicationDate?: Date
   approverUserId?: number
@@ -29,8 +30,15 @@ export const updateProjectClosure = (data: ProjectClosureVO) =>
 export const deleteProjectClosure = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 // 状态动作: 0草稿 1待审批 2审批中 3已通过 4已驳回 5已归档
-export const submitProjectClosure = (id: number) =>
-  request.put({ url: `${baseUrl}/submit`, params: { id } })
+// 提交要求 If-Match 树版本乐观锁：按闭环记录所属项目实时取当前树版本
+export const submitProjectClosure = async (id: number, projectId: number) => {
+  const tree = await queryTree(projectId, { queryType: 'LOCATE' })
+  return request.put({
+    url: `${baseUrl}/submit`,
+    params: { id },
+    headers: { 'If-Match': String(tree.treeVersion) }
+  })
+}
 export const startApproveProjectClosure = (id: number) =>
   request.put({ url: `${baseUrl}/start-approve`, params: { id } })
 export const passProjectClosure = (id: number) =>

@@ -17,11 +17,6 @@ public class ArchiveDocumentSaveReqVO {
     @NotNull(message = "所属项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "归档文档编码，项目内唯一", requiredMode = Schema.RequiredMode.REQUIRED, example = "ARC-001")
-    @NotBlank(message = "归档文档编码不能为空")
-    @Size(max = 64, message = "归档文档编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "归档文档名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "验收报告归档")
     @NotBlank(message = "归档文档名称不能为空")
     @Size(max = 128, message = "归档文档名称长度不能超过 128 个字符")

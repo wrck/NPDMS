@@ -23,7 +23,7 @@ export interface SiteSurveyVO {
   outsourceRequestId?: number
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   surveyDate?: string
   surveyorUserId?: number

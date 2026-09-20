@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.acceptance.controller.admin.acceptance.vo.Acc
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AcceptanceDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.deliverablechecklist.DeliverableChecklistDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AcceptanceMapper;
+import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.DeliverableChecklistMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -72,14 +73,17 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     @Resource
     private AcceptanceMapper acceptanceMapper;
     @Resource
+    private AcceptanceRecordCodeGenerator recordCodeGenerator;
+    @Resource
     private DeliverableChecklistMapper deliverableChecklistMapper;
 
     @Override
     public Long createAcceptance(AcceptanceSaveReqVO createReqVO) {
-        // 校验项目内编码唯一
-        validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 插入
+        // 插入；编码由系统按项目编码自动生成
         AcceptanceDO entity = BeanUtils.toBean(createReqVO, AcceptanceDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                AcceptanceRecordCodeGenerator.ACCEPTANCE, acceptanceMapper,
+                AcceptanceDO::getProjectId, AcceptanceDO::getCode));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -93,9 +97,7 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     @Override
     public void updateAcceptance(AcceptanceSaveReqVO updateReqVO) {
         AcceptanceDO existing = validateExists(updateReqVO.getId());
-        // 校验项目内编码唯一
-        validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
-        // 仅草稿态允许修改核心字段
+        // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
         }
@@ -224,17 +226,5 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         return entity;
     }
 
-    private void validateCodeUnique(Long id, Long projectId, String code) {
-        if (projectId == null || code == null) {
-            return;
-        }
-        AcceptanceDO existing = acceptanceMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !id.equals(existing.getId())) {
-            throw exception(ACC_ACCEPTANCE_CODE_DUPLICATE, code);
-        }
-    }
 
 }

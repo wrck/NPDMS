@@ -44,7 +44,4 @@ public interface SiteSurveyEntityMapper extends BaseMapperX<SiteSurveyEntityDO> 
                 .orderByDesc(SiteSurveyEntityDO::getId));
     }
 
-    default SiteSurveyEntityDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(SiteSurveyEntityDO::getProjectId, projectId, SiteSurveyEntityDO::getCode, code);
-    }
 }

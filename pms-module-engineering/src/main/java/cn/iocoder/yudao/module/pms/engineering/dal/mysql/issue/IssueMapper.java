@@ -25,10 +25,6 @@ public interface IssueMapper extends BaseMapperX<IssueDO> {
                 .orderByDesc(IssueDO::getId));
     }
 
-    default IssueDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(IssueDO::getProjectId, projectId, IssueDO::getCode, code);
-    }
-
     default Long selectOpenCountByProjectId(Long projectId) {
         return selectCount(new LambdaQueryWrapperX<IssueDO>()
                 .eq(IssueDO::getProjectId, projectId)

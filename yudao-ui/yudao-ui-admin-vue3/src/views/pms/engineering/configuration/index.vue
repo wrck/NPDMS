@@ -1,7 +1,7 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目编号" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目编号" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
@@ -11,9 +11,6 @@
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="配置编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-160px">
@@ -37,7 +34,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="配置编码" min-width="140" />
       <el-table-column prop="equipmentId" label="设备" min-width="160"><template #default="{ row }"><EquipmentTag :equipment-id="row.equipmentId" /></template></el-table-column>
       <el-table-column prop="debugTime" label="调试时间" width="160" :formatter="dateFormatter" />
       <el-table-column prop="debugResult" label="调试结果" min-width="180" show-overflow-tooltip><template #default="{ row }"><div v-dompurify-html="row.debugResult" class="max-h-60px overflow-hidden"></div></template></el-table-column>
@@ -92,7 +88,7 @@
   <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看配置' : '编辑配置') : '新增配置'" width="min(780px, 95vw)">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col v-if="!props.projectId" :span="12">
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
@@ -101,13 +97,8 @@
               value-field="id"
               query-field="projectName"
               placeholder="请选择项目"
-              :disabled="!!form.id"
+              :disabled="!!form.id || !!props.projectId"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="配置编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -165,16 +156,17 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngConfiguration' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<ConfigurationVO[]>([])
 const total = ref(0)
-const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', status: undefined })
+const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
 type ConfigurationForm = Omit<ConfigurationVO, 'debugTime'> & { debugTime?: string | number | null }
-const form = ref<ConfigurationForm>({ projectId: 0, code: '', status: 0 })
+const form = ref<ConfigurationForm>({ projectId: 0, status: 0 })
 const editableRecord = (row: Pick<ConfigurationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
 const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-configuration:create']))
 const rules = {
@@ -182,7 +174,6 @@ const rules = {
     { required: true, message: '请选择项目' },
     { validator: (_rule: unknown, value: number | string, callback: (error?: Error) => void) => callback(Number(value) > 0 ? undefined : new Error('请选择项目')) }
   ],
-  code: [{ required: true, message: '请输入配置编码' }],
   equipmentId: [{ required: true, message: '请选择关联设备' }]
 }
 
@@ -199,8 +190,7 @@ const load = async () => {
 const openForm = (row?: ConfigurationVO) => {
   form.value = {
       id: undefined,
-      projectId: 0,
-      code: '',
+      projectId: props.projectId ?? 0,
       equipmentId: undefined,
       debugResult: '',
       debuggerUserId: undefined,
@@ -237,7 +227,7 @@ const remove = async (row: ConfigurationVO) => {
 }
 const handleAction = async (row: ConfigurationVO, action: 'start' | 'complete' | 'markAbnormal') => {
   const actionText = { start: '开始调试', complete: '完成调试', markAbnormal: '标记异常' }[action]
-  await message.confirm(`确认${actionText}配置记录【${row.code}】？`)
+  await message.confirm(`确认${actionText}该配置记录？`)
   if (action === 'start') await ConfigurationApi.startConfiguration(row.id!)
   if (action === 'complete') await ConfigurationApi.completeConfiguration(row.id!)
   if (action === 'markAbnormal') await ConfigurationApi.markAbnormalConfiguration(row.id!)

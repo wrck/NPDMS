@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="文档编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="文档名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -48,7 +45,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="文档编号" min-width="140" />
       <el-table-column prop="name" label="文档名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="documentType" label="文档类型" width="100">
         <template #default="{ row }">
@@ -113,11 +109,6 @@
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="文档编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -188,17 +179,15 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: undefined as number | undefined,
-  code: '',
   name: '',
   documentType: undefined,
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<ArchiveDocumentVO>({ projectId: undefined!, code: '', name: '' })
+const form = reactive<ArchiveDocumentVO>({ projectId: undefined!, name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入文档编号' }],
   name: [{ required: true, message: '请输入文档名称' }],
   documentType: [{ required: true, message: '请选择文档类型' }]
 }
@@ -219,7 +208,6 @@ const openForm = (row?: ArchiveDocumentVO) => {
     {
       id: undefined,
       projectId: undefined,
-      code: '',
       name: '',
       documentType: 'SCHEME',
       version: '',
@@ -258,7 +246,7 @@ const handleAction = async (
   action: 'submitArchiveDocument' | 'archiveArchiveDocument',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}归档文档【${row.code}】？`)
+  await message.confirm(`确认${actionText}归档文档【${row.name}】？`)
   await (ArchiveDocumentApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()

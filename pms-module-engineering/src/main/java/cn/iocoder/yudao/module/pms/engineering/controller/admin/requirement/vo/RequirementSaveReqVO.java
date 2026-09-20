@@ -19,10 +19,6 @@ public class RequirementSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "需求编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "REQ-2026-001")
-    @NotBlank(message = "需求编码不能为空")
-    private String code;
-
     @Schema(description = "需求名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心网扩容需求")
     @NotBlank(message = "需求名称不能为空")
     private String name;

@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface ArchiveDocumentVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   documentType?: string
   version?: string

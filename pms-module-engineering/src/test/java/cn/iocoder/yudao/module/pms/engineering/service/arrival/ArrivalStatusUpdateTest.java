@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalEditableDeleteQuery;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.ArrivalSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -15,11 +16,14 @@ import static org.mockito.Mockito.*;
 
 class ArrivalStatusUpdateTest {
     private final ArrivalMapper mapper = mock(ArrivalMapper.class);
+    private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final ArrivalServiceImpl service = new ArrivalServiceImpl();
     private ArrivalDO row;
 
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "arrivalMapper", mapper);
+        doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6);
         when(mapper.selectById(1L)).thenReturn(row);
     }
@@ -70,7 +74,7 @@ class ArrivalStatusUpdateTest {
     }
 
     @Test void createAlwaysStartsPendingWithoutImportingAStatusOrLockVersion() {
-        ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setProjectId(7L); request.setCode("ARR-NEW"); request.setStatus(1); request.setVersion(80);
+        ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setProjectId(7L); request.setStatus(1); request.setVersion(80);
         when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> {
             ArrivalDO inserted = call.getArgument(0);
             assertEquals(0, inserted.getStatus()); assertEquals(0, inserted.getVersion());

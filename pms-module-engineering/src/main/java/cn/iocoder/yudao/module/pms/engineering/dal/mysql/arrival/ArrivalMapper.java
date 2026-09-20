@@ -31,7 +31,4 @@ public interface ArrivalMapper extends BaseMapperX<ArrivalDO> {
                 .orderByDesc(ArrivalDO::getId));
     }
 
-    default ArrivalDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(ArrivalDO::getProjectId, projectId, ArrivalDO::getCode, code);
-    }
 }

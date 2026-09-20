@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="需求编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="需求名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -48,7 +45,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="需求编码" min-width="140" />
       <el-table-column prop="name" label="需求名称" min-width="180" />
       <el-table-column prop="requirementType" label="类型" width="110">
         <template #default="{ row }">
@@ -117,11 +113,6 @@
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="需求编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -218,7 +209,6 @@ const formRef = ref()
 const form = reactive<RequirementVO>({ projectId: 0, code: '', name: '', requirementType: 'BUSINESS' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入需求编码' }],
   name: [{ required: true, message: '请输入需求名称' }],
   requirementType: [{ required: true, message: '请选择需求类型' }]
 }
@@ -280,7 +270,7 @@ const remove = async (row: RequirementVO) => {
 }
 const handleAction = async (row: RequirementVO, action: 'submit' | 'markEffective' | 'archive') => {
   const actionText = { submit: '提交', markEffective: '标记生效', archive: '归档' }[action]
-  await message.confirm(`确认${actionText}需求【${row.code}】？`)
+  await message.confirm(`确认${actionText}需求【${row.name}】？`)
   if (action === 'submit') await RequirementApi.submitRequirement(row.id!)
   if (action === 'markEffective') await RequirementApi.markEffectiveRequirement(row.id!)
   if (action === 'archive') await RequirementApi.archiveRequirement(row.id!)

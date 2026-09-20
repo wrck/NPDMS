@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.InstallationMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,12 +39,16 @@ public class InstallationServiceImpl implements InstallationService {
     private EngineeringLocationFactService locationFactService;
     @Resource
     private AssetLocationApi assetLocationApi;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createInstallation(InstallationSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         InstallationDO installation = BeanUtils.toBean(createReqVO, InstallationDO.class);
+        installation.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.INSTALLATION, installationMapper,
+                InstallationDO::getProjectId, InstallationDO::getCode));
         installation.setStatus(0); // 状态只能通过动作接口流转
         if (installation.getVersion() == null) {
             installation.setVersion(0);
@@ -58,7 +63,6 @@ public class InstallationServiceImpl implements InstallationService {
     @Transactional(rollbackFor = Exception.class)
     public void updateInstallation(InstallationSaveReqVO updateReqVO) {
         InstallationDO existing = validateInstallationExists(updateReqVO.getId());
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         if (Objects.equals(existing.getStatus(), 2)) {
             throw exception(INSTALLATION_STATUS_INVALID);
@@ -143,13 +147,6 @@ public class InstallationServiceImpl implements InstallationService {
             throw exception(INSTALLATION_NOT_EXISTS);
         }
         return installation;
-    }
-
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        InstallationDO existing = installationMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(INSTALLATION_CODE_DUPLICATE);
-        }
     }
 
     private void validateVersion(InstallationDO installation, Integer version) {

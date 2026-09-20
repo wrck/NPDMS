@@ -4,7 +4,7 @@ import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 export interface InstallationVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   equipmentId?: number | string
   installLocation?: string
   locationMaintenance?: LocationMaintainRequest

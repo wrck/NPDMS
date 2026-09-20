@@ -19,9 +19,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="验收编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="验收名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -55,7 +52,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="验收编号" min-width="140" />
       <el-table-column prop="name" label="验收名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="acceptanceType" label="验收类型" width="100">
         <template #default="{ row }">
@@ -145,11 +141,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="验收编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="验收名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -216,17 +207,15 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: undefined as number | undefined,
-  code: '',
   name: '',
   acceptanceType: undefined,
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<AcceptanceVO>({ projectId: undefined!, code: '', name: '' })
+const form = reactive<AcceptanceVO>({ projectId: undefined!, name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入验收编号' }],
   name: [{ required: true, message: '请输入验收名称' }],
   acceptanceType: [{ required: true, message: '请选择验收类型' }]
 }
@@ -247,7 +236,6 @@ const openForm = (row?: AcceptanceVO) => {
     {
       id: undefined,
       projectId: undefined,
-      code: '',
       name: '',
       acceptanceType: 'PRELIMINARY',
       signedDate: '',
@@ -290,7 +278,7 @@ const handleAction = async (
     | 'archiveAcceptance',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}验收【${row.code}】？`)
+  await message.confirm(`确认${actionText}验收【${row.name}】？`)
   await (AcceptanceApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()

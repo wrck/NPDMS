@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface ResourceReadyVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   resourceType?: string
   equipmentId?: number

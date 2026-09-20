@@ -17,11 +17,6 @@ public class DeliverableChecklistSaveReqVO {
     @NotNull(message = "所属项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "交付件编码，项目内唯一", requiredMode = Schema.RequiredMode.REQUIRED, example = "DLV-001")
-    @NotBlank(message = "交付件编码不能为空")
-    @Size(max = 64, message = "交付件编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "交付件名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "验收报告")
     @NotBlank(message = "交付件名称不能为空")
     @Size(max = 128, message = "交付件名称长度不能超过 128 个字符")

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.entit
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.entity.vo.SiteSurveyEntitySaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand;
 import jakarta.annotation.Resource;
@@ -31,6 +32,8 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Resource
     private SiteSurveyEntityMapper siteSurveyEntityMapper;
     @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
+    @Resource
     private SiteSurveyEntityProvider entityProvider;
     @Resource
     private cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopes;
@@ -49,8 +52,10 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
     @Transactional(rollbackFor = Exception.class)
     public Long createSiteSurveyEntity(SiteSurveyEntitySaveReqVO createReqVO) {
         writeAccess.lock(createReqVO.getProjectId(), "pms:sol-site-survey:create", createReqVO.getExecution(), "SOL.SITE_SURVEY.CREATE", null);
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         SiteSurveyEntityDO survey = BeanUtils.toBean(createReqVO, SiteSurveyEntityDO.class);
+        survey.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.SITE_SURVEY, siteSurveyEntityMapper,
+                SiteSurveyEntityDO::getProjectId, SiteSurveyEntityDO::getCode));
         survey.setId(null);
         survey.setTenantId(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId());
         survey.setStatus(0);
@@ -71,9 +76,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
         SiteSurveyEntityDO existing = validateSiteSurveyEntityExists(updateReqVO.getId());
         writeAccess.lock(existing.getProjectId(), "pms:sol-site-survey:update", updateReqVO.getExecution(), "SOL.SITE_SURVEY.UPDATE", existing.getId());
         validateStatus(existing, 0);
-        if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
-                || !Objects.equals(existing.getCode(), updateReqVO.getCode())) throw exception(SITE_SURVEY_FORM_INVALID);
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
+        if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) throw exception(SITE_SURVEY_FORM_INVALID);
         validateVersion(existing, updateReqVO.getVersion());
         SiteSurveyEntityDO update = BeanUtils.toBean(updateReqVO, SiteSurveyEntityDO.class);
         update.setStatus(existing.getStatus());
@@ -162,13 +165,6 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
             throw exception(SITE_SURVEY_NOT_EXISTS);
         }
         return survey;
-    }
-
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        SiteSurveyEntityDO existing = siteSurveyEntityMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(SITE_SURVEY_CODE_DUPLICATE);
-        }
     }
 
     private void validateVersion(SiteSurveyEntityDO survey, Integer version) {

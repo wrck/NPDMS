@@ -12,12 +12,6 @@ import java.util.List;
 @Mapper
 public interface DeliverableChecklistMapper extends BaseMapperX<DeliverableChecklistDO> {
 
-    default DeliverableChecklistDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(new LambdaQueryWrapperX<DeliverableChecklistDO>()
-                .eq(DeliverableChecklistDO::getProjectId, projectId)
-                .eq(DeliverableChecklistDO::getCode, code));
-    }
-
     default PageResult<DeliverableChecklistDO> selectPage(DeliverableChecklistPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DeliverableChecklistDO>()
                 .eqIfPresent(DeliverableChecklistDO::getProjectId, reqVO.getProjectId())

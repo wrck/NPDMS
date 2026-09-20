@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface DeliverableChecklistVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   deliverableType?: string
   version?: string

@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface RequirementVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   requirementType: string
   background?: string

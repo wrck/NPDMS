@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface ArrivalVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   arrivalTime?: number
   receiverUserId?: number
   equipmentId?: number

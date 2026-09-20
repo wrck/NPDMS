@@ -11,12 +11,6 @@ import org.apache.ibatis.annotations.Mapper;
 @Deprecated(since = "F-ACC-001", forRemoval = false)
 public interface AcceptanceMapper extends BaseMapperX<AcceptanceDO> {
 
-    default AcceptanceDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(new LambdaQueryWrapperX<AcceptanceDO>()
-                .eq(AcceptanceDO::getProjectId, projectId)
-                .eq(AcceptanceDO::getCode, code));
-    }
-
     default PageResult<AcceptanceDO> selectPage(AcceptancePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<AcceptanceDO>()
                 .eqIfPresent(AcceptanceDO::getProjectId, reqVO.getProjectId())

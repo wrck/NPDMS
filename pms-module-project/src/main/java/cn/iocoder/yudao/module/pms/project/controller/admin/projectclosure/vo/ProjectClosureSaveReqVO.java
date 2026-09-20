@@ -17,11 +17,6 @@ public class ProjectClosureSaveReqVO {
     @NotNull(message = "所属项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "闭环编码，项目内唯一", requiredMode = Schema.RequiredMode.REQUIRED, example = "CL-001")
-    @NotBlank(message = "闭环编码不能为空")
-    @Size(max = 64, message = "闭环编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "闭环名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "XX项目闭环")
     @NotBlank(message = "闭环名称不能为空")
     @Size(max = 128, message = "闭环名称长度不能超过 128 个字符")

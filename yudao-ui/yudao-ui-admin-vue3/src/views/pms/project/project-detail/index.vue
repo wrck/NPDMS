@@ -372,8 +372,8 @@
                   size="small"
                   @click.stop="runModuleAction(act, row)"
                 >{{ act.label }}</el-button>
-                <el-button v-if="currentModule?.update" type="primary" link size="small" @click.stop="openEdit(row)">编辑</el-button>
-                <el-button v-if="currentModule?.delete" type="danger" link size="small" @click.stop="deleteRow(row)">删除</el-button>
+                <el-button v-if="currentModule?.update && canEditRow(row)" type="primary" link size="small" @click.stop="openEdit(row)">编辑</el-button>
+                <el-button v-if="currentModule?.delete && canDeleteRow(row)" type="danger" link size="small" @click.stop="deleteRow(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -545,11 +545,10 @@
     <el-drawer
       v-model="detailVisible"
       size="50%"
-      :title="`${currentModule?.label || ''}详情${detailRow?.code ? ' · ' + detailRow.code : ''}`"
+      :title="`${currentModule?.label || ''}详情`"
     >
       <el-descriptions v-if="detailRow" :column="2" border size="small">
         <el-descriptions-item label="ID">{{ detailRow.id ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="编码">{{ detailRow.code ?? '-' }}</el-descriptions-item>
         <el-descriptions-item label="名称" :span="2">{{ detailRow.name ?? '-' }}</el-descriptions-item>
         <template v-for="col in currentModule?.columns" :key="col.prop">
           <el-descriptions-item
@@ -890,6 +889,9 @@ interface ModuleConfig {
   update?: (data: any) => Promise<any>
   delete?: (id: number) => Promise<any>
   get?: (id: number) => Promise<any>
+  /** 编辑/删除按钮按行隐藏（镜像后端状态机：如仅草稿可改），缺省全部显示 */
+  canEdit?: (row: any) => boolean
+  canDelete?: (row: any) => boolean
 }
 
 // ============ 通用状态映射 ============
@@ -1054,7 +1056,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     load: (pid, pageNo, pageSize) => SiteSurveyApi.getSiteSurveyPage({ projectId: pid, pageNo, pageSize }),
     get: (id) => SiteSurveyApi.getSiteSurvey(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '工勘名称', minWidth: 180 },
       { prop: 'location', label: '位置', width: 120 },
       { prop: 'surveyDate', label: '工勘日期', width: 120, type: 'time' },
@@ -1091,7 +1092,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => RequirementApi.deleteRequirement(id),
     get: (id) => RequirementApi.getRequirement(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '需求名称', minWidth: 180 },
       { prop: 'requirementType', label: '类型', width: 100 },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
@@ -1111,16 +1111,15 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => BriefingApi.deleteBriefing(id),
     get: (id) => BriefingApi.getBriefing(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '交底名称', minWidth: 180 },
       { prop: 'briefingType', label: '类型', width: 100 },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
-    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待审批', tone: 'yellow' }, 2: { label: '已发布', tone: 'blue' }, 3: { label: '已终止', tone: 'red' } },
+    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '已生成', tone: 'yellow' }, 2: { label: '已审核', tone: 'blue' }, 3: { label: '已发布', tone: 'green' }, 4: { label: '已作废', tone: 'red' } },
     actions: [
-      { label: '生成', type: 'primary', show: (r) => r.status === 0, run: (r) => BriefingApi.generateBriefing(r.id), confirm: '生成该交底书？' },
-      { label: '审批', type: 'success', show: (r) => r.status === 1, run: (r) => BriefingApi.approveBriefing({ id: r.id, approveAction: 'approve' }), needOpinion: true },
-      { label: '发布', type: 'success', show: (r) => r.status === 1, run: (r) => BriefingApi.publishBriefing(r.id), confirm: '发布该交底书？' }
+      { label: '生成', type: 'primary', show: (r) => r.status === 0, run: (r) => BriefingApi.generateBriefing({ id: r.id, version: r.version }), confirm: '生成该交底书？' },
+      { label: '审批', type: 'success', show: (r) => r.status === 1, run: (r, opinion) => BriefingApi.approveBriefing({ id: r.id, approveAction: 'PASS', approveOpinion: opinion, version: r.version }), needOpinion: true },
+      { label: '发布', type: 'success', show: (r) => r.status === 2, run: (r) => BriefingApi.publishBriefing(r.id), confirm: '发布该交底书？' }
     ]
   },
   // --- 工程实施：并行事项 ---
@@ -1183,7 +1182,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待审批', tone: 'yellow' }, 2: { label: '已批准', tone: 'blue' }, 3: { label: '已召回', tone: 'red' }, 4: { label: '已终止', tone: 'gray' } },
     actions: [
       { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => AuthorizationApi.submitAuthorization(r.id), confirm: '提交该授权申请？' },
-      { label: '审批', type: 'success', show: (r) => r.status === 1, run: (r) => AuthorizationApi.approveAuthorization({ id: r.id, approveAction: 'approve' }), needOpinion: true },
+      { label: '审批', type: 'success', show: (r) => r.status === 1, run: (r, opinion) => AuthorizationApi.approveAuthorization({ id: r.id, approveAction: 'PASS', approveOpinion: opinion, version: r.version }), needOpinion: true },
       { label: '召回', type: 'warning', show: (r) => r.status === 2, run: (r) => AuthorizationApi.recallAuthorization(r.id), confirm: '召回该授权？' }
     ]
   },
@@ -1196,7 +1195,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => SolutionApi.deleteSolution(id),
     get: (id) => SolutionApi.getSolution(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '方案名称', minWidth: 180 },
       { prop: 'solutionType', label: '类型', width: 100 },
       { prop: 'reviewLevel', label: '评审级别', width: 100 },
@@ -1218,7 +1216,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => ResourceApi.deleteResourceReady(id),
     get: (id) => ResourceApi.getResourceReady(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '资源名称', minWidth: 180 },
       { prop: 'resourceType', label: '类型', width: 100 },
       { prop: 'quantity', label: '数量', width: 80 },
@@ -1266,7 +1263,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => ArrivalApi.deleteArrival(id),
     get: (id) => ArrivalApi.getArrival(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'arrivalTime', label: '到货时间', width: 130, type: 'time' },
       { prop: 'quantity', label: '数量', width: 80 },
       { prop: 'inspectionResult', label: '检验结果', width: 100 },
@@ -1286,7 +1282,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => InstallationApi.deleteInstallation(id),
     get: (id) => InstallationApi.getInstallation(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'installLocation', label: '安装位置', minWidth: 140 },
       { prop: 'installTime', label: '安装时间', width: 130, type: 'time' },
       { prop: 'result', label: '结果', width: 100 },
@@ -1307,7 +1302,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => ConfigurationApi.deleteConfiguration(id),
     get: (id) => ConfigurationApi.getConfiguration(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'debugResult', label: '调试结果', minWidth: 140 },
       { prop: 'debugTime', label: '调试时间', width: 130, type: 'time' },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
@@ -1327,7 +1321,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => JointTestApi.deleteJointTest(id),
     get: (id) => JointTestApi.getJointTest(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'testCase', label: '测试用例', minWidth: 180 },
       { prop: 'testTime', label: '测试时间', width: 130, type: 'time' },
       { prop: 'result', label: '结果', width: 100 },
@@ -1349,7 +1342,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => IssueApi.deleteIssue(id),
     get: (id) => IssueApi.getIssue(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '问题名称', minWidth: 180 },
       { prop: 'severity', label: '严重度', width: 80 },
       { prop: 'deadline', label: '截止时间', width: 130, type: 'time' },
@@ -1370,7 +1362,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => DeliverableApi.deleteDeliverable(id),
     get: (id) => DeliverableApi.getDeliverable(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '交付件名称', minWidth: 180 },
       { prop: 'deliverableType', label: '类型', width: 100 },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
@@ -1390,7 +1381,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => CompletionCertApi.deleteCompletionCertificate(id),
     get: (id) => CompletionCertApi.getCompletionCertificate(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '证明名称', minWidth: 180 },
       { prop: 'certificateNo', label: '证书编号', width: 140 },
       { prop: 'signedDate', label: '签署日期', width: 120, type: 'time' },
@@ -1431,8 +1421,10 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     update: (data) => AcceptanceApi.updateAcceptance(data),
     delete: (id) => AcceptanceApi.deleteAcceptance(id),
     get: (id) => AcceptanceApi.getAcceptance(id),
+    // 后端口径：仅草稿可改；草稿/已驳回可删
+    canEdit: (r) => r.status === 0,
+    canDelete: (r) => r.status === 0 || r.status === 4,
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '验收名称', minWidth: 180 },
       { prop: 'acceptanceType', label: '类型', width: 100 },
       { prop: 'signedDate', label: '签署日期', width: 120, type: 'time' },
@@ -1441,6 +1433,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待提交', tone: 'yellow' }, 2: { label: '审批中', tone: 'blue' }, 3: { label: '已通过', tone: 'green' }, 4: { label: '已驳回', tone: 'red' }, 5: { label: '已归档', tone: 'gray' } },
     actions: [
       { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => AcceptanceApi.submitAcceptance(r.id), confirm: '提交该验收？' },
+      { label: '开始审批', type: 'success', show: (r) => r.status === 1, run: (r) => AcceptanceApi.approveAcceptance(r.id), confirm: '开始审批该验收？' },
       { label: '通过', type: 'success', show: (r) => r.status === 2, run: (r) => AcceptanceApi.passAcceptance(r.id), confirm: '通过该验收？' },
       { label: '驳回', type: 'danger', show: (r) => r.status === 2, run: (r) => AcceptanceApi.rejectAcceptance(r.id), confirm: '驳回该验收？' }
     ]
@@ -1453,7 +1446,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => DeliverableCheckApi.deleteDeliverableChecklist(id),
     get: (id) => DeliverableCheckApi.getDeliverableChecklist(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '交付件名称', minWidth: 180 },
       { prop: 'deliverableType', label: '类型', width: 100 },
       { prop: 'signedFlag', label: '已签署', width: 80 },
@@ -1474,8 +1466,10 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     update: (data) => ProjectClosureApi.updateProjectClosure(data),
     delete: (id) => ProjectClosureApi.deleteProjectClosure(id),
     get: (id) => ProjectClosureApi.getProjectClosure(id),
+    // 后端口径：仅草稿可改；草稿/已驳回可删
+    canEdit: (r) => r.status === 0,
+    canDelete: (r) => r.status === 0 || r.status === 4,
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '闭环名称', minWidth: 180 },
       { prop: 'applicationDate', label: '申请日期', width: 120, type: 'time' },
       { prop: 'carryoverIssues', label: '遗留问题', minWidth: 160 },
@@ -1483,8 +1477,10 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ],
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待审批', tone: 'yellow' }, 2: { label: '审批中', tone: 'blue' }, 3: { label: '已通过', tone: 'green' }, 4: { label: '已驳回', tone: 'red' }, 5: { label: '已归档', tone: 'gray' } },
     actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id), confirm: '提交该闭环申请？' },
+      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id, r.projectId), confirm: '提交该闭环申请？' },
+      { label: '开始审批', type: 'success', show: (r) => r.status === 1, run: (r) => ProjectClosureApi.startApproveProjectClosure(r.id), confirm: '开始审批该闭环申请？' },
       { label: '通过', type: 'success', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.passProjectClosure(r.id), confirm: '通过该闭环申请？' },
+      { label: '驳回', type: 'danger', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.rejectProjectClosure(r.id), confirm: '驳回该闭环申请？' },
       { label: '归档', type: 'info', show: (r) => r.status === 3, run: (r) => ProjectClosureApi.archiveProjectClosure(r.id), confirm: '归档该闭环记录？' }
     ]
   },
@@ -1496,7 +1492,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     delete: (id) => ArchiveDocApi.deleteArchiveDocument(id),
     get: (id) => ArchiveDocApi.getArchiveDocument(id),
     columns: [
-      { prop: 'code', label: '编码', width: 130 },
       { prop: 'name', label: '文档名称', minWidth: 180 },
       { prop: 'documentType', label: '类型', width: 100 },
       { prop: 'version', label: '版本', width: 80 },
@@ -1886,6 +1881,9 @@ const loadModuleData = async () => {
 const getVisibleActions = (row: any) => {
   return (currentModule.value?.actions || []).filter((a) => a.show(row))
 }
+// 编辑/删除按钮按行隐藏（镜像后端状态机，口径同 DeliveryModuleTable.canEdit/canDelete）
+const canEditRow = (row: any) => !currentModule.value?.canEdit || currentModule.value.canEdit(row)
+const canDeleteRow = (row: any) => !currentModule.value?.canDelete || currentModule.value.canDelete(row)
 const runModuleAction = async (act: ModuleAction, row: any) => {
   try {
     let opinion: string | undefined

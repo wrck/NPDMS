@@ -53,7 +53,7 @@ class JointTestLocalLifecycleTest {
 
     @Test void editingPreservesTheWorkflowStateAndRejectsAStaleVersion() {
         JointTestSaveReqVO request = new JointTestSaveReqVO();
-        request.setId(1L); request.setCode("JT-TEST"); request.setStatus(2); request.setVersion(3);
+        request.setId(1L); request.setStatus(2); request.setVersion(3);
         assertEquals(JOINT_TEST_VERSION_NOT_MATCH.getCode(), assertThrows(ServiceException.class, () -> service.updateJointTest(request)).getCode());
         request.setVersion(4);
         when(mapper.updateById(any(JointTestDO.class))).thenAnswer(call -> {

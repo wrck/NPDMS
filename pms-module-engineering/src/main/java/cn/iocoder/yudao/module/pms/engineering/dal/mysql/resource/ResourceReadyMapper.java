@@ -21,9 +21,6 @@ public interface ResourceReadyMapper extends BaseMapperX<ResourceReadyDO> {
                 .orderByDesc(ResourceReadyDO::getId));
     }
 
-    default ResourceReadyDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(ResourceReadyDO::getProjectId, projectId, ResourceReadyDO::getCode, code);
-    }
 
     /**
      * 统计项目下未就绪（ready_status != 1）的资源数量，用于实施动作门禁校验。

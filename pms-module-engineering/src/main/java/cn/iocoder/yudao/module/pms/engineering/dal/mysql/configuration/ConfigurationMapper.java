@@ -23,7 +23,4 @@ public interface ConfigurationMapper extends BaseMapperX<ConfigurationDO> {
                 .orderByDesc(ConfigurationDO::getId));
     }
 
-    default ConfigurationDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(ConfigurationDO::getProjectId, projectId, ConfigurationDO::getCode, code);
-    }
 }

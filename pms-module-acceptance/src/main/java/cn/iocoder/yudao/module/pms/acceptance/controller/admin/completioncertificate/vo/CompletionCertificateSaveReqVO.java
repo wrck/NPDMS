@@ -19,11 +19,6 @@ public class CompletionCertificateSaveReqVO {
     @NotNull(message = "所属项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "完工证明编码，项目内唯一", requiredMode = Schema.RequiredMode.REQUIRED, example = "CC-001")
-    @NotBlank(message = "完工证明编码不能为空")
-    @Size(max = 64, message = "完工证明编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "完工证明名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "XX项目完工证明")
     @NotBlank(message = "完工证明名称不能为空")
     @Size(max = 128, message = "完工证明名称长度不能超过 128 个字符")

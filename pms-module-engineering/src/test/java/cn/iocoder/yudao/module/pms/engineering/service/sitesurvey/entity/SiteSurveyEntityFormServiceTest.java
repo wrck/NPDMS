@@ -100,7 +100,7 @@ class SiteSurveyEntityFormServiceTest {
         var row = saved(); row.setCode("S"); row.setStatus(0); row.setRequiredEndDate(java.time.LocalDate.of(2026, 9, 20));
         when(mapper.selectById(5L)).thenReturn(row);
         var request = new SiteSurveyEntitySaveReqVO(); request.setId(5L); request.setProjectId(7L);
-        request.setCode("S"); request.setVersion(1); request.setLocation("机房"); request.setProjectEndDateVersion(6);
+        request.setVersion(1); request.setLocation("机房"); request.setProjectEndDateVersion(6);
         request.setBusinessValues(Map.of("requiredEndDate", "2026-09-21"));
         doThrow(new IllegalStateException("project conflict")).when(deadlines).updateFromSurvey(any());
         assertEquals("project conflict", assertThrows(IllegalStateException.class, () -> owner.updateSiteSurveyEntity(request)).getMessage());

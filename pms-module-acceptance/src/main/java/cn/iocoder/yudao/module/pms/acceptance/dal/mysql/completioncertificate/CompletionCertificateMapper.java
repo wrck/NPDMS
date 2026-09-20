@@ -10,12 +10,6 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface CompletionCertificateMapper extends BaseMapperX<CompletionCertificateDO> {
 
-    default CompletionCertificateDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(new LambdaQueryWrapperX<CompletionCertificateDO>()
-                .eq(CompletionCertificateDO::getProjectId, projectId)
-                .eq(CompletionCertificateDO::getCode, code));
-    }
-
     default PageResult<CompletionCertificateDO> selectPage(CompletionCertificatePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<CompletionCertificateDO>()
                 .eqIfPresent(CompletionCertificateDO::getProjectId, reqVO.getProjectId())

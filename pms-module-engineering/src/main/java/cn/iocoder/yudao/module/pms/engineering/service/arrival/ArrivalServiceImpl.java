@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.Arriv
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.ArrivalSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalEditableDeleteQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -28,12 +29,16 @@ public class ArrivalServiceImpl implements ArrivalService {
 
     @Resource
     private ArrivalMapper arrivalMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createArrival(ArrivalSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         ArrivalDO arrival = BeanUtils.toBean(createReqVO, ArrivalDO.class);
+        arrival.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.ARRIVAL, arrivalMapper,
+                ArrivalDO::getProjectId, ArrivalDO::getCode));
         arrival.setStatus(0); // Only the sign command produces a signed record.
         arrival.setVersion(0);
         if (arrival.getQuantity() == null) {
@@ -48,7 +53,6 @@ public class ArrivalServiceImpl implements ArrivalService {
     public void updateArrival(ArrivalSaveReqVO updateReqVO) {
         ArrivalDO existing = validateArrivalExists(updateReqVO.getId());
         validateStatus(existing, 0, 2);
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         ArrivalDO update = BeanUtils.toBean(updateReqVO, ArrivalDO.class);
         update.setStatus(existing.getStatus());
@@ -100,13 +104,6 @@ public class ArrivalServiceImpl implements ArrivalService {
             throw exception(ARRIVAL_NOT_EXISTS);
         }
         return arrival;
-    }
-
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        ArrivalDO existing = arrivalMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(ARRIVAL_CODE_DUPLICATE);
-        }
     }
 
     private void validateVersion(ArrivalDO arrival, Integer version) {

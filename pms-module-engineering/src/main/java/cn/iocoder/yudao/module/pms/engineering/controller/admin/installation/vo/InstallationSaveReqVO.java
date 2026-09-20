@@ -25,10 +25,6 @@ public class InstallationSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "安装编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "INS-2026-001")
-    @NotBlank(message = "安装编码不能为空")
-    private String code;
-
     @Schema(description = "设备编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "设备编号不能为空")
     private Long equipmentId;

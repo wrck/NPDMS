@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.requirement.vo.R
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.requirement.vo.RequirementSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,12 +28,16 @@ public class RequirementServiceImpl implements RequirementService {
 
     @Resource
     private RequirementMapper requirementMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createRequirement(RequirementSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
         RequirementDO requirement = BeanUtils.toBean(createReqVO, RequirementDO.class);
+        requirement.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.REQUIREMENT, requirementMapper,
+                RequirementDO::getProjectId, RequirementDO::getCode));
         if (requirement.getStatus() == null) {
             requirement.setStatus(0); // 草稿
         }
@@ -47,7 +52,6 @@ public class RequirementServiceImpl implements RequirementService {
     @Transactional(rollbackFor = Exception.class)
     public void updateRequirement(RequirementSaveReqVO updateReqVO) {
         RequirementDO existing = validateRequirementExists(updateReqVO.getId());
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         RequirementDO update = BeanUtils.toBean(updateReqVO, RequirementDO.class);
         requirementMapper.updateById(update);
@@ -104,13 +108,6 @@ public class RequirementServiceImpl implements RequirementService {
         return requirement;
     }
 
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        RequirementDO existing = requirementMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(REQUIREMENT_CODE_DUPLICATE);
-        }
-    }
-
     private void validateVersion(RequirementDO requirement, Integer version) {
         if (version != null && !Objects.equals(requirement.getVersion(), version)) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
@@ -128,7 +125,6 @@ public class RequirementServiceImpl implements RequirementService {
 
     private void updateStatus(RequirementDO requirement, int newStatus) {
         requirement.setStatus(newStatus);
-        requirement.setVersion(requirement.getVersion() + 1);
         requirementMapper.updateById(requirement);
     }
 }

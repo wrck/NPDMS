@@ -4,7 +4,7 @@ import request from '@/config/axios'
 export interface AcceptanceVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   acceptanceType?: string
   signedDate?: Date

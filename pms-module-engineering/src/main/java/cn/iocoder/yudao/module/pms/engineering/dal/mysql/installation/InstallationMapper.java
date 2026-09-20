@@ -23,10 +23,6 @@ public interface InstallationMapper extends BaseMapperX<InstallationDO> {
                 .orderByDesc(InstallationDO::getId));
     }
 
-    default InstallationDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(InstallationDO::getProjectId, projectId, InstallationDO::getCode, code);
-    }
-
     default InstallationDO selectCurrentByEquipmentId(Long equipmentId) {
         return selectOne(new LambdaQueryWrapperX<InstallationDO>()
                 .eq(InstallationDO::getEquipmentId, equipmentId)

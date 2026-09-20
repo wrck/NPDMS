@@ -1,7 +1,7 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目编号" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目编号" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
@@ -11,9 +11,6 @@
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="安装编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-160px">
@@ -35,7 +32,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="安装编码" min-width="140" />
       <el-table-column prop="equipmentId" label="设备编号" width="100">
         <template #default="{ row }">
           <EquipmentTag :equipment-id="row.equipmentId" />
@@ -115,7 +111,7 @@
   <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看安装' : '编辑安装') : '新增安装'" width="min(900px, 95vw)">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col v-if="!props.projectId" :span="12">
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
@@ -124,13 +120,8 @@
               value-field="id"
               query-field="projectName"
               placeholder="请选择项目"
-              :disabled="!!form.id"
+              :disabled="!!form.id || !!props.projectId"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="安装编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -161,9 +152,9 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="安装位置" prop="locationMaintenance">
-            <PmsLocationSelector v-model="form.locationMaintenance" :project-id="form.projectId" />
-          </el-form-item>
+      <el-form-item label="安装位置" prop="locationMaintenance">
+        <PmsLocationSelector v-model="form.locationMaintenance" :project-id="form.projectId" />
+      </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="环境检查" prop="environmentCheck">
@@ -212,21 +203,21 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngInstallation' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<InstallationVO[]>([])
 const total = ref(0)
-const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', status: undefined })
+const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
 type InstallationForm = Omit<InstallationVO, 'installTime'> & { installTime?: string | number | null }
-const form = ref<InstallationForm>({ projectId: 0, code: '', status: 0 })
+const form = ref<InstallationForm>({ projectId: 0, status: 0 })
 const editableRecord = (row: Pick<InstallationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-installation:update'])
 const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-installation:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入安装编码' }]
 }
 
 const load = async () => {
@@ -242,8 +233,7 @@ const load = async () => {
 const openForm = (row?: InstallationVO) => {
   form.value = {
       id: undefined,
-      projectId: 0,
-      code: '',
+      projectId: props.projectId ?? 0,
       equipmentId: undefined,
       installLocation: '',
       locationMaintenance: undefined,
@@ -347,7 +337,7 @@ const remove = async (row: InstallationVO) => {
 }
 const handleAction = async (row: InstallationVO, action: 'start' | 'complete' | 'markAbnormal') => {
   const actionText = { start: '开始安装', complete: '完成安装', markAbnormal: '标记异常' }[action]
-  await message.confirm(`确认${actionText}安装记录【${row.code}】？`)
+  await message.confirm(`确认${actionText}该安装记录？`)
   if (action === 'start') await InstallationApi.startInstallation(row.id!)
   if (action === 'complete') {
     await InstallationApi.completeInstallation(row.id!)

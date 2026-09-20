@@ -6,10 +6,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.resource.vo.Reso
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.resource.vo.ResourceReadySaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.resource.ResourceReadyDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.resource.ResourceReadyMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -30,13 +30,16 @@ public class ResourceReadyServiceImpl implements ResourceReadyService {
 
     @Resource
     private ResourceReadyMapper resourceReadyMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     public Long createResourceReady(ResourceReadySaveReqVO createReqVO) {
-        // 1. 校验编码在项目内唯一
-        validateCodeUniqueInProject(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 2. 转换并写入，初始状态为未就绪
+        // 转换并写入，初始状态为未就绪；编码由系统按项目编码自动生成
         ResourceReadyDO entity = BeanUtils.toBean(createReqVO, ResourceReadyDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.RESOURCE, resourceReadyMapper,
+                ResourceReadyDO::getProjectId, ResourceReadyDO::getCode));
         entity.setReadyStatus(EngStatusEnum.RESOURCE_NOT_READY);
         resourceReadyMapper.insert(entity);
         return entity.getId();
@@ -46,11 +49,7 @@ public class ResourceReadyServiceImpl implements ResourceReadyService {
     public void updateResourceReady(ResourceReadySaveReqVO updateReqVO) {
         // 1. 校验存在
         ResourceReadyDO existing = validateResourceReadyExists(updateReqVO.getId());
-        // 2. 编码不可变
-        if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
-            throw exception(RESOURCE_READY_CODE_DUPLICATE, updateReqVO.getCode());
-        }
-        // 3. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
+        // 更新（乐观锁由 MyBatis-Plus @Version 自动处理；编码由系统生成不可改）
         ResourceReadyDO update = BeanUtils.toBean(updateReqVO, ResourceReadyDO.class);
         resourceReadyMapper.updateById(update);
     }
@@ -143,16 +142,4 @@ public class ResourceReadyServiceImpl implements ResourceReadyService {
         }
     }
 
-    private void validateCodeUniqueInProject(Long id, Long projectId, String code) {
-        if (StringUtils.isBlank(code) || projectId == null) {
-            return;
-        }
-        ResourceReadyDO existing = resourceReadyMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !Objects.equals(existing.getId(), id)) {
-            throw exception(RESOURCE_READY_CODE_DUPLICATE, code);
-        }
-    }
 }

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.acceptance.controller.admin.archivedocument.v
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.archivedocument.vo.ArchiveDocumentSaveReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.archivedocument.ArchiveDocumentDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.archivedocument.ArchiveDocumentMapper;
+import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -43,13 +44,16 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
 
     @Resource
     private ArchiveDocumentMapper archiveDocumentMapper;
+    @Resource
+    private AcceptanceRecordCodeGenerator recordCodeGenerator;
 
     @Override
     public Long createArchiveDocument(ArchiveDocumentSaveReqVO createReqVO) {
-        // 校验项目内编码唯一
-        validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 插入
+        // 插入；编码由系统按项目编码自动生成
         ArchiveDocumentDO entity = BeanUtils.toBean(createReqVO, ArchiveDocumentDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                AcceptanceRecordCodeGenerator.ARCHIVE_DOCUMENT, archiveDocumentMapper,
+                ArchiveDocumentDO::getProjectId, ArchiveDocumentDO::getCode));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -63,9 +67,7 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
     @Override
     public void updateArchiveDocument(ArchiveDocumentSaveReqVO updateReqVO) {
         ArchiveDocumentDO existing = validateExists(updateReqVO.getId());
-        // 校验项目内编码唯一
-        validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
-        // 归档后版本不可覆盖：已归档状态不允许修改
+        // 归档后版本不可覆盖：已归档状态不允许修改（编码由系统生成不可改）
         if (Objects.equals(existing.getStatus(), STATUS_ARCHIVED)) {
             throw exception(ACC_ARCHIVE_DOCUMENT_STATUS_INVALID);
         }
@@ -142,19 +144,6 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
             throw exception(ACC_ARCHIVE_DOCUMENT_NOT_EXISTS);
         }
         return entity;
-    }
-
-    private void validateCodeUnique(Long id, Long projectId, String code) {
-        if (projectId == null || code == null) {
-            return;
-        }
-        ArchiveDocumentDO existing = archiveDocumentMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !id.equals(existing.getId())) {
-            throw exception(ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE, code);
-        }
     }
 
 }

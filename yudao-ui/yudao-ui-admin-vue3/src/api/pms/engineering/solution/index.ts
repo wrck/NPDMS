@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface SolutionVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   solutionType?: string
   background?: string

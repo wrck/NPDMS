@@ -1,7 +1,7 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目编号" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目编号" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
@@ -11,9 +11,6 @@
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="联调编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-160px">
@@ -37,7 +34,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="联调编码" min-width="140" />
       <el-table-column prop="testCase" label="联调用例" min-width="200" show-overflow-tooltip><template #default="{ row }"><div v-dompurify-html="row.testCase" class="max-h-60px overflow-hidden"></div></template></el-table-column>
       <el-table-column prop="equipmentId" label="设备编号" width="100">
         <template #default="{ row }">
@@ -93,8 +89,9 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看联调' : '编辑联调') : '新增联调'" width="min(780px, 95vw)">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
+  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看联调' : '编辑联调') : '新增联调'" width="min(880px, 95vw)">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="110px" :disabled="readOnly">
+      <div class="section-title">基础信息</div>
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目编号" prop="projectId">
@@ -105,13 +102,8 @@
               value-field="id"
               query-field="projectName"
               placeholder="请选择项目"
-              :disabled="!!form.id"
+              :disabled="!!form.id || !!props.projectId"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="联调编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -137,6 +129,69 @@
         <el-col :span="12">
           <el-form-item label="参与方" prop="participants"><el-input v-model="form.participants" /></el-form-item>
         </el-col>
+      </el-row>
+
+      <div class="section-title">设备登录信息（联调采集入口）</div>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="设备名称"><el-input v-model="deviceLogin.deviceName" placeholder="临时命名，手动输入" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="设备IP"><el-input v-model="deviceLogin.deviceIp" placeholder="手动输入" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="登录用户名"><el-input v-model="deviceLogin.username" placeholder="手动输入" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="登录密码">
+            <el-input
+              v-model="loginSecret"
+              type="password"
+              show-password
+              autocomplete="new-password"
+              placeholder="仅本次采集使用，不保存"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="登录方式">
+            <el-radio-group v-model="deviceLogin.loginType">
+              <el-radio value="SSH">SSH</el-radio>
+              <el-radio value="TELNET">Telnet</el-radio>
+              <el-radio value="SERIAL">串口</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="端口号"><el-input v-model="deviceLogin.port" placeholder="手动输入" /></el-form-item>
+        </el-col>
+        <el-col v-if="deviceLogin.loginType === 'SERIAL'" :span="12">
+          <el-form-item label="波特率"><el-input v-model="deviceLogin.baudRate" placeholder="串口模式下填写" /></el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label-width="110px">
+            <el-button disabled title="在线采集未接入：请通过 5.3 配置调试上传 Log 或以附件提供采集结果">一键收集配置信息未接入</el-button>
+            <el-button disabled title="加密凭证保存需绑定平台采集命令模板（SSH/Telnet），待采集域接入后启用；当前密码不落库、不传输">保存加密凭证未接入</el-button>
+            <span class="form-tip">设备登录信息（除密码）随联调记录保存；密码不落库，平台加密凭证机制接入后可在采集域统一管理。</span>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <div class="section-title">设备清单</div>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="设备型号"><el-input :model-value="deviceInfo?.productModel || ''" readonly placeholder="选择关联设备后带入" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="序列号"><el-input :model-value="deviceInfo?.sn || ''" readonly placeholder="选择关联设备后带入" /></el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="运行业务描述"><el-input v-model="jointMeta.businessDesc" placeholder="手动填写运行业务描述" /></el-form-item>
+        </el-col>
+      </el-row>
+
+      <div class="section-title">联调记录</div>
+      <el-row :gutter="16">
         <el-col :span="24">
           <el-form-item label="联调用例" prop="testCase">
             <Editor v-model="form.testCase" height="200px" :readonly="readOnly" />
@@ -155,7 +210,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" />
+            <el-input v-model="jointMeta.note" type="textarea" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -180,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as JointTestApi from '@/api/pms/engineering/joint-test'
@@ -192,21 +247,73 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngJointTest' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<JointTestVO[]>([])
 const total = ref(0)
-const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', status: undefined })
+const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
 type JointTestForm = Omit<JointTestVO, 'testTime'> & { testTime?: number | string | null }
-const form = ref<JointTestForm>({ projectId: 0, code: '', testCase: '', status: 0 })
+const form = ref<JointTestForm>({ projectId: props.projectId ?? 0, testCase: '', status: 0 })
+
+// Demo 5.4 设备登录信息与运行业务描述：随联调记录 remark 以 JSON 信封保存（密码除外，密码不落库不传输）
+interface DeviceLoginMeta {
+  deviceName: string
+  deviceIp: string
+  username: string
+  loginType: string
+  port: string
+  baudRate: string
+}
+const deviceLogin = reactive<DeviceLoginMeta>({ deviceName: '', deviceIp: '', username: '', loginType: 'SSH', port: '', baudRate: '' })
+const loginSecret = ref('')
+const jointMeta = reactive({ businessDesc: '', note: '' })
+const deviceInfo = ref<DeviceArchiveApi.DeviceArchiveVO | null>(null)
+const parseRemark = (raw: string | undefined | null) => {
+  try {
+    const v = raw ? JSON.parse(raw) : null
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>
+  } catch {
+    // 历史纯文本备注降级为 note
+  }
+  return { note: raw || '' }
+}
+const syncMetaFromForm = () => {
+  const parsed = parseRemark(form.value.remark)
+  const login = (parsed['deviceLogin'] ?? {}) as Partial<DeviceLoginMeta>
+  Object.assign(deviceLogin, {
+    deviceName: String(login.deviceName ?? ''),
+    deviceIp: String(login.deviceIp ?? ''),
+    username: String(login.username ?? ''),
+    loginType: String(login.loginType ?? 'SSH'),
+    port: String(login.port ?? ''),
+    baudRate: String(login.baudRate ?? '')
+  })
+  jointMeta.businessDesc = String(parsed['businessDesc'] ?? '')
+  jointMeta.note = String(parsed['note'] ?? '')
+}
+const writeMetaToForm = () => {
+  form.value.remark = JSON.stringify({ deviceLogin: { ...deviceLogin }, businessDesc: jointMeta.businessDesc, note: jointMeta.note })
+}
+const loadDeviceInfo = async () => {
+  const id = form.value.equipmentId
+  deviceInfo.value = null
+  if (!id) return
+  try {
+    deviceInfo.value = (await DeviceArchiveApi.getDeviceArchiveRecord(id as number)) as DeviceArchiveApi.DeviceArchiveVO
+  } catch {
+    deviceInfo.value = null
+  }
+}
+watch(() => form.value.equipmentId, loadDeviceInfo)
+
 const editableRecord = (row: Pick<JointTestVO, 'status'>) => (row.status === 0 || row.status === 1) && checkPermi(['pms:imp-joint-test:update'])
 const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-joint-test:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }, { validator: (_rule: unknown, value: number | string, callback: (error?: Error) => void) => callback(Number(value) > 0 ? undefined : new Error('请选择项目')) }],
-  code: [{ required: true, message: '请输入联调编码' }],
   testCase: [{ required: true, message: '请输入联调用例' }]
 }
 
@@ -223,8 +330,7 @@ const load = async () => {
 const openForm = (row?: JointTestVO) => {
   form.value = {
       id: undefined,
-      projectId: 0,
-      code: '',
+      projectId: props.projectId ?? 0,
       testCase: '',
       equipmentId: undefined,
       participants: '',
@@ -239,6 +345,9 @@ const openForm = (row?: JointTestVO) => {
       // Keep UploadFile on the existing string API contract for NULL legacy evidence.
       evidenceUrl: row?.evidenceUrl ?? ''
   }
+  loginSecret.value = ''
+  syncMetaFromForm()
+  loadDeviceInfo()
   formVisible.value = true
 }
 const save = async () => {
@@ -246,6 +355,7 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
+    writeMetaToForm()
     const data: JointTestVO = { ...form.value, testTime: form.value.testTime == null || form.value.testTime === '' ? undefined : Number(form.value.testTime) }
     data.id ? await JointTestApi.updateJointTest(data) : await JointTestApi.createJointTest(data)
     message.success('保存成功')
@@ -264,7 +374,7 @@ const remove = async (row: JointTestVO) => {
 }
 const handleAction = async (row: JointTestVO, action: 'start' | 'pass') => {
   const actionText = { start: '开始联调', pass: '联调通过' }[action]
-  await message.confirm(`确认${actionText}记录【${row.code}】？`)
+  await message.confirm(`确认${actionText}联调记录【${row.testCase}】？`)
   if (action === 'start') await JointTestApi.startJointTest(row.id!)
   if (action === 'pass') await JointTestApi.passJointTest(row.id!)
   message.success(`${actionText}成功`)
@@ -294,3 +404,20 @@ const confirmFail = async () => {
 }
 onMounted(load)
 </script>
+
+<style lang="scss" scoped>
+.section-title {
+  padding: 6px 0 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}
+
+.form-tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+</style>

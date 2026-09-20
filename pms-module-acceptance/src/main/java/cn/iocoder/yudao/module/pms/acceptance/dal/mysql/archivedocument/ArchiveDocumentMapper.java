@@ -10,12 +10,6 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ArchiveDocumentMapper extends BaseMapperX<ArchiveDocumentDO> {
 
-    default ArchiveDocumentDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(new LambdaQueryWrapperX<ArchiveDocumentDO>()
-                .eq(ArchiveDocumentDO::getProjectId, projectId)
-                .eq(ArchiveDocumentDO::getCode, code));
-    }
-
     default PageResult<ArchiveDocumentDO> selectPage(ArchiveDocumentPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ArchiveDocumentDO>()
                 .eqIfPresent(ArchiveDocumentDO::getProjectId, reqVO.getProjectId())

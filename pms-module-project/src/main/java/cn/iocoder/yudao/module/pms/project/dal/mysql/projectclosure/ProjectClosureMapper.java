@@ -14,12 +14,6 @@ import java.util.List;
 @Mapper
 public interface ProjectClosureMapper extends BaseMapperX<ProjectClosureDO> {
 
-    default ProjectClosureDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(new LambdaQueryWrapperX<ProjectClosureDO>()
-                .eq(ProjectClosureDO::getProjectId, projectId)
-                .eq(ProjectClosureDO::getCode, code));
-    }
-
     List<ProjectClosureDO> selectListForClosureGuard(
             @Param("query") ProjectClosureGuardListQuery query);
 

@@ -24,7 +24,4 @@ public interface JointTestMapper extends BaseMapperX<JointTestDO> {
                 .orderByDesc(JointTestDO::getId));
     }
 
-    default JointTestDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(JointTestDO::getProjectId, projectId, JointTestDO::getCode, code);
-    }
 }

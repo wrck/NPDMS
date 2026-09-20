@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="闭环编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="闭环名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -38,7 +35,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="闭环编号" min-width="140" />
       <el-table-column prop="name" label="闭环名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="applicationDate" label="申请日期" width="120" />
       <el-table-column prop="approverUserId" label="审批人" width="100">
@@ -129,11 +125,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="闭环编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="闭环名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -192,16 +183,14 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: undefined as number | undefined,
-  code: '',
   name: '',
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<ProjectClosureVO>({ projectId: undefined!, code: '', name: '' })
+const form = reactive<ProjectClosureVO>({ projectId: undefined!, name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入闭环编号' }],
   name: [{ required: true, message: '请输入闭环名称' }]
 }
 
@@ -221,7 +210,6 @@ const openForm = (row?: ProjectClosureVO) => {
     {
       id: undefined,
       projectId: undefined,
-      code: '',
       name: '',
       applicationDate: '',
       approverUserId: undefined,
@@ -264,8 +252,12 @@ const handleAction = async (
     | 'archiveProjectClosure',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}项目闭环【${row.code}】？`)
-  await (ProjectClosureApi as any)[action](row.id!)
+  await message.confirm(`确认${actionText}项目闭环【${row.name}】？`)
+  if (action === 'submitProjectClosure') {
+    await ProjectClosureApi.submitProjectClosure(row.id!, row.projectId)
+  } else {
+    await (ProjectClosureApi as any)[action](row.id!)
+  }
   message.success(`${actionText}成功`)
   await load()
 }

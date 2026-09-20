@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface CompletionCertificateVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   customerId?: number
   certificateNo?: string

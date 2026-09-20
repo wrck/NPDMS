@@ -1,7 +1,7 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
@@ -11,9 +11,6 @@
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="证明编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="证明名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
@@ -38,7 +35,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="证明编号" min-width="140" />
       <el-table-column prop="name" label="证明名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="customerId" label="客户编号" width="100" />
       <el-table-column prop="certificateNo" label="证书编号" min-width="140" />
@@ -107,7 +103,7 @@
   <Dialog v-model="formVisible" :title="form.id ? '编辑完工证明' : '新增完工证明'" width="780px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col v-if="!props.projectId" :span="12">
           <el-form-item label="项目" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
@@ -121,14 +117,9 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="证明编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="证明名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col v-if="!props.projectId" :span="12">
           <el-form-item label="客户" prop="customerId">
             <PmsEntitySelect
               v-model="form.customerId"
@@ -149,8 +140,46 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
+          <el-form-item label="工程服务类型" prop="certServiceType">
+            <el-radio-group v-model="form.certServiceType">
+              <el-radio value="工程实施">工程实施</el-radio>
+              <el-radio value="工程督导">工程督导</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="迪普工程师" prop="certEngineer">
+            <el-input v-model="form.certEngineer" placeholder="填表人带入，可修改" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="联系方式" prop="certContact">
+            <el-input v-model="form.certContact" placeholder="项目干系人信息带入，可修改" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
           <el-form-item label="满意度评分" prop="satisfactionScore">
             <el-rate v-model="form.satisfactionScore" :max="5" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="工程服务内容" prop="certItems">
+            <div class="cert-service-items">
+              <div v-for="item in certServiceItems" :key="item.key" class="cert-service-row">
+                <span class="cert-service-label">{{ item.label }}</span>
+                <el-radio-group v-model="form.certItems![item.key]">
+                  <el-radio value="是">是</el-radio>
+                  <el-radio value="否">否</el-radio>
+                  <el-radio value="不涉及">不涉及</el-radio>
+                </el-radio-group>
+              </div>
+              <el-input
+                v-model="form.certItems!.deviceSummary"
+                type="textarea"
+                :rows="2"
+                placeholder="⑥ 设备类型和数量：填写本次工程涉及的设备类型和数量"
+              />
+            </div>
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -158,9 +187,24 @@
             <Editor v-model="form.customerOpinion" :height="300" />
           </el-form-item>
         </el-col>
-        <el-col :span="24">
+        <el-col :span="12">
           <el-form-item label="签章附件" prop="signatureUrl">
             <UploadImg v-model="form.signatureUrl" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="甲方签章日期" prop="certCustomerSignDate">
+            <el-date-picker v-model="form.certCustomerSignDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="服务方签章" prop="certVendorSignUrl">
+            <UploadImg v-model="form.certVendorSignUrl" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="服务方签章日期" prop="certVendorSignDate">
+            <el-date-picker v-model="form.certVendorSignDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -192,6 +236,7 @@ import * as CustomerApi from '@/api/pms/customer'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 
 defineOptions({ name: 'PmsCompletionCertificate' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
@@ -200,18 +245,73 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: undefined as number | undefined,
-  code: '',
+  projectId: props.projectId as number | undefined,
   name: '',
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<CompletionCertificateVO>({ projectId: undefined!, code: '', name: '' })
+// Demo 6.2 完工证明补充字段：随记录 remark 以 JSON 信封保存（既有备注文本降级为 note 键保留），
+// 既有 VO 列（名称/编号/日期/签章图/客户意见等）绑定不变；后续拆列仅需调整本序列化边界。
+interface CompletionCertExtra {
+  serviceType: string
+  engineer: string
+  contact: string
+  items: Record<string, string>
+  customerSignDate: string
+  vendorSignUrl: string
+  vendorSignDate: string
+  note: string
+}
+const certServiceItems = [
+  { key: 'i1', label: '① 完成到货验收' },
+  { key: 'i2', label: '② 完成设备硬件安装和软件调测' },
+  { key: 'i3', label: '③ 完成业务上线/割接且业务测试正常' },
+  { key: 'i4', label: '④ 完成产品维护现场讲解和培训' },
+  { key: 'i5', label: '⑤ 工程文档、帐号密码已移交并协助修改' }
+] as const
+const emptyCertItems = (): Record<string, string> => ({ i1: '', i2: '', i3: '', i4: '', i5: '', deviceSummary: '' })
+const form = reactive<CompletionCertificateVO & { certServiceType?: string; certEngineer?: string; certContact?: string; certItems?: Record<string, string>; certCustomerSignDate?: string; certVendorSignUrl?: string; certVendorSignDate?: string }>({
+  projectId: props.projectId as number,
+  name: '',
+  certItems: emptyCertItems()
+})
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入证明编号' }],
-  name: [{ required: true, message: '请输入证明名称' }]
+  name: [{ required: true, message: '请输入证明名称' }],
+  certServiceType: [{ required: true, message: '请选择工程服务类型' }]
+}
+const parseCertRemark = (raw: string | undefined | null): Partial<CompletionCertExtra> => {
+  try {
+    const v = raw ? JSON.parse(raw) : null
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+  } catch {
+    // 历史纯文本备注降级为 note
+    return { note: raw || '' }
+  }
+}
+const syncCertExtra = (raw: string | undefined | null) => {
+  const parsed = parseCertRemark(raw)
+  form.certServiceType = String(parsed['serviceType'] ?? '')
+  form.certEngineer = String(parsed['engineer'] ?? '')
+  form.certContact = String(parsed['contact'] ?? '')
+  form.certItems = { ...emptyCertItems(), ...((parsed['items'] as Record<string, string>) ?? {}) }
+  form.certCustomerSignDate = String(parsed['customerSignDate'] ?? '')
+  form.certVendorSignUrl = String(parsed['vendorSignUrl'] ?? '')
+  form.certVendorSignDate = String(parsed['vendorSignDate'] ?? '')
+  form.remark = String(parsed['note'] ?? '')
+}
+const writeCertExtra = () => {
+  form.remark = JSON.stringify({
+    serviceType: form.certServiceType ?? '',
+    engineer: form.certEngineer ?? '',
+    contact: form.certContact ?? '',
+    items: form.certItems ?? emptyCertItems(),
+    customerSignDate: form.certCustomerSignDate ?? '',
+    vendorSignUrl: form.certVendorSignUrl ?? '',
+    vendorSignDate: form.certVendorSignDate ?? '',
+    note: form.remark ?? ''
+  })
 }
 
 const load = async () => {
@@ -229,8 +329,7 @@ const openForm = (row?: CompletionCertificateVO) => {
     form,
     {
       id: undefined,
-      projectId: undefined,
-      code: '',
+      projectId: (props.projectId ?? undefined) as number,
       name: '',
       customerId: undefined,
       certificateNo: '',
@@ -245,12 +344,14 @@ const openForm = (row?: CompletionCertificateVO) => {
     },
     row || {}
   )
+  syncCertExtra(row?.remark ?? form.remark ?? '')
   formVisible.value = true
 }
 const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
+    writeCertExtra()
     form.id
       ? await CompletionCertificateApi.updateCompletionCertificate(form)
       : await CompletionCertificateApi.createCompletionCertificate(form)
@@ -276,7 +377,7 @@ const handleAction = async (
     | 'archiveCompletionCertificate',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}完工证明【${row.code}】？`)
+  await message.confirm(`确认${actionText}完工证明【${row.name}】？`)
   await (CompletionCertificateApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()
@@ -284,3 +385,24 @@ const handleAction = async (
 
 onMounted(load)
 </script>
+
+<style lang="scss" scoped>
+.cert-service-items {
+  width: 100%;
+}
+
+.cert-service-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+
+  .cert-service-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+  }
+}
+</style>

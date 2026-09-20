@@ -19,10 +19,6 @@ public class SolutionSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "方案编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "SOL-2026-001")
-    @NotBlank(message = "方案编码不能为空")
-    private String code;
-
     @Schema(description = "方案名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机替换方案")
     @NotBlank(message = "方案名称不能为空")
     private String name;

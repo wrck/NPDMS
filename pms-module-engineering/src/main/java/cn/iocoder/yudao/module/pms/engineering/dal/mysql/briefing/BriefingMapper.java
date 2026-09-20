@@ -24,13 +24,6 @@ public interface BriefingMapper extends BaseMapperX<BriefingDO> {
     }
 
     /**
-     * 按编号查询，用于全局唯一性校验
-     */
-    default BriefingDO selectByCode(String code) {
-        return selectOne(BriefingDO::getCode, code);
-    }
-
-    /**
      * 按项目ID查询数量，用于项目下交底书数量统计
      */
     default Long selectCountByProjectId(Long projectId) {

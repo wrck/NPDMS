@@ -23,7 +23,4 @@ public interface RequirementMapper extends BaseMapperX<RequirementDO> {
                 .orderByDesc(RequirementDO::getId));
     }
 
-    default RequirementDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(RequirementDO::getProjectId, projectId, RequirementDO::getCode, code);
-    }
 }

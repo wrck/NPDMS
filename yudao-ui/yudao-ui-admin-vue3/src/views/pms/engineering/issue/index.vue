@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="问题编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-160px">
           <el-option
@@ -45,7 +42,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="问题编码" min-width="140" />
       <el-table-column prop="name" label="问题名称" min-width="200" show-overflow-tooltip />
       <el-table-column prop="source" label="来源" width="110">
         <template #default="{ row }">
@@ -144,11 +140,6 @@
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="问题编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -258,16 +249,14 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: '',
-  code: '',
   status: undefined,
   severity: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<IssueVO>({ projectId: 0, code: '', name: '', severity: 1 })
+const form = reactive<IssueVO>({ projectId: 0, name: '', severity: 1 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入问题编码' }],
   name: [{ required: true, message: '请输入问题名称' }],
   severity: [{ required: true, message: '请选择严重等级' }]
 }
@@ -288,7 +277,6 @@ const openForm = (row?: IssueVO) => {
     {
       id: undefined,
       projectId: 0,
-      code: '',
       name: '',
       description: '',
       source: 'OTHER',
@@ -329,7 +317,7 @@ const handleAction = async (row: IssueVO, action: 'startRectify' | 'submitForVer
     suspend: '挂起',
     resume: '恢复'
   }[action]
-  await message.confirm(`确认${actionText}问题【${row.code}】？`)
+  await message.confirm(`确认${actionText}问题【${row.name}】？`)
   if (action === 'startRectify') await IssueApi.startRectifyIssue(row.id!)
   if (action === 'submitForVerify') await IssueApi.submitForVerifyIssue(row.id!)
   if (action === 'suspend') await IssueApi.suspendIssue(row.id!)

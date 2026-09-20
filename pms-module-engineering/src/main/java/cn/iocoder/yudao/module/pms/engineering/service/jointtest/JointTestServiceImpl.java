@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.jointtest.vo.Joi
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.jointtest.vo.JointTestSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.jointtest.JointTestDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.jointtest.JointTestMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.domain.JointTestStatusRules;
 import cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum;
 import jakarta.annotation.Resource;
@@ -31,11 +32,15 @@ public class JointTestServiceImpl implements JointTestService {
 
     @Resource
     private JointTestMapper jointTestMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     public Long createJointTest(JointTestSaveReqVO createReqVO) {
-        validateCodeUniqueInProject(null, createReqVO.getProjectId(), createReqVO.getCode());
         JointTestDO entity = BeanUtils.toBean(createReqVO, JointTestDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.JOINT_TEST, jointTestMapper,
+                JointTestDO::getProjectId, JointTestDO::getCode));
         entity.setStatus(EngStatusEnum.JOINT_TEST_PENDING);
         jointTestMapper.insert(entity);
         return entity.getId();
@@ -44,9 +49,6 @@ public class JointTestServiceImpl implements JointTestService {
     @Override
     public void updateJointTest(JointTestSaveReqVO updateReqVO) {
         JointTestDO existing = validateJointTestExists(updateReqVO.getId());
-        if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
-            throw exception(JOINT_TEST_CODE_DUPLICATE, updateReqVO.getCode());
-        }
         if (JointTestStatusRules.isTerminal(existing.getStatus())) {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }
@@ -138,16 +140,4 @@ public class JointTestServiceImpl implements JointTestService {
         }
     }
 
-    private void validateCodeUniqueInProject(Long id, Long projectId, String code) {
-        if (StringUtils.isBlank(code) || projectId == null) {
-            return;
-        }
-        JointTestDO existing = jointTestMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !Objects.equals(existing.getId(), id)) {
-            throw exception(JOINT_TEST_CODE_DUPLICATE, code);
-        }
-    }
 }

@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="签收编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-160px">
           <el-option
@@ -35,7 +32,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="签收编码" min-width="140" />
       <el-table-column prop="equipmentId" label="设备编号" width="100" />
       <el-table-column prop="quantity" label="数量" width="80" />
       <el-table-column prop="arrivalTime" label="到货时间" width="160" :formatter="dateFormatter" />
@@ -94,11 +90,6 @@
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="签收编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -177,7 +168,6 @@ const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || 
 const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入签收编码' }],
   arrivalTime: [{ required: true, message: '请选择到货时间' }]
 }
 
@@ -237,7 +227,7 @@ const remove = async (row: ArrivalVO) => {
 }
 const handleAction = async (row: ArrivalVO, action: 'sign' | 'markAbnormal') => {
   const actionText = { sign: '签收', markAbnormal: '标记异常' }[action]
-  await message.confirm(`确认${actionText}签收记录【${row.code}】？`)
+  await message.confirm(`确认${actionText}该签收记录？`)
   if (action === 'sign') await ArrivalApi.signArrival(row.id!)
   if (action === 'markAbnormal') await ArrivalApi.markAbnormalArrival(row.id!)
   message.success(`${actionText}成功`)

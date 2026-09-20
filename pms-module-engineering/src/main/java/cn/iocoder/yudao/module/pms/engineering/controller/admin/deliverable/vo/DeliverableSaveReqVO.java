@@ -25,11 +25,6 @@ public class DeliverableSaveReqVO {
     @Schema(description = "阶段编号", example = "3010")
     private Long phaseId;
 
-    @Schema(description = "交付件编码，项目内唯一且创建后不可变", requiredMode = Schema.RequiredMode.REQUIRED, example = "D20260101001")
-    @NotBlank(message = "交付件编码不能为空")
-    @Size(max = 64, message = "交付件编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "交付件名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "上海某某项目日报-20260101")
     @NotBlank(message = "交付件名称不能为空")
     @Size(max = 255, message = "交付件名称长度不能超过 255 个字符")

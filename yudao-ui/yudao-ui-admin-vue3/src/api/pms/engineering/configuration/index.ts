@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface ConfigurationVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   equipmentId?: number | string
   configLogUrl?: string
   debugResult?: string

@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="交付件编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="交付件名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -48,7 +45,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="交付件编号" min-width="140" />
       <el-table-column prop="name" label="交付件名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="deliverableType" label="类型" width="90">
         <template #default="{ row }">
@@ -136,11 +132,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="交付件编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="交付件名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -210,17 +201,15 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: undefined as number | undefined,
-  code: '',
   name: '',
   deliverableType: undefined,
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<DeliverableChecklistVO>({ projectId: undefined!, code: '', name: '' })
+const form = reactive<DeliverableChecklistVO>({ projectId: undefined!, name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入交付件编号' }],
   name: [{ required: true, message: '请输入交付件名称' }],
   deliverableType: [{ required: true, message: '请选择交付件类型' }]
 }
@@ -241,7 +230,6 @@ const openForm = (row?: DeliverableChecklistVO) => {
     {
       id: undefined,
       projectId: undefined,
-      code: '',
       name: '',
       deliverableType: 'REQUIRED',
       version: '',
@@ -282,7 +270,7 @@ const handleAction = async (
   action: 'submitDeliverableChecklist' | 'passDeliverableChecklist' | 'rejectDeliverableChecklist',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}交付件【${row.code}】？`)
+  await message.confirm(`确认${actionText}交付件【${row.name}】？`)
   await (DeliverableChecklistApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()

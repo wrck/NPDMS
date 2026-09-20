@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertifi
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateSaveReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateMapper;
+import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -51,13 +52,16 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
 
     @Resource
     private CompletionCertificateMapper completionCertificateMapper;
+    @Resource
+    private AcceptanceRecordCodeGenerator recordCodeGenerator;
 
     @Override
     public Long createCompletionCertificate(CompletionCertificateSaveReqVO createReqVO) {
-        // 校验项目内编码唯一
-        validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 插入
+        // 插入；编码由系统按项目编码自动生成
         CompletionCertificateDO entity = BeanUtils.toBean(createReqVO, CompletionCertificateDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                AcceptanceRecordCodeGenerator.COMPLETION_CERTIFICATE, completionCertificateMapper,
+                CompletionCertificateDO::getProjectId, CompletionCertificateDO::getCode));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -68,9 +72,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     @Override
     public void updateCompletionCertificate(CompletionCertificateSaveReqVO updateReqVO) {
         CompletionCertificateDO existing = validateExists(updateReqVO.getId());
-        // 校验项目内编码唯一
-        validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
-        // 仅草稿态允许修改核心字段
+        // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
@@ -163,17 +165,5 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         return entity;
     }
 
-    private void validateCodeUnique(Long id, Long projectId, String code) {
-        if (projectId == null || code == null) {
-            return;
-        }
-        CompletionCertificateDO existing = completionCertificateMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !id.equals(existing.getId())) {
-            throw exception(ACC_COMPLETION_CERTIFICATE_CODE_DUPLICATE, code);
-        }
-    }
 
 }

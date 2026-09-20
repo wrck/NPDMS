@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface JointTestVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   testCase: string
   equipmentId?: number | string
   participants?: string

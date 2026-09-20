@@ -24,7 +24,13 @@ public interface SolutionMapper extends BaseMapperX<SolutionDO> {
                 .orderByDesc(SolutionDO::getId));
     }
 
-    default SolutionDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(SolutionDO::getProjectId, projectId, SolutionDO::getCode, code);
+
+    /** 项目内已批准（状态 3）且基线已冻结的方案，按批准时间倒序。 */
+    default java.util.List<SolutionDO> selectListApprovedByProject(Long projectId) {
+        return selectList(new LambdaQueryWrapperX<SolutionDO>()
+                .eq(SolutionDO::getProjectId, projectId)
+                .eq(SolutionDO::getStatus, 3)
+                .orderByDesc(SolutionDO::getApprovedTime)
+                .orderByDesc(SolutionDO::getId));
     }
 }

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.acceptance.controller.admin.deliverablecheckl
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.deliverablechecklist.vo.DeliverableChecklistSaveReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.deliverablechecklist.DeliverableChecklistDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.DeliverableChecklistMapper;
+import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -51,13 +52,16 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
 
     @Resource
     private DeliverableChecklistMapper deliverableChecklistMapper;
+    @Resource
+    private AcceptanceRecordCodeGenerator recordCodeGenerator;
 
     @Override
     public Long createDeliverableChecklist(DeliverableChecklistSaveReqVO createReqVO) {
-        // 校验项目内编码唯一
-        validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 插入
+        // 插入；编码由系统按项目编码自动生成
         DeliverableChecklistDO entity = BeanUtils.toBean(createReqVO, DeliverableChecklistDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                AcceptanceRecordCodeGenerator.DELIVERABLE_CHECKLIST, deliverableChecklistMapper,
+                DeliverableChecklistDO::getProjectId, DeliverableChecklistDO::getCode));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -71,9 +75,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     @Override
     public void updateDeliverableChecklist(DeliverableChecklistSaveReqVO updateReqVO) {
         DeliverableChecklistDO existing = validateExists(updateReqVO.getId());
-        // 校验项目内编码唯一
-        validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
-        // 仅草稿态允许修改核心字段
+        // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
@@ -153,17 +155,5 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         return entity;
     }
 
-    private void validateCodeUnique(Long id, Long projectId, String code) {
-        if (projectId == null || code == null) {
-            return;
-        }
-        DeliverableChecklistDO existing = deliverableChecklistMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !id.equals(existing.getId())) {
-            throw exception(ACC_DELIVERABLE_CHECKLIST_CODE_DUPLICATE, code);
-        }
-    }
 
 }

@@ -27,11 +27,6 @@ public class SiteSurveyEntitySaveReqVO {
     @jakarta.validation.constraints.Positive(message = "请选择有效项目")
     private Long projectId;
 
-    @Schema(description = "工勘编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "SUR-2026-001")
-    @NotBlank(message = "工勘编码不能为空")
-    @jakarta.validation.constraints.Size(max = 64)
-    private String code;
-
     @Schema(description = "工勘名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心机房工勘")
     @NotBlank(message = "工勘名称不能为空")
     @jakarta.validation.constraints.Size(max = 128)

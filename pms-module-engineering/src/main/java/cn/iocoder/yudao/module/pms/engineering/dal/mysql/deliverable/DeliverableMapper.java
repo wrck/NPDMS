@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.deliverable.vo.D
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 @Mapper
 public interface DeliverableMapper extends BaseMapperX<DeliverableDO> {
 
@@ -23,8 +25,19 @@ public interface DeliverableMapper extends BaseMapperX<DeliverableDO> {
                 .orderByDesc(DeliverableDO::getId));
     }
 
-    default DeliverableDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(DeliverableDO::getProjectId, projectId, DeliverableDO::getCode, code);
+    /** 按来源业务键幂等查询（自动归档防重复；来源键项目内唯一）。 */
+    default DeliverableDO selectByProjectAndSource(Long projectId, String sourceType, Long sourceId) {
+        return selectOne(new LambdaQueryWrapperX<DeliverableDO>()
+                .eq(DeliverableDO::getProjectId, projectId)
+                .eq(DeliverableDO::getSourceType, sourceType)
+                .eq(DeliverableDO::getSourceId, sourceId));
+    }
+
+    default List<DeliverableDO> selectListByProject(Long projectId) {
+        return selectList(new LambdaQueryWrapperX<DeliverableDO>()
+                .eq(DeliverableDO::getProjectId, projectId)
+                .orderByDesc(DeliverableDO::getArchivedTime)
+                .orderByDesc(DeliverableDO::getId));
     }
 
 }

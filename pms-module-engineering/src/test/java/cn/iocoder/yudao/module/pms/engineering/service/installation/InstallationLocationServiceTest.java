@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.InstallationMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,7 @@ class InstallationLocationServiceTest {
     @Mock private InstallationMapper mapper;
     @Mock private EngineeringLocationFactService locationFactService;
     @Mock private AssetLocationApi assetLocationApi;
+    @Mock private EngineeringRecordCodeGenerator recordCodeGenerator;
     private InstallationServiceImpl service;
 
     @BeforeEach
@@ -38,6 +40,8 @@ class InstallationLocationServiceTest {
         ReflectionTestUtils.setField(service, "installationMapper", mapper);
         ReflectionTestUtils.setField(service, "locationFactService", locationFactService);
         ReflectionTestUtils.setField(service, "assetLocationApi", assetLocationApi);
+        lenient().doReturn("PROJ-AZ-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         lenient().when(mapper.updateById(any(InstallationDO.class))).thenReturn(1);
     }
 
@@ -212,7 +216,6 @@ class InstallationLocationServiceTest {
     private InstallationSaveReqVO request(String location) {
         InstallationSaveReqVO request = new InstallationSaveReqVO();
         request.setProjectId(1L);
-        request.setCode("INS-1");
         request.setEquipmentId(8L);
         request.setInstallLocation(location);
         return request;

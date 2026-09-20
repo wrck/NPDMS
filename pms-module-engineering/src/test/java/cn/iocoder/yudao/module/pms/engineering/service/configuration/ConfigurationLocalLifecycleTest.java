@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.configuration;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.configuration.vo.ConfigurationSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.ConfigurationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,10 +15,13 @@ import static org.mockito.Mockito.*;
 
 class ConfigurationLocalLifecycleTest {
     private final ConfigurationMapper mapper = mock(ConfigurationMapper.class);
+    private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final ConfigurationServiceImpl service = new ConfigurationServiceImpl();
     private ConfigurationDO row;
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "configurationMapper", mapper);
+        doReturn("PROJ-CFG-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new ConfigurationDO(); row.setId(1L); row.setProjectId(7L); row.setCode("CFG-TEST"); row.setStatus(0); row.setVersion(6);
         when(mapper.selectById(1L)).thenReturn(row);
     }
@@ -55,7 +59,7 @@ class ConfigurationLocalLifecycleTest {
     @Test void normalEditingCannotSetACompletedStateFromTheRequest() {
         row.setStatus(1);
         ConfigurationSaveReqVO request = new ConfigurationSaveReqVO();
-        request.setId(1L); request.setProjectId(7L); request.setCode("CFG-TEST"); request.setStatus(2); request.setVersion(6);
+        request.setId(1L); request.setProjectId(7L); request.setStatus(2); request.setVersion(6);
         when(mapper.updateById(any(ConfigurationDO.class))).thenAnswer(call -> {
             ConfigurationDO update = call.getArgument(0);
             assertEquals(1, update.getStatus());
@@ -67,7 +71,7 @@ class ConfigurationLocalLifecycleTest {
 
     @Test void newConfigurationAlwaysStartsPending() {
         ConfigurationSaveReqVO request = new ConfigurationSaveReqVO();
-        request.setProjectId(7L); request.setCode("CFG-NEW"); request.setStatus(2);
+        request.setProjectId(7L); request.setStatus(2);
         when(mapper.insert(any(ConfigurationDO.class))).thenAnswer(call -> {
             ConfigurationDO inserted = call.getArgument(0);
             assertEquals(0, inserted.getStatus());

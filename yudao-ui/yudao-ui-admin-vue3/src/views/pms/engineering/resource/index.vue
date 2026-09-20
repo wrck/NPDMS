@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="资源编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="资源名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -38,7 +35,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="资源编码" min-width="140" />
       <el-table-column prop="name" label="资源名称" min-width="180" />
       <el-table-column prop="resourceType" label="资源类型" width="120">
         <template #default="{ row }">
@@ -111,11 +107,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="资源编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="资源名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -180,7 +171,6 @@ const formRef = ref()
 const form = reactive<ResourceReadyVO>({ projectId: 0, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入资源编码' }],
   name: [{ required: true, message: '请输入资源名称' }]
 }
 
@@ -232,7 +222,7 @@ const remove = async (row: ResourceReadyVO) => {
 }
 const handleAction = async (row: ResourceReadyVO, action: 'markReady' | 'markAbnormal' | 'resetToNotReady') => {
   const actionText = { markReady: '标记就绪', markAbnormal: '标记异常', resetToNotReady: '重置未就绪' }[action]
-  await message.confirm(`确认${actionText}资源【${row.code}】？`)
+  await message.confirm(`确认${actionText}资源【${row.name}】？`)
   if (action === 'markReady') await ResourceApi.markReady(row.id!)
   if (action === 'markAbnormal') await ResourceApi.markAbnormal(row.id!)
   if (action === 'resetToNotReady') await ResourceApi.resetToNotReady(row.id!)
