@@ -139,7 +139,7 @@ public class SyncRunService {
             });
             if((d.clearBeforeLoad()||d.resetMappingsBeforeLoad())&&snapshot.objects().stream().allMatch(o->o.rows().isEmpty()))
                 throw new IllegalArgumentException("来源为空，拒绝清空目标组织或重置映射");
-            var adapter=validator.adapter(d.adapter());
+            var adapter=validator.adapter(d);
             List<SyncBindingDO> bindingRows=(d.clearBeforeLoad()||d.resetMappingsBeforeLoad())?List.of():
                     adapter.requiresAllBindings()?bindings.selectTask(new SyncQueries.Task(SyncTaskService.tenant(),task.getId()))
                             :loadPageBindingRows(task.getId(),d,snapshot);
@@ -208,7 +208,7 @@ public class SyncRunService {
             if(!"SUCCESS".equals(current.getStatus())&&!"PREVIEW_READY".equals(current.getStatus())) {
                 var captured=evidence;
                 tx().executeWithoutResult(status->{
-                    if(!captured.isEmpty())evidenceService.complete(runId,d,captured,validator.adapter(d.adapter()).descriptor(),List.of(),true);
+                    if(!captured.isEmpty())evidenceService.complete(runId,d,captured,validator.adapter(d).descriptor(),List.of(),true);
                     var failure=required(runId);
                     failure.setStatus("FAILED").setFinishedAt(LocalDateTime.now())
                             .setErrorMessage(safeError(exception)).setSummaryJson(JsonUtils.toJsonString(Map.of("FAILED",failure.getReadCount())));runs.updateById(failure);
@@ -234,7 +234,7 @@ public class SyncRunService {
             acquired=lock.tryLock(1,TimeUnit.SECONDS);
             if(!acquired)throw new IllegalStateException("目标范围正在由另一任务同步");
             var task=taskService.required(root.getTaskId());
-            var adapter=validator.adapter(d.adapter());
+            var adapter=validator.adapter(d);
             if(!adapter.supportsStreaming())throw new IllegalArgumentException("当前业务适配器不支持流式分块执行");
             updateStatus(runId,"READING");
             SyncStreamingState resume=null;
@@ -399,7 +399,7 @@ public class SyncRunService {
         if(r==null)throw new IllegalArgumentException("运行记录不存在");
         if(!"SUCCESS".equals(r.getStatus())||!r.getCachePending())return;
         try {
-            validator.adapter(JsonUtils.parseObject(r.getConfigSnapshot(),SyncDefinition.class).adapter()).refreshCaches();
+            validator.adapter(JsonUtils.parseObject(r.getConfigSnapshot(),SyncDefinition.class)).refreshCaches();
             tx().executeWithoutResult(s->runs.markCacheRefreshed(query));
         }catch(RuntimeException ex){
             log.warn("Organization cache refresh pending for run {}: {}",runId,ex.getClass().getSimpleName());
@@ -420,7 +420,7 @@ public class SyncRunService {
                     var r=required(run.getId());
                     if(r.getEvidenceJson()!=null)evidenceService.complete(r.getId(),d,
                             JsonUtils.parseArray(r.getEvidenceJson(),SyncEvidenceService.Evidence.class),
-                            validator.adapter(d.adapter()).descriptor(),List.of(),true);
+                            validator.adapter(d).descriptor(),List.of(),true);
                     r.setStatus("FAILED").setErrorMessage("运行进程中断，已核对业务提交状态；可创建关联重试")
                             .setFinishedAt(LocalDateTime.now());runs.updateById(r);
                     // Root runs own task scheduling. Child-page recovery calls failTask too, but its owner check is a no-op.
@@ -431,7 +431,7 @@ public class SyncRunService {
     }
     private void persistBindings(SyncTaskDO task,SyncDefinition d,List<DataSyncAdapter.Change> changes,Long runId,
                                  List<SyncBindingDO> bindingRows) {
-        boolean targetShared=validator.adapter(d.adapter()).sharesTargetAcrossSources();
+        boolean targetShared=validator.adapter(d).sharesTargetAcrossSources();
         Map<String,SyncBindingDO> existing=new HashMap<>();
         // All binding writers hold the same adapter lock; reuse this chunk's protected snapshot.
         bindingRows.forEach(b->existing.put(b.getObjectKey()+":"+b.getSourceKey(),b));

@@ -1,0 +1,380 @@
+[
+  {
+    "table": "com_shipment_contract_reference",
+    "label": "发货合同归属",
+    "context": "COM",
+    "writable": true,
+    "immutable": false,
+    "columns": [
+      "contract_id",
+      "contract_no",
+      "company_id",
+      "company_code",
+      "company_name",
+      "department_id",
+      "department_code",
+      "department_name",
+      "contract_type",
+      "customer_name",
+      "project_name",
+      "market_code",
+      "market_name",
+      "system_source_key",
+      "system_code",
+      "system_name",
+      "warranty_flag",
+      "remark",
+      "mapping_status",
+      "source_system",
+      "source_record_key",
+      "source_sync_time"
+    ],
+    "updateColumns": [
+      "contract_id",
+      "contract_no",
+      "company_id",
+      "company_code",
+      "company_name",
+      "department_id",
+      "department_code",
+      "department_name",
+      "contract_type",
+      "customer_name",
+      "project_name",
+      "market_code",
+      "market_name",
+      "system_source_key",
+      "system_code",
+      "system_name",
+      "warranty_flag",
+      "remark",
+      "source_sync_time"
+    ],
+    "keys": [
+      [
+        "source_system",
+        "source_record_key"
+      ]
+    ],
+    "insertDefaults": {
+      "mapping_status": "PENDING_MAPPING"
+    },
+    "ownerColumn": "source_system",
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": false
+  },
+  {
+    "table": "com_shipment_package",
+    "label": "合同装箱单",
+    "context": "COM",
+    "writable": true,
+    "immutable": false,
+    "columns": [
+      "shipment_contract_ref_id",
+      "package_no",
+      "shipment_time",
+      "warranty_start_time",
+      "warranty_end_time",
+      "receiver_name",
+      "express_no",
+      "carrier_name",
+      "mapping_status",
+      "source_system",
+      "source_record_key",
+      "source_sync_time"
+    ],
+    "updateColumns": [
+      "shipment_contract_ref_id",
+      "shipment_time",
+      "warranty_start_time",
+      "warranty_end_time",
+      "receiver_name",
+      "express_no",
+      "carrier_name",
+      "source_sync_time"
+    ],
+    "keys": [
+      [
+        "source_system",
+        "source_record_key"
+      ],
+      [
+        "source_system",
+        "package_no"
+      ]
+    ],
+    "insertDefaults": {
+      "mapping_status": "PENDING_MAPPING"
+    },
+    "ownerColumn": "source_system",
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": false
+  },
+  {
+    "table": "com_contract",
+    "label": "合同主档",
+    "context": "COM",
+    "writable": true,
+    "immutable": false,
+    "columns": [
+      "company_id",
+      "company_code",
+      "company_name",
+      "contract_no",
+      "master_source_system",
+      "master_source_record_key",
+      "customer_code",
+      "customer_name",
+      "contract_name",
+      "contract_type",
+      "contract_amount",
+      "currency_code",
+      "effective_date",
+      "expiry_date",
+      "currency_name",
+      "contract_create_time",
+      "project_name",
+      "project_code",
+      "market_code",
+      "market_name",
+      "department_code",
+      "department_name",
+      "system_code",
+      "system_name",
+      "expend_code",
+      "expend_name",
+      "industry_code",
+      "industry_name",
+      "marketing_representative_code",
+      "marketing_representative_name",
+      "secondary_representative_code"
+    ],
+    "updateColumns": [
+      "currency_name",
+      "contract_create_time",
+      "project_name",
+      "project_code",
+      "market_code",
+      "market_name",
+      "department_code",
+      "department_name",
+      "system_code",
+      "system_name",
+      "expend_code",
+      "expend_name",
+      "industry_code",
+      "industry_name",
+      "marketing_representative_code",
+      "marketing_representative_name",
+      "secondary_representative_code"
+    ],
+    "keys": [
+      [
+        "company_code",
+        "contract_no"
+      ],
+      [
+        "master_source_system",
+        "master_source_record_key"
+      ]
+    ],
+    "insertDefaults": {
+      "authority_status": "PENDING_AUTHORITY",
+      "source_lifecycle_status": null,
+      "status": null
+    },
+    "ownerColumn": null,
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": true
+  },
+  {
+    "table": "ast_device",
+    "label": "设备 SN 主档",
+    "context": "AST",
+    "writable": true,
+    "immutable": false,
+    "columns": [
+      "sn",
+      "product_code",
+      "internal_serial_no",
+      "secondary_sn",
+      "secondary_item",
+      "shipment_time",
+      "package_no",
+      "contract_no",
+      "shipment_record_id",
+      "source_system",
+      "source_key"
+    ],
+    "updateColumns": [
+      "shipment_time",
+      "package_no",
+      "contract_no",
+      "shipment_record_id",
+      "secondary_sn",
+      "secondary_item"
+    ],
+    "keys": [
+      [
+        "sn"
+      ]
+    ],
+    "insertDefaults": {
+      "status": "IN_STOCK",
+      "sync_status": "SUCCESS"
+    },
+    "ownerColumn": null,
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": true
+  },
+  {
+    "table": "ast_device_shipment",
+    "label": "设备发货事件",
+    "context": "AST",
+    "writable": true,
+    "immutable": true,
+    "columns": [
+      "device_sn",
+      "shipment_time",
+      "package_no",
+      "contract_no",
+      "event_type",
+      "warranty_start_date",
+      "warranty_months",
+      "rma_no",
+      "rma_related_sn",
+      "rma_marked",
+      "legacy_package_key",
+      "order_line_id",
+      "source_payload",
+      "source_system",
+      "source_key",
+      "source_version",
+      "source_updated_at"
+    ],
+    "updateColumns": [],
+    "keys": [
+      [
+        "source_system",
+        "source_key"
+      ]
+    ],
+    "insertDefaults": {
+      "sync_status": "SUCCESS"
+    },
+    "ownerColumn": "source_system",
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": true,
+    "immutableIgnoreColumns": [
+      "source_payload",
+      "source_updated_at",
+      "source_version"
+    ]
+  },
+  {
+    "table": "system_company",
+    "label": "公司目录",
+    "context": "SYSTEM",
+    "writable": false,
+    "immutable": false,
+    "columns": [
+      "code",
+      "name"
+    ],
+    "updateColumns": [],
+    "keys": [
+      [
+        "code"
+      ]
+    ],
+    "insertDefaults": {},
+    "ownerColumn": null,
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": false
+  },
+  {
+    "table": "system_dept",
+    "label": "部门目录",
+    "context": "SYSTEM",
+    "writable": false,
+    "immutable": false,
+    "columns": [
+      "code",
+      "name",
+      "status"
+    ],
+    "updateColumns": [],
+    "keys": [
+      [
+        "code"
+      ]
+    ],
+    "insertDefaults": {},
+    "ownerColumn": null,
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": false
+  },
+  {
+    "table": "cus_market_relation",
+    "label": "市场行业组合",
+    "context": "CUS",
+    "writable": false,
+    "immutable": false,
+    "columns": [
+      "market_code",
+      "market_name",
+      "system_code",
+      "system_name",
+      "expend_code",
+      "expend_name",
+      "industry_code",
+      "industry_name"
+    ],
+    "updateColumns": [],
+    "keys": [
+      [
+        "market_code",
+        "system_code",
+        "expend_code",
+        "industry_code"
+      ]
+    ],
+    "insertDefaults": {},
+    "ownerColumn": null,
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": false
+  },
+  {
+    "table": "com_sales_order_line",
+    "label": "ERP 订单行",
+    "context": "COM",
+    "writable": false,
+    "immutable": false,
+    "columns": [
+      "order_no",
+      "line_no",
+      "item_code"
+    ],
+    "updateColumns": [],
+    "keys": [
+      [
+        "order_no",
+        "line_no",
+        "item_code"
+      ]
+    ],
+    "insertDefaults": {},
+    "ownerColumn": null,
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": false
+  }
+]

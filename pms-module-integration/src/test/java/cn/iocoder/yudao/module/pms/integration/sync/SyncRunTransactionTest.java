@@ -440,6 +440,7 @@ class SyncRunTransactionTest {
     @Import({SyncRunService.class,SyncTaskService.class,SyncDefinitionValidator.class,SyncFieldMapper.class,EhrOrganizationAdapter.class,ManagedOrganizationApiImpl.class})
     @MapperScan(basePackageClasses={SyncTaskMapper.class,CompanyMapper.class,DeptMapper.class,ManagedOrganizationMapper.class})
     static class Config {
+        @Bean cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine genericEngine() {return mock(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class);}
         @Bean cn.hutool.extra.spring.SpringUtil springUtil(){return new cn.hutool.extra.spring.SpringUtil();}
         @Bean DataSource dataSource(){return new DriverManagerDataSource("jdbc:h2:mem:sync_"+UUID.randomUUID()+";MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1","sa","");}
         @Bean DataSyncAdapter pagedAdapter(DataSource dataSource) {

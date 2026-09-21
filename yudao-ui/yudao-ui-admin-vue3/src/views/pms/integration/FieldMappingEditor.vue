@@ -62,10 +62,15 @@
       ></el-table-column>
       <el-table-column label="操作" width="80" fixed="right"
         ><template #default="{ $index }">
-          <el-button link type="danger" :aria-label="'删除' + $index + '行映射'" @click="removeRow($index)"
+          <el-button
+            link
+            type="danger"
+            :aria-label="'删除' + $index + '行映射'"
+            @click="removeRow($index)"
             >删除</el-button
-          > </template
-      ></el-table-column>
+          >
+        </template></el-table-column
+      >
     </el-table>
     <div class="mt-8px">
       <el-button :disabled="!canAdd" @click="addRow"
@@ -73,22 +78,26 @@
       >
       <span v-if="!canAdd" class="integration-note">全部目标字段均已映射</span>
     </div>
-    <p class="integration-note"
-      >枚举使用 JSON 对象，NULL 表示来源空值。引用字段填写对应对象的源主键，不填写目标数据库 ID。</p
-    >
+    <p class="integration-note">{{
+      props.generic
+        ? '枚举使用 JSON 对象；可用 $SOURCE_KEY、$SOURCE_SYSTEM 和 $步骤名.id 引用来源及前序目标。'
+        : '枚举使用 JSON 对象，NULL 表示来源空值。引用字段填写对应对象的源主键，不填写目标数据库 ID。'
+    }}</p>
   </div>
 </template>
 <script setup lang="ts">
 import type { Mapping } from '@/api/pms/integration'
 const model = defineModel<Mapping[]>({ required: true })
 const props = defineProps<{
+  generic?: boolean
   columns: string[]
   fields: { name: string; label: string; type?: string; required?: boolean }[]
 }>()
 const errors = reactive(new Set<Mapping>())
 const enumDrafts = reactive(new Map<Mapping, string>())
 defineExpose({
-  validate: () => !model.value.some((row) => ['ENUM', 'LOOKUP'].includes(row.conversion) && errors.has(row))
+  validate: () =>
+    !model.value.some((row) => ['ENUM', 'LOOKUP'].includes(row.conversion) && errors.has(row))
 })
 // 读取来源字段后，按同名自动回填尚未指定来源的映射行；不覆盖已手工选择的来源。
 watch(
@@ -104,7 +113,8 @@ watch(
   { immediate: true }
 )
 const canAdd = computed(
-  () => !!props.fields.length && props.fields.some((f) => !model.value.some((m) => m.target === f.name))
+  () =>
+    !!props.fields.length && props.fields.some((f) => !model.value.some((m) => m.target === f.name))
 )
 const addRow = () => {
   const field = props.fields.find((f) => !model.value.some((m) => m.target === f.name))
@@ -122,7 +132,7 @@ const removeRow = (index: number) => {
     enumDrafts.delete(row)
   }
 }
-const conversions = [
+const conversions = computed(() => [
   { value: 'DIRECT', label: '直接映射' },
   { value: 'STRING', label: '转为文本' },
   { value: 'TRIM', label: '去首尾空格' },
@@ -133,8 +143,13 @@ const conversions = [
   { value: 'ENUM', label: '枚举转换' },
   { value: 'LOOKUP', label: '显式映射（未匹配留空）' },
   { value: 'CONSTANT', label: '固定常量' },
-  { value: 'REFERENCE', label: '来源关系引用' }
-]
+  ...(props.generic
+    ? [
+        { value: 'DATE', label: '日期' },
+        { value: 'JSON', label: 'JSON 载荷' }
+      ]
+    : [{ value: 'REFERENCE', label: '来源关系引用' }])
+])
 const setEnum = (row: Mapping, value: string) => {
   enumDrafts.set(row, value)
   try {

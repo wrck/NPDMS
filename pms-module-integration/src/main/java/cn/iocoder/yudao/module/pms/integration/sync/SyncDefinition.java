@@ -16,6 +16,8 @@ import java.util.Map;
 @Accessors(fluent=true)
 public class SyncDefinition {
     private String adapter;
+    /** Stable identity for a configurable task; independent of its display name. */
+    private String taskKey;
     private String sourceSystem;
     private Long connectionId;
     private String mode;
@@ -66,6 +68,9 @@ public class SyncDefinition {
         private List<String> columns;
         private List<Filter> filters;
         private List<Mapping> mappings;
+        private List<cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetStep> targets;
+        private String issueField;
+        private String primaryTarget;
     }
     /** function wraps the column in a whitelist-only scalar function, e.g. LENGTH(depCode)=6. */
     public record Filter(String column,String operator,Object value,String function) {

@@ -35,7 +35,7 @@
           <el-form-item label="来源系统标识"
             ><el-input v-model="draft.definition.sourceSystem" placeholder="例如 DPPMS"
           /></el-form-item>
-          <el-form-item label="业务适配器"
+          <el-form-item label="同步方式"
             ><el-select v-model="draft.definition.adapter" @change="changeAdapter"
               ><el-option
                 v-for="a in adapters"
@@ -60,9 +60,15 @@
         </el-form>
       </el-tab-pane>
       <el-tab-pane label="来源与字段映射" name="sources">
+        <GenericMappingEditor
+          v-if="draft.definition.adapter === 'TABLE_MAPPING'"
+          ref="genericEditor"
+          v-model="draft.definition"
+          @template-name="draft.name = $event"
+        />
         <SourceEditor
           ref="sourceEditor"
-          v-if="selectedAdapter"
+          v-if="selectedAdapter && draft.definition.adapter !== 'TABLE_MAPPING'"
           :key="String(draft.definition.connectionId) + draft.definition.adapter"
           v-model="draft.definition"
           :adapter="selectedAdapter"
@@ -185,7 +191,11 @@
               </el-select>
             </el-form-item>
             <el-form-item label="SQL 超时（秒）">
-              <el-input-number v-model="draft.definition.queryTimeoutSeconds" :min="0" :max="3600" />
+              <el-input-number
+                v-model="draft.definition.queryTimeoutSeconds"
+                :min="0"
+                :max="3600"
+              />
             </el-form-item>
             <el-form-item label="预览样本上限">
               <el-input-number v-model="draft.definition.maxRows" :min="1" :max="10000" />
@@ -251,6 +261,8 @@
 <script setup lang="ts">
 import * as api from '@/api/pms/integration'
 import SourceEditor from './SourceEditor.vue'
+import GenericMappingEditor from './GenericMappingEditor.vue'
+const genericEditor = ref<InstanceType<typeof GenericMappingEditor>>()
 import type { FormInstance } from 'element-plus'
 const emit = defineEmits<{ saved: []; closed: []; openExisting: [id: api.Id] }>()
 const configurationCheck = ref<api.ConfigurationCheck>()
@@ -313,6 +325,13 @@ const open = async (id?: api.Id) => {
 }
 const changeAdapter = async () => {
   if (!draft.value || !selectedAdapter.value) return
+  if (selectedAdapter.value.key === 'TABLE_MAPPING') {
+    const templates = await api.getGenericTemplates(draft.value.definition.connectionId)
+    draft.value.definition = templates[0].definition
+    draft.value.name = templates[0].name
+    normalizePerformance()
+    return
+  }
   if (selectedAdapter.value.key === 'DPPMS_CRM_EXECUTION_ORDER') {
     draft.value.definition = await api.getDppmsExecutionOrderTemplate(
       draft.value.definition.connectionId
@@ -322,10 +341,14 @@ const changeAdapter = async () => {
     return
   }
   if (selectedAdapter.value.key === 'PAYMENT_PLAN_ACCEPTANCE') {
-    draft.value.definition = await api.getPaymentAcceptanceTemplate(draft.value.definition.connectionId)
+    draft.value.definition = await api.getPaymentAcceptanceTemplate(
+      draft.value.definition.connectionId
+    )
     draft.value.name = '回款节点计划验收时间同步'
     normalizePerformance()
-    message.info('请核对来源主键，并配置参考事件到目标类型、阶段或任务编码的映射；未配置的节点将记录异常。')
+    message.info(
+      '请核对来源主键，并配置参考事件到目标类型、阶段或任务编码的映射；未配置的节点将记录异常。'
+    )
     return
   }
   if (selectedAdapter.value.key === 'DPPMS_ERP_ORDER') {
@@ -372,7 +395,11 @@ const save = async () => {
     section.value = 'basic'
     return
   }
-  if (!sourceEditor.value?.validate()) {
+  if (
+    !(draft.value.definition.adapter === 'TABLE_MAPPING'
+      ? genericEditor.value?.validate()
+      : sourceEditor.value?.validate())
+  ) {
     section.value = 'sources'
     return
   }

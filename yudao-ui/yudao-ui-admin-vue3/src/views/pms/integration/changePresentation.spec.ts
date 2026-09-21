@@ -30,4 +30,36 @@ describe('integration field comparison', () => {
   it('retains nested values without turning them into object placeholders', () => {
     expect(formatFieldValue({ codes: ['001', '002'] })).toBe('{"codes":["001","002"]}')
   })
+  it('compares generic target snapshots without reporting source evidence as changed fields', () => {
+    expect(
+      fieldChanges({
+        object: 'PACKAGE',
+        sourceKey: '1',
+        action: 'UPDATED',
+        before: { 'package.receiver_name': 'Alice' },
+        after: {
+          receiveName: 'Bob',
+          _targets: [],
+          _syncSourcePayload: { receiveName: 'Bob' },
+          'package.receiver_name': 'Bob'
+        }
+      })
+    ).toEqual([{ field: 'package.receiver_name', before: 'Alice', after: 'Bob', changed: true }])
+  })
+  it('labels preview-only reference IDs without hiding legitimate negative quantities', () => {
+    const changes = fieldChanges({
+      object: 'BARCODE',
+      sourceKey: '1',
+      action: 'CREATED',
+      before: {},
+      after: {
+        _targets: [],
+        _previewVirtualIds: true,
+        'device.shipment_record_id': -1,
+        'line.quantity': -2
+      }
+    })
+    expect(changes[0].after).toBe('待生成（预览）')
+    expect(changes[1].after).toBe('-2')
+  })
 })

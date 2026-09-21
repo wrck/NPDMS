@@ -32,8 +32,12 @@ export interface Source {
   columns: string[]
   filters: { column: string; operator: string; value?: unknown; function?: string | null }[]
   mappings: Mapping[]
+  targets?: GenericTargetStep[]
+  issueField?: string
+  primaryTarget?: string
 }
 export interface Definition {
+  taskKey?: string
   adapter: string
   sourceSystem: string
   connectionId: Id
@@ -143,7 +147,10 @@ export const getDppmsExecutionOrderTemplate = (connectionId: Id) =>
     params: { connectionId }
   })
 export const getPaymentAcceptanceTemplate = (connectionId: Id) =>
-  request.get<Definition>({ url: base + '/templates/payment-plan-acceptance', params: { connectionId } })
+  request.get<Definition>({
+    url: base + '/templates/payment-plan-acceptance',
+    params: { connectionId }
+  })
 export const getTasks = (params = { pageNo: 1, pageSize: 20 }) =>
   request.get<Page<Task>>({ url: base + '/tasks', params })
 export const getTask = (id: Id) => request.get<Task>({ url: base + '/tasks/' + id })
@@ -230,3 +237,41 @@ export const changeLabels: Record<string, string> = {
   ISSUE: '待处理问题',
   SKIPPED: '跳过'
 }
+
+export interface GenericTargetStep {
+  name: string
+  table: string
+  keys: string[]
+  mode: 'UPSERT' | 'INSERT_ONLY' | 'INSERT_IGNORE' | 'UPDATE_ONLY'
+  nullPolicy: 'IGNORE' | 'OVERWRITE'
+  updateColumns: string[]
+  whenField?: string | null
+  newerBy?: string | null
+  tieBreaker?: string | null
+  mappings: Mapping[]
+  lookups: {
+    table: string
+    match: Record<string, string>
+    outputs: Record<string, string>
+    onMissing: string
+  }[]
+}
+export interface GenericTarget {
+  table: string
+  label: string
+  writable: boolean
+  immutable: boolean
+  columns: string[]
+  updateColumns: string[]
+  keys: string[][]
+  insertDefaults: Record<string, unknown>
+}
+export interface GenericTemplate {
+  key: string
+  name: string
+  definition: Definition
+}
+export const getGenericTargets = () =>
+  request.get<GenericTarget[]>({ url: base + '/generic-targets' })
+export const getGenericTemplates = (connectionId: Id) =>
+  request.get<GenericTemplate[]>({ url: base + '/templates/generic', params: { connectionId } })

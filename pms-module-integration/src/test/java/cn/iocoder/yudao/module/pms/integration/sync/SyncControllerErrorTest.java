@@ -13,7 +13,7 @@ class SyncControllerErrorTest {
     @Test void localDuplicateWithSqlCauseIsNotReportedAsSourceConnectionFailure()throws Exception {
         var tasks=mock(SyncTaskService.class);
         when(tasks.save(any())).thenThrow(new DuplicateKeyException("private SQL",new SQLException("private connection")));
-        var controller=new DataSyncController(null,null,null,null,tasks,null,null,null,null);
+        var controller=new DataSyncController(null,null,null,null,tasks,null,null,null,null,null,null);
         MockMvcBuilders.standaloneSetup(controller).build().perform(post("/api/v1/pms/integration/tasks")
                         .contentType("application/json").content("{\"name\":\"重复任务\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(409))

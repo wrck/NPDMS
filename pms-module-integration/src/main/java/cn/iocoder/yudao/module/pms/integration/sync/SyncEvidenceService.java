@@ -90,8 +90,7 @@ public class SyncEvidenceService {
                             SourceReconciliationType.RETAINED,List.of(),"retained:"+pair.getValue(),correlation));retained++;
                 } else {
                     mappingCommands.add(new AppendExternalMappingCommand(tenant,e.batchId(),pair.getValue(),
-                            SourceReconciliationType.MAPPED,List.of(new ExternalTargetMapping(object.targetContext(),
-                            object.targetObjectType(),object.targetTable(),change.targetId(),"PRIMARY",0)),
+                            SourceReconciliationType.MAPPED,targetMappings(d,object,change),
                             "mapping:"+pair.getValue(),correlation));mapped++;
                 }
             }
@@ -103,6 +102,21 @@ public class SyncEvidenceService {
             api.completeReconciliation(new CompleteReconciliationCommand(tenant,e.batchId(),claim.batch().version(),
                     e.recordIds().size(),mapped,issues,retained,"SYNC_V1","complete:"+e.batchId(),correlation));
         }
+    }
+    private static List<ExternalTargetMapping> targetMappings(SyncDefinition d, DataSyncAdapter.ObjectDescriptor object, DataSyncAdapter.Change change) {
+        if (!"TABLE_MAPPING".equals(d.adapter())) return List.of(new ExternalTargetMapping(object.targetContext(),
+                object.targetObjectType(),object.targetTable(),change.targetId(),"PRIMARY",0));
+        Object raw=change.after().get("_targets");
+        if (!(raw instanceof List<?> targets)) throw new IllegalStateException("通用同步缺少目标血缘");
+        List<ExternalTargetMapping> result=new ArrayList<>();
+        Set<String> unique=new HashSet<>();
+        for(Object item:targets) {
+            if (!(item instanceof Map<?,?> target)) throw new IllegalStateException("目标血缘格式无效");
+            String table=target.get("table").toString();Long id=((Number)target.get("id")).longValue();
+            if(unique.add(table+":"+id)) result.add(new ExternalTargetMapping(target.get("context").toString(),
+                    table,table,id,Objects.equals(id,change.targetId())?"PRIMARY":"RELATED",result.size()));
+        }
+        return result;
     }
     // Required by the pre-existing PLT evidence contract; not used for change detection.
     private static String sha(String text) {

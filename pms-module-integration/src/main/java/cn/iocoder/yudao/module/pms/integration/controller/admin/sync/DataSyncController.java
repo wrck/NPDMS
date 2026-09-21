@@ -29,6 +29,8 @@ public class DataSyncController {
     private final SyncRunMapper runs;
     private final SyncBindingMapper bindings;
     private final cn.iocoder.yudao.module.system.api.permission.PermissionApi permissions;
+    private final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog genericTargets;
+    private final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncTemplates genericTemplates;
     public record Schedule(Integer version,boolean enabled) {}
 
     @GetMapping("/connections")
@@ -67,6 +69,16 @@ public class DataSyncController {
     @GetMapping("/adapters")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<List<DataSyncAdapter.Descriptor>> adapters(){return success(definitions.descriptors());}
+    @GetMapping("/generic-targets")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog.Table>> genericTargets() {
+        return success(genericTargets.tables());
+    }
+    @GetMapping("/templates/generic")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncTemplates.Template>> genericTemplates(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(genericTemplates.list(connectionId));
+    }
     @GetMapping("/templates/ehr")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> template(@RequestParam Long connectionId){

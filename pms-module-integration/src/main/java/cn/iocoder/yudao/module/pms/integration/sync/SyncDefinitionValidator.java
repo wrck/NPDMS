@@ -15,20 +15,30 @@ public class SyncDefinitionValidator {
         for(var p:providers) if(map.put(p.descriptor().key(),p)!=null) throw new IllegalStateException("适配器编码重复");
         adapters=Collections.unmodifiableMap(map);
     }
+    @org.springframework.beans.factory.annotation.Autowired
+    private cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine genericEngine;
+    public DataSyncAdapter adapter(SyncDefinition definition) {
+        return "TABLE_MAPPING".equals(definition.adapter()) ? genericEngine.bind(definition) : adapter(definition.adapter());
+    }
+    public static String taskIdentity(SyncDefinition d) {
+        return "TABLE_MAPPING".equals(d.adapter()) ? d.adapter() + ":" + d.taskKey() : d.adapter();
+    }
     public DataSyncAdapter adapter(String key) {
         var a=adapters.get(key);if(a==null) throw new IllegalArgumentException("业务适配器不存在");return a;
     }
     public List<DataSyncAdapter.Descriptor> descriptors(){
-        return adapters.values().stream().map(adapter->{
+        var result = new ArrayList<DataSyncAdapter.Descriptor>(adapters.values().stream().map(adapter->{
             var d=adapter.descriptor();
             return new DataSyncAdapter.Descriptor(d.key(),d.label(),d.objects(),d.missingPolicies(),d.loadingModes(),
                     d.supportsTargetClear(),adapter.supportsStreaming());
-        }).toList();
+        }).toList());
+        if (genericEngine != null) result.add(genericEngine.descriptor());
+        return result;
     }
     public void validate(SyncDefinition d) {
         if(d==null||d.connectionId()==null||d.sourceSystem()==null||!d.sourceSystem().matches("[A-Za-z0-9_-]{1,32}"))
             throw new IllegalArgumentException("连接或来源系统标识无效");
-        var adapter=adapter(d.adapter());
+        var adapter=adapter(d);
         var descriptor=adapter.descriptor();
         String readStrategy=d.effectiveReadStrategy();
         if(!Set.of("SNAPSHOT","KEYSET_PAGING","STREAMING_CURSOR").contains(readStrategy))
@@ -81,6 +91,7 @@ public class SyncDefinitionValidator {
                 throw new IllegalArgumentException("该业务对象不支持同步源主键");
             if("INCREMENTAL".equals(d.mode())) MysqlSyncReader.identifier(s.updatedAt());
             if("STREAMING_CURSOR".equals(readStrategy)) MysqlSyncReader.identifier(s.sourceKey());
+            if("TABLE_MAPPING".equals(d.adapter())) continue;
             if(s.mappings()==null) throw new IllegalArgumentException("缺少字段映射");
             Set<String> mapped=new HashSet<>();
             for(var m:s.mappings()) {
