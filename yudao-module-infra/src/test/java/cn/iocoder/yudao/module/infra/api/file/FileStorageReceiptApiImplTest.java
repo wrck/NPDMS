@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageStoreCommand;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.FileMapper;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
+import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient;
 import cn.iocoder.yudao.module.infra.service.file.FileConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -159,6 +162,32 @@ class FileStorageReceiptApiImplTest {
         assertEquals("https://private/signed", receipt.shortLivedUrl());
         assertTrue(receipt.expiresAt().isAfter(before));
         verify(fileConfigService, never()).getMasterFileClient();
+    }
+
+    @Test
+    void fallsBackOnlyForTheDbClientAndKeepsTheFrozenReceiptMetadata() {
+        FileDO existing = file(551L, 51L, "op-551", "a.pdf", "application/pdf", 3L);
+        DBFileClient dbClient = mock(DBFileClient.class);
+        when(fileMapper.selectById(551L)).thenReturn(existing);
+        when(fileConfigService.getFileClient(51L)).thenReturn(dbClient);
+        when(receiptDownloads.issue(existing, 60)).thenReturn(
+                "https://server/admin-api/infra/file-storage-receipts/content?ticket=opaque");
+
+        FileStorageAccessReceipt receipt = api.presignGet(551L, 60);
+
+        assertEquals("https://server/admin-api/infra/file-storage-receipts/content?ticket=opaque", receipt.shortLivedUrl());
+        verify(receiptDownloads).issue(existing, 60);
+    }
+
+    @Test
+    void keepsS3StylePresignedUrlsOnTheirExistingPath() {
+        FileDO existing = file(561L, 51L, "op-561", "a.pdf", "application/pdf", 3L);
+        when(fileMapper.selectById(561L)).thenReturn(existing);
+        when(fileConfigService.getFileClient(51L)).thenReturn(frozenClient);
+        when(frozenClient.presignGetUrl("pms-storage-receipts/op-561", 60)).thenReturn("https://private/signed");
+
+        assertEquals("https://private/signed", api.presignGet(561L, 60).shortLivedUrl());
+        verifyNoInteractions(receiptDownloads);
     }
 
     @Test

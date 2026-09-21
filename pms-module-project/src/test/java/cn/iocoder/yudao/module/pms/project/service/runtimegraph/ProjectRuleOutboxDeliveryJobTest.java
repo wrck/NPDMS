@@ -86,7 +86,11 @@ class ProjectRuleOutboxDeliveryJobTest {
         when(coordinator.reevaluate(9L, 11L, "corr")).thenReturn(new ProjectRuntimeCoordinator.Result(true, 1, 0));
         var job = new ProjectRuleOutboxDeliveryJob(outbox, coordinator, mock(ProjectRuleTimerDelivery.class));
         assertTrue(job.execute("").endsWith("待重试 1"));
-        verify(outbox).claimDue(argThat(query -> query.eventTypes().equals(Set.of(ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE, ProjectChildWaitEvents.EVENT_TYPE))));
+        verify(outbox).claimDue(argThat(query -> query.eventTypes().equals(Set.of(
+                ProjectRuleReevaluation.EVENT_TYPE, ProjectRuleTimer.EVENT_TYPE, ProjectChildWaitEvents.EVENT_TYPE,
+                "PMS.BusinessOperationResultCommitted.v1", "PMS.ProjectBusinessResultTarget.v1",
+                "PMS.BusinessResultChangeCommitted.v1", "PMS.ResultEvidenceEvaluated.v1",
+                "PMS.ResultEvidenceScan.v1", "PMS.ResultSubscriptionFanout.v1", "PMS.ResultSubscriptionWakeup.v1"))));
         verify(outbox).scheduleRetry(eq(event.eventId()), eq(0), any());
         verify(outbox, never()).markDelivered(any(), anyInt());
         when(coordinator.reevaluate(9L, 11L, "corr")).thenReturn(new ProjectRuntimeCoordinator.Result(false, 0, 0));

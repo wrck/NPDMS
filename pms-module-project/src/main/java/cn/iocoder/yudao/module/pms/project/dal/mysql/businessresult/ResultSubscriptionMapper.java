@@ -13,7 +13,10 @@ public interface ResultSubscriptionMapper {
     java.util.List<ResultSubscriptionDO> selectChannelPage(@Param("query") ChannelPage query);
     int retire(@Param("query") Retirement query);
     int checkpoint(@Param("query") Checkpoint query);
+    /** 只读展示查询：调用方保证executionIds非空；空集合直接返回空结果，不得放开为全表。 */
+    java.util.List<ResultSubscriptionDO> selectByExecutions(@Param("query") Executions query);
 
+    record Executions(Long tenantId, Long projectId, java.util.Collection<Long> executionIds) { }
     record ChannelPage(Long tenantId, Long projectId, Long channelId, long afterId, int limit) { }
     record Retirement(Long tenantId, Long projectId, Long id, Integer expectedVersion) { }
     record Identity(Long tenantId, Long projectId, Long planVersionId, Long executionId, String subscriptionKey) { }

@@ -57,9 +57,18 @@ public class ProjectResultEvidenceProcessor {
                 JsonUtils.parseObject(scan.getAccumulator(), ResultEvidencePolicy.Accumulator.class), true);
         if (!decision.status().name().equals(scan.getStatus())) throw new IllegalStateException("EVIDENCE_EVALUATION_CORRUPT");
         var round = context.execution();
-        // 完成历史不能由后来的扫描改写，失效影响由独立的历史证据复核处理。
-        if (round.getEndedAt() != null || Set.of("DONE", "COMPLETED", "TERMINATED").contains(round.getStatus()))
+        // 已完成历史保持不变；记录失效影响，由有权限用户使用原正式返工入口处理。
+        if (round.getEndedAt() != null || Set.of("DONE", "COMPLETED", "TERMINATED").contains(round.getStatus())) {
+            if (Set.of("DONE", "COMPLETED").contains(round.getStatus())
+                    && (!decision.satisfied() || originalEvidenceInvalidated(context, scan.getId()))) {
+                audit.record(row.getTenantId(), 0L, event.eventId(), "PROJECT_COMPLETED_EVIDENCE_INVALIDATED", "ProjectNode",
+                        row.getNodeId().toString(), "REWORK_REVIEW_REQUIRED", Map.of("scanId", scan.getId(),
+                                "subscriptionId", row.getId(), "executionId", row.getExecutionId(),
+                                "planVersionId", row.getPlanVersionId(), "evidenceStatus", decision.status().name()));
+                return "HISTORICAL_EVIDENCE_REVIEW_REQUIRED";
+            }
             return "HISTORICAL_RECIPIENT";
+        }
         if (!"ACTIVE".equals(context.project().getLifecycleStatus())) return "PROJECT_NOT_ACTIVE";
         if (!"EFFECTIVE".equals(context.plan().getStatus())
                 || !Objects.equals(row.getPlanVersionId(), context.project().getActivePlanVersionId())) return "OBSOLETE_RECIPIENT";
@@ -96,5 +105,28 @@ public class ProjectResultEvidenceProcessor {
         outbox.append("Project", row.getProjectId().toString(), new BusinessEvent(reevaluation.eventId(),
                 ProjectRuleReevaluationRequested.EVENT_TYPE, JsonUtils.toJsonString(reevaluation)));
         return "ADVANCED";
+    }
+
+    private boolean originalEvidenceInvalidated(ProjectResultSubscriptionContext.Locked context, Long currentScanId) {
+        var result = context.execution().getResultSnapshot();
+        if (result == null) return false;
+        var receipts = JsonUtils.parseTree(result).path("subscriptionEvidence");
+        if (receipts.isMissingNode()) return false;
+        if (!receipts.isArray()) throw new IllegalStateException("HISTORICAL_EVIDENCE_RECEIPT_INVALID");
+        var row = context.subscription();
+        boolean found = false, invalidated = false;
+        for (var value : receipts) {
+            var receipt = JsonUtils.parseObject(JsonUtils.toJsonString(value),
+                    cn.iocoder.yudao.module.pms.project.domain.rule.ResultEvidenceReceipt.class);
+            if (!Objects.equals(row.getId(), receipt.subscriptionId())) continue;
+            if (found || !Objects.equals(row.getPlanVersionId(), receipt.planVersionId())
+                    || !Objects.equals(row.getExecutionId(), receipt.executionId()) || !Objects.equals(row.getContractId(), receipt.contractId())
+                    || !Objects.equals(row.getSubscriptionKey(), receipt.subscriptionKey()))
+                throw new IllegalStateException("HISTORICAL_EVIDENCE_RECEIPT_INVALID");
+            found = true;
+            invalidated = evidence.hasInvalidatedItems(new ResultEvidenceMapper.HistoricalComparison(
+                    row.getTenantId(), row.getProjectId(), receipt.scanId(), currentScanId));
+        }
+        return invalidated;
     }
 }

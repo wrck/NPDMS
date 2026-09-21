@@ -9,6 +9,24 @@ public final class TemplateExecutionSnapshotReader {
 
     private TemplateExecutionSnapshotReader() { }
 
+    /**
+     * 冻结表示的规范序列化：省略absent值。运行时全局mapper由Spring装配为ALWAYS包含，
+     * 显式null会被本类重解析成NullNode而非Java null，冻结校验的"未配置"判断随之失真，
+     * 因此持久化与预检往返必须走同一规范化输出。
+     */
+    public static String canonicalJson(TemplateExecutionSnapshot snapshot) {
+        return Canonical.MAPPER.writeValueAsString(snapshot);
+    }
+
+    private static final class Canonical {
+        private static final tools.jackson.databind.ObjectMapper MAPPER =
+                JsonUtils.getObjectMapper().rebuild()
+                        .changeDefaultPropertyInclusion(value -> com.fasterxml.jackson.annotation.JsonInclude.Value.construct(
+                                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL,
+                                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL))
+                        .build();
+    }
+
     public static TemplateExecutionSnapshot read(String json) {
         if (json == null || json.isBlank()) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
         JsonNode document = JsonUtils.getObjectMapper().readerFor(JsonNode.class)

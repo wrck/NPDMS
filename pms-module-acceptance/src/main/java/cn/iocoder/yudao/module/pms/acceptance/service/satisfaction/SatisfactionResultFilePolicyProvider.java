@@ -33,11 +33,12 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
     @Override public String objectType() { return TYPE; }
     @Override
     public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
-        if (!isDownload(query)) return denied();
+        if (!isReadable(query)) return denied();
         Long resultId = positiveLong(query.objectId());
         SatisfactionResultDO result = resultMapper.selectById(resultId);
         SatisfactionCollectionTaskDO task = result == null ? null : taskMapper.selectById(result.getCollectionTaskId());
-        if (result == null || task == null) return denied();
+        if (result == null || task == null || !Objects.equals(query.tenantId(), result.getTenantId())
+                || !Objects.equals(query.tenantId(), task.getTenantId())) return denied();
         var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(),
                 query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_VIEW));
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
@@ -143,8 +144,9 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
                 Set.of(), Set.of(), 0L, "INTERNAL");
     }
 
-    private boolean isDownload(FileBusinessObjectPolicyQuery query) {
-        return query != null && FileActionCodes.DOWNLOAD.equals(query.requiredAction())
+    private boolean isReadable(FileBusinessObjectPolicyQuery query) {
+        return query != null && (FileActionCodes.READ.equals(query.requiredAction())
+                || FileActionCodes.DOWNLOAD.equals(query.requiredAction()))
                 && PURPOSE.equals(query.purposeCode());
     }
 

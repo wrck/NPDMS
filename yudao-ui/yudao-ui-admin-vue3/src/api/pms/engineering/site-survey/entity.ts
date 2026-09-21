@@ -4,6 +4,7 @@ import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import { selectionClient } from '@/components/BusinessView/operationClient'
+import { siteSurveyResult } from './operationResults'
 
 export type SiteSurveyExecutionSelection = ProjectBusinessExecutionSelection
 export interface SiteSurveyFormSchemaVO {
@@ -67,14 +68,14 @@ export const createSiteSurvey = async (data: SiteSurveyVO) => {
   const client = selectionClient(data.execution)
   if (!client) return request.post({ url: `${baseUrl}/create`, data })
   const input = siteSurveyOperationInput(data)
-  const result = await client.execute({ operationCode: 'SOL.SITE_SURVEY.CREATE', input })
+  const result = await client.execute({ operationCode: 'SOL.SITE_SURVEY.CREATE', input, validateResult: siteSurveyResult('CREATE') })
   return (result.response as { id: number }).id
 }
 export const updateSiteSurvey = async (data: SiteSurveyVO) => {
   const client = selectionClient(data.execution)
   if (!client) return request.put({ url: `${baseUrl}/update`, data })
   const input = siteSurveyOperationInput(data)
-  await client.execute({ operationCode: 'SOL.SITE_SURVEY.UPDATE', objectId: data.id, expectedBusinessVersion: data.version, input })
+  await client.execute({ operationCode: 'SOL.SITE_SURVEY.UPDATE', objectId: data.id, expectedBusinessVersion: data.version, input, validateResult: siteSurveyResult('UPDATE') })
   return true
 }
 const action = async (name: 'delete' | 'confirm' | 'reject' | 'archive', id: number, execution?: SiteSurveyExecutionSelection) => {
@@ -83,6 +84,7 @@ const action = async (name: 'delete' | 'confirm' | 'reject' | 'archive', id: num
     ? request.delete({ url: `${baseUrl}/delete`, params: { id }, data: execution })
     : request.put({ url: `${baseUrl}/${name}`, params: { id }, data: execution })
   await client.execute({ operationCode: `SOL.SITE_SURVEY.${name.toUpperCase()}`, objectId: id, input: {},
+    validateResult: siteSurveyResult(({ delete: 'DELETE', confirm: 'CONFIRM', reject: 'REJECT', archive: 'ARCHIVE' } as const)[name]),
     expectedBusinessVersion: async () => {
       const row = await getSiteSurvey(id)
       if (String(row.id) !== String(id) || String(row.projectId) !== String(client.target.projectId) || row.version == null)

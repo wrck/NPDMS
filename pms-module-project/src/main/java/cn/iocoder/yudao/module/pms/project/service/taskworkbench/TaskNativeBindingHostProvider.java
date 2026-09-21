@@ -63,7 +63,8 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         return BINDING_TYPE;
     }
 
-    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL", "RESULT_SUBSCRIPTION"); }
+    // PAGE 任务沿用原生任务状态机（指派/启动/完成），路由仅作为额外导航入口冻结在绑定参数中。
+    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL", "RESULT_SUBSCRIPTION", "PAGE"); }
 
     @Override
     public TaskBindingInspection inspect(TaskBindingInspectionQuery query) {

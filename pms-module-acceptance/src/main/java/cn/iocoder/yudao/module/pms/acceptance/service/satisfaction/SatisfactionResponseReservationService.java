@@ -31,6 +31,7 @@ public class SatisfactionResponseReservationService {
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
 
     @Transactional(propagation = Propagation.MANDATORY)
     public Reservation reserveFromToken(Long tenantId, String token, String requestId) {
@@ -111,6 +112,8 @@ public class SatisfactionResponseReservationService {
                 || "ASSIGNED".equals(task.getTaskStatus()))) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_RESERVATION_OWNER_CONFLICT");
         }
+        if (IndependentSatisfactionService.direct(task))
+            independent.lockIfDirect(tenantId, positiveLong(grant.getCreator()), task);
     }
 
     static String digest(String value) {

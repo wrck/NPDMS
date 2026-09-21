@@ -36,6 +36,12 @@ public class ProjectTemplateRuleController {
         return success(ProjectRuleFields.catalog());
     }
 
+    @GetMapping("/operation-result-fields")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:project-template:query', 'pms:project-plan:manage')")
+    public CommonResult<List<ProjectRuleFields.Field>> operationResultFields() {
+        return success(cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultFields.catalog());
+    }
+
     public record SimulationRequest(@NotNull List<cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule> rules,
                                     @jakarta.validation.constraints.NotBlank String ruleKey,
                                     @NotNull Map<String, JsonNode> facts) { }

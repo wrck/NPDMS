@@ -330,6 +330,12 @@ export interface ProjectTemplateDetailVO extends ProjectTemplateVO {
 export interface ProjectTemplateRevisionDetailVO extends ProjectTemplateRevisionVO {
   content: TemplateDefinitionContent
 }
+export interface ProjectTemplateSummary {
+  match: TemplateMatch
+  stageCount: number
+  /** S0 is project initialization and is intentionally excluded from delivery-task totals. */
+  taskCount: number
+}
 export interface ProjectTemplateUpdateReqVO {
   name?: string
   matchPriority?: number
@@ -397,6 +403,29 @@ export const copyProjectTemplate = (id: number, version: number, data: TemplateC
   })
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
   request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
+
+/** Reads an existing authoring draft, or the newest published projection when historical templates have no draft. */
+export const getProjectTemplateSummary = async (id: number): Promise<ProjectTemplateSummary | undefined> => {
+  const template = await getProjectTemplate(id)
+  const draft = template.revisions.find((revision) => revision.status === 'DRAFT')
+  if (draft) return summaryOf(await getProjectTemplateDraft(id))
+  const published = template.revisions
+    .filter((revision) => revision.status === 'PUBLISHED')
+    .sort((left, right) => right.revisionNo - left.revisionNo)[0]
+  if (!published) return undefined
+  return summaryOf((await getProjectTemplateRevision(id, published.revisionNo)).content)
+}
+
+const summaryOf = (content: TemplateDesignerDocument | TemplateDefinitionContent): ProjectTemplateSummary => ({
+  match: 'match' in content ? content.match : {
+    signingMethod: content.signingMethod,
+    projectCategory: content.projectCategory,
+    implementationMethod: content.implementationMethod,
+    majorProjectLevel: content.majorProjectLevel
+  },
+  stageCount: content.stages.length,
+  taskCount: content.tasks.filter((task) => task.stageCode !== 'S0').length
+})
 export const matchPreview = (data: MatchPreviewReqVO) =>
   request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
 export const getCompletionFactCatalog = () =>

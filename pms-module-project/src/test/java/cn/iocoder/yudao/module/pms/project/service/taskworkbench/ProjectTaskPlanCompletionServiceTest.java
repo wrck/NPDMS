@@ -104,6 +104,14 @@ class ProjectTaskPlanCompletionServiceTest {
         assertTrue(evaluate().completion().ruleVersionRef().contains("plan:52")); verifyNoInteractions(business);
     }
 
+    @Test void pageNavigationRetainsNativeCompletionAndRequiresAnActualSubmission() {
+        binding.setWorkBindingTypeCode("PAGE");
+        assertTrue(evaluate().matched());
+        round.setSubmittedAt(null);
+        assertFalse(evaluate().matched());
+        verifyNoInteractions(business);
+    }
+
     @Test void ownActivationWaitUsesTheTaskRoundNotItsParentAndStillRequiresRealSubmission() {
         var evaluator = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
         org.springframework.test.util.ReflectionTestUtils.setField(evaluator, "relativeTime",

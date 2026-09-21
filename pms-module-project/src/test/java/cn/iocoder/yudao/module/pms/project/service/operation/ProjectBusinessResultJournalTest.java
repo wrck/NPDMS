@@ -91,8 +91,12 @@ class ProjectBusinessResultJournalTest {
         var boundary=capture(); assertEquals(1,boundary.sequence());
         var page=journal.read(boundary,0,10); var change=page.changes().getFirst();
         assertTrue(change.formation()); assertEquals(input,change.source()); assertEquals("40",change.observation().result().resultId());
-        assertEquals(1,count("test_owner")); assertEquals(1,count("test_outbox")); assertTrue(page.complete());
-        assertEquals(change.eventId(),JsonUtils.parseObject(jdbc.queryForObject("SELECT payload FROM test_outbox",String.class),BusinessResultChange.class).eventId());
+        assertEquals(1,count("test_owner")); assertEquals(2,count("test_outbox")); assertTrue(page.complete());
+        assertEquals(change.eventId(),JsonUtils.parseObject(jdbc.queryForObject("SELECT payload FROM test_outbox WHERE event_id=?",String.class,change.eventId()),BusinessResultChange.class).eventId());
+        var wakeup = JsonUtils.parseObject(jdbc.queryForObject("SELECT payload FROM test_outbox WHERE event_id<>?",String.class,change.eventId()),
+                cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.class);
+        assertEquals(input.projectId(), wakeup.projectId()); assertEquals(input.tenantId(), wakeup.tenantId());
+        assertEquals(input.eventId(), wakeup.correlationId()); // No subscription is needed to wake BUSINESS_FACT rules.
     }
     @ParameterizedTest @ValueSource(strings={"after-record","outbox"})
     void ownerJournalSequenceAndOutboxRollbackTogether(String failure){
@@ -107,7 +111,7 @@ class ProjectBusinessResultJournalTest {
     @Test void replayDoesNotRereadMutableOwnerFactsOrAppendADuplicate(){
         var input=event("40");tx.executeWithoutResult(status->journal.record(input));
         observation.set(Observation.absent(Status.UNAVAILABLE,"REPLACED_LATER"));
-        tx.executeWithoutResult(status->journal.record(input));assertEquals(1,reads.get());assertEquals(1,capture().sequence());assertEquals(1,count("test_outbox"));
+        tx.executeWithoutResult(status->journal.record(input));assertEquals(1,reads.get());assertEquals(1,capture().sequence());assertEquals(2,count("test_outbox"));
         var conflict=new BusinessOperationResultEvent(input.eventId(),1,1L,3L,"TEST","NATIVE","100","41",2,"changed", "COMPLETED","CONFIRM","key",9L,input.occurredAt(),"trace");
         assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(status->journal.record(conflict)));assertEquals(1,reads.get());
     }
@@ -165,7 +169,7 @@ class ProjectBusinessResultJournalTest {
         var event=new BusinessOperationResultEvent(before.eventId(),1,1L,3L,"TEST","NATIVE","100","40",2,
                 "fact:40","COMPLETED","CONFIRM","key",9L,before.occurredAt().withNano(123456789),"trace");
         tx.executeWithoutResult(status->journal.record(event));tx.executeWithoutResult(status->journal.record(event));
-        assertEquals(1,reads.get());assertEquals(1,count("test_outbox"));
+        assertEquals(1,reads.get());assertEquals(2,count("test_outbox"));
     }
     @ParameterizedTest @ValueSource(strings={"string-version","missing-version","unknown-version","missing-formation"})
     void storedFormatCannotDefaultOrCoerceItsVersion(String damage) {

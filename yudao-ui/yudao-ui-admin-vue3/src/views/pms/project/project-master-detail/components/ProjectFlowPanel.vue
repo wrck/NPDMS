@@ -156,6 +156,20 @@ v-if="maintenanceRef?.description?.descriptionFormat === 'HTML'"
         </el-descriptions-item>
       </el-descriptions>
 
+      <template v-if="workbench?.deliverables?.length">
+        <div class="section-title"><span>交付件清单</span></div>
+        <div class="task-deliverables">
+          <div v-for="item in workbench.deliverables" :key="item.id" class="deliverable-line">
+            <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
+            <span class="deliverable-name">{{ item.name }}</span>
+            <span class="deliverable-code">{{ item.deliverableCode }}</span>
+            <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
+            <el-button link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
+          </div>
+          <p class="deliverable-hint">文件或业务成果有效且模板条件满足时，自动满足交付要求。</p>
+        </div>
+      </template>
+
       <el-alert
         v-if="workbench?.recoverableError"
         type="error"
@@ -179,6 +193,7 @@ v-if="workbench?.task.version != null" ref="maintenanceRef" :project-id="project
           v-if="businessBound && workbench?.task.version != null"
           :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新业务结果</el-button>
         <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新审批结果</el-button>
+        <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新任务状态</el-button>
       </div>
       <TaskBusinessPanel
         v-if="businessBound && workbench?.task.version != null"
@@ -195,6 +210,61 @@ v-if="workbench?.task.version != null" ref="maintenanceRef" :project-id="project
 v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         :key="`approval-${workbench.task.taskId}`" :workbench="workbench" @changed="handleBusinessChanged" />
       <el-alert
+        v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'"
+        :type="subscriptionSatisfied ? 'success' : 'info'"
+        :closable="false" show-icon
+        title="本任务订阅业务结果：满足订阅与节点完成条件后由系统推进；业务办理请使用对应业务入口。"
+      >
+        <div class="subscription-observations">
+          <p v-if="!workbench?.resultSubscriptions?.length" class="subscription-empty">
+            暂无订阅评估记录：订阅尚未评估或本轮尚未安装，请稍后刷新。
+          </p>
+          <div v-for="round in workbench?.resultSubscriptions || []" :key="round.executionId" class="subscription-round">
+            <p v-if="round.roundEnded" class="subscription-note">
+              本轮已结束；以下为证据复核状态，返工请使用正式返工入口。
+            </p>
+            <table class="subscription-table">
+              <thead>
+                <tr><th>订阅</th><th>评估状态</th><th>合格结果</th><th>缺失对象</th><th>已观察原因</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in round.subscriptions" :key="item.subscriptionKey">
+                  <td>
+                    <span class="subscription-key">{{ item.subscriptionKey }}</span>
+                    <span class="subscription-type">{{ item.resultType }}</span>
+                  </td>
+                  <td>{{ waitReasonLabel(item.waitReason) }}</td>
+                  <td class="num">{{ item.eligible }}/{{ item.examined }}</td>
+                  <td>
+                    <span v-if="item.missingObjects.length" class="subscription-missing">
+                      {{ item.missingObjects.join('、') }}
+                    </span>
+                    <span v-else>—</span>
+                  </td>
+                  <td>
+                    <span v-if="item.reasons.length">{{ item.reasons.join('、') }}</span>
+                    <span v-else>—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="subscription-note">
+            订阅满足不等于节点已完成；完成仍按冻结条件判定。刷新只读取当前状态，不产生业务写入。
+          </p>
+        </div>
+      </el-alert>
+      <el-alert
+        v-else-if="workbench?.bindingType === 'PAGE'"
+        type="info"
+        :closable="false"
+        show-icon
+        title="本任务通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，完成仍按任务状态机与冻结规则判定。"
+      >
+        <el-button type="primary" size="small" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
+        <span v-if="workbench?.trustedTargetRef" class="page-route">{{ workbench.trustedTargetRef }}</span>
+      </el-alert>
+      <el-alert
         v-else
         type="info"
         :closable="false"
@@ -203,11 +273,12 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
       />
     </template>
   </ContentWrap>
+  <ProjectDeliverableDialog ref="deliverableRef" :project-id="projectId" @changed="handleDeliverableChanged" />
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { onBeforeRouteUpdate } from 'vue-router'
+import { onBeforeRouteUpdate, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { DICT_TYPE } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
@@ -227,6 +298,7 @@ import TaskStateActions from '@/views/pms/project/inheritance/detail/TaskStateAc
 import TaskApprovalPanel from '@/views/pms/project/inheritance/detail/TaskApprovalPanel.vue'
 import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMaintenancePanel.vue'
 import ProjectTaskDetailsEditor from './ProjectTaskDetailsEditor.vue'
+import ProjectDeliverableDialog from './ProjectDeliverableDialog.vue'
 import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'ProjectFlowPanel' })
@@ -279,6 +351,8 @@ const stateActionsRef = ref<InstanceType<typeof TaskStateActions>>()
 const approvalRef = ref<InstanceType<typeof TaskApprovalPanel>>()
 const maintenanceRef = ref<InstanceType<typeof TaskMaintenancePanel>>()
 const detailsRef = ref<InstanceType<typeof ProjectTaskDetailsEditor>>()
+const deliverableRef = ref<InstanceType<typeof ProjectDeliverableDialog>>()
+const handleDeliverableChanged = async () => { await refreshSummary(); emit('changed') }
 const emit = defineEmits<{ changed: [] }>()
 // Await the existing Owner leave contract before the parent changes selection/unmounts content.
 // https://vuejs.org/guide/essentials/template-refs.html#ref-on-component
@@ -291,6 +365,25 @@ const requestLeave = async () => !stateActionsRef.value?.isBusy() && maintenance
 // BusinessViewHost already guards route leave; only reused-route project changes need this guard.
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || requestLeave())
 const businessFactVersion = ref<string>()
+
+// 订阅观察只读展示：等待原因只引用后端已登记的评估记录，缺失对象与原因码原样呈现。
+const WAIT_REASON_LABELS: Record<string, string> = {
+  EVALUATION_PENDING: '待评估：尚无可用评估结论',
+  EVALUATION_OUTDATED: '评估待更新：旧结论不作为当前依据',
+  EVALUATION_SCANNING: '正在扫描业务结果',
+  NO_QUALIFIED_RESULT: '尚无合格结果',
+  EXPECTED_OBJECTS_MISSING: '仍有预期对象缺少合格结果',
+  RESULT_AMBIGUOUS: '存在多个合格结果，需要唯一结论',
+  RESULT_SOURCE_UNAVAILABLE: '结果来源暂不可用',
+  EVIDENCE_SATISFIED: '订阅证据已满足'
+}
+const waitReasonLabel = (reason: string) => WAIT_REASON_LABELS[reason] ?? reason
+const subscriptionSatisfied = computed(() => {
+  const rounds = workbench.value?.resultSubscriptions
+  return !!rounds?.length
+    && rounds.every((round) => round.subscriptions.length > 0
+      && round.subscriptions.every((item) => item.waitReason === 'EVIDENCE_SATISFIED'))
+})
 
 let sequence = 0
 const current = (value: number) => value === sequence
@@ -305,6 +398,8 @@ const businessBound = computed(() =>
     workbench.value?.bindingType || ''
   )
 )
+const router = useRouter()
+const openTaskPage = () => { const route = workbench.value?.trustedTargetRef; if (route) void router.push(route) }
 
 const loadWorkspace = async (token: number) => {
   const result = await TaskWorkbenchApi.getProjectWorkspace(props.projectId)
@@ -470,6 +565,78 @@ onBeforeUnmount(() => {
 
 .task-description-html {
   overflow-wrap: anywhere;
+}
+
+/* 订阅观察：紧凑表格 + 说明，全部只读 */
+.subscription-observations {
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+.subscription-empty,
+.subscription-note {
+  margin: 4px 0;
+  color: var(--el-text-color-secondary);
+}
+.subscription-table {
+  width: 100%;
+  margin: 6px 0;
+  border-collapse: collapse;
+}
+.subscription-table th,
+.subscription-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  overflow-wrap: anywhere;
+}
+.subscription-table th {
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+.subscription-key {
+  margin-right: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.task-deliverables {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.deliverable-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deliverable-name {
+  font-size: 13px;
+}
+.deliverable-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.deliverable-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.page-route {
+  margin-left: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.subscription-type {
+  color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+}
+.subscription-missing {
+  color: var(--el-color-warning);
+}
+.subscription-table .num {
+  font-variant-numeric: tabular-nums;
 }
 
 .task-description-html :deep(img) {

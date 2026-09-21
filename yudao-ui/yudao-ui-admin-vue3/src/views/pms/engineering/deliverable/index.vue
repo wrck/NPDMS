@@ -40,7 +40,10 @@
       </el-form-item>
     </el-form>
   </ContentWrap>
+    <ProjectDeliverablesPanel v-if="query.projectId" :project-id="Number(query.projectId)" />
+  <el-alert v-else title="请先选择项目，查看模板交付件并上传材料。下方为历史归集记录。" type="info" :closable="false" />
   <ContentWrap>
+    <h3>历史归集记录</h3>
     <el-table v-loading="loading" :data="rows">
       <el-table-column prop="name" label="交付件名称" min-width="220" show-overflow-tooltip />
       <el-table-column prop="deliverableType" label="类型" width="110">
@@ -164,6 +167,7 @@
 </template>
 
 <script setup lang="ts">
+import ProjectDeliverablesPanel from '@/views/pms/project/project-master-detail/components/ProjectDeliverablesPanel.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'

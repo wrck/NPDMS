@@ -8,6 +8,24 @@ export interface ProjectBusinessExecutionSelection {
   stage?: StageExecutionContext
 }
 
+export interface NodeSubscriptionObservation {
+  subscriptionKey: string
+  resultType: string
+  waitReason: string
+  scanStatus?: string
+  scanCurrent: boolean
+  examined: number
+  eligible: number
+  missingObjects: string[]
+  reasons: string[]
+}
+
+export interface NodeSubscriptionRound {
+  roundStatus: string
+  roundEnded: boolean
+  subscriptions: NodeSubscriptionObservation[]
+}
+
 export interface NodeExecution {
   id: string | number
   planVersionId: string | number
@@ -19,6 +37,7 @@ export interface NodeExecution {
   status: 'PENDING' | 'ACTIVE' | 'DONE' | 'TERMINATED'
   version: number
   canSubmit: boolean
+  subscriptions?: NodeSubscriptionRound
 }
 
 export const getNodeExecutions = (projectId: number): Promise<NodeExecution[]> =>

@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /** Executes one source SQL cursor and emits bounded chunks without materializing the full result set. */
+@org.springframework.stereotype.Component
 public class SpringJdbcStreamingReader {
     private final Optional<ExternalDataSourceApi> sources;
 

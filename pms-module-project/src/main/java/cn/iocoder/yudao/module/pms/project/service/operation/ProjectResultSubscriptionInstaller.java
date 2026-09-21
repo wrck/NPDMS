@@ -72,7 +72,7 @@ public class ProjectResultSubscriptionInstaller {
         var definition = ResultSubscriptionContract.read(configuration);
         var type = ResultSubscriptionContract.type(definition);
         var descriptor = sources.descriptor(type);
-        if (descriptor == null || !sources.changeSupported(type)
+        if (descriptor == null || !sources.changeSupported(type) || !sources.commitBarrierSupported(type)
                 || ("PINNED_RESULT".equals(definition.policy().acquisition()) ? !descriptor.exactLookup() : !sources.inventorySupported(type))
                 || "HISTORICAL_FACT".equals(definition.policy().validity()) && !descriptor.historicalLookup())
             throw new IllegalArgumentException("SUBSCRIPTION_SOURCE_UNAVAILABLE");

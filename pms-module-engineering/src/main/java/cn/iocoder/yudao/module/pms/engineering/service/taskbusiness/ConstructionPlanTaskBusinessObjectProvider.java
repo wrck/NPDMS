@@ -82,7 +82,7 @@ public class ConstructionPlanTaskBusinessObjectProvider implements TaskBusinessO
     @Override
     public List<AssociationCandidate> associationCandidates(AssociationContext context, String afterObjectId, int pageSize) {
         if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
-                || !TARGET_OBJECT_KEY.equals(context.targetObjectKey()) || pageSize < 1 || pageSize > 100) {
+                || !Set.of(TARGET_OBJECT_KEY, "PROJECT_CONSTRUCTION_PLAN").contains(String.valueOf(context.targetObjectKey())) || pageSize < 1 || pageSize > 100) {
             throw exception(FORBIDDEN);
         }
         if (afterObjectId != null) return List.of();

@@ -14,6 +14,15 @@ import java.util.List;
 
 @Mapper
 public interface AccProjectDeliverableMapper extends BaseMapperX<AccProjectDeliverableDO> {
+    record DocumentScope(Long tenantId, Long projectId, java.util.Set<String> deliverableCodes) { }
+    default List<AccProjectDeliverableDO> selectDocuments(DocumentScope query) {
+        if (query.deliverableCodes() == null || query.deliverableCodes().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<AccProjectDeliverableDO>()
+                .eq(AccProjectDeliverableDO::getTenantId, query.tenantId())
+                .eq(AccProjectDeliverableDO::getProjectId, query.projectId())
+                .in(AccProjectDeliverableDO::getDeliverableCode, query.deliverableCodes())
+                .orderByAsc(AccProjectDeliverableDO::getId));
+    }
 
     AccProjectDeliverableDO selectGateFactForUpdate(
             @Param("query") AccProjectDeliverableGateFactQuery query);

@@ -265,6 +265,8 @@ export interface ProjectInstancesVO {
     status: string
   }[]
   deliverables: {
+    /** 交付件实例ID（ACC应交根）。 */
+    id?: number
     deliverableCode: string
     name: string
     stageCode: string

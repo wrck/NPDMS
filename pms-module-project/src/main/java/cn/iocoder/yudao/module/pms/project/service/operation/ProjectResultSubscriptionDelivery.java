@@ -69,8 +69,20 @@ public class ProjectResultSubscriptionDelivery {
     private void requireNumbers(JsonNode document, String... fields) {
         for (String field : fields) {
             var token = document.path(field);
-            if (!token.isIntegralNumber() || !token.canConvertToLong())
-                throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
+            if (token.isIntegralNumber() && token.canConvertToLong()) continue;
+            // 写入侧全局Jackson把超出JS安全整数范围的Long序列化为字符串文本，信封校验必须同等接受。
+            if (token.isTextual() && parsesAsLong(token.asText())) continue;
+            throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
+        }
+    }
+
+    private static boolean parsesAsLong(String text) {
+        if (text == null || text.isEmpty()) return false;
+        try {
+            Long.parseLong(text);
+            return true;
+        } catch (NumberFormatException invalid) {
+            return false;
         }
     }
     private <T> T read(String payload, Class<T> type) {

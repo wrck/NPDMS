@@ -11,6 +11,9 @@ import Workbench from './index.vue'
 import { satisfactionProjectContext, type SatisfactionViewProps } from './projectContext'
 
 const api = vi.hoisted(() => ({
+  listTemplates: vi.fn(),
+  getIndependentCollectionContext: vi.fn(),
+  createIndependentCollection: vi.fn(),
   listTasks: vi.fn(),
   listResults: vi.fn(),
   assignTask: vi.fn(),
@@ -36,6 +39,7 @@ vi.mock('@/api/pms/acceptance/satisfaction', () => api)
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/auth', () => ({ getTenantId: () => 1 }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/components/Qrcode', () => ({ Qrcode: { render: () => null } }))
 vi.mock('./TemplatePanel.vue', () => ({ default: { render: () => '模板管理测试占位' } }))
 
@@ -73,6 +77,8 @@ const renderPanel = (component: Component, initial: SatisfactionViewProps = {}) 
   const stubs = Object.fromEntries(
     [
       'ElInputNumber',
+      'ElSelect',
+      'ElOption',
       'ElSkeleton',
       'ElTable',
       'ElDialog',
@@ -96,6 +102,13 @@ beforeEach(() => {
   routeGuards.update.length = 0
   api.listTasks.mockImplementation(async (id?: number) => (id ? [task(id)] : []))
   api.listResults.mockImplementation(async (id?: number) => (id ? [result(id)] : []))
+  api.getIndependentCollectionContext.mockImplementation(async (projectId: number) => ({ projectId, projectVersion: 4, treeVersion: 3 }))
+  api.listTemplates.mockResolvedValue([
+    { id: 20, name: '发布问卷', status: 'PUBLISHED', currentRevisionId: 21,
+      revisions: [{ id: 21, status: 'PUBLISHED', revisionNo: 1, threshold: 80 }, { id: 22, status: 'DRAFT', revisionNo: 2, threshold: 80 }] },
+    { id: 30, name: '停用问卷', status: 'DISABLED', currentRevisionId: 31,
+      revisions: [{ id: 31, status: 'PUBLISHED', revisionNo: 1, threshold: 80 }] }
+  ])
   message.confirm.mockResolvedValue(undefined)
   vi.stubGlobal('window', { clearTimeout, setTimeout, addEventListener: vi.fn(), removeEventListener: vi.fn(), location: { origin: 'http://localhost' } })
 })
@@ -105,6 +118,45 @@ afterEach(() => {
 })
 
 describe('ACC-02 existing panels in a project context', () => {
+  it('starts an independent collection with the selected current questionnaire and frozen project context', async () => {
+    const view = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    await view.state().openCreate()
+    expect(view.state().publishedQuestionnaires).toHaveLength(1)
+    view.state().selectedRevisionId = 21
+    await view.state().createCollection()
+    expect(api.createIndependentCollection).toHaveBeenCalledWith({ projectId: 41, templateId: 20,
+      templateRevisionId: 21, expectedProjectVersion: 4, expectedTreeVersion: 3 }, expect.any(String))
+    expect(view.state().createVisible).toBe(false)
+    expect(api.listTasks).toHaveBeenLastCalledWith(41)
+  })
+  it('cannot create from a stale project dialog or a readonly project', async () => {
+    const view = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    await view.state().openCreate()
+    view.state().selectedRevisionId = 21
+    view.props.projectId = 42
+    await flush()
+    await view.state().createCollection()
+    expect(api.createIndependentCollection).not.toHaveBeenCalled()
+    view.props.readonly = true
+    await flush()
+    await view.state().openCreate()
+    expect(view.state().createVisible).toBe(false)
+  })
+  it('drops an opening questionnaire dialog when its project context changes', async () => {
+    const pending = deferred<any>()
+    api.getIndependentCollectionContext.mockReturnValueOnce(pending.promise)
+    const view = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    const opened = view.state().openCreate()
+    view.props.projectId = 42
+    await flush()
+    pending.resolve({ projectId: 41, projectVersion: 4, treeVersion: 3 })
+    await opened
+    expect(view.state().createVisible).toBe(false)
+    expect(api.createIndependentCollection).not.toHaveBeenCalled()
+  })
   it('prevents navigation away from an unfinished satisfaction operation', async () => {
     const page = renderPanel(Workbench, { projectId: 41 })
     await flush()

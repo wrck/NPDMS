@@ -5,6 +5,7 @@ import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templat
 import type { ComputedRef, InjectionKey } from 'vue'
 
 export const ruleCreationOnlyKey: InjectionKey<ComputedRef<boolean>> = Symbol('rule-creation-only')
+export const ruleOperationPostKey: InjectionKey<ComputedRef<boolean>> = Symbol('rule-operation-post')
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 export const constantRule = (value: boolean): JsonObject => ({

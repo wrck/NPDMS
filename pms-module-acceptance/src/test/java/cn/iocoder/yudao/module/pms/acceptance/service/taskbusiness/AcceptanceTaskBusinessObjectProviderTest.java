@@ -1,5 +1,9 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.taskbusiness;
 
+import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext;
+import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationCandidate;
+import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext;
+
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
@@ -48,11 +52,15 @@ class AcceptanceTaskBusinessObjectProviderTest {
     private final ProjectScopeApi scope = mock(ProjectScopeApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final FileArtifactApi files = mock(FileArtifactApi.class);
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions =
+            mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
+    private final cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource reportResults =
+            mock(cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource.class);
     // Exercise the existing Owner query service, rather than a second fake activity repository.
     private final AcceptanceReportQueryService queries = new AcceptanceReportQueryService(
             activities, reports, attachments, scope, files, sources);
     private final AcceptanceTaskBusinessObjectProvider provider = new AcceptanceTaskBusinessObjectProvider(
-            queries, activities, reports, attachments, deliverables, sources, sourceAttachments, files, scope, permissions);
+            queries, activities, reports, attachments, deliverables, sources, sourceAttachments, files, scope, permissions, executions, reportResults);
     private final Context context = new Context(3L, 9L, 100L, 200L, "acc-task-test");
     private final AcceptanceActivityDO activity = new AcceptanceActivityDO();
     private final AcceptanceReportVersionDO report = new AcceptanceReportVersionDO();
@@ -96,26 +104,69 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @AfterEach
     void clean() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
 
+    @Test void automaticAssociationsFilterAcceptanceTypeAndDoNotRequireABrowserActor() {
+        SecurityContextHolder.clearContext();
+        var initial = new AcceptanceActivityDO(); initial.setId(41L); initial.setTenantId(3L); initial.setProjectId(100L);
+        initial.setAcceptanceType("PRELIMINARY"); initial.setVersion(1);
+        when(activities.selectByProjectScope(any())).thenReturn(List.of(activity, initial));
+        var initialContext = new AssociationContext(3L, 100L, "PROJECT_ACCEPTANCE", "{\"acceptanceType\":\"PRELIMINARY\"}");
+        assertEquals(List.of("41"), provider.associationCandidates(initialContext, null, 100).stream().map(AssociationCandidate::objectId).toList());
+        assertTrue(provider.associationCandidates(initialContext, "41", 100).isEmpty());
+        assertEquals(List.of("42"), provider.associationCandidates(new AssociationContext(3L, 100L, "PROJECT_ACCEPTANCE",
+                "{\"acceptanceType\":\"FINAL\"}"), null, 100).stream().map(AssociationCandidate::objectId).toList());
+        assertThrows(RuntimeException.class, () -> provider.associationCandidates(new AssociationContext(4L, 100L, "PROJECT_ACCEPTANCE", "{}"), null, 100));
+        assertThrows(RuntimeException.class, () -> provider.associationCandidates(new AssociationContext(3L, 100L, "PROJECT_ACCEPTANCE", "{\"acceptanceType\":\"UNKNOWN\"}"), null, 100));
+        verifyNoInteractions(permissions, executions, reportResults);
+    }
+
+    @Test void unattendedCompletionRevalidatesTheExecutionAndExactCurrentReportBeforePassing() {
+        SecurityContextHolder.clearContext(); report.setConclusionCode("PASS");
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                100L, 1, 200L, 1, 400L, 1, 500L, 600L, 1, 1, 700L, 1, true, report.getEffectiveFrom());
+        when(executions.lockAndRevalidate(execution)).thenReturn(execution);
+        var type = cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource.TYPE;
+        var result = new cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Result(
+                3L, 100L, type, "42", "51", "2", "7", cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Validity.CURRENT,
+                report.getEffectiveFrom());
+        when(reportResults.lockAndInspect(any())).thenReturn(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Observation.available(result));
+        var fact = provider.lockCompletionFact(new CompletionContext(3L, execution), "42");
+        assertTrue(fact.handlingCompleted()); assertTrue(fact.completionFacts().get("FINAL_ACCEPTANCE_PASSED"));
+        assertFalse(fact.completionFacts().get("PRELIMINARY_ACCEPTANCE_PASSED"));
+        when(reportResults.lockAndInspect(any())).thenReturn(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Observation.absent(
+                cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Status.UNAVAILABLE, "FILE_INVALID"));
+        var invalid = provider.lockCompletionFact(new CompletionContext(3L, execution), "42");
+        assertFalse(invalid.handlingCompleted()); assertFalse(invalid.completionFacts().get("FINAL_ACCEPTANCE_PASSED"));
+        assertNotEquals(fact.factVersion(), invalid.factVersion());
+        when(executions.lockAndRevalidate(execution)).thenThrow(new IllegalArgumentException("STALE_EXECUTION"));
+        assertThrows(RuntimeException.class, () -> provider.lockCompletionFact(new CompletionContext(3L, execution), "42"));
+        verifyNoInteractions(permissions);
+    }
+
     @Test
     void completionFactCatalogIsDeploymentMetadataWithoutBusinessAccess() {
         clean();
-        assertEquals(Set.of("REPORT_EFFECTIVE"), provider.completionFactCodes());
+        assertEquals(Set.of("REPORT_EFFECTIVE", "PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED"), provider.completionFactCodes());
         verifyNoInteractions(activities, reports, attachments, deliverables, sources, sourceAttachments,
                 files, scope, permissions);
     }
 
     @Test
-    void existingEffectiveReportIsEvidenceNotAcceptancePassedOrArchive() {
+    void onlyAnEffectivePassingReportSuppliesTheMatchingAcceptanceType() {
         assertEquals("ACC", provider.ownerContext()); assertEquals("ACCEPTANCE", provider.objectType());
         for (String conclusion : List.of("FAIL", "RECTIFICATION", "UNKNOWN", "PASS")) {
             report.setConclusionCode(conclusion);
             var fact = provider.inspect(context, "42");
-            assertEquals(Map.of("REPORT_EFFECTIVE", true), fact.completionFacts());
+            assertEquals(Map.of("REPORT_EFFECTIVE", true, "PRELIMINARY_ACCEPTANCE_PASSED", false,
+                    "FINAL_ACCEPTANCE_PASSED", "PASS".equals(conclusion)), fact.completionFacts());
             assertFalse(fact.completionFacts().containsKey("ACCEPTANCE_PASSED"));
             assertTrue(fact.artifacts().isEmpty());
         }
         activity.setActivityStatus("COMPLETED");
         assertFalse(provider.inspect(context, "42").completionFacts().containsKey("ACCEPTANCE_PASSED"));
+        activity.setAcceptanceType("PRELIMINARY");
+        var initial = provider.inspect(context, "42");
+        assertTrue(initial.completionFacts().get("PRELIMINARY_ACCEPTANCE_PASSED"));
+        assertFalse(initial.completionFacts().get("FINAL_ACCEPTANCE_PASSED"));
     }
 
     @Test
@@ -138,6 +189,22 @@ class AcceptanceTaskBusinessObjectProviderTest {
     void archiveMustBelongToTheActivitysFrozenDeliverableNotJustTheSameProject() {
         archived(); activity.setDeliverableId(999L);
         assertThrows(RuntimeException.class,()->provider.inspect(context,"42"));
+    }
+
+    @Test
+    void revalidationUsesCompleteObservedFileFactsAndKeepsTheFrozenAttachmentIdentity() {
+        var observed = files.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(setKey), "READ"));
+        when(files.lockAndRevalidateReferenceSets(any())).thenAnswer(call -> {
+            var query = call.<FileReferenceSetCollectionRevalidationQuery>getArgument(0);
+            assertEquals(observed.getFirst().activeFacts(), query.collections().getFirst().expectedActiveFacts());
+            return observed;
+        });
+        var fact = provider.inspect(context, "42");
+        assertEquals(fact, provider.lockAndRevalidate(context, "42", fact.factVersion()));
+        attachment.setFileHash("b".repeat(64));
+        var changed = provider.inspect(context, "42");
+        assertFalse(changed.completionFacts().get("REPORT_EFFECTIVE"));
+        assertThrows(ServiceException.class, () -> provider.lockAndRevalidate(context, "42", fact.factVersion()));
     }
 
     @Test
@@ -172,7 +239,8 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @Test
     void unavailableOrDifferentFileVersionMakesReportIneffectiveAndProducesNoArtifact() {
         archived(); fileFact("INVALID", 3);
-        assertEquals(Map.of("REPORT_EFFECTIVE", false), provider.inspect(context, "42").completionFacts());
+        assertEquals(Map.of("REPORT_EFFECTIVE", false, "PRELIMINARY_ACCEPTANCE_PASSED", false,
+                "FINAL_ACCEPTANCE_PASSED", false), provider.inspect(context, "42").completionFacts());
         assertTrue(provider.inspect(context, "42").artifacts().isEmpty());
         fileFact("AVAILABLE", 4);
         assertFalse(provider.inspect(context, "42").completionFacts().get("REPORT_EFFECTIVE"));

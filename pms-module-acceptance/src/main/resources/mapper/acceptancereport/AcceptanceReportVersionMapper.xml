@@ -8,7 +8,9 @@
                rv.acceptance_id,
                a.project_id,
                a.project_task_id,
-               rv.report_status
+               rv.report_status,
+               a.origin_kind,
+               rv.acceptance_rule_snapshot AS rule_snapshot
         FROM acc_acceptance_report_version rv
         JOIN acc_acceptance a
           ON a.tenant_id = rv.tenant_id

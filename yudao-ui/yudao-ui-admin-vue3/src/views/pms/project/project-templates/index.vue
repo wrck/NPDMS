@@ -147,8 +147,9 @@ const load = async () => {
     await Promise.all(rows.value.map(async (row) => {
       if (row.id == null) return
       try {
-        const designer = await TemplateApi.getProjectTemplateDraft(row.id)
-        summaries[row.id] = { scenario: dimText(designer.match), tasks: `${designer.stages.length} 个阶段 · ${designer.tasks.filter((task) => task.stageCode !== 'S0').length} 项任务` }
+        const summary = await TemplateApi.getProjectTemplateSummary(row.id)
+        if (summary) summaries[row.id] = { scenario: dimText(summary.match), tasks: `${summary.stageCount} 个阶段 · ${summary.taskCount} 项任务` }
+        else delete summaries[row.id]
       } catch { delete summaries[row.id] }
     }))
   } catch (error) { failure.value = errorText(error) }

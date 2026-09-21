@@ -38,6 +38,7 @@ public class ProjectBusinessResultJournal implements ProjectBusinessResultRecord
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public void record(BusinessOperationResultEvent event) {
         Objects.requireNonNull(event, "Owner event").requireEnvelope(event.eventId(), TenantContextHolder.getRequiredTenantId());
+        boolean changed = false;
         // Stable type ordering also fixes lock ordering when one Owner exposes more than one result kind.
         for (Type type : sources.changeTypes(event)) {
             var row = lockChannel(event.tenantId(), event.projectId(), type);
@@ -77,6 +78,16 @@ public class ProjectBusinessResultJournal implements ProjectBusinessResultRecord
                     || mapper.insertChange(saved) != 1) throw new IllegalStateException("RESULT_JOURNAL_WRITE_CONFLICT");
             outbox.append("BusinessResultChannel", channel.id().toString(),
                     new BusinessEvent(change.eventId(), BusinessResultChange.EVENT_TYPE, saved.getPayload()));
+            changed = true;
+        }
+        // BUSINESS_FACT rules also consume native facts without a result subscription or operation binding.
+        // Wake the normal evaluator after commit; never advance a stage in the Owner transaction.
+        if (changed) {
+            var wakeup = cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.create(
+                    event.tenantId(), event.projectId(), event.actorId(), event.eventId());
+            outbox.append("Project", event.projectId().toString(), new BusinessEvent(wakeup.eventId(),
+                    cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.EVENT_TYPE,
+                    JsonUtils.toJsonString(wakeup)));
         }
     }
 

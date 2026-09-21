@@ -64,7 +64,7 @@ class SatisfactionResultDecisionServiceTest {
         org.mockito.Mockito.lenient().when(responseFileMapper.selectListByResponse(any()))
                 .thenReturn(java.util.List.of(signature()));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 3L, Set.of(20L), Set.of()));
-        when(workBindingFactApi.lockCurrentSatisfactionTask(any())).thenReturn(new ProjectSatisfactionTaskFact(
+        org.mockito.Mockito.lenient().when(workBindingFactApi.lockCurrentSatisfactionTask(any())).thenReturn(new ProjectSatisfactionTaskFact(
                 20L, 21L, "CUSTOM-SAT", 7, "AFTER_INITIAL_ACCEPTANCE", 30L, 31L,
                 1, "RULE-1", new BigDecimal("4.00"), 99L));
     }
@@ -90,6 +90,32 @@ class SatisfactionResultDecisionServiceTest {
         verify(resultMapper).insert(any(SatisfactionResultDO.class));
         verify(resultFileMapper, org.mockito.Mockito.times(2)).insert(any(SatisfactionResultFileDO.class));
         verify(taskMapper).completeDecision(any());
+    }
+
+    @Test
+    void independentCollectionUsesExistingScoreAndSignatureWithoutAnInventedArchiveTarget() {
+        var direct = task(); direct.setOriginKind("DIRECT"); direct.setProjectTaskId(null); direct.setDeliverableId(null);
+        when(taskMapper.selectById(10L)).thenReturn(direct);
+        when(taskMapper.selectByIdForUpdate(7L, 10L)).thenReturn(direct);
+        var independent = org.mockito.Mockito.mock(IndependentSatisfactionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "independent", independent);
+        when(fileArtifactApi.createGeneratedBusinessFile(any())).thenReturn(file());
+        when(resultMapper.insert(any(SatisfactionResultDO.class))).thenReturn(1);
+        when(resultFileMapper.insert(any(SatisfactionResultFileDO.class))).thenReturn(1);
+        when(taskMapper.completeDecision(any())).thenReturn(1);
+        var result = service.decide(command());
+        assertTrue(result.passed()); assertEquals(new BigDecimal("5.0"), result.score());
+        org.junit.jupiter.api.Assertions.assertNull(result.deliverableId());
+        org.junit.jupiter.api.Assertions.assertNull(result.projectTaskId());
+        org.junit.jupiter.api.Assertions.assertNull(result.projectTaskVersion());
+        org.mockito.Mockito.verifyNoInteractions(workBindingFactApi);
+        verify(independent).lockIfDirect(7L, 99L, direct);
+        var stored = org.mockito.ArgumentCaptor.forClass(SatisfactionResultDO.class);
+        verify(resultMapper).insert(stored.capture());
+        org.junit.jupiter.api.Assertions.assertNull(stored.getValue().getArchiveStatus());
+        verify(taskMapper).completeDecision(org.mockito.ArgumentMatchers.argThat(update -> "PASSED".equals(update.targetStatus())));
+        assertEquals("ACC.IndependentSatisfactionResultChanged.v1", emitted.businessEvents().getFirst().eventType());
+        assertEquals(2, result.files().size());
     }
 
     @Test

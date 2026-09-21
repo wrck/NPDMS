@@ -12,7 +12,23 @@
       <el-input v-else :model-value="`项目 #${props.projectId}`" disabled class="!w-220px" />
     </el-form-item>
     <el-form-item><el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button></el-form-item>
+    <el-form-item v-if="canCreate"><el-button type="primary" :loading="creating" @click="openCreate">发起满意度调查</el-button></el-form-item>
   </el-form>
+  <el-dialog v-model="createVisible" title="发起满意度调查" width="min(560px, 94vw)" :close-on-click-modal="false" :close-on-press-escape="!creating" :show-close="!creating">
+    <el-form label-position="top" :disabled="creating || !canCreate">
+      <el-form-item label="已发布问卷">
+        <el-select v-model="selectedRevisionId" class="!w-full" placeholder="选择问卷版本">
+          <el-option v-for="option in publishedQuestionnaires" :key="option.revisionId" :label="option.label" :value="option.revisionId" />
+        </el-select>
+      </el-form-item>
+      <el-empty v-if="!publishedQuestionnaires.length" description="暂无已发布问卷，请先在问卷模板中配置并发布。" :image-size="60" />
+      <p>本次调查使用所选版本的题目和评分规则，由当前用户负责采集，可在创建后指派。</p>
+    </el-form>
+    <template #footer>
+      <el-button :disabled="creating" @click="createVisible = false">取消</el-button>
+      <el-button type="primary" :loading="creating" :disabled="!canCreate || !selectedRevisionId" @click="createCollection">创建调查</el-button>
+    </template>
+  </el-dialog>
   <el-alert
     v-if="!context.valid"
     title="项目上下文无效，未查询其他项目。"
@@ -21,7 +37,7 @@
   />
   <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
   <el-skeleton v-else-if="loading" :rows="4" animated />
-  <el-empty v-else-if="!tasks.length" description="当前可见范围暂无满意度任务；任务由配置的业务时点初始化。" />
+  <el-empty v-else-if="!tasks.length" description="当前可见范围暂无满意度调查，可选择已发布问卷发起调查。" />
   <el-table v-else :data="tasks" stripe>
     <el-table-column prop="id" label="任务ID" min-width="150" />
     <el-table-column prop="projectId" label="项目ID" min-width="150" />
@@ -160,13 +176,14 @@
     >
   </el-dialog>
 </template>
-import { generateUUID } from '@/utils'
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { Qrcode } from '@/components/Qrcode'
 import { getTenantId } from '@/utils/auth'
+import { checkPermi } from '@/utils/permission'
 import * as Api from '@/api/pms/acceptance/satisfaction'
 import type { TaskView } from '@/api/pms/acceptance/satisfaction'
 import type { UploadUserFile } from 'element-plus'
@@ -180,6 +197,13 @@ const loading = ref(false)
 const projectId = ref<number>()
 const context = computed(() => satisfactionProjectContext(props.projectId, projectId.value))
 const canWrite = computed(() => !props.readonly && context.value.valid)
+const canCreate = computed(() => canWrite.value && checkPermi(['pms:acceptance:satisfaction:manage']))
+const createVisible = ref(false)
+const creating = ref(false)
+const createContext = ref<Api.IndependentCollectionContext>()
+const selectedRevisionId = ref<number>()
+const publishedQuestionnaires = ref<{ templateId: number; revisionId: number; label: string }[]>([])
+const createKey = ref('')
 const errorText = ref('')
 let loadSequence = 0
 let contextVersion = 0
@@ -203,6 +227,43 @@ const assisted = reactive({
 })
 const recollectVisible = ref(false)
 const recollectForm = reactive({ evidenceSummary: '', evidenceFileFactVersion: '' })
+
+const openCreate = async () => {
+  if (!canCreate.value || creating.value) return
+  const target = context.value.projectId
+  if (!target) { message.warning('请先选择项目'); return }
+  const sequence = contextVersion
+  creating.value = true
+  try {
+    const [project, templates] = await Promise.all([Api.getIndependentCollectionContext(target), Api.listTemplates()])
+    if (sequence !== contextVersion || !canCreate.value || target !== context.value.projectId) return
+    createContext.value = project
+    publishedQuestionnaires.value = templates.filter(item => item.status === 'PUBLISHED').flatMap(item =>
+      item.revisions.filter(revision => revision.status === 'PUBLISHED' && String(revision.id) === String(item.currentRevisionId))
+        .map(revision => ({ templateId: item.id, revisionId: revision.id, label: `${item.name} · V${revision.revisionNo} · 达标分 ${revision.threshold}` })))
+    selectedRevisionId.value = undefined
+    createKey.value = crypto.randomUUID()
+    createVisible.value = true
+  } finally { creating.value = false }
+}
+const createCollection = async () => {
+  const project = createContext.value
+  const selectedQuestionnaire = publishedQuestionnaires.value.find(item => item.revisionId === selectedRevisionId.value)
+  if (!createVisible.value || !canCreate.value || creating.value || !project || !selectedQuestionnaire
+      || project.projectId !== context.value.projectId) return
+  const sequence = contextVersion
+  creating.value = true
+  try {
+    await Api.createIndependentCollection({ projectId: project.projectId, templateId: selectedQuestionnaire.templateId,
+      templateRevisionId: selectedQuestionnaire.revisionId, expectedProjectVersion: project.projectVersion,
+      expectedTreeVersion: project.treeVersion }, createKey.value)
+    if (sequence !== contextVersion) return
+    createVisible.value = false
+    message.success('满意度调查已创建')
+    emit('changed')
+    await load()
+  } finally { creating.value = false }
+}
 
 const load = async () => {
   const sequence = ++loadSequence
@@ -422,9 +483,13 @@ const dirty = computed(
     grantVisible.value ||
     assistedVisible.value ||
     recollectVisible.value ||
+    createVisible.value || creating.value ||
     assistedSubmitting.value
 )
 const resetDialogs = () => {
+  createVisible.value = false
+  createContext.value = undefined
+  selectedRevisionId.value = undefined
   assignVisible.value = grantVisible.value = assistedVisible.value = recollectVisible.value = false
   grantUrl.value = ''
   selected.value = undefined
@@ -454,7 +519,7 @@ onBeforeUnmount(() => {
 defineExpose({
   isDirty: () => dirty.value,
   discardChanges: () => {
-    if (assistedSubmitting.value) return false
+    if (assistedSubmitting.value || creating.value) return false
     contextVersion++
     resetDialogs()
     return true

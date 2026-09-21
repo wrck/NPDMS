@@ -65,6 +65,7 @@ class ProjectControlledOperationExecutorTest {
         when(access.ownerContext()).thenReturn("SOL"); when(access.objectType()).thenReturn("SITE_SURVEY");
         when(access.inspect(any())).thenReturn(new ProjectBusinessOperationAccessProvider.Access(Set.of(CODE),"owner:2"));
         when(rules.evaluate(anyString(),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("MATCHED",null));
+        when(rules.evaluate(anyString(),any(),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("MATCHED",null));
         when(sinks.getObject()).thenReturn(sink);
         when(idempotency.execute(any(),anyString(),eq(ProjectOperationResult.class),any(),any())).thenAnswer(invocation ->
                 new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
@@ -86,7 +87,7 @@ class ProjectControlledOperationExecutorTest {
         assertEquals(0,calls.get()); verifyNoInteractions(sink);
     }
     @Test void postFailureProducesNoSuccessEventAndClearsScope() {
-        when(rules.evaluate(contains(":POST"),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("NOT_MATCHED",null));
+        when(rules.evaluate(contains(":POST"),any(),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("NOT_MATCHED",null));
         assertThrows(RuntimeException.class,() -> executor.execute(CODE,1,command,c -> result)); verifyNoInteractions(sink);
     }
     @Test void ownerFailureProducesNoSuccessEvent() {
@@ -117,7 +118,7 @@ class ProjectControlledOperationExecutorTest {
     }
     @Test void postReadsProjectAgainAfterOwnerWrite() {
         executor.execute(CODE,1,command,c -> result);
-        verify(projects).selectById(9L); verify(rules).evaluate(contains(":POST"),any(),any(),any());
+        verify(projects).selectById(9L); verify(rules).evaluate(contains(":POST"),any(),any(),any(),eq(result));
     }
     @Test void postFailureRollsBackActualJdbcTransaction() {
         var dataSource = new org.springframework.jdbc.datasource.DriverManagerDataSource(
@@ -129,7 +130,7 @@ class ProjectControlledOperationExecutorTest {
         advice.setTransactionAttributeSource(new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource());
         var factory = new org.springframework.aop.framework.ProxyFactory(executor); factory.setProxyTargetClass(true); factory.addAdvice(advice);
         var transactional = (ProjectControlledOperationExecutor) factory.getProxy();
-        when(rules.evaluate(contains(":POST"),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("NOT_MATCHED",null));
+        when(rules.evaluate(contains(":POST"),any(),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("NOT_MATCHED",null));
         assertThrows(RuntimeException.class,() -> transactional.execute(CODE,1,command,c -> {
             jdbc.update("insert into operation_test(id) values (1)"); return result;
         }));

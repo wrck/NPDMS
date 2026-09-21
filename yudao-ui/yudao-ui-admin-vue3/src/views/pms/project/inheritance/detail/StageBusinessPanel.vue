@@ -10,10 +10,17 @@
       @changed="handleChanged" @dirty-change="emit('dirty-change', $event)" />
     <StageApprovalPanel v-if="context?.bindingType === 'APPROVAL'" ref="approvalRef" :workbench="context"
       :disabled="!!error || loading" @changed="handleChanged" />
+    <el-card v-if="context?.bindingType === 'PAGE'" shadow="never" class="stage-page-card">
+      <template #header>页面办理</template>
+      <p class="stage-page-hint">本阶段通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，不产生阶段完成事实。</p>
+      <el-button type="primary" :disabled="!!error || loading || !context.routePath" @click="openPage">打开页面</el-button>
+      <span v-if="context.routePath" class="stage-page-route">{{ context.routePath }}</span>
+    </el-card>
   </section>
 </template>
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
 import StageApprovalPanel from './StageApprovalPanel.vue'
 import { getStageBusinessContext, type StageBusinessContext } from '@/api/pms/project/stage-business'
@@ -49,7 +56,13 @@ const load = async () => {
 const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false && (await approvalRef.value?.requestLeave()) !== false
 const refresh = async () => { if (await requestLeave()) await load() }
 const handleChanged = async () => { await load(); emit('changed') }
+const router = useRouter()
+const openPage = () => { if (context.value?.routePath) void router.push(context.value.routePath) }
 watch([() => props.project.id, () => props.stageCode], () => { context.value = undefined; void load() }, { immediate: true })
 onBeforeUnmount(() => { ++sequence })
 defineExpose({ requestLeave, refresh, isBusy: () => loading.value || !!approvalRef.value?.isBusy() })
 </script>
+<style scoped>
+.stage-page-hint { margin: 0 0 12px; color: var(--el-text-color-secondary); }
+.stage-page-route { margin-left: 12px; color: var(--el-text-color-secondary); font-family: monospace; }
+</style>

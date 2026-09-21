@@ -20,16 +20,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import type { RuleGroupType } from '@react-querybuilder/core'
 import type { JsonObject, CompletionFactCatalogVO } from '@/api/pms/project/project-templates'
 import { getCompletionFactCatalog } from '@/api/pms/project/project-templates'
 import {
   getRuleFields,
+  getOperationResultFields,
   type RuleField,
   type VersionRule
 } from '@/api/pms/project/project-templates/rules'
 import RuleTreeGroup from './RuleTreeGroup.vue'
+import { ruleOperationPostKey } from './versionRuleModel'
 import {
   appendNode,
   changeGroup,
@@ -45,6 +47,7 @@ const tree = ref<RuleGroupType>(decodeTree(props.modelValue))
 const fields = ref<RuleField[]>([])
 const facts = ref<CompletionFactCatalogVO[]>([])
 const failure = ref('')
+const operationPost = inject(ruleOperationPostKey, computed(() => false))
 watch(
   () => props.modelValue,
   (value) => {
@@ -56,9 +59,11 @@ const change = (value: RuleGroupType) => {
   emit('update:modelValue', encodeTree(value))
 }
 onMounted(async () => {
-  const results = await Promise.allSettled([getRuleFields(), getCompletionFactCatalog()])
+  const results = await Promise.allSettled([getRuleFields(), getCompletionFactCatalog(),
+    operationPost.value ? getOperationResultFields() : Promise.resolve([])])
   if (results[0].status === 'fulfilled') fields.value = results[0].value
   if (results[1].status === 'fulfilled') facts.value = results[1].value
+  if (results[2].status === 'fulfilled') fields.value.push(...results[2].value)
   if (results.some((result) => result.status === 'rejected'))
     failure.value = '部分字段目录暂不可用，现有条件已保留；请恢复目录后选择新字段。'
 })

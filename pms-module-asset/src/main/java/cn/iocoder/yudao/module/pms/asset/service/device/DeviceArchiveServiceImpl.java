@@ -11,10 +11,12 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceVersionDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceVersionMapper;
 import cn.iocoder.yudao.module.pms.asset.domain.device.DeviceStatusRules;
+import cn.iocoder.yudao.module.pms.asset.domain.device.DeviceIdentityRules;
 import cn.iocoder.yudao.module.pms.asset.enums.DeviceArchiveStatusEnum;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
 import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQU
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_SCRAPPED;
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_SERIAL_NUMBER_DUPLICATE;
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_STATUS_INVALID;
+import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_DEVICE_MANUAL_EVIDENCE_REQUIRED;
 
 /**
  * 设备档案管理 Service 实现（ast_device 承载，自 pms_equipment_retired 旧链承接）。
@@ -47,9 +50,15 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createDevice(DeviceArchiveSaveReqVO createReqVO) {
+        try {
+            DeviceIdentityRules.requireManualEvidence(createReqVO.getManualReason(), createReqVO.getManualEvidence());
+        } catch (IllegalArgumentException missingEvidence) {
+            throw exception(AST_DEVICE_MANUAL_EVIDENCE_REQUIRED);
+        }
         validateCustomerAvailable(createReqVO.getCustomerId());
         validateSnUnique(null, createReqVO.getSn());
         DeviceDO entity = new DeviceDO();
+        entity.setId(IdWorker.getId());
         entity.setSn(createReqVO.getSn());
         entity.setName(createReqVO.getName());
         entity.setProductModel(createReqVO.getProductModel());
@@ -59,8 +68,11 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
         entity.setWarrantyEndDate(createReqVO.getWarrantyEndDate());
         entity.setRemark(createReqVO.getRemark());
         entity.setStatus(DeviceArchiveStatusEnum.IN_STOCK);
+        entity.setSourceSystem("PLATFORM_MANUAL");
+        entity.setSyncStatus("PENDING_RECONCILIATION");
         deviceMapper.insert(entity);
-        appendVersion(entity.getId(), null, entity, "CREATE", "创建设备档案");
+        appendVersion(entity.getId(), null, entity, "CREATE",
+                "人工补录原因：" + createReqVO.getManualReason() + "；证据：" + createReqVO.getManualEvidence());
         return entity.getId();
     }
 

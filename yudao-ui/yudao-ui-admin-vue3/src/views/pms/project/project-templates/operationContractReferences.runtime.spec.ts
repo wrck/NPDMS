@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { cloneDesignerDocument, emptyDesignerDocument } from '@/api/pms/project/project-templates'
 import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templates/operations'
 import { ruleUses } from './versionRuleModel'
 import { withOperationContract, readOperationContract } from './operationContract'
+
+// 设计器文档工具不触网；阻止 '@/config/axios' 顶层初始化（依赖浏览器 window）。
+vi.mock('@/config/axios', () => ({ default: {} }))
 
 const contract = () => ({ version: 1 as const, operations: [{
   operationCode: 'SOL.SITE_SURVEY.CONFIRM', operationVersion: 1,

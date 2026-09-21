@@ -29,6 +29,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionAccessGrantService {
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
     private static final SecureRandom RANDOM = new SecureRandom();
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
@@ -38,6 +39,7 @@ public class SatisfactionAccessGrantService {
     @Transactional(rollbackFor = Exception.class)
     public CreatedGrant create(Long tenantId, Long actorUserId, Long taskId, LocalDateTime expiresAt) {
         SatisfactionCollectionTaskDO task = taskMapper.selectById(taskId);
+        if (IndependentSatisfactionService.direct(task)) independent.lockIfDirect(tenantId, actorUserId, task);
         if (task == null || !tenantId.equals(task.getTenantId()) || task.getQuestionnaireId() == null
                 || !("PENDING_COLLECTION".equals(task.getTaskStatus()) || "ASSIGNED".equals(task.getTaskStatus()))) {
             throw new IllegalStateException("SATISFACTION_TASK_NOT_GRANTABLE");

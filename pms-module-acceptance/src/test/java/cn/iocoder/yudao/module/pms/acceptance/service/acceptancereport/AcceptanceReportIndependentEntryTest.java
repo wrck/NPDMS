@@ -41,6 +41,8 @@ class AcceptanceReportIndependentEntryTest {
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final AcceptanceReportQueryService queries = mock(AcceptanceReportQueryService.class);
+    private final cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi nativeProjects =
+            mock(cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.class);
     private final AcceptanceActivityDO activity = new AcceptanceActivityDO();
     private final AcceptanceReportVersionDO report = new AcceptanceReportVersionDO();
     private final List<PlatformCommandExecutionApi.SuccessFacts> facts = new ArrayList<>();
@@ -91,11 +93,71 @@ class AcceptanceReportIndependentEntryTest {
             facts.add(call.<Function<AcceptanceReportCommands.ReportResult, PlatformCommandExecutionApi.SuccessFacts>>getArgument(4).apply(result));
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
         });
-        owner = new AcceptanceReportCommandService(activities, reports, attachments, files, commands, scopes);
+        owner = new AcceptanceReportCommandService(activities, reports, attachments, files, commands, scopes, nativeProjects);
         var access = new AcceptanceReportOperationAccessProvider(queries, scopes, permissions);
         adapter = new AcceptanceReportOperationCommandAdapter(of(owner), of(queries), of(access), of(validation.getValidator()));
     }
     @AfterEach void cleanUp() { security.close(); TenantContextHolder.clear(); }
+
+    private void direct(String type) {
+        activity.setOriginKind("DIRECT"); activity.setOriginKey("19:native-key");
+        activity.setProjectTaskId(null); activity.setExecutionContractId(null); activity.setDeliverableId(null);
+        activity.setAcceptanceType(type); activity.setRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        report.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        var context = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "ACTIVE");
+        when(nativeProjects.inspect(any())).thenReturn(context);
+        when(nativeProjects.lock(any(), eq(4), eq(3L))).thenReturn(context);
+    }
+
+    @Test void independentFinalPassHasNoImplicitPreliminaryDependencyAndKeepsNoFakeDeliveryTarget() {
+        direct("FINAL");
+        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "native-publish", "digest"),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
+        assertEquals("COMPLETED", activity.getActivityStatus());
+        assertNull(activity.getProjectTaskId()); assertNull(activity.getExecutionContractId()); assertNull(activity.getDeliverableId());
+        verify(activities, never()).selectByIdentityForUpdate(any());
+        assertEquals(List.of("ACC.ProjectAcceptanceReportChanged.v1"), facts.getFirst().businessEvents().stream()
+                .map(PlatformCommandExecutionApi.BusinessEvent::eventType).toList());
+        var order = inOrder(nativeProjects, activities, files);
+        order.verify(nativeProjects).lock(any(), eq(4), eq(3L));
+        order.verify(activities).selectByIdForUpdate(any());
+        order.verify(files).lockAndRevalidateReferenceSets(any());
+    }
+
+    @Test void failedReportNeverCompletesIndependentAcceptanceAndMissingFilesCannotPublish() {
+        direct("PRELIMINARY"); report.setConclusionCode("FAIL");
+        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "failed-publish", "digest"),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
+        assertEquals("PENDING", activity.getActivityStatus());
+        activity.setVersion(2); activity.setCurrentReportVersionId(null); report.setReportStatus("DRAFT");
+        when(files.inspectReferenceSets(any())).thenReturn(List.of());
+        assertThrows(RuntimeException.class, () -> owner.publish(
+                new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "no-file", "digest"),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry")));
+        assertEquals("DRAFT", report.getReportStatus());
+    }
+
+    @Test void completedIndependentAcceptanceCanRevokeCurrentReportWithoutRestoringHistory() {
+        direct("FINAL"); activity.setActivityStatus("COMPLETED"); prepare("REVOKE");
+        report.setPreviousVersionId(200L);
+        owner.revoke(new AcceptanceReportCommands.RevokeCommand(100L, 2, 300L, 1, "revoke", "digest"),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
+        assertEquals("PENDING", activity.getActivityStatus()); assertNull(activity.getCurrentReportVersionId());
+        assertEquals("REVOKED", report.getReportStatus()); assertEquals(200L, report.getPreviousVersionId());
+    }
+
+    @Test void closedProjectAndChangedFrozenReportPolicyBothPreventIndependentPublication() {
+        direct("FINAL");
+        var closed = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "NORMAL_CLOSED");
+        when(nativeProjects.lock(any(), eq(4), eq(3L))).thenReturn(closed);
+        var command = new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "publish", "digest");
+        var actor = new AcceptanceReportCommands.Actor(7L, 19L, "native-entry");
+        assertThrows(RuntimeException.class, () -> owner.publish(command, actor));
+        verify(activities, never()).selectByIdForUpdate(any());
+        direct("FINAL"); report.setAcceptanceRuleSnapshot("{}");
+        assertThrows(RuntimeException.class, () -> owner.publish(command, actor));
+        assertEquals("DRAFT", report.getReportStatus()); assertEquals("PENDING", activity.getActivityStatus());
+    }
 
     @ParameterizedTest @ValueSource(strings = {"CREATE_DRAFT", "UPDATE_DRAFT", "PUBLISH", "REVOKE"})
     void projectAdapterReachesTheOriginalWriterWithoutInventingBusinessCompletion(String action) {

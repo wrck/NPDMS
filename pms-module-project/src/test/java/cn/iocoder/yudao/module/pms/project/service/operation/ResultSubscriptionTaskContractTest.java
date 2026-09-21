@@ -80,6 +80,7 @@ class ResultSubscriptionTaskContractTest {
     }
     @Test void thisIncrementDoesNotEnableUnfinishedSubscriptionPublication() {
         var issues=new TemplateExecutionConfigurationCompilation(mock(cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectBusinessOperationRegistry.class)).prepare(ResultSubscriptionTaskFixture.designer());
-        assertTrue(issues.stream().anyMatch(issue->"RESULT_SUBSCRIPTION_NOT_INSTALLED".equals(issue.code())));
+        // 结果来源目录未安装时发布仍被阻断；无条件的"订阅尚未安装"拒绝已由来源能力校验取代。
+        assertTrue(issues.stream().anyMatch(issue->"RESULT_SOURCE_UNAVAILABLE".equals(issue.code())));
     }
 }

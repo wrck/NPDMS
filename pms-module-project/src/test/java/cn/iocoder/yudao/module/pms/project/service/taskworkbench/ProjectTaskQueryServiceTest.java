@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonA
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskTreeQueryReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskWorkbenchRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
@@ -52,6 +53,8 @@ class ProjectTaskQueryServiceTest {
     @Mock ProjectTaskAssignmentMapper assignmentMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
     @Mock TaskBindingHostRegistry bindingRegistry;
+    @Mock cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
+    @Mock cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
     @Mock PermissionCommonApi permissionApi;
 
     private ProjectTaskQueryService service;
@@ -60,7 +63,8 @@ class ProjectTaskQueryServiceTest {
     void setUp() {
         service = new ProjectTaskQueryService(projectMapper, projectTreeVersionMapper,
                 projectTreeScopeService, memberMapper, stageMapper, taskMapper, assignmentMapper,
-                contractMapper, bindingRegistry, permissionApi);
+                contractMapper, bindingRegistry, subscriptionObservations,
+                deliverableInitializationApplicationService, permissionApi);
     }
 
     @Test
@@ -287,6 +291,22 @@ class ProjectTaskQueryServiceTest {
     }
 
     @Test
+    void workbenchExposesTemplateFrozenTaskDeliverablesFilteredByTaskCode() {
+        stubProjectScope(true);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of());
+        when(deliverableInitializationApplicationService.getByProjectId(100L)).thenReturn(List.of(
+                deliverable(1L, "PLAN", "T-11"), deliverable(2L, "REPORT", "T-11"),
+                deliverable(3L, "STAGE_ONLY", null), deliverable(4L, "OTHER_TASK", "T-12")));
+
+        var response = service.getWorkbench(11L, actor());
+        assertEquals(List.of("PLAN", "REPORT"), response.getDeliverables().stream()
+                .map(ProjectTaskWorkbenchRespVO.TaskDeliverableItem::getDeliverableCode).toList());
+        assertEquals("PENDING", response.getDeliverables().get(0).getStatus());
+        assertTrue(response.getDeliverables().get(0).getRequired());
+    }
+
+    @Test
     void shouldExposeOnlyServerApprovedWorkspaceAndWorkbenchActions() {
         stubProjectScope(true);
         when(permissionApi.hasAnyPermissions(9L, "pms:project-task:create")).thenReturn(true);
@@ -398,6 +418,12 @@ class ProjectTaskQueryServiceTest {
         task.setVersion(0);
         task.setStateMachineRevisionId(81L);
         return task;
+    }
+
+    private cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView deliverable(
+            Long id, String code, String taskCode) {
+        return new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
+                id, 100L, code, "交付件" + id, "S1", taskCode, true, 55L, "PENDING", 0);
     }
 
     private TaskWorkbenchActor actor() {

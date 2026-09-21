@@ -32,4 +32,5 @@ public class AcceptanceReportVersionDO extends TenantBaseDO {
     private Long uploaderUserId;
     private LocalDateTime uploadTime;
     private Long publisherUserId;
+    private String acceptanceRuleSnapshot;
 }

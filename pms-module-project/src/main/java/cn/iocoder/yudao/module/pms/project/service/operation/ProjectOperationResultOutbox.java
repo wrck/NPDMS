@@ -22,7 +22,7 @@ public class ProjectOperationResultOutbox implements ProjectOperationResultSink 
     @Transactional(propagation = Propagation.MANDATORY)
     public void append(String code, int version, ProjectOperationCommand command, ProjectOperationResult result,
             Long tenant, Long actor, String correlation) {
-        if (version != 1 || !Objects.equals(tenant,TenantContextHolder.getRequiredTenantId()))
+        if (version < 1 || !Objects.equals(tenant,TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("BUSINESS_RESULT_TENANT_INVALID");
         var event = BusinessOperationResultEvent.create(tenant,command.projectId(),code,command.idempotencyKey(),result,actor,correlation);
         resultRecording.getObject().record(event);

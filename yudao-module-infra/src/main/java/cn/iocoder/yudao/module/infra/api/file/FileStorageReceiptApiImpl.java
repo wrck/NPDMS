@@ -36,7 +36,7 @@ import static cn.iocoder.yudao.module.infra.enums.ErrorCodeConstants.FILE_STORAG
 public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
 
     static final int MAX_CONTENT_BYTES = 50 * 1024 * 1024;
-    static final String STORAGE_DIRECTORY = "pms-storage-receipts";
+    public static final String STORAGE_DIRECTORY = "pms-storage-receipts";
 
     private static final Pattern STORAGE_OPERATION_ID_PATTERN =
             Pattern.compile("[A-Za-z0-9][A-Za-z0-9_-]{0,63}");

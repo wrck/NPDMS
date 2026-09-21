@@ -8,7 +8,7 @@ public final class DeliveryDefinitionPayloadValidator {
     private DeliveryDefinitionPayloadValidator() { }
     public static final Set<String> PREDICATES = Set.of("TASK_NATIVE_STATUS", "STAGE_NATIVE_STATUS",
             "TASK", "MILESTONE", "DELIVERABLE", "STATE", "APPROVAL", "PROCESS", "BUSINESS_FACT");
-    public static final Set<String> BINDING_TYPES = Set.of("STAGE_NATIVE", "TASK_NATIVE", "BUSINESS_OBJECT",
+    public static final Set<String> BINDING_TYPES = Set.of("STAGE_NATIVE", "TASK_NATIVE", "PAGE", "BUSINESS_OBJECT",
             "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
 
     public static void validate(DeliveryDefinitionKind kind, Integer schemaVersion, JsonNode payload,
@@ -62,13 +62,19 @@ public final class DeliveryDefinitionPayloadValidator {
                 fields(payload, Set.of("requiredActions")); strings(payload.path("requiredActions"), "requiredActions");
             }
             case DELIVERABLE -> {
-                fields(payload, Set.of("scope", "deliverableType", "required", "minimumQuantity", "allowedSources", "outputType", "confirmationRule"));
+                fields(payload, Set.of("scope", "deliverableType", "required", "minimumQuantity", "allowedSources", "outputType", "confirmationRule", "automaticSources"));
                 require(Set.of("STAGE", "TASK").contains(text(payload, "scope")), "scope");
                 text(payload, "deliverableType"); text(payload, "outputType"); bool(payload, "required");
                 JsonNode quantity = payload.path("minimumQuantity");
                 require(quantity.isIntegralNumber() && quantity.canConvertToLong() && quantity.asLong() >= 0
                         && (!payload.path("required").asBoolean() || quantity.asLong() > 0), "minimumQuantity");
                 strings(payload.path("allowedSources"), "allowedSources"); rule(payload.path("confirmationRule"));
+                if (payload.has("automaticSources")) {
+                    require(payload.path("automaticSources").isArray(), "automaticSources");
+                    Set<String> automatic = new HashSet<>();
+                    for (JsonNode source : payload.path("automaticSources"))
+                        require(source.isTextual() && code(source.asText()) && automatic.add(source.asText()), "automaticSources: duplicate/invalid source");
+                }
             }
             case GATE -> {
                 fields(payload, Set.of("gateType", "references"));

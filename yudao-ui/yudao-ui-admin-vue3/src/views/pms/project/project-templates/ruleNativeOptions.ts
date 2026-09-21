@@ -16,7 +16,7 @@ export function nativeOptions(document: TemplateDesignerDocument, key?: string):
       if (node.completionRuleKey !== key && node.exitRuleKey !== key) continue
       used = true
       for (const predicate of allowed)
-        if (node.workBinding?.type !== type || predicate !== `${type}_STATUS`) allowed.delete(predicate)
+        if (![type, 'PAGE'].includes(node.workBinding?.type ?? '') || predicate !== `${type}_STATUS`) allowed.delete(predicate)
     }
   }
   return used ? [...allowed] : []

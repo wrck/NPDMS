@@ -47,12 +47,21 @@ public class SiteSurveyBusinessResultSource implements BusinessResultChangeSourc
     }
 
     @Override public Observation inspect(Query query) {
+        return inspect(query, false);
+    }
+
+    @Override @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Observation lockAndInspect(Query query) { return inspect(query, true); }
+
+    private Observation inspect(Query query, boolean lock) {
         if (query == null || !TYPE.equals(query.type())
                 || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("RESULT_QUERY_SCOPE_INVALID");
         if (query.resultId() != null) throw new IllegalArgumentException("RESULT_LOOKUP_UNSUPPORTED");
         Long objectId = BusinessResultSource.nativeId(query.objectId());
-        var row = surveys.selectById(objectId);
+        var row = lock ? surveys.selectTaskObjectForUpdate(
+                new cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityTaskObjectQuery(
+                        query.tenantId(), query.projectId(), objectId)) : surveys.selectById(objectId);
         if (row == null || Boolean.TRUE.equals(row.getDeleted()))
             return Observation.absent(Status.NOT_FOUND, "RESULT_NOT_FOUND");
         if (!Objects.equals(query.tenantId(), row.getTenantId()) || !Objects.equals(query.projectId(), row.getProjectId())

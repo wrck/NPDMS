@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskDetailRespVO;
@@ -66,6 +68,8 @@ public class ProjectTaskQueryService {
     private final ProjectTaskAssignmentMapper assignmentMapper;
     private final ProjectTaskExecutionContractMapper contractMapper;
     private final TaskBindingHostRegistry bindingRegistry;
+    private final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
+    private final ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
     private final PermissionCommonApi permissionApi;
 
     public ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor) {
@@ -153,6 +157,7 @@ public class ProjectTaskQueryService {
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskId(taskId);
         ProjectTaskWorkbenchRespVO response = new ProjectTaskWorkbenchRespVO();
         response.setTask(taskDetail(value, actor));
+        response.setDeliverables(taskDeliverables(value.task()));
         if (contract == null || !Objects.equals(contract.getTenantId(), actor.tenantId())) {
             response.setAllowedActions(Set.of());
             response.setRecoverableError("BINDING_FACT_UNKNOWN");
@@ -167,11 +172,35 @@ public class ProjectTaskQueryService {
         response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
+        if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode())) {
+            try {
+                response.setResultSubscriptions(subscriptionObservations.forNode(
+                        actor.tenantId(), value.task().getProjectId(), "TASK", taskId));
+            } catch (RuntimeException unavailable) {
+                response.setRecoverableError("RESULT_SUBSCRIPTION_FACT_UNAVAILABLE");
+            }
+        }
         if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
             try { response.setApproval(taskApprovals.view(actor.tenantId(), value.task().getProjectId(), taskId, contract)); }
             catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }
         }
         return response;
+    }
+
+    /** 交付件为模板冻结的应交清单：按任务码过滤，阶段级（无任务码）行不属于任何任务视图。 */
+    private java.util.List<ProjectTaskWorkbenchRespVO.TaskDeliverableItem> taskDeliverables(ProjectTaskInstanceDO task) {
+        if (task.getCode() == null) return List.of();
+        return deliverableInitializationApplicationService.getByProjectId(task.getProjectId()).stream()
+                .filter(row -> task.getCode().equals(row.taskCode()))
+                .map(row -> {
+                    var item = new ProjectTaskWorkbenchRespVO.TaskDeliverableItem();
+                    item.setId(row.id());
+                    item.setDeliverableCode(row.deliverableCode());
+                    item.setName(row.name());
+                    item.setRequired(row.required());
+                    item.setStatus(row.status());
+                    return item;
+                }).toList();
     }
 
     private TaskAccess resolveAccess(Long projectId, TaskWorkbenchActor actor, boolean requireProject) {
@@ -301,6 +330,9 @@ public class ProjectTaskQueryService {
 
     private String trustedTargetRef(ProjectTaskExecutionContractDO contract) {
         if ("TASK_NATIVE".equals(contract.getWorkBindingTypeCode())) return null;
+        // PAGE 的可信目标即冻结的路由入口；仅用于导航，不产生任何完成事实。
+        if ("PAGE".equals(contract.getWorkBindingTypeCode()))
+            return JsonUtils.parseTree(contract.getBindingParameterSnapshot()).path("routePath").asText(null);
         if (contract.getTargetContextCode() == null || contract.getTargetObjectType() == null
                 || contract.getTargetObjectKey() == null) return null;
         return contract.getTargetContextCode() + ":" + contract.getTargetObjectType() + ":"

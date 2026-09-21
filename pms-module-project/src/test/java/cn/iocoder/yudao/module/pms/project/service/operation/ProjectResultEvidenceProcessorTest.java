@@ -55,6 +55,32 @@ class ProjectResultEvidenceProcessorTest {
         return ResultEvidenceEvaluatedEvent.create(ResultSubscriptionWakeup.create(f.recovery.row()), f.scan());
     }
     private void satisfy() { f.seed(1, "object", "r1", null, Validity.CURRENT); f.tick(); }
+
+    @Test void completedEvidenceInvalidationRecordsImpactWithoutReopeningTheNode() {
+        f.tick(); f.recovery.round.setEndedAt(LocalDateTime.now()); f.recovery.round.setStatus("DONE");
+        assertEquals("HISTORICAL_EVIDENCE_REVIEW_REQUIRED", processor.process(evaluated()));
+        verify(audit).record(eq(1L), eq(0L), anyString(), eq("PROJECT_COMPLETED_EVIDENCE_INVALIDATED"),
+                eq("ProjectNode"), eq("4"), eq("REWORK_REVIEW_REQUIRED"), anyMap());
+        assertEquals("DONE", f.recovery.round.getStatus());
+        verifyNoInteractions(tasks, stages, taskAdmission, stageAdmission, associations);
+    }
+
+    @Test void originalEvidenceInvalidationIsReportedEvenWhenAnotherResultNowSatisfiesPolicy() {
+        f.policy("REUSE_EXISTING", "CURRENT_VALID", "ANY_MATCHING", null);
+        satisfy();
+        var original = f.scan(); var row = f.recovery.row();
+        var receipt = new cn.iocoder.yudao.module.pms.project.domain.rule.ResultEvidenceReceipt(row.getId(), row.getSubscriptionKey(),
+                original.getId(), row.getPlanVersionId(), row.getExecutionId(), row.getContractId(), row.getVersion(), row.getBaselineSequence(), original.getThroughSequence());
+        f.recovery.round.setResultSnapshot(JsonUtils.toJsonString(java.util.Map.of("subscriptionEvidence", List.of(receipt))));
+        f.recovery.round.setEndedAt(LocalDateTime.now()); f.recovery.round.setStatus("DONE");
+        f.advanceEpoch(8);
+        f.observations.put("r1", f.recovery.result("object", "r1", Validity.REVOKED));
+        f.seed(2, "other", "r2", null, Validity.CURRENT); f.tick();
+        assertEquals("SATISFIED", f.scan().getStatus());
+        assertEquals("HISTORICAL_EVIDENCE_REVIEW_REQUIRED", processor.process(evaluated()));
+        verifyNoInteractions(tasks, stages, taskAdmission, stageAdmission, associations);
+        assertEquals("DONE", f.recovery.round.getStatus());
+    }
     private void task() {
         f.recovery.plan.setExecutionSnapshot(JsonUtils.toJsonString(ResultSubscriptionTaskFixture.snapshot()));
         f.recovery.round.setNodeKind("TASK"); f.recovery.round.setNodeKey("task");
@@ -137,13 +163,13 @@ class ProjectResultEvidenceProcessorTest {
         assertEquals(0, f.events(cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.EVENT_TYPE));
     }
 
-    @ParameterizedTest @ValueSource(strings = {"schema", "scan-string", "scan-fraction", "scan-overflow", "missing-target", "tenant", "extra", "event-id"})
+    @ParameterizedTest @ValueSource(strings = {"schema", "scan-garbage", "scan-fraction", "scan-overflow", "missing-target", "tenant", "extra", "event-id"})
     void transportChecksStoredTokensBeforeCallingTheProcessor(String damage) {
         satisfy(); var event = evaluated();
         var json = (ObjectNode) JsonUtils.parseTree(JsonUtils.toJsonString(event));
         switch (damage) {
             case "schema" -> json.put("eventVersion", "1");
-            case "scan-string" -> json.put("scanId", event.scanId().toString());
+            case "scan-garbage" -> json.put("scanId", "garbage");
             case "scan-fraction" -> json.put("scanId", 1.5);
             case "scan-overflow" -> json.set("scanId", JsonUtils.parseTree("999999999999999999999999999"));
             case "missing-target" -> json.remove("target");
@@ -155,5 +181,15 @@ class ProjectResultEvidenceProcessorTest {
         assertThrows(RuntimeException.class, () -> f.recovery.delivery.deliver(new PlatformOutboxMessageDTO(
                 event.eventId(), ResultEvidenceEvaluatedEvent.EVENT_TYPE, json.toString(), 0, 1L, LocalDateTime.now())));
         verifyNoInteractions(tasks, stages, taskAdmission, stageAdmission, associations, audit);
+    }
+
+    @Test void writerEncodedNumericStringIdsReachTheProcessor() {
+        satisfy(); var event = evaluated();
+        when(stages.completeStage(any(), any(), isNull(), any())).thenReturn(new ProjectStageCompletionService.Completion(1, false));
+        var json = (ObjectNode) JsonUtils.parseTree(JsonUtils.toJsonString(event));
+        json.put("scanId", event.scanId().toString());
+        assertTrue(f.recovery.delivery.deliver(new PlatformOutboxMessageDTO(
+                event.eventId(), ResultEvidenceEvaluatedEvent.EVENT_TYPE, json.toString(), 0, 1L, LocalDateTime.now())));
+        verify(stages).completeStage(any(), any(), isNull(), any());
     }
 }

@@ -322,6 +322,30 @@
                   >任务（{{ instTasks(stage.stageCode).length }}）</div
                 >
                 <el-table :data="instTasks(stage.stageCode)" size="small" border>
+                  <el-table-column type="expand">
+                    <template #default="{ row }">
+                      <div class="task-deliverable-expand">
+                        <template v-if="instTaskDeliverables(row.taskCode).length">
+                          <div
+                            v-for="d in instTaskDeliverables(row.taskCode)"
+                            :key="d.deliverableCode"
+                            class="preview-line"
+                          >
+                            <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
+                              d.required ? '必选' : '可选'
+                            }}</el-tag>
+                            {{ d.name }}
+                            <el-tag size="small" type="info">{{ d.deliverableCode }}</el-tag>
+                            <dict-tag
+                              :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS"
+                              :value="d.status"
+                            />
+                          </div>
+                        </template>
+                        <span v-else class="text-12px text-gray-400">本任务未定义交付件</span>
+                      </div>
+                    </template>
+                  </el-table-column>
                   <el-table-column prop="taskCode" label="任务码" width="120" />
                   <el-table-column prop="name" label="任务名称" min-width="140" />
                   <el-table-column label="状态" width="90">
@@ -354,9 +378,14 @@
                   class="preview-line"
                 >
                   <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
-                    d.deliverableCode
+                    d.required ? '必选' : '可选'
                   }}</el-tag>
                   {{ d.name }}
+                  <el-tag size="small" type="info">{{ d.deliverableCode }}</el-tag>
+                  <span v-if="d.taskCode" class="text-12px text-gray-400">
+                    归属任务：{{ instTaskName(d.taskCode) }}
+                  </span>
+                  <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="d.status" />
                 </div>
               </div>
               <div class="preview-block">
@@ -837,6 +866,10 @@ const instMilestones = (code: string) =>
   instances.value?.milestones.filter((m) => m.stageCode === code) || []
 const instDeliverables = (code: string) =>
   instances.value?.deliverables.filter((d) => d.stageCode === code) || []
+const instTaskDeliverables = (taskCode: string) =>
+  instances.value?.deliverables.filter((d) => d.taskCode === taskCode) || []
+const instTaskName = (taskCode: string) =>
+  instances.value?.tasks.find((t) => t.taskCode === taskCode)?.name || taskCode
 const instGates = (code: string) => instances.value?.gates.filter((g) => g.stageCode === code) || []
 
 // ============ 数据加载 ============
@@ -903,6 +936,10 @@ watch(() => [route.query.section, route.query.tab], () => {
 
 <style lang="scss" scoped>
 /* 顶部档案区 */
+.task-deliverable-expand {
+  padding: 4px 12px;
+}
+
 .project-header {
   display: flex;
   align-items: flex-start;

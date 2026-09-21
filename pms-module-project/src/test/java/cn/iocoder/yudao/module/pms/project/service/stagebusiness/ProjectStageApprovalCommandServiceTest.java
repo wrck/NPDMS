@@ -48,7 +48,7 @@ class ProjectStageApprovalCommandServiceTest {
     void context(String status, boolean readonly) {
         var fact = new Fact("UNKNOWN".equals(status) ? Outcome.UNKNOWN : "APPROVED".equals(status) ? Outcome.SATISFIED : Outcome.NOT_SATISFIED,
                 status,null,"review:1",null);
-        when(contexts.getContext(eq(9L),eq("PREP"),any())).thenReturn(new StageBusinessContext(9L,11L,"PREP",41L,1,"APPROVAL",
+        when(contexts.getContext(eq(9L),eq("PREP"),any())).thenReturn(new StageBusinessContext(9L,11L,"PREP",41L,1,"APPROVAL",null,
                 null,null,readonly ? Set.of("QUERY") : Set.of("QUERY","APPROVAL"),readonly,null,execution,new View("review","review:1",31L,fact)));
     }
     ProjectStageApprovalCommandService.Command command(ProjectStageExecutionContext context) {

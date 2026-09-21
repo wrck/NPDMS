@@ -2,12 +2,11 @@ package cn.iocoder.yudao.module.pms.integration.sync;
 
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
 import org.quartz.CronExpression;
-import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 import java.util.*;
 
+/** 流式读取器经组件扫描注册，单一public构造器注入Optional来源；不得用@Import按默认构造器实例化。 */
 @Component
-@Import(SpringJdbcStreamingReader.class)
 public class SyncDefinitionValidator {
     private final Map<String,DataSyncAdapter> adapters;
     public SyncDefinitionValidator(List<DataSyncAdapter> providers) {

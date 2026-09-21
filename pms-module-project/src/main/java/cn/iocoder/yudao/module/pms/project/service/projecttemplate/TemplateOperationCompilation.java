@@ -130,16 +130,19 @@ public class TemplateOperationCompilation {
     /** Supported synchronous facts are deliberately narrower than node-completion facts. */
     public static boolean supports(RuleProgram program, Checkpoint checkpoint) {
         if (program == null || program.kind() != VersionRule.Kind.CONDITION || program.leaves().isEmpty()) return false;
+        var fields = new java.util.HashSet<>(ProjectRuleFields.codes());
+        if (checkpoint == Checkpoint.POST)
+            fields.addAll(cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultFields.codes());
         for (var leaf : program.leaves()) {
             if ("CONSTANT".equals(leaf.predicate())) continue;
             if ("FIELD".equals(leaf.predicate())
-                    && ProjectRuleFields.codes().contains(leaf.parameters().path("fieldCode").asText())) continue;
+                    && fields.contains(leaf.parameters().path("fieldCode").asText())) continue;
             if ("DECISION".equals(leaf.predicate())) {
                 var table = leaf.parameters().path("table");
                 var inputs = table.path("inputFields");
                 if (!table.isObject() || !inputs.isObject()) return false;
                 boolean fieldsKnown = inputs.properties().stream().allMatch(item -> item.getValue().isTextual()
-                        && ProjectRuleFields.codes().contains(item.getValue().asText()));
+                        && fields.contains(item.getValue().asText()));
                 if (fieldsKnown) continue;
                 return false;
             }

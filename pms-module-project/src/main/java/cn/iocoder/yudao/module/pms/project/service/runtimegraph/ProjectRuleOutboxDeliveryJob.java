@@ -8,12 +8,14 @@ import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformOutboxDeliveryApi
 import cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxClaimQuery;
 import cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultDelivery;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Set;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProjectRuleOutboxDeliveryJob implements JobHandler {
@@ -71,6 +73,8 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
             }
         } catch (RuntimeException unavailable) {
             // Retry through durable Outbox; never expose Owner payloads or report a committed business operation as rolled back.
+            log.warn("Outbox delivery deferred: tenant={}, event={}, type={}, reason={}",
+                    message.tenantId(), message.eventId(), message.eventType(), unavailable.getMessage());
         }
         try {
             if (completed) outbox.markDelivered(message.eventId(), message.retryCount());

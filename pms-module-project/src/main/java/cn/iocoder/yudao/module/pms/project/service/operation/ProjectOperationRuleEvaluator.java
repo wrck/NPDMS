@@ -26,6 +26,11 @@ public class ProjectOperationRuleEvaluator {
 
     public Evaluation evaluate(String reference, FrozenOperationContract contract, TemplateOperationContract.Check check,
             ProjectMasterDO project) {
+        return evaluate(reference, contract, check, project, null);
+    }
+
+    public Evaluation evaluate(String reference, FrozenOperationContract contract, TemplateOperationContract.Check check,
+            ProjectMasterDO project, cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationResult transactionResult) {
         if (check == null) return Evaluation.unknown("OPERATION_CHECK_MISSING");
         if ("NONE".equals(check.mode()) && check.ruleKey() == null)
             return new Evaluation("NO_ADDITIONAL_RULE", null);
@@ -35,9 +40,9 @@ public class ProjectOperationRuleEvaluator {
             var result = rules.evaluate(reference + ":rule:" + check.ruleKey(), program, leaf -> {
                 return switch (leaf.predicate()) {
                     case "CONSTANT" -> RuleFact.known(leaf.parameters().path("value").asBoolean());
-                    case "FIELD" -> ProjectRuleFields.read(project, leaf.parameters().path("fieldCode").asText());
+                    case "FIELD" -> field(project, transactionResult, leaf.parameters().path("fieldCode").asText());
                     case "DECISION" -> decisions.resolve(project.getTenantId(), reference, leaf,
-                            code -> ProjectRuleFields.read(project, code));
+                            code -> field(project, transactionResult, code));
                     case "TIME_REACHED" -> AbsoluteTimeCondition.evaluate(leaf.parameters(), Instant.now());
                     default -> RuleFact.unknown("OPERATION_FACT_UNSUPPORTED");
                 };
@@ -46,5 +51,11 @@ public class ProjectOperationRuleEvaluator {
         } catch (RuntimeException unavailable) {
             return Evaluation.unknown("OPERATION_RULE_UNAVAILABLE");
         }
+    }
+
+    private RuleFact field(ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationResult result, String code) {
+        return ProjectOperationResultFields.codes().contains(code)
+                ? ProjectOperationResultFields.read(result, code) : ProjectRuleFields.read(project, code);
     }
 }

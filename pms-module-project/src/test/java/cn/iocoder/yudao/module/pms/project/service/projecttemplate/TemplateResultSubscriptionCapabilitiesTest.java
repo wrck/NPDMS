@@ -24,15 +24,17 @@ class TemplateResultSubscriptionCapabilitiesTest {
     }
     @Test void retainedResultsSupportExactHistoryButNeverInventACommitBoundary() {
         var validator = validator(true,true);
-        assertTrue(validator.validate(subscription("PINNED_RESULT","HISTORICAL_FACT"),"test").isEmpty());
-        assertEquals("RESULT_FORMATION_BOUNDARY_UNAVAILABLE",validator.validate(subscription("NEW_RESULT","CURRENT_VALID"),"test").getFirst().code());
+        assertTrue(validator.validate(subscription("PINNED_RESULT","HISTORICAL_FACT"),"test").stream()
+                .anyMatch(issue -> issue.code().equals("RESULT_COMMIT_BARRIER_UNAVAILABLE")));
+        assertTrue(validator.validate(subscription("NEW_RESULT","CURRENT_VALID"),"test").stream()
+                .anyMatch(issue -> issue.code().equals("RESULT_COMMIT_BARRIER_UNAVAILABLE")));
         verify(source,never()).inspect(any());
     }
     @Test void currentOnlySourceDoesNotAcquireHistoricalCapabilitiesByConfiguration() {
         var issues = validator(false,false).validate(subscription("PINNED_RESULT","HISTORICAL_FACT"),"test");
-        assertEquals(Set.of("RESULT_EXACT_LOOKUP_UNSUPPORTED","RESULT_HISTORY_UNSUPPORTED"),
+        assertEquals(Set.of("RESULT_EXACT_LOOKUP_UNSUPPORTED","RESULT_HISTORY_UNSUPPORTED", "RESULT_CHANGE_SOURCE_UNAVAILABLE", "RESULT_COMMIT_BARRIER_UNAVAILABLE"),
                 issues.stream().map(issue->issue.code()).collect(java.util.stream.Collectors.toSet()));
-        assertTrue(validator(false,false).validate(subscription("REUSE_EXISTING","CURRENT_VALID"),"test").isEmpty());
+        assertFalse(validator(false,false).validate(subscription("REUSE_EXISTING","CURRENT_VALID"),"test").isEmpty());
         verify(source,never()).inspect(any());
     }
     @Test void ownerOrResultTypeCannotBeBorrowedFromANeighboringDescriptor() {
@@ -51,8 +53,22 @@ class TemplateResultSubscriptionCapabilitiesTest {
         stage.setExecution(JsonUtils.parseTree("{\"subscriptions\":[{\"key\":\"s\",\"ownerContext\":\"SOL\",\"entityType\":\"REQUIREMENT_ANALYSIS\",\"resultType\":\"REQUIREMENT_ANALYSIS_COMPLETED\",\"scope\":{\"mode\":\"PROJECT\"},\"policy\":{\"acquisition\":\"REUSE_EXISTING\",\"validity\":\"CURRENT_VALID\",\"selection\":\"EXACT_ONE\"}}]}"));
         document.getStages().add(stage);
         var issues = compilation.prepare(document);
-        assertEquals(List.of("RESULT_SUBSCRIPTION_NOT_INSTALLED"),issues.stream().map(issue->issue.code()).toList());
+        assertEquals(Set.of("RESULT_CHANGE_SOURCE_UNAVAILABLE", "RESULT_INVENTORY_UNAVAILABLE", "RESULT_COMMIT_BARRIER_UNAVAILABLE"),
+                issues.stream().map(issue->issue.code()).collect(java.util.stream.Collectors.toSet()));
         verifyNoInteractions(registry); verify(source,never()).inspect(any());
+    }
+    @Test void transactionalInventoryAndChangeSourceEnablesNewResultsWithoutCallingOwner() {
+        var provider = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChangeSource.class,
+                withSettings().extraInterfaces(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultInventorySource.class));
+        when(provider.descriptor()).thenReturn(new Descriptor(type, true, true, true));
+        when(provider.transactionalChangeCoverage()).thenReturn(true);
+        var validator = new TemplateResultSubscriptionCapabilities(new ProjectBusinessResultSources(List.of(provider)));
+        for (var acquisition : List.of("REUSE_EXISTING", "NEW_RESULT", "PINNED_RESULT"))
+            assertTrue(validator.validate(subscription(acquisition, "HISTORICAL_FACT"), "test").isEmpty());
+        verify(provider, never()).inspect(any());
+        when(provider.transactionalChangeCoverage()).thenReturn(false);
+        assertTrue(validator.validate(subscription("NEW_RESULT", "CURRENT_VALID"), "test").stream()
+                .anyMatch(issue -> issue.code().equals("RESULT_COMMIT_BARRIER_UNAVAILABLE")));
     }
     private Subscription subscription(String acquisition,String validity) {
         return new Subscription("s",type.ownerContext(),type.entityType(),type.resultType(),new Scope("OBJECTS",List.of("100")),

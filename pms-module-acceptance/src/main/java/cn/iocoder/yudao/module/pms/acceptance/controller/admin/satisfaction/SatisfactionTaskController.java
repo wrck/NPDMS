@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.controller.admin.satisfaction;
 
+import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.IndependentSatisfactionService;
+
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -53,6 +55,22 @@ public class SatisfactionTaskController {
     private final SatisfactionAssistedResponseApplicationService assistedService;
     private final SatisfactionAssistedFileApplicationService assistedFileService;
     private final Environment environment;
+    private final IndependentSatisfactionService independentService;
+
+    @GetMapping("/independent/context")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    public CommonResult<cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context> independentContext(
+            @RequestParam Long projectId) {
+        return withTenant(() -> success(independentService.context(tenantId(), actorId(), projectId)));
+    }
+
+    @PostMapping("/independent")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    public CommonResult<IndependentSatisfactionService.Created> createIndependent(
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key,
+            @RequestBody IndependentSatisfactionService.Create command) {
+        return withTenant(() -> success(independentService.create(tenantId(), actorId(), command, key)));
+    }
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:query')")

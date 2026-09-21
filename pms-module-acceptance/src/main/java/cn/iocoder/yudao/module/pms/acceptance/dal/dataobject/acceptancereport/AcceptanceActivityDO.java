@@ -19,6 +19,11 @@ public class AcceptanceActivityDO extends TenantBaseDO {
     private Long deliverableId;
     private String acceptanceType;
     private String activityStatus;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private Long currentReportVersionId;
     private Integer version;
+    private String originKind;
+    private String originKey;
+    private String originSnapshot;
+    private String ruleSnapshot;
 }

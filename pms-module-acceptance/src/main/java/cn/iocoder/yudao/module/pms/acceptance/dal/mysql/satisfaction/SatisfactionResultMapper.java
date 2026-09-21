@@ -11,6 +11,8 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface SatisfactionResultMapper extends BaseMapperX<SatisfactionResultDO> {
+    java.util.List<String> selectResultInventory(@Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionResultInventoryQuery query);
     SatisfactionResultFactRecord selectFact(@Param("query") SatisfactionResultIdentityQuery query);
     SatisfactionResultFactRecord selectFactForUpdate(@Param("query") SatisfactionResultIdentityQuery query);
     SatisfactionResultDO selectByIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);

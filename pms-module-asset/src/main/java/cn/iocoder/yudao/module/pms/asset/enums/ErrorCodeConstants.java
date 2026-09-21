@@ -27,6 +27,7 @@ public interface ErrorCodeConstants {
     ErrorCode AST_DEVICE_ASSEMBLY_COMMAND_INVALID = new ErrorCode(1_015_001_007, "设备装配命令无效");
     ErrorCode AST_DEVICE_ASSEMBLY_DEVICE_NOT_EXISTS = new ErrorCode(1_015_001_008, "装配设备不存在或不属于当前租户");
     ErrorCode AST_DEVICE_ASSEMBLY_CYCLE = new ErrorCode(1_015_001_009, "设备装配关系不允许形成循环");
+    ErrorCode AST_DEVICE_MANUAL_EVIDENCE_REQUIRED = new ErrorCode(1_015_001_010, "人工补录设备必须提供原因和证据");
 
     // ========== 设备版本历史 1_015_002_000 ==========
     ErrorCode AST_EQUIPMENT_VERSION_NOT_EXISTS = new ErrorCode(1_015_002_000, "设备版本记录不存在");

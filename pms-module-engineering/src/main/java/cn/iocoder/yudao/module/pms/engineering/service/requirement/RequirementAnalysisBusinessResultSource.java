@@ -55,13 +55,26 @@ public class RequirementAnalysisBusinessResultSource implements BusinessResultCh
     }
 
     @Override public Observation inspect(Query query) {
+        return inspect(query, false);
+    }
+
+    @Override @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Observation lockAndInspect(Query query) { return inspect(query, true); }
+
+    private Observation inspect(Query query, boolean lock) {
         if (query == null || !TYPE.equals(query.type())
                 || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("RESULT_QUERY_SCOPE_INVALID");
         Long objectId = BusinessResultSource.nativeId(query.objectId());
         Long resultId = BusinessResultSource.nativeId(query.resultId());
+        if (lock) {
+            if (objectId == null || resultId == null) throw new IllegalArgumentException("RESULT_EXACT_IDENTITY_REQUIRED");
+            var entity = revisions.lockCurrent(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementEntityQuery(query.tenantId(), objectId));
+            if (entity == null) return Observation.absent(Status.NOT_FOUND, "RESULT_NOT_FOUND");
+        }
         var row = resultId == null
                 ? revisions.selectEffective(new RequirementProjectQuery(query.tenantId(), query.projectId()))
+                : lock ? revisions.lockRevision(new RequirementRevisionQuery(query.tenantId(), resultId))
                 : revisions.selectRevision(new RequirementRevisionQuery(query.tenantId(), resultId));
         if (row == null || Boolean.TRUE.equals(row.getDeleted()))
             return Observation.absent(Status.NOT_FOUND, "RESULT_NOT_FOUND");

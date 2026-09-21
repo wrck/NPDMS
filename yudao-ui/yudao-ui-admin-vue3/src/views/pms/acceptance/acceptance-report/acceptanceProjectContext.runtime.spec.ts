@@ -1,3 +1,4 @@
+vi.mock('@/components/BusinessView/operationHost', async () => { const { shallowRef } = await import('vue'); return { useOperationClient: () => shallowRef() } })
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import Workbench from './index.vue'

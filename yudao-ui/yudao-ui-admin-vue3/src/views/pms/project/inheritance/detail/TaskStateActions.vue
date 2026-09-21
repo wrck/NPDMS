@@ -15,7 +15,8 @@ const props = defineProps<{ workbench: TaskWorkbench; businessBound: boolean; bu
 const emit = defineEmits<{ changed: [result: TaskCommandResult] }>()
 const labels: Record<TaskAction, string> = { START: '开始任务', SUBMIT: '提交任务', COMPLETE: '校验并完成任务', CANCEL: '关闭任务' }
 const actions = computed(() => (Object.keys(labels) as TaskAction[]).filter(action => props.workbench.allowedActions?.includes(action)
-  && !(props.workbench.bindingType === 'APPROVAL' && ['START', 'SUBMIT', 'COMPLETE'].includes(action))))
+  && !(props.workbench.bindingType === 'APPROVAL' && ['START', 'SUBMIT', 'COMPLETE'].includes(action))
+  && !(props.workbench.bindingType === 'RESULT_SUBSCRIPTION' && ['SUBMIT', 'COMPLETE'].includes(action))))
 const message = useMessage(), busy = ref(false), error = ref('')
 const intent = createSubmissionIdempotencyState()
 const execute = async (action: TaskAction) => {

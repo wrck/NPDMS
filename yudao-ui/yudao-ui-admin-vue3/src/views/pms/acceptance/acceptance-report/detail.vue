@@ -9,7 +9,7 @@
       </div>
       <el-descriptions :column="narrow ? 1 : 2" border class="facts">
         <el-descriptions-item label="项目ID">{{ activity.projectId }}</el-descriptions-item>
-        <el-descriptions-item label="任务ID">{{ activity.projectTaskId }}</el-descriptions-item>
+        <el-descriptions-item label="创建来源">{{ activity.originKind === 'DIRECT' ? '项目独立验收' : `任务 #${activity.projectTaskId}` }}</el-descriptions-item>
         <el-descriptions-item label="活动版本">{{ activity.version }}</el-descriptions-item>
         <el-descriptions-item label="当前报告">{{ current ? `V${current.reportVersionNo}` : '尚无有效版本' }}</el-descriptions-item>
       </el-descriptions>
@@ -17,22 +17,24 @@
       <el-empty v-else-if="!current" description="当前尚无有效报告；可先保存不完整草稿，活动完成前再补齐四项与附件" />
       <section v-else class="current-report" aria-labelledby="current-report-title">
         <div class="section-title"><h3 id="current-report-title">当前有效报告 V{{ current.reportVersionNo }}</h3><el-tag type="success">EFFECTIVE</el-tag></div>
-        <p>{{ current.conclusionText || '未填写结论说明' }}</p>
-        <div class="current-meta"><span>验收人：{{ current.acceptorName }}</span><span>验收时间：{{ current.acceptanceTime }}</span><span>附件：{{ current.attachments.length }}</span></div>
+        <p>结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }} · {{ current.conclusionText || '未填写结论说明' }}</p>
+        <div class="current-meta"><span>验收人：{{ current.acceptorName }}</span><span>验收时间：{{ current.acceptanceTime == null ? '未填写' : formatDate(new Date(current.acceptanceTime)) }}</span><span>附件：{{ current.attachments.length }}</span></div>
       </section>
       <div class="detail-actions">
         <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ draft ? '继续编辑草稿' : current ? '创建替换版本' : '创建报告草稿' }}</el-button>
         <el-button v-if="versions.length" v-hasPermi="['pms:acceptance:report:query']" @click="openHistory">查看版本历史</el-button>
         <el-button v-if="current && canWrite('REVOKE')" type="danger" plain v-hasPermi="['pms:acceptance:report:write']" @click="revoke">撤销当前版本</el-button>
       </div>
-      <p class="completion-note">对应项目任务完成时，服务端会再次校验当前有效报告的验收时间、结论、验收人和附件。</p>
+      <p class="completion-note">项目任务按模板条件判定完成，初验与终验分别校验报告已生效、结论通过及附件有效。</p>
     </template>
   </el-drawer>
-  <ReportDraftEditor ref="editorRef" :readonly="readonly || activity?.activityStatus !== 'PENDING'" :allowed-actions="allowedActions" @changed="reload" @dirty-change="emit('dirty-change', $event)" />
+  <ReportDraftEditor ref="editorRef" :readonly="readonly || !activityAllowsReportWrite(activity)" :allowed-actions="allowedActions" @changed="reload" @dirty-change="emit('dirty-change', $event)" />
   <ReportVersionHistoryDrawer ref="historyRef" :allowed-actions="allowedActions" />
 </template>
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
+import { activityAllowsReportWrite } from './reportState'
+import { formatDate } from '@/utils/formatTime'
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
@@ -64,7 +66,7 @@ let openSequence = 0
 let expectedProject: BusinessViewId | undefined
 const revoking = ref(false)
 const canQuery = () => (props.allowedActions === undefined || props.allowedActions.includes('QUERY')) && checkPermi(['pms:acceptance:report:query'])
-const canWrite = (action: string) => !props.readonly && canQuery() && activity.value?.activityStatus === 'PENDING'
+const canWrite = (action: string) => !props.readonly && canQuery() && activityAllowsReportWrite(activity.value)
   && (props.allowedActions === undefined || props.allowedActions.includes(action)) && checkPermi(['pms:acceptance:report:write'])
 const isDirty = () => revoking.value || !!editorRef.value?.isDirty()
 const requestLeave = async () => !revoking.value && (await editorRef.value?.requestLeave() ?? true)

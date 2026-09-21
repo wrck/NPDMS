@@ -47,6 +47,16 @@
         />
       </el-form-item>
       <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
+      <template v-if="!form.id">
+        <el-form-item label="补录原因" prop="manualReason">
+          <el-input v-model="form.manualReason" type="textarea" maxlength="100" show-word-limit />
+        </el-form-item>
+        <el-form-item label="补录证据" prop="manualEvidence">
+          <el-input v-model="form.manualEvidence" type="textarea" maxlength="300" show-word-limit
+            placeholder="填写可追溯的设备资料或现场记录说明" />
+        </el-form-item>
+        <el-alert type="info" :closable="false">人工补录设备将标记为待对账，原因和证据保存在创建历史中。</el-alert>
+      </template>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
@@ -74,7 +84,9 @@ const form = reactive<DeviceArchiveSaveReqVO>({
 })
 const rules = {
   sn: [{ required: true, message: '请输入序列号' }],
-  name: [{ required: true, message: '请输入设备名称' }]
+  name: [{ required: true, message: '请输入设备名称' }],
+  manualReason: [{ required: true, whitespace: true, message: '请输入补录原因' }],
+  manualEvidence: [{ required: true, whitespace: true, message: '请输入补录证据' }]
 }
 const projectLocked = computed(() => props.lockedProjectId != null && props.lockedProjectId !== '')
 const lockedProjectNumber = computed(() =>
@@ -93,7 +105,9 @@ const open = (row?: DeviceArchiveVO) => {
       projectId: lockedProjectNumber.value,
       warrantyStartDate: undefined,
       warrantyEndDate: undefined,
-      remark: ''
+      remark: '',
+      manualReason: '',
+      manualEvidence: ''
     },
     row || {},
     lockedProjectNumber.value != null ? { projectId: lockedProjectNumber.value } : {}

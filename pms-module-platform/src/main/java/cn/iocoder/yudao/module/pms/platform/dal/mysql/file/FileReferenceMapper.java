@@ -16,6 +16,8 @@ import java.util.List;
 
 @Mapper
 public interface FileReferenceMapper {
+    record IdentityQuery(Long tenantId, Long referenceId) { }
+    FileReferenceDO selectIdentity(@Param("query") IdentityQuery query);
 
     int insert(@Param("row") FileReferenceDO row);
 

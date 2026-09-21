@@ -78,6 +78,37 @@ export interface TaskDetail extends TaskNode {
   actualEndTime?: string
 }
 
+export interface TaskSubscriptionObservation {
+  subscriptionKey: string
+  resultType: string
+  waitReason: string
+  scanStatus?: string
+  scanCurrent: boolean
+  examined: number
+  eligible: number
+  missingObjects: string[]
+  reasons: string[]
+}
+
+export interface TaskSubscriptionRound {
+  executionId: number | string
+  planVersionId: number | string
+  nodeKey: string
+  nodeKind: 'STAGE' | 'TASK'
+  roundStatus: string
+  roundEnded: boolean
+  subscriptions: TaskSubscriptionObservation[]
+}
+
+/** 模板冻结的本任务交付件（ACC应交根行），只读展示；满足状态由满足/验收链维护。 */
+export interface TaskWorkbenchDeliverable {
+  id: number
+  deliverableCode: string
+  name: string
+  required?: boolean
+  status?: string
+}
+
 export interface TaskWorkbench {
   task: TaskDetail
   executionContractId?: number
@@ -88,6 +119,8 @@ export interface TaskWorkbench {
   factVersion?: string
   recoverableError?: string
   approval?: TaskApprovalView
+  resultSubscriptions?: TaskSubscriptionRound[]
+  deliverables?: TaskWorkbenchDeliverable[]
 }
 
 export interface TaskApprovalSubmission {
