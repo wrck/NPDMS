@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "profiles": [
+    {
+      "projectionId": "eventSummary",
+      "description": "normalized event fields",
+      "missingValuePolicy": "NULL",
+      "fields": {"severity": "event.severity"}
+    }
+  ]
+}

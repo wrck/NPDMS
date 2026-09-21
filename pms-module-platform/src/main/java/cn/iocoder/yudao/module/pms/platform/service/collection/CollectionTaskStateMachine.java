@@ -8,6 +8,26 @@ import java.util.Set;
 @Component
 public class CollectionTaskStateMachine {
 
+    public static boolean canCancelBeforeDispatch(String status, String technicalStage, String externalTaskId) {
+        return externalTaskId == null && Set.of("CREATED", "AUTHORIZED").contains(status)
+                && Set.of("PENDING_DISPATCH", "DISPATCHING", "RECONCILING").contains(technicalStage);
+    }
+    public static String rejectedBeforeDispatch(String status, String stage) {
+        if (!Set.of("CREATED", "AUTHORIZED").contains(status) || !"PENDING_DISPATCH".equals(stage)) {
+            throw new IllegalStateException("COLLECTION_TASK_NOT_PENDING_DISPATCH");
+        }
+        return "FAILED";
+    }
+
+    /** A provider acceptance is proof of technical dispatch only; terminal history is immutable. */
+    public static String acceptedDispatchStatus(String currentStatus) {
+        return switch (currentStatus) {
+            case "CREATED", "AUTHORIZED" -> "DISPATCHED";
+            case "DISPATCHED", "EXECUTING" -> currentStatus;
+            default -> throw new IllegalStateException("COLLECTION_DISPATCH_STATE_INVALID");
+        };
+    }
+
     private static final Set<Status> IMMUTABLE_TERMINAL_STATUSES = Set.of(
             Status.COMPLETED,
             Status.FAILED,

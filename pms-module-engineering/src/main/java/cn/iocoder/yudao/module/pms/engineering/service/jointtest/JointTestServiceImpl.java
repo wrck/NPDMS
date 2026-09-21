@@ -31,12 +31,19 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class JointTestServiceImpl implements JointTestService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
+    @Resource
     private JointTestMapper jointTestMapper;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Long createJointTest(JointTestSaveReqVO createReqVO) {
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
         JointTestDO entity = BeanUtils.toBean(createReqVO, JointTestDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 EngineeringRecordCodeGenerator.JOINT_TEST, jointTestMapper,
@@ -47,8 +54,13 @@ public class JointTestServiceImpl implements JointTestService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void updateJointTest(JointTestSaveReqVO updateReqVO) {
         JointTestDO existing = validateJointTestExists(updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         if (JointTestStatusRules.isTerminal(existing.getStatus())) {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }

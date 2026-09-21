@@ -1,0 +1,37 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://idp.example.invalid/issuer # alternatively use jwk-set-uri
+device-ops:
+  master-data:
+    enabled: false
+    integration-host: https://integration.example.invalid
+    token-uri: https://idp.example.invalid/oauth/token
+    client-id: change-me
+    client-secret: ${MASTER_DATA_CLIENT_SECRET}
+    scope: master-data.read
+    connect-timeout: 3s
+    read-timeout: 10s
+  callback:
+    enabled: false
+    token-uri: https://idp.example.invalid/oauth/token
+    client-id: change-me
+    client-secret: ${CALLBACK_CLIENT_SECRET}
+    scope: device-ops.callback
+    allowed-hosts: [callbacks.example.invalid]
+    poll-interval: 5s
+    # Lease must cover one token request and one callback request.
+    lease: 30s
+    connect-timeout: 3s
+    read-timeout: 10s
+    batch-size: 20
+    max-attempts: 5
+    base-delay: 5s
+    max-delay: 5m
+  schedule:
+    enabled: false
+    fixed-delay: 30s
+    lease: 60s
+    batch-size: 20

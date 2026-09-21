@@ -11,4 +11,8 @@ public interface DeviceOpsGatewayApi {
     DeviceOpsTaskSnapshot query(String platformTaskId);
 
     void cancel(String platformTaskId, String reason);
+
+    default boolean retryResultDelivery(String platformTaskId) {
+        return false;
+    }
 }

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:device-ops:canonical-device:1.0.0",
+  "title": "Canonical device semantic snapshot",
+  "type": "object",
+  "required": ["schemaVersion", "collection", "entities", "observations", "projections", "unmapped", "quality"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "collection": { "type": "object" },
+    "entities": {
+      "type": "object",
+      "required": ["device", "interfaces", "addresses", "routing", "sessions", "security", "logs", "configuration"],
+      "properties": {
+        "device": {
+          "type": "object",
+          "properties": {
+            "identity": { "type": "object" },
+            "software": { "type": "object" },
+            "hardware": { "type": "object" },
+            "environment": { "type": "object" },
+            "performance": { "type": "object" },
+            "management": { "type": "object" },
+            "highAvailability": { "type": "object" }
+          }
+        },
+        "interfaces": { "type": "array" },
+        "addresses": { "type": "object" },
+        "routing": { "type": "object" },
+        "sessions": { "type": "object" },
+        "security": { "type": "object" },
+        "logs": { "type": "object" },
+        "configuration": { "type": "object" }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation" }
+    },
+    "projections": { "type": "object" },
+    "unmapped": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sourceEvidence" }
+    },
+    "quality": { "type": "object" }
+  },
+  "$defs": {
+    "status": {
+      "enum": ["OBSERVED", "NO_DATA", "NOT_ENABLED", "REDACTED", "PARTIAL", "UNPARSED", "SOURCE_CORRUPTED", "EXECUTION_FAILED"]
+    },
+    "sourceEvidence": {
+      "type": "object",
+      "required": ["blockIndex", "command", "lineStart", "lineEnd", "rawText"],
+      "properties": {
+        "blockIndex": { "type": "integer", "minimum": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "lineStart": { "type": ["integer", "null"], "minimum": 1 },
+        "lineEnd": { "type": ["integer", "null"], "minimum": 1 },
+        "rawText": { "type": "string" }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "required": ["semanticKey", "value", "rawValue", "dataType", "unit", "status", "confidence", "source", "ruleId"],
+      "properties": {
+        "semanticKey": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$" },
+        "value": {},
+        "rawValue": {},
+        "dataType": { "enum": ["string", "integer", "decimal", "boolean", "datetime", "object"] },
+        "unit": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/status" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source": { "$ref": "#/$defs/sourceEvidence" },
+        "ruleId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": ["blockIndex", "command", "blockRole", "status", "confidence", "matchedRuleIds", "targetSemanticKeys", "source"],
+      "properties": {
+        "blockIndex": { "type": "integer", "minimum": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "blockRole": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/status" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "matchedRuleIds": { "type": "array", "items": { "type": "string" } },
+        "targetSemanticKeys": { "type": "array", "items": { "type": "string" } },
+        "source": { "$ref": "#/$defs/sourceEvidence" }
+      }
+    }
+  }
+}

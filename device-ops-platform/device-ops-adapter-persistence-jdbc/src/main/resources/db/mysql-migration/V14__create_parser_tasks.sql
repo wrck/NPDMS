@@ -1,0 +1,72 @@
+CREATE TABLE device_ops_parser_payload (
+    payload_id VARCHAR(100) PRIMARY KEY,
+    media_type VARCHAR(200) NOT NULL,
+    content LONGTEXT NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE device_ops_parse_task (
+    task_id VARCHAR(100) PRIMARY KEY,
+    request_id VARCHAR(200) NOT NULL,
+    caller_namespace VARCHAR(200) NOT NULL,
+    log_type VARCHAR(200) NOT NULL,
+    release_id VARCHAR(100) NOT NULL,
+    release_version VARCHAR(100) NOT NULL,
+    engine_version VARCHAR(100) NOT NULL,
+    rule_version VARCHAR(100) NOT NULL,
+    projection_version VARCHAR(100) NOT NULL,
+    extension_id VARCHAR(200),
+    extension_version VARCHAR(100),
+    input_format VARCHAR(100) NOT NULL,
+    input_payload_id VARCHAR(100) NOT NULL,
+    context_json LONGTEXT NOT NULL,
+    source_result_id VARCHAR(100),
+    result_consumer_id VARCHAR(200),
+    result_destination VARCHAR(2000),
+    state VARCHAR(30) NOT NULL,
+    wait_reason VARCHAR(50),
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at TIMESTAMP(6) NOT NULL,
+    lease_owner VARCHAR(200),
+    lease_generation BIGINT NOT NULL DEFAULT 0,
+    lease_expires_at TIMESTAMP(6),
+    result_id VARCHAR(100),
+    error_code VARCHAR(100),
+    error_message LONGTEXT,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    CONSTRAINT uk_device_ops_parse_task_request UNIQUE (caller_namespace, request_id),
+    FOREIGN KEY (release_id) REFERENCES device_ops_parser_release(release_id),
+    FOREIGN KEY (input_payload_id) REFERENCES device_ops_parser_payload(payload_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE device_ops_parse_attempt (
+    attempt_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    task_id VARCHAR(100) NOT NULL,
+    attempt_no INTEGER NOT NULL,
+    worker_id VARCHAR(200) NOT NULL,
+    lease_generation BIGINT NOT NULL,
+    started_at TIMESTAMP(6) NOT NULL,
+    finished_at TIMESTAMP(6),
+    status VARCHAR(30) NOT NULL,
+    error_code VARCHAR(100),
+    CONSTRAINT uk_device_ops_parse_attempt UNIQUE (task_id, attempt_no),
+    FOREIGN KEY (task_id) REFERENCES device_ops_parse_task(task_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE device_ops_parse_result (
+    result_id VARCHAR(100) PRIMARY KEY,
+    task_id VARCHAR(100) NOT NULL UNIQUE,
+    release_id VARCHAR(100) NOT NULL,
+    coordinate_json LONGTEXT NOT NULL,
+    context_json LONGTEXT NOT NULL,
+    source_result_id VARCHAR(100),
+    structured_output_payload_id VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES device_ops_parse_task(task_id),
+    FOREIGN KEY (release_id) REFERENCES device_ops_parser_release(release_id),
+    FOREIGN KEY (structured_output_payload_id) REFERENCES device_ops_parser_payload(payload_id)
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_device_ops_parse_task_claim
+    ON device_ops_parse_task(state, next_attempt_at, created_at);

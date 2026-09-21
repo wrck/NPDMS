@@ -1,0 +1,21 @@
+# Optional profile: activate together with the environment profile (for example local,dac).
+pms:
+  integration:
+    device-ops:
+      enabled: true
+      base-url: ${NPDMS_DEVICE_OPS_BASE_URL:http://127.0.0.1:48182}
+      namespace: ${NPDMS_DEVICE_OPS_NAMESPACE:npdms}
+      bearer-token: ${NPDMS_DEVICE_OPS_BEARER_TOKEN:}
+      request-signing-key: ${NPDMS_DAC_REQUEST_SIGNING_KEY}
+      callback-signing-key: ${NPDMS_DAC_CALLBACK_SIGNING_KEY}
+      callback-url: ${NPDMS_DAC_CALLBACK_URL:http://127.0.0.1:58080/api/v1/pms/integration/device-ops/callbacks}
+      command-timeout-seconds: 30
+      # DAC applies this budget to the whole manual script, including every command and pagination.
+      manual-execution-timeout-seconds: ${NPDMS_DAC_MANUAL_EXECUTION_TIMEOUT_SECONDS:600}
+      parse-timeout-seconds: 30
+      device-connect-timeout-seconds: 10
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB

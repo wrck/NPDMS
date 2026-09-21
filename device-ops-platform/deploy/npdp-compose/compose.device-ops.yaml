@@ -1,0 +1,37 @@
+services:
+  device-ops:
+    profiles:
+      - device-ops
+    build:
+      context: ./device-ops-platform
+      dockerfile: deploy/standalone/Dockerfile
+    image: ${DEVICE_OPS_IMAGE:-device-ops-server:local}
+    restart: unless-stopped
+    expose:
+      - "48081"
+    environment:
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:?OIDC_ISSUER_URI is required}
+      OIDC_JWK_SET_URI: ${OIDC_JWK_SET_URI:?OIDC_JWK_SET_URI is required}
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-device-ops-web}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile device-ops:projects:read device-ops:devices:read device-ops:scripts:read device-ops:scripts:write device-ops:collections:execute device-ops:collections:read}
+      OIDC_PROJECT_CLAIM: ${OIDC_PROJECT_CLAIM:-device_ops_projects}
+      DEVICE_OPS_CREDENTIAL_MASTER_KEY: ${DEVICE_OPS_CREDENTIAL_MASTER_KEY:?DEVICE_OPS_CREDENTIAL_MASTER_KEY is required}
+      DEVICE_OPS_TELNET_ENABLED: ${DEVICE_OPS_TELNET_ENABLED:-false}
+      DEVICE_OPS_DB_URL: jdbc:h2:file:/app/data/device-ops;AUTO_SERVER=FALSE
+    volumes:
+      - device-ops-data:/app/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -ec 'exec 3<>/dev/tcp/127.0.0.1/48081;
+          printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3;
+          grep -q "UP" <&3'
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  device-ops-data:

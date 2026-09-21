@@ -36,6 +36,7 @@ class FileStorageReceiptApiImplTest {
     @Mock private FileMapper fileMapper;
     @Mock private FileClient masterClient;
     @Mock private FileClient frozenClient;
+    @Mock private cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService receiptDownloads;
 
     private FileStorageReceiptApiImpl api;
 
@@ -44,6 +45,18 @@ class FileStorageReceiptApiImplTest {
         api = new FileStorageReceiptApiImpl();
         ReflectionTestUtils.setField(api, "fileConfigService", fileConfigService);
         ReflectionTestUtils.setField(api, "fileMapper", fileMapper);
+        ReflectionTestUtils.setField(api, "receiptDownloads", receiptDownloads);
+    }
+
+    @Test void databaseStorageUsesAuthorizedExpiringReceiptAccess() {
+        var stored=file(901L,36L,"op-901","log.txt","text/plain",3L);
+        var database=org.mockito.Mockito.mock(cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient.class);
+        when(fileMapper.selectById(901L)).thenReturn(stored);
+        when(fileConfigService.getFileClient(36L)).thenReturn(database);
+        when(receiptDownloads.issue(stored,60)).thenReturn("http://server/ticket");
+        assertEquals("http://server/ticket",api.presignGet(901L,60).shortLivedUrl());
+        verify(database,never()).presignGetUrl(any(),any());
+        assertThrows(IllegalArgumentException.class,()->api.presignGet(901L,0));
     }
 
     @Test
@@ -52,7 +65,7 @@ class FileStorageReceiptApiImplTest {
         when(fileConfigService.getMasterFileClient()).thenReturn(masterClient);
         when(masterClient.getId()).thenReturn(11L);
         when(masterClient.upload(any(), eq("pms-storage-receipts/op-101"), eq("application/pdf")))
-                .thenReturn("https://private/files/op-101");
+                .thenReturn("https://private/files/op-101?X-Amz-Signature=synthetic-token#fragment");
         when(fileMapper.insert(any(FileDO.class))).thenAnswer(invocation -> {
             FileDO file = invocation.getArgument(0);
             file.setId(101L);
@@ -66,6 +79,9 @@ class FileStorageReceiptApiImplTest {
         assertEquals("evidence.pdf", receipt.name());
         assertEquals(3L, receipt.sizeBytes());
         verify(masterClient).upload(any(), eq("pms-storage-receipts/op-101"), eq("application/pdf"));
+        var stored = org.mockito.ArgumentCaptor.forClass(FileDO.class);
+        verify(fileMapper).insert(stored.capture());
+        assertEquals("https://private/files/op-101", stored.getValue().getUrl());
     }
 
     @Test

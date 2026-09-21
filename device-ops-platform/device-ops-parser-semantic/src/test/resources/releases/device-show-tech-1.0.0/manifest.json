@@ -1,0 +1,11 @@
+{
+  "manifestVersion": "1.0.0",
+  "logType": "device-show-tech",
+  "releaseVersion": "1.0.0",
+  "inputAdapter": "command-output-block/v1",
+  "inputSchemaVersion": "1.0.0",
+  "outputSchemaVersion": "1.0.0",
+  "engineVersion": "1.0.0",
+  "ruleVersion": "1.0.0",
+  "projectionVersion": "1.0.0"
+}

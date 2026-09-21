@@ -1,0 +1,3 @@
+**
+!device-ops-server/target/device-ops-server.jar
+!deploy/standalone/Dockerfile

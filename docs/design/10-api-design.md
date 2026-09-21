@@ -689,3 +689,34 @@ SYSTEM在已有PMS组织扩展`OrganizationScopeApi`上提供加法方法`pageCo
 候选分页与提交重验使用同一查询：提交时以相同companyId/roleCode及本次待新增用户集合回源查询，完整检查所有分页结果，任一用户不再符合即拒绝写入。页面旧结果不授予指派资格；取得资格也不等于已成为项目成员。该查询只读，不创建成员、任务、授权Grant、通知或业务成功事件，不建立新的通用权限表、快照系统或hash指纹。
 
 实现查询复制既有候选SQL中可复用部分后增强为独立场景Query/XML；公司与角色必须落在同一授权记录谓词，用户去重与COUNT使用同一条件。必要测试只覆盖精确公司/角色、跨部门、多记录去重、错误公司/角色、过期/停用、空userIds、分页及旧服务经理查询不变。当前为待实现合同，不宣称接口已装配或Runtime通过。
+
+## 统一设备采集公共接口（2026-09-21 专项批准）
+
+Requirement：INT-12、EXE-03、EXE-04、NFR-02。管理端部署前缀仍为 `admin-api`。租户来自认证上下文；页面不得指定权威业务项目、完成方式或日志消费者。
+
+| 公共路径 `/api/v1/pms/device-collection` | 方法与契约 |
+|---|---|
+| `/sources/{entry}/{objectId}` | GET 来源上下文；只接受已注册的 `center`、`configuration`、`joint-test` |
+| `/sources/{entry}/{objectId}/executions` | GET 分页历史；POST 接收 requestKey、expectedVersion、协议、临时目标/密码或 credentialId，以及 templateId 或获准的手工 commands；center 额外选择 deviceId |
+| `/sources/{entry}/{objectId}/executions/by-request-key` | GET 按原请求查询；响应不明时只查此键，不重发命令 |
+| `/sources/{entry}/{objectId}/executions/{id}/cancel` | POST 请求取消，只有 DAC 终态或持久化未下发取消证明可结束任务 |
+| `/sources/{entry}/{objectId}/executions/{id}/consume` | POST 兼容原关联动作，现为显式重试业务回传；以冻结来源和当前业务授权写入业务日志，再确认成功消费，不推进业务状态 |
+| `/sources/{entry}/{objectId}/executions/{id}/download` | POST 返回按原来源查询权限和项目范围校验的短时文件访问地址 |
+| `/templates` | GET 按用途/协议/发布状态筛选；POST 保存草稿或新修订；标识+修订唯一 |
+| `/templates/{id}/publish`、`/retire` | POST，带当前 version；发布请求开始后内容冻结，停用不修改历史 |
+| `/connections` | GET 当前项目下本人连接；POST 显式验证保存并建立本人精确范围授权；秘密 write-only |
+| `/connections/usable` | GET 当前项目、设备、协议和模板的唯一有效授权连接 |
+| `/connections/{id}/grants` | GET 创建人查询授权；POST 指定 userId、templateId、expiresAt，设备和协议从连接冻结 |
+| `/connections/{id}/grants/{grantId}/revoke`、`/connections/{id}/disable` | POST 撤销/停用，由后台对账取消仍在执行的任务 |
+
+旧配置路径 `/api/v1/pms/implementation/configurations/{id}/collections` 保留并转接同一应用服务，原 requestKey 与命令历史不变。重新执行传 `retryOfId`，必须引用当前来源内已终结的任务，并使用新 requestKey；不会自动复用临时秘密。业务联调只接受已发布模板；配置手工命令只接受临时秘密。未接入 CUT/SRV 来源失败关闭，不能绕过业务授权。
+
+权限：独立采集 `pms:device-collection:query/execute`；模板 `pms:collection-template:query/create/update/publish/use`；保存连接 `pms:device-credential:query/create/update/grant/use`。配置/联调执行和查询继续使用原 IMP 权限；日志下载额外遵守 `pms:file:download`。默认授权仅给创建人，不为管理员或项目成员隐式授予凭证使用权。所有 mutation 均重验权限；模板发布、业务版本、幂等冲突和授权失效通过稳定业务错误码 `1010005000` 返回可操作的安全提示。
+
+创建连接的响应不含秘密或 DAC 引用；待完成记录仅向创建人提供原注册键、模板和有效期，允许重新输入密码继续原请求。时间沿用平台 EpochMillis JSON 约定；Long 标识沿用平台安全序列化，不按 JavaScript 浮点数截断。
+
+### 业务实体自动接收采集日志（2026-09-21 后续批准）
+
+`GET /api/v1/pms/implementation/{entry}/{objectId}/collection-logs?pageNo=1&pageSize=10` 由 IMP 提供；`entry` 仅支持 `configuration` 和 `joint-test`。使用原业务查询权限与当前项目范围，按实体当前项目/设备筛选本实体已接收日志。返回分页元数据：业务实体、项目/设备、执行/任务标识、命令、协议、技术结果、失败类别、不可变文件/结果版本、回传时间；不返回秘密或持久化下载地址。文件预览/下载仍通过统一采集的受权下载接口，继续校验业务归属与文件权限。
+
+内部 `CollectionBusinessResultReceiver` 为业务 Owner 的自动接收端口：成功、失败、超时和取消的安全日志均可追加；租户+任务+结果版本幂等，同键不同绑定/文件拒绝。隔离文件不交付。当前 IMP 实现不得更改配置/联调状态、覆盖手工附件；只有业务接收落库后才通过既有消费 API 完成成功任务。PLT 使用原 Outbox 保证重试，浏览器关闭不影响回传。CUT/SRV 没有接收器时不得代为写入其业务实体。

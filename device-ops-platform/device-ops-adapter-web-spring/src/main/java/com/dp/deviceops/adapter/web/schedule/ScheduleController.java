@@ -1,0 +1,19 @@
+package com.dp.deviceops.adapter.web.schedule;
+
+import com.dp.deviceops.adapter.web.security.ProjectClaimAuthorizer;
+import com.dp.deviceops.core.model.InspectionSchedule;
+import com.dp.deviceops.core.port.InspectionSchedulePort;
+import jakarta.validation.Valid; import jakarta.validation.constraints.*;
+import org.springframework.http.HttpStatus; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.core.annotation.AuthenticationPrincipal; import org.springframework.security.oauth2.jwt.Jwt; import org.springframework.scheduling.support.CronExpression; import org.springframework.web.bind.annotation.*;
+import java.time.*; import java.util.*;
+
+@RestController @RequestMapping("/api/v1/projects/{projectKey}/schedules") public class ScheduleController {
+ private final InspectionSchedulePort schedules; private final ProjectClaimAuthorizer claims; private final Clock clock=Clock.systemUTC();
+ public ScheduleController(InspectionSchedulePort schedules,ProjectClaimAuthorizer claims){this.schedules=schedules;this.claims=claims;}
+ @PutMapping("/{scheduleKey}") @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:execute')") public InspectionSchedule upsert(@AuthenticationPrincipal Jwt jwt,@PathVariable String projectKey,@PathVariable @NotBlank String scheduleKey,@Valid @RequestBody Request r){claims.require(jwt,projectKey);claims.requireNamespace(jwt,r.namespace());if(!projectKey.equals(r.projectKey()))throw new IllegalArgumentException("project mismatch");Instant next=next(r.cron(),r.timezone(),clock.instant());boolean exists=schedules.find(r.namespace(),projectKey,scheduleKey).isPresent();return schedules.upsert(new InspectionSchedule(r.namespace(),projectKey,scheduleKey,r.projectHint(),r.deviceKeyHints(),r.scriptKey(),r.scriptVersion(),r.cron(),r.timezone(),r.callbackUri(),exists&&r.enabled(),next,null,"CREATED",0));}
+ @GetMapping("/{scheduleKey}") @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:read')") public InspectionSchedule get(@AuthenticationPrincipal Jwt jwt,@PathVariable String projectKey,@PathVariable String scheduleKey,@RequestParam String namespace){claims.require(jwt,projectKey);claims.requireNamespace(jwt,namespace);return schedules.find(namespace,projectKey,scheduleKey).orElseThrow(()->new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND));}
+ @GetMapping @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:read')") public List<InspectionSchedule> list(@AuthenticationPrincipal Jwt jwt,@PathVariable String projectKey,@RequestParam String namespace){claims.require(jwt,projectKey);claims.requireNamespace(jwt,namespace);return schedules.list(namespace,projectKey);}
+ @DeleteMapping("/{scheduleKey}") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:execute')") public void disable(@AuthenticationPrincipal Jwt jwt,@PathVariable String projectKey,@PathVariable String scheduleKey,@RequestParam String namespace){claims.require(jwt,projectKey);claims.requireNamespace(jwt,namespace);schedules.disable(namespace,projectKey,scheduleKey);}
+ private static Instant next(String cron,String timezone,Instant base){try{Instant result=CronExpression.parse(cron).next(base.atZone(ZoneId.of(timezone))).toInstant();if(!result.isAfter(base))throw new IllegalArgumentException("next run must be future");return result;}catch(Exception e){throw new IllegalArgumentException("invalid cron or timezone",e);}}
+ public record Request(@NotBlank String namespace,@NotBlank String projectKey,@NotBlank @Size(max=500) String projectHint,@NotEmpty List<@NotBlank @Size(max=200) String> deviceKeyHints,@NotBlank @Size(max=200) String scriptKey,@NotBlank @Size(max=100) String scriptVersion,@NotBlank String cron,@NotBlank String timezone,@NotBlank @Size(max=2000) String callbackUri,boolean enabled) { public Request { deviceKeyHints=List.copyOf(deviceKeyHints); } }
+}

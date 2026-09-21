@@ -47,6 +47,8 @@ public class CollectionCallbackService implements CollectionCallbackApi {
     private final CollectionResultConsumptionMapper consumptionMapper;
     private final PlatformOutboxEventMapper outboxMapper;
     private final Clock clock;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -104,6 +106,11 @@ public class CollectionCallbackService implements CollectionCallbackApi {
                     "platformTaskId", command.platformTaskId(),
                     "resultVersion", command.resultVersion(),
                     "completionMode", task.getCompletionMode()));
+        }
+
+        if (eventPublisher != null && command.fileVersionId() != null
+                && !"SECURITY_EXCEPTION".equals(mapping.status())) {
+            eventPublisher.publishEvent(new CollectionLogReady(tenantId, command.platformTaskId()));
         }
 
         return new CollectionCallbackResultDTO(command.callbackId(), command.platformTaskId(),

@@ -76,3 +76,21 @@
 ## 当前裁决
 
 `IN_PROGRESS / IMPLEMENTED_CODE_ACCEPTED_PARTIALLY / MASTER_COMPILE_AND_FOCUSED_TEST_PASS`。已实现代码已经进入主干并通过主干适配编译与聚焦测试；未完成部分继续实施，不改变Feature未Done事实。
+
+## 2026-09-21 专项本地增量：统一设备连接与命令采集
+
+依据本次需求方直接授权，复用指定 DAC 分支已有连接验证、加密凭证、脚本制品和执行引擎，补齐公共命令模板管理、保存连接精确授权和统一采集应用服务。独立工作台及配置调试、业务联调接入已在当前工作树完成并部署到隔离开发实例；割接/巡检只保留来源适配契约，未实现其业务模块。上文是历史主干接收事实，本节不改写历史排除项、Gate 或 Feature Done。
+
+- Requirement 覆盖：`INT-12` 公共集成、`NFR-02` 秘密及授权保护；`EXE-03`/`EXE-04` 仅设备采集和明确日志关联，不宣称两项业务需求整体完成。
+- 代码：DAC `NpdmsResourceController`、INT `DeviceOpsResourceApi`/`DacDeviceOpsResourceGateway`、PLT `CollectionApplicationService`/`CollectionTemplateService`/`CollectionConnectionService` 与来源 SPI、IMP `ImplementationCollectionSources`、前端公共 `CollectionDialog` 和 `pms/platform/device-collection`；V328 前向迁移复制旧采集关系并初始化菜单/草稿模板。
+- 验证：NPDMS 61、DAC 11 个去重聚焦用例通过；受影响修复复验、打包和部署完成；真实 MySQL 并发同请求只有一条任务；V328 升级及重复零迁移、旧历史零差异、新 DAC 凭证在 PLT 无本地秘密。
+- 业务验收：真实浏览器完成三个入口、日志预览下载、显式关联、回复丢失查询恢复、取消和撤销授权后的重试；真实设备 `10.253.1.22:5555` 三条 `show` 命令成功，下载日志 215,339 字节，终态停止刷新。联调/配置状态未被技术成功自动推进。
+- 限制：全量前端类型检查仍受安装页面既有两处缺失 `DeviceArchiveApi` 引用影响；本次范围 lint、相关类型及真实浏览器通过。未合入 master、未作独立审查/生产发布，不晋级 Feature 完成状态。
+
+完整需求、复用决策、实现边界和可核对证据集中在 [统一设备连接与命令采集专项](../../docs/generated/2026-09-21-unified-device-collection.md)。
+
+### 后续授权：业务实体自动日志回传
+
+需求方明确要求日志自动回传对应业务，失败/取消部分日志也保留。已补公共 `CollectionBusinessResultReceiver`、既有 Outbox 自动投递/重试、IMP 实体接收表与分页接口、配置/联调详情日志区域；成功接收后才确认 PLT 消费，原业务状态及手工附件不变。V329 已升级且重复零迁移。
+
+当前本地增量验证：46 个聚焦用例及打包通过；真实 DAC/回调/MySQL 自动回传成功、失败、取消日志，不依赖浏览器或手动关联；两业务详情预览/下载通过；四请求并发重放仍一条接收记录，跨实体下载拒绝。最终包已部署。前端全量类型检查仍有安装页既有两处错误；不晋级历史 Feature Done，不外扩 CUT/SRV。详细证据见专项记录的“后续批准与交付”。

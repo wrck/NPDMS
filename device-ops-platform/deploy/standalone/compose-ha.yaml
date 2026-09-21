@@ -1,0 +1,93 @@
+x-device-ops-environment: &device-ops-environment
+  SPRING_PROFILES_ACTIVE: mysql
+  DEVICE_OPS_DB_URL: jdbc:mysql://mysql:3306/device_ops
+  DEVICE_OPS_DB_USER: device_ops
+  DEVICE_OPS_DB_PASSWORD: ${DEVICE_OPS_MYSQL_PASSWORD:?DEVICE_OPS_MYSQL_PASSWORD is required}
+  DEVICE_OPS_CREDENTIAL_MASTER_KEY: ${DEVICE_OPS_CREDENTIAL_MASTER_KEY:?DEVICE_OPS_CREDENTIAL_MASTER_KEY is required}
+  DEVICE_OPS_TELNET_ENABLED: ${DEVICE_OPS_TELNET_ENABLED:-false}
+  DEVICE_OPS_PARSER_ACTIVATION_MINIMUM_CAPABLE_WORKERS: "2"
+  DEVICE_OPS_PARSER_RESULT_CONSUMERS_NPDP: ${DEVICE_OPS_PARSER_RESULT_CONSUMERS_NPDP:?parser result consumer URL is required}
+  OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:?OIDC_ISSUER_URI is required}
+  OIDC_JWK_SET_URI: ${OIDC_JWK_SET_URI:?OIDC_JWK_SET_URI is required}
+  OIDC_AUTHORITY: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-device-ops-web}
+  OIDC_SCOPE: ${OIDC_SCOPE:-openid profile device-ops:collections:read device-ops:collections:execute}
+  OIDC_PROJECT_CLAIM: ${OIDC_PROJECT_CLAIM:-device_ops_projects}
+
+x-device-ops-service: &device-ops-service
+  build:
+    context: ../..
+    dockerfile: deploy/standalone/Dockerfile
+  image: device-ops-server:local
+  restart: unless-stopped
+  depends_on:
+    mysql:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD-SHELL", "bash -ec 'exec 3<>/dev/tcp/127.0.0.1/48081; printf \"GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n\" >&3; grep -q \"UP\" <&3'"]
+    interval: 15s
+    timeout: 5s
+    retries: 10
+    start_period: 30s
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: device_ops
+      MYSQL_USER: device_ops
+      MYSQL_PASSWORD: ${DEVICE_OPS_MYSQL_PASSWORD:?DEVICE_OPS_MYSQL_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${DEVICE_OPS_MYSQL_ROOT_PASSWORD:?DEVICE_OPS_MYSQL_ROOT_PASSWORD is required}
+    command: ["--transaction-isolation=READ-COMMITTED"]
+    volumes:
+      - device-ops-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  device-ops-a:
+    <<: *device-ops-service
+    environment: *device-ops-environment
+
+  device-ops-b:
+    <<: *device-ops-service
+    environment: *device-ops-environment
+
+  load-balancer:
+    image: haproxy:3.2-alpine
+    restart: unless-stopped
+    depends_on:
+      device-ops-a:
+        condition: service_healthy
+      device-ops-b:
+        condition: service_healthy
+    ports:
+      - "48081:48081"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        cat >/usr/local/etc/haproxy/haproxy.cfg <<'EOF'
+        global
+          log stdout format raw local0
+        defaults
+          mode http
+          timeout connect 5s
+          timeout client 60s
+          timeout server 60s
+        frontend device_ops
+          bind *:48081
+          default_backend device_ops_nodes
+        backend device_ops_nodes
+          option httpchk GET /actuator/health/readiness
+          server node_a device-ops-a:48081 check
+          server node_b device-ops-b:48081 check
+        EOF
+        exec haproxy -W -db -f /usr/local/etc/haproxy/haproxy.cfg
+
+volumes:
+  device-ops-mysql:

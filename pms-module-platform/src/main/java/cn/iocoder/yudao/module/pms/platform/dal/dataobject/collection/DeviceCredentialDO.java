@@ -21,4 +21,13 @@ public class DeviceCredentialDO extends TenantBaseDO {
     private String kmsReference;
     private Long credentialVersion;
     private String status;
+    private String externalConnectionId;
+    private String registrationDigest;
+    private String registrationKey;
+    private Long registrationTemplateId;
+    private java.time.LocalDateTime registrationExpiresAt;
+    private Long projectId;
+    private Long deviceId;
+    private String host;
+    private Integer port;
 }

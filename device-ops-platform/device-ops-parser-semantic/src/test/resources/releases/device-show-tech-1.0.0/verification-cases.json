@@ -1,0 +1,5 @@
+{
+  "cases": [
+    {"caseId": "device-version", "inputFile": "input.json", "expectedFile": "expected-result.json"}
+  ]
+}

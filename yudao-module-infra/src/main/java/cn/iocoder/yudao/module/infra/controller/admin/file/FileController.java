@@ -11,6 +11,7 @@ import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.infra.controller.admin.file.vo.file.*;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
 import cn.iocoder.yudao.module.infra.service.file.FileService;
+import cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -116,6 +117,18 @@ public class FileController {
         // （上游 PR）
         path = HttpUtils.decodeUrlPath(path);
 
+        // Business receipt objects require an authorized short-lived access ticket.
+        if (FileReceiptDownloadService.isReceiptPath(path)) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return;
+        }
+
+        // Resolve the stored path too: database collations may treat case/accent variants as the same key.
+        FileDO file = fileService.getFileByConfigIdAndPath(configId, path);
+        if (file != null && FileReceiptDownloadService.isReceiptPath(file.getPath())) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return;
+        }
         // 读取内容
         byte[] content = fileService.getFileContent(configId, path);
         if (content == null) {
@@ -123,7 +136,6 @@ public class FileController {
             response.setStatus(HttpStatus.NOT_FOUND.value());
             return;
         }
-        FileDO file = fileService.getFileByConfigIdAndPath(configId, path);
         String filename = file != null && StrUtil.isNotEmpty(file.getName()) ? file.getName() : FileUtil.getName(path);
         writeAttachment(response, filename, content);
     }

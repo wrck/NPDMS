@@ -30,6 +30,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
+    @Resource
     private ConfigurationMapper configurationMapper;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
@@ -40,6 +43,9 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createConfiguration(ConfigurationSaveReqVO createReqVO) {
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
         ConfigurationDO configuration = BeanUtils.toBean(createReqVO, ConfigurationDO.class);
         configuration.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 EngineeringRecordCodeGenerator.CONFIGURATION, configurationMapper,
@@ -57,6 +63,10 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Transactional(rollbackFor = Exception.class)
     public void updateConfiguration(ConfigurationSaveReqVO updateReqVO) {
         ConfigurationDO existing = validateConfigurationExists(updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         validateStatus(existing, 0, 1, 3);
         validateVersion(existing, updateReqVO.getVersion());
         ConfigurationDO update = BeanUtils.toBean(updateReqVO, ConfigurationDO.class);

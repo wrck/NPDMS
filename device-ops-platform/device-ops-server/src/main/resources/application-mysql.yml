@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: ${DEVICE_OPS_DB_URL:jdbc:mysql://mysql:3306/device_ops}
+    username: ${DEVICE_OPS_DB_USER:device_ops}
+    password: ${DEVICE_OPS_DB_PASSWORD:}
+  flyway:
+    locations: classpath:db/mysql-migration

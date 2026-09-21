@@ -15,6 +15,8 @@ public interface FileVersionMapper {
 
     int insert(@Param("row") FileVersionDO row);
 
+    FileVersionDO selectByTenantAndId(@Param("tenantId") Long tenantId, @Param("id") Long id);
+
     FileVersionDO selectOne(@Param("query") FileVersionLockQuery query);
 
     FileVersionDO selectForUpdate(@Param("query") FileVersionLockQuery query);

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "profiles": [
+    {
+      "projectionId": "deviceBasic",
+      "description": "basic device identity",
+      "missingValuePolicy": "NULL",
+      "fields": {
+        "sn": "device.identity.serialNumber",
+        "softVersion": "device.software.version"
+      }
+    }
+  ]
+}

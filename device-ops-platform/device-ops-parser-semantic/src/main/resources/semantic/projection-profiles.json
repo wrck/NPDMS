@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "profiles": [
+    {
+      "projectionId": "deviceBasic",
+      "description": "设备身份、软件与硬件基础信息",
+      "missingValuePolicy": "NULL",
+      "fields": {
+        "sn": "device.identity.serialNumber",
+        "softVersion": "device.software.version",
+        "platformVersion": "device.software.platformVersion",
+        "cpuModel": "device.hardware.cpuModel",
+        "memoryBytes": "device.hardware.memoryBytes"
+      }
+    },
+    {
+      "projectionId": "managementServices",
+      "description": "设备远程管理服务状态",
+      "missingValuePolicy": "NULL",
+      "fields": {
+        "sshEnabled": "device.management.ssh.isEnabled",
+        "sshPort": "device.management.ssh.port",
+        "telnetEnabled": "device.management.telnet.isEnabled",
+        "telnetPort": "device.management.telnet.port"
+      }
+    }
+  ]
+}

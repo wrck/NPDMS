@@ -1,0 +1,131 @@
+server:
+  port: 48081
+  shutdown: graceful
+  tomcat:
+    reject-illegal-header: true
+spring:
+  application:
+    name: device-ops-server
+  datasource:
+    url: ${DEVICE_OPS_DB_URL:jdbc:h2:file:./data/device-ops;AUTO_SERVER=FALSE}
+    username: ${DEVICE_OPS_DB_USER:sa}
+    password: ${DEVICE_OPS_DB_PASSWORD:}
+  flyway:
+    enabled: true
+    locations: ${DEVICE_OPS_FLYWAY_LOCATIONS:classpath:db/migration}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  mvc:
+    log-request-details: false
+  task:
+    scheduling:
+      pool:
+        size: 2
+      thread-name-prefix: device-ops-scheduler-
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8080/realms/device-ops}
+          jwk-set-uri: ${OIDC_JWK_SET_URI:http://127.0.0.1:65535/.well-known/jwks.json}
+
+device-ops:
+  parser:
+    activation-minimum-capable-workers: ${DEVICE_OPS_PARSER_ACTIVATION_MINIMUM_CAPABLE_WORKERS:1}
+    client-namespace-claim: ${DEVICE_OPS_PARSER_NAMESPACE_CLAIM:client_namespace}
+    max-input-bytes: ${DEVICE_OPS_PARSER_MAX_INPUT_BYTES:8388608}
+    automatic-parsing-enabled: ${DEVICE_OPS_PARSER_AUTOMATIC_ENABLED:true}
+    default-log-type: ${DEVICE_OPS_PARSER_DEFAULT_LOG_TYPE:device-command-output}
+    worker:
+      core-size: 2
+      max-size: 8
+      queue-capacity: 32
+      claim-batch-size: 16
+      plan-cache-size: 64
+      poll-interval: 1s
+      lease: 30s
+      heartbeat-interval: 10s
+      recovery-interval: 5s
+      recovery-batch-size: 100
+      shutdown-grace: 20s
+      retry-delay: 5s
+  credentials:
+    master-key: ${DEVICE_OPS_CREDENTIAL_MASTER_KEY:}
+  ssh:
+    max-output-bytes: 8388608
+    event-chunk-bytes: 8192
+    max-pages: 10000
+    # Optional narrowing override. SSH shell completion always remains bound to the observed initial prompt identity.
+    command-prompt: ''
+  telnet:
+    enabled: ${DEVICE_OPS_TELNET_ENABLED:false}
+    max-output-bytes: 8388608
+    event-chunk-bytes: 8192
+    max-pages: 10000
+  executor:
+    core-size: 2
+    max-size: 8
+    queue-capacity: 100
+    shutdown-await-seconds: 30
+    shutdown-graceful-period: 10s
+    shutdown-recovery-lease: 45s
+    per-connection-limit: 1
+    connection-wait-timeout: 30m
+    lease-heartbeat-interval: 5s
+    recovery-interval: 30s
+    recovery-unclaimed-grace: 2m
+    recovery-batch-size: 100
+  output-stream:
+    core-size: 2
+    max-size: 16
+    queue-capacity: 200
+    shutdown-await-seconds: 10
+  callback:
+    enabled: false
+    poll-interval: 5s
+    lease: 30s
+    connect-timeout: 3s
+    read-timeout: 10s
+  schedule:
+    enabled: false
+    fixed-delay: 30s
+    lease: 60s
+    batch-size: 20
+  master-data:
+    enabled: false
+  runtime:
+    auth-mode: ${DEVICE_OPS_AUTH_MODE:oauth2}
+    oidc-authority: ${OIDC_AUTHORITY:http://localhost:8080/realms/device-ops}
+    client-id: ${OIDC_CLIENT_ID:device-ops-web}
+    scope: ${OIDC_SCOPE:openid profile device-ops:collections:read device-ops:collections:execute}
+    api-base-url: /api/v1
+    project-claim: ${OIDC_PROJECT_CLAIM:device_ops_projects}
+    telnet-enabled: ${DEVICE_OPS_TELNET_ENABLED:false}
+  security:
+    mode: ${DEVICE_OPS_AUTH_MODE:oauth2}
+    project-claim: ${OIDC_PROJECT_CLAIM:device_ops_projects}
+  embed:
+    frame-ancestors:
+      - "'self'"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

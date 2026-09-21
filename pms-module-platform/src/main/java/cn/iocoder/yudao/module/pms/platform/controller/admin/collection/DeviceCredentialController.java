@@ -31,6 +31,7 @@ public class DeviceCredentialController {
     private final DeviceCredentialApi deviceCredentialApi;
 
     @PostMapping
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable=false)
     @PreAuthorize("@ss.hasPermission('pms:device-credential:create')")
     public CommonResult<DeviceCredentialDTO> create(@Valid @RequestBody DeviceCredentialCreateReqVO reqVO) {
         char[] secret = reqVO.getSecret();

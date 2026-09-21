@@ -21,6 +21,7 @@ import java.util.Set;
 public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi {
 
     static final Set<String> SUPPORTED_EVENT_TYPES = Set.of(
+            "CollectionResultAvailable", "CollectionFailed", "CollectionCancelled",
             "ProjectServiceManagerAssigned", "TaskAssigned", "TaskCompleted", "ProjectRuleReevaluationRequested", "ProjectRuleTimerRequested",
             "ProjectChildClosureChanged",
             "FileVersionCommitted", "FileReferenceAttached", "FileReferenceDetached", "FileArchived",

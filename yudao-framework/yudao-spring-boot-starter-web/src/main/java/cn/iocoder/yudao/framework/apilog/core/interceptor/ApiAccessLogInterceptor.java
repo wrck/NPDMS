@@ -43,8 +43,11 @@ public class ApiAccessLogInterceptor implements HandlerInterceptor {
 
         // 打印 request 日志
         if (!SpringUtils.isProd()) {
-            Map<String, String> queryString = ServletUtils.getParamMap(request);
-            String requestBody = ServletUtils.getBody(request);
+            var accessLog = handlerMethod == null ? null : handlerMethod.getMethodAnnotation(
+                    cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog.class);
+            boolean includeParameters = accessLog == null || (accessLog.enable() && accessLog.requestEnable());
+            Map<String, String> queryString = includeParameters ? ServletUtils.getParamMap(request) : Map.of();
+            String requestBody = includeParameters ? ServletUtils.getBody(request) : null;
             if (CollUtil.isEmpty(queryString) && StrUtil.isEmpty(requestBody)) {
                 log.info("[preHandle][开始请求 URL({}) 无参数]", request.getRequestURI());
             } else {

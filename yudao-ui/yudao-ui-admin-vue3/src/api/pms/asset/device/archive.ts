@@ -5,6 +5,8 @@ export interface DeviceArchiveVO {
   sn: string
   name: string
   productModel?: string
+  productCode?: string
+  contractNo?: string
   status?: string
   customerId?: number
   projectId?: number
@@ -80,6 +82,9 @@ export const getDeviceConfigLogPage = (params: DeviceConfigLogPageParam) =>
   request.get({ url: `${baseUrl}/configuration-logs/page`, params })
 
 export interface DeviceArchivePageParam extends PageParam {
+  selectionProjectId?: number | string
+  productModel?: string
+  contractNo?: string
   sn?: string
   name?: string
   status?: string

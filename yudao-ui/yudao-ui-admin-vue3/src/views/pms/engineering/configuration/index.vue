@@ -27,10 +27,9 @@
         <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-configuration:create']"
           ><Icon icon="ep:plus" />新增配置</el-button
         >
-        <el-button disabled title="外部采集接口仅预留扩展入口，当前不连接设备">在线采集未接入</el-button>
       </el-form-item>
     </el-form>
-    <el-alert title="本页面办理本地调试记录及手工日志上传；远程采集、自动解析尚未接入，不作为采集成功或项目配置里程碑完成依据。" type="info" :closable="false" />
+    <el-alert title="支持手工日志上传与设备命令采集；采集日志自动回传到配置记录，调试完成仍由原业务动作确认。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
@@ -42,8 +41,9 @@
           <dict-tag :type="DICT_TYPE.PMS_ENG_STATUS" :value="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="360" fixed="right">
+      <el-table-column label="操作" width="450" fixed="right">
         <template #default="{ row }">
+          <el-button link type="primary" @click="collectionRef?.open(row.id)" v-hasPermi="['pms:imp-configuration:query']">手工命令 / 日志</el-button>
           <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-configuration:query']"
             >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
@@ -85,6 +85,8 @@
     />
   </ContentWrap>
 
+  <ManualCollectionDialog ref="collectionRef" />
+
   <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看配置' : '编辑配置') : '新增配置'" width="min(780px, 95vw)">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
       <el-row :gutter="16">
@@ -92,6 +94,7 @@
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
+              @change="form.equipmentId = undefined"
               :api="ProjectApi.getProjectPage"
               label-field="projectName"
               value-field="id"
@@ -103,14 +106,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="关联设备" prop="equipmentId">
-            <PmsEntitySelect
-              v-model="form.equipmentId"
-              :api="DeviceArchiveApi.getDeviceArchivePage"
-              :label-field="['sn', 'name']"
-              value-field="id"
-              query-field="sn"
-              placeholder="请选择设备"
-            />
+            <ProjectDeviceSelect v-model="form.equipmentId" :project-id="form.projectId" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -136,6 +132,7 @@
         </el-col>
       </el-row>
     </el-form>
+    <BusinessCollectionLogs v-if="formVisible && form.id" entry="configuration" :object-id="form.id" />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
@@ -145,12 +142,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import ManualCollectionDialog from './ManualCollectionDialog.vue'
+import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
+const collectionRef = ref<InstanceType<typeof ManualCollectionDialog>>()
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'

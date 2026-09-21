@@ -16,6 +16,9 @@ import java.time.LocalDateTime;
 @Schema(description = "管理后台 - 设备档案 Response VO")
 public class DeviceArchiveRespVO {
 
+    private String productCode;
+    private String contractNo;
+
     @Schema(description = "设备编号", example = "1")
     private Long id;
 

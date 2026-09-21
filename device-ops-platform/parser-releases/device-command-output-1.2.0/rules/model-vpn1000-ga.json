@@ -1,0 +1,642 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.2.0",
+  "rules": [
+    {
+      "ruleId": "version-platform-version",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*Conplat Version is\\s+(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.software.platformVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-compiled-at",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*Compiled\\s+(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.software.compiledAt",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-cpu-model",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*CPU type\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.cpuModel",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-memory",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*SDRAM\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "capacity-to-bytes"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.memoryBytes",
+        "cardinality": "ONE",
+        "dataType": "integer",
+        "conflictPolicy": "HIGHEST_CONFIDENCE",
+        "unit": "byte"
+      }
+    },
+    {
+      "ruleId": "version-flash",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*Flash Memory\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "capacity-to-bytes"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.flashBytes",
+        "cardinality": "ONE",
+        "dataType": "integer",
+        "conflictPolicy": "HIGHEST_CONFIDENCE",
+        "unit": "byte"
+      }
+    },
+    {
+      "ruleId": "version-emmc",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*EMMC card Memory\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "capacity-to-bytes"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.emmcBytes",
+        "cardinality": "ONE",
+        "dataType": "integer",
+        "conflictPolicy": "HIGHEST_CONFIDENCE",
+        "unit": "byte"
+      }
+    },
+    {
+      "ruleId": "version-pcb-version",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*PCB Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.pcbVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-cpld-version",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*CPLD Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.cpldVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-basic-bootloader",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*BASIC CONBOOT Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.bootloader.basicVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-extended-bootloader",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*EXTEND CONBOOT Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.bootloader.extendedVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "version-slot-module",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+version(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX_OBJECT",
+          "pattern": "(?i)^\\s*\\[SLOT\\s+(?<slot>[0-9]+)\\]\\s+(?<model>\\S+)\\s+\\(PCB\\)(?<pcb>[^,]+),\\s*\\(CPLD\\)(?<cpld>[^,]+),\\s*\\(FPGA\\)(?<fpga>\\S+)?\\s*$",
+          "fields": {
+            "slot": {
+              "group": "slot",
+              "transforms": [
+                "integer"
+              ]
+            },
+            "model": {
+              "group": "model",
+              "transforms": [
+                "trim"
+              ]
+            },
+            "pcbVersion": {
+              "group": "pcb",
+              "transforms": [
+                "trim"
+              ]
+            },
+            "cpldVersion": {
+              "group": "cpld",
+              "transforms": [
+                "trim"
+              ]
+            },
+            "fpgaVersion": {
+              "group": "fpga",
+              "transforms": [
+                "trim"
+              ],
+              "required": false
+            }
+          }
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.modules",
+        "cardinality": "MANY",
+        "dataType": "object",
+        "conflictPolicy": "APPEND_DISTINCT"
+      }
+    },
+    {
+      "ruleId": "technical-platform-version",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*Conplat Version is\\s+(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.software.platformVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-compiled-at",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*Compiled\\s+(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.software.compiledAt",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-cpu-model",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*CPU type\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.cpuModel",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-memory",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*SDRAM\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "capacity-to-bytes"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.memoryBytes",
+        "cardinality": "ONE",
+        "dataType": "integer",
+        "conflictPolicy": "HIGHEST_CONFIDENCE",
+        "unit": "byte"
+      }
+    },
+    {
+      "ruleId": "technical-flash",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*Flash Memory\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "capacity-to-bytes"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.flashBytes",
+        "cardinality": "ONE",
+        "dataType": "integer",
+        "conflictPolicy": "HIGHEST_CONFIDENCE",
+        "unit": "byte"
+      }
+    },
+    {
+      "ruleId": "technical-emmc",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*EMMC card Memory\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "capacity-to-bytes"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.emmcBytes",
+        "cardinality": "ONE",
+        "dataType": "integer",
+        "conflictPolicy": "HIGHEST_CONFIDENCE",
+        "unit": "byte"
+      }
+    },
+    {
+      "ruleId": "technical-pcb-version",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*PCB Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.pcbVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-cpld-version",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*CPLD Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.cpldVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-basic-bootloader",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*BASIC CONBOOT Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.bootloader.basicVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-extended-bootloader",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX",
+          "pattern": "(?i)^\\s*EXTEND CONBOOT Version\\s*:\\s*(.+)$",
+          "group": 1,
+          "transforms": [
+            "trim"
+          ]
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.bootloader.extendedVersion",
+        "cardinality": "ONE",
+        "dataType": "string",
+        "conflictPolicy": "HIGHEST_CONFIDENCE"
+      }
+    },
+    {
+      "ruleId": "technical-slot-module",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [
+        {
+          "type": "COMMAND_REGEX",
+          "value": "^show\\s+tech(?:\\s+.*)?$"
+        }
+      ],
+      "extractors": [
+        {
+          "type": "LINE_REGEX_OBJECT",
+          "pattern": "(?i)^\\s*\\[SLOT\\s+(?<slot>[0-9]+)\\]\\s+(?<model>\\S+)\\s+\\(PCB\\)(?<pcb>[^,]+),\\s*\\(CPLD\\)(?<cpld>[^,]+),\\s*\\(FPGA\\)(?<fpga>\\S+)?\\s*$",
+          "fields": {
+            "slot": {
+              "group": "slot",
+              "transforms": [
+                "integer"
+              ]
+            },
+            "model": {
+              "group": "model",
+              "transforms": [
+                "trim"
+              ]
+            },
+            "pcbVersion": {
+              "group": "pcb",
+              "transforms": [
+                "trim"
+              ]
+            },
+            "cpldVersion": {
+              "group": "cpld",
+              "transforms": [
+                "trim"
+              ]
+            },
+            "fpgaVersion": {
+              "group": "fpga",
+              "transforms": [
+                "trim"
+              ],
+              "required": false
+            }
+          }
+        }
+      ],
+      "target": {
+        "semanticKey": "device.hardware.modules",
+        "cardinality": "MANY",
+        "dataType": "object",
+        "conflictPolicy": "APPEND_DISTINCT"
+      }
+    }
+  ]
+}

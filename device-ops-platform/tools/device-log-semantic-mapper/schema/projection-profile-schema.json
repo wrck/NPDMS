@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:device-ops:projection-profile:1.0.0",
+  "title": "Canonical device projection profiles",
+  "type": "object",
+  "required": ["schemaVersion", "profiles"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["projectionId", "fields", "missingValuePolicy"],
+        "properties": {
+          "projectionId": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "fields": {
+            "type": "object",
+            "additionalProperties": { "type": "string", "minLength": 1 }
+          },
+          "missingValuePolicy": { "enum": ["NULL", "OMIT"] }
+        }
+      }
+    }
+  }
+}

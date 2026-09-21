@@ -13,6 +13,8 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  * - asset-product-type:   1_015_005_000
  */
 public interface ErrorCodeConstants {
+    ErrorCode AST_DEVICE_SELECTION_INVALID = new ErrorCode(1_015_006_000,
+            "选择的设备重复、不存在，或不属于当前项目及其关联合同，请重新选择");
 
     // ========== 设备档案 1_015_001_000 ==========
     ErrorCode AST_EQUIPMENT_NOT_EXISTS = new ErrorCode(1_015_001_000, "设备档案不存在");

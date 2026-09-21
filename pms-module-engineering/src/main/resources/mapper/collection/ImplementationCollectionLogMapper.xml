@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.collection.ImplementationCollectionLogMapper">
+    <!-- Current read after taking the business owner lock; do not reuse an earlier repeatable-read snapshot. -->
+    <select id="findResult" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.collection.ImplementationCollectionLogDO">
+        SELECT * FROM imp_collection_log
+        WHERE tenant_id=#{q.tenantId} AND platform_task_id=#{q.platformTaskId}
+          AND result_version=#{q.resultVersion} AND deleted=b'0'
+        FOR UPDATE
+    </select>
+</mapper>

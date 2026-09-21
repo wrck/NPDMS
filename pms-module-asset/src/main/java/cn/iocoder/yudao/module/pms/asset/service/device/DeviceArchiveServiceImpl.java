@@ -42,6 +42,7 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
     private final DeviceMapper deviceMapper;
     private final DeviceVersionMapper deviceVersionMapper;
     private final CustomerQueryApi customerQueryApi;
+    private final ProjectDeviceSelectionService projectDeviceSelectionService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -125,6 +126,9 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
 
     @Override
     public PageResult<DeviceDO> getDeviceArchivePage(DeviceArchivePageReqVO pageReqVO) {
+        if (pageReqVO.getSelectionProjectId() != null) {
+            return projectDeviceSelectionService.getPage(pageReqVO);
+        }
         return deviceMapper.selectArchivePage(TenantContextHolder.getRequiredTenantId(), pageReqVO);
     }
 

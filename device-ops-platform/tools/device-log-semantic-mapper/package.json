@@ -1,0 +1,13 @@
+{
+  "name": "@device-ops/device-log-semantic-mapper",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "map": "node src/cli.mjs"
+  }
+}

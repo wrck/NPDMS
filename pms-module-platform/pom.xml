@@ -13,6 +13,7 @@
     <description>PMS 平台公共能力：幂等、审计、Outbox 与业务授权</description>
 
     <dependencies>
+        <dependency><groupId>cn.iocoder.boot</groupId><artifactId>pms-module-asset-api</artifactId><version>${revision}</version></dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-project-api</artifactId>

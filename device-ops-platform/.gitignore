@@ -1,0 +1,6 @@
+data/
+deploy/runtime-*/
+*.mv.db
+*.trace.db
+*.dpapi
+.zcode/

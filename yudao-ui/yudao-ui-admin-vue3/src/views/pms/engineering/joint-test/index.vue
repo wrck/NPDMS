@@ -27,10 +27,9 @@
         <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-joint-test:create']"
           ><Icon icon="ep:plus" />新增联调</el-button
         >
-        <el-button disabled title="外部采集仅保留扩展入口，当前不连接设备">一键收集未接入</el-button>
       </el-form-item>
     </el-form>
-    <el-alert title="本页面保存本地联调用例、结果与手工附件；远程配置收集及自动对比未接入，不作为项目联调里程碑完成依据。" type="info" :closable="false" />
+    <el-alert title="联调记录可使用已发布命令模板采集设备日志；日志自动回传到联调记录，联调结果和通过操作仍按原流程确认。自动对比未接入。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
@@ -46,11 +45,12 @@
           <dict-tag :type="DICT_TYPE.PMS_JOINT_TEST_STATUS" :value="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="380" fixed="right">
+      <el-table-column label="操作" width="470" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-joint-test:query']"
             >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
           >
+          <el-button link type="primary" @click="collection?.open(row.id!)" v-hasPermi="['pms:imp-joint-test:query']">命令采集与日志</el-button>
           <el-button
             link
             type="success"
@@ -97,6 +97,7 @@
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
+              @change="form.equipmentId = undefined"
               :api="ProjectApi.getProjectPage"
               label-field="projectName"
               value-field="id"
@@ -108,14 +109,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="关联设备" prop="equipmentId">
-            <PmsEntitySelect
-              v-model="form.equipmentId"
-              :api="DeviceArchiveApi.getDeviceArchivePage"
-              :label-field="['sn', 'name']"
-              value-field="id"
-              query-field="sn"
-              placeholder="请选择设备"
-            />
+            <ProjectDeviceSelect v-model="form.equipmentId" :project-id="form.projectId" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -143,17 +137,6 @@
           <el-form-item label="登录用户名"><el-input v-model="deviceLogin.username" placeholder="手动输入" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="登录密码">
-            <el-input
-              v-model="loginSecret"
-              type="password"
-              show-password
-              autocomplete="new-password"
-              placeholder="仅本次采集使用，不保存"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="登录方式">
             <el-radio-group v-model="deviceLogin.loginType">
               <el-radio value="SSH">SSH</el-radio>
@@ -170,9 +153,8 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label-width="110px">
-            <el-button disabled title="在线采集未接入：请通过 5.3 配置调试上传 Log 或以附件提供采集结果">一键收集配置信息未接入</el-button>
-            <el-button disabled title="加密凭证保存需绑定平台采集命令模板（SSH/Telnet），待采集域接入后启用；当前密码不落库、不传输">保存加密凭证未接入</el-button>
-            <span class="form-tip">设备登录信息（除密码）随联调记录保存；密码不落库，平台加密凭证机制接入后可在采集域统一管理。</span>
+            <el-button v-if="form.id" @click="collection?.open(form.id!)" v-hasPermi="['pms:imp-joint-test:query']">命令采集与日志</el-button>
+            <span class="form-tip">请先保存业务记录，再从统一采集窗口选择模板和凭证。上述非秘密连接信息仍可作为记录备注保存。</span>
           </el-form-item>
         </el-col>
       </el-row>
@@ -215,6 +197,7 @@
         </el-col>
       </el-row>
     </el-form>
+    <BusinessCollectionLogs v-if="formVisible && form.id" ref="businessLogs" entry="joint-test" :object-id="form.id" />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
@@ -232,6 +215,7 @@
       <el-button type="danger" :loading="saving" @click="confirmFail">确认失败</el-button>
     </template>
   </Dialog>
+  <CollectionDialog ref="collection" entry="joint-test" @closed="businessLogs?.reload()" />
 </template>
 
 <script setup lang="ts">
@@ -241,6 +225,9 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as JointTestApi from '@/api/pms/engineering/joint-test'
 import type { JointTestVO } from '@/api/pms/engineering/joint-test'
 import * as ProjectApi from '@/api/pms/project/projects'
+import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
+import CollectionDialog from '@/components/DeviceCollection/CollectionDialog.vue'
+import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
 import { checkPermi } from '@/utils/permission'
@@ -269,7 +256,8 @@ interface DeviceLoginMeta {
   baudRate: string
 }
 const deviceLogin = reactive<DeviceLoginMeta>({ deviceName: '', deviceIp: '', username: '', loginType: 'SSH', port: '', baudRate: '' })
-const loginSecret = ref('')
+const collection = ref<InstanceType<typeof CollectionDialog>>()
+const businessLogs = ref<InstanceType<typeof BusinessCollectionLogs>>()
 const jointMeta = reactive({ businessDesc: '', note: '' })
 const deviceInfo = ref<DeviceArchiveApi.DeviceArchiveVO | null>(null)
 const parseRemark = (raw: string | undefined | null) => {
@@ -345,7 +333,6 @@ const openForm = (row?: JointTestVO) => {
       // Keep UploadFile on the existing string API contract for NULL legacy evidence.
       evidenceUrl: row?.evidenceUrl ?? ''
   }
-  loginSecret.value = ''
   syncMetaFromForm()
   loadDeviceInfo()
   formVisible.value = true

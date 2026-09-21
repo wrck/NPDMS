@@ -6,37 +6,94 @@ import cn.iocoder.yudao.module.pms.integration.api.deviceops.dto.DeviceOpsDispat
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionTaskMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
 
 @Service
-@ConditionalOnBean(DeviceOpsGatewayApi.class)
+@ConditionalOnProperty(prefix = "pms.integration.device-ops", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
-public class TemporaryCollectionDispatchService {
+public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.module.pms.platform.api.collection.CollectionDispatchApi {
 
     private final CollectionTaskMapper taskMapper;
     private final DeviceOpsGatewayApi gatewayApi;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CollectionConnectionService savedConnections;
+
+    @Override
+    public void dispatchManual(cn.iocoder.yudao.module.pms.platform.api.collection.CollectionDispatchApi.Command command) {
+        try {
+            if (!java.util.Objects.equals(command.tenantId(),
+                    cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())) {
+                throw new IllegalArgumentException("租户不匹配");
+            }
+            dispatch(new TemporaryDispatchCommand(command.tenantId(), command.platformTaskId(), command.commands(),
+                    command.username(), command.secret(), "DEVICE_OPS", command.traceId()));
+        } finally {
+            if (command != null && command.secret() != null) Arrays.fill(command.secret(), '\0');
+        }
+    }
+
+    @Override
+    public void cancel(Long tenantId, String platformTaskId) {
+        if (!java.util.Objects.equals(tenantId,
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())) {
+            throw new IllegalArgumentException("租户不匹配");
+        }
+        var task = taskMapper.selectByTenantAndPlatformTaskId(tenantId, platformTaskId);
+        if (task == null) throw new IllegalStateException("采集任务不存在");
+        if (java.util.Set.of("COMPLETED", "RESULT_AVAILABLE", "FAILED", "CANCELLED", "SECURITY_EXCEPTION").contains(task.getStatus())) return;
+        gatewayApi.cancel(platformTaskId, "USER_REQUESTED");
+        // An accepted cancel alone is not terminal proof. Query the persisted provider fence when dispatch is uncertain.
+        task = taskMapper.selectByTenantAndPlatformTaskId(tenantId, platformTaskId);
+        if (CollectionTaskStateMachine.canCancelBeforeDispatch(task.getStatus(), task.getTechnicalStage(), task.getExternalTaskId())) {
+            CollectionTaskReconciliationService.applyUndispatchedCancellation(taskMapper, task, gatewayApi.query(platformTaskId));
+        }
+    }
 
     public DeviceOpsDispatchResult dispatch(TemporaryDispatchCommand command) {
-        validate(command);
-        char[] secret = command.temporarySecret();
+        return dispatchResolved(command, null, null);
+    }
+
+    @Override public void dispatchSaved(cn.iocoder.yudao.module.pms.platform.api.collection.CollectionDispatchApi.SavedCommand command) {
+        if (!java.util.Objects.equals(command.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())
+                || blank(command.connectionId())) throw new IllegalArgumentException("已保存连接下发参数不完整");
+        dispatchResolved(new TemporaryDispatchCommand(command.tenantId(), command.platformTaskId(), command.commands(),
+                command.username(), null, "DEVICE_OPS", command.traceId()), command.connectionId(), command.connectionVersion());
+    }
+
+    private DeviceOpsDispatchResult dispatchResolved(TemporaryDispatchCommand command, String connectionId, Long connectionVersion) {
+        char[] secret = command == null ? null : command.temporarySecret();
         try {
+            if (connectionId == null) validate(command);
             CollectionTaskDO task = taskMapper.selectByTenantAndPlatformTaskId(
                     command.tenantId(), command.platformTaskId());
-            requirePendingTemporaryTask(task);
+            if (connectionId == null) requirePendingTemporaryTask(task);
+            else if (task == null || !"SAVED_CREDENTIAL".equals(task.getCredentialMode()) || !"PENDING_DISPATCH".equals(task.getTechnicalStage())) {
+                throw new IllegalStateException("COLLECTION_TASK_NOT_PENDING_SAVED_DISPATCH");
+            }
+            if (connectionId != null && (savedConnections == null || !savedConnections.dispatchAuthorized(task, connectionId, connectionVersion))) {
+                update(task, CollectionTaskStateMachine.rejectedBeforeDispatch(task.getStatus(), task.getTechnicalStage()),
+                        "DISPATCH_FAILED", null, "AUTHORIZATION_REJECTED", "CREDENTIAL_AUTHORIZATION_REVOKED");
+                throw new IllegalStateException("连接授权已失效，命令未下发");
+            }
+            // Commit the claim before external I/O so a process crash remains visible to reconciliation.
+            update(task, task.getStatus(), "DISPATCHING", null, null, null);
+            task.setTechnicalStage("DISPATCHING");
             DeviceOpsDispatchCommand gatewayCommand = new DeviceOpsDispatchCommand(
                     task.getPlatformTaskId(), String.valueOf(task.getBatchId()), task.getTenantId(),
                     task.getProjectId(), task.getDeviceId(), task.getDeviceName(), task.getHost(), task.getPort(),
                     task.getProtocol(), task.getTemplateId(), task.getTemplateVersion(), task.getTemplateHash(),
-                    List.copyOf(command.commands()), "TEMPORARY_SECRET", null, command.temporaryUsername(), secret,
-                    command.callbackProvider(), command.traceId());
+                    List.copyOf(command.commands()), task.getCredentialMode(), null, command.temporaryUsername(), secret,
+                    command.callbackProvider(), command.traceId(), task.getSourceContext(), task.getSourceObjectType(), connectionId, connectionVersion);
+            DeviceOpsDispatchResult result = null;
             try {
-                DeviceOpsDispatchResult result = gatewayApi.dispatch(gatewayCommand);
+                result = gatewayApi.dispatch(gatewayCommand);
                 if (result.accepted()) {
-                    update(task, "DISPATCHED", "ACCEPTED", result.externalTaskId(), result.externalStatus(), null);
+                    update(task, CollectionTaskStateMachine.acceptedDispatchStatus(task.getStatus()),
+                            "ACCEPTED", result.externalTaskId(), result.externalStatus(), null);
                     return result;
                 }
                 update(task, "FAILED", "DISPATCH_FAILED", result.externalTaskId(), result.externalStatus(),
@@ -46,6 +103,10 @@ public class TemporaryCollectionDispatchService {
                 if ("DEVICE_OPS_DISPATCH_REJECTED".equals(ex.getMessage())) {
                     throw ex;
                 }
+                if (result != null && result.accepted()) {
+                    update(task, task.getStatus(), "RECONCILING", result.externalTaskId(), result.externalStatus(), "LOCAL_ACK_FAILED");
+                    throw new IllegalStateException("DEVICE_OPS_DISPATCH_UNKNOWN");
+                }
                 if (hasIoCause(ex)) {
                     update(task, task.getStatus(), "RECONCILING", null, "UNKNOWN", "NETWORK_UNKNOWN");
                     throw new IllegalStateException("DEVICE_OPS_DISPATCH_UNKNOWN", ex);
@@ -54,14 +115,14 @@ public class TemporaryCollectionDispatchService {
                 throw new IllegalStateException("DEVICE_OPS_DISPATCH_FAILED", ex);
             }
         } finally {
-            Arrays.fill(secret, '\0');
+            if (secret != null) Arrays.fill(secret, '\0');
         }
     }
 
     private void update(CollectionTaskDO task, String status, String technicalStage, String externalTaskId,
                         String externalStatus, String failureCategory) {
         int updated = taskMapper.updateDispatchState(new CollectionTaskDispatchUpdate(
-                task.getTenantId(), task.getPlatformTaskId(), "PENDING_DISPATCH", status, technicalStage,
+                task.getTenantId(), task.getPlatformTaskId(), task.getTechnicalStage(), status, technicalStage,
                 externalTaskId, externalStatus, failureCategory));
         if (updated != 1) {
             throw new IllegalStateException("COLLECTION_TASK_DISPATCH_STATE_CONFLICT");

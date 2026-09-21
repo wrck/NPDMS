@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.infra.dal.mysql.file.query.FileStorageOperationLo
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 import cn.iocoder.yudao.module.infra.service.file.FileConfigService;
+import cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService;
+import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
     @Resource
     private FileMapper fileMapper;
 
+    @Resource
+    private FileReceiptDownloadService receiptDownloads;
+
     @Override
     @SneakyThrows
     public FileStorageReceipt store(FileStorageStoreCommand command) {
@@ -71,6 +76,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
         FileClient client = fileConfigService.getMasterFileClient();
         Assert.notNull(client, "客户端(master) 不能为空");
         String url = client.upload(content, storagePath, mediaType);
+        // Receipts identify stored objects. Short-lived access credentials are issued only by presignGet.
+        // Some private S3 clients return a signed URL from upload; never persist its bearer query.
+        url = url.split("[?#]", 2)[0];
         FileDO file = new FileDO().setConfigId(client.getId())
                 .setName(name).setPath(storagePath).setUrl(url)
                 .setType(mediaType).setSize((long) content.length);
@@ -85,6 +93,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
 
     @Override
     public FileStorageAccessReceipt presignGet(Long infraFileId, Integer expirationSeconds) {
+        if (expirationSeconds == null || expirationSeconds <= 0) {
+            throw new IllegalArgumentException("FILE_ACCESS_EXPIRATION_INVALID");
+        }
         FileDO file = fileMapper.selectById(infraFileId);
         if (file == null) {
             throw exception(FILE_NOT_EXISTS);
@@ -92,7 +103,8 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
         FilePathUtils.validatePath(file.getPath());
         FileClient client = fileConfigService.getFileClient(file.getConfigId());
         Assert.notNull(client, "客户端({}) 不能为空", file.getConfigId());
-        String url = client.presignGetUrl(file.getPath(), expirationSeconds);
+        String url = client instanceof DBFileClient ? receiptDownloads.issue(file, expirationSeconds)
+                : client.presignGetUrl(file.getPath(), expirationSeconds);
         return new FileStorageAccessReceipt(url, LocalDateTime.now().plusSeconds(expirationSeconds));
     }
 

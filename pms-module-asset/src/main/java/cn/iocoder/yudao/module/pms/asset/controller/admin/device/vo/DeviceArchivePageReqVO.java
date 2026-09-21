@@ -13,6 +13,16 @@ import lombok.EqualsAndHashCode;
 @Schema(description = "管理后台 - 设备档案分页查询 Request VO")
 public class DeviceArchivePageReqVO extends PageParam {
 
+    @Schema(description = "业务选择项目：当前项目设备或其有效关联合同的设备")
+    @jakarta.validation.constraints.Positive
+    private Long selectionProjectId;
+
+    @Schema(description = "产品型号，模糊匹配")
+    private String productModel;
+
+    @Schema(description = "合同号，模糊匹配")
+    private String contractNo;
+
     @Schema(description = "设备序列号，模糊匹配", example = "SN2026")
     private String sn;
 

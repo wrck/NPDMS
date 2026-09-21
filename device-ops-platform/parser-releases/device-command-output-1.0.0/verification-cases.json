@@ -1,0 +1,9 @@
+{
+  "cases": [
+    {
+      "caseId": "mixed-dynamic-commands",
+      "inputFile": "input.json",
+      "expectedFile": "expected-result.json"
+    }
+  ]
+}

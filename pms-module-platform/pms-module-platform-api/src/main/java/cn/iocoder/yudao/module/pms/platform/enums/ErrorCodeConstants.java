@@ -61,4 +61,5 @@ public interface ErrorCodeConstants {
     ErrorCode ENTITY_DEFINITION_NOT_FOUND = new ErrorCode(1_010_004_003, "扩展字段定义修订不存在或不属于该实体类型");
     ErrorCode ENTITY_REVISION_MISMATCH = new ErrorCode(1_010_004_004, "业务修订不属于指定实体或状态不允许操作");
 
+    ErrorCode COLLECTION_OPERATION_REJECTED = new ErrorCode(1_010_005_000, "采集操作未完成");
 }

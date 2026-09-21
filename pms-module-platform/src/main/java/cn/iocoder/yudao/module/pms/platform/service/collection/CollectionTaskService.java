@@ -105,6 +105,7 @@ public class CollectionTaskService implements CollectionTaskApi {
                                     CollectionTaskCreateItem item) {
         CollectionTaskDO task = new CollectionTaskDO();
         task.setTenantId(command.tenantId());
+        task.setCreator(String.valueOf(command.actorId()));
         task.setBatchId(batchId);
         task.setPlatformTaskId(UUID.randomUUID().toString());
         task.setSourceContext(command.sourceContext());
@@ -178,7 +179,8 @@ public class CollectionTaskService implements CollectionTaskApi {
                 task.getTemplateId(), task.getTemplateVersion(), task.getTemplateHash(), task.getCredentialMode(),
                 task.getCredentialId(), task.getGrantSnapshotId(), task.getIdempotencyKey(), task.getCompletionMode(),
                 task.getStatus(), task.getTechnicalStage(), task.getResultVersion(), task.getFileVersionId(),
-                task.getConsumerContext(), task.getConsumerObjectType(), task.getConsumerObjectId());
+                task.getConsumerContext(), task.getConsumerObjectType(), task.getConsumerObjectId(),
+                task.getExternalStatus(), task.getFailureCategory());
     }
 
     private static boolean blank(String value) {
