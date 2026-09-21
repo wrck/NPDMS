@@ -129,6 +129,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { backwardDuration } from './backwardDuration'
+import { initialDurationHint } from './durationEntry'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
@@ -224,6 +225,8 @@ const durationPayload = () => ({
 
 const openInitial = () => {
   if (!canWrite.value || saving.value) return
+  const hint = initialDurationHint(props.project)
+  if (hint) return message.warning(hint)
   mode.value = 'INITIAL'
   plan.value = undefined
   draft.value = undefined
@@ -381,6 +384,10 @@ const recoverDraftAfterPatchLoss = async () => {
 
 const save = async () => {
   if (!canWrite.value || saving.value) return
+  if (mode.value === 'INITIAL' && initialDurationHint(props.project)) {
+    message.warning(initialDurationHint(props.project))
+    return
+  }
   const version = contextVersion
   if (!(await formRef.value?.validate())) return
   if (!canWrite.value || version !== contextVersion) return

@@ -83,7 +83,7 @@ const flush = async () => {
 }
 const apps: { unmount: () => void }[] = []
 const render = (component: Component, readonly = false, id: number | undefined = 1) => {
-  const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined }, readonly })
+  const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined, projectManagerAssigned: true }, readonly })
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(component, { ...props, ref: child }) })
   const stubs = Object.fromEntries(
@@ -132,6 +132,25 @@ it('uses the survey project deadline to derive the submitted initial date range'
   expect(view.props.project.projectEndDate).toBe('2026-12-31')
 })
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
+
+it('explains missing project-manager assignment and prevents initial entry without a write request', async () => {
+  api.getByProjectId.mockResolvedValue(null)
+  const panel = render(Panel)
+  panel.props.project.projectManagerAssigned = false
+  const drawer = render(Drawer)
+  drawer.props.project.projectManagerAssigned = false
+  await flush()
+  expect(panel.state().initialEntryHint).toContain('项目尚未指派项目经理')
+  drawer.child.value.openInitial()
+  await drawer.state().save()
+  expect(drawer.state().visible).toBe(false)
+  expect(message.warning).toHaveBeenCalledWith(expect.stringContaining('完成项目经理指派'))
+  expect(api.createInitial).not.toHaveBeenCalled()
+  drawer.props.project.projectManagerAssigned = true
+  await flush()
+  drawer.child.value.openInitial()
+  expect(drawer.state().visible).toBe(true)
+})
 
 describe('PRE-01 existing duration components in project views', () => {
   it('keeps the existing project prop and default writable behavior', async () => {

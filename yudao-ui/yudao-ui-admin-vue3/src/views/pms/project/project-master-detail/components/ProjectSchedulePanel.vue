@@ -1,221 +1,860 @@
 <template>
   <ContentWrap class="schedule-workspace" v-loading="loading" :body-style="{ padding: '20px' }">
     <header class="schedule-heading">
-      <div><h3>项目施工计划</h3><p>查看工期要求，安排阶段与任务，提交审核后作为执行基线。</p></div>
+      <div
+        ><h3>施工计划</h3><p>从工期要求倒排阶段，在阶段内安排任务，确认后提交服务经理审核。</p></div
+      >
       <div class="schedule-actions">
         <el-button :disabled="dirty || acting" @click="load()">刷新</el-button>
-        <el-button @click="durationVisible = true">{{ durationPlan ? '工期与变更记录' : '录入项目工期' }}</el-button>
+        <el-button :disabled="acting" @click="durationVisible = true">{{
+          durationPlan ? '管理工期' : '录入工期'
+        }}</el-button>
       </div>
     </header>
     <dl class="schedule-facts">
-      <div><dt>工勘要求结束日期</dt><dd>{{ project.projectEndDate || '未登记' }}</dd></div>
-      <div><dt>当前生效工期</dt><dd>{{ durationPlan ? `${durationPlan.currentRevision.startDate} 至 ${durationPlan.currentRevision.endDate}` : '未录入' }}</dd></div>
-      <div><dt>工期天数</dt><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '—' }}</dd></div>
+      <div
+        ><dt>签约方式</dt><dd>{{ signingLabel }}</dd
+        ><small>{{ project.contractNo || '尚未关联合同' }}</small></div
+      >
+      <div
+        ><dt>工勘要求结束日期</dt><dd>{{ project.projectEndDate || '未登记' }}</dd
+        ><small>来自工前准备</small></div
+      >
+      <div
+        ><dt>当前生效工期</dt
+        ><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '未录入' }}</dd
+        ><small>{{
+          durationPlan
+            ? `${durationPlan.currentRevision.startDate} 至 ${durationPlan.currentRevision.endDate}`
+            : '录入后可制定施工计划'
+        }}</small></div
+      >
+      <div
+        ><dt>本版倒排截止日期</dt><dd>{{ calculationInput.anchorEnd || '尚未推算' }}</dd
+        ><small>{{
+          calculationInput.signingMethod === 'DIRECT_SIGN'
+            ? '来自回款节点计划验收时间'
+            : calculationInput.anchorEnd
+              ? '来自本版工期要求'
+              : '创建计划后读取权威输入'
+        }}</small></div
+      >
     </dl>
-    <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" class="schedule-notice" />
-    <el-alert v-if="tightSchedule" title="当前计划工期不足3个日历月，请落实阶段和任务安排，并与客户确认发货及实施时间。" type="warning" :closable="false" class="schedule-notice" />
+    <el-alert
+      v-if="errorText"
+      :title="errorText"
+      type="error"
+      :closable="false"
+      class="schedule-notice"
+    />
+    <el-alert
+      v-if="tightSchedule"
+      title="当前生效计划工期不足3个日历月，请落实计划并跟进发货。"
+      type="warning"
+      :closable="false"
+      class="schedule-notice"
+    />
+    <el-alert
+      v-if="remainingTimeHint"
+      :title="remainingTimeHint"
+      type="info"
+      :closable="false"
+      class="schedule-notice"
+    />
     <div class="schedule-toolbar">
-      <el-select :model-value="selectedId" aria-label="施工计划版本" placeholder="选择计划版本" :disabled="acting" @change="selectBatch">
-        <el-option v-for="item in batches" :key="item.id" :value="item.id!" :label="`计划 #${item.id} · ${statusLabel(item.status)}`" />
+      <el-select
+        :model-value="selectedId"
+        aria-label="施工计划版本"
+        placeholder="选择计划版本"
+        :disabled="acting || loading"
+        @change="selectBatch"
+      >
+        <el-option
+          v-for="item in batches"
+          :key="item.id"
+          :value="item.id!"
+          :label="`计划 #${item.id} · ${versionLabel(item)}`"
+        />
       </el-select>
-      <el-button v-hasPermi="['pms:imp-stage-plan:create']" :disabled="dirty || acting || hasActiveDraft" @click="createDraft">新建计划草稿</el-button>
-      <el-tag v-if="batch">{{ statusLabel(batch.status) }}</el-tag>
+      <el-button
+        v-hasPermi="['pms:imp-stage-plan:create']"
+        :disabled="dirty || acting || loading || hasActiveDraft || !durationPlan"
+        @click="createDraft"
+        >{{ currentEffective ? '新建调整版本' : '制定施工计划' }}</el-button
+      >
+      <el-button
+        v-if="currentEffective && batch?.id !== currentEffective.id"
+        :disabled="acting || loading"
+        @click="showComparison"
+        >与生效计划对比</el-button
+      >
+      <el-tag
+        v-if="batch"
+        :type="batch.status === 2 ? 'success' : batch.status === 1 ? 'warning' : 'info'"
+        >{{ versionLabel(batch) }}</el-tag
+      >
       <span v-if="dirty" class="dirty-label">有未保存调整</span>
     </div>
     <template v-if="batch">
-      <el-alert v-if="batch.status === 3" :title="`审批未通过：${batch.rejectReason || '请调整后重新提交'}`" type="warning" :closable="false" class="schedule-notice" />
-      <p class="baseline-caption">本版本工期：{{ batch.baselineStart || '未绑定' }} 至 {{ batch.baselineEnd || '未绑定' }}。生效版本只读；修改需新建草稿并审批。</p>
-      <el-table :data="batch.items" row-key="id" data-testid="schedule-stage-task-table">
-        <el-table-column type="expand">
-          <template #default="{ row }">
-            <div class="stage-tasks">
-              <el-table :data="stageTasks(row.phaseCode)" row-key="taskId" size="small" empty-text="本阶段暂无任务">
-                <el-table-column label="阶段任务" min-width="200"><template #default="{ row: task }"><span :style="{ paddingLeft: `${taskDepth(task) * 16}px` }">{{ task.name }}</span></template></el-table-column>
-                <el-table-column label="计划开始" width="170"><template #default="{ row: task }"><el-date-picker v-if="editable" v-model="task.planStart" type="date" value-format="YYYY-MM-DD" class="schedule-date" aria-label="任务计划开始" /><span v-else>{{ task.planStart || '未安排' }}</span></template></el-table-column>
-                <el-table-column label="计划结束" width="170"><template #default="{ row: task }"><el-date-picker v-if="editable" v-model="task.planEnd" type="date" value-format="YYYY-MM-DD" class="schedule-date" aria-label="任务计划结束" /><span v-else>{{ task.planEnd || '未安排' }}</span></template></el-table-column>
-                <el-table-column prop="acceptanceTime" label="计划验收时间" width="130"><template #default="{ row: task }">{{ task.acceptanceTime || '未登记' }}</template></el-table-column>
-                <el-table-column label="安排检查" min-width="160"><template #default="{ row: task }">{{ taskCheck(task, row) }}</template></el-table-column>
-                <el-table-column width="110"><template #default="{ row: task }"><el-button link type="primary" :disabled="dirty" @click="emit('open-task', { taskId: task.taskId, stageCode: task.stageCode, placeholder: false, treeDepth: 0 }, row.phaseCode)">任务详情</el-button></template></el-table-column>
-              </el-table>
-              <small>任务可在阶段范围内并行安排；任务日期与阶段日期一起审批生效。</small>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="项目阶段" min-width="170"><template #default="{ row }"><strong>{{ row.phaseName }}</strong><div class="stage-code">{{ row.phaseCode }}</div></template></el-table-column>
-        <el-table-column label="计划开始" width="170"><template #default="{ row }"><el-date-picker v-if="editable" v-model="row.planStart" type="date" value-format="YYYY-MM-DD" class="schedule-date" aria-label="阶段计划开始" /><span v-else>{{ row.planStart || '未安排' }}</span></template></el-table-column>
-        <el-table-column label="计划结束" width="170"><template #default="{ row }"><el-date-picker v-if="editable" v-model="row.planEnd" type="date" value-format="YYYY-MM-DD" class="schedule-date" aria-label="阶段计划结束" /><span v-else>{{ row.planEnd || '未安排' }}</span></template></el-table-column>
-        <el-table-column label="冻结阶段占比" width="115"><template #default="{ row }">{{ calculationStages[row.phaseCode]?.percentage != null ? `${calculationStages[row.phaseCode].percentage}%` : '未推算' }}</template></el-table-column>
-        <el-table-column label="计划验收日期" width="140"><template #default="{ row }">{{ calculationStages[row.phaseCode]?.acceptanceTime?.slice(0, 10) || '未登记' }}</template></el-table-column>
-        <el-table-column label="备注" min-width="160"><template #default="{ row }"><el-input v-if="editable" v-model="row.remark" aria-label="阶段备注" /><span v-else>{{ row.remark || '—' }}</span></template></el-table-column>
-      </el-table>
+      <el-alert
+        v-if="batch.status === 3"
+        :title="`审批未通过：${batch.rejectReason || '请调整后重新提交'}`"
+        type="warning"
+        :closable="false"
+        class="schedule-notice"
+      />
+      <el-alert
+        v-if="staleDuration"
+        title="工期已变更，此计划仍引用旧工期。请在草稿中重新倒排，确认阶段和任务日期后提交审核。"
+        type="warning"
+        :closable="false"
+        class="schedule-notice"
+      />
+      <div class="plan-caption"
+        ><span
+          >本版计划区间
+          <strong
+            >{{ batch.baselineStart || '未绑定' }} 至 {{ batch.baselineEnd || '未绑定' }}</strong
+          ></span
+        ><span v-if="batch.effectiveAt">生效于 {{ formatDate(batch.effectiveAt) }}</span
+        ><span v-else-if="batch.submittedAt">提交于 {{ formatDate(batch.submittedAt) }}</span></div
+      >
+      <div v-if="editable" class="planning-progress"
+        ><span>{{ plannedTaskCount }} / {{ batch.tasks?.length || 0 }} 项任务已安排</span
+        ><el-progress :percentage="taskProgress" :show-text="false" /><span>{{
+          taskIssues.length ? `${taskIssues.length} 项待处理` : '任务日期已就绪'
+        }}</span></div
+      >
+      <el-collapse class="calculation-details">
+        <el-collapse-item title="推算依据与任务安排检查" name="basis">
+          <dl class="calculation-grid">
+            <div
+              ><dt>工期输入</dt
+              ><dd
+                >{{ calculationInput.durationStart || '—' }} 至
+                {{ calculationInput.durationEnd || '—' }}</dd
+              ></div
+            >
+            <div
+              ><dt>倒排截止日期</dt><dd>{{ calculationInput.anchorEnd || '—' }}</dd></div
+            >
+            <div
+              ><dt>计划路径版本</dt><dd>{{ calculationInput.sourcePlanVersionId || '—' }}</dd></div
+            >
+          </dl>
+          <p
+            >阶段按项目冻结路径及占比推算；任务由项目经理在所属阶段内安排，计划验收日期来自回款节点。</p
+          >
+          <div class="calculation-allocations"
+            ><span v-for="stage in calculationInput.stages || []" :key="stage.stageCode"
+              >{{
+                batch.items.find((item) => item.phaseCode === stage.stageCode)?.phaseName ||
+                stage.stageCode
+              }}
+              <strong>{{ stage.percentage }}%</strong></span
+            ></div
+          >
+        </el-collapse-item>
+      </el-collapse>
+      <el-alert
+        v-if="overdueError"
+        title="超期状态加载失败，请刷新重试；此处不代表没有超期。"
+        type="warning"
+        :closable="false"
+        class="schedule-notice"
+      />
+      <SchedulePlanningTable
+        :items="batch.items"
+        :tasks="batch.tasks || []"
+        :editable="editable && !acting"
+        :navigation-disabled="dirty || acting"
+        :overdue-by-stage="overdueByStage"
+        :acceptance-by-stage="acceptanceByStage"
+        @open-task="openTask"
+      />
       <el-form v-if="editable" label-position="top" class="adjustment-form">
-        <el-form-item label="调整原因"><el-input v-model="batch.remark" type="textarea" :rows="2" placeholder="说明调整依据，随计划一并提交审核" /></el-form-item>
-        <div class="schedule-actions">
-          <el-button :disabled="acting || dirty" @click="estimate" v-hasPermi="['pms:imp-stage-plan:update']">自动推算</el-button>
-          <el-button type="primary" :disabled="acting || !dirty" @click="save" v-hasPermi="['pms:imp-stage-plan:update']">保存调整</el-button>
-          <el-button :disabled="acting || dirty" @click="submitVisible = true" v-hasPermi="['pms:imp-stage-plan:submit']">提交审核</el-button>
+        <el-form-item label="调整原因"
+          ><el-input
+            v-model="batch.remark"
+            type="textarea"
+            :rows="2"
+            placeholder="说明调整依据，随计划一并提交审核"
+        /></el-form-item>
+        <div class="schedule-actions plan-footer">
+          <el-button
+            :disabled="acting || dirty"
+            @click="estimate"
+            v-hasPermi="['pms:imp-stage-plan:update']"
+            >重新倒排</el-button
+          >
+          <span class="footer-note">{{
+            dirty ? '日期已调整，请先保存' : '审批通过后，阶段和任务计划统一生效'
+          }}</span>
+          <el-button
+            :disabled="acting || !dirty"
+            @click="save"
+            v-hasPermi="['pms:imp-stage-plan:update']"
+            >保存调整</el-button
+          >
+          <el-button
+            type="primary"
+            :disabled="acting || dirty || !!taskIssues.length || staleDuration"
+            @click="openSubmit"
+            v-hasPermi="['pms:imp-stage-plan:submit']"
+            >提交审核</el-button
+          >
         </div>
       </el-form>
-      <el-button v-if="batch.bpmProcessInstanceId" link type="primary" @click="router.push({ name: 'BpmProcessInstanceDetail', query: { id: batch.bpmProcessInstanceId } })">查看审批进度</el-button>
+      <el-button
+        v-if="batch.bpmProcessInstanceId"
+        link
+        type="primary"
+        @click="
+          router.push({
+            name: 'BpmProcessInstanceDetail',
+            query: { id: batch.bpmProcessInstanceId }
+          })
+        "
+        >查看审批进度</el-button
+      >
     </template>
-    <el-empty v-else-if="!loading && !errorText" description="暂无施工计划。录入工期后，新建计划草稿。" />
+    <el-empty
+      v-else-if="!loading && !errorText"
+      :description="
+        durationPlan
+          ? '尚未制定施工计划，创建后将带入项目实际阶段和任务。'
+          : initialDurationHint(project) || '先录入项目工期，再倒排阶段并安排任务。'
+      "
+    >
+      <el-button v-if="!durationPlan" type="primary" :disabled="!!initialDurationHint(project)" @click="durationVisible = true"
+        >录入项目工期</el-button
+      >
+      <el-button
+        v-else
+        v-hasPermi="['pms:imp-stage-plan:create']"
+        type="primary"
+        :disabled="acting"
+        @click="createDraft"
+        >制定施工计划</el-button
+      >
+    </el-empty>
   </ContentWrap>
-  <el-drawer v-model="durationVisible" title="项目工期" size="min(960px, 100%)" :before-close="closeDuration">
+  <el-drawer
+    v-model="durationVisible"
+    title="项目工期"
+    size="min(960px, 100%)"
+    :before-close="closeDuration"
+  >
     <ProjectDurationPanel ref="durationRef" :project="project" @changed="durationChanged" />
   </el-drawer>
   <el-dialog v-model="submitVisible" title="提交施工计划审核" width="min(480px, 94vw)">
-    <el-form label-position="top"><el-form-item label="服务经理审批人" required><PmsEntitySelect v-model="approverId" :api="UserApi.getUserPage" label-field="nickname" value-field="id" query-field="nickname" /></el-form-item></el-form>
-    <template #footer><el-button @click="submitVisible = false">取消</el-button><el-button type="primary" :loading="acting" :disabled="!approverId || dirty" @click="submit">发起审批</el-button></template>
+    <p>提交当前阶段及任务的全部计划日期，由本项目服务经理审核。</p>
+    <el-alert v-if="approverError" :title="approverError" type="error" :closable="false" />
+    <el-form label-position="top"
+      ><el-form-item label="服务经理审批人" required
+        ><el-select
+          v-model="approverId"
+          :loading="approversLoading"
+          placeholder="选择本项目服务经理"
+          style="width: 100%"
+          ><el-option
+            v-for="person in approvers"
+            :key="person.userId"
+            :value="person.userId"
+            :label="person.memberName || `用户 ${person.userId}`" /></el-select></el-form-item
+    ></el-form>
+    <template #footer
+      ><el-button @click="submitVisible = false">取消</el-button
+      ><el-button type="primary" :loading="acting" :disabled="!approverId || dirty" @click="submit"
+        >发起审批</el-button
+      ></template
+    >
+  </el-dialog>
+  <el-dialog v-model="comparisonVisible" title="与当前生效计划对比" width="min(960px, 94vw)">
+    <el-table
+      v-loading="comparisonLoading"
+      :data="comparisonRows"
+      empty-text="阶段和任务的计划日期没有变化"
+    >
+      <el-table-column prop="kind" label="类型" width="70" />
+      <el-table-column prop="name" label="阶段 / 任务" min-width="180" />
+      <el-table-column prop="before" label="当前生效计划" min-width="220" />
+      <el-table-column prop="after" label="所选计划" min-width="220" />
+      <el-table-column prop="change" label="变化" width="110" />
+    </el-table>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import dayjs from 'dayjs'
+import { shortPlan, deadlineHint, taskPlanIssue, compareSchedules } from './schedulePresentation'
 import { useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
-import * as UserApi from '@/api/system/user'
+import { formatDate } from '@/utils/formatTime'
+import { DICT_TYPE, getDictLabel } from '@/utils/dict'
+import * as MemberApi from '@/api/pms/project/unified-members'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as PlanApi from '@/api/pms/engineering/stage-plan'
 import * as TaskApi from '@/api/pms/project/task-workbench'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectDurationPanel from './ProjectDurationPanel.vue'
+import SchedulePlanningTable from './SchedulePlanningTable.vue'
+import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
-const emit = defineEmits<{ 'open-task': [task: TaskApi.TaskNode, stageCode: string]; changed: [] }>()
-const router = useRouter(), message = useMessage()
-const loading = ref(false), acting = ref(false), errorText = ref('')
-const durationVisible = ref(false), submitVisible = ref(false), approverId = ref<number>()
+const emit = defineEmits<{
+  'open-task': [task: TaskApi.TaskNode, stageCode: string]
+  changed: []
+}>()
+const router = useRouter(),
+  message = useMessage()
+const loading = ref(false),
+  acting = ref(false),
+  errorText = ref('')
+const durationVisible = ref(false),
+  submitVisible = ref(false),
+  approverId = ref<number>()
+const approvers = ref<MemberApi.MemberRecord[]>([]),
+  approversLoading = ref(false),
+  approverError = ref('')
+const comparisonVisible = ref(false),
+  comparisonLoading = ref(false)
+const comparisonRows = ref<ReturnType<typeof compareSchedules>>([])
 const durationRef = ref<InstanceType<typeof ProjectDurationPanel>>()
 const durationPlan = ref<DurationApi.ConstructionPlanVO | null>(null)
-const batches = ref<PlanApi.StagePlanBatchVO[]>([]), batch = ref<PlanApi.StagePlanBatchVO>()
-const selectedId = ref<number>(), saved = ref('')
+const batches = ref<PlanApi.StagePlanBatchVO[]>([]),
+  batch = ref<PlanApi.StagePlanBatchVO>()
+const selectedId = ref<number>(),
+  saved = ref('')
 let sequence = 0
 const dirty = computed(() => !!batch.value && JSON.stringify(batch.value) !== saved.value)
-const editable = computed(() => !!batch.value && [0, 3].includes(batch.value.status!) && checkPermi(['pms:imp-stage-plan:update']))
-const hasActiveDraft = computed(() => batches.value.some(item => item.status === 0 || item.status === 1))
-const tightSchedule = computed(() => !!batch.value?.baselineStart && !!batch.value?.baselineEnd && dayjs(batch.value.baselineEnd).isBefore(dayjs(batch.value.baselineStart).add(3, 'month')))
+const editable = computed(
+  () =>
+    !!batch.value &&
+    [0, 3].includes(batch.value.status!) &&
+    checkPermi(['pms:imp-stage-plan:update'])
+)
+const hasActiveDraft = computed(() =>
+  batches.value.some((item) => item.status === 0 || item.status === 1)
+)
+const currentEffective = computed(
+  () =>
+    batches.value.filter((item) => item.status === 2).sort((a, b) => (b.id || 0) - (a.id || 0))[0]
+)
+const signingLabel = computed(
+  () =>
+    getDictLabel(DICT_TYPE.PMS_SIGNING_METHOD, props.project.signingMethod) ||
+    props.project.signingMethod ||
+    '未登记'
+)
+const staleDuration = computed(
+  () =>
+    !!batch.value &&
+    !!durationPlan.value &&
+    batch.value.durationRevisionId !== durationPlan.value.currentRevision.revisionId
+)
+const tightSchedule = computed(() => shortPlan(currentEffective.value))
+const remainingTimeHint = computed(() => deadlineHint(batch.value?.baselineEnd))
+const taskIssues = computed(() =>
+  (batch.value?.tasks || [])
+    .map((task) => ({
+      task,
+      issue: taskPlanIssue(
+        task,
+        batch.value?.items.find((item) => item.phaseCode === task.stageCode)
+      )
+    }))
+    .filter((value) => value.issue)
+)
+const plannedTaskCount = computed(() => (batch.value?.tasks?.length || 0) - taskIssues.value.length)
+const taskProgress = computed(() =>
+  batch.value?.tasks?.length
+    ? Math.round((plannedTaskCount.value / batch.value.tasks.length) * 100)
+    : 100
+)
+const overdue = ref<PlanApi.StagePlanOverdueRowVO[]>([])
+const overdueError = ref(false)
+const calculationInput = computed(() => {
+  try {
+    return JSON.parse(batch.value?.inputSnapshot || '{}')
+  } catch {
+    return {}
+  }
+})
+const acceptanceByStage = computed<Record<string, string>>(() =>
+  Object.fromEntries(
+    (calculationInput.value.stages || [])
+      .filter((stage: { acceptanceTime?: string }) => stage.acceptanceTime)
+      .map((stage: { stageCode: string; acceptanceTime: string }) => [
+        stage.stageCode,
+        stage.acceptanceTime
+      ])
+  )
+)
 const statusLabels: Record<number, string> = { 0: '草稿', 1: '审批中', 2: '已生效', 3: '已驳回' }
 const statusLabel = (status?: number) => statusLabels[status ?? -1] || '未知状态'
-const calculationStages = computed<Record<string, { percentage?: number; acceptanceTime?: string }>>(() => {
-  try {
-    const snapshot = JSON.parse(batch.value?.inputSnapshot || '{}')
-    return Object.fromEntries((snapshot.stages || []).map((stage: { stageCode: string; percentage?: number; acceptanceTime?: string }) => [stage.stageCode, stage]))
-  } catch { return {} }
-})
-const stageTasks = (code: string) => {
-  const tasks = batch.value?.tasks?.filter(task => task.stageCode === code) || []
-  const ids = new Set(tasks.map(task => task.taskId)), seen = new Set<number>()
-  const ordered: PlanApi.StagePlanTaskVO[] = []
-  const visit = (task: PlanApi.StagePlanTaskVO) => {
-    if (seen.has(task.taskId)) return
-    seen.add(task.taskId); ordered.push(task)
-    tasks.filter(child => child.parentTaskId === task.taskId).forEach(visit)
-  }
-  tasks.filter(task => !task.parentTaskId || !ids.has(task.parentTaskId)).forEach(visit)
-  tasks.forEach(visit)
-  return ordered
+const versionLabel = (value: PlanApi.StagePlanBatchVO) =>
+  value.status === 2
+    ? value.id === currentEffective.value?.id
+      ? '当前生效'
+      : '历史已生效'
+    : statusLabel(value.status)
+const overdueByStage = computed(() =>
+  Object.fromEntries(
+    overdue.value
+      .filter((row) => row.batchId === batch.value?.id && row.phaseId != null)
+      .map((row) => [row.phaseId!, row.overdueDays || 0])
+  )
+)
+const openTask = (task: PlanApi.StagePlanTaskVO) =>
+  emit(
+    'open-task',
+    {
+      taskId: task.taskId,
+      stageCode: task.stageCode,
+      placeholder: false,
+      treeDepth: 0
+    },
+    task.stageCode
+  )
+const apply = (value: PlanApi.StagePlanBatchVO) => {
+  batch.value = value
+  selectedId.value = value.id
+  saved.value = JSON.stringify(value)
 }
-const taskDepth = (task: PlanApi.StagePlanTaskVO) => {
-  const seen = new Set([task.taskId]); let depth = 0, parentId = task.parentTaskId
-  while (parentId && !seen.has(parentId)) {
-    const parent = batch.value?.tasks?.find(value => value.taskId === parentId && value.stageCode === task.stageCode)
-    if (!parent) break
-    seen.add(parentId); depth++; parentId = parent.parentTaskId
-  }
-  return depth
-}
-const apply = (value: PlanApi.StagePlanBatchVO) => { batch.value = value; selectedId.value = value.id; saved.value = JSON.stringify(value) }
 const guard = async () => {
   if (acting.value || durationRef.value?.isDirty()) return false
   if (!dirty.value) return true
-  try { await message.confirm('计划调整尚未保存，是否放弃后继续？'); if (saved.value) apply(JSON.parse(saved.value)); return true } catch { return false }
+  try {
+    await message.confirm('计划调整尚未保存，是否放弃后继续？')
+    if (saved.value) apply(JSON.parse(saved.value))
+    return true
+  } catch {
+    return false
+  }
 }
 const selectBatch = async (id: number) => {
   if (!(await guard())) return
   const current = ++sequence
-  loading.value = true; errorText.value = ''
-  try { const value = await PlanApi.getStagePlanBatch(id); if (current === sequence) apply(value) }
-  catch { if (current === sequence) errorText.value = '计划版本加载失败，请重试。' }
-  finally { if (current === sequence) loading.value = false }
+  loading.value = true
+  errorText.value = ''
+  try {
+    const value = await PlanApi.getStagePlanBatch(id)
+    if (current === sequence) apply(value)
+  } catch {
+    if (current === sequence) errorText.value = '计划版本加载失败，请重试。'
+  } finally {
+    if (current === sequence) loading.value = false
+  }
 }
 const load = async (preferred?: number) => {
-  const current = ++sequence, projectId = props.project.id
+  const current = ++sequence,
+    projectId = props.project.id
   if (!projectId) return
-  loading.value = true; errorText.value = ''
+  loading.value = true
+  errorText.value = ''
   try {
-    const [duration, page] = await Promise.all([DurationApi.getByProjectId(projectId), PlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 100 })])
+    const [duration, page] = await Promise.all([
+      DurationApi.getByProjectId(projectId),
+      PlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 100 })
+    ])
     if (current !== sequence) return
-    durationPlan.value = duration; batches.value = page.list || []
-    const id = preferred || batches.value.find(item => item.status === 0 || item.status === 3)?.id || batches.value[0]?.id
+    durationPlan.value = duration
+    const versions: PlanApi.StagePlanBatchVO[] = [...(page.list || [])]
+    for (let pageNo = 2; versions.length < Number(page.total || 0); pageNo++) {
+      const next = await PlanApi.getStagePlanBatchPage({ projectId, pageNo, pageSize: 100 })
+      if (current !== sequence) return
+      if (!next.list?.length) break
+      versions.push(...next.list)
+    }
+    batches.value = versions
+    overdueError.value = false
+    try {
+      const rows = await PlanApi.getOverdueStages(projectId)
+      if (current !== sequence) return
+      overdue.value = rows || []
+    } catch {
+      if (current === sequence) {
+        overdue.value = []
+        overdueError.value = true
+      }
+    }
+    const id =
+      preferred ||
+      batches.value.find((item) => item.status === 0 || item.status === 3)?.id ||
+      batches.value[0]?.id
     const value = id ? await PlanApi.getStagePlanBatch(id) : undefined
     if (current !== sequence) return
+    const effectiveId = currentEffective.value?.id
+    const effective =
+      effectiveId === id
+        ? value
+        : effectiveId
+          ? await PlanApi.getStagePlanBatch(effectiveId)
+          : undefined
+    if (current !== sequence) return
+    if (effective)
+      batches.value = batches.value.map((item) => (item.id === effective.id ? effective : item))
     if (value) apply(value)
-    else { batch.value = undefined; selectedId.value = undefined; saved.value = '' }
-  } catch { if (current === sequence) errorText.value = '施工计划加载失败，请重试。' }
-  finally { if (current === sequence) loading.value = false }
+    else {
+      batch.value = undefined
+      selectedId.value = undefined
+      saved.value = ''
+    }
+  } catch {
+    if (current === sequence) errorText.value = '施工计划加载失败，请重试。'
+  } finally {
+    if (current === sequence) loading.value = false
+  }
 }
 const command = async (action: () => Promise<PlanApi.StagePlanBatchVO>, success: string) => {
   if (acting.value) return false
   const projectId = props.project.id
   acting.value = true
-  try { const result = await action(); if (projectId !== props.project.id) return false; apply(result); message.success(success); emit('changed'); await load(result.id); return true }
-  catch { errorText.value = '操作未完成，请核对错误提示后重试；当前调整已保留。'; return false }
-  finally { acting.value = false }
+  try {
+    const result = await action()
+    if (projectId !== props.project.id) return false
+    apply(result)
+    message.success(success)
+    emit('changed')
+    await load(result.id)
+    return true
+  } catch {
+    errorText.value = '操作未完成，请核对错误提示后重试；当前调整已保留。'
+    return false
+  } finally {
+    acting.value = false
+  }
 }
-const createDraft = () => command(() => PlanApi.createStagePlanBatch(props.project.id!), '计划草稿已创建')
-const estimate = () => command(() => PlanApi.autoEstimateStagePlanBatch(batch.value!.id!), '计划已推算，请核对后提交审核')
+const createDraft = () =>
+  command(() => PlanApi.createStagePlanBatch(props.project.id!), '计划草稿已创建')
+const estimate = async () => {
+  try {
+    await message.confirm(
+      '将按最新工期、阶段占比和回款验收时间重新倒排，替换本草稿的阶段日期。已安排任务会保留，请核对是否仍在阶段范围内。'
+    )
+  } catch {
+    return
+  }
+  await command(
+    () => PlanApi.autoEstimateStagePlanBatch(batch.value!.id!),
+    '倒排已完成，请核对阶段与任务安排'
+  )
+}
+const openSubmit = async () => {
+  const projectId = props.project.id!
+  submitVisible.value = true
+  approverId.value = undefined
+  approvers.value = []
+  approverError.value = ''
+  approversLoading.value = true
+  try {
+    const members: MemberApi.MemberRecord[] = []
+    for (let pageNo = 1; ; pageNo++) {
+      const page = await MemberApi.getMemberPage(projectId, {
+        state: 'CURRENT',
+        role: 'SERVICE_MANAGER',
+        pageNo,
+        pageSize: 100
+      })
+      if (projectId !== props.project.id) return
+      members.push(...page.list)
+      if (members.length >= page.total || !page.list.length) break
+    }
+    approvers.value = [
+      ...new Map(
+        members
+          .filter((person) => MemberApi.logicalMemberRole(person.memberRole) === 'SERVICE_MANAGER')
+          .map((person) => [person.userId, person])
+      ).values()
+    ]
+    if (approvers.value.length === 1) approverId.value = approvers.value[0].userId
+    else if (!approvers.value.length)
+      approverError.value = '本项目尚无有效服务经理，请先在项目成员中完成指派。'
+  } catch {
+    approverError.value = '服务经理加载失败，请关闭后重试。'
+  } finally {
+    approversLoading.value = false
+  }
+}
+const showComparison = async () => {
+  if (!currentEffective.value?.id || !batch.value) return
+  const projectId = props.project.id,
+    selected = JSON.parse(JSON.stringify(batch.value))
+  comparisonVisible.value = true
+  comparisonLoading.value = true
+  comparisonRows.value = []
+  try {
+    const current = await PlanApi.getStagePlanBatch(currentEffective.value.id)
+    if (projectId === props.project.id) comparisonRows.value = compareSchedules(current, selected)
+  } catch {
+    comparisonVisible.value = false
+    message.error('生效计划加载失败，未能完成版本对比')
+  } finally {
+    comparisonLoading.value = false
+  }
+}
 const save = async () => {
   const value = batch.value
   if (!value || !editable.value) return
   if (!value.remark?.trim()) return message.warning('请填写调整原因')
   let previous: string | undefined
   for (const item of value.items) {
-    if (!item.planStart || !item.planEnd || item.planEnd < item.planStart || (previous && item.planStart <= previous)) return message.warning('请检查全部阶段起止日期，阶段不能逆序或重叠')
-    if ((value.baselineStart && item.planStart < value.baselineStart) || (value.baselineEnd && item.planEnd > value.baselineEnd)) return message.warning('阶段日期不能超出本版本工期')
+    if (
+      !item.planStart ||
+      !item.planEnd ||
+      item.planEnd < item.planStart ||
+      (previous && item.planStart <= previous)
+    )
+      return message.warning('请检查全部阶段起止日期，阶段不能逆序或重叠')
+    if (
+      (value.baselineStart && item.planStart < value.baselineStart) ||
+      (value.baselineEnd && item.planEnd > value.baselineEnd)
+    )
+      return message.warning('阶段日期不能超出本版本工期')
     previous = item.planEnd
   }
-  await command(() => PlanApi.updateStagePlanItems({ id: value.id!, version: value.version!, remark: value.remark, tasks: value.tasks, items: value.items.map(item => ({ id: item.id!, planStart: item.planStart!, planEnd: item.planEnd!, remark: item.remark })) }), '计划调整已保存')
+  const invalidTask = taskIssues.value.find((item) => item.issue !== '待安排日期')
+  if (invalidTask) return message.warning(`${invalidTask.task.name}：${invalidTask.issue}`)
+  await command(
+    () =>
+      PlanApi.updateStagePlanItems({
+        id: value.id!,
+        version: value.version!,
+        remark: value.remark,
+        tasks: value.tasks,
+        items: value.items.map((item) => ({
+          id: item.id!,
+          planStart: item.planStart!,
+          planEnd: item.planEnd!,
+          remark: item.remark
+        }))
+      }),
+    '计划调整已保存'
+  )
 }
 const submit = async () => {
   if (!batch.value || !approverId.value || dirty.value) return
-  if (await command(() => PlanApi.submitStagePlanBatch(batch.value!.id!, approverId.value!), '计划已提交审核')) submitVisible.value = false
+  if (taskIssues.value.length)
+    return message.warning(`${taskIssues.value[0].task.name}：${taskIssues.value[0].issue}`)
+  if (
+    await command(
+      () => PlanApi.submitStagePlanBatch(batch.value!.id!, approverId.value!),
+      '计划已提交审核'
+    )
+  )
+    submitVisible.value = false
 }
-const taskCheck = (task: PlanApi.StagePlanTaskVO, stage: PlanApi.StagePlanItemVO) => {
-  if (!task.planStart || !task.planEnd) return '待安排日期'
-  if (!stage.planStart || !stage.planEnd) return '阶段尚未排期'
-  if (task.acceptanceTime && task.planEnd > task.acceptanceTime) return '晚于计划验收时间'
-  return task.planStart < stage.planStart || task.planEnd > stage.planEnd || task.planEnd < task.planStart ? '超出阶段计划或日期逆序' : '在阶段范围内'
+const durationChanged = async () => {
+  durationPlan.value = await DurationApi.getByProjectId(props.project.id!)
+  emit('changed')
+  if (!dirty.value) await load(selectedId.value)
 }
-const durationChanged = async () => { durationPlan.value = await DurationApi.getByProjectId(props.project.id!); emit('changed'); if (!dirty.value) await load(selectedId.value) }
-const closeDuration = (done: () => void) => { if (durationRef.value?.isDirty()) { message.warning('请先保存或关闭工期编辑窗口'); return } done() }
-watch(() => props.project.id, () => { batch.value = undefined; batches.value = []; void load() }, { immediate: true })
-const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty.value || acting.value) { event.preventDefault(); event.returnValue = '' } }
+const closeDuration = (done: () => void) => {
+  if (durationRef.value?.isDirty()) {
+    message.warning('请先保存或关闭工期编辑窗口')
+    return
+  }
+  done()
+}
+watch(
+  () => props.project.id,
+  () => {
+    batch.value = undefined
+    batches.value = []
+    saved.value = ''
+    selectedId.value = undefined
+    submitVisible.value = false
+    comparisonVisible.value = false
+    durationVisible.value = false
+    approvers.value = []
+    approverId.value = undefined
+    durationPlan.value = null
+    overdue.value = []
+    void load()
+  },
+  { immediate: true }
+)
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  if (dirty.value || acting.value) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+}
 window.addEventListener('beforeunload', beforeUnload)
-onBeforeUnmount(() => { ++sequence; window.removeEventListener('beforeunload', beforeUnload) })
+onBeforeUnmount(() => {
+  ++sequence
+  window.removeEventListener('beforeunload', beforeUnload)
+})
 onBeforeRouteLeave(guard)
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || guard())
-defineExpose({ requestLeave: guard, isDirty: () => dirty.value || acting.value || !!durationRef.value?.isDirty() })
+defineExpose({
+  requestLeave: guard,
+  isDirty: () => dirty.value || acting.value || !!durationRef.value?.isDirty()
+})
 </script>
 
 <style scoped lang="scss">
-.schedule-heading, .schedule-toolbar, .schedule-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.schedule-heading { justify-content: space-between; margin-bottom: 24px; }
-.schedule-heading h3 { margin: 0 0 8px; font-size: 16px; }
-.schedule-heading p, .baseline-caption, .stage-code, .stage-tasks small { color: var(--el-text-color-secondary); }
-.schedule-heading p { margin: 0; line-height: 1.6; }
-.schedule-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 20px; padding: 18px 0; margin: 0 0 20px; border-top: 1px solid var(--el-border-color-lighter); border-bottom: 1px solid var(--el-border-color-lighter); }
-.schedule-facts dt { color: var(--el-text-color-secondary); font-size: 13px; }
-.schedule-facts dd { margin: 8px 0 0; font-size: 15px; font-weight: 600; }
-.schedule-toolbar { margin-bottom: 16px; }
-.schedule-toolbar :deep(.el-select) { width: 260px; }
-.schedule-notice { margin-bottom: 16px; }
-:deep(.schedule-date) { width: 145px !important; }
-.stage-tasks { padding: 16px 24px; background: var(--el-fill-color-lighter); }
-.stage-tasks small { display: block; margin-top: 12px; }
-.stage-code { margin-top: 5px; font-size: 12px; }
-.adjustment-form { margin-top: 24px; }
-.dirty-label { color: var(--el-color-warning); }
-@media (width <= 767px) { .stage-tasks { padding: 12px; } .schedule-actions { gap: 8px; } }
+.schedule-workspace {
+  font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+
+.schedule-heading,
+.schedule-toolbar,
+.schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.schedule-heading {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.schedule-heading h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.schedule-heading p {
+  color: var(--el-text-color-secondary);
+}
+
+.schedule-heading p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.schedule-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 20px;
+  padding: 18px 0;
+  margin: 0 0 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.schedule-facts dt {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.schedule-facts dd {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.schedule-facts small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.schedule-toolbar {
+  margin-bottom: 16px;
+}
+
+.schedule-toolbar :deep(.el-select) {
+  width: 260px;
+}
+
+.schedule-notice {
+  margin-bottom: 16px;
+}
+
+.plan-caption {
+  display: flex;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.plan-caption strong {
+  margin-left: 8px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.planning-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.planning-progress :deep(.el-progress) {
+  width: 160px;
+}
+
+.calculation-details {
+  margin: 16px 0;
+}
+
+.calculation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.calculation-grid dt {
+  color: var(--el-text-color-secondary);
+}
+
+.calculation-grid dd {
+  margin: 6px 0 0;
+}
+
+.calculation-allocations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  color: var(--el-text-color-secondary);
+}
+
+.calculation-allocations strong {
+  margin-left: 8px;
+}
+
+.adjustment-form {
+  margin-top: 24px;
+}
+
+.plan-footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.footer-note {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  flex: 1;
+}
+
+.dirty-label {
+  color: var(--el-color-warning);
+}
+
+@media (width <= 767px) {
+  .schedule-actions {
+    gap: 8px;
+  }
+
+  .footer-note {
+    flex-basis: 100%;
+  }
+
+  .schedule-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>

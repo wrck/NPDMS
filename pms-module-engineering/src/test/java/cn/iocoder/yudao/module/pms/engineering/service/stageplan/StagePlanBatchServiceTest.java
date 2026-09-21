@@ -209,6 +209,11 @@ class StagePlanBatchServiceTest {
         assertEquals(LocalDate.of(2026, 1, 2), updates.get(0).getPlanEnd());
         assertEquals(LocalDate.of(2026, 1, 3), updates.get(1).getPlanStart());
         assertEquals(LocalDate.of(2026, 1, 11), updates.get(1).getPlanEnd());
+        // Suggested dates describe this calculation, not a prior applied project schedule.
+        assertEquals(LocalDate.of(2026, 1, 1), updates.get(0).getSuggestedStart());
+        assertEquals(LocalDate.of(2026, 1, 2), updates.get(0).getSuggestedEnd());
+        assertEquals(LocalDate.of(2026, 1, 3), updates.get(1).getSuggestedStart());
+        assertEquals(LocalDate.of(2026, 1, 11), updates.get(1).getSuggestedEnd());
     }
 
     @Test
@@ -221,6 +226,8 @@ class StagePlanBatchServiceTest {
     private void frozenInputs() {
         batch.setTenantId(1L); batch.setDurationRevisionId(11L); batch.setInputSnapshot("{}");
         ConstructionPlanDO plan = new ConstructionPlanDO(); plan.setId(10L); plan.setCurrentDurationRevisionId(11L);
+        plan.setVersion(4); plan.setPendingChangeId(12L);
+        when(constructionPlanMapper.updateVersionIfMatch(any())).thenReturn(1);
         when(constructionPlanMapper.selectByProjectId(any(), any())).thenReturn(plan);
         ConstructionPlanRevisionDO baseline = new ConstructionPlanRevisionDO(); baseline.setId(11L);
         baseline.setStartDate(LocalDate.of(2026, 1, 1)); baseline.setEndDate(LocalDate.of(2026, 1, 11));
@@ -292,12 +299,43 @@ class StagePlanBatchServiceTest {
     }
 
     @Test
+    void shiftedAcceptanceWindowDoesNotMutateCachedDurationDuringSubmission() {
+        frozenInputs();
+        properties.setProcessDefinitionKey("pms_stage_plan_approve");
+        LocalDate durationStart = LocalDate.of(2026, 1, 1);
+        LocalDate durationEnd = LocalDate.of(2026, 1, 11);
+        ConstructionPlanRevisionDO cachedRevision = revisionMapper.selectById(
+                new cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery(1L, 10L, 11L));
+        batch.setCalculatedStart(LocalDate.of(2026, 1, 11));
+        batch.setCalculatedEnd(LocalDate.of(2026, 1, 21));
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 11), LocalDate.of(2026, 1, 15)),
+                item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 16), LocalDate.of(2026, 1, 21))));
+        when(stagePlanApi.calculateSchedule(any(), any(), any(), any())).thenAnswer(invocation ->
+                new ProjectStagePlanApi.ScheduleCalculation(1L, batch.getCalculatedStart(), batch.getCalculatedEnd(), List.of(),
+                        durationStart.equals(invocation.getArgument(2)) && durationEnd.equals(invocation.getArgument(3))
+                                ? "{}" : "changed-duration"));
+        when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class))).thenReturn("PI-1");
+
+        assertDoesNotThrow(() -> service.submit(100L, 99L));
+        assertEquals(durationStart, cachedRevision.getStartDate());
+        assertEquals(durationEnd, cachedRevision.getEndDate());
+        verify(stagePlanApi).calculateSchedule(1L, 7L, durationStart, durationEnd);
+    }
+
+    @Test
     void bpmApproveAppliesPlanDatesAndEffectivates() {
         frozenInputs();
         batch.setStatus(StagePlanBatchDO.STATUS_PENDING_APPROVAL);
         when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
 
         service.handleBpmResult("PI-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), null);
+        var planCaptor = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanVersionUpdate.class);
+        verify(constructionPlanMapper).updateVersionIfMatch(planCaptor.capture());
+        assertEquals(ConstructionPlanDO.RECALCULATED, planCaptor.getValue().planRecalculationStatusCode());
+        assertEquals(11L, planCaptor.getValue().planRecalculationSourceRevisionId());
+        assertEquals(12L, planCaptor.getValue().pendingChangeId());
+        assertEquals(4, planCaptor.getValue().expectedVersion());
 
         ArgumentCaptor<StagePlanBatchDO> batchCaptor = ArgumentCaptor.forClass(StagePlanBatchDO.class);
         verify(batchMapper).updateById(batchCaptor.capture());
@@ -311,6 +349,17 @@ class StagePlanBatchServiceTest {
         assertEquals(2, datesCaptor.getValue().size());
         assertEquals(LocalDate.of(2026, 1, 1), datesCaptor.getValue().get(0).planStartTime());
         assertEquals(LocalDate.of(2026, 1, 10), datesCaptor.getValue().get(1).planEndTime());
+    }
+
+    @Test
+    void concurrentDurationChangePreventsPlanFromBecomingEffective() {
+        frozenInputs();
+        batch.setStatus(StagePlanBatchDO.STATUS_PENDING_APPROVAL);
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
+        when(constructionPlanMapper.updateVersionIfMatch(any())).thenReturn(0);
+        assertThrows(ServiceException.class, () -> service.handleBpmResult(
+                "PI-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), null));
+        verify(batchMapper, never()).updateById(any(StagePlanBatchDO.class));
     }
 
     @Test

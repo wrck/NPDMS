@@ -132,9 +132,10 @@
         >
       </div>
     </template>
-    <el-empty v-else description="尚未录入项目工期">
+    <el-empty v-else :description="initialEntryHint || '尚未录入项目工期'">
       <el-button
         v-if="canWrite"
+        :disabled="!!initialEntryHint"
         type="primary"
         v-hasPermi="['pms:construction-plan:duration-manage']"
         @click="formRef?.openInitial()"
@@ -170,11 +171,13 @@ import type {
 } from '@/api/pms/engineering/construction-plan'
 import ProjectDurationFormDrawer from './ProjectDurationFormDrawer.vue'
 import ProjectDurationHistoryDrawer from './ProjectDurationHistoryDrawer.vue'
+import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
 const validProject = computed(() => Number.isSafeInteger(props.project.id) && props.project.id! > 0)
 const canWrite = computed(() => validProject.value && !props.readonly)
+const initialEntryHint = computed(() => initialDurationHint(props.project))
 const drawerDirty = ref(false)
 const errorText = ref('')
 let loadSequence = 0

@@ -138,9 +138,9 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             item.setPhaseCode(stage.code());
             item.setPhaseName(stage.name());
             item.setSort(pathOrder++);
-            item.setSuggestedStart(stage.suggestedStartTime());
-            item.setSuggestedEnd(stage.suggestedEndTime());
             var dates = calculated.get(stage.stageId());
+            item.setSuggestedStart(dates.planStartTime());
+            item.setSuggestedEnd(dates.planEndTime());
             item.setPlanStart(dates.planStartTime()); item.setPlanEnd(dates.planEndTime());
             itemMapper.insert(item);
         }
@@ -173,7 +173,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                 var item = new StagePlanItemDO();
                 item.setBatchId(batchId); item.setPhaseId(fact.stageId()); item.setPhaseCode(fact.code()); item.setPhaseName(fact.name());
                 item.setPlanStart(date.planStartTime()); item.setPlanEnd(date.planEndTime()); item.setSort(replacements.size());
-                item.setSuggestedStart(fact.suggestedStartTime()); item.setSuggestedEnd(fact.suggestedEndTime());
+                item.setSuggestedStart(date.planStartTime()); item.setSuggestedEnd(date.planEndTime());
                 replacements.add(item);
             }
             // Only an editable draft is rebuilt. Approved batches and their snapshots are never changed.
@@ -185,6 +185,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         for (int i = 0; i < calculation.stages().size(); i++) pathOrder.put(calculation.stages().get(i).stageId(), i);
         for (var item : items) {
             var dates = byStage.get(item.getPhaseId()); item.setPlanStart(dates.planStartTime()); item.setPlanEnd(dates.planEndTime());
+            item.setSuggestedStart(dates.planStartTime()); item.setSuggestedEnd(dates.planEndTime());
             item.setSort(pathOrder.get(item.getPhaseId()));
         }
         batch.setDurationRevisionId(baseline.getId());
@@ -193,6 +194,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             update.setId(item.getId());
             update.setPlanStart(item.getPlanStart());
             update.setPlanEnd(item.getPlanEnd());
+            update.setSuggestedStart(item.getSuggestedStart());
+            update.setSuggestedEnd(item.getSuggestedEnd());
             update.setSort(item.getSort());
             itemMapper.updateById(update);
         }
@@ -250,10 +253,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             itemMapper.updateById(update);
         }
         ConstructionPlanRevisionDO baseline = loadBatchBaseline(batch);
-        if (baseline != null && batch.getCalculatedStart() != null) {
-            baseline.setStartDate(batch.getCalculatedStart()); baseline.setEndDate(batch.getCalculatedEnd());
-        }
-        validateNoOverlap(items, baseline);
+        validateNoOverlap(items, baseline, batch);
         validateAcceptanceConstraints(batch, items);
         var taskPlans = updateReqVO.getTasks() == null ? readTasks(batch) : updateReqVO.getTasks();
         validateTaskPlans(readTasks(batch), taskPlans, items, false);
@@ -282,10 +282,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             throw exception(STAGE_PLAN_ARGUMENT_INVALID, "审批人必须是本项目的有效服务经理");
         List<StagePlanItemDO> items = itemMapper.selectListByBatchId(batchId);
         ConstructionPlanRevisionDO baseline = loadBatchBaseline(batch);
-        if (baseline != null && batch.getCalculatedStart() != null) {
-            baseline.setStartDate(batch.getCalculatedStart()); baseline.setEndDate(batch.getCalculatedEnd());
-        }
-        validateNoOverlap(items, baseline);
+        validateNoOverlap(items, baseline, batch);
         validateAcceptanceConstraints(batch, items);
         validateTaskPlans(readTasks(batch), readTasks(batch), items, true);
         if (batch.getInputSnapshot() == null) throw exception(STAGE_PLAN_DATE_INVALID, "请先按冻结项目计划重新推算，再提交审核");
@@ -342,6 +339,18 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                             item.getPhaseId(), item.getPlanStart(), item.getPlanEnd()))
                     .toList());
             stagePlanApi.applyTaskPlanDates(tenantId, batch.getProjectId(), readTasks(batch));
+            // 工期与施工计划共同完成重算；保留并行工期变更，CAS 失败回滚整次生效。
+            ConstructionPlanDO plan = constructionPlanMapper.selectByProjectId(tenantId, batch.getProjectId());
+            if (plan == null || !Objects.equals(plan.getCurrentDurationRevisionId(), batch.getDurationRevisionId())) {
+                throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
+            }
+            var recalculated = new cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanVersionUpdate(
+                    tenantId, plan.getId(), plan.getVersion(), plan.getCurrentDurationRevisionId(),
+                    plan.getPendingChangeId(), ConstructionPlanDO.RECALCULATED, batch.getDurationRevisionId(),
+                    Objects.toString(SecurityFrameworkUtils.getLoginUserId(), batch.getUpdater()));
+            if (constructionPlanMapper.updateVersionIfMatch(recalculated) != 1) {
+                throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
+            }
             StagePlanBatchDO update = new StagePlanBatchDO();
             update.setId(batch.getId());
             update.setStatus(StagePlanBatchDO.STATUS_EFFECTIVE);
@@ -561,7 +570,13 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     /**
      * 阶段间不得重叠；有工期基线时计划必须落在基线窗口内。
      */
-    private void validateNoOverlap(List<StagePlanItemDO> items, ConstructionPlanRevisionDO baseline) {
+    private void validateNoOverlap(List<StagePlanItemDO> items, ConstructionPlanRevisionDO baseline, StagePlanBatchDO batch) {
+        // A direct-sign acceptance deadline may shift the calculated window. Do not mutate the
+        // duration revision: MyBatis can return that same instance during input verification.
+        LocalDate windowStart = batch.getCalculatedStart() != null ? batch.getCalculatedStart()
+                : baseline == null ? null : baseline.getStartDate();
+        LocalDate windowEnd = batch.getCalculatedEnd() != null ? batch.getCalculatedEnd()
+                : baseline == null ? null : baseline.getEndDate();
         if (items.isEmpty() || items.stream().anyMatch(item -> item.getPlanStart() == null || item.getPlanEnd() == null)) {
             throw exception(STAGE_PLAN_DATE_INVALID, "请填写全部阶段的计划起止日期");
         }
@@ -574,11 +589,11 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                 throw exception(STAGE_PLAN_DATE_INVALID,
                         item.getPhaseName() + " 计划结束时间早于计划开始时间");
             }
-            if (baseline != null && (item.getPlanStart().isBefore(baseline.getStartDate())
-                    || item.getPlanEnd().isAfter(baseline.getEndDate()))) {
+            if (windowStart != null && windowEnd != null && (item.getPlanStart().isBefore(windowStart)
+                    || item.getPlanEnd().isAfter(windowEnd))) {
                 throw exception(STAGE_PLAN_DATE_INVALID,
                         item.getPhaseName() + " 计划时间超出工期基线窗口（"
-                                + baseline.getStartDate() + " ~ " + baseline.getEndDate() + "）");
+                                + windowStart + " ~ " + windowEnd + "）");
             }
         }
         for (int i = 1; i < ordered.size(); i++) {

@@ -23,8 +23,8 @@ export interface StagePlanBatchVO {
   baselineEnd?: string
   remark?: string
   bpmProcessInstanceId?: string
-  submittedAt?: string
-  effectiveAt?: string
+  submittedAt?: string | number
+  effectiveAt?: string | number
   rejectReason?: string
   version?: number
   createTime?: string
