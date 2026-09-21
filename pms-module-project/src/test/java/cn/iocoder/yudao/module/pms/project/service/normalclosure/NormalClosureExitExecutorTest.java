@@ -125,6 +125,32 @@ class NormalClosureExitExecutorTest {
     }
 
     @Test
+    void preservesCompletedTerminalStageAndRoundHistoryDuringConfiguredClosure() {
+        stage.setStatus("DONE");
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round(31L, 21L, "DONE", 1, 2)));
+
+        executor.executeApprovedExit(command());
+
+        verifyNoInteractions(stages);
+        verify(executions, never()).finishIfActive(any());
+        verify(closureProjects).closeProjectIfMatch(any());
+        verify(closureProjects).insertExitRecord(any());
+    }
+
+    @Test
+    void rejectsCompletedStageWithActiveRoundWithoutChangingClosureState() {
+        stage.setStatus("DONE");
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round(31L, 21L, "ACTIVE", 1, 2)));
+
+        assertThrows(RuntimeException.class, () -> executor.executeApprovedExit(command()));
+
+        verifyNoInteractions(stages);
+        verify(executions, never()).finishIfActive(any());
+        verify(closureProjects, never()).closeProjectIfMatch(any());
+        verify(closureProjects, never()).insertExitRecord(any());
+    }
+
+    @Test
     void rejectsRoundVersionConflictAndTheMethodIsDeclaredToRollBackTheExistingTransaction() throws Exception {
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round(31L, 21L, "ACTIVE", 1, 1)));
         when(executions.finishIfActive(any())).thenReturn(0);

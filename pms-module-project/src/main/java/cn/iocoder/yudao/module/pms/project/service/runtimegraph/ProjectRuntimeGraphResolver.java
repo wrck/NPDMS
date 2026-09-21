@@ -108,8 +108,16 @@ public class ProjectRuntimeGraphResolver {
         ProjectStageInstanceDO current = stages.stream()
                 .filter(stage -> Objects.equals(stage.getCode(), project.getCurrentStage()))
                 .findFirst().orElseThrow(() -> exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CURRENT_STAGE_MISSING"));
-        if (!"ACTIVE".equals(project.getLifecycleStatus()) || !"ACTIVE".equals(current.getStatus())
-                || stages.stream().filter(stage -> "ACTIVE".equals(stage.getStatus())).count() != 1
+        // A configured closure is evaluated after the terminal stage has already completed. In that
+        // path there is no active graph node left; ordinary stage advancement still requires exactly
+        // one ACTIVE node. SKIPPED branches are terminal and remain valid in a completed graph.
+        boolean configuredClosure = closureCheck && contracts.stream().allMatch(contract -> !blank(contract.getSourceNodeKey()));
+        long activeStages = stages.stream().filter(stage -> "ACTIVE".equals(stage.getStatus())).count();
+        boolean completedConfiguredGraph = configuredClosure && Boolean.TRUE.equals(current.getTerminalNode())
+                && "DONE".equals(current.getStatus()) && activeStages == 0
+                && stages.stream().allMatch(stage -> Set.of("DONE", "SKIPPED").contains(stage.getStatus()));
+        if (!"ACTIVE".equals(project.getLifecycleStatus())
+                || (!completedConfiguredGraph && (!"ACTIVE".equals(current.getStatus()) || activeStages != 1))
                 || stages.stream().anyMatch(stage -> !Objects.equals(stage.getTenantId(), project.getTenantId())
                 || !Objects.equals(stage.getProjectId(), project.getId())
                 || !Objects.equals(stage.getGraphVersion(), current.getGraphVersion())))
@@ -151,7 +159,6 @@ public class ProjectRuntimeGraphResolver {
         }
         // Versioned templates use configured node rules and may start at any named stage.
         // Their closure marker must not be rejected by the legacy S0 transition graph contract.
-        boolean configuredClosure = closureCheck && contracts.stream().allMatch(contract -> !blank(contract.getSourceNodeKey()));
         if (configuredClosure && project.getActivePlanVersionId() == null)
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_PLAN_UNAVAILABLE");
         StageTransitionTargetResolver.Result transition = configuredClosure

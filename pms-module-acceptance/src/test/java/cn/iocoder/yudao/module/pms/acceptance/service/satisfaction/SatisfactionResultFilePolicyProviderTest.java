@@ -60,7 +60,7 @@ class SatisfactionResultFilePolicyProviderTest {
     @Test
     void allowsResultDocumentDownloadForCurrentProjectViewScope() {
         SatisfactionResultDO result = new SatisfactionResultDO();
-        result.setId(40L); result.setCollectionTaskId(10L);
+        result.setId(40L); result.setTenantId(7L); result.setCollectionTaskId(10L);
         when(resultMapper.selectById(40L)).thenReturn(result);
         when(taskMapper.selectById(10L)).thenReturn(task());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
@@ -72,6 +72,42 @@ class SatisfactionResultFilePolicyProviderTest {
 
         assertTrue(fact.allowed());
         assertEquals(9L, fact.scopeVersion());
+    }
+
+    @Test
+    void allowsResultDocumentReadForArtifactDetails() {
+        SatisfactionResultDO result = new SatisfactionResultDO();
+        result.setId(40L); result.setTenantId(7L); result.setCollectionTaskId(10L);
+        when(resultMapper.selectById(40L)).thenReturn(result);
+        when(taskMapper.selectById(10L)).thenReturn(task());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(20L, 9L, Set.of(20L), Set.of()));
+
+        var fact = provider.inspect(new FileBusinessObjectPolicyQuery(7L, 30L, "ACC",
+                "SATISFACTION_RESULT", "40", "SATISFACTION_RESULT_DOCUMENT",
+                "satisfaction-result-40", FileActionCodes.READ));
+
+        assertTrue(fact.allowed());
+        assertEquals(9L, fact.scopeVersion());
+    }
+
+    @Test
+    void rejectsResultDocumentWhenTenantOrProjectScopeDoesNotMatch() {
+        SatisfactionResultDO result = new SatisfactionResultDO();
+        result.setId(40L); result.setTenantId(8L); result.setCollectionTaskId(10L);
+        when(resultMapper.selectById(40L)).thenReturn(result);
+        when(taskMapper.selectById(10L)).thenReturn(task());
+        assertFalse(provider.inspect(new FileBusinessObjectPolicyQuery(7L, 30L, "ACC",
+                "SATISFACTION_RESULT", "40", "SATISFACTION_RESULT_DOCUMENT",
+                "satisfaction-result-40", FileActionCodes.READ)).allowed());
+        verifyNoInteractions(projectScopeApi);
+
+        result.setTenantId(7L);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(20L, 9L, Set.of(21L), Set.of()));
+        assertFalse(provider.inspect(new FileBusinessObjectPolicyQuery(7L, 30L, "ACC",
+                "SATISFACTION_RESULT", "40", "SATISFACTION_RESULT_DOCUMENT",
+                "satisfaction-result-40", FileActionCodes.READ)).allowed());
     }
 
     private void arrangeOwnerChain() {
@@ -86,7 +122,7 @@ class SatisfactionResultFilePolicyProviderTest {
 
     private SatisfactionCollectionTaskDO task() {
         SatisfactionCollectionTaskDO task = new SatisfactionCollectionTaskDO();
-        task.setId(10L); task.setProjectId(20L); task.setQuestionnaireId(11L); task.setAssignedToUserId(30L);
+        task.setId(10L); task.setTenantId(7L); task.setProjectId(20L); task.setQuestionnaireId(11L); task.setAssignedToUserId(30L);
         task.setTaskStatus("PENDING_DECISION"); task.setVersion(4);
         return task;
     }

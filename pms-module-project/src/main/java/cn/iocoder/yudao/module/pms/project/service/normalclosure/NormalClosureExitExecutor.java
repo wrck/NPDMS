@@ -55,6 +55,7 @@ public class NormalClosureExitExecutor implements ProjectClosureExitApi {
                         project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo()));
         if (templateRevisionId == null) throw closureFailure("CLOSURE_TEMPLATE_REVISION_UNAVAILABLE");
         var stage = evaluation.graph().current();
+        boolean completedStage = "DONE".equals(stage.getStatus());
         var activePlanVersionId = project.getActivePlanVersionId();
         var round = activePlanVersionId == null ? null : executions.selectCurrentForUpdate(
                         new ProjectPlanScopeQuery(command.tenantId(), command.projectId())).stream()
@@ -64,15 +65,15 @@ public class NormalClosureExitExecutor implements ProjectClosureExitApi {
                         && "STAGE".equals(candidate.getNodeKind())
                         && Objects.equals(candidate.getNodeInstanceId(), stage.getId())
                         && Integer.valueOf(1).equals(candidate.getCurrentMarker())
-                        && "ACTIVE".equals(candidate.getStatus()))
+                        && (completedStage ? "DONE".equals(candidate.getStatus()) : "ACTIVE".equals(candidate.getStatus())))
                 .toList();
         if (round != null && round.size() != 1)
             throw closureFailure("CLOSURE_STAGE_EXECUTION_INVALID");
-        if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(command.tenantId(), command.projectId(), stage.getId(),
+        if (!completedStage && stages.updateStatusIfMatch(new ProjectStageStatusUpdate(command.tenantId(), command.projectId(), stage.getId(),
                 stage.getVersion(), "ACTIVE", "DONE", command.actorId().toString(), LocalDateTime.now())) != 1)
             throw closureFailure("CLOSURE_STAGE_VERSION_CONFLICT");
         LocalDateTime now = LocalDateTime.now();
-        if (round != null) {
+        if (round != null && "ACTIVE".equals(round.getFirst().getStatus())) {
             var currentRound = round.getFirst();
             if (executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(command.tenantId(), command.projectId(),
                     currentRound.getId(), currentRound.getVersion(), now, closureResultSnapshot(command, evaluation))) != 1)

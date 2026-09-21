@@ -89,6 +89,35 @@ class ProjectRuntimeGraphResolverTest {
         stages.getLast().setTenantId(8L);
         assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project));
     }
+    @Test void configuredClosureAcceptsCompletedTerminalGraphAndSkippedBranches() {
+        configuredStages();
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("SKIPPED"); stages.getLast().setStatus("DONE");
+        project.setCurrentStage("S6");
+        when(mapper.selectStages(any())).thenReturn(stages);
+
+        assertTrue(resolver.resolveForClosure(project).terminal());
+        assertTrue(resolver.inspectForClosure(project).terminal());
+    }
+    @Test void configuredClosureRejectsCompletedGraphWithActiveOrNonTerminalStage() {
+        configuredStages();
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("PENDING"); stages.getLast().setStatus("DONE");
+        project.setCurrentStage("S6");
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+
+        stages.get(1).setStatus("ACTIVE");
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+
+        stages.get(1).setStatus("DONE");
+        stages.getLast().setTerminalNode(false);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+    }
+    @Test void completedGraphIsStillRejectedByOrdinaryAndLegacyClosureResolution() {
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("DONE");
+        project.setCurrentStage("S6");
+
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolve(project)).getMessage().contains("GRAPH_NODE_STALE"));
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+    }
     private void configuredStages() {
         stages.getFirst().setCode("S1"); project.setCurrentStage("S1"); project.setActivePlanVersionId(50L);
         when(mapper.selectContracts(any())).thenReturn(stages.stream().map(stage -> {
