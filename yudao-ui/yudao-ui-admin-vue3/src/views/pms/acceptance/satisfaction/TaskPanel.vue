@@ -242,7 +242,7 @@ const openCreate = async () => {
       item.revisions.filter(revision => revision.status === 'PUBLISHED' && String(revision.id) === String(item.currentRevisionId))
         .map(revision => ({ templateId: item.id, revisionId: revision.id, label: `${item.name} · V${revision.revisionNo} · 达标分 ${revision.threshold}` })))
     selectedRevisionId.value = undefined
-    createKey.value = crypto.randomUUID()
+    createKey.value = generateUUID()
     createVisible.value = true
   } finally { creating.value = false }
 }

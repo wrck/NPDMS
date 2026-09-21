@@ -66,7 +66,7 @@ describe('F-PROJ-007 project task workbench', () => {
   })
 
   it('uses only server allowed actions for workspace and task operations', () => {
-    expect(panel).toContain("workspace?.allowedActions.includes('CREATE')")
+    expect(panel).toContain("workspace?.allowedActions.includes('MANAGE_PLAN')")
     expect(stateActions).toContain('props.workbench.allowedActions?.includes(action)')
     expect(drawer).toContain('<ProjectFlowPanel')
     expect(drawer).not.toMatch(/hasRole|roleCode|v-hasPermi/)
@@ -81,12 +81,13 @@ describe('F-PROJ-007 project task workbench', () => {
     expect(api).toContain("'If-Match': String(version)")
   })
 
-  it('renders the template-frozen task deliverables as a read-only checklist without upload entry', () => {
+  it('opens the authorized submission dialog for template-frozen task deliverables', () => {
     expect(api).toContain('TaskWorkbenchDeliverable')
     expect(flow).toContain('v-if="workbench?.deliverables?.length"')
     expect(flow).toContain('DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS')
     expect(flow).toContain("item.required ? '必选' : '可选'")
-    expect(flow).toContain('满足状态由验收链维护')
+    expect(flow).toContain("deliverableRef?.open(item.id)")
+    expect(flow).toContain('<ProjectDeliverableDialog ref="deliverableRef" :project-id="projectId"')
     expect(flow).not.toMatch(/deliverables[\s\S]*?(type="file"|el-upload|上传交付件)/i)
   })
 

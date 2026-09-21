@@ -39,7 +39,7 @@ public class FileStorageReceiptAccessService {
     private final WebProperties webProperties;
 
     public String issue(FileDO file, int expirationSeconds) {
-        if (file == null || file.getId() == null || file.getConfigId() == null || file.getPath() == null
+        if (file == null || file.getId() == null || file.getConfigId() == null || !FileReceiptDownloadService.isReceiptPath(file.getPath())
                 || file.getName() == null || file.getType() == null || file.getSize() == null || expirationSeconds <= 0) {
             throw new IllegalArgumentException("FILE_STORAGE_RECEIPT_DB_ACCESS_INVALID");
         }
@@ -66,7 +66,7 @@ public class FileStorageReceiptAccessService {
         }
         if (ticket == null || ticket.expiresAt() == null || !ticket.expiresAt().isAfter(LocalDateTime.now())) return null;
         FileDO current = fileMapper.selectById(ticket.infraFileId());
-        if (!matches(current, ticket)) return null;
+        if (!matches(current, ticket) || !FileReceiptDownloadService.isReceiptPath(ticket.path())) return null;
         byte[] content = fileConfigService.getFileClient(ticket.configId()).getContent(ticket.path());
         if (content == null || content.length != ticket.sizeBytes()) return null;
         return new ReceiptContent(ticket.name(), ticket.mediaType(), content);

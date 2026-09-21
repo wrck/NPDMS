@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.infra.controller.admin.file;
 import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
 import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService;
+import cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.PermitAll;
@@ -34,11 +35,12 @@ public class FileStorageReceiptContentController {
             "application/pdf", "image/gif", "image/jpeg", "image/png", "image/webp", "text/plain");
 
     private final FileStorageReceiptAccessService accessService;
+    private final FileReceiptDownloadService legacyDownloads;
 
     @GetMapping("/content")
     @PermitAll
     @TenantIgnore
-    @ApiAccessLog(enable = false)
+    @ApiAccessLog(enable = false, requestEnable = false, responseEnable = false)
     @Operation(summary = "读取受控文件存储回执")
     public void content(@RequestParam(value = "ticket", required = false) String ticket,
                         HttpServletResponse response) {
@@ -49,6 +51,12 @@ public class FileStorageReceiptContentController {
         response.setHeader("Referrer-Policy", "no-referrer");
         try {
             var receipt = accessService.read(ticket);
+            if (receipt == null) {
+                // Preserve unexpired capabilities issued before consolidation of the download route.
+                var legacy = legacyDownloads.read(ticket);
+                if (legacy != null) receipt = new FileStorageReceiptAccessService.ReceiptContent(
+                        legacy.name(), MediaType.APPLICATION_OCTET_STREAM_VALUE, legacy.content());
+            }
             if (receipt == null) {
                 response.setStatus(HttpStatus.NOT_FOUND.value());
                 return;

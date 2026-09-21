@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.infra.controller.admin.file;
 import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
 import cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService;
 import org.junit.jupiter.api.Test;
+import cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.lang.reflect.Method;
@@ -15,7 +16,7 @@ class FileStorageReceiptContentControllerTest {
     @Test
     void hidesUnknownTicketAndWritesSafeInlineContentWithoutCaching() throws Exception {
         var service = mock(FileStorageReceiptAccessService.class);
-        var controller = new FileStorageReceiptContentController(service);
+        var controller = new FileStorageReceiptContentController(service, mock(FileReceiptDownloadService.class));
         var missing = new MockHttpServletResponse();
         when(service.read("unknown")).thenReturn(null);
 
@@ -40,9 +41,21 @@ class FileStorageReceiptContentControllerTest {
     }
 
     @Test
+    void preservesUnexpiredLegacyDownloadTickets() throws Exception {
+        var legacy = mock(FileReceiptDownloadService.class);
+        var controller = new FileStorageReceiptContentController(mock(FileStorageReceiptAccessService.class), legacy);
+        when(legacy.read("existing-ticket")).thenReturn(new FileReceiptDownloadService.Download("evidence.pdf", new byte[] {1, 2}));
+        var response = new MockHttpServletResponse();
+        controller.content("existing-ticket", response);
+        assertEquals(200, response.getStatus());
+        assertArrayEquals(new byte[] {1, 2}, response.getContentAsByteArray());
+        assertTrue(response.getHeader("Content-Disposition").startsWith("attachment;"));
+    }
+
+    @Test
     void mapsStorageFailureToServiceUnavailableWithoutRethrowingTheTicket() throws Exception {
         var service = mock(FileStorageReceiptAccessService.class);
-        var controller = new FileStorageReceiptContentController(service);
+        var controller = new FileStorageReceiptContentController(service, mock(FileReceiptDownloadService.class));
         var response = new MockHttpServletResponse();
         when(service.read("opaque")).thenThrow(new IllegalStateException("storage failed"));
 

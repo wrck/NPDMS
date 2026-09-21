@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.infra.service.file;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.web.config.WebProperties;
 import cn.iocoder.yudao.module.infra.controller.admin.file.FileController;
-import cn.iocoder.yudao.module.infra.controller.admin.file.FileReceiptDownloadController;
+import cn.iocoder.yudao.module.infra.controller.admin.file.FileStorageReceiptContentController;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.FileMapper;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
@@ -48,9 +48,9 @@ class FileReceiptDownloadServiceTest {
         verify(values).set(anyString(),anyString(),eq(Duration.ofSeconds(60)));
         assertArrayEquals(new byte[]{1,2,3},service.read(token).content());
         var response=new MockHttpServletResponse();
-        new FileReceiptDownloadController(service).download(token,response);
+        new FileStorageReceiptContentController(mock(FileStorageReceiptAccessService.class), service).content(token,response);
         assertEquals(200,response.getStatus());
-        assertEquals("private, no-store",response.getHeader("Cache-Control"));
+        assertEquals("no-store",response.getHeader("Cache-Control"));
         assertTrue(response.getHeader("Content-Disposition").startsWith("attachment;"));
         assertArrayEquals(new byte[]{1,2,3},response.getContentAsByteArray());
     }
@@ -59,7 +59,7 @@ class FileReceiptDownloadServiceTest {
         String token=token();String key=FileReceiptDownloadService.key(token);
         cache.put(key,JsonUtils.toJsonString(new FileReceiptDownloadService.Binding(7L,36L,file.getPath(),0)));
         assertNull(service.read(token));cache.clear();assertNull(service.read(token));
-        var response=new MockHttpServletResponse();new FileReceiptDownloadController(service).download(token,response);
+        var response=new MockHttpServletResponse();new FileStorageReceiptContentController(mock(FileStorageReceiptAccessService.class), service).content(token,response);
         assertEquals(404,response.getStatus());verify(client,never()).getContent(anyString());
     }
     @Test void changedOrDeletedFileCannotReuseAnIssuedTicket() throws Exception {

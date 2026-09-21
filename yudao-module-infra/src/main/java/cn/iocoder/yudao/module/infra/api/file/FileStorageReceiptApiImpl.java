@@ -10,7 +10,7 @@ import cn.iocoder.yudao.module.infra.dal.mysql.file.query.FileStorageOperationLo
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 import cn.iocoder.yudao.module.infra.service.file.FileConfigService;
-import cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService;
+import cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
@@ -48,7 +48,7 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
     private FileMapper fileMapper;
 
     @Resource
-    private FileReceiptDownloadService receiptDownloads;
+    private FileStorageReceiptAccessService receiptDownloads;
 
     @Override
     @SneakyThrows

@@ -59,6 +59,7 @@
   </el-dialog>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, ref } from 'vue'
 import * as Api from '@/api/pms/acceptance/project-deliverable'
 import { PmsFileUploader, PmsFileReferenceList } from '@/components/PmsFileArtifact'
@@ -81,7 +82,7 @@ let attempt: { signature: string; key: string } | undefined
 const fileKey = (referenceKey: string) => ({ ownerContext: 'ACC', objectType: 'PROJECT_DELIVERABLE', objectId: String(detail.value?.id ?? ''), purposeCode: 'PROJECT_DELIVERABLE_DOCUMENT', referenceKey })
 const clearAttempt = () => { attempt = undefined }
 const typeLabel = (type: Api.ResultType) => ({ SURVEY_CONFIRMED: '工勘确认成果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析成果', REPORT_EFFECTIVE: '生效验收报告' }[type.resultType] || type.resultType)
-const uploaded = (selection: Api.FileSelection) => { selectedFiles.value.push(selection); slotKey.value = crypto.randomUUID(); clearAttempt() }
+const uploaded = (selection: Api.FileSelection) => { selectedFiles.value.push(selection); slotKey.value = generateUUID(); clearAttempt() }
 const removeSelection = (key: string) => { selectedFiles.value = selectedFiles.value.filter(file => file.referenceKey !== key); clearAttempt() }
 const canSubmit = computed(() => sourceType.value === 'UPLOAD' ? selectedFiles.value.length > 0 : resultIndex.value !== undefined)
 const reasonLabel = (reason: string) => ({ DELIVERABLE_RULE_NOT_SATISFIED: '材料已保存，模板配置的业务条件尚未满足', DELIVERABLE_RULE_SATISFIED: '文件或业务成果有效，模板条件已满足', DELIVERABLE_SOURCE_MISSING: '尚未提交材料', FILE_EVIDENCE_UNAVAILABLE: '提交的文件已失效或引用已变化', DELIVERABLE_BUSINESS_RESULT_INVALID: '关联成果已失效或被替换', DELIVERABLE_QUANTITY_NOT_MET: '有效材料数量未达到模板要求', DELIVERABLE_SOURCE_REQUIRES_SUBMISSION: '请按模板规则关联业务成果或提交文件' }[reason] || `暂未满足：${reason}`)
@@ -90,7 +91,7 @@ const reload = async () => { if (detail.value) detail.value = await Api.getDetai
 const open = async (id: number) => {
   visible.value = true; loading.value = true; error.value = ''; outcome.value = ''; detail.value = undefined
   selectedFiles.value = []; candidates.value = []; resultIndex.value = undefined; typeIndex.value = undefined; clearAttempt()
-  slotKey.value = crypto.randomUUID()
+  slotKey.value = generateUUID()
   try {
     detail.value = await Api.getDetail(props.projectId, id)
     sourceType.value = detail.value.configuration.allowedSources.includes('UPLOAD') ? 'UPLOAD' : 'BUSINESS_RESULT'
@@ -116,7 +117,7 @@ const submit = async () => {
       files: sourceType.value === 'UPLOAD' ? selectedFiles.value : [],
       ...(sourceType.value === 'BUSINESS_RESULT' && selected ? { businessResult: { tenantId: selected.tenantId, projectId: selected.projectId, type: selected.type, objectId: selected.objectId, resultId: selected.resultId } } : {}) }
     const signature = JSON.stringify(data)
-    if (!attempt || attempt.signature !== signature) attempt = { signature, key: crypto.randomUUID() }
+    if (!attempt || attempt.signature !== signature) attempt = { signature, key: generateUUID() }
     const result = await Api.submit(props.projectId, detail.value.id, data, attempt.key)
     showOutcome(result.evaluation); selectedFiles.value = []; resultIndex.value = undefined; clearAttempt()
     await reload(); emit('changed')

@@ -30,6 +30,7 @@
   <AcceptanceReportDetail ref="detailRef" :readonly="readonly || contextBlocked" :allowed-actions="allowedActions" @changed="changed" @dirty-change="emit('dirty-change', $event)" />
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
 import * as ProjectApi from '@/api/pms/project/projects'
 import { checkPermi } from '@/utils/permission'
@@ -91,7 +92,7 @@ const createActivity = async (acceptanceType: ReportApi.AcceptanceType) => {
     if (!pendingCreate || !sameBusinessViewId(pendingCreate.request.projectId, project) || pendingCreate.request.acceptanceType !== acceptanceType) {
       const context = await ReportApi.getIndependentContext(legacyOwnerId(project))
       if (context.lifecycleStatus !== 'ACTIVE') { errorText.value = '当前项目未在执行中，无法创建验收。'; return }
-      pendingCreate = { key: crypto.randomUUID(), request: { projectId: legacyOwnerId(project), acceptanceType,
+      pendingCreate = { key: generateUUID(), request: { projectId: legacyOwnerId(project), acceptanceType,
         expectedProjectVersion: context.projectVersion, expectedTreeVersion: context.treeVersion } }
     }
     const result = await ReportApi.createIndependent(pendingCreate.request, pendingCreate.key)

@@ -39,7 +39,7 @@ class FileStorageReceiptApiImplTest {
     @Mock private FileMapper fileMapper;
     @Mock private FileClient masterClient;
     @Mock private FileClient frozenClient;
-    @Mock private cn.iocoder.yudao.module.infra.service.file.FileReceiptDownloadService receiptDownloads;
+    @Mock private cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService receiptDownloads;
 
     private FileStorageReceiptApiImpl api;
 

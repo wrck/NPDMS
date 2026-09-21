@@ -52,6 +52,13 @@ class FileStorageReceiptAccessServiceTest {
     }
 
     @Test
+    void rejectsUnmanagedFilesBeforeIssuingACapability() {
+        file.setPath("public/document.pdf");
+        assertThrows(IllegalArgumentException.class, () -> service.issue(file, 60));
+        verify(values, never()).set(anyString(), anyString(), any(Duration.class));
+    }
+
+    @Test
     void issuesAnAbsoluteOpaqueUrlWithoutTheFrozenStorageLocation() {
         String url = service.issue(file, 120);
         String token = url.substring(url.indexOf("ticket=") + "ticket=".length());
