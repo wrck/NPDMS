@@ -10,7 +10,7 @@
     <el-form :model="form" :disabled="!canUpdate || busy" label-position="top">
       <el-row :gutter="16">
         <el-col :xs="24" :sm="12">
-          <el-form-item label="验收时间"><el-date-picker v-model="form.acceptanceTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" class="!w-full" /></el-form-item>
+          <el-form-item label="验收时间"><el-date-picker v-model="form.acceptanceTime" type="datetime" value-format="x" class="!w-full" /></el-form-item>
         </el-col>
         <el-col :xs="24" :sm="12">
           <el-form-item label="验收结论"><el-select v-model="form.conclusionCode" clearable class="!w-full"><el-option label="通过" value="PASS" /><el-option label="不通过" value="FAIL" /><el-option label="有条件通过" value="CONDITIONAL_PASS" /></el-select></el-form-item>
@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { activityAllowsReportWrite } from './reportState'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
@@ -77,7 +78,7 @@ const baseline = ref('')
 let generation = 0
 let openSequence = 0
 const snapshot = () => JSON.stringify([form.acceptanceTime || '', form.conclusionCode || '', form.conclusionText || '', form.acceptorName || ''])
-const allowed = (action: string) => !props.readonly && activity.value?.activityStatus === 'PENDING'
+const allowed = (action: string) => !props.readonly && activityAllowsReportWrite(activity.value)
   && (props.allowedActions === undefined || (props.allowedActions.includes('QUERY') && props.allowedActions.includes(action)))
   && checkPermi(['pms:acceptance:report:write'])
 const canUpdate = computed(() => allowed('UPDATE'))

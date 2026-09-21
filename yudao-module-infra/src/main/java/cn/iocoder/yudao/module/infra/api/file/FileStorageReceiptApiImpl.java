@@ -8,8 +8,10 @@ import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.FileMapper;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.query.FileStorageOperationLookupQuery;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
+import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient;
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 import cn.iocoder.yudao.module.infra.service.file.FileConfigService;
+import cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +36,7 @@ import static cn.iocoder.yudao.module.infra.enums.ErrorCodeConstants.FILE_STORAG
 public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
 
     static final int MAX_CONTENT_BYTES = 50 * 1024 * 1024;
-    static final String STORAGE_DIRECTORY = "pms-storage-receipts";
+    public static final String STORAGE_DIRECTORY = "pms-storage-receipts";
 
     private static final Pattern STORAGE_OPERATION_ID_PATTERN =
             Pattern.compile("[A-Za-z0-9][A-Za-z0-9_-]{0,63}");
@@ -44,6 +46,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
 
     @Resource
     private FileMapper fileMapper;
+
+    @Resource
+    private FileStorageReceiptAccessService receiptAccessService;
 
     @Override
     @SneakyThrows
@@ -92,7 +97,14 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
         FilePathUtils.validatePath(file.getPath());
         FileClient client = fileConfigService.getFileClient(file.getConfigId());
         Assert.notNull(client, "客户端({}) 不能为空", file.getConfigId());
-        String url = client.presignGetUrl(file.getPath(), expirationSeconds);
+        String url;
+        try {
+            url = client.presignGetUrl(file.getPath(), expirationSeconds);
+        } catch (UnsupportedOperationException unsupported) {
+            // Only the existing DB client has a controlled server-side fallback. Other clients fail closed.
+            if (!(client instanceof DBFileClient)) throw unsupported;
+            url = receiptAccessService.issue(file, expirationSeconds);
+        }
         return new FileStorageAccessReceipt(url, LocalDateTime.now().plusSeconds(expirationSeconds));
     }
 

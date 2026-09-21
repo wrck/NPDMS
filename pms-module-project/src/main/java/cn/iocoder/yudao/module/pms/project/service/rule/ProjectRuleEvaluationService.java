@@ -8,11 +8,13 @@ import cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule;
 import cn.iocoder.yudao.module.pms.project.domain.rule.DecisionRuleEvaluation;
 import com.yomahub.liteflow.core.FlowExecutor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectRuleEvaluationService {
@@ -33,6 +35,8 @@ public class ProjectRuleEvaluationService {
             if (!response.isSuccess()) {
                 context.outcome = RuleEvaluation.Outcome.UNKNOWN;
                 if (context.reasonCode == null) context.reasonCode = "RULE_EXECUTION_FAILED";
+                log.warn("rule[{}] execution failed: {}", ruleVersionRef,
+                        response.getCause() == null ? "unknown" : response.getCause().getMessage(), response.getCause());
             }
             List<String> steps = response.getExecuteStepQueue().stream().map(step -> step.getNodeId()).toList();
             return result(ruleVersionRef, context, steps);
@@ -40,6 +44,7 @@ public class ProjectRuleEvaluationService {
             context.outcome = RuleEvaluation.Outcome.UNKNOWN;
             context.decisionValues = null;
             context.reasonCode = "RULE_EXECUTION_FAILED";
+            log.warn("rule[{}] compilation/execution threw: {}", ruleVersionRef, failure.getMessage(), failure);
             return result(ruleVersionRef, context, List.of());
         }
     }

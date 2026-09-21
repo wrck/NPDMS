@@ -59,6 +59,14 @@ function Get-Env {
   return $map
 }
 
+# 端口约定：默认与 compose.yaml / development.md 一致；分支可在 .env 覆盖
+# NPDMS_BACKEND_PORT / NPDMS_FRONTEND_PORT（该文件不入库，仅当前分支有效）。
+if (Test-Path (Join-Path $root '.env')) {
+  $branchEnv = Get-Env
+  if ($branchEnv['NPDMS_BACKEND_PORT'])  { $bkPort = [int]$branchEnv['NPDMS_BACKEND_PORT'] }
+  if ($branchEnv['NPDMS_FRONTEND_PORT']) { $frPort = [int]$branchEnv['NPDMS_FRONTEND_PORT'] }
+}
+
 # ---------- PID 读写与存活 ----------
 function Get-RecordedPid([string]$file) {
   if (Test-Path $file) {

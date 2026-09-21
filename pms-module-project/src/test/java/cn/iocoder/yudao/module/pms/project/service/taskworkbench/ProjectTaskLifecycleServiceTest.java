@@ -210,9 +210,11 @@ class ProjectTaskLifecycleServiceTest {
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
     }
 
-    @Test
-    void submitFreezesProgressAtNinetyNine() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"TASK_NATIVE", "PAGE"})
+    void submitFreezesProgressAtNinetyNine(String bindingType) {
         allowAction("IN_PROGRESS", "SUBMIT", "PENDING_ACCEPT");
+        contractMapper.selectCurrentByTaskIdForUpdate(null).setWorkBindingTypeCode(bindingType);
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
 
         TaskCommandResult result = service.act(command("submit", 3, null, null), actor());
@@ -596,7 +598,7 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "IN_PROGRESS,APPROVAL"})
+    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL"})
     @SuppressWarnings("unchecked")
     void submittedOrBusinessResultCompletesThroughFrozenStateMachineOnceWithoutUserActions(String status, String bindingType) {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
@@ -647,6 +649,22 @@ class ProjectTaskLifecycleServiceTest {
             assertFalse(service.completeFromBusinessResult(100L, 11L, "outbox").completed());
             verify(taskMapper, never()).updateLifecycleIfMatch(any());
             verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @Test void pageNavigationCannotCompleteWithoutTheUserSubmittingTheTask() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            var project = new ProjectMasterDO(); project.setId(100L); project.setLifecycleStatus("ACTIVE");
+            var task = new ProjectTaskInstanceDO(); task.setId(11L); task.setStatus("IN_PROGRESS");
+            var contract = new ProjectTaskExecutionContractDO(); contract.setTenantId(0L); contract.setWorkBindingTypeCode("PAGE");
+            when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+            when(taskMapper.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
+            when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+            var result = service.completeFromBusinessResult(100L, 11L, "page-business-finished");
+            assertFalse(result.completed()); assertFalse(result.unknown());
+            org.mockito.Mockito.verifyNoInteractions(businessEvaluator, commandExecutionApi, stateMachineMapper);
+            verify(taskMapper, never()).updateLifecycleIfMatch(any());
         } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     }
 

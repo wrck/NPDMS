@@ -114,13 +114,23 @@ public final class ProjectBusinessResultSources {
     }
 
     public Observation inspect(Query query) {
+        return inspect(query, false);
+    }
+
+    public Observation lockAndInspect(Query query) {
+        if (query == null || query.objectId() == null) throw new IllegalArgumentException("RESULT_OBJECT_ID_REQUIRED");
+        return inspect(query, true);
+    }
+
+    private Observation inspect(Query query, boolean lock) {
         if (query == null || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("RESULT_QUERY_SCOPE_INVALID");
         var registered = sources.get(query.type());
         if (registered == null) throw new IllegalArgumentException("RESULT_SOURCE_UNAVAILABLE");
         if (query.resultId() == null ? !registered.descriptor().currentLookup() : !registered.descriptor().exactLookup())
             throw new IllegalArgumentException("RESULT_LOOKUP_UNSUPPORTED");
-        var observation = Objects.requireNonNull(registered.source().inspect(query), "Owner result observation");
+        var observation = Objects.requireNonNull(lock ? registered.source().lockAndInspect(query)
+                : registered.source().inspect(query), "Owner result observation");
         if (observation.result() != null) {
             var result = observation.result();
             if (!Objects.equals(query.tenantId(), result.tenantId()) || !Objects.equals(query.projectId(), result.projectId())

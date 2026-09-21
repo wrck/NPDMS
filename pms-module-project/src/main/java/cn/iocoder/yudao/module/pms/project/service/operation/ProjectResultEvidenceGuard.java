@@ -34,13 +34,28 @@ public class ProjectResultEvidenceGuard {
 
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public Proof lock(TemplateExecutionSnapshot snapshot, ProjectPlanVersionDO plan, ProjectNodeExecutionDO round) {
+        return lockEvidence(snapshot, plan, round, false);
+    }
+
+    /** 闭环重验原完成证据，不重新完成节点，也不把新结果替换到完成历史中。 */
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public Proof revalidateCompleted(TemplateExecutionSnapshot snapshot, ProjectPlanVersionDO plan, ProjectNodeExecutionDO round) {
+        return lockEvidence(snapshot, plan, round, true);
+    }
+
+    private Proof lockEvidence(TemplateExecutionSnapshot snapshot, ProjectPlanVersionDO plan,
+                               ProjectNodeExecutionDO round, boolean completed) {
         var matching = ResultSubscriptionContract.nodes(snapshot).stream().filter(node -> Objects.equals(node.kind(),round.getNodeKind())
                 && Objects.equals(node.key(),round.getNodeKey())).toList();
-        if (matching.isEmpty()) return new Proof(true,"NO_RESULT_SUBSCRIPTION",List.of());
+        if (matching.isEmpty()) return new Proof(!completed,"NO_RESULT_SUBSCRIPTION",List.of());
+        boolean validState = completed
+                ? ("EFFECTIVE".equals(plan.getStatus()) || "SUPERSEDED".equals(plan.getStatus()))
+                    && "DONE".equals(round.getStatus()) && round.getEndedAt() != null
+                : "EFFECTIVE".equals(plan.getStatus()) && "ACTIVE".equals(round.getStatus()) && round.getEndedAt() == null;
         if (matching.size() != 1 || !Objects.equals(TenantContextHolder.getRequiredTenantId(),round.getTenantId())
                 || !Objects.equals(plan.getTenantId(),round.getTenantId()) || !Objects.equals(plan.getProjectId(),round.getProjectId())
-                || !Objects.equals(plan.getId(),round.getPlanVersionId()) || !"EFFECTIVE".equals(plan.getStatus())
-                || !"ACTIVE".equals(round.getStatus()) || !Integer.valueOf(1).equals(round.getCurrentMarker()) || round.getEndedAt() != null)
+                || !Objects.equals(plan.getId(),round.getPlanVersionId()) || !validState
+                || !Integer.valueOf(1).equals(round.getCurrentMarker()))
             throw new IllegalStateException("RESULT_EVIDENCE_EXECUTION_MISMATCH");
         // 同一项目多个来源始终按Owner/实体/结果/局部键取得屏障，不按事件到达顺序锁定。
         var definitions = matching.getFirst().subscriptions().stream().sorted(Comparator.comparing(value -> {
@@ -82,7 +97,42 @@ public class ProjectResultEvidenceGuard {
             receipts.add(new ResultEvidenceReceipt(row.getId(),row.getSubscriptionKey(),scan.getId(),row.getPlanVersionId(),row.getExecutionId(),
                     row.getContractId(),row.getVersion(),row.getBaselineSequence(),scan.getThroughSequence()));
         }
+        if (completed) return revalidateHistory(round, receipts);
         return new Proof(true,"RESULT_EVIDENCE_SATISFIED",receipts);
+    }
+
+    private Proof revalidateHistory(ProjectNodeExecutionDO round, List<ResultEvidenceReceipt> current) {
+        var result = round.getResultSnapshot() == null ? null : JsonUtils.parseTree(round.getResultSnapshot());
+        var frozen = result == null ? null : result.get("subscriptionEvidence");
+        if (frozen == null || !frozen.isArray() || frozen.size() != current.size())
+            return waiting("COMPLETION_RESULT_EVIDENCE_MISSING");
+        var historical = new HashMap<Long, ResultEvidenceReceipt>();
+        for (var value : frozen) {
+            var receipt = JsonUtils.parseObject(value.toString(), ResultEvidenceReceipt.class);
+            if (historical.put(receipt.subscriptionId(), receipt) != null)
+                throw new IllegalStateException("COMPLETION_RESULT_EVIDENCE_DUPLICATE");
+        }
+        for (var now : current) {
+            var original = historical.get(now.subscriptionId());
+            if (original == null || !Objects.equals(original.subscriptionKey(), now.subscriptionKey())
+                    || !Objects.equals(original.planVersionId(), now.planVersionId())
+                    || !Objects.equals(original.executionId(), now.executionId())
+                    || !Objects.equals(original.contractId(), now.contractId())
+                    || original.baselineSequence() != now.baselineSequence()
+                    || original.subscriptionVersion() > now.subscriptionVersion()
+                    || original.throughSequence() > now.throughSequence())
+                throw new IllegalStateException("COMPLETION_RESULT_EVIDENCE_MISMATCH");
+            var scan = evidence.selectById(new ResultEvidenceMapper.ScanId(round.getTenantId(), round.getProjectId(), original.scanId()));
+            if (scan == null || !Objects.equals(scan.getSubscriptionId(), original.subscriptionId())
+                    || !Objects.equals(scan.getSubscriptionVersion(), original.subscriptionVersion())
+                    || !Objects.equals(scan.getThroughSequence(), original.throughSequence())
+                    || !"SATISFIED".equals(scan.getStatus()))
+                return waiting("COMPLETION_RESULT_SCAN_UNAVAILABLE");
+            if (evidence.hasInvalidatedItems(new ResultEvidenceMapper.HistoricalComparison(
+                    round.getTenantId(), round.getProjectId(), original.scanId(), now.scanId())))
+                return waiting("COMPLETION_RESULT_EVIDENCE_INVALIDATED");
+        }
+        return new Proof(true, "COMPLETION_RESULT_EVIDENCE_VALID", current);
     }
     private Proof waiting(String reason) { return new Proof(false,reason,List.of()); }
 }

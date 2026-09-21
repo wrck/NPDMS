@@ -132,7 +132,9 @@ public class AcceptanceReportFileBusinessObjectPolicyProvider implements FileBus
         return report != null && Objects.equals(report.reportVersionId(), reportVersionId)
                 && report.acceptanceId() != null && report.acceptanceId() > 0
                 && report.projectId() != null && report.projectId() > 0
-                && report.projectTaskId() != null && report.projectTaskId() > 0;
+                && ("DIRECT".equals(report.originKind())
+                    ? report.projectTaskId() == null && IndependentAcceptancePolicy.validSnapshot(report.ruleSnapshot())
+                    : report.projectTaskId() != null && report.projectTaskId() > 0);
     }
 
     private boolean validScope(Long projectId, Long expectedScopeVersion, boolean lock, ProjectScopeResult scope) {

@@ -9,6 +9,10 @@ const businessRefresh = vi.hoisted(() => vi.fn())
 const gates = vi.hoisted(() => ({ getStageGateWorkbench: vi.fn() }))
 vi.mock('@/api/pms/project/stage-gates', () => gates)
 vi.mock('@/api/pms/project/task-workbench', () => api)
+vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('@/components/UserTag/index.vue', () => ({ default: defineComponent({
+  inheritAttrs: false, setup: (_, { attrs }) => () => h('span', String(attrs.userId ?? ''))
+}) }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }), onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
@@ -77,6 +81,23 @@ it('mounts approval handling in the shared delivery task panel and preserves its
   expect(textOf(view.root)).not.toContain('Owner业务内容')
   expect(textOf(view.root)).not.toContain('尚未取得可用的任务业务绑定')
   expect(await view.exposed().requestLeave()).toBe(false)
+})
+
+it('shows the template-frozen deliverables of the task as a read-only checklist', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '任务A', version: 1 },
+    bindingType: 'TASK_NATIVE',
+    deliverables: [
+      { id: 1, deliverableCode: 'PLAN', name: '施工计划', required: true, status: 'PENDING' },
+      { id: 2, deliverableCode: 'REPORT', name: '勘察报告', required: false, status: 'ACCEPTED' }
+    ] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  const text = textOf(view.root)
+  expect(text).toContain('交付件清单')
+  expect(text).toContain('施工计划')
+  expect(text).toContain('勘察报告')
+  expect(text).toContain('必选')
+  expect(text).toContain('可选')
+  expect(text).toContain('满足状态由验收链维护')
 })
 
 it('starts independent task reads together and waits for both before exposing Owner actions', async () => {

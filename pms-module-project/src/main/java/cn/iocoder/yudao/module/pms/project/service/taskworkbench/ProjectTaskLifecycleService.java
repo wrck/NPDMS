@@ -281,7 +281,7 @@ public class ProjectTaskLifecycleService {
         if (task == null || !Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
             return new AutomaticResult(false, false);
         var contract = requireCurrentContract(task, tenantId);
-        boolean nativeWork = TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode());
+        boolean nativeWork = isNativeContract(contract);
         if ((!isBusinessContract(contract) && !nativeWork && !"APPROVAL".equals(contract.getWorkBindingTypeCode())
                 && !"RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))
                 || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
@@ -330,7 +330,7 @@ public class ProjectTaskLifecycleService {
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskIdForUpdate(
                 new CurrentTaskExecutionContractLockQuery(tenantId, task.getId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
-                || (!TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode())
+                || (!isNativeContract(contract)
                 && !"APPROVAL".equals(contract.getWorkBindingTypeCode())
                 && !isAcceptanceContract(contract) && !isBusinessContract(contract)
                 && !"RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))) {
@@ -340,6 +340,11 @@ public class ProjectTaskLifecycleService {
         if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))
             cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.requireRuntime(contract);
         return contract;
+    }
+
+    private static boolean isNativeContract(ProjectTaskExecutionContractDO contract) {
+        return contract != null && (TaskNativeCompletionPolicy.WORK_BINDING_TYPE.equals(contract.getWorkBindingTypeCode())
+                || "PAGE".equals(contract.getWorkBindingTypeCode()));
     }
 
     private static boolean isBusinessContract(ProjectTaskExecutionContractDO contract) {

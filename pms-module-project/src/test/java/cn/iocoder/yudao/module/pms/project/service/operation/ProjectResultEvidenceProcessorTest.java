@@ -163,13 +163,13 @@ class ProjectResultEvidenceProcessorTest {
         assertEquals(0, f.events(cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.EVENT_TYPE));
     }
 
-    @ParameterizedTest @ValueSource(strings = {"schema", "scan-string", "scan-fraction", "scan-overflow", "missing-target", "tenant", "extra", "event-id"})
+    @ParameterizedTest @ValueSource(strings = {"schema", "scan-garbage", "scan-fraction", "scan-overflow", "missing-target", "tenant", "extra", "event-id"})
     void transportChecksStoredTokensBeforeCallingTheProcessor(String damage) {
         satisfy(); var event = evaluated();
         var json = (ObjectNode) JsonUtils.parseTree(JsonUtils.toJsonString(event));
         switch (damage) {
             case "schema" -> json.put("eventVersion", "1");
-            case "scan-string" -> json.put("scanId", event.scanId().toString());
+            case "scan-garbage" -> json.put("scanId", "garbage");
             case "scan-fraction" -> json.put("scanId", 1.5);
             case "scan-overflow" -> json.set("scanId", JsonUtils.parseTree("999999999999999999999999999"));
             case "missing-target" -> json.remove("target");
@@ -181,5 +181,15 @@ class ProjectResultEvidenceProcessorTest {
         assertThrows(RuntimeException.class, () -> f.recovery.delivery.deliver(new PlatformOutboxMessageDTO(
                 event.eventId(), ResultEvidenceEvaluatedEvent.EVENT_TYPE, json.toString(), 0, 1L, LocalDateTime.now())));
         verifyNoInteractions(tasks, stages, taskAdmission, stageAdmission, associations, audit);
+    }
+
+    @Test void writerEncodedNumericStringIdsReachTheProcessor() {
+        satisfy(); var event = evaluated();
+        when(stages.completeStage(any(), any(), isNull(), any())).thenReturn(new ProjectStageCompletionService.Completion(1, false));
+        var json = (ObjectNode) JsonUtils.parseTree(JsonUtils.toJsonString(event));
+        json.put("scanId", event.scanId().toString());
+        assertTrue(f.recovery.delivery.deliver(new PlatformOutboxMessageDTO(
+                event.eventId(), ResultEvidenceEvaluatedEvent.EVENT_TYPE, json.toString(), 0, 1L, LocalDateTime.now())));
+        verify(stages).completeStage(any(), any(), isNull(), any());
     }
 }

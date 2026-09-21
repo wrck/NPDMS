@@ -25,6 +25,7 @@ export type TaskBindingHost = DesignerTaskNode & { completionRule: RuleSpec }
 export type BindingSelection = {
   strategy: EntitySource
   requirementFormRevisionId?: BusinessViewId
+  acceptanceType?: 'PRELIMINARY' | 'FINAL'
   completion?: { factCode: string; quantifier: 'ALL' | 'ANY' }
 } & (
   | { view: BusinessViewRegistrationVO }
@@ -168,6 +169,8 @@ export const prepareTaskBinding = async (
       instanceResolutionStrategy: selection.strategy,
       contextMapping,
       businessViewRevisionId: view.id,
+      ...(view.ownerContext === 'ACC' && view.entityType === 'ACCEPTANCE' && selection.acceptanceType
+        ? { acceptanceType: selection.acceptanceType } : {}),
       ...(requirementSource ?? {})
     },
     businessViewSnapshot: viewSnapshot(view)

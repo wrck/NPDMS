@@ -35,6 +35,7 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     private final TaskBusinessCompletionEvaluator evaluator;
     private final ProjectClosureGuardService descendantGuard;
     private final NormalClosureAccess access;
+    private final NormalClosureResultEvidence resultEvidence;
 
     public record Evaluation(String policyJson, List<Check> checks, String evidence,
                              String sourceVector, String sourceDigest,
@@ -48,6 +49,12 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     /** Caller has already locked root/project and revalidated current PM + MANAGE scope. */
     @Transactional(propagation = Propagation.MANDATORY)
     public Evaluation evaluateLocked(ProjectMasterDO project, long treeVersion, Long actorId, String correlationId) {
+        return evaluateLocked(project, treeVersion, actorId, actorId, correlationId);
+    }
+
+    /** Project closure remains authorized as {@code actorId}; Owner facts are revalidated as the real BPM reviewer. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Evaluation evaluateLocked(ProjectMasterDO project, long treeVersion, Long actorId, Long factActorId, String correlationId) {
         String policyJson = project.getClosurePolicySnapshot();
         List<Check> checks = new ArrayList<>();
         Map<String, Object> source = new LinkedHashMap<>();
@@ -73,14 +80,16 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             if (contract != null) current.put(task.getId(), contract);
             links.selectActiveForUpdate(new TaskBusinessLinksQuery(project.getTenantId(), project.getId(), task.getId()));
         }
-        var graph = graphs.resolve(project);
+        var resultRounds = resultEvidence.lockRounds(project);
+        var graph = graphs.resolveForClosure(project);
+        var closureGates = graphs.lockClosureGates(project);
         add(checks, "TERMINAL_STAGE", graph.terminal(), graph.current().getId());
         add(checks, "STAGE_COMPLETION", graph.completion() == ConditionStatus.SATISFIED, graph.current().getId());
         source.put("stage", List.of(graph.current().getId(), graph.current().getVersion(), graph.current().getGraphVersion(),
                 graph.current().getDefinitionRevisionId(), graph.current().getCode()));
         List<Object> gateEvidence = new ArrayList<>();
-        for (var gate : graph.gates()) {
-            var references = graph.references().stream().filter(r -> Objects.equals(r.getGateId(), gate.getId())).toList();
+        for (var gate : closureGates.gates()) {
+            var references = closureGates.references().stream().filter(r -> Objects.equals(r.getGateId(), gate.getId())).toList();
             add(checks, "EXIT_GATE_REFERENCES", !references.isEmpty(), gate.getId());
             for (var ref : references) {
                 String key = ProjectStageReadinessService.providerKey(ref.getRefType());
@@ -113,17 +122,22 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             taskSource.put("completionRule", contract.getCompletionRuleSnapshot());
             taskSource.put("definitionSnapshot", contract.getDefinitionSnapshot());
             if (contract.getWorkBindingTypeCode() != null && cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode())) {
-                var before = business.inspectLinkedFactsSnapshot(task.getId(), project.getTenantId(), actorId, correlationId);
-                var locked = business.lockAndRevalidateLinkedFacts(task.getId(), project.getTenantId(), actorId,
+                var before = business.inspectLinkedFactsSnapshot(task.getId(), project.getTenantId(), factActorId, correlationId);
+                var locked = business.lockAndRevalidateLinkedFacts(task.getId(), project.getTenantId(), factActorId,
                         correlationId, before.factVersion());
                 var value = evaluator.evaluate(contract, locked.factVersion(), locked.links());
                 add(checks, "TASK_BUSINESS_FACTS", value.satisfied(), task.getId());
                 taskSource.put("businessEvidence", value.evidence());
-            } else {
+            } else if (!cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.TYPE.equals(contract.getWorkBindingTypeCode())) {
                 // Native DONE is valid only for an explicitly frozen native completion contract.
-                boolean nativeContract = "TASK_NATIVE".equals(contract.getWorkBindingTypeCode())
+                boolean nativeContract = Set.of("TASK_NATIVE", "PAGE").contains(contract.getWorkBindingTypeCode())
                         && "TASK_NATIVE_STATUS".equals(contract.getCompletionRuleTypeCode());
                 add(checks, "TASK_NATIVE_CONTRACT", nativeContract, task.getId());
+            }
+            var proof = resultEvidence.revalidate(project, task, contract, resultRounds);
+            if (!"NO_RESULT_SUBSCRIPTION".equals(proof.reason())) {
+                checks.add(new Check("TASK_RESULT_EVIDENCE", proof.ready(), proof.ready() ? null : proof.reason(), task.getId()));
+                taskSource.put("subscriptionEvidence", proof.receipts());
             }
         }
         source.put("tasks", taskEvidence);
@@ -177,7 +191,7 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
         var project = projects.selectById(projectId);
         if (project == null || !java.util.Objects.equals(project.getTenantId(), tenantId))
             throw closureFailure("CLOSURE_PROJECT_NOT_FOUND");
-        var graph = graphs.inspect(project);
+        var graph = graphs.inspectForClosure(project);
         boolean done = closureProjects.selectTasks(
                 new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId))
                 .stream().allMatch(t -> "DONE".equals(t.getStatus()));

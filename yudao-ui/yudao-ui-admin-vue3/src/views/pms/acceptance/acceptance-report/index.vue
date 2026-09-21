@@ -4,9 +4,13 @@
     <el-form :model="query" inline class="-mb-15px query-form" @submit.prevent>
       <el-form-item label="项目">
         <el-input v-if="scoped" :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" />
-        <PmsEntitySelect v-else v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['projectCode', 'projectName']" value-field="id" query-field="projectName" placeholder="选择项目查看初验与终验" clearable :disabled="detailRef?.isDirty()" class="!w-220px" />
+        <PmsEntitySelect v-else v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['projectCode', 'projectName']" value-field="id" query-field="projectName" placeholder="选择项目查看初验与终验" clearable :disabled="creating || detailRef?.isDirty()" class="!w-220px" />
       </el-form-item>
       <el-form-item><el-button :loading="loading" :disabled="!validProject" @click="load"><Icon icon="ep:search" />查询报告活动</el-button></el-form-item>
+      <el-form-item v-if="!embedded && !readonly && validProject && checkPermi(['pms:acceptance:report:write'])">
+        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('PRELIMINARY')">创建初验</el-button>
+        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('FINAL')">创建终验</el-button>
+      </el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" />
   </ContentWrap>
@@ -17,7 +21,7 @@
       <el-table-column prop="id" label="活动编号" min-width="180" />
       <el-table-column label="验收类型" width="110"><template #default="{ row }">{{ typeLabel(row.acceptanceType) }}</template></el-table-column>
       <el-table-column label="活动状态" width="110"><template #default="{ row }"><el-tag :type="row.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(row.activityStatus) }}</el-tag></template></el-table-column>
-      <el-table-column prop="projectTaskId" label="来源任务" min-width="170" />
+      <el-table-column label="创建来源" min-width="170"><template #default="{ row }">{{ row.originKind === 'DIRECT' ? '项目独立验收' : `任务 #${row.projectTaskId}` }}</template></el-table-column>
       <el-table-column prop="version" label="活动版本" width="100" />
       <el-table-column label="当前报告" width="110"><template #default="{ row }">{{ row.currentReportVersionId ? '已生效' : '未生效' }}</template></el-table-column>
       <el-table-column label="操作" width="160" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row.id)">进入报告工作台</el-button></template></el-table-column>
@@ -41,6 +45,8 @@ const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const executionClient = useOperationClient()
 const route = useRoute()
 const loading = ref(false)
+const creating = ref(false)
+let pendingCreate: { key: string; request: ReportApi.IndependentAcceptanceCreate } | undefined
 const errorText = ref('')
 const activities = ref<AcceptanceActivityVO[]>([])
 const detailRef = ref<InstanceType<typeof AcceptanceReportDetail>>()
@@ -53,7 +59,7 @@ const contextBlocked = ref(false)
 let listSequence = 0, switchSequence = 0
 let activeProject: BusinessViewId | undefined, activeObject: BusinessViewId | undefined
 const canQuery = () => (props.allowedActions === undefined || props.allowedActions.includes('QUERY')) && checkPermi(['pms:acceptance:report:query'])
-const requestLeave = async () => await detailRef.value?.requestLeave() ?? true
+const requestLeave = async () => !creating.value && (await detailRef.value?.requestLeave() ?? true)
 const discardChanges = () => {
   if (detailRef.value?.discardChanges() === false) return false
   listSequence++; emit('dirty-change', false); return true
@@ -76,6 +82,25 @@ const load = async () => {
   } finally { if (token === listSequence) loading.value = false }
 }
 const changed = () => { emit('changed'); void load() }
+const createActivity = async (acceptanceType: ReportApi.AcceptanceType) => {
+  const project = activeProject
+  if (creating.value || props.readonly || embedded.value || contextBlocked.value || !isBusinessViewId(project)
+      || !checkPermi(['pms:acceptance:report:write']) || !(await requestLeave())) return
+  creating.value = true; errorText.value = ''; emit('dirty-change', true)
+  try {
+    if (!pendingCreate || !sameBusinessViewId(pendingCreate.request.projectId, project) || pendingCreate.request.acceptanceType !== acceptanceType) {
+      const context = await ReportApi.getIndependentContext(legacyOwnerId(project))
+      if (context.lifecycleStatus !== 'ACTIVE') { errorText.value = '当前项目未在执行中，无法创建验收。'; return }
+      pendingCreate = { key: crypto.randomUUID(), request: { projectId: legacyOwnerId(project), acceptanceType,
+        expectedProjectVersion: context.projectVersion, expectedTreeVersion: context.treeVersion } }
+    }
+    const result = await ReportApi.createIndependent(pendingCreate.request, pendingCreate.key)
+    pendingCreate = undefined
+    if (sameBusinessViewId(activeProject, project)) { await load(); await openDetail(result.acceptanceId) }
+    emit('changed')
+  } catch { errorText.value = '验收创建未完成，请检查项目权限或重试。' }
+  finally { creating.value = false; emit('dirty-change', false) }
+}
 const contextKey = () => [String(props.projectId ?? query.projectId ?? ''), String(props.objectId ?? '')].join('|')
 const switchContext = async () => {
   const token = ++switchSequence, project = props.projectId ?? query.projectId, object = props.objectId

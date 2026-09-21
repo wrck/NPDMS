@@ -61,7 +61,19 @@ public class ProjectStageBusinessQueryService {
                 return unavailable(projectId, stageCode, stage, contract, "STAGE_BINDING_SNAPSHOT_MISMATCH");
             if ("STAGE_NATIVE".equals(contract.getBindingType())) {
                 return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
-                        contract.getBindingVersion(), contract.getBindingType(), null, null, Set.of(), true, null, null, null);
+                        contract.getBindingVersion(), contract.getBindingType(), null, null, null,
+                        Set.of(), true, null, null, null);
+            }
+            if ("PAGE".equals(contract.getBindingType())) {
+                // PAGE 只冻结导航入口：路由取自绑定参数，不承载Owner业务目标，也不产生完成事实。
+                String routePath = binding.getParameters() == null ? null
+                        : binding.getParameters().path("routePath").asText(null);
+                if (routePath == null || routePath.isBlank())
+                    return unavailable(projectId, stageCode, stage, contract, "PAGE_ROUTE_NOT_FROZEN");
+                boolean readonly = !"ACTIVE".equals(project.getLifecycleStatus()) || !"ACTIVE".equals(stage.getStatus());
+                return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
+                        contract.getBindingVersion(), contract.getBindingType(), routePath, null, null,
+                        Set.of("QUERY"), readonly, null, null, null);
             }
             if ("APPROVAL".equals(contract.getBindingType())) {
                 var execution = executions.inspectStage(new ProjectStageExecutionQuery(projectId, stage.getId(), contract.getId()));
@@ -71,7 +83,7 @@ public class ProjectStageBusinessQueryService {
                         == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN;
                 // Approval routing is independent of business-page registration. BPM retains per-operation authorization.
                 return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
-                        contract.getBindingVersion(), contract.getBindingType(), null, null,
+                        contract.getBindingVersion(), contract.getBindingType(), null, null, null,
                         readonly ? Set.of("QUERY") : Set.of("QUERY", "APPROVAL"), readonly,
                         approval.current().outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN
                                 ? approval.current().reason() : null, execution, approval);
@@ -110,7 +122,7 @@ public class ProjectStageBusinessQueryService {
                     || !"ACTIVE".equals(project.getLifecycleStatus()) || !"ACTIVE".equals(stage.getStatus())
                     || execution == null || !execution.writable();
             return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(), contract.getBindingVersion(),
-                    contract.getBindingType(), strategy, view, readonly ? Set.of("QUERY") : result.allowedActions(), readonly,
+                    contract.getBindingType(), null, strategy, view, readonly ? Set.of("QUERY") : result.allowedActions(), readonly,
                     execution == null && "ACTIVE".equals(stage.getStatus()) ? "STAGE_EXECUTION_UNAVAILABLE" : null, execution, null);
         } catch (RuntimeException unavailable) {
             return unavailable(projectId, stageCode, stage, contract, "STAGE_BINDING_UNAVAILABLE");
@@ -138,6 +150,6 @@ public class ProjectStageBusinessQueryService {
             ProjectStageExecutionContractDO contract, String reason) {
         return new StageBusinessContext(projectId, stage == null ? null : stage.getId(), code,
                 contract == null ? null : contract.getId(), contract == null ? null : contract.getBindingVersion(),
-                contract == null ? null : contract.getBindingType(), null, null, Set.of(), true, reason, null, null);
+                contract == null ? null : contract.getBindingType(), null, null, null, Set.of(), true, reason, null, null);
     }
 }

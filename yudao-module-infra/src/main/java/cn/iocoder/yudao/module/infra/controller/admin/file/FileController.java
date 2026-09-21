@@ -10,6 +10,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.infra.controller.admin.file.vo.file.*;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
+import cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptApiImpl;
 import cn.iocoder.yudao.module.infra.service.file.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -115,6 +116,16 @@ public class FileController {
         // （上游 PR）
         // （上游 PR）
         path = HttpUtils.decodeUrlPath(path);
+        if (isStorageReceiptPath(path)) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return;
+        }
+        // Database collations can map alternate Unicode request text to the protected canonical path.
+        FileDO file = fileService.getFileByConfigIdAndPath(configId, path);
+        if (file != null && isStorageReceiptPath(file.getPath())) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return;
+        }
 
         // 读取内容
         byte[] content = fileService.getFileContent(configId, path);
@@ -123,9 +134,13 @@ public class FileController {
             response.setStatus(HttpStatus.NOT_FOUND.value());
             return;
         }
-        FileDO file = fileService.getFileByConfigIdAndPath(configId, path);
         String filename = file != null && StrUtil.isNotEmpty(file.getName()) ? file.getName() : FileUtil.getName(path);
         writeAttachment(response, filename, content);
+    }
+
+    private static boolean isStorageReceiptPath(String path) {
+        String prefix = FileStorageReceiptApiImpl.STORAGE_DIRECTORY + "/";
+        return path != null && path.regionMatches(true, 0, prefix, 0, prefix.length());
     }
 
     @GetMapping("/page")

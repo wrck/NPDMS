@@ -147,11 +147,36 @@
             :gate="selected.node as DesignerGateNode" :readonly="nodeReadonly" :binding-permission="bindingPermission"
             :consumers="gateConsumers" />
           <template v-if="runtimeNode">
-            <el-divider content-position="left">业务办理</el-divider>
+            <el-divider content-position="left">前后置关系与完成规则</el-divider>
+            <RuleSlotEditor
+              v-model="runtimeNode.admissionRuleKey"
+              :document="content"
+              :label="`${runtimeNode.name} · 准入`"
+              :readonly="nodeReadonly"
+              empty-text="无附加准入限制；任务仍必须等待所属阶段激活。"
+            />
+            <RuleSlotEditor
+              v-model="runtimeNode.completionRuleKey"
+              :document="content"
+              :label="`${runtimeNode.name} · 完成`"
+              :readonly="nodeReadonly"
+              required
+              :initial-expression="nativeCompletion"
+              empty-text="请配置完成条件；业务办理结果不能由打开页面或HTTP成功代替。"
+            />
+            <RuleSlotEditor
+              v-model="runtimeNode.exitRuleKey"
+              :document="content"
+              :label="`${runtimeNode.name} · 退出`"
+              :readonly="nodeReadonly"
+              empty-text="无附加退出限制；已启动工作仍须完成或明确终止。"
+            />
+
+            <el-divider content-position="left">业务视图配置</el-divider>
             <p class="field-hint">{{
               selected.kind === 'STAGE'
-                ? '阶段可以仅组织任务，也可以直接绑定业务办理。'
-                : '手工任务需要真实提交；业务与审批任务使用原模块结果。'
+                ? '阶段可以仅组织任务，也可以直接绑定业务办理、审批或页面路由。'
+                : '手工任务需要真实提交；业务与审批任务使用原模块结果；页面路由仅提供跳转入口。'
             }}</p>
             <el-select
               v-if="selected.kind === 'STAGE'"
@@ -161,16 +186,29 @@
                 runtimeNode.workBinding
                   ? runtimeNode.workBinding.type === 'STAGE_NATIVE'
                     ? 'MANUAL'
-                    : 'BUSINESS'
+                    : runtimeNode.workBinding.type === 'PAGE'
+                      ? 'PAGE'
+                      : 'BUSINESS'
                   : 'NONE'
               "
               @update:model-value="setStageHandling"
             >
               <el-option value="NONE" label="仅组织任务，不单独办理" />
               <el-option value="MANUAL" label="阶段手工办理" />
+              <el-option value="PAGE" label="路由页面（跳转已存在页面）" />
               <el-option value="BUSINESS" label="已绑定业务页面／表单／审批" disabled />
             </el-select>
-            <el-button v-if="!nodeReadonly" @click="businessOpen = !businessOpen"
+            <el-radio-group v-if="selected.kind === 'TASK' && !nodeReadonly" v-model="handlingTab" aria-label="任务办理类型" :disabled="nodeReadonly">
+              <el-radio-button value="BUSINESS">业务页面／表单</el-radio-button>
+              <el-radio-button value="PAGE">页面路由</el-radio-button>
+              <el-radio-button value="APPROVAL">审批流程</el-radio-button>
+            </el-radio-group>
+            <el-button
+              v-if="
+                !nodeReadonly &&
+                (selected.kind === 'TASK' ? handlingTab !== 'PAGE' : runtimeNode.workBinding?.type !== 'PAGE')
+              "
+              @click="businessOpen = !businessOpen"
               >{{ businessOpen ? '收起' : '配置' }}业务页面／表单／审批</el-button
             >
             <el-button
@@ -183,13 +221,40 @@
               @click="setTaskManualHandling"
               >切换为手工办理</el-button
             >
-            <el-radio-group v-if="selected.kind === 'TASK' && businessOpen" v-model="handlingTab" aria-label="任务办理类型" :disabled="nodeReadonly">
-              <el-radio-button value="BUSINESS">业务页面／表单</el-radio-button>
-              <el-radio-button value="APPROVAL">审批流程</el-radio-button>
-            </el-radio-group>
+            <template
+              v-if="
+                runtimeNode.workBinding?.type === 'PAGE' ||
+                (selected.kind === 'TASK' && handlingTab === 'PAGE')
+              "
+            >
+              <el-form-item label="页面路由">
+                <el-input
+                  v-model="pageRouteDraft"
+                  :disabled="nodeReadonly"
+                  placeholder="/pms/模块/页面"
+                  aria-label="页面路由"
+                  @keyup.enter="applyPageRoute"
+                />
+              </el-form-item>
+              <el-button v-if="!nodeReadonly" @click="applyPageRoute"
+                >{{ runtimeNode.workBinding?.type === 'PAGE' ? '更新路由' : '使用页面路由' }}</el-button
+              >
+              <p class="field-hint"
+                >路由是模板冻结的应用内跳转入口（以 / 开头）；完成仍由完成规则与状态机判定。</p
+              >
+            </template>
             <TaskBindingEditor
-              v-if="bindingHost && handlingTab !== 'APPROVAL' && (businessOpen || pendingBindings.has(runtimeNode.nodeKey))"
+              v-if="bindingHost && selected.kind === 'TASK' && handlingTab === 'BUSINESS' && (businessOpen || pendingBindings.has(runtimeNode.nodeKey))"
               :key="runtimeNode.nodeKey"
+              :task="bindingHost"
+              :model-value="pendingBindings.get(runtimeNode.nodeKey)"
+              :readonly="nodeReadonly"
+              :binding-permission="bindingPermission"
+              @update:model-value="setBinding"
+            />
+            <TaskBindingEditor
+              v-if="bindingHost && selected.kind === 'STAGE' && (businessOpen || pendingBindings.has(runtimeNode.nodeKey)) && runtimeNode.workBinding?.type !== 'PAGE'"
+              :key="`stage-${runtimeNode.nodeKey}`"
               :task="bindingHost"
               :model-value="pendingBindings.get(runtimeNode.nodeKey)"
               :readonly="nodeReadonly"
@@ -216,28 +281,14 @@
               :readonly="nodeReadonly || pendingBindings.has(runtimeNode.nodeKey)"
               @update:model-value="setExecutionConfiguration" @pure-subscription="setPureSubscription"
             />
-            <RuleSlotEditor
-              v-model="runtimeNode.admissionRuleKey"
+
+            <el-divider content-position="left">交付件检查列表</el-divider>
+            <NodeDeliverableChecklist
+              :key="`deliverables-${runtimeNode.nodeKey}`"
               :document="content"
-              :label="`${runtimeNode.name} · 准入`"
+              :stage-code="selected.kind === 'STAGE' ? runtimeNode.code : (runtimeNode as DesignerTaskNode).stageCode"
+              :task-code="selected.kind === 'TASK' ? runtimeNode.code : undefined"
               :readonly="nodeReadonly"
-              empty-text="无附加准入限制；任务仍必须等待所属阶段激活。"
-            />
-            <RuleSlotEditor
-              v-model="runtimeNode.completionRuleKey"
-              :document="content"
-              :label="`${runtimeNode.name} · 完成`"
-              :readonly="nodeReadonly"
-              required
-              :initial-expression="nativeCompletion"
-              empty-text="请配置完成条件；业务办理结果不能由打开页面或HTTP成功代替。"
-            />
-            <RuleSlotEditor
-              v-model="runtimeNode.exitRuleKey"
-              :document="content"
-              :label="`${runtimeNode.name} · 退出`"
-              :readonly="nodeReadonly"
-              empty-text="无附加退出限制；已启动工作仍须完成或明确终止。"
             />
           </template>
           <el-button v-if="!readonly" type="danger" plain @click="remove(selected.node.nodeKey)"
@@ -363,6 +414,8 @@ import { newDecisionTable } from './decisionTableModel'
 import TaskBindingEditor from './TaskBindingEditor.vue'
 import ApprovalDefinitionSelect, { type ApprovalDefinitionChoice } from './ApprovalDefinitionSelect.vue'
 import GateReferencesEditor from './GateReferencesEditor.vue'
+import NodeDeliverableChecklist from './NodeDeliverableChecklist.vue'
+import { lifecycleStageOptions } from './lifecycleStageOptions'
 import { hasPermission } from '@/directives/permission/hasPermi'
 import DefinitionSelect from './DefinitionSelect.vue'
 const props = defineProps<{
@@ -390,15 +443,8 @@ const failure = ref('')
 const strategyEditor = ref<InstanceType<typeof DecisionTableEditor>>()
 const pendingBindings = reactive(new Map<string, BindingSelection>())
 let session = createBindingSaveSession()
-const lifecycleStages = [
-  { code: 'S0', name: '项目立项与指派' },
-  { code: 'S1', name: '工前准备' },
-  { code: 'S2', name: '施工计划' },
-  { code: 'S3', name: '实施方案编审' },
-  { code: 'S4', name: '实施部署' },
-  { code: 'S5', name: '验收交维' },
-  { code: 'S6', name: '项目闭环' }
-]
+/** 标准生命周期阶段选项：取值与名称来自数据字典 pms_project_lifecycle_stage。 */
+const lifecycleStages = computed(lifecycleStageOptions)
 const kindNames = {
   STAGE: '阶段',
   TASK: '任务',
@@ -527,9 +573,17 @@ watch(
   },
   { immediate: true }
 )
+/** PAGE 绑定唯一冻结的内容：应用内路由入口。 */
+const routePathOf = (node: DesignerStageNode | DesignerTaskNode | undefined) => {
+  const binding = node?.workBinding
+  return binding?.type === 'PAGE' ? String(binding.parameters?.routePath ?? '') : ''
+}
+const pageRouteDraft = ref('')
 watch(selectedKey, () => {
   businessOpen.value = false
-  handlingTab.value = runtimeNode.value?.workBinding?.type === 'APPROVAL' ? 'APPROVAL' : 'BUSINESS'
+  handlingTab.value = runtimeNode.value?.workBinding?.type === 'APPROVAL' ? 'APPROVAL'
+    : runtimeNode.value?.workBinding?.type === 'PAGE' ? 'PAGE' : 'BUSINESS'
+  pageRouteDraft.value = routePathOf(runtimeNode.value)
 })
 watch(stageKey, () => {
   references.clear()
@@ -620,7 +674,7 @@ const setPureSubscription = async () => {
   } catch { return }
   if (runtimeNode.value !== node || props.content !== document || nodeReadonly.value || pendingBindings.has(node.nodeKey)
     || !node.execution?.subscriptions?.length || node.execution.operations?.length || hasOperationContract(node)) return
-  delete node.workBinding; delete node.permission; delete node.execution.presentation
+  Reflect.deleteProperty(node, 'workBinding'); Reflect.deleteProperty(node, 'permission'); delete node.execution.presentation
   node.completionRuleKey = createVersionRule(document, `${node.name} · 结果订阅完成`, {
     predicate: 'CONSTANT', parameters: { value: true }
   }).key
@@ -669,7 +723,7 @@ const setApprovalBinding = async (definition: ApprovalDefinitionChoice) => {
   }
   if (task.source) Reflect.deleteProperty(task.source, 'workBindingRevisionId')
 }
-const setStageHandling = (value: 'NONE' | 'MANUAL') => {
+const setStageHandling = (value: 'NONE' | 'MANUAL' | 'PAGE') => {
   if (nodeReadonly.value || selected.value?.kind !== 'STAGE' || !runtimeNode.value) return
   if (!requireOperationRemoval(runtimeNode.value)) return
   pendingBindings.delete(runtimeNode.value.nodeKey)
@@ -677,10 +731,44 @@ const setStageHandling = (value: 'NONE' | 'MANUAL') => {
   if (value === 'NONE') {
     Reflect.deleteProperty(runtimeNode.value, 'workBinding')
     Reflect.deleteProperty(runtimeNode.value, 'permission')
-  } else {
+  } else if (value === 'MANUAL') {
     runtimeNode.value.workBinding = { type: 'STAGE_NATIVE', parameters: {} }
     runtimeNode.value.permission = { policyRef: 'PROJECT_STAGE_NATIVE_DEFAULT' }
+  } else {
+    // 页面路由与手工办理同权限基线；路由在输入后保存，缺省路由在生效校验中被拒绝。
+    runtimeNode.value.workBinding = { type: 'PAGE', parameters: { routePath: pageRouteDraft.value.trim() } }
+    runtimeNode.value.permission = { policyRef: 'PROJECT_STAGE_NATIVE_DEFAULT' }
+    pageRouteDraft.value = routePathOf(runtimeNode.value)
   }
+}
+const applyPageRoute = async () => {
+  const node = runtimeNode.value
+  if (!node || nodeReadonly.value) return
+  const route = pageRouteDraft.value.trim()
+  if (!route.startsWith('/')) {
+    failure.value = '页面路由必须是应用内路径，并以 / 开头'
+    return
+  }
+  if (node.workBinding?.type !== 'PAGE') {
+    if (!requireOperationRemoval(node)) return
+    try {
+      await ElMessageBox.confirm(
+        `“${node.name}”将使用页面路由办理：仅冻结跳转入口，完成仍按现有完成规则判定。`,
+        '配置页面路由',
+        { type: 'warning', confirmButtonText: '确认配置', cancelButtonText: '取消' }
+      )
+    } catch {
+      return
+    }
+    if (runtimeNode.value !== node || nodeReadonly.value) return
+    pendingBindings.delete(node.nodeKey)
+    if (selected.value?.kind === 'STAGE' && !node.permission)
+      node.permission = { policyRef: 'PROJECT_STAGE_NATIVE_DEFAULT' }
+    if (node.source) Reflect.deleteProperty(node.source, 'workBindingRevisionId')
+    businessOpen.value = false
+  }
+  node.workBinding = { type: 'PAGE', parameters: { routePath: route } }
+  emit('dirty-change', true)
 }
 const setTaskManualHandling = async () => {
   if (nodeReadonly.value || selected.value?.kind !== 'TASK') return
@@ -726,7 +814,7 @@ const remove = async (key: string) => {
   }
   try {
     await ElMessageBox.confirm(
-      `删除“${item.node.name}”及其在准入条件中的引用${item.kind === 'STAGE' ? '，阶段内任务也将一并移除' : ''}？`,
+      `删除“${item.node.name}”及其在准入条件中的引用${item.kind === 'STAGE' ? '，阶段内任务与阶段交付件也将一并移除' : ''}？`,
       '删除设计节点'
     )
   } catch {
@@ -754,10 +842,14 @@ const remove = async (key: string) => {
       node.parentTaskCode = undefined
   for (const asset of [
     ...props.content.milestones,
-    ...props.content.deliverables,
     ...props.content.gates
   ])
     if (item.kind === 'STAGE' && asset.stageCode === item.node.code) asset.stageCode = undefined
+  // 交付件必须归属已配置阶段；删除阶段时其交付件一并删除，不留无法归属的清单项。
+  if (item.kind === 'STAGE')
+    props.content.deliverables = props.content.deliverables.filter(
+      (node) => node.stageCode !== item.node.code
+    )
   for (const asset of props.content.deliverables)
     if (asset.taskCode && removedTaskCodes.has(asset.taskCode)) asset.taskCode = undefined
   for (const id of removed) {

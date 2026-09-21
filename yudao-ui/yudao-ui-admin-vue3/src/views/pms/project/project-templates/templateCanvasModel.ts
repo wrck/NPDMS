@@ -22,6 +22,39 @@ export const allNodes = (
   ...document.gates.map((node) => ({ kind: 'GATE' as const, node }))
 ]
 
+/** 画布新建节点的编码前缀与默认名：唯一定义，交付件清单与画布共用。 */
+const NODE_PREFIXES = { STAGE: 'STG', TASK: 'TSK', MILESTONE: 'MS', DELIVERABLE: 'DEL', GATE: 'GATE' } as const
+const DEFAULT_NODE_NAMES = {
+  STAGE: '新阶段',
+  TASK: '新任务',
+  MILESTONE: '新里程碑',
+  DELIVERABLE: '新交付件',
+  GATE: '新门禁'
+} as const
+/** 在既有编码集合上生成不冲突的 `前缀+序号` 编码。 */
+const nextCode = (keys: Set<string>, prefix: string) => {
+  let sequence = 1
+  while (keys.has(`${prefix}${sequence}`)) sequence++
+  return `${prefix}${sequence}`
+}
+
+export function createDeliverable(
+  document: TemplateDesignerDocument,
+  stageCode: string,
+  taskCode?: string
+): TemplateDesignerDocument['deliverables'][number] {
+  const node: TemplateDesignerDocument['deliverables'][number] = {
+    nodeKey: `deliverable:${crypto.randomUUID()}`,
+    code: nextCode(new Set(document.deliverables.map((item) => item.code)), NODE_PREFIXES.DELIVERABLE),
+    name: DEFAULT_NODE_NAMES.DELIVERABLE,
+    stageCode,
+    ...(taskCode ? { taskCode } : {}),
+    required: false
+  }
+  document.deliverables.push(node)
+  return node
+}
+
 export function createDeliveryNode(
   document: TemplateDesignerDocument,
   kind: DeliveryNodeKind,
@@ -30,21 +63,11 @@ export function createDeliveryNode(
   point: { x: number; y: number }
 ): DeliveryNode {
   if (kind === 'TASK' && !stageCode) throw new Error('请先进入阶段任务画布')
-  const prefixes = { STAGE: 'STG', TASK: 'TSK', MILESTONE: 'MS', DELIVERABLE: 'DEL', GATE: 'GATE' }
-  const names = {
-    STAGE: '新阶段',
-    TASK: '新任务',
-    MILESTONE: '新里程碑',
-    DELIVERABLE: '新交付件',
-    GATE: '新门禁'
-  }
   const keys = new Set(allNodes(document).map((item) => item.node.code))
-  let sequence = 1
-  while (keys.has(`${prefixes[kind]}${sequence}`)) sequence++
   const base = {
     nodeKey: `${kind.toLowerCase()}:${suggested ?? crypto.randomUUID()}`,
-    code: `${prefixes[kind]}${sequence}`,
-    name: names[kind]
+    code: nextCode(keys, NODE_PREFIXES[kind]),
+    name: DEFAULT_NODE_NAMES[kind]
   }
   let node: DeliveryNode
   if (kind === 'STAGE' || kind === 'TASK') {

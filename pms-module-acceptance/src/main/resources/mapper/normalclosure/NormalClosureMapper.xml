@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.NormalClosureMapper">
+<mapper namespace="cn.iocoder.yudao.module.pms.acceptance.dal.mysql.normalclosure.NormalClosureMapper">
     <select id="selectLatestApplication" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO">
         SELECT * FROM acc_project_closure WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
           AND deleted=b'0' ORDER BY submitted_at DESC,id DESC LIMIT 1

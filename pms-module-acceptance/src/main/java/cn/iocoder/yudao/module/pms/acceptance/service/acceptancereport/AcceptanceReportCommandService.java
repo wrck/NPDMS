@@ -66,6 +66,7 @@ public class AcceptanceReportCommandService {
     private final FileArtifactApi fileArtifactApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final ProjectScopeApi projectScopeApi;
+    private final cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi projectAcceptanceContext;
 
     @Transactional(rollbackFor = Exception.class)
     public ReportResult createDraft(CreateDraftCommand command, Actor actor) {
@@ -79,6 +80,7 @@ public class AcceptanceReportCommandService {
         row.setAcceptanceId(activity.getId());
         row.setReportVersionNo(versionNo);
         row.setReportStatus("DRAFT");
+        if (IndependentAcceptancePolicy.direct(activity)) row.setAcceptanceRuleSnapshot(activity.getRuleSnapshot());
         applyContent(row, command.content());
         row.setUploaderUserId(actor.userId());
         row.setUploadTime(LocalDateTime.now());
@@ -136,7 +138,10 @@ public class AcceptanceReportCommandService {
         }
         requireCompleteContent(draft);
         List<FileArtifactVersionFact> files = lockAttachmentSet(draft.getId());
-        if ("FINAL".equals(activity.getAcceptanceType())) requireCurrentPreliminary(activity.getProjectId(), actor.tenantId());
+        if (IndependentAcceptancePolicy.direct(activity)) {
+            if (!IndependentAcceptancePolicy.validSnapshot(draft.getAcceptanceRuleSnapshot())) throw exception(ACC_REPORT_STATE_INVALID);
+            IndependentAcceptancePolicy.reportPublished(activity, draft.getConclusionCode());
+        } else if ("FINAL".equals(activity.getAcceptanceType())) requireCurrentPreliminary(activity.getProjectId(), actor.tenantId());
         LocalDateTime now = LocalDateTime.now();
         String changeType = current == null ? "EFFECTIVE" : "REPLACED";
         if (current != null) {
@@ -173,6 +178,7 @@ public class AcceptanceReportCommandService {
         current.setUpdater(String.valueOf(actor.userId()));
         if (reportMapper.updateById(current) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         activity.setCurrentReportVersionId(null);
+        if (IndependentAcceptancePolicy.direct(activity)) IndependentAcceptancePolicy.reportRevoked(activity);
         activity.setVersion(activity.getVersion() + 1);
         activity.setUpdater(String.valueOf(actor.userId()));
         if (activityMapper.updateById(activity) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
@@ -240,10 +246,24 @@ public class AcceptanceReportCommandService {
     }
 
     private AcceptanceActivityDO lockActivity(Long acceptanceId, Actor actor, Integer expectedVersion) {
+        // Project/tree locks precede native ACC/file locks, matching delivery and rule evaluation.
+        var observed = activityMapper.selectById(acceptanceId);
+        boolean direct = observed != null && IndependentAcceptancePolicy.direct(observed);
+        if (direct) {
+            var query = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Query(
+                    actor.tenantId(), observed.getProjectId(), actor.userId());
+            var inspected = projectAcceptanceContext.inspect(query);
+            var locked = projectAcceptanceContext.lock(query, inspected.projectVersion(), inspected.treeVersion());
+            if (!"ACTIVE".equals(locked.lifecycleStatus())) throw exception(ACC_REPORT_STATE_INVALID);
+        }
         AcceptanceActivityDO row = activityMapper.selectByIdForUpdate(
                 new AcceptanceActivityIdLockQuery(actor.tenantId(), acceptanceId));
         if (row == null) throw exception(ACC_REPORT_NOT_EXISTS);
-        if (!Objects.equals(row.getVersion(), expectedVersion) || !"PENDING".equals(row.getActivityStatus())) {
+        if (!Objects.equals(row.getVersion(), expectedVersion)) throw exception(ACC_REPORT_VERSION_CONFLICT);
+        if (IndependentAcceptancePolicy.direct(row)) {
+            if (!direct || !Objects.equals(row.getProjectId(), observed.getProjectId())) throw exception(ACC_REPORT_VERSION_CONFLICT);
+            IndependentAcceptancePolicy.requireMutable(row);
+        } else if (!"PENDING".equals(row.getActivityStatus())) {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
         }
         try {
@@ -284,9 +304,20 @@ public class AcceptanceReportCommandService {
     private PlatformCommandExecutionApi.SuccessFacts successFacts(ReportResult result, Actor actor) {
         AcceptanceActivityDO activity = activityMapper.selectById(result.acceptanceId());
         AcceptanceReportVersionDO report = reportMapper.selectById(result.reportVersionId());
-        if (activity == null || activity.getDeliverableId() == null || report == null || report.getPublisherUserId() == null) {
+        if (activity == null || report == null || report.getPublisherUserId() == null) {
             throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
         }
+        if (IndependentAcceptancePolicy.direct(activity)) {
+            var event = new cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.event.ProjectAcceptanceReportChanged(
+                    UUID.randomUUID().toString(), actor.tenantId(), activity.getProjectId(), activity.getId(), report.getId(),
+                    result.changeType(), actor.userId());
+            return new PlatformCommandExecutionApi.SuccessFacts("ACCEPTANCE_REPORT_" + result.changeType(),
+                    "AcceptanceActivity", activity.getId().toString(), actor.correlationId(), JsonUtils.toJsonString(result),
+                    List.of(new PlatformCommandExecutionApi.BusinessEvent(event.eventId(),
+                            cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.event.ProjectAcceptanceReportChanged.EVENT_TYPE,
+                            JsonUtils.toJsonString(event))));
+        }
+        if (activity.getDeliverableId() == null) throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
         List<FileArtifactVersionFact> files = "REVOKED".equals(result.changeType()) ? List.of()
                 : attachmentMapper.selectByReportVersion(report.getId()).stream().map(this::toFact).toList();
         String eventId = UUID.randomUUID().toString();

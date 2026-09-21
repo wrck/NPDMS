@@ -3,14 +3,14 @@
     <el-skeleton v-if="loading" :rows="5" animated />
     <el-empty v-else-if="!versions.length" description="尚无报告版本" />
     <el-timeline v-else>
-      <el-timeline-item v-for="item in versions" :key="item.id" :timestamp="item.effectiveFrom || '草稿未生效'" placement="top">
+      <el-timeline-item v-for="item in versions" :key="item.id" :timestamp="item.effectiveFrom == null ? '草稿未生效' : formatDate(new Date(item.effectiveFrom))" placement="top">
         <article class="version-card">
           <div class="version-heading">
             <div><strong>V{{ item.reportVersionNo }}</strong><span>{{ statusLabel(item.reportStatus) }}</span></div>
             <el-tag :type="archiveTag(item.archiveStatus)">{{ archiveStatusLabel(item.archiveStatus) }}</el-tag>
           </div>
           <dl class="version-facts">
-            <div><dt>验收时间</dt><dd>{{ item.acceptanceTime || '未填写' }}</dd></div>
+            <div><dt>验收时间</dt><dd>{{ item.acceptanceTime == null ? '未填写' : formatDate(new Date(item.acceptanceTime)) }}</dd></div>
             <div><dt>验收人</dt><dd>{{ item.acceptorName || '未填写' }}</dd></div>
             <div><dt>结论</dt><dd>{{ item.conclusionCode || '未填写' }}</dd></div>
           </dl>
@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
+import { formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { sameBusinessViewId } from '@/api/pms/platform/business-view/ids'

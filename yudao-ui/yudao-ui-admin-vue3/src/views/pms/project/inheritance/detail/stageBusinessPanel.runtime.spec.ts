@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, onUnmounted, ref } from 'vue'
 import StageBusinessPanel from './StageBusinessPanel.vue'
-import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ getStageBusinessContext: vi.fn() }))
 const leave = vi.hoisted(() => vi.fn())
 const ownerUnmounted = vi.hoisted(() => vi.fn())
 const ownerContext = vi.hoisted(() => vi.fn())
+const router = vi.hoisted(() => ({ push: vi.fn() }))
+vi.mock('vue-router', () => ({ useRouter: () => router }))
 vi.mock('@/api/pms/project/stage-business', () => api)
 vi.mock('./StageApprovalPanel.vue', () => ({ default: defineComponent({
   props: ['workbench', 'disabled'],
@@ -73,6 +75,24 @@ it('mounts stage approval in the shared business area and delegates its leave gu
   leave.mockResolvedValue(true); api.getStageBusinessContext.mockRejectedValueOnce(new Error('unavailable'))
   await view.component().refresh(); await flush()
   expect(textOf(view.root)).toContain('阶段审批:101; disabled:true')
+})
+
+const clickButton = async (node: TestNode, label: string) => {
+  const find = (current: TestNode): TestNode | undefined =>
+    current.type === 'button' && textOf(current).includes(label) ? current
+      : current.children.map(find).find(Boolean)
+  const target = find(node)
+  expect(target, label).toBeDefined()
+  await (target!.props!.onClick as () => unknown)(); await flush()
+}
+it('renders a frozen PAGE entry that only navigates without producing facts', async () => {
+  api.getStageBusinessContext.mockResolvedValue({ ...native, bindingType: 'PAGE', routePath: '/pms/survey' })
+  const view = render(); await flush()
+  expect(textOf(view.root)).toContain('本阶段通过专用页面办理业务')
+  expect(textOf(view.root)).toContain('/pms/survey')
+  expect(textOf(view.root)).not.toContain('Owner:')
+  await clickButton(view.root, '打开页面')
+  expect(router.push).toHaveBeenCalledWith('/pms/survey')
 })
 
 it('passes the exact stage execution and retains the Owner page when the same project metadata refreshes', async () => {

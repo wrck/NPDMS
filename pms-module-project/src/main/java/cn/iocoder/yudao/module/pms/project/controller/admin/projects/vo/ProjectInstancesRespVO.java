@@ -117,6 +117,8 @@ public class ProjectInstancesRespVO {
 
     @Data
     public static class DeliverableItem {
+        @Schema(description = "交付件实例ID（ACC应交根）")
+        private Long id;
         @Schema(description = "交付件码")
         private String deliverableCode;
         @Schema(description = "交付件名称（快照）")

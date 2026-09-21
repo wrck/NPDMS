@@ -33,7 +33,7 @@ import java.util.*;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.*;
 
-/** ACC-03/04, PM-03/11: references existing activities only; Q-TPLACC-001 still blocks independent creation. */
+/** References project acceptance facts; template conditions and node progression remain in PROJ. */
 @Service
 @RequiredArgsConstructor
 public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectProvider {
@@ -48,11 +48,80 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
     private final FileArtifactApi fileArtifactApi;
     private final ProjectScopeApi projectScopeApi;
     private final PermissionApi permissionApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions;
+    private final cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource reportResults;
 
     @Override public String ownerContext() { return "ACC"; }
     @Override public String objectType() { return "ACCEPTANCE"; }
-    @Override public Set<String> completionFactCodes() { return Set.of("REPORT_EFFECTIVE"); }
-    @Override public Map<String, String> completionFactLabels() { return Map.of("REPORT_EFFECTIVE", "当前报告证据有效（不等同验收通过）"); }
+    @Override public boolean supportsStageCompletionFacts() { return true; }
+    @Override public Set<String> completionFactCodes() { return Set.of("REPORT_EFFECTIVE", "PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED"); }
+    @Override public Map<String, String> completionFactLabels() { return Map.of("REPORT_EFFECTIVE", "当前报告证据有效（不等同验收通过）",
+            "PRELIMINARY_ACCEPTANCE_PASSED", "初验报告有效且结论通过", "FINAL_ACCEPTANCE_PASSED", "终验报告有效且结论通过"); }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public CompletionFact lockCompletionFact(CompletionContext context, String objectId) {
+        if (context == null || context.execution() == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
+        var execution = executions.lockAndRevalidate(context.execution());
+        return lockedCompletion(context.tenantId(), execution.projectId(), execution.executionId(), objectId);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public CompletionFact lockStageCompletionFact(StageCompletionContext context, String objectId) {
+        if (context == null || context.execution() == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
+        var execution = executions.lockAndRevalidateStage(context.execution());
+        return lockedCompletion(context.tenantId(), execution.projectId(), execution.executionId(), objectId);
+    }
+
+    private CompletionFact lockedCompletion(Long tenant, Long project, Long executionId, String objectId) {
+        var row = activityMapper.selectByIdForUpdate(new AcceptanceActivityIdLockQuery(tenant, objectId(objectId)));
+        if (row == null || !Objects.equals(row.getTenantId(), tenant) || !Objects.equals(row.getProjectId(), project)
+                || Boolean.TRUE.equals(row.getDeleted()) || row.getVersion() == null) throw exception(ACC_REPORT_NOT_EXISTS);
+        var report = row.getCurrentReportVersionId() == null ? null : reportMapper.selectByIdForUpdate(
+                new AcceptanceReportIdLockQuery(tenant, row.getId(), row.getCurrentReportVersionId()));
+        boolean effective = false;
+        if (report != null) {
+            if (!Objects.equals(report.getTenantId(), tenant) || !Objects.equals(report.getAcceptanceId(), row.getId())
+                    || !Objects.equals(report.getId(), row.getCurrentReportVersionId()) || Boolean.TRUE.equals(report.getDeleted()))
+                throw exception(ACC_REPORT_NOT_EXISTS);
+            var result = reportResults.lockAndInspect(new cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Query(
+                    tenant, project, cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource.TYPE,
+                    row.getId().toString(), report.getId().toString()));
+            effective = result.result() != null && result.result().validity() ==
+                    cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Validity.CURRENT;
+        }
+        var facts = completionFacts(row.getAcceptanceType(), effective, report == null ? null : report.getConclusionCode());
+        return new CompletionFact(row.getId().toString(), "ACC_REPORT_RESULT:" + digest(Arrays.asList(row, report, facts, executionId)),
+                effective, facts);
+    }
+
+    @Override
+    public List<AssociationCandidate> associationCandidates(AssociationContext context, String afterObjectId, int pageSize) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId())
+                || context.projectId() == null || !"PROJECT_ACCEPTANCE".equals(context.targetObjectKey())
+                || pageSize < 1 || pageSize > 100) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
+        var parameters = context.bindingParameters() == null ? null : JsonUtils.parseTree(context.bindingParameters());
+        String type = parameters == null ? "" : parameters.path("acceptanceType").asText("");
+        if (!type.isEmpty() && !Set.of("PRELIMINARY", "FINAL").contains(type)) throw exception(ACC_REPORT_STATE_INVALID);
+        Long after = afterObjectId == null ? null : objectId(afterObjectId);
+        // The project/type unique key bounds this read to two records; task/stage IDs never select the Owner object.
+        return activityMapper.selectByProjectScope(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.AcceptanceActivityScopeQuery(
+                        context.tenantId(), Set.of(context.projectId()))).stream()
+                .filter(row -> Objects.equals(row.getTenantId(), context.tenantId()) && Objects.equals(row.getProjectId(), context.projectId())
+                        && !Boolean.TRUE.equals(row.getDeleted()) && (type.isEmpty() || type.equals(row.getAcceptanceType()))
+                        && (after == null || row.getId() > after))
+                .sorted(Comparator.comparing(AcceptanceActivityDO::getId)).limit(pageSize)
+                .map(row -> new AssociationCandidate(row.getId().toString(), "ACC_ACCEPTANCE:" + row.getId() + ":" + row.getVersion())).toList();
+    }
+
+    private Map<String, Boolean> completionFacts(String type, boolean effective, String conclusion) {
+        boolean passed = effective && "PASS".equals(conclusion);
+        return Map.of("REPORT_EFFECTIVE", effective, "PRELIMINARY_ACCEPTANCE_PASSED", passed && "PRELIMINARY".equals(type),
+                "FINAL_ACCEPTANCE_PASSED", passed && "FINAL".equals(type));
+    }
 
     @Override
     public Set<String> inspectContext(Context context) {
@@ -63,7 +132,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
     @Override
     public List<BusinessObjectFact> candidates(Context context) {
         requireQuery(context, false);
-        // Existing identity is unique by project + PRELIMINARY/FINAL; no new independent activities.
+        // Both entry paths retain the unique project + PRELIMINARY/FINAL identity.
         return queryService.list(context.projectId(), actor(context)).stream()
                 .map(activity -> toFact(context, requireActivity(context, activity, activity.id()), false)).toList();
     }
@@ -88,7 +157,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 || !Objects.equals(row.getTenantId(), context.tenantId())) throw exception(ACC_REPORT_NOT_EXISTS);
         var activity = requireActivity(context, new AcceptanceReportQueryService.ActivityView(row.getId(),
                 row.getProjectId(), row.getProjectTaskId(), row.getExecutionContractId(), row.getAcceptanceType(),
-                row.getActivityStatus(), row.getCurrentReportVersionId(), row.getVersion(), row.getDeliverableId()), id);
+                row.getActivityStatus(), row.getCurrentReportVersionId(), row.getVersion(), row.getDeliverableId(), row.getOriginKind()), id);
         BusinessObjectFact fact = toFact(context, activity, true);
         if (expectedVersion == null || !expectedVersion.equals(fact.factVersion())) {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
@@ -134,24 +203,25 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                     context.projectId(), ProjectScopeApi.ACTION_MANAGE));
             if (relationScope != null && relationScope.fullProjectIds() != null
                     && relationScope.fullProjectIds().contains(context.projectId())) actions.addAll(Set.of("LINK", "UNLINK"));
-            if ("PENDING".equals(activity.activityStatus()) && activity.projectTaskId() != null
+            boolean direct = "DIRECT".equals(activity.originKind());
+            if (direct && Set.of("PENDING", "COMPLETED").contains(activity.activityStatus())
+                    || "PENDING".equals(activity.activityStatus()) && activity.projectTaskId() != null
                     && activity.projectTaskId() > 0 && activity.executionContractId() != null && activity.executionContractId() > 0) {
                 // Existing task-bound draft commands only. MANAGE is not itself a report write action.
                 actions.add("UPDATE");
+                if (direct) actions.add("PUBLISH");
                 if (report != null && "EFFECTIVE".equals(report.getReportStatus()) && report.getEffectiveTo() == null) {
                     actions.add("REVOKE");
                 }
-                // PUBLISH is deliberately absent: the current command hard-codes preliminary acceptance,
-                // and no frozen scope/prerequisite query contract can prove the new configured admission.
+                // Legacy publication retains its original preliminary acceptance prerequisite.
                 // FILE_WRITE is not an existing ACC action; PLT retains its separate upload/reference policy.
             }
         }
-        // No qualification API currently proves conclusion + frozen prerequisites + applicable scope coverage.
-        // Neither COMPLETED nor a non-empty (even PASS) conclusion supplies ACCEPTANCE_PASSED.
+        // These typed report facts cannot satisfy the other acceptance type. PROJ applies additional template conditions.
         return new BusinessObjectFact(activity.id().toString(),
                 ("PRELIMINARY".equals(activity.acceptanceType()) ? "初验" : "终验") + " #" + activity.id(),
                 "ACC_ACCEPTANCE:v1:" + digest(Arrays.asList(activity, report, files, effective, artifacts)),
-                actions, Map.of("REPORT_EFFECTIVE", effective), artifacts);
+                actions, completionFacts(activity.acceptanceType(), effective, report == null ? null : report.getConclusionCode()), artifacts);
     }
 
     private AcceptanceReportVersionDO currentReport(Context context, AcceptanceReportQueryService.ActivityView activity,
@@ -175,18 +245,17 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
         if (attachments.isEmpty()) return List.of();
         var key = new FileReferenceSetKey("ACC", "ACCEPTANCE_REPORT_VERSION", report.getId().toString(),
                 "ACCEPTANCE_REPORT_ATTACHMENT");
-        List<FileReferenceSetFact> sets;
+        List<FileReferenceSetFact> sets = fileArtifactApi.inspectReferenceSets(
+                new FileReferenceSetCollectionQuery(List.of(key), FileActionCodes.READ));
+        if (sets == null || sets.size() != 1 || !key.equals(sets.getFirst().key()))
+            throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
         if (lock) {
-            var expected = attachments.stream().map(a -> new FileArtifactVersionFact(a.getFileArtifactId(),
-                    a.getFileVersionNo(), a.getReferenceKey(), null, null, null, null, a.getFileHash(),
-                    "AVAILABLE", "ACTIVE", new FileFactVersion(a.getArtifactVersion(), a.getReferenceVersion(),
-                    a.getAvailabilityVersion()), a.getScopeVersion()))
-                    .sorted(Comparator.comparing(FileArtifactVersionFact::referenceKey)).toList();
+            // PLT compares the complete observed facts, including metadata absent from ACC's frozen tuple.
+            // matchesAttachments below still checks the locked facts against that original immutable tuple.
+            var observed = sets.getFirst();
             sets = fileArtifactApi.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(
-                    List.of(new FileReferenceSetExpectation(key, expected.getFirst().scopeVersion(), expected)),
+                    List.of(new FileReferenceSetExpectation(key, observed.scopeVersion(), observed.activeFacts())),
                     FileActionCodes.READ));
-        } else {
-            sets = fileArtifactApi.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key), FileActionCodes.READ));
         }
         if (sets == null || sets.size() != 1 || !key.equals(sets.getFirst().key())) {
             throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);

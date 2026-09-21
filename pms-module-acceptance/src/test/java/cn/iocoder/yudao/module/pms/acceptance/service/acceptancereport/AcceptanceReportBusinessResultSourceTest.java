@@ -17,7 +17,9 @@ import static org.mockito.Mockito.*;
 class AcceptanceReportBusinessResultSourceTest {
     private final AcceptanceActivityMapper activities = mock(AcceptanceActivityMapper.class);
     private final AcceptanceReportVersionMapper reports = mock(AcceptanceReportVersionMapper.class);
-    private final AcceptanceReportBusinessResultSource source = new AcceptanceReportBusinessResultSource(activities,reports);
+    private final AcceptanceReportAttachmentMapper attachments = mock(AcceptanceReportAttachmentMapper.class);
+    private final cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence = mock(cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.class);
+    private final AcceptanceReportBusinessResultSource source = new AcceptanceReportBusinessResultSource(activities,reports,attachments,fileEvidence);
     private final AcceptanceActivityDO activity = new AcceptanceActivityDO();
     private final AcceptanceReportVersionDO report = new AcceptanceReportVersionDO();
     private final Query exact = new Query(1L,3L,AcceptanceReportBusinessResultSource.TYPE,"100","40");
@@ -31,6 +33,24 @@ class AcceptanceReportBusinessResultSourceTest {
         when(activities.selectById(100L)).thenReturn(activity); when(reports.selectById(40L)).thenReturn(report);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
+
+    @Test void lockedDeliveryEvidenceRequiresTheExactPublishedFilesAndNeverFallsBackToAnotherRevision() {
+        when(activities.selectByIdForUpdate(any())).thenReturn(activity);
+        when(reports.selectByIdForUpdate(any())).thenReturn(report);
+        report.setAcceptanceTime(report.getEffectiveFrom()); report.setConclusionCode("PASS"); report.setAcceptorName("验收人");
+        var row = new AcceptanceReportAttachmentDO(); row.setTenantId(1L); row.setReportVersionId(40L);
+        row.setFileArtifactId(71L); row.setFileVersionNo(2); row.setReferenceKey(UUID.randomUUID().toString());
+        row.setFileHash("a".repeat(64)); row.setArtifactVersion(3); row.setAvailabilityVersion(4); row.setReferenceVersion(5);
+        when(attachments.selectByReportVersion(40L)).thenReturn(java.util.List.of(row));
+        when(fileEvidence.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Fact(true, "VALID", 3, 4, 5));
+        assertEquals(Validity.CURRENT, source.lockAndInspect(exact).result().validity());
+        when(fileEvidence.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Fact(false, "FILE_UNAVAILABLE", 3, 4, 5));
+        assertEquals(Status.UNAVAILABLE, source.lockAndInspect(exact).status());
+        when(fileEvidence.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Fact(true, "VALID", 3, 4, 6));
+        assertEquals(Status.UNAVAILABLE, source.lockAndInspect(exact).status());
+        when(attachments.selectByReportVersion(40L)).thenReturn(java.util.List.of());
+        assertEquals(Status.UNAVAILABLE, source.lockAndInspect(exact).status());
+    }
 
     @Test void reportResultDoesNotChangeAcceptanceCompletion() {
         var found = source.inspect(exact).result();

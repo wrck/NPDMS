@@ -319,6 +319,7 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待提交', tone: 'yellow' }, 2: { label: '审批中', tone: 'blue' }, 3: { label: '已通过', tone: 'green' }, 4: { label: '已驳回', tone: 'red' }, 5: { label: '已归档', tone: 'gray' } },
     actions: [
       { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => AcceptanceApi.submitAcceptance(r.id), confirm: '提交该验收？' },
+      { label: '开始审批', type: 'warning', show: (r) => r.status === 1, run: (r) => AcceptanceApi.approveAcceptance(r.id), confirm: '开始审批该验收？' },
       { label: '通过', type: 'success', show: (r) => r.status === 2, run: (r) => AcceptanceApi.passAcceptance(r.id), confirm: '通过该验收？' },
       { label: '驳回', type: 'danger', show: (r) => r.status === 2, run: (r) => AcceptanceApi.rejectAcceptance(r.id), confirm: '驳回该验收？' }
     ]
@@ -361,7 +362,8 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     ],
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待审批', tone: 'yellow' }, 2: { label: '审批中', tone: 'blue' }, 3: { label: '已通过', tone: 'green' }, 4: { label: '已驳回', tone: 'red' }, 5: { label: '已归档', tone: 'gray' } },
     actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id), confirm: '提交该闭环申请？' },
+      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: async (r) => ProjectClosureApi.submitProjectClosure(r.id, await ProjectClosureApi.getProjectTreeVersion(r.projectId)), confirm: '提交该闭环申请？' },
+      { label: '开始审批', type: 'warning', show: (r) => r.status === 1, run: (r) => ProjectClosureApi.startApproveProjectClosure(r.id), confirm: '开始审批该闭环申请？' },
       { label: '通过', type: 'success', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.passProjectClosure(r.id), confirm: '通过该闭环申请？' },
       { label: '归档', type: 'info', show: (r) => r.status === 3, run: (r) => ProjectClosureApi.archiveProjectClosure(r.id), confirm: '归档该闭环记录？' }
     ]

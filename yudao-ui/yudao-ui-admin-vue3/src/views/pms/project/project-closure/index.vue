@@ -265,7 +265,13 @@ const handleAction = async (
   actionText: string
 ) => {
   await message.confirm(`确认${actionText}项目闭环【${row.code}】？`)
-  await (ProjectClosureApi as any)[action](row.id!)
+  if (action === 'submitProjectClosure') {
+    // 后端提交以项目树版本做乐观锁（If-Match），先取当前树版本
+    const treeVersion = await ProjectClosureApi.getProjectTreeVersion(row.projectId!)
+    await ProjectClosureApi.submitProjectClosure(row.id!, treeVersion)
+  } else {
+    await (ProjectClosureApi as any)[action](row.id!)
+  }
   message.success(`${actionText}成功`)
   await load()
 }

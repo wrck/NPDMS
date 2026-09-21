@@ -17,7 +17,7 @@ public class TaskExecutionContractFactory {
     public static final String TASK_NATIVE = TaskNativeCompletionPolicy.WORK_BINDING_TYPE;
 
     private static final Set<String> SUPPORTED_TYPES = Set.of(
-            TASK_NATIVE, "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE", "RESULT_SUBSCRIPTION");
+            TASK_NATIVE, "PAGE", "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE", "RESULT_SUBSCRIPTION");
 
     public ProjectTaskExecutionContractDO create(Long projectTaskId, Long templateTaskDefinitionId,
                                                   TemplateDefinitionContent.TaskDef definition,
@@ -129,7 +129,9 @@ public class TaskExecutionContractFactory {
     }
 
     private void validateBindingTarget(TemplateDefinitionContent.TaskDef definition) {
-        if (TASK_NATIVE.equals(definition.getWorkBindingTypeCode())) {
+        // PAGE 路由保存在绑定配置参数中，不得占用Owner业务目标列。
+        if (TASK_NATIVE.equals(definition.getWorkBindingTypeCode())
+                || "PAGE".equals(definition.getWorkBindingTypeCode())) {
             if (StringUtils.isNotBlank(definition.getTargetContextCode())
                     || StringUtils.isNotBlank(definition.getTargetObjectType())
                     || StringUtils.isNotBlank(definition.getTargetObjectKey())

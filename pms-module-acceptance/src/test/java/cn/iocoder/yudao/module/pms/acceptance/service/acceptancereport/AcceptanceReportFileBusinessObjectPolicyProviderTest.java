@@ -72,6 +72,20 @@ class AcceptanceReportFileBusinessObjectPolicyProviderTest {
         assertFalse(fact.allowed());
     }
 
+    @Test void independentDraftAllowsFilesOnlyWithItsFrozenProjectReportPolicy() {
+        when(reportVersionMapper.selectFileScope(any())).thenReturn(new AcceptanceReportFileScope(
+                900L, 700L, 100L, null, "DRAFT", "DIRECT", IndependentAcceptancePolicy.SNAPSHOT));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 8L, Set.of(100L), Set.of()));
+        var provider = new AcceptanceReportFileBusinessObjectPolicyProvider(reportVersionMapper, projectScopeApi);
+        assertTrue(provider.inspect(query("900", "ACCEPTANCE_REPORT_ATTACHMENT", FileActionCodes.UPLOAD)).allowed());
+        when(reportVersionMapper.selectFileScope(any())).thenReturn(new AcceptanceReportFileScope(
+                900L, 700L, 100L, null, "DRAFT", "DIRECT", null));
+        assertFalse(provider.inspect(query("900", "ACCEPTANCE_REPORT_ATTACHMENT", FileActionCodes.UPLOAD)).allowed());
+        when(reportVersionMapper.selectFileScope(any())).thenReturn(new AcceptanceReportFileScope(
+                900L, 700L, 100L, null, "DRAFT", "LEGACY_TASK", IndependentAcceptancePolicy.SNAPSHOT));
+        assertFalse(provider.inspect(query("900", "ACCEPTANCE_REPORT_ATTACHMENT", FileActionCodes.UPLOAD)).allowed());
+    }
+
     private FileBusinessObjectPolicyQuery query(String objectId, String purpose, String action) {
         return new FileBusinessObjectPolicyQuery(7L, 55L, "ACC", "ACCEPTANCE_REPORT_VERSION", objectId,
                 purpose, "7a5d9177-2f67-4bb5-a211-b0b612e72e5f", action);

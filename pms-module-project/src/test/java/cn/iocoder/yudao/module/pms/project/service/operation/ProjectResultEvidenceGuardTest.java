@@ -25,6 +25,48 @@ class ProjectResultEvidenceGuardTest {
     }
     @AfterEach void after(){f.close();}
     private ProjectResultEvidenceGuard.Proof check(){return tx.execute(status->guard.lock(f.recovery.snapshot,f.recovery.plan,f.recovery.round));}
+    private ProjectResultEvidenceGuard.Proof closureCheck(){return tx.execute(status->guard.revalidateCompleted(f.recovery.snapshot,f.recovery.plan,f.recovery.round));}
+    private void completeWithCurrentEvidence() {
+        var proof=check();assertTrue(proof.ready());
+        f.recovery.round.setResultSnapshot(JsonUtils.toJsonString(Map.of("subscriptionEvidence",proof.receipts())));
+        f.recovery.round.setStatus("DONE");f.recovery.round.setEndedAt(java.time.LocalDateTime.of(2026,9,20,12,0));
+    }
+
+    @Test void closureRevalidatesTheCompletedReceiptWithoutChangingHistoryOrWeakeningTheCompletionWriter() {
+        f.seed(1,"o","r",null,Validity.CURRENT);f.tick();completeWithCurrentEvidence();
+        String original=f.recovery.round.getResultSnapshot();
+        assertThrows(IllegalStateException.class,this::check);
+        assertTrue(closureCheck().ready());
+        assertEquals(original,f.recovery.round.getResultSnapshot());assertEquals("DONE",f.recovery.round.getStatus());
+        f.recovery.plan.setStatus("SUPERSEDED");
+        assertTrue(closureCheck().ready(),"completed rounds retain their original frozen plan after revision");
+    }
+    @Test void closureWaitsForSourceRecoveryEvenWhenTheTaskIsDone() {
+        f.seed(1,"o","r",null,Validity.CURRENT);f.tick();completeWithCurrentEvidence();f.recovery.committed=8;
+        assertEquals("RESULT_EVIDENCE_CHANGED",closureCheck().reason());
+        assertFalse(closureCheck().ready());assertEquals("DONE",f.recovery.round.getStatus());
+    }
+    @Test void aNewSatisfiedResultCannotReplaceInvalidatedCompletionEvidenceAtClosure() {
+        f.seed(1,"o1","r1",null,Validity.CURRENT);f.tick();completeWithCurrentEvidence();
+        String original=f.recovery.round.getResultSnapshot();
+        f.advanceEpoch(8);f.observations.put("r1",f.recovery.result("o1","r1",Validity.REVOKED));
+        f.seed(2,"o2","r2",null,Validity.CURRENT);f.tick();
+        assertEquals("SATISFIED",f.scan().getStatus());
+        assertEquals("COMPLETION_RESULT_EVIDENCE_INVALIDATED",closureCheck().reason());
+        assertEquals(original,f.recovery.round.getResultSnapshot());
+    }
+    @Test void doneWithoutItsOriginalReceiptDoesNotBecomeAClosureSuccess() {
+        f.seed(1,"o","r",null,Validity.CURRENT);f.tick();completeWithCurrentEvidence();
+        f.recovery.round.setResultSnapshot("{}");
+        assertEquals("COMPLETION_RESULT_EVIDENCE_MISSING",closureCheck().reason());
+    }
+    @Test void aCompletedReceiptCannotBorrowAnotherExecution() {
+        f.seed(1,"o","r",null,Validity.CURRENT);f.tick();var actual=check().receipts().getFirst();completeWithCurrentEvidence();
+        var other=new ResultEvidenceReceipt(actual.subscriptionId(),actual.subscriptionKey(),actual.scanId(),actual.planVersionId(),
+                actual.executionId()+1,actual.contractId(),actual.subscriptionVersion(),actual.baselineSequence(),actual.throughSequence());
+        f.recovery.round.setResultSnapshot(JsonUtils.toJsonString(Map.of("subscriptionEvidence",List.of(other))));
+        assertThrows(IllegalStateException.class,this::closureCheck);
+    }
 
     @Test void onlyACompleteSatisfiedScanCanBePinnedIntoTheCurrentRound() {
         assertFalse(check().ready());f.seed(1,"o","r",null,Validity.CURRENT);f.tick();

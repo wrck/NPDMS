@@ -15,6 +15,9 @@ public class SatisfactionCollectionTaskDO extends TenantBaseDO {
     private Long projectId;
     private Long projectTaskId;
     private Long deliverableId;
+    private String originKind;
+    private String originKey;
+    private String originSnapshot;
     private String sourceOwnerContext;
     private String sourceObjectType;
     private String sourceObjectId;

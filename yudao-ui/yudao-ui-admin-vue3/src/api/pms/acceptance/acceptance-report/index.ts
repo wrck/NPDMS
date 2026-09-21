@@ -5,7 +5,8 @@ import { acceptanceReportResult } from './operationResults'
 export type AcceptanceType = 'PRELIMINARY' | 'FINAL'
 export type ReportStatus = 'DRAFT' | 'EFFECTIVE' | 'SUPERSEDED' | 'REVOKED'
 export interface AcceptanceActivityVO {
-  id: number; projectId: number; projectTaskId: number; executionContractId: number
+  id: number; projectId: number; projectTaskId: number | null; executionContractId: number | null
+  originKind?: 'DIRECT' | 'LEGACY_TASK'
   deliverableId?: number | string | null
   acceptanceType: AcceptanceType; activityStatus: string; currentReportVersionId?: number; version: number
 }
@@ -15,13 +16,13 @@ export interface ReportAttachmentVO {
 }
 export interface AcceptanceReportVersionVO {
   id: number; acceptanceId: number; reportVersionNo: number; reportStatus: ReportStatus
-  acceptanceTime?: string; conclusionCode?: string; conclusionText?: string; acceptorName?: string
-  previousVersionId?: number; effectiveFrom?: string; effectiveTo?: string; uploaderUserId: number
+  acceptanceTime?: number; conclusionCode?: string; conclusionText?: string; acceptorName?: string
+  previousVersionId?: number; effectiveFrom?: number; effectiveTo?: number; uploaderUserId: number
   publisherUserId?: number; archiveStatus?: string; archiveFailureCode?: string; archiveRetryCount?: number
   attachments: ReportAttachmentVO[]
 }
 export interface DraftContent {
-  expectedReportVersionNo?: number; acceptanceTime?: string; conclusionCode?: string; conclusionText?: string; acceptorName?: string
+  expectedReportVersionNo?: number; acceptanceTime?: number | string; conclusionCode?: string; conclusionText?: string; acceptorName?: string
 }
 export interface ReportCommandResult {
   acceptanceId: number; reportVersionId: number; reportVersionNo: number; reportStatus: ReportStatus
@@ -30,6 +31,10 @@ export interface ReportCommandResult {
   activityVersion?: number
 }
 const baseUrl = '/api/v1/pms/acceptances'
+export interface IndependentAcceptanceContext { projectId: number; projectVersion: number; treeVersion: number; lifecycleStatus: string }
+export interface IndependentAcceptanceCreate { projectId: number; acceptanceType: AcceptanceType; expectedProjectVersion: number; expectedTreeVersion: number }
+export const getIndependentContext = (projectId: number) => request.get<IndependentAcceptanceContext>({ url: `${baseUrl}/independent/context`, params: { projectId } })
+export const createIndependent = (data: IndependentAcceptanceCreate, key: string) => request.post<{ acceptanceId: number; projectId: number; acceptanceType: AcceptanceType; created: boolean }>({ url: `${baseUrl}/independent`, data, headers: { 'Idempotency-Key': key } })
 export const getActivities = (projectId?: number) => request.get<AcceptanceActivityVO[]>({ url: baseUrl, params: { projectId } })
 export const getActivity = (acceptanceId: number) => request.get<AcceptanceActivityVO>({ url: `${baseUrl}/${acceptanceId}` })
 export const getReportVersions = (acceptanceId: number) => request.get<AcceptanceReportVersionVO[]>({ url: `${baseUrl}/${acceptanceId}/report-versions` })

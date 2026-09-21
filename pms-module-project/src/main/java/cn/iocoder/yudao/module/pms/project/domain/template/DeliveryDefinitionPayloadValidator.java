@@ -8,7 +8,7 @@ public final class DeliveryDefinitionPayloadValidator {
     private DeliveryDefinitionPayloadValidator() { }
     public static final Set<String> PREDICATES = Set.of("TASK_NATIVE_STATUS", "STAGE_NATIVE_STATUS",
             "TASK", "MILESTONE", "DELIVERABLE", "STATE", "APPROVAL", "PROCESS", "BUSINESS_FACT");
-    public static final Set<String> BINDING_TYPES = Set.of("STAGE_NATIVE", "TASK_NATIVE", "BUSINESS_OBJECT",
+    public static final Set<String> BINDING_TYPES = Set.of("STAGE_NATIVE", "TASK_NATIVE", "PAGE", "BUSINESS_OBJECT",
             "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
 
     public static void validate(DeliveryDefinitionKind kind, Integer schemaVersion, JsonNode payload,

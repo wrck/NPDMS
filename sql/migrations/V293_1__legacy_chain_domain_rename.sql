@@ -1,4 +1,5 @@
--- V254: 无承接旧链原地对齐领域模型（冻结方案修订：仅保留有明确承接新实现的旧链）
+-- V293.1: 无承接旧链原地对齐领域模型（冻结方案修订：仅保留有明确承接新实现的旧链）
+-- 原编号 V304，因 V294 字段命名对齐已引用本脚本的 proj_ 目标表名，重排至 V294 之前执行。
 -- 承接判定依据 08a 分册 + 新实现存在性核验；表名 RENAME 不改变字段与业务语义。
 -- 有承接保持冻结的旧表（本脚本不动）：pms_acc_acceptance、pms_acc_deliverable_checklist、
 --   pms_acc_project_closure、pms_customer、pms_customer_contact、pms_project、pms_project_task、

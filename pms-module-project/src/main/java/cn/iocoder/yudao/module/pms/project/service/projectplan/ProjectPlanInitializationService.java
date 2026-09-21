@@ -59,7 +59,10 @@ public class ProjectPlanInitializationService {
         var plan = new ProjectPlanVersionDO();
         plan.setTenantId(project.getTenantId()); plan.setProjectId(project.getId()); plan.setRevisionNo(1);
         plan.setStatus("EFFECTIVE"); plan.setSourceTemplateRevisionId(source.getId());
-        plan.setDesignerDocument(source.getDesignerDocument()); plan.setExecutionSnapshot(JsonUtils.toJsonString(published));
+        plan.setDesignerDocument(source.getDesignerDocument());
+        // 计划版本的执行快照必须与发布持久化同形（省略absent键）：运行时mapper为ALWAYS包含，
+        // 显式null会让准入读取时把未配置的JsonNode字段绑定成NullNode，冻结校验随之失真。
+        plan.setExecutionSnapshot(TemplateExecutionSnapshotReader.canonicalJson(published));
         plan.setEffectiveAt(LocalDateTime.now()); plan.setVersion(0);
         if (plans.insert(plan) != 1) throw new IllegalStateException("PROJECT_PLAN_INITIALIZATION_FAILED");
         for (var contract : stageContracts)

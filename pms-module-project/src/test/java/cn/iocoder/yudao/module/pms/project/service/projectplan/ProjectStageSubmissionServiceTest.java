@@ -25,11 +25,10 @@ class ProjectStageSubmissionServiceTest {
     final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     final PermissionApi permissions = mock(PermissionApi.class);
     final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
-    final ProjectRuntimeCoordinator coordinator = mock(ProjectRuntimeCoordinator.class);
     final ProjectMasterMapper projectRows = mock(ProjectMasterMapper.class);
     final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery observations =
             mock(cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery.class);
-    final ProjectStageSubmissionService service = new ProjectStageSubmissionService(projects, plans, executions, scopes, permissions, commands, coordinator, projectRows, observations);
+    final ProjectStageSubmissionService service = new ProjectStageSubmissionService(projects, plans, executions, scopes, permissions, commands, projectRows, observations);
     ProjectNodeExecutionDO round;
     ProjectMasterDO project;
     ProjectPlanVersionDO plan;
@@ -63,7 +62,10 @@ class ProjectStageSubmissionServiceTest {
         verify(executions).submitIfCurrent(argThat(q -> q.executionId().equals(31L) && q.expectedVersion()==1 && q.note().equals("本轮工作已完成")));
         assertFalse(recorded.detailSnapshot().contains("本轮工作已完成"));
         var event = recorded.businessEvents().getFirst(); assertEquals(event.eventId(),JsonUtils.parseTree(event.eventPayload()).path("eventId").asText());
-        verify(coordinator).reevaluate(eq(9L),eq(1L),anyString());
+        var payload = JsonUtils.parseTree(event.eventPayload());
+        assertEquals(7L, payload.path("tenantId").asLong());
+        assertEquals(9L, payload.path("projectId").asLong());
+        assertEquals(1L, payload.path("actorId").asLong());
     }
     @Test void cannotUseAnOldRoundOrOverwriteSubmittedEvidence() {
         assertThrows(RuntimeException.class,() -> service.submit(command(0),1L,"intent"));

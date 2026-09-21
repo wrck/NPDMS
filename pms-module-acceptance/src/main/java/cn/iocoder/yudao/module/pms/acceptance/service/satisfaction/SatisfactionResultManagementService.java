@@ -30,6 +30,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResultManagementService {
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
     private final SatisfactionResultMapper resultMapper;
     private final SatisfactionResultFileMapper fileMapper;
     private final SatisfactionCollectionTaskMapper taskMapper;
@@ -103,20 +104,22 @@ public class SatisfactionResultManagementService {
                                                   String reasonSummary, String operationId) {
         SatisfactionResultDO initial = resultMapper.selectById(resultId);
         if (initial == null || !tenantId.equals(initial.getTenantId())) throw unavailable();
+        var observedTask = taskMapper.selectById(initial.getCollectionTaskId());
+        if (IndependentSatisfactionService.direct(observedTask)) independent.lockIfDirect(tenantId, actorUserId, observedTask);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(tenantId, initial.getCollectionTaskId());
         SatisfactionResultDO result = resultMapper.selectByIdForUpdate(tenantId, resultId);
         if (task == null || result == null || !Objects.equals(task.getResultId(), resultId)
                 || !Objects.equals(result.getVersion(), expectedFactVersion)
                 || !"EFFECTIVE".equals(result.getResultStatus()) || !Boolean.TRUE.equals(result.getPassed())
-                || result.getEffectiveTo() != null || task.getDeliverableId() == null) {
+                || result.getEffectiveTo() != null || !IndependentSatisfactionService.direct(task) && task.getDeliverableId() == null) {
             throw new IllegalStateException("SATISFACTION_RESULT_INVALIDATION_STATE_CONFLICT");
         }
         requireScope(tenantId, actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT);
-        ProjectSatisfactionTaskFact projectTask = workBindingFactApi.lockCurrentSatisfactionTask(
+        ProjectSatisfactionTaskFact projectTask = IndependentSatisfactionService.direct(task) ? null : workBindingFactApi.lockCurrentSatisfactionTask(
                 new ProjectSatisfactionTaskIdentityQuery(task.getProjectId(), task.getProjectTaskId()));
-        if (projectTask == null
+        if (!IndependentSatisfactionService.direct(task) && (projectTask == null
                 || !Objects.equals(projectTask.projectId(), task.getProjectId())
-                || !Objects.equals(projectTask.projectTaskId(), task.getProjectTaskId())) {
+                || !Objects.equals(projectTask.projectTaskId(), task.getProjectTaskId()))) {
             throw new IllegalStateException("SATISFACTION_RESULT_PROJECT_TASK_CONFLICT");
         }
         LocalDateTime now = LocalDateTime.now();
@@ -127,7 +130,7 @@ public class SatisfactionResultManagementService {
         }
         List<EventFile> files = eventFiles(tenantId, resultId);
         return new InvalidationResult(operationId, tenantId, task.getProjectId(), task.getProjectTaskId(),
-                projectTask.projectTaskVersion(), task.getDeliverableId(), task.getCollectionKey(), task.getTaskRevisionNo(), task.getId(),
+                projectTask == null ? null : projectTask.projectTaskVersion(), task.getDeliverableId(), task.getCollectionKey(), task.getTaskRevisionNo(), task.getId(),
                 result.getQuestionnaireId(), result.getResponseId(), resultId, result.getResultVersion(),
                 expectedFactVersion + 1, task.getSourceOwnerContext(), task.getSourceObjectType(),
                 task.getSourceObjectId(), task.getSourceObjectVersion(), result.getThreshold(), result.getRuleVersion(),
@@ -135,6 +138,11 @@ public class SatisfactionResultManagementService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts invalidationFacts(InvalidationResult result) {
+        if (result.projectTaskId() == null) return new PlatformCommandExecutionApi.SuccessFacts(
+                "SATISFACTION_RESULT_INVALIDATED", "SatisfactionResult", result.resultId().toString(), result.operationId(),
+                JsonUtils.toJsonString(Map.of("resultId", result.resultId())),
+                List.of(cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.event.IndependentSatisfactionResultChanged.event(
+                        result.tenantId(), result.projectId(), result.taskId(), result.resultId(), result.invalidatedByUserId(), "INVALIDATED")));
         String eventId = result.operationId() + ":result-invalidated";
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("eventId", eventId); payload.put("changeType", "INVALIDATED");

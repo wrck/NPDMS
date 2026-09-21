@@ -51,7 +51,7 @@ export interface TemplateView {
 export interface TaskView {
   id: number
   projectId: number
-  projectTaskId: number
+  projectTaskId: number | null
   collectionKey: string
   revisionNo: number
   priorTaskId?: number
@@ -67,7 +67,7 @@ export interface TaskView {
 export interface ResultView {
   resultId: number
   projectId: number
-  projectTaskId: number
+  projectTaskId: number | null
   taskId: number
   taskRevisionNo: number
   questionnaireId: number
@@ -79,7 +79,7 @@ export interface ResultView {
   passed: boolean
   ruleVersion: string
   resultStatus: string
-  archiveStatus: string
+  archiveStatus: string | null
   effectiveFrom: string
   effectiveTo?: string
 }
@@ -334,3 +334,18 @@ export const submitPublicResponse = (
     data,
     headers: tenantHeaders(tenantId)
   })
+
+export interface IndependentCollectionContext {
+  projectId: number
+  projectVersion: number
+  treeVersion: number
+  lifecycleStatus: string
+}
+export const getIndependentCollectionContext = (projectId: number) =>
+  request.get<IndependentCollectionContext>({ url: '/api/v1/pms/satisfaction-tasks/independent/context', params: { projectId } })
+export const createIndependentCollection = (data: {
+  projectId: number; templateId: number; templateRevisionId: number
+  expectedProjectVersion: number; expectedTreeVersion: number
+}, key: string) => request.post<{ taskId: number; questionnaireId: number; collectionKey: string }>({
+  url: '/api/v1/pms/satisfaction-tasks/independent', data, headers: { 'Idempotency-Key': key }
+})

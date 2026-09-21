@@ -23,6 +23,8 @@ public class AcceptanceReportBusinessResultSource implements BusinessResultChang
     private static final Descriptor DESCRIPTOR = new Descriptor(TYPE, true, true, true);
     private final AcceptanceActivityMapper activities;
     private final AcceptanceReportVersionMapper reports;
+    private final cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceReportAttachmentMapper attachments;
+    private final cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
 
@@ -50,12 +52,23 @@ public class AcceptanceReportBusinessResultSource implements BusinessResultChang
     }
 
     @Override public Observation inspect(Query query) {
+        return inspect(query, false);
+    }
+
+    @Override @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Observation lockAndInspect(Query query) { return inspect(query, true); }
+
+    private Observation inspect(Query query, boolean lock) {
         if (query == null || !TYPE.equals(query.type())
                 || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("RESULT_QUERY_SCOPE_INVALID");
         Long objectId = BusinessResultSource.nativeId(query.objectId());
         Long resultId = BusinessResultSource.nativeId(query.resultId());
-        var report = resultId == null ? null : reports.selectById(resultId);
+        if (lock && (objectId == null || resultId == null)) throw new IllegalArgumentException("RESULT_EXACT_IDENTITY_REQUIRED");
+        var lockedActivity = lock ? activities.selectByIdForUpdate(
+                new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.AcceptanceActivityIdLockQuery(query.tenantId(), objectId)) : null;
+        var report = resultId == null ? null : lock ? reports.selectByIdForUpdate(
+                new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.AcceptanceReportIdLockQuery(query.tenantId(), objectId, resultId)) : reports.selectById(resultId);
         if (resultId != null) {
             if (report == null || Boolean.TRUE.equals(report.getDeleted())) return missing();
             if (!Objects.equals(query.tenantId(), report.getTenantId()) || !Objects.equals(resultId, report.getId())
@@ -64,7 +77,7 @@ public class AcceptanceReportBusinessResultSource implements BusinessResultChang
                 throw new IllegalArgumentException("RESULT_OWNER_SCOPE_MISMATCH");
             objectId = report.getAcceptanceId();
         }
-        var activity = activities.selectById(objectId);
+        var activity = lock ? lockedActivity : activities.selectById(objectId);
         if (activity == null || Boolean.TRUE.equals(activity.getDeleted())) return missing();
         if (!Objects.equals(query.tenantId(), activity.getTenantId()) || !Objects.equals(query.projectId(), activity.getProjectId())
                 || !Objects.equals(objectId, activity.getId())) throw new IllegalArgumentException("RESULT_OWNER_SCOPE_MISMATCH");
@@ -88,9 +101,29 @@ public class AcceptanceReportBusinessResultSource implements BusinessResultChang
                 || current != (report.getEffectiveTo() == null) || resultId == null && !current)
             return inconsistent();
         Validity validity = current ? Validity.CURRENT : "REVOKED".equals(report.getReportStatus()) ? Validity.REVOKED : Validity.NOT_CURRENT;
+        if (lock && current && !validCurrentFiles(query.tenantId(), report))
+            return Observation.absent(Status.UNAVAILABLE, "REPORT_FILE_EVIDENCE_INVALID");
         return Observation.available(new Result(query.tenantId(), query.projectId(), TYPE, activity.getId().toString(),
                 report.getId().toString(), report.getReportVersionNo().toString(), activity.getVersion().toString(),
                 validity, report.getEffectiveFrom()));
+    }
+
+    private boolean validCurrentFiles(Long tenant, cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceReportVersionDO report) {
+        if (report.getAcceptanceTime() == null || report.getConclusionCode() == null || report.getConclusionCode().isBlank()
+                || report.getAcceptorName() == null || report.getAcceptorName().isBlank()) return false;
+        var rows = attachments.selectByReportVersion(report.getId());
+        if (rows.isEmpty()) return false;
+        for (var row : rows) {
+            if (!Objects.equals(row.getTenantId(), tenant) || !Objects.equals(row.getReportVersionId(), report.getId())
+                    || Boolean.TRUE.equals(row.getDeleted()) || row.getFileHash() == null) return false;
+            var fact = fileEvidence.lockAndRevalidate(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Query(
+                    tenant, row.getFileArtifactId(), row.getFileVersionNo(), "ACC", "ACCEPTANCE_REPORT_VERSION", report.getId().toString(),
+                    "ACCEPTANCE_REPORT_ATTACHMENT", row.getReferenceKey(), row.getFileHash()));
+            if (fact == null || !fact.valid() || !Objects.equals(fact.artifactVersion(), row.getArtifactVersion())
+                    || !Objects.equals(fact.availabilityVersion(), row.getAvailabilityVersion())
+                    || !Objects.equals(fact.referenceVersion(), row.getReferenceVersion())) return false;
+        }
+        return true;
     }
 
     private Observation missing() { return Observation.absent(Status.NOT_FOUND, "RESULT_NOT_FOUND"); }

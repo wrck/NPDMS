@@ -156,6 +156,20 @@ v-if="maintenanceRef?.description?.descriptionFormat === 'HTML'"
         </el-descriptions-item>
       </el-descriptions>
 
+      <template v-if="workbench?.deliverables?.length">
+        <div class="section-title"><span>交付件清单</span></div>
+        <div class="task-deliverables">
+          <div v-for="item in workbench.deliverables" :key="item.id" class="deliverable-line">
+            <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
+            <span class="deliverable-name">{{ item.name }}</span>
+            <span class="deliverable-code">{{ item.deliverableCode }}</span>
+            <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
+            <el-button link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
+          </div>
+          <p class="deliverable-hint">文件或业务成果有效且模板条件满足时，自动满足交付要求。</p>
+        </div>
+      </template>
+
       <el-alert
         v-if="workbench?.recoverableError"
         type="error"
@@ -241,6 +255,16 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         </div>
       </el-alert>
       <el-alert
+        v-else-if="workbench?.bindingType === 'PAGE'"
+        type="info"
+        :closable="false"
+        show-icon
+        title="本任务通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，完成仍按任务状态机与冻结规则判定。"
+      >
+        <el-button type="primary" size="small" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
+        <span v-if="workbench?.trustedTargetRef" class="page-route">{{ workbench.trustedTargetRef }}</span>
+      </el-alert>
+      <el-alert
         v-else
         type="info"
         :closable="false"
@@ -249,11 +273,12 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
       />
     </template>
   </ContentWrap>
+  <ProjectDeliverableDialog ref="deliverableRef" :project-id="projectId" @changed="handleDeliverableChanged" />
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { onBeforeRouteUpdate } from 'vue-router'
+import { onBeforeRouteUpdate, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { DICT_TYPE } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
@@ -273,6 +298,7 @@ import TaskStateActions from '@/views/pms/project/inheritance/detail/TaskStateAc
 import TaskApprovalPanel from '@/views/pms/project/inheritance/detail/TaskApprovalPanel.vue'
 import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMaintenancePanel.vue'
 import ProjectTaskDetailsEditor from './ProjectTaskDetailsEditor.vue'
+import ProjectDeliverableDialog from './ProjectDeliverableDialog.vue'
 import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'ProjectFlowPanel' })
@@ -325,6 +351,8 @@ const stateActionsRef = ref<InstanceType<typeof TaskStateActions>>()
 const approvalRef = ref<InstanceType<typeof TaskApprovalPanel>>()
 const maintenanceRef = ref<InstanceType<typeof TaskMaintenancePanel>>()
 const detailsRef = ref<InstanceType<typeof ProjectTaskDetailsEditor>>()
+const deliverableRef = ref<InstanceType<typeof ProjectDeliverableDialog>>()
+const handleDeliverableChanged = async () => { await refreshSummary(); emit('changed') }
 const emit = defineEmits<{ changed: [] }>()
 // Await the existing Owner leave contract before the parent changes selection/unmounts content.
 // https://vuejs.org/guide/essentials/template-refs.html#ref-on-component
@@ -370,6 +398,8 @@ const businessBound = computed(() =>
     workbench.value?.bindingType || ''
   )
 )
+const router = useRouter()
+const openTaskPage = () => { const route = workbench.value?.trustedTargetRef; if (route) void router.push(route) }
 
 const loadWorkspace = async (token: number) => {
   const result = await TaskWorkbenchApi.getProjectWorkspace(props.projectId)
@@ -567,6 +597,36 @@ onBeforeUnmount(() => {
   margin-right: 6px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
+}
+.task-deliverables {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.deliverable-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deliverable-name {
+  font-size: 13px;
+}
+.deliverable-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.deliverable-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.page-route {
+  margin-left: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 .subscription-type {
   color: var(--el-text-color-secondary);

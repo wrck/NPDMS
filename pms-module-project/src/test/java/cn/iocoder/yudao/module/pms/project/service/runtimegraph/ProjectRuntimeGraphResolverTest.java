@@ -52,11 +52,51 @@ class ProjectRuntimeGraphResolverTest {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("ACTIVE"); project.setCurrentStage("S4");
         assertEquals("S6", resolver.resolve(project).target().getCode());
     }
+    @Test void closureIncludesEarlierExitGatesButNotUnvisitedBranchesOrEntryGates() {
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("SKIPPED"); stages.getLast().setStatus("ACTIVE");
+        var oldExit = new ProjectGateInstanceDO(); oldExit.setId(11L); oldExit.setStageCode("S0"); oldExit.setGateType("EXIT");
+        var skippedExit = new ProjectGateInstanceDO(); skippedExit.setId(12L); skippedExit.setStageCode("S4"); skippedExit.setGateType("EXIT");
+        var finalExit = new ProjectGateInstanceDO(); finalExit.setId(13L); finalExit.setStageCode("S6"); finalExit.setGateType("EXIT");
+        var entry = new ProjectGateInstanceDO(); entry.setId(14L); entry.setStageCode("S6"); entry.setGateType("ENTRY");
+        when(mapper.selectGatesForUpdate(any())).thenReturn(List.of(oldExit, skippedExit, finalExit, entry));
+        assertEquals(List.of(11L, 13L), resolver.lockClosureGates(project).gates().stream().map(ProjectGateInstanceDO::getId).toList());
+        assertEquals("DONE", stages.getFirst().getStatus());
+    }
     @Test void terminalIsOnlyAReadResultNotProjectClosure() {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("ACTIVE");
         project.setCurrentStage("S6");
         assertTrue(resolver.resolve(project).terminal()); assertEquals("ACTIVE", project.getLifecycleStatus());
         verify(mapper, never()).updateById(any(ProjectStageTransitionDO.class));
+    }
+    @Test void configuredClosureUsesFrozenTerminalMarkerWithoutRequiringS0() {
+        configuredStages();
+        assertFalse(resolver.resolveForClosure(project).terminal());
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("ACTIVE");
+        project.setCurrentStage("S6");
+        assertTrue(resolver.resolveForClosure(project).terminal());
+        when(mapper.selectStages(any())).thenReturn(stages);
+        assertTrue(resolver.inspectForClosure(project).terminal());
+        assertEquals("ACTIVE", project.getLifecycleStatus());
+        assertEquals("ACTIVE", stages.getLast().getStatus());
+        // The original transition API retains its explicit legacy S0 contract.
+        assertEquals(StageTransitionTargetResolver.Status.INVALID_GRAPH, resolver.resolve(project).transition().status());
+    }
+    @Test void configuredClosureStillRequiresCurrentPlanAndTenantIdentity() {
+        configuredStages();
+        project.setActivePlanVersionId(null);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_PLAN_UNAVAILABLE"));
+        project.setActivePlanVersionId(50L);
+        stages.getLast().setTenantId(8L);
+        assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project));
+    }
+    private void configuredStages() {
+        stages.getFirst().setCode("S1"); project.setCurrentStage("S1"); project.setActivePlanVersionId(50L);
+        when(mapper.selectContracts(any())).thenReturn(stages.stream().map(stage -> {
+            var contract = new ProjectStageExecutionContractDO(); contract.setTenantId(7L); contract.setProjectId(9L);
+            contract.setStageId(stage.getId()); contract.setGraphVersion(1L); contract.setSourceNodeKey("stage-" + stage.getId());
+            contract.setCompletionRuleSnapshot("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
+            return contract;
+        }).toList());
     }
     @Test void historyWithoutGraphFailsExplicitly() {
         stages.getFirst().setGraphVersion(null);

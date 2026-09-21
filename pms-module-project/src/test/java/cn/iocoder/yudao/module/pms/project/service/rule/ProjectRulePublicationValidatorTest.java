@@ -237,6 +237,8 @@ class ProjectRulePublicationValidatorTest {
             assertTrue(validator.validate(source).isEmpty());
             var binding = kind == DeliveryDefinitionKind.STAGE ? source.getStages().getFirst().getWorkBinding()
                     : source.getTasks().getFirst().getWorkBinding();
+            binding.setType("PAGE");
+            assertTrue(validator.validate(source).isEmpty(), "Page navigation retains the node's real native submission rule");
             String path = kind == DeliveryDefinitionKind.STAGE ? "stages[0]" : "tasks[0]";
             for (String type : List.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE")) {
                 binding.setType(type);
@@ -261,6 +263,22 @@ class ProjectRulePublicationValidatorTest {
             assertEquals("RULE_NATIVE_ADMISSION_UNAVAILABLE", issues.getFirst().code());
             assertTrue(issues.getFirst().field().contains("admissionRuleKey.rule.rules[0]"));
         }
+    }
+
+    @Test void typedAcceptanceCompletionRequiresItsMatchingAssociationFilter() {
+        var provider = businessProvider("ACC", "ACCEPTANCE", false, Set.of("FINAL_ACCEPTANCE_PASSED"));
+        var checks = businessValidator(provider);
+        var source = document(condition("""
+                {"predicate":"BUSINESS_FACT","parameters":{"factCode":"FINAL_ACCEPTANCE_PASSED","quantifier":"ALL"}}
+                """));
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:final"); task.setCompletionRuleKey("rule");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("BUSINESS_COMPONENT");
+        binding.setTargetContextCode("ACC"); binding.setTargetObjectType("ACCEPTANCE"); task.setWorkBinding(binding); source.setTasks(List.of(task));
+        assertTrue(checks.validate(source).stream().anyMatch(issue -> issue.code().equals("RULE_ACCEPTANCE_TYPE_REQUIRED")));
+        binding.setParameters(JsonUtils.parseTree("{\"acceptanceType\":\"PRELIMINARY\"}"));
+        assertTrue(checks.validate(source).stream().anyMatch(issue -> issue.code().equals("RULE_ACCEPTANCE_TYPE_REQUIRED")));
+        binding.setParameters(JsonUtils.parseTree("{\"acceptanceType\":\"FINAL\"}"));
+        assertTrue(checks.validate(source).isEmpty());
     }
 
     @Test void aSharedNativeRuleIsValidatedPerConsumerWithoutChangingItsDefinition() {

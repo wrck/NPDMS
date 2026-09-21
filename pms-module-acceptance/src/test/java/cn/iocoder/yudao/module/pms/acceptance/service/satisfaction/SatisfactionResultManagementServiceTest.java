@@ -56,6 +56,19 @@ class SatisfactionResultManagementServiceTest {
         verifyNoInteractions(scope,bindings,files);
     }
 
+    @Test void independentInvalidationPreservesResultHistoryWithoutLegacyTaskBinding() {
+        var task=fixture(); task.setOriginKind("DIRECT"); task.setProjectTaskId(null); task.setDeliverableId(null);
+        when(tasks.selectById(10L)).thenReturn(task);
+        var independent=mock(IndependentSatisfactionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"independent",independent);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L,3L,Set.of(20L),Set.of()));
+        when(results.invalidateCurrent(any())).thenReturn(1);
+        var result=service.invalidateOnce(7L,99L,12L,0,"OWNER_INVALIDATED","reason","operation-3");
+        assertNull(result.projectTaskId()); assertNull(result.deliverableId()); assertEquals(1,result.resultFactVersion());
+        verify(independent).lockIfDirect(7L,99L,task); verifyNoInteractions(bindings);
+        verify(results).invalidateCurrent(argThat(update -> update.resultId().equals(12L)));
+    }
+
     private SatisfactionCollectionTaskDO fixture() {
         var task=new SatisfactionCollectionTaskDO();
         task.setId(10L); task.setTenantId(7L); task.setProjectId(20L); task.setProjectTaskId(21L);

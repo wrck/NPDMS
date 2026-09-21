@@ -70,6 +70,7 @@ class Facc001ApplicationMySqlIntegrationTest {
     @Resource JdbcTemplate jdbcTemplate;
     @MockitoBean FileArtifactApi fileArtifactApi;
     @MockitoBean ProjectScopeApi projectScopeApi;
+    @MockitoBean cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi projectAcceptanceContext;
     @MockitoSpyBean ProjectDeliverableSourceVersionMapper sourceMapper;
 
     private long projectId;

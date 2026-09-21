@@ -81,6 +81,15 @@ describe('F-PROJ-007 project task workbench', () => {
     expect(api).toContain("'If-Match': String(version)")
   })
 
+  it('renders the template-frozen task deliverables as a read-only checklist without upload entry', () => {
+    expect(api).toContain('TaskWorkbenchDeliverable')
+    expect(flow).toContain('v-if="workbench?.deliverables?.length"')
+    expect(flow).toContain('DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS')
+    expect(flow).toContain("item.required ? '必选' : '可选'")
+    expect(flow).toContain('满足状态由验收链维护')
+    expect(flow).not.toMatch(/deliverables[\s\S]*?(type="file"|el-upload|上传交付件)/i)
+  })
+
   it('sends concurrency and idempotency inputs through the new command API', () => {
     expect(api).toContain("'Idempotency-Key': idempotencyKey")
     expect(api).toContain("'If-Match': String(version)")

@@ -60,6 +60,31 @@ class TemplateCompilerTest {
         assertNotEquals(compiled.snapshotHash(), compiler.compile(designer).snapshotHash());
     }
 
+    @Test
+    void pageBindingFreezesInAppRouteOnlyAndRejectsMissingOrExternalTargets() {
+        var designer = validDesigner();
+        designer.getStages().getFirst().getWorkBinding().setType("PAGE");
+        designer.getStages().getFirst().getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"/project/survey\"}"));
+        var task = designer.getTasks().getFirst();
+        task.getWorkBinding().setType("PAGE");
+        task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/requirement/analysis\"}"));
+        var compiled = compiler.compile(designer);
+        assertTrue(compiled.valid(), () -> compiled.issues().toString());
+        assertEquals("PAGE", compiled.snapshot().getStages().getFirst().getBinding().getType());
+        assertEquals("/project/survey", compiled.snapshot().getStages().getFirst().getBinding().getParameters().path("routePath").asText());
+        assertEquals("/pms/requirement/analysis", compiled.snapshot().getTasks().getFirst().getBinding().getParameters().path("routePath").asText());
+
+        task.getWorkBinding().setParameters(JsonUtils.parseTree("{}"));
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue ->
+                "tasks[0].workBinding.parameters.routePath".equals(issue.field()) && "PAGE_ROUTE_REQUIRED".equals(issue.code())));
+        task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"https://example.com/page\"}"));
+        assertFalse(compiler.compile(designer).valid());
+        task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/requirement/analysis\"}"));
+        task.getWorkBinding().setTargetContextCode("SOL");
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue ->
+                "tasks[0].workBinding".equals(issue.field()) && "NATIVE_TARGET_FORBIDDEN".equals(issue.code())));
+    }
+
     @Test void customStageCodesAndReferencesFreezeWithoutAddingPresetStages() {
         var designer = validDesigner();
         designer.getStages().getFirst().setCode("PREP_WORK");
@@ -196,6 +221,69 @@ class TemplateCompilerTest {
         designer.getStages().getFirst().setCode("S".repeat(33));
         org.junit.jupiter.api.Assertions.assertTrue(new TemplateCompiler().compile(designer).issues().stream()
                 .anyMatch(issue -> "INVALID_STAGE_CODE".equals(issue.code())));
+    }
+
+    @Test
+    void deliverableMustBindToConfiguredStageAndExistingTask() {
+        var designer = validDesigner();
+        TemplateDesignerDocument.DeliverableNode deliverable = new TemplateDesignerDocument.DeliverableNode();
+        deliverable.setNodeKey("deliverable:D1");
+        deliverable.setCode("D1");
+        deliverable.setName("需求分析记录");
+        deliverable.setStageCode("S1");
+        deliverable.setTaskCode("T1");
+        deliverable.setRequired(true);
+        deliverable.setConfiguration(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("""
+                {"scope":"TASK","deliverableType":"DOCUMENT","required":true,"minimumQuantity":1,
+                 "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
+                """));
+        designer.getDeliverables().add(deliverable);
+        var ok = compiler.compile(designer);
+        assertTrue(ok.valid(), () -> ok.issues().toString());
+
+        deliverable.setStageCode("S9");
+        deliverable.setTaskCode("T9");
+        var invalid = compiler.compile(designer);
+        assertFalse(invalid.valid());
+        assertTrue(invalid.issues().stream().anyMatch(issue ->
+                "deliverables[0].stageCode".equals(issue.field()) && "DANGLING_STAGE".equals(issue.code())));
+        assertTrue(invalid.issues().stream().anyMatch(issue ->
+                "deliverables[0].taskCode".equals(issue.field()) && "DANGLING_TASK".equals(issue.code())));
+    }
+
+    @Test
+    void missingDeliverableConfigurationAndDanglingConfirmationCannotPublish() {
+        var designer = validDesigner();
+        var item = new TemplateDesignerDocument.DeliverableNode();
+        item.setNodeKey("deliverable:D1"); item.setCode("D1"); item.setName("材料"); item.setStageCode("S1");
+        designer.getDeliverables().add(item);
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "DELIVERABLE_CONFIGURATION_REQUIRED".equals(issue.code())));
+        item.setConfiguration(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("""
+                {"scope":"STAGE","deliverableType":"DOCUMENT","required":false,"minimumQuantity":1,
+                 "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"TASK","parameters":{"refCode":"MISSING"}}}
+                """));
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "RULE_TARGET_NOT_CONFIGURED".equals(issue.code())));
+    }
+
+    @Test void stageExitDeliverableCannotRequireThatSameStageToHaveCompleted() {
+        var designer = validDesigner();
+        var item = new TemplateDesignerDocument.DeliverableNode();
+        item.setNodeKey("deliverable:D1"); item.setCode("D1"); item.setName("材料"); item.setStageCode("S1"); item.setRequired(true);
+        item.setConfiguration(JsonUtils.parseTree("""
+                {"scope":"STAGE","deliverableType":"DOCUMENT","required":true,"minimumQuantity":1,
+                 "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"STATE","parameters":{"refCode":"S1_COMPLETED"}}}
+                """));
+        designer.getDeliverables().add(item);
+        var gate = new TemplateDesignerDocument.GateNode(); gate.setNodeKey("gate:G1"); gate.setCode("G1"); gate.setName("退出");
+        gate.setStageCode("S1"); gate.setGateType("EXIT");
+        var ref = new TemplateDesignerDocument.GateReference(); ref.setRefType("DELIVERABLE"); ref.setRefCode("D1");
+        gate.getReferences().add(ref); designer.getGates().add(gate);
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue -> "DELIVERABLE_STAGE_CYCLE".equals(issue.code())));
+        ((tools.jackson.databind.node.ObjectNode) item.getConfiguration()).set("confirmationRule", JsonUtils.parseTree("""
+                {"operator":"ANY","rules":[{"predicate":"STATE","parameters":{"refCode":"S1_COMPLETED"}},
+                {"predicate":"TASK","parameters":{"refCode":"T1"}}]}
+                """));
+        assertFalse(compiler.compile(designer).issues().stream().anyMatch(issue -> "DELIVERABLE_STAGE_CYCLE".equals(issue.code())));
     }
 
     @org.junit.jupiter.params.ParameterizedTest

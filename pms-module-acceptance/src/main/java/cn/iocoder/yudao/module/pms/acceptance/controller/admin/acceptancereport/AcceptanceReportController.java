@@ -55,6 +55,22 @@ public class AcceptanceReportController {
     private final AcceptanceReportQueryService queryService;
     private final AcceptanceReportCommandService commandService;
     private final Environment environment;
+    private final cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.IndependentAcceptanceService independentAcceptances;
+
+    @GetMapping("/independent/context")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:report:write')")
+    public CommonResult<cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context> independentContext(
+            @RequestParam @Positive Long projectId) {
+        return withTenant(() -> success(independentAcceptances.context(projectId, commandActor())));
+    }
+
+    @PostMapping("/independent")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:report:write')")
+    public CommonResult<cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.IndependentAcceptanceService.Result> createIndependent(
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key,
+            @RequestBody cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.IndependentAcceptanceService.Create request) {
+        return withTenant(() -> success(independentAcceptances.create(request, key, commandActor())));
+    }
 
     @GetMapping
     @Operation(summary = "查询有权项目的初验终验活动")

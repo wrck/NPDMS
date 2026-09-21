@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,6 @@ public class ConstructionPlanApplicationService {
     public static final String PERMISSION_MANAGE = "pms:construction-plan:duration-manage";
     private static final String SCOPE_INITIAL_CREATE = "POST:/api/v1/pms/construction-plans";
     private static final String ACTIVE = "ACTIVE";
-    private static final String INITIAL_STAGE = "S1";
 
     private final ConstructionPlanMapper planMapper;
     private final ConstructionPlanRevisionMapper revisionMapper;
@@ -73,7 +73,7 @@ public class ConstructionPlanApplicationService {
         assertProjectScope(actor, command.projectId(), ProjectScopeApi.ACTION_MANAGE);
         participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
                 command.projectId(), actor.actorId(), command.expectedProjectVersion(), ACTIVE,
-                INITIAL_STAGE, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+                null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
 
         DurationRules.ResolvedDuration duration;
         try {
@@ -212,10 +212,13 @@ public class ConstructionPlanApplicationService {
         detail.put("planRecalculationStatusBefore", null);
         detail.put("planRecalculationStatusAfter", response.getPlanRecalculationStatus());
         detail.put("projectVersion", command.expectedProjectVersion());
+        var event = ProjectRuleReevaluationRequested.create(actor.tenantId(), command.projectId(), actor.actorId(),
+                "construction-plan-initial:" + response.getCurrentRevision().getRevisionId());
         return new PlatformCommandExecutionApi.SuccessFacts(
                 "CONSTRUCTION_PLAN_INITIAL_DURATION_CREATE", "ConstructionPlan",
                 String.valueOf(response.getPlanId()), actor.correlationId(),
-                JsonUtils.toJsonString(detail), null, null);
+                JsonUtils.toJsonString(detail), List.of(new PlatformCommandExecutionApi.BusinessEvent(
+                        event.eventId(), ProjectRuleReevaluationRequested.EVENT_TYPE, JsonUtils.toJsonString(event))));
     }
 
     private void assertProjectScope(Actor actor, Long projectId, String action) {

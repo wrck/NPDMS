@@ -129,7 +129,7 @@ class ProjectResultSubscriptionRecoveryTest {
         assertThrows(IllegalStateException.class,f::tick);assertEquals("INVENTORY",f.row().getPhase());assertEquals(7,f.row().getProcessedSequence());
     }
 
-    @ParameterizedTest @ValueSource(strings={"schema","id","tenant","type","fractional-id","string-id","missing-id"})
+    @ParameterizedTest @ValueSource(strings={"schema","id","tenant","type","fractional-id","garbage-id","missing-id"})
     void untrustedEnvelopeCannotReachAnyWorker(String corruption) {
         var wakeup=ResultSubscriptionWakeup.create(f.row());var json=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(JsonUtils.toJsonString(wakeup));
         String eventType=ResultSubscriptionWakeup.EVENT_TYPE;
@@ -139,12 +139,22 @@ class ProjectResultSubscriptionRecoveryTest {
             case "tenant" -> json.put("tenantId",2);
             case "type" -> eventType="unsupported";
             case "fractional-id" -> json.put("executionId",20.5);
-            case "string-id" -> json.put("executionId","20");
+            case "garbage-id" -> json.put("executionId","garbage");
             case "missing-id" -> json.remove("executionId");
             default -> throw new AssertionError(corruption);
         }
         var message=new PlatformOutboxMessageDTO(wakeup.eventId(),eventType,json.toString(),0,1L,LocalDateTime.now());
         assertThrows(IllegalArgumentException.class,() -> f.delivery.deliver(message));
         verifyNoInteractions(f.projects,f.plans,f.rounds,f.sources,f.journal);
+    }
+
+    @Test void writerEncodedNumericStringIdsReachTheWorker() {
+        var wakeup=ResultSubscriptionWakeup.create(f.row());
+        var json=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(JsonUtils.toJsonString(wakeup));
+        json.put("executionId",wakeup.executionId().toString());
+        when(f.sources.inventory(any())).thenReturn(new InventoryPage("a",true,List.of()));
+        assertTrue(f.delivery.deliver(new PlatformOutboxMessageDTO(wakeup.eventId(),ResultSubscriptionWakeup.EVENT_TYPE,json.toString(),0,1L,LocalDateTime.now())));
+        assertEquals("CHANGES",f.row().getPhase());
+        verify(f.sources).inventory(any());
     }
 }

@@ -31,7 +31,10 @@ class RequirementAnalysisEntityFactApiTest {
     private final ProjectWorkBindingFactApi bindings = mock(ProjectWorkBindingFactApi.class);
     private final RequirementAnalysisEntityQueryService queries = mock(RequirementAnalysisEntityQueryService.class);
     private final RequirementAnalysisRevisionFiles files = mock(RequirementAnalysisRevisionFiles.class);
-    private final RequirementAnalysisEntityFactApi api = new RequirementAnalysisEntityFactApiImpl(mapper, permissions, scopes, projects, bindings, queries, files);
+    private final RequirementAnalysisExecutionAccess executionAccess = new RequirementAnalysisExecutionAccess(
+            mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class), bindings,
+            mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.class));
+    private final RequirementAnalysisEntityFactApi api = new RequirementAnalysisEntityFactApiImpl(mapper, permissions, scopes, projects, bindings, queries, files, executionAccess);
     private final RequirementAnalysisEntityFactApi.Query query = new RequirementAnalysisEntityFactApi.Query(100L, 500L, 501L);
     private RequirementAnalysisRevisionDO row;
 
@@ -96,6 +99,43 @@ class RequirementAnalysisEntityFactApiTest {
         row.setExecutionSnapshot(null);
         assertThrows(RuntimeException.class, () -> api.inspect(query));
         verifyNoInteractions(bindings, queries);
+    }
+
+    @Test void independentCompletedRevisionRevalidatesContentAndFilesWithoutANodeOrigin() {
+        independent(1L, 100L);
+        var fact = api.inspect(query);
+        assertNull(fact.workBinding());
+        assertEquals(fact, api.lockAndRevalidate(fact));
+        verify(files).lockForFreeze(eq(row.revisionRef()), any());
+        verifyNoInteractions(bindings);
+        when(queries.revision(any(), any())).thenReturn(view("changed"));
+        assertThrows(RuntimeException.class, () -> api.lockAndRevalidate(fact));
+    }
+
+    @Test void independentOriginCannotBorrowAnotherTenantProjectOrTemplate() {
+        independent(2L, 100L);
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+        independent(1L, 999L);
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+        independent(1L, 100L);
+        row.setProjectTemplateRevisionId(999L);
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+        verifyNoInteractions(queries, files, bindings);
+    }
+
+    @Test void independentResultDoesNotBypassUnavailableFiles() {
+        independent(1L, 100L);
+        var fact = api.inspect(query);
+        doThrow(new IllegalStateException("FILE_UNAVAILABLE")).when(files).lockForFreeze(any(), any());
+        assertThrows(IllegalStateException.class, () -> api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+    }
+
+    private void independent(Long tenantId, Long projectId) {
+        var configuration = new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessConfigurationApi.Configuration(
+                tenantId, projectId, 401L, 702L, 2, 17L,
+                "{\"schemaVersion\":2,\"dynamicFormTemplateId\":16,\"dynamicFormTemplateRevisionId\":17,\"dynamicFormRevisionNo\":1,\"dynamicFormRevisionFactVersion\":2}");
+        row.setExecutionSnapshot(JsonUtils.toJsonString(new RequirementAnalysisExecutionAccess.Frozen(null, null, null, configuration)));
     }
 
     private RequirementAnalysisEntityQueryService.View view(String content) {

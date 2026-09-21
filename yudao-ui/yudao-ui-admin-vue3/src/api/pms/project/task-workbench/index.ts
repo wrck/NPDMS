@@ -100,6 +100,15 @@ export interface TaskSubscriptionRound {
   subscriptions: TaskSubscriptionObservation[]
 }
 
+/** 模板冻结的本任务交付件（ACC应交根行），只读展示；满足状态由满足/验收链维护。 */
+export interface TaskWorkbenchDeliverable {
+  id: number
+  deliverableCode: string
+  name: string
+  required?: boolean
+  status?: string
+}
+
 export interface TaskWorkbench {
   task: TaskDetail
   executionContractId?: number
@@ -111,6 +120,7 @@ export interface TaskWorkbench {
   recoverableError?: string
   approval?: TaskApprovalView
   resultSubscriptions?: TaskSubscriptionRound[]
+  deliverables?: TaskWorkbenchDeliverable[]
 }
 
 export interface TaskApprovalSubmission {

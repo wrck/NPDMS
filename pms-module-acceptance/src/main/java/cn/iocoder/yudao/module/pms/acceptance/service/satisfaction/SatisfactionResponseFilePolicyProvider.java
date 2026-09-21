@@ -26,6 +26,7 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjectPolicyProvider {
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
     static final String OWNER = "ACC";
     static final String TYPE = "SATISFACTION_RESPONSE";
     static final String SIGNATURE = "SATISFACTION_SIGNATURE";
@@ -158,6 +159,8 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
             Long tenantId, Long actorUserId, Long taskId, Long questionnaireId,
             String requestId, Long responseId, String policyKey, String fileSlotKey,
             Integer fileSequence, Long expectedScopeVersion, List<AuthenticatedAssistedFileHandle> files) {
+        var observed = taskMapper.selectById(taskId);
+        if (IndependentSatisfactionService.direct(observed)) independent.lockIfDirect(tenantId, actorUserId, observed);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(tenantId, taskId);
         SatisfactionQuestionnaireDO questionnaire = task == null ? null
                 : questionnaireMapper.selectByIdForUpdate(tenantId, task.getQuestionnaireId());
@@ -194,6 +197,7 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
         SatisfactionCollectionTaskDO task = questionnaire == null ? null
                 : taskMapper.selectByIdForUpdate(tenantId, questionnaire.getCollectionTaskId());
         requireIdentity(tenantId, grantId, grantVersion, questionnaireId, grant, questionnaire, task);
+        if (IndependentSatisfactionService.direct(task)) independent.lockIfDirect(tenantId, task.getAssignedToUserId(), task);
         var reservation = reservationService.requireReserved(tenantId, grant, questionnaire, task,
                 requestId, responseId);
         Long expected = expectedScopeVersion == null ? questionnaire.getAccessScopeVersion() : expectedScopeVersion;

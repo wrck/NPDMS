@@ -21,6 +21,8 @@ import java.util.Set;
 public class ProjectDeliverableStageGateFactProvider implements ProjectStageGateFactProviderApi {
 
     private final AccProjectDeliverableMapper mapper;
+    private final cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi rules;
+    private final org.springframework.beans.factory.ObjectProvider<ProjectDeliverableSubmissionService> submissions;
 
     @Override
     public Set<String> providerKeys() {
@@ -31,6 +33,7 @@ public class ProjectDeliverableStageGateFactProvider implements ProjectStageGate
     @Transactional(propagation = Propagation.MANDATORY)
     public ProjectStageGateFact lockAndRevalidate(ProjectStageGateFactQuery query) {
         validate(query);
+        rules.lock(query.projectId(), query.refCode());
         AccProjectDeliverableDO row = mapper.selectGateFactForUpdate(new AccProjectDeliverableGateFactQuery(
                 query.tenantId(), query.projectId(), query.refCode()));
         if (row == null) {
@@ -38,11 +41,12 @@ public class ProjectDeliverableStageGateFactProvider implements ProjectStageGate
                     "UNKNOWN", "UNKNOWN", ProjectStageGateOutcome.DEPENDENCY_UNAVAILABLE,
                     "DELIVERABLE_NOT_FOUND");
         }
-        boolean satisfied = "ACCEPTED".equals(row.getStatus());
+        var decision = submissions.getObject().revalidate(row);
+        boolean satisfied = decision.satisfied();
         return new ProjectStageGateFact(PROVIDER_ACC_DELIVERABLE, query.refType(),
                 String.valueOf(row.getId()), value(row.getStatus()), value(row.getVersion()),
                 satisfied ? ProjectStageGateOutcome.SATISFIED : ProjectStageGateOutcome.UNSATISFIED,
-                satisfied ? null : "DELIVERABLE_NOT_ACCEPTED");
+                satisfied ? null : decision.reason());
     }
 
     private static void validate(ProjectStageGateFactQuery query) {

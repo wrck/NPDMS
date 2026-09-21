@@ -464,6 +464,8 @@ class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-repor
                     d.deliverableCode
                   }}</el-tag>
                   {{ d.name }}
+                  <el-tag size="small" :type="d.status === 'ACCEPTED' ? 'success' : 'info'">{{ d.status === 'ACCEPTED' ? '已满足' : '待满足' }}</el-tag>
+                  <el-button v-if="d.id" link type="primary" @click="deliverableRef?.open(d.id)">提交与查看</el-button>
                 </div>
               </div>
               <div class="preview-block">
@@ -663,6 +665,7 @@ class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-repor
       </div>
     </div>
   </div>
+  <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="loadInstances" />
 </template>
 
 <script setup lang="ts">
@@ -692,6 +695,7 @@ import ProjectStageStatusPanel from './components/ProjectStageStatusPanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import StageProgressRail from './components/StageProgressRail.vue'
 import ProjectFlowPanel from './components/ProjectFlowPanel.vue'
+import ProjectDeliverableDialog from './components/ProjectDeliverableDialog.vue'
 import StageGateResultsPanel from './components/StageGateResultsPanel.vue'
 import ProjectTaskTree from './components/ProjectTaskTree.vue'
 import ProjectExecutionHistory from './components/ProjectExecutionHistory.vue'
@@ -887,6 +891,7 @@ const expandedStage = ref('')
 const stageTreeToken = ref(0)
 const stageSelection = ref<ProjectFlowSelection>()
 const flowRef = ref<InstanceType<typeof ProjectFlowPanel>>()
+const deliverableRef = ref<InstanceType<typeof ProjectDeliverableDialog>>()
 const historyVisible = ref(false)
 
 const stageDotClass = (stage: StageInstance) =>

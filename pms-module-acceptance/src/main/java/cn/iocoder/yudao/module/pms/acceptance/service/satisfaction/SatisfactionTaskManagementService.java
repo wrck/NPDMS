@@ -27,6 +27,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionTaskManagementService {
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionResultMapper resultMapper;
@@ -70,6 +71,8 @@ public class SatisfactionTaskManagementService {
     @Transactional(rollbackFor = Exception.class)
     protected AssignmentResult assignOnce(Long tenantId, Long actorUserId, Long taskId, Long targetUserId,
                                           Integer expectedVersion) {
+        var observed = taskMapper.selectById(taskId);
+        if (IndependentSatisfactionService.direct(observed)) independent.lockIfDirect(tenantId, actorUserId, observed);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(tenantId, taskId);
         if (task == null || expectedVersion == null || !expectedVersion.equals(task.getVersion())) {
             throw new IllegalStateException("SATISFACTION_TASK_VERSION_CONFLICT");
@@ -98,19 +101,21 @@ public class SatisfactionTaskManagementService {
 
     @Transactional(rollbackFor = Exception.class)
     protected RecollectResult recollectOnce(Long tenantId, Long actorUserId, Long taskId, Recollect command) {
+        var observed = taskMapper.selectById(taskId);
+        if (IndependentSatisfactionService.direct(observed)) independent.lockIfDirect(tenantId, actorUserId, observed);
         SatisfactionCollectionTaskDO prior = taskMapper.selectByIdForUpdate(tenantId, taskId);
         SatisfactionResultDO result = resultMapper.selectByIdForUpdate(tenantId, command.priorResultId());
-        if (prior == null || result == null || prior.getDeliverableId() == null || !Objects.equals(prior.getResultId(), result.getId())
+        if (prior == null || result == null || !IndependentSatisfactionService.direct(prior) && prior.getDeliverableId() == null || !Objects.equals(prior.getResultId(), result.getId())
                 || !Objects.equals(result.getCollectionTaskId(), prior.getId())
                 || !(!Boolean.TRUE.equals(result.getPassed()) || "INVALIDATED".equals(result.getResultStatus()))) {
             throw new IllegalStateException("SATISFACTION_RECOLLECT_PRECONDITION_FAILED");
         }
         requireScope(tenantId, actorUserId, prior.getProjectId(), ProjectScopeApi.ACTION_EDIT);
-        ProjectSatisfactionTaskFact projectTaskFact = workBindingFactApi.lockCurrentSatisfactionTask(
+        ProjectSatisfactionTaskFact projectTaskFact = IndependentSatisfactionService.direct(prior) ? null : workBindingFactApi.lockCurrentSatisfactionTask(
                 new ProjectSatisfactionTaskIdentityQuery(prior.getProjectId(), prior.getProjectTaskId()));
-        if (projectTaskFact == null || !Objects.equals(projectTaskFact.projectId(), prior.getProjectId())
+        if (!IndependentSatisfactionService.direct(prior) && (projectTaskFact == null || !Objects.equals(projectTaskFact.projectId(), prior.getProjectId())
                 || !Objects.equals(projectTaskFact.projectTaskId(), prior.getProjectTaskId())
-                || projectTaskFact.projectTaskVersion() == null || projectTaskFact.projectTaskVersion() < 0) {
+                || projectTaskFact.projectTaskVersion() == null || projectTaskFact.projectTaskVersion() < 0)) {
             throw new IllegalStateException("SATISFACTION_PROJECT_TASK_IDENTITY_CONFLICT");
         }
         SatisfactionRemediationIdentityQuery identity = new SatisfactionRemediationIdentityQuery(
@@ -138,6 +143,11 @@ public class SatisfactionTaskManagementService {
         next.setId(newTaskId); next.setTenantId(tenantId); next.setProjectId(prior.getProjectId());
         next.setProjectTaskId(prior.getProjectTaskId()); next.setSourceOwnerContext(prior.getSourceOwnerContext());
         next.setDeliverableId(prior.getDeliverableId());
+        next.setOriginKind(prior.getOriginKind());
+        if (IndependentSatisfactionService.direct(prior)) {
+            next.setOriginKey(prior.getId() + ":recollect:" + cn.hutool.crypto.digest.DigestUtil.sha256Hex(command.remediationRequestId()));
+            next.setOriginSnapshot(prior.getOriginSnapshot());
+        }
         next.setSourceObjectType(prior.getSourceObjectType()); next.setSourceObjectId(prior.getSourceObjectId());
         next.setSourceObjectVersion(prior.getSourceObjectVersion()); next.setTriggerOwnerContext("ACC");
         next.setTriggerObjectType("SatisfactionRemediationFact");
@@ -161,8 +171,8 @@ public class SatisfactionTaskManagementService {
             throw new IllegalStateException("SATISFACTION_RECOLLECT_WRITE_CONFLICT");
         }
         return new RecollectResult(newTaskId, questionnaireId, prior.getCollectionKey(), revision,
-                remediation.getId(), prior.getId(), projectTaskFact.projectTaskVersion(),
-                projectTaskFact.taskCode(), false);
+                remediation.getId(), prior.getId(), projectTaskFact == null ? null : projectTaskFact.projectTaskVersion(),
+                projectTaskFact == null ? null : projectTaskFact.taskCode(), false);
     }
 
     public void requireManageable(Long tenantId, Long actorUserId, Long taskId) {
@@ -189,6 +199,9 @@ public class SatisfactionTaskManagementService {
     private PlatformCommandExecutionApi.SuccessFacts recollectFacts(Long tenantId, Long actorUserId, Recollect command,
                                                                      RecollectResult result) {
         SatisfactionCollectionTaskDO task = taskMapper.selectById(result.taskId());
+        if (IndependentSatisfactionService.direct(task)) return new PlatformCommandExecutionApi.SuccessFacts(
+                "SATISFACTION_TASK_RECOLLECTED", "SatisfactionCollectionTask", result.taskId().toString(),
+                command.remediationRequestId(), JsonUtils.toJsonString(result), List.of());
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectById(result.questionnaireId());
         Map<String, Object> payload = new LinkedHashMap<>();
         String eventId = "SAT-TASK:" + task.getId() + ":" + task.getTaskRevisionNo();

@@ -112,7 +112,7 @@ public class ProjectTaskPlanCompletionService {
         var exit = node.getExitRuleKey()==null || node.getExitRuleKey().isBlank() ? compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}"))
                 : snapshot.getRulePrograms().get(node.getExitRuleKey());
         if (completion==null || exit==null) return unknown(reference,"FROZEN_RULE_PROGRAM_REQUIRED");
-        boolean nativeWork = "TASK_NATIVE".equals(binding.getWorkBindingTypeCode());
+        boolean nativeWork = Set.of("TASK_NATIVE", "PAGE").contains(binding.getWorkBindingTypeCode());
         boolean approvalWork = "APPROVAL".equals(binding.getWorkBindingTypeCode());
         boolean resultOnly = "RESULT_SUBSCRIPTION".equals(binding.getWorkBindingTypeCode());
         if (resultOnly && !cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.matches(binding,node))

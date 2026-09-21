@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.engineering.service.constructionplan;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapper;
@@ -83,6 +85,8 @@ class ConstructionPlanApplicationServiceTest {
         verify(planMapper).updateVersionIfMatch(update.capture());
         assertEquals(701L, update.getValue().currentDurationRevisionId());
         assertEquals(701L, update.getValue().planRecalculationSourceRevisionId());
+        verify(participantFactApi).lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+                100L, 9L, 3, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
     }
 
     @Test
@@ -139,6 +143,21 @@ class ConstructionPlanApplicationServiceTest {
         verify(planMapper, never()).insert(any());
     }
 
+    @Test
+    void removingStageRestrictionKeepsParticipantAndLifecycleRevalidation() {
+        when(permissionApi.hasAnyPermissions(9L, ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+                .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
+        when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+                100L, 9L, 3, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
+                .thenThrow(new ServiceException(403, "Current project participant unavailable"));
+        assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
+        verify(planMapper, never()).insert(any());
+        verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
+    }
+
     private void stubAuthorizedCommandExecution() {
         stubScopeAndParticipant();
         when(planMapper.selectByProjectId(0L, 100L)).thenReturn(null);
@@ -158,6 +177,15 @@ class ConstructionPlanApplicationServiceTest {
             PlatformCommandExecutionApi.SuccessFacts audit = facts.apply(response);
             assertEquals("CONSTRUCTION_PLAN_INITIAL_DURATION_CREATE", audit.operationCode());
             assertNotNull(audit.detailSnapshot());
+            assertEquals(1, audit.businessEvents().size());
+            var event = audit.businessEvents().getFirst();
+            assertEquals(ProjectRuleReevaluationRequested.EVENT_TYPE, event.eventType());
+            var payload = JsonUtils.parseObject(event.eventPayload(), ProjectRuleReevaluationRequested.class);
+            assertEquals(event.eventId(), payload.eventId());
+            assertEquals(0L, payload.tenantId());
+            assertEquals(100L, payload.projectId());
+            assertEquals(9L, payload.actorId());
+            assertEquals("construction-plan-initial:701", payload.correlationId());
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, response);
         });
@@ -170,10 +198,10 @@ class ConstructionPlanApplicationServiceTest {
                 0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3, "ACTIVE", "S1", Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
+                100L, 9L, 3, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
                 .thenReturn(new ProjectParticipantFact(100L, 9L,
                         Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
-                        "ACTIVE", "S1", 3, 3L));
+                        "ACTIVE", "S2", 3, 3L));
     }
 
     private CreateInitialDurationCommand command(String basis, LocalDate start,

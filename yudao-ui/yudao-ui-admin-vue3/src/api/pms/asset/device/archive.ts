@@ -21,7 +21,10 @@ export interface DeviceArchiveVO {
   createTime?: Date
 }
 
-export type DeviceArchiveSaveReqVO = Omit<DeviceArchiveVO, 'createTime'>
+export type DeviceArchiveSaveReqVO = Omit<DeviceArchiveVO, 'createTime'> & {
+  manualReason?: string
+  manualEvidence?: string
+}
 
 export interface DeviceArchiveStatusChangeReqVO {
   id?: number

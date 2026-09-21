@@ -190,7 +190,10 @@ public class TemplateExecutionSnapshot {
         content.setClosurePolicy(closurePolicy == null || closurePolicy.isNull() ? null
                 : new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(closurePolicy));
         content.setDefinitionSnapshot(null);
-        content.setExecutionSnapshot(JsonUtils.parseObject(JsonUtils.toJsonString(this), JsonNode.class));
+        // 投影给Reader的JSON必须与持久化同形：缺省键不得写成显式null，否则JsonNode字段被绑定成NullNode，
+        // TemplateVersionSnapshot.validate 会把“无连线条件”误判为“存在条件”。
+        content.setExecutionSnapshot(JsonUtils.parseObject(
+                TemplateExecutionSnapshotReader.canonicalJson(this), JsonNode.class));
 
         for (StageContract source : stages) {
             TemplateDefinitionContent.StageDef target = new TemplateDefinitionContent.StageDef();

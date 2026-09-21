@@ -8,6 +8,11 @@ public interface BusinessResultSource {
     Descriptor descriptor();
     Observation inspect(Query query);
 
+    /** Caller transaction. Exact selected identity; Owner must lock its current validity rows. */
+    default Observation lockAndInspect(Query query) {
+        throw new UnsupportedOperationException("RESULT_LOCKED_LOOKUP_UNAVAILABLE");
+    }
+
     record Type(String ownerContext, String entityType, String resultType) {
         public Type { text(ownerContext); text(entityType); text(resultType); }
     }

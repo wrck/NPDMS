@@ -36,4 +36,10 @@ public class DeviceArchiveSaveReqVO {
 
     @Size(max = 500, message = "备注长度不能超过500")
     private String remark;
+
+    @Size(max = 100, message = "补录原因长度不能超过100")
+    private String manualReason;
+
+    @Size(max = 300, message = "补录证据长度不能超过300")
+    private String manualEvidence;
 }

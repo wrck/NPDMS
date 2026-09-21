@@ -40,6 +40,7 @@ public class SatisfactionResultDecisionService {
     private final ProjectWorkBindingFactApi workBindingFactApi;
     private final FileArtifactApi fileArtifactApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
 
     @Transactional(rollbackFor = Exception.class)
     public DecisionResult decide(Command command) {
@@ -50,6 +51,7 @@ public class SatisfactionResultDecisionService {
             throw new IllegalStateException("SATISFACTION_RESULT_TASK_CONFLICT");
         }
         Long actorUserId = current.getAssignedToUserId();
+        if (IndependentSatisfactionService.direct(current)) independent.lockIfDirect(command.tenantId(), actorUserId, current);
         var execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "ACC_SATISFACTION_RESULT_DECISION", actorUserId, command.operationId()),
@@ -69,7 +71,8 @@ public class SatisfactionResultDecisionService {
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(command.tenantId(), command.taskId());
         if (task == null || !"PENDING_DECISION".equals(task.getTaskStatus()) || task.getResultId() != null
                 || !command.questionnaireId().equals(task.getQuestionnaireId())
-                || !actorUserId.equals(task.getAssignedToUserId()) || task.getDeliverableId() == null) {
+                || !actorUserId.equals(task.getAssignedToUserId())
+                || !IndependentSatisfactionService.direct(task) && task.getDeliverableId() == null) {
             throw new IllegalStateException("SATISFACTION_RESULT_TASK_CONFLICT");
         }
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectByIdForUpdate(
@@ -93,11 +96,11 @@ public class SatisfactionResultDecisionService {
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_SCOPE_CONFLICT");
         }
-        ProjectSatisfactionTaskFact projectTask = workBindingFactApi.lockCurrentSatisfactionTask(
+        ProjectSatisfactionTaskFact projectTask = IndependentSatisfactionService.direct(task) ? null : workBindingFactApi.lockCurrentSatisfactionTask(
                 new ProjectSatisfactionTaskIdentityQuery(task.getProjectId(), task.getProjectTaskId()));
-        if (projectTask == null || !task.getProjectId().equals(projectTask.projectId())
+        if (!IndependentSatisfactionService.direct(task) && (projectTask == null || !task.getProjectId().equals(projectTask.projectId())
                 || !task.getProjectTaskId().equals(projectTask.projectTaskId())
-                || projectTask.projectTaskVersion() == null) {
+                || projectTask.projectTaskVersion() == null)) {
             throw new IllegalStateException("SATISFACTION_RESULT_PROJECT_TASK_CONFLICT");
         }
 
@@ -123,12 +126,13 @@ public class SatisfactionResultDecisionService {
         if (resultMapper.insert(result) != 1
                 || files.stream().map(DecisionFile::row).anyMatch(row -> resultFileMapper.insert(row) != 1)
                 || taskMapper.completeDecision(new SatisfactionTaskResultUpdate(command.tenantId(), task.getId(),
-                task.getVersion(), resultId, evaluation.passed() ? "PENDING_ARCHIVE" : "FAILED",
+                task.getVersion(), resultId, evaluation.passed()
+                        ? (IndependentSatisfactionService.direct(task) ? "PASSED" : "PENDING_ARCHIVE") : "FAILED",
                 String.valueOf(actorUserId))) != 1) {
             throw new IllegalStateException("SATISFACTION_RESULT_WRITE_CONFLICT");
         }
         return new DecisionResult(command.operationId(), command.tenantId(), task.getProjectId(), task.getProjectTaskId(),
-                projectTask.projectTaskVersion(), task.getDeliverableId(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
+                projectTask == null ? null : projectTask.projectTaskVersion(), task.getDeliverableId(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
                 questionnaire.getTemplateRevisionId(),
                 response.getId(), resultId, task.getTaskRevisionNo(), result.getVersion(), task.getCollectionKey(),
                 task.getSourceOwnerContext(),
@@ -150,7 +154,7 @@ public class SatisfactionResultDecisionService {
         row.setScore(evaluation.score());
         row.setThreshold(evaluation.threshold()); row.setPassed(evaluation.passed());
         row.setRuleVersion(evaluation.ruleVersion()); row.setResultStatus(evaluation.passed() ? "EFFECTIVE" : "FAILED");
-        row.setEffectiveFrom(now); row.setArchiveStatus("PENDING_COMPENSATION");
+        row.setEffectiveFrom(now); row.setArchiveStatus(IndependentSatisfactionService.direct(task) ? null : "PENDING_COMPENSATION");
         row.setArchiveActorUserId(actorUserId); row.setArchiveRetryCount(0); row.setVersion(0);
         row.setCreator(String.valueOf(actorUserId)); row.setUpdater(String.valueOf(actorUserId));
         row.setCreateTime(now); row.setUpdateTime(now);
@@ -205,6 +209,11 @@ public class SatisfactionResultDecisionService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(DecisionResult result) {
+        if (result.projectTaskId() == null) return new PlatformCommandExecutionApi.SuccessFacts(
+                "SATISFACTION_RESULT_RECORDED", "SatisfactionResult", result.resultId().toString(), result.operationId(),
+                JsonUtils.toJsonString(Map.of("resultId", result.resultId(), "passed", result.passed())),
+                List.of(cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.event.IndependentSatisfactionResultChanged.event(
+                        result.tenantId(), result.projectId(), result.taskId(), result.resultId(), result.archiveActorUserId(), "RECORDED")));
         String eventId = result.operationId() + ":result-recorded";
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("eventId", eventId); payload.put("changeType", "RECORDED");

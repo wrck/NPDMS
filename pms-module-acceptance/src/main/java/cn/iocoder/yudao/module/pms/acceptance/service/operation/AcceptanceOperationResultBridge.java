@@ -28,8 +28,15 @@ public class AcceptanceOperationResultBridge {
     @Transactional(propagation = Propagation.MANDATORY)
     public void onAppended(PlatformOutboxAppended appended) {
         var message = appended.message();
-        if (!"AcceptanceReportVersionChanged".equals(message.eventType())) return;
-        var nativeEvent = JsonUtils.parseObject(message.payload(),AcceptanceReportVersionChangedMessage.class);
+        boolean independent = cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.event.ProjectAcceptanceReportChanged.EVENT_TYPE.equals(message.eventType());
+        if (!independent && !"AcceptanceReportVersionChanged".equals(message.eventType())) return;
+        var projectEvent = independent ? JsonUtils.parseObject(message.payload(),
+                cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.event.ProjectAcceptanceReportChanged.class) : null;
+        var nativeEvent = independent ? new AcceptanceReportVersionChangedMessage(projectEvent.eventId(), projectEvent.tenantId(),
+                projectEvent.changeType(), projectEvent.acceptanceId(), projectEvent.projectId(), null, null, projectEvent.actorId(),
+                "REVOKED".equals(projectEvent.changeType()) ? null : projectEvent.reportVersionId(),
+                "REVOKED".equals(projectEvent.changeType()) ? projectEvent.reportVersionId() : null, null, java.util.List.of())
+                : JsonUtils.parseObject(message.payload(),AcceptanceReportVersionChangedMessage.class);
         Long tenant = TenantContextHolder.getRequiredTenantId();
         if (nativeEvent == null || !Objects.equals(tenant,message.tenantId()) || !Objects.equals(tenant,nativeEvent.tenantId())
                 || !Objects.equals(message.eventId(),nativeEvent.eventId())) throw new IllegalArgumentException("ACCEPTANCE_RESULT_IDENTITY_INVALID");
@@ -39,7 +46,8 @@ public class AcceptanceOperationResultBridge {
                 && Objects.equals(frame.objectId(),String.valueOf(nativeEvent.acceptanceId()))) return;
         var activity = activities.getObject().selectById(nativeEvent.acceptanceId());
         if (activity == null || !Objects.equals(activity.getTenantId(),tenant)
-                || !Objects.equals(activity.getProjectId(),nativeEvent.projectId()) || activity.getVersion() == null)
+                || !Objects.equals(activity.getProjectId(),nativeEvent.projectId()) || activity.getVersion() == null
+                || independent && !"DIRECT".equals(activity.getOriginKind()))
             throw new IllegalArgumentException("ACCEPTANCE_RESULT_IDENTITY_INVALID");
         boolean revoked = "REVOKED".equals(nativeEvent.changeType());
         Long revision = revoked ? nativeEvent.previousReportVersionId() : nativeEvent.currentReportVersionId();

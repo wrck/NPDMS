@@ -95,9 +95,9 @@ public class TemplateCompiler {
             snapshot.setExecutionSchemaVersion(TemplateVersionSnapshot.SCHEMA_VERSION);
             snapshot.setCompilerVersion(VERSIONED_COMPILER_VERSION);
             try {
-                // 发布使用与全部运行消费者相同的Reader验证实际持久化表示。
+                // 发布使用与全部运行消费者相同的Reader验证实际持久化表示；持久化走canonicalJson，往返须同形。
                 snapshot = TemplateExecutionSnapshotReader.read(
-                        cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(snapshot));
+                        TemplateExecutionSnapshotReader.canonicalJson(snapshot));
             } catch (RuntimeException invalid) {
                 return new Compilation(null, null,
                         List.of(new Issue("executionSnapshot", "INCOMPLETE_VERSION_SNAPSHOT", invalid.getMessage())));
@@ -168,6 +168,22 @@ public class TemplateCompiler {
                 "deliverables", issues);
         validateSimpleNodeCodes(source.getGates().stream().map(TemplateDesignerDocument.GateNode::getCode).toList(),
                 "gates", issues);
+        validateDeliverableReferences(source, stageCodes, taskCodes, issues);
+    }
+
+    /** 交付件必须归属已配置阶段；任务级交付件引用的任务必须存在，防止实例化出无法归属的交付件。 */
+    private void validateDeliverableReferences(TemplateDesignerDocument source, Set<String> stageCodes,
+                                               Set<String> taskCodes, List<Issue> issues) {
+        for (int i = 0; i < source.getDeliverables().size(); i++) {
+            TemplateDesignerDocument.DeliverableNode deliverable = source.getDeliverables().get(i);
+            if (deliverable == null) continue;
+            if (!stageCodes.contains(deliverable.getStageCode()))
+                issues.add(new Issue("deliverables[" + i + "].stageCode", "DANGLING_STAGE",
+                        "交付件必须归属当前模板已配置的阶段"));
+            if (!blank(deliverable.getTaskCode()) && !taskCodes.contains(deliverable.getTaskCode()))
+                issues.add(new Issue("deliverables[" + i + "].taskCode", "DANGLING_TASK",
+                        "交付件引用的任务不存在"));
+        }
     }
 
     private void validateSimpleNodeCodes(List<String> codes, String path, List<Issue> issues) {
@@ -211,7 +227,47 @@ public class TemplateCompiler {
         source.getStages().stream().filter(Objects::nonNull).map(TemplateDesignerDocument.StageNode::getCode)
                 .filter(Objects::nonNull).forEach(code -> states.add(code + "_COMPLETED"));
         targets.put("STATE", states);
+        for (int i = 0; i < source.getDeliverables().size(); i++) {
+            var deliverable = source.getDeliverables().get(i);
+            if (deliverable == null) continue;
+            String path = "deliverables[" + i + "].configuration";
+            var configuration = deliverable.getConfiguration();
+            if (configuration == null || configuration.isNull()) {
+                issues.add(new Issue(path, "DELIVERABLE_CONFIGURATION_REQUIRED", "交付件需要配置材料来源、最少数量和自动判定条件"));
+                continue;
+            }
+            try {
+                cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionPayloadValidator.validate(
+                        cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionKind.DELIVERABLE, 1, configuration, List.of());
+                if (Boolean.TRUE.equals(deliverable.getRequired()) && configuration.path("minimumQuantity").asInt() < 1)
+                    issues.add(new Issue(path + ".minimumQuantity", "REQUIRED_QUANTITY", "必选交付件至少需要一项有效材料"));
+                ruleCompiler.compile(configuration.path("confirmationRule"));
+                validateRuleTargets(configuration.path("confirmationRule"), path + ".confirmationRule", targets, issues);
+            } catch (IllegalArgumentException invalid) {
+                issues.add(new Issue(path, "INVALID_DELIVERABLE_CONFIGURATION", invalid.getMessage()));
+            }
+        }
         var versionRules = cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.index(source.getRules());
+        for (int i = 0; i < source.getDeliverables().size(); i++) {
+            var item = source.getDeliverables().get(i);
+            if (item == null || item.getConfiguration() == null || item.getStageCode() == null) continue;
+            if (!requiresReference(item.getConfiguration().path("confirmationRule"), "STATE", item.getStageCode() + "_COMPLETED")) continue;
+            boolean requiredForExit = source.getGates().stream().filter(Objects::nonNull)
+                    .filter(gate -> "EXIT".equals(gate.getGateType()) && Objects.equals(item.getStageCode(), gate.getStageCode()))
+                    .flatMap(gate -> gate.getReferences().stream()).anyMatch(ref -> "DELIVERABLE".equals(ref.getRefType()) && Objects.equals(item.getCode(), ref.getRefCode()));
+            for (var stage : source.getStages()) {
+                if (stage == null || !Objects.equals(item.getStageCode(), stage.getCode())) continue;
+                requiredForExit |= stage.getCompletionRule() != null && requiresReference(stage.getCompletionRule().getExpression(), "DELIVERABLE", item.getCode());
+                if (stage.getExitRuleKey() != null && versionRules.containsKey(stage.getExitRuleKey())) {
+                    try {
+                        requiredForExit |= requiresReference(cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection.condition(
+                                versionRules, stage.getExitRuleKey()), "DELIVERABLE", item.getCode());
+                    } catch (RuntimeException invalid) { /* Invalid rule is reported below. */ }
+                }
+            }
+            if (requiredForExit) issues.add(new Issue("deliverables[" + i + "].configuration.confirmationRule", "DELIVERABLE_STAGE_CYCLE",
+                    "阶段退出所需交付件不能反过来等待本阶段完成，请引用实际任务或业务成果"));
+        }
         for (var rule : source.getRules()) {
             if (rule.kind() != cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule.Kind.CONDITION) continue;
             try {
@@ -285,6 +341,22 @@ public class TemplateCompiler {
                     predicate + "引用目标未配置在当前模板：" + ref));
     }
 
+    private boolean requiresReference(JsonNode rule, String type, String code) {
+        if (rule == null || rule.isNull()) return false;
+        if (type.equals(rule.path("predicate").asText())) return code.equals(rule.path("parameters").path("refCode").asText());
+        String operator = rule.path("operator").asText();
+        if (!"ALL".equals(operator) && !"ANY".equals(operator)) return false;
+        var children = rule.path("rules");
+        if (!children.isArray() || children.isEmpty()) return false;
+        boolean all = true;
+        for (var child : children) {
+            boolean required = requiresReference(child, type, code);
+            if ("ALL".equals(operator) && required) return true;
+            all &= required;
+        }
+        return "ANY".equals(operator) && all;
+    }
+
     private void validateBindings(TemplateDesignerDocument source, List<Issue> issues) {
         for (int i = 0; i < source.getStages().size(); i++) {
             TemplateDesignerDocument.StageNode stage = source.getStages().get(i);
@@ -337,6 +409,13 @@ public class TemplateCompiler {
                     || !blank(binding.getTargetObjectKey()) || !blank(binding.getComponentKey())
                     || binding.getDynamicFormRevisionId() != null || !blank(binding.getApprovalDefinitionKey()))
                 issues.add(new Issue(path, "NATIVE_TARGET_FORBIDDEN", "原生WorkBinding不得配置外部目标"));
+            if ("PAGE".equals(binding.getType())) {
+                // PAGE 唯一的冻结内容是应用内路由入口；缺省或外部URL都不允许。
+                JsonNode route = binding.getParameters() == null ? null : binding.getParameters().path("routePath");
+                if (route == null || !route.isTextual() || !route.asText().startsWith("/"))
+                    issues.add(new Issue(path + ".parameters.routePath", "PAGE_ROUTE_REQUIRED",
+                            "PAGE必须配置以/开头的应用内路由"));
+            }
             return;
         }
         switch (binding.getType()) {
@@ -582,7 +661,8 @@ public class TemplateCompiler {
     private Set<String> collectDeliverableCodes(TemplateDesignerDocument source) {
         Set<String> result = new HashSet<>(); source.getDeliverables().stream().filter(Objects::nonNull).map(TemplateDesignerDocument.DeliverableNode::getCode).filter(Objects::nonNull).forEach(result::add); return result;
     }
-    private boolean isNative(String type) { return "STAGE_NATIVE".equals(type) || "TASK_NATIVE".equals(type); }
+    // PAGE 与原生绑定同规则：不承载Owner业务目标，路由参数仅作为导航入口，完成仍由规则判断。
+    private boolean isNative(String type) { return "STAGE_NATIVE".equals(type) || "TASK_NATIVE".equals(type) || "PAGE".equals(type); }
     private boolean isNativeCompletion(JsonNode rule) {
         if (rule == null) return false;
         try {

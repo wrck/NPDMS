@@ -15,6 +15,8 @@ it('offers only the matching manual predicate and follows binding changes withou
   expect(nativeOptions(document, 'ready')).toEqual([])
   document.stages = []; document.tasks.push(task())
   expect(nativeOptions(document, 'ready')).toEqual(['TASK_NATIVE_STATUS'])
+  document.tasks[0].workBinding.type = 'PAGE'
+  expect(nativeOptions(document, 'ready')).toEqual(['TASK_NATIVE_STATUS'])
   document.tasks[0].workBinding.type = 'BUSINESS_OBJECT'
   expect(nativeOptions(document, 'ready')).toEqual([])
 })

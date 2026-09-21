@@ -55,7 +55,33 @@ public class ProjectRuntimeGraphResolver {
     @Transactional(propagation = Propagation.MANDATORY)
     public Resolution inspect(ProjectMasterDO project) { return resolve(project, false); }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Resolution resolveForClosure(ProjectMasterDO project) { return resolve(project, true, true); }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Resolution inspectForClosure(ProjectMasterDO project) { return resolve(project, false, true); }
+
+    public record ClosureGates(List<ProjectGateInstanceDO> gates, List<ProjectGateReferenceInstanceDO> references) { }
+
+    /** Closing a project rechecks evidence of all stages actually executed, including earlier deliveries. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ClosureGates lockClosureGates(ProjectMasterDO project) {
+        if (!Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_TENANT_MISMATCH");
+        var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
+        var executed = mapper.selectStagesForUpdate(query).stream().filter(stage -> Set.of("DONE", "ACTIVE").contains(stage.getStatus()))
+                .map(ProjectStageInstanceDO::getCode).collect(Collectors.toSet());
+        var gates = mapper.selectGatesForUpdate(query).stream().filter(gate -> "EXIT".equals(gate.getGateType()) && executed.contains(gate.getStageCode())).toList();
+        var references = gates.isEmpty() ? List.<ProjectGateReferenceInstanceDO>of() : referenceMapper.selectOrderedForUpdate(
+                new ProjectGateReferenceForUpdateQuery(project.getTenantId(), gates.stream().map(ProjectGateInstanceDO::getId).toList()));
+        return new ClosureGates(gates, references);
+    }
+
     private Resolution resolve(ProjectMasterDO project, boolean locked) {
+        return resolve(project, locked, false);
+    }
+
+    private Resolution resolve(ProjectMasterDO project, boolean locked, boolean closureCheck) {
         if (!Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId()))
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_TENANT_MISMATCH");
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
@@ -123,8 +149,16 @@ public class ProjectRuntimeGraphResolver {
             JsonNode rule = conditionRule(edge, byStage.get(current.getId()));
             conditionFacts.add(new StageTransitionTargetResolver.ConditionFact(entry.getKey(), evaluator.evaluate(rule, facts)));
         }
-        StageTransitionTargetResolver.Result transition = StageTransitionTargetResolver.resolve(
-                graph, current.getCode(), conditionFacts);
+        // Versioned templates use configured node rules and may start at any named stage.
+        // Their closure marker must not be rejected by the legacy S0 transition graph contract.
+        boolean configuredClosure = closureCheck && contracts.stream().allMatch(contract -> !blank(contract.getSourceNodeKey()));
+        if (configuredClosure && project.getActivePlanVersionId() == null)
+            throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_PLAN_UNAVAILABLE");
+        StageTransitionTargetResolver.Result transition = configuredClosure
+                ? new StageTransitionTargetResolver.Result(Boolean.TRUE.equals(current.getTerminalNode())
+                    ? StageTransitionTargetResolver.Status.TERMINAL : StageTransitionTargetResolver.Status.NO_MATCH,
+                    null, null, List.of(), List.of())
+                : StageTransitionTargetResolver.resolve(graph, current.getCode(), conditionFacts);
         ProjectStageInstanceDO target = transition.targetStageCode() == null ? null : stages.stream()
                 .filter(stage -> stage.getCode().equals(transition.targetStageCode())).findFirst().orElseThrow();
         if (target != null && !"PENDING".equals(target.getStatus()))

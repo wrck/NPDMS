@@ -25,7 +25,10 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
             "ProjectChildClosureChanged",
             "FileVersionCommitted", "FileReferenceAttached", "FileReferenceDetached", "FileArchived",
             "DeviceAssigned", "AcceptanceReportVersionChanged", "SatisfactionTaskCreated",
-            "SatisfactionResultVersionChanged", "ImplementationEvidencePublished");
+            "SatisfactionResultVersionChanged", "ImplementationEvidencePublished",
+            "PMS.BusinessOperationResultCommitted.v1", "PMS.BusinessResultChangeCommitted.v1", "PMS.ProjectBusinessResultTarget.v1",
+            "PMS.ResultSubscriptionWakeup.v1", "PMS.ResultSubscriptionFanout.v1",
+            "PMS.ResultEvidenceScan.v1", "PMS.ResultEvidenceEvaluated.v1");
     static final int MAX_BATCH_SIZE = 100;
 
     @Resource

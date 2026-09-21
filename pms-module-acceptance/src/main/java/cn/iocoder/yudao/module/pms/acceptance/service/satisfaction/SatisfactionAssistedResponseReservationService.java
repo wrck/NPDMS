@@ -18,6 +18,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionAssistedResponseReservationService {
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
     static final String SCOPE = "ACC_SATISFACTION_ASSISTED_RESPONSE_RESERVATION";
 
     private final SatisfactionCollectionTaskMapper taskMapper;
@@ -26,6 +27,8 @@ public class SatisfactionAssistedResponseReservationService {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public Reservation reserve(Long tenantId, Long actorUserId, Long taskId, String requestId) {
+        var observed = taskMapper.selectById(taskId);
+        if (IndependentSatisfactionService.direct(observed)) independent.lockIfDirect(tenantId, actorUserId, observed);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(tenantId, taskId);
         SatisfactionQuestionnaireDO questionnaire = task == null ? null
                 : questionnaireMapper.selectByIdForUpdate(tenantId, task.getQuestionnaireId());

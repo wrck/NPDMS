@@ -29,8 +29,16 @@ export const updateProjectClosure = (data: ProjectClosureVO) =>
 export const deleteProjectClosure = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 // 状态动作: 0草稿 1待审批 2审批中 3已通过 4已驳回 5已归档
-export const submitProjectClosure = (id: number) =>
-  request.put({ url: `${baseUrl}/submit`, params: { id } })
+export const submitProjectClosure = (id: number, treeVersion: number) =>
+  request.put({ url: `${baseUrl}/submit`, params: { id }, headers: { 'If-Match': String(treeVersion) } })
+// 后端提交以项目树版本做乐观锁（If-Match）；叶子项目无进度汇总快照，树版本取自项目树查询
+export const getProjectTreeVersion = (projectId: number) =>
+  request
+    .get<{ treeVersion: number }>({
+      url: `/pms/projects/${projectId}/tree`,
+      params: { queryType: 'LOCATE', anchorId: projectId, pageSize: 1 }
+    })
+    .then((data) => data.treeVersion)
 export const startApproveProjectClosure = (id: number) =>
   request.put({ url: `${baseUrl}/start-approve`, params: { id } })
 export const passProjectClosure = (id: number) =>

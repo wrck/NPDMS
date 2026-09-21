@@ -35,7 +35,6 @@ public class ProjectStageSubmissionService {
     private final ProjectScopeApi scopes;
     private final PermissionApi permissions;
     private final PlatformCommandExecutionApi commands;
-    private final ProjectRuntimeCoordinator coordinator;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projectRows;
     private final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
 
@@ -79,7 +78,7 @@ public class ProjectStageSubmissionService {
         requireScope(tenantId, command.projectId(), actorId, ProjectScopeApi.ACTION_EDIT);
         String correlation = "STAGE_SUBMIT:" + command.executionId() + ":" + idempotencyKey;
         var result = commands.execute(new PlatformCommandExecutionApi.IdempotencyScope(tenantId, "PROJECT_STAGE_SUBMIT", actorId, idempotencyKey),
-                DigestUtil.sha256Hex(JsonUtils.toJsonString(command)), Submitted.class, () -> submitOnce(command, tenantId, actorId, correlation),
+                DigestUtil.sha256Hex(JsonUtils.toJsonString(command)), Submitted.class, () -> submitOnce(command, tenantId, actorId),
                 submitted -> new PlatformCommandExecutionApi.SuccessFacts("PROJECT_STAGE_SUBMITTED", "ProjectNodeExecution", submitted.executionId().toString(),
                         correlation, JsonUtils.toJsonString(Map.of("executionId", submitted.executionId(), "roundNo", submitted.roundNo())),
                         List.of(new ProjectRuleReevaluation(tenantId, command.projectId(), actorId, correlation)
@@ -89,7 +88,7 @@ public class ProjectStageSubmissionService {
         return result.response();
     }
 
-    private Submitted submitOnce(Command command, Long tenantId, Long actorId, String correlation) {
+    private Submitted submitOnce(Command command, Long tenantId, Long actorId) {
         var project = projects.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(tenantId, command.projectId()));
         if (project == null || !"ACTIVE".equals(project.getLifecycleStatus())) throw exception(PROJECT_TASK_COMMAND_INVALID);
         requireScope(tenantId, command.projectId(), actorId, ProjectScopeApi.ACTION_EDIT);
@@ -107,7 +106,8 @@ public class ProjectStageSubmissionService {
             throw exception(PROJECT_TASK_COMMAND_INVALID); // Owner business/approval outcomes cannot be replaced by a manual claim.
         if (executions.submitIfCurrent(new ProjectNodeExecutionMapper.Submission(tenantId, project.getId(), round.getId(), round.getVersion(),
                 actorId, LocalDateTime.now(), command.note().trim())) != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
-        coordinator.reevaluate(project.getId(), actorId, correlation);
+        // The command commits submission evidence and its Outbox wakeup atomically. Node advancement
+        // runs after commit, so a failed downstream node cannot roll back this valid submission.
         var latest = executions.selectById(round.getId());
         return new Submitted(latest.getId(), latest.getRoundNo(), latest.getStatus(), latest.getVersion());
     }

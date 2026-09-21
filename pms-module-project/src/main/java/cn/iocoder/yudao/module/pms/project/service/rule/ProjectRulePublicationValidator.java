@@ -170,7 +170,7 @@ public class ProjectRulePublicationValidator {
                     if (i == 0)
                         issues.add(new Issue(field, "RULE_NATIVE_ADMISSION_UNAVAILABLE",
                                 "准入不能依赖本节点尚未发生的手工提交，请改为来源节点状态或业务条件"));
-                    else if (binding == null || !nativeBinding.equals(binding.getType())
+                    else if (binding == null || !(nativeBinding.equals(binding.getType()) || "PAGE".equals(binding.getType()))
                             || !(nativeBinding + "_STATUS").equals(leaf.predicate()))
                         issues.add(new Issue(field, "RULE_NATIVE_BINDING_UNAVAILABLE",
                                 "手工提交条件只适用于同类型节点的原生办理，不能代替业务或审批结果"));
@@ -182,6 +182,12 @@ public class ProjectRulePublicationValidator {
                     issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_BUSINESS_SOURCE_REQUIRED",
                             "准入业务条件必须选择其他来源节点，不能依赖尚未准入的本轮办理结果"));
                 if (!source.isBlank()) continue; // Explicit sources are validated once against their own binding above.
+                String factCode = leaf.parameters().path("factCode").asText();
+                if (Set.of("PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED").contains(factCode)
+                        && (binding == null || binding.getParameters() == null
+                        || !factCode.substring(0, factCode.indexOf('_')).equals(binding.getParameters().path("acceptanceType").asText())))
+                    issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_ACCEPTANCE_TYPE_REQUIRED",
+                            "验收通过条件必须关联对应的初验或终验类型"));
                 if (!businessProviders.supportsBoundCompletionFact(receiver, leaf.parameters().path("factCode").asText()))
                     issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_BUSINESS_BINDING_UNAVAILABLE",
                             "规则所需业务事实与当前节点办理绑定或原模块节点能力不匹配"));

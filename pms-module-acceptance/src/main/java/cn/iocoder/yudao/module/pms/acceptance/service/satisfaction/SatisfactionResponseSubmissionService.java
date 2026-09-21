@@ -32,6 +32,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResponseSubmissionService {
+    @jakarta.annotation.Resource private IndependentSatisfactionService independent;
     private final SatisfactionAccessGrantMapper grantMapper;
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
@@ -52,6 +53,9 @@ public class SatisfactionResponseSubmissionService {
         if (initial == null || !command.tenantId().equals(initial.getTenantId())) {
             throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_UNAVAILABLE");
         }
+        var observed = taskMapper.selectById(initial.getCollectionTaskId());
+        if (IndependentSatisfactionService.direct(observed))
+            independent.lockIfDirect(command.tenantId(), observed.getAssignedToUserId(), observed);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(
                 command.tenantId(), initial.getCollectionTaskId());
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectByIdForUpdate(
@@ -123,6 +127,8 @@ public class SatisfactionResponseSubmissionService {
                 || command.files().stream().filter(file -> "SIGNATURE".equals(file.role())).count() != 1) {
             throw new IllegalArgumentException("SATISFACTION_ASSISTED_RESPONSE_INVALID");
         }
+        var observed = taskMapper.selectById(command.taskId());
+        if (IndependentSatisfactionService.direct(observed)) independent.lockIfDirect(command.tenantId(), command.actorUserId(), observed);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(command.tenantId(), command.taskId());
         SatisfactionQuestionnaireDO questionnaire = task == null ? null : questionnaireMapper.selectByIdForUpdate(
                 command.tenantId(), task.getQuestionnaireId());
