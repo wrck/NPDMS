@@ -49,7 +49,9 @@ export function createDeliverable(
     name: DEFAULT_NODE_NAMES.DELIVERABLE,
     stageCode,
     ...(taskCode ? { taskCode } : {}),
-    required: false
+    required: false,
+    configuration: { scope: taskCode ? 'TASK' : 'STAGE', deliverableType: 'DOCUMENT', outputType: 'FILE', required: false,
+      minimumQuantity: 1, allowedSources: ['UPLOAD'], confirmationRule: constantRule(true) }
   }
   document.deliverables.push(node)
   return node
@@ -92,7 +94,9 @@ export function createDeliveryNode(
     node = { ...base, stageCode, timing: 'STAGE_EXIT', criteria: '' }
     document.milestones.push(node)
   } else if (kind === 'DELIVERABLE') {
-    node = { ...base, stageCode, required: false }
+    node = { ...base, stageCode, required: false,
+      configuration: { scope: 'STAGE', deliverableType: 'DOCUMENT', outputType: 'FILE', required: false,
+        minimumQuantity: 1, allowedSources: ['UPLOAD'], confirmationRule: constantRule(true) } }
     document.deliverables.push(node)
   } else {
     node = { ...base, stageCode, gateType: 'EXIT', references: [] }

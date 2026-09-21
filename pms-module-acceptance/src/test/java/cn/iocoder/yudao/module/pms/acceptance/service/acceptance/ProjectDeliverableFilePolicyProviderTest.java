@@ -62,11 +62,10 @@ class ProjectDeliverableFilePolicyProviderTest {
         assertFalse(provider.inspectReferenceSet(new FileBusinessObjectReferenceSetQuery(7L, 11L, key, "DETACH")).allowed());
     }
 
-    @Test void referenceSetCompletionRejectsStaleScopeOtherManagersAndForeignOwnerKeys() {
+    @Test void referenceSetCompletionUsesManageScopeAndRejectsStaleScopeAndForeignOwnerKeys() {
         assertThrows(RuntimeException.class, () -> provider.lockAndRevalidateReferenceSet(
                 new FileBusinessObjectReferenceSetRevalidationQuery(7L, 11L, key, "UPLOAD", 1L)));
-        assertThrows(RuntimeException.class, () -> provider.inspectReferenceSet(
-                new FileBusinessObjectReferenceSetQuery(7L, 12L, key, "UPLOAD")));
+        assertTrue(provider.inspectReferenceSet(new FileBusinessObjectReferenceSetQuery(7L, 12L, key, "UPLOAD")).allowed());
         assertFalse(provider.inspectReferenceSet(new FileBusinessObjectReferenceSetQuery(8L, 11L, key, "UPLOAD")).allowed());
         var foreign = new FileReferenceSetKey("SOL", TYPE, "20", PURPOSE);
         assertFalse(provider.inspectReferenceSet(new FileBusinessObjectReferenceSetQuery(7L, 11L, foreign, "UPLOAD")).allowed());

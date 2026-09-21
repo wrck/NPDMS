@@ -30,8 +30,10 @@ class ProjectDeliverableAccessTest {
         assertEquals(2L, access.check(context("ACTIVE"), 7L, 11L, true, true, 2L));
         assertEquals(2L, access.check(context("NORMAL_CLOSED"), 7L, 12L, false, false, null));
     }
-    @Test void nonManagerOrClosedProjectCannotSubmit() {
-        assertThrows(RuntimeException.class, () -> access.check(context("ACTIVE"), 7L, 12L, true, true, 2L));
+    @Test void manageScopeCanSubmitWithoutBeingManagerButClosureStillBlocksWrites() {
+        assertEquals(2L, access.check(context("ACTIVE"), 7L, 12L, true, true, 2L));
+        var unassigned = new ProjectDeliverableRuleApi.Context(9L, 10L, "ACTIVE", null, "S1", null, JsonUtils.parseTree("{}"));
+        assertEquals(2L, access.check(unassigned, 7L, 12L, true, true, 2L));
         assertThrows(RuntimeException.class, () -> access.check(context("NORMAL_CLOSED"), 7L, 11L, true, true, 2L));
     }
     @Test void emptyScopeAndStaleScopeCannotBroadenPermission() {

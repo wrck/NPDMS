@@ -16,6 +16,15 @@ public class ProjectDeliverableAccess {
     private final ProjectScopeApi scopes;
     private final PermissionApi permissions;
 
+    public boolean writable(ProjectDeliverableRuleApi.Context context) {
+        try {
+            require(context, true, false);
+            return true;
+        } catch (ServiceException denied) {
+            return false;
+        }
+    }
+
     public Long require(ProjectDeliverableRuleApi.Context context, boolean write, boolean lock) {
         Long actor = SecurityFrameworkUtils.getLoginUserId();
         check(context, TenantContextHolder.getRequiredTenantId(), actor, write, lock, null);
@@ -35,8 +44,8 @@ public class ProjectDeliverableAccess {
                 action, observed.treeVersion())) : observed;
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(context.projectId())
                 || !Objects.equals(observed.treeVersion(), scope.treeVersion())) throw failure("项目权限范围已变化，请刷新");
-        if (write && (!Objects.equals(context.managerId(), actor) || !"ACTIVE".equals(context.lifecycleStatus())))
-            throw failure("仅项目经理可提交进行中项目的交付件");
+        if (write && !"ACTIVE".equals(context.lifecycleStatus()))
+            throw failure("仅进行中的项目可提交交付件");
         return scope.treeVersion();
     }
 

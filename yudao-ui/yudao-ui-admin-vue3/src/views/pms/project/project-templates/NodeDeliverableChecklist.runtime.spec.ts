@@ -105,6 +105,19 @@ it('adds rows bound to the stage or to the edited task', async () => {
   expect(task.doc.deliverables.at(-1)).toMatchObject({ code: 'DEL1', stageCode: 'STG1', taskCode: task.survey.code })
 })
 
+it('switches only the selected draft group to document presence and keeps readonly definitions intact', () => {
+  const view = setup()
+  const otherStage = JSON.stringify(view.doc.deliverables[2])
+  view.doc.deliverables[0].configuration = { confirmationRule: { predicate: 'TASK', parameters: { refCode: view.survey.code } } }
+  view.state().useDocumentPresence()
+  expect(view.doc.deliverables[0].configuration).toMatchObject({ minimumQuantity: 1, allowedSources: ['UPLOAD'], confirmationRule: { predicate: 'CONSTANT', parameters: { value: true } } })
+  expect(JSON.stringify(view.doc.deliverables[2])).toBe(otherStage)
+  const frozen = setup({ readonly: true })
+  const before = JSON.stringify(frozen.doc)
+  frozen.state().useDocumentPresence()
+  expect(JSON.stringify(frozen.doc)).toBe(before)
+})
+
 it('validates the deliverable code against format and existing node codes', async () => {
   const view = setup()
   const plan = view.doc.deliverables[0]

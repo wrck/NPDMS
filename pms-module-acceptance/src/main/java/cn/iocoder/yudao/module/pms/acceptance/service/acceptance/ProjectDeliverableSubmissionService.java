@@ -40,14 +40,20 @@ public class ProjectDeliverableSubmissionService {
     private final ProjectBusinessResultEvidenceApi results;
     private final PlatformBusinessEventApi outbox;
     private final ProjectDeliverableOwnerSources ownerSources;
+    private final ProjectDocumentSourceRegistry documentSources;
 
     public record FileSelection(@NotNull @Positive Long artifactId, @NotNull @Positive Integer versionNo,
                                 @NotBlank @Size(max = 64) String referenceKey) { }
     public record Submission(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Integer expectedVersion,
                              @NotBlank String sourceType, @NotNull @Size(max = 100) List<@Valid FileSelection> files,
                              BusinessResultSource.Query businessResult) { }
-    public record SourceEvidence(List<FileArtifactVersionFact> files, BusinessResultSource.Result businessResult) {
-        public SourceEvidence { files = files == null ? List.of() : List.copyOf(files); }
+    public record SourceEvidence(List<FileArtifactVersionFact> files, BusinessResultSource.Result businessResult,
+                                 List<FileEvidenceApi.Document> businessFiles) {
+        public SourceEvidence(List<FileArtifactVersionFact> files, BusinessResultSource.Result businessResult) { this(files, businessResult, List.of()); }
+        public SourceEvidence {
+            files = files == null ? List.of() : List.copyOf(files);
+            businessFiles = businessFiles == null ? List.of() : List.copyOf(businessFiles);
+        }
     }
     public record Evaluation(boolean satisfied, String reason, String evidence) { }
     public record History(Long id, Long sourceVersionId, Long planVersionId, String sourceType,
@@ -65,8 +71,7 @@ public class ProjectDeliverableSubmissionService {
                 value.getPlanVersionId(), value.getSourceType(), JsonUtils.parseObject(value.getSourceEvidence(), SourceEvidence.class),
                 value.getCreator(), value.getCreateTime())).toList();
         return new Detail(id, projectId, row.getDeliverableCode(), row.getName(), row.getStatus(), row.getVersion(),
-                context.planVersionId(), context.configuration(), "ACTIVE".equals(context.lifecycleStatus())
-                && Objects.equals(context.managerId(), cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId()),
+                context.planVersionId(), context.configuration(), access.writable(context),
                 ownerSources.ownerType(row), history);
     }
 
@@ -172,10 +177,24 @@ public class ProjectDeliverableSubmissionService {
         if (submission == null || !Objects.equals(submission.getDeliverableId(), row.getId())
                 || !Objects.equals(submission.getProjectId(), row.getProjectId()))
             return outcome(row, false, "DELIVERABLE_SUBMISSION_UNAVAILABLE", "{}");
-        if (!allowed(context.configuration(), submission.getSourceType())) return outcome(row, false, "DELIVERABLE_SOURCE_NOT_ALLOWED", "{}");
+        if (!"BUSINESS_DOCUMENT".equals(submission.getSourceType()) && !allowed(context.configuration(), submission.getSourceType()))
+            return outcome(row, false, "DELIVERABLE_SOURCE_NOT_ALLOWED", "{}");
         var evidence = JsonUtils.parseObject(submission.getSourceEvidence(), SourceEvidence.class);
         int count = 0;
         var fileFacts = new ArrayList<FileEvidenceApi.Fact>();
+        if (!evidence.files().isEmpty() && !allowed(context.configuration(), "UPLOAD"))
+            return outcome(row, false, "DELIVERABLE_SOURCE_NOT_ALLOWED", "{}");
+        for (var file : evidence.businessFiles().stream().sorted(Comparator.comparing(FileEvidenceApi.Document::artifactId)).toList()) {
+            var scope = documentSources.resolve(row.getTenantId(), file);
+            if (scope == null || !Objects.equals(scope.projectId(), row.getProjectId())
+                    || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode()))
+                return outcome(row, false, "DELIVERABLE_DOCUMENT_SCOPE_CHANGED", "{}");
+            var fact = fileEvidence.lockAndRevalidate(new FileEvidenceApi.Query(row.getTenantId(), file.artifactId(), file.versionNo(),
+                    file.ownerContext(), file.objectType(), file.objectId(), file.purposeCode(), file.referenceKey(), file.sha256()));
+            fileFacts.add(fact);
+            if (!fact.valid()) return outcome(row, false, fact.reason(), JsonUtils.toJsonString(fileFacts));
+            count++;
+        }
         for (var file : evidence.files().stream().sorted(Comparator.comparing(FileArtifactVersionFact::artifactId)).toList()) {
             var fact = fileEvidence.lockAndRevalidate(new FileEvidenceApi.Query(row.getTenantId(), file.artifactId(), file.versionNo(),
                     OWNER, TYPE, row.getId().toString(), PURPOSE, file.referenceKey(), file.sha256()));
@@ -230,6 +249,60 @@ public class ProjectDeliverableSubmissionService {
                     file.fileFactVersion(), file.scopeVersion())));
         }
         return new SourceEvidence(captured, null);
+    }
+
+    /** Called only by the committed file-event consumer; never grants the caller a business write permission. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void collectDocument(AccProjectDeliverableDO observed, FileDocumentSourceProvider.Scope scope,
+                                FileEvidenceApi.Document file, String eventId) {
+        var context = rules.read(observed.getProjectId(), observed.getDeliverableCode());
+        if (!"ACTIVE".equals(context.lifecycleStatus()) || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode())) return;
+        context = rules.lock(observed.getProjectId(), observed.getDeliverableCode());
+        if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(scope.projectId(), context.projectId())
+                || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode())) return;
+        var row = require(deliverables.selectByIdForUpdate(new ProjectDeliverableIdLockQuery(observed.getTenantId(), observed.getId())), observed.getProjectId());
+        String key = "file-event:" + eventId;
+        if (submissions.selectRequest(row.getTenantId(), row.getId(), key) != null) return;
+        var previous = sources.selectCurrentForUpdate(new DeliverableCurrentSourceLockQuery(row.getTenantId(), row.getId()));
+        // Existing native ACC report/result projections keep their own immutable lineage.
+        if (previous != null && !"ProjectDeliverableSubmission".equals(previous.getSourceObjectType())) return;
+        var oldSubmission = previous == null ? null : submissions.selectSource(row.getTenantId(), previous.getId());
+        var old = oldSubmission == null ? new SourceEvidence(List.of(), null)
+                : JsonUtils.parseObject(oldSubmission.getSourceEvidence(), SourceEvidence.class);
+        if (old.businessResult() != null) return;
+        var documents = new ArrayList<>(old.businessFiles().stream().filter(d -> !Objects.equals(d.referenceId(), file.referenceId())).toList());
+        if (file.available()) documents.add(file);
+        documents.sort(Comparator.comparing(FileEvidenceApi.Document::referenceId));
+        if (documents.equals(old.businessFiles())) return;
+        var evidence = new SourceEvidence(old.files(), null, documents);
+        Long submissionId = IdWorker.getId(), sourceId = IdWorker.getId();
+        if (previous != null) {
+            previous.setRelationStatus("SUPERSEDED"); previous.setUpdater("file-collection");
+            if (sources.updateById(previous) != 1) throw failure("归集来源版本冲突");
+        }
+        var source = new ProjectDeliverableSourceVersionDO();
+        source.setId(sourceId); source.setTenantId(row.getTenantId()); source.setDeliverableId(row.getId());
+        source.setSourceRequirementId("PM-03"); source.setSourceObjectType("ProjectDeliverableSubmission");
+        source.setSourceObjectId(submissionId); source.setSourceVersion(1); source.setRelationStatus("CURRENT");
+        source.setArchiveStatus("NOT_REQUIRED"); source.setArchiveRetryCount(0);
+        source.setCreator("file-collection"); source.setUpdater("file-collection");
+        if (sources.insert(source) != 1) throw failure("归集来源保存失败");
+        var submission = new ProjectDeliverableSubmissionDO();
+        submission.setId(submissionId); submission.setTenantId(row.getTenantId()); submission.setProjectId(row.getProjectId());
+        submission.setDeliverableId(row.getId()); submission.setPlanVersionId(context.planVersionId()); submission.setSourceVersionId(sourceId);
+        submission.setRequestKey(key); submission.setRequestPayload(JsonUtils.toJsonString(file));
+        submission.setConfigurationSnapshot(JsonUtils.toJsonString(context.configuration())); submission.setSourceType("BUSINESS_DOCUMENT");
+        submission.setSourceEvidence(JsonUtils.toJsonString(evidence));
+        submission.setDecisionEvidence("{}"); submission.setCreator("file-collection");
+        if (submissions.insert(submission) != 1) throw failure("归集历史保存失败");
+        row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED"); row.setVersion(row.getVersion() + 1);
+        row.setUpdater("file-collection");
+        if (deliverables.updateById(row) != 1) throw failure("归集交付件冲突");
+        var decision = revalidate(row);
+        // This row is still uncommitted. Freeze the actual decision before its original insertion commits.
+        submission.setDecisionEvidence(JsonUtils.toJsonString(decision));
+        if (submissions.updateById(submission) != 1) throw failure("归集判定保存失败");
+        wakeup(row, null, key);
     }
 
     private BusinessResultSource.Result inspectResult(Long tenant, Long project, BusinessResultSource.Type type, String object, String result) {

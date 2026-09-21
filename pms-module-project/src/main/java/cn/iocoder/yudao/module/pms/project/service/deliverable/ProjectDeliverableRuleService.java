@@ -35,6 +35,23 @@ public class ProjectDeliverableRuleService implements ProjectDeliverableRuleApi 
         return context(require(projects.selectById(projectId)), code);
     }
 
+    @Override public Set<String> documentTargets(Long projectId, String sourceCode) {
+        var project = require(projects.selectById(projectId));
+        if (!"ACTIVE".equals(project.getLifecycleStatus()) || project.getActivePlanVersionId() == null) return Set.of();
+        var plan = plans.selectById(project.getActivePlanVersionId());
+        if (plan == null || !Objects.equals(plan.getProjectId(), projectId)
+                || !Objects.equals(plan.getTenantId(), project.getTenantId()) || !"EFFECTIVE".equals(plan.getStatus()))
+            throw new IllegalStateException("DELIVERABLE_FROZEN_PLAN_UNAVAILABLE");
+        Set<String> codes = new HashSet<>();
+        for (var definition : TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot()).getDeliverables()) {
+            if (definition.getConfiguration() == null) continue;
+            for (var source : definition.getConfiguration().path("automaticSources")) {
+                if (sourceCode.equals(source.asText())) codes.add(definition.getCode());
+            }
+        }
+        return Set.copyOf(codes);
+    }
+
     @Override @Transactional(propagation = Propagation.MANDATORY)
     public Context lock(Long projectId, String code) {
         var project = lockProject(projectId);

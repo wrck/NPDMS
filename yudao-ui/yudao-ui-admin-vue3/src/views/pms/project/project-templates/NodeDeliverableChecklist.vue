@@ -45,6 +45,7 @@
     }}</p>
     <p v-if="error" class="checklist-error">{{ error }}</p>
     <el-button v-if="!readonly" @click="addRow">添加交付件</el-button>
+    <el-button v-if="!readonly && rows.length" @click="useDocumentPresence">本组改为文件存在判定</el-button>
     <DeliverableRuleDialog ref="rulesRef" :document="document" :readonly="readonly" />
   </div>
 </template>
@@ -53,6 +54,7 @@ import { computed, ref } from 'vue'
 import type { TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import { allNodes, createDeliverable } from './templateCanvasModel'
 import DeliverableRuleDialog from './DeliverableRuleDialog.vue'
+import { constantRule } from './versionRuleModel'
 
 const props = defineProps<{
   document: TemplateDesignerDocument
@@ -69,6 +71,15 @@ const rows = computed(() =>
   )
 )
 const stageTasks = computed(() => props.document.tasks.filter((task) => task.stageCode === props.stageCode))
+const useDocumentPresence = () => {
+  if (props.readonly) return
+  for (const row of rows.value) {
+    row.configuration = { ...row.configuration, scope: row.taskCode ? 'TASK' : 'STAGE',
+      deliverableType: 'DOCUMENT', outputType: 'FILE', required: !!row.required,
+      minimumQuantity: Math.max(1, Number(row.configuration?.minimumQuantity ?? 1)),
+      allowedSources: ['UPLOAD'], confirmationRule: constantRule(true) }
+  }
+}
 const addRow = () => {
   if (props.readonly) return
   error.value = ''

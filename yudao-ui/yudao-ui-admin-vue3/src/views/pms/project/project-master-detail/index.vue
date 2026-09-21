@@ -380,6 +380,7 @@ class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-repor
               :key="detail.id"
               :project="detail"
             />
+            <ProjectDeliverablesPanel v-else-if="item.key === 'deliverable-checklist'" :project-id="detail.id" @changed="loadInstances" />
             <DeliveryModuleTable v-else :config="businessModuleConfigs[item.key]" :project-id="detail.id" />
           </div>
         </template>
@@ -696,6 +697,7 @@ import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import StageProgressRail from './components/StageProgressRail.vue'
 import ProjectFlowPanel from './components/ProjectFlowPanel.vue'
 import ProjectDeliverableDialog from './components/ProjectDeliverableDialog.vue'
+import ProjectDeliverablesPanel from './components/ProjectDeliverablesPanel.vue'
 import StageGateResultsPanel from './components/StageGateResultsPanel.vue'
 import ProjectTaskTree from './components/ProjectTaskTree.vue'
 import ProjectExecutionHistory from './components/ProjectExecutionHistory.vue'

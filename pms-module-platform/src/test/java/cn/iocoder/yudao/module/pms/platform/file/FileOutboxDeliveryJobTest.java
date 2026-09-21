@@ -60,6 +60,7 @@ class FileOutboxDeliveryJobTest {
         assertEquals("文件事件投递成功 2 条，待重试 0 条", result);
         verify(publisher).publishEvent(version);
         verify(publisher).publishEvent(reference);
+        verify(publisher).publishEvent(new cn.iocoder.yudao.module.pms.platform.api.file.FileReferenceChanged("evt-r", 7L, 21L));
         verify(outboxApi).markDelivered("evt-v", 0);
         verify(outboxApi).markDelivered("evt-r", 1);
     }

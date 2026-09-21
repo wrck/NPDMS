@@ -12,6 +12,8 @@ export interface BusinessResult {
   formedAt: string
 }
 export interface FileSelection { artifactId: number; versionNo: number; referenceKey: string }
+export interface BusinessDocument extends FileSelection { referenceId: number; ownerContext: string; objectType: string; objectId: string; purposeCode: string; name: string }
+export const getDocumentSources = (): Promise<{ code: string; name: string }[]> => request.get({ url: '/api/v1/pms/project-document-sources' })
 export interface DeliverableDetail {
   id: number
   projectId: number
@@ -22,9 +24,9 @@ export interface DeliverableDetail {
   planVersionId: number
   writable: boolean
   automaticSource?: 'ACCEPTANCE_REPORT' | 'SATISFACTION_RESULT'
-  configuration: { minimumQuantity: number; allowedSources: string[]; outputType: string }
+  configuration: { minimumQuantity: number; allowedSources: string[]; outputType: string; automaticSources?: string[] }
   history: { id: number; sourceVersionId: number; sourceType: string; submittedAt: string;
-    source: { files: (FileSelection & { name: string })[]; businessResult?: BusinessResult } }[]
+    source: { files: (FileSelection & { name: string })[]; businessResult?: BusinessResult; businessFiles?: BusinessDocument[] } }[]
 }
 export interface Submission {
   planVersionId: number

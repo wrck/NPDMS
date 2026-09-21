@@ -6,6 +6,8 @@
       <h3>{{ detail.name }}</h3>
       <p>状态：{{ detail.status === 'ACCEPTED' ? '已满足' : '待满足' }} · 至少 {{ detail.configuration.minimumQuantity }} 项有效材料</p>
       <p class="hint">提交后按模板条件自动判定。文件或成果有效且配置条件满足时，交付件满足门禁。</p>
+      <el-alert v-if="!detail.writable" title="当前交付件只读：请确认项目仍在进行中，且具有该项目的材料管理权限。" type="info" :closable="false" />
+      <el-alert v-if="detail.configuration.automaticSources?.length" title="业务页面上传的匹配文档会自动归集；归集完成后刷新查看，无需重复上传。" type="info" :closable="false" />
       <el-alert v-if="outcome" :title="outcome" :type="satisfied ? 'success' : 'warning'" :closable="false" show-icon />
       <el-alert v-if="detail.automaticSource" type="info" :closable="false" :title="detail.automaticSource === 'ACCEPTANCE_REPORT' ? '材料由验收报告自动关联，请在验收报告中办理和查看版本历史。' : '材料由满意度结果自动关联，请在满意度业务中办理和查看结果历史。'" />
       <el-form v-if="detail.writable && !detail.automaticSource" label-position="top" class="submission-form">
@@ -44,8 +46,11 @@
       <el-divider>提交历史</el-divider>
       <el-empty v-if="!detail.history.length" description="尚无提交记录" :image-size="56" />
       <el-collapse v-else>
-        <el-collapse-item v-for="item in detail.history" :key="item.id" :name="String(item.id)" :title="`${item.sourceType === 'UPLOAD' ? '文件提交' : '业务成果关联'} · ${formatDate(item.submittedAt)}`">
+        <el-collapse-item v-for="item in detail.history" :key="item.id" :name="String(item.id)" :title="`${item.sourceType === 'UPLOAD' ? '文件提交' : item.sourceType === 'BUSINESS_DOCUMENT' ? '业务文档自动归集' : '业务成果关联'} · ${formatDate(item.submittedAt)}`">
           <PmsFileReferenceList v-for="file in item.source.files" :key="file.referenceKey" v-bind="fileKey(file.referenceKey)" :artifact-id="file.artifactId" :version-no="file.versionNo" />
+          <PmsFileReferenceList v-for="file in item.source.businessFiles || []" :key="String(file.referenceId)"
+            :owner-context="file.ownerContext" :object-type="file.objectType" :object-id="file.objectId"
+            :purpose-code="file.purposeCode" :reference-key="file.referenceKey" :artifact-id="file.artifactId" :version-no="file.versionNo" />
           <p v-if="item.source.businessResult">{{ typeLabel(item.source.businessResult.type) }} · 成果 {{ item.source.businessResult.resultId }}</p>
         </el-collapse-item>
       </el-collapse>

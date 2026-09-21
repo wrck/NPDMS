@@ -30,8 +30,9 @@ class ProjectDeliverableSubmissionServiceTest {
     final ProjectBusinessResultEvidenceApi results = mock(ProjectBusinessResultEvidenceApi.class);
     final PlatformBusinessEventApi outbox = mock(PlatformBusinessEventApi.class);
     final ProjectDeliverableOwnerSources ownerSources = mock(ProjectDeliverableOwnerSources.class);
+    final ProjectDocumentSourceRegistry documentSources = mock(ProjectDocumentSourceRegistry.class);
     final ProjectDeliverableSubmissionService service = new ProjectDeliverableSubmissionService(roots, submissions, sources,
-            attachments, rules, access, files, facts, results, outbox, ownerSources);
+            attachments, rules, access, files, facts, results, outbox, ownerSources, documentSources);
     final AccProjectDeliverableDO root = new AccProjectDeliverableDO();
     final Map<String, ProjectDeliverableSubmissionDO> saved = new HashMap<>();
     ProjectDeliverableSourceVersionDO current;
@@ -62,10 +63,57 @@ class ProjectDeliverableSubmissionServiceTest {
         when(submissions.insert(any(ProjectDeliverableSubmissionDO.class))).thenAnswer(i -> {
             ProjectDeliverableSubmissionDO row = i.getArgument(0); saved.put(row.getRequestKey(), row); return 1;
         });
+        when(submissions.updateById(any(ProjectDeliverableSubmissionDO.class))).thenReturn(1);
         when(submissions.selectSource(anyLong(), anyLong())).thenAnswer(i -> saved.values().stream()
                 .filter(row -> row.getSourceVersionId().equals(i.getArgument(1))).findFirst().orElse(null));
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
+
+    private FileEvidenceApi.Document businessDocument(boolean available) {
+        return new FileEvidenceApi.Document(71L, "SOL", "REQUIREMENT_ANALYSIS_REVISION", "81",
+                "FORM_FIELD_ATTACHMENT/report", "slot2", 41L, 1, "b".repeat(64), "requirement.pdf", available);
+    }
+    private void configureCollection(String status, String source) {
+        context = new ProjectDeliverableRuleApi.Context(9L, 15L, status, null, "S1", "T1",
+                JsonUtils.parseTree("{\"minimumQuantity\":1,\"allowedSources\":[\"UPLOAD\"],\"automaticSources\":[\"" + source
+                        + "\"],\"confirmationRule\":{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}}"));
+        when(rules.read(9L, "D1")).thenReturn(context); when(rules.lock(9L, "D1")).thenReturn(context);
+        when(documentSources.resolve(eq(7L), any())).thenReturn(new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT"));
+    }
+    @Test void businessDocumentCollectsWithoutManualSubmissionAndDetachInvalidatesWithoutRewritingHistory() {
+        configureCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT");
+        var scope = new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT");
+        service.collectDocument(root, scope, businessDocument(true), "attached-1");
+        assertEquals("ACCEPTED", root.getStatus());
+        assertEquals(1, saved.size());
+        var original = saved.get("file-event:attached-1");
+        String originalEvidence = original.getSourceEvidence(), originalDecision = original.getDecisionEvidence();
+        service.collectDocument(root, scope, businessDocument(true), "attached-1");
+        assertEquals(1, saved.size());
+        service.collectDocument(root, scope, businessDocument(false), "detached-1");
+        assertEquals("PENDING", root.getStatus());
+        assertEquals(2, saved.size());
+        assertEquals(originalEvidence, original.getSourceEvidence());
+        assertEquals(originalDecision, original.getDecisionEvidence());
+        verifyNoInteractions(access, files, results);
+    }
+    @Test void unconfiguredClosedOrOtherProjectEventsCannotCreateSubmissions() {
+        var scope = new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT");
+        configureCollection("ACTIVE", "ACC.FINAL_REPORT");
+        service.collectDocument(root, scope, businessDocument(true), "unconfigured");
+        configureCollection("NORMAL_CLOSED", "SOL.REQUIREMENT_DOCUMENT");
+        service.collectDocument(root, scope, businessDocument(true), "closed");
+        configureCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT");
+        service.collectDocument(root, new FileDocumentSourceProvider.Scope(10L, scope.sourceCode()), businessDocument(true), "other-project");
+        assertTrue(saved.isEmpty());
+        verifyNoInteractions(outbox);
+    }
+    @Test void aBusinessEventWithNoAvailableDocumentCannotSatisfyTheDeliverable() {
+        configureCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT");
+        service.collectDocument(root, new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT"), businessDocument(false), "not-available");
+        assertEquals("PENDING", root.getStatus());
+        assertTrue(saved.isEmpty());
+    }
 
     private ProjectDeliverableSubmissionService.Submission upload(int version) {
         return new ProjectDeliverableSubmissionService.Submission(15L, version, "UPLOAD",

@@ -18,6 +18,23 @@ public class FileEvidenceService implements FileEvidenceApi {
     private final FileReferenceMapper references;
 
     @Override @Transactional(propagation = Propagation.MANDATORY)
+    public Document inspectDocument(Long tenantId, Long referenceId) {
+        if (!Objects.equals(tenantId, TenantContextHolder.getRequiredTenantId()) || referenceId == null)
+            throw new IllegalArgumentException("FILE_DOCUMENT_QUERY_INVALID");
+        var reference = references.selectIdentity(new FileReferenceMapper.IdentityQuery(tenantId, referenceId));
+        if (reference == null) return null;
+        var artifact = artifacts.selectOne(new FileArtifactLockQuery(tenantId, reference.getArtifactId()));
+        var version = versions.selectOne(new FileVersionLockQuery(tenantId, reference.getArtifactId(), reference.getFileVersionNo()));
+        if (artifact == null || version == null) return null;
+        boolean available = !Boolean.TRUE.equals(artifact.getDeleted()) && "ACTIVE".equals(artifact.getLifecycleStatusCode())
+                && "AVAILABLE".equals(version.getAvailabilityStatusCode())
+                && Set.of("ACTIVE", "ARCHIVED").contains(reference.getStatusCode());
+        return new Document(referenceId, reference.getOwnerContext(), reference.getObjectType(), reference.getObjectId(),
+                reference.getPurposeCode(), reference.getReferenceKey(), reference.getArtifactId(), reference.getFileVersionNo(),
+                version.getSha256(), artifact.getName(), available);
+    }
+
+    @Override @Transactional(propagation = Propagation.MANDATORY)
     public Fact lockAndRevalidate(Query query) {
         if (query == null || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId())
                 || query.artifactId() == null || query.artifactId() <= 0 || query.versionNo() == null || query.versionNo() <= 0
