@@ -55,7 +55,7 @@ class DeviceProjectionReconciliationServiceTest {
     void setUp() {
         service = new DeviceProjectionReconciliationService(
                 deviceMapper, shipmentMapper, assignmentMapper, locationMapper,
-                warrantyMapper, versionMapper, auditApi);
+                warrantyMapper, versionMapper, auditApi, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class));
     }
 
     @Test

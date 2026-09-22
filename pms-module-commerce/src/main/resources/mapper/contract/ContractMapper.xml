@@ -2,6 +2,88 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper">
 
+    <!-- 与归属聚合使用同一列排序规则，保留候选合同的所有同号来源和冲突记录。 -->
+    <sql id="deviceContractCandidates">
+      <if test="query.contractNumbers != null">
+        <choose><when test="!query.contractNumbers.isEmpty()">
+          AND contract_no IN <foreach collection="query.contractNumbers" item="number" open="(" close=")" separator=",">#{number}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+      </if>
+    </sql>
+
+    <sql id="deviceOrganizationFacts">
+        SELECT contract_no, MAX(company_id) AS company_id, MAX(company_name) AS company_name,
+          CASE WHEN COUNT(DISTINCT NULLIF(department_code,''))=1 THEN MAX(department_id) END AS department_id,
+          CASE WHEN COUNT(DISTINCT NULLIF(department_code,''))=1 THEN MAX(NULLIF(department_code,'')) END AS department_code,
+          CASE WHEN COUNT(DISTINCT NULLIF(department_code,''))=1 THEN MAX(NULLIF(department_name,'')) END AS department_name
+        FROM (
+          SELECT contract_no,company_id,company_code,company_name,NULL AS department_id,department_code,department_name
+          FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=0
+          <include refid="deviceContractCandidates"/>
+          UNION ALL
+          SELECT contract_no,company_id,company_code,company_name,department_id,department_code,department_name
+          FROM com_shipment_contract_reference WHERE tenant_id=#{query.tenantId} AND deleted=0
+          <include refid="deviceContractCandidates"/>
+        ) ownership
+        WHERE contract_no IS NOT NULL AND contract_no &lt;&gt; ''
+        GROUP BY contract_no HAVING COUNT(DISTINCT company_id)=1 AND COUNT(DISTINCT NULLIF(company_code,''))=1
+          AND SUM(CASE WHEN company_code IS NULL OR company_code='' THEN 1 ELSE 0 END)=0
+    </sql>
+    <select id="selectOrganizationVisibleContractNumbers" resultType="java.lang.String">
+      SELECT f.contract_no FROM (<include refid="deviceOrganizationFacts"/>) f
+      <choose><when test="query.grants != null and !query.grants.isEmpty()">
+        WHERE <foreach collection="query.grants" item="grant" open="(" close=")" separator=" OR ">
+          (f.company_id=#{grant.companyId}
+          <if test="grant.departmentId != null">
+            AND (f.department_id=#{grant.departmentId}
+              <if test="grant.departmentCode != null and grant.departmentCode != ''">OR CAST(f.department_code AS BINARY)=CAST(#{grant.departmentCode} AS BINARY)</if>)
+          </if>)
+        </foreach>
+      </when><otherwise>WHERE 1=0</otherwise></choose>
+    </select>
+    <select id="selectDeviceOrganizations" resultType="cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi$Organization">
+      SELECT f.contract_no,f.company_id,f.company_name,f.department_id,f.department_code,f.department_name
+      FROM (<include refid="deviceOrganizationFacts"/>) f
+      <choose><when test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+        WHERE f.contract_no IN <foreach collection="query.contractNumbers" item="number" open="(" close=")" separator=",">#{number}</foreach>
+      </when><otherwise>WHERE 1=0</otherwise></choose>
+    </select>
+
+    <select id="selectVisibleDeviceContractNumbers" resultType="java.lang.String">
+        SELECT c.contract_no
+        FROM com_contract c
+        JOIN (SELECT contract_no FROM com_contract
+              WHERE tenant_id = #{query.tenantId} AND deleted = 0
+              <include refid="deviceContractCandidates"/>
+              GROUP BY contract_no HAVING COUNT(*) = 1) unique_number
+          ON unique_number.contract_no = c.contract_no
+        WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0
+          AND c.contract_no IS NOT NULL AND c.contract_no &lt;&gt; ''
+          AND NOT EXISTS (SELECT 1 FROM com_shipment_contract_reference shipment
+              WHERE shipment.tenant_id=c.tenant_id AND shipment.deleted=0 AND shipment.contract_no=c.contract_no
+                AND (shipment.company_code IS NULL OR shipment.company_code=''
+                  OR CAST(shipment.company_code AS BINARY) &lt;&gt; CAST(c.company_code AS BINARY)))
+        <choose>
+          <when test="(query.companyCodes != null and !query.companyCodes.isEmpty()) or (query.projectIds != null and !query.projectIds.isEmpty())">
+          AND (
+          <if test="query.companyCodes != null and query.companyCodes.size() > 0">
+            CAST(c.company_code AS BINARY) IN
+            <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">CAST(#{companyCode} AS BINARY)</foreach>
+          </if>
+          <if test="query.companyCodes != null and query.companyCodes.size() > 0 and query.projectIds != null and query.projectIds.size() > 0"> OR </if>
+          <if test="query.projectIds != null and query.projectIds.size() > 0">
+            EXISTS (SELECT 1 FROM com_project_contract_relation pcr
+                    WHERE pcr.tenant_id = c.tenant_id AND pcr.contract_id = c.id
+                      AND pcr.deleted = 0 AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL
+                      AND pcr.project_id IN
+                      <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>)
+          </if>
+          )
+          </when>
+          <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
     <select id="selectBySourceForUpdate"
             resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
         SELECT *

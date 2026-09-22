@@ -37,7 +37,7 @@
             <div class="fact"><dt>同步时间</dt><dd>{{ time(order.sourceSyncTime) }}</dd></div>
           </dl>
         </div>
-        <p v-if="!loading && !error && !commerce?.contracts.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
+        <p v-if="!loading && !error && !commerce?.contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
       </template>
     </section>
     <section class="fact-section">

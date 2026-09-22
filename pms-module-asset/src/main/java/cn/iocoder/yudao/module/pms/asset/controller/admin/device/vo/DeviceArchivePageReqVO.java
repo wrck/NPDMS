@@ -23,7 +23,7 @@ public class DeviceArchivePageReqVO extends PageParam {
     @Schema(description = "合同号，模糊匹配")
     private String contractNo;
 
-    @Schema(description = "设备序列号，模糊匹配", example = "SN2026")
+    @Schema(description = "设备序列号（档案精确匹配；业务选择器模糊匹配）", example = "SN2026")
     private String sn;
 
     @Schema(description = "设备名称，模糊匹配", example = "网关")

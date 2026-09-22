@@ -10,7 +10,11 @@ public record VisibleDevicePageQuery(
         Long projectId,
         Long customerId,
         Integer pageNo,
-        Integer pageSize) {
+        Integer pageSize,
+        String name,
+        String status,
+        Set<String> visibleContractNumbers,
+        java.util.List<DeviceOrganizationGrant> organizationGrants) {
 
     public long offset() {
         return (long) (pageNo - 1) * pageSize;

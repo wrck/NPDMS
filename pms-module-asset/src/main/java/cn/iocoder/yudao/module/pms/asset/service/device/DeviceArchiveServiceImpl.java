@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.asset.service.device;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceArchivePageReqVO;
@@ -46,6 +49,8 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
     private final DeviceVersionMapper deviceVersionMapper;
     private final CustomerQueryApi customerQueryApi;
     private final ProjectDeviceSelectionService projectDeviceSelectionService;
+    private final DeviceAccessScopeService accessScopeService;
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi organizations;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -71,6 +76,8 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
         entity.setSourceSystem("PLATFORM_MANUAL");
         entity.setSyncStatus("PENDING_RECONCILIATION");
         deviceMapper.insert(entity);
+        organizations.refresh(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(
+                TenantContextHolder.getRequiredTenantId(),java.util.Set.of(entity.getId()),java.util.Set.of(),java.util.Set.of()));
         appendVersion(entity.getId(), null, entity, "CREATE",
                 "人工补录原因：" + createReqVO.getManualReason() + "；证据：" + createReqVO.getManualEvidence());
         return entity.getId();
@@ -141,7 +148,17 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
         if (pageReqVO.getSelectionProjectId() != null) {
             return projectDeviceSelectionService.getPage(pageReqVO);
         }
-        return deviceMapper.selectArchivePage(TenantContextHolder.getRequiredTenantId(), pageReqVO);
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        var grants = accessScopeService.organizationGrants(tenantId, SecurityFrameworkUtils.getLoginUserId());
+        var contracts = accessScopeService.contractScope(tenantId, SecurityFrameworkUtils.getLoginUserId(),
+                new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery(
+                        tenantId, null, pageReqVO.getSn(), null, pageReqVO.getProjectId(), pageReqVO.getCustomerId(),
+                        pageReqVO.getName(), pageReqVO.getStatus(), grants));
+        return deviceMapper.selectArchivePage(new VisibleDevicePageQuery(
+                tenantId, accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()),
+                pageReqVO.getSn(), null, pageReqVO.getProjectId(), pageReqVO.getCustomerId(),
+                pageReqVO.getPageNo(), pageReqVO.getPageSize(), pageReqVO.getName(), pageReqVO.getStatus(),
+                contracts, grants));
     }
 
     @Override
@@ -151,10 +168,13 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
 
     @Override
     public List<DeviceVersionDO> getDeviceVersionList(Long deviceId) {
+        validateDeviceExists(deviceId);
         return deviceVersionMapper.selectListByDeviceId(deviceId);
     }
 
     private DeviceDO validateDeviceExists(Long id) {
+        accessScopeService.assertVisible(TenantContextHolder.getRequiredTenantId(),
+                SecurityFrameworkUtils.getLoginUserId(), id);
         DeviceDO entity = deviceMapper.selectByTenantAndId(TenantContextHolder.getRequiredTenantId(), id);
         if (entity == null) {
             throw exception(AST_EQUIPMENT_NOT_EXISTS);

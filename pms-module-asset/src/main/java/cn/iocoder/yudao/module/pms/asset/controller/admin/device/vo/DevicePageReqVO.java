@@ -11,6 +11,8 @@ import lombok.EqualsAndHashCode;
 public class DevicePageReqVO extends PageParam {
 
     private String sn;
+    private String name;
+    private String status;
     private String productCode;
     private Long projectId;
     private Long customerId;

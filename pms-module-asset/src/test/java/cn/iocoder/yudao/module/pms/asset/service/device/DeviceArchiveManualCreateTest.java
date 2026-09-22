@@ -21,7 +21,9 @@ class DeviceArchiveManualCreateTest {
     private final DeviceMapper devices = mock(DeviceMapper.class);
     private final DeviceVersionMapper versions = mock(DeviceVersionMapper.class);
     private final CustomerQueryApi customers = mock(CustomerQueryApi.class);
-    private final DeviceArchiveServiceImpl service = new DeviceArchiveServiceImpl(devices, versions, customers);
+    private final DeviceArchiveServiceImpl service = new DeviceArchiveServiceImpl(devices, versions, customers,
+            mock(ProjectDeviceSelectionService.class),
+            mock(cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class));
 
     @BeforeEach void tenant() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void clear() { TenantContextHolder.clear(); }

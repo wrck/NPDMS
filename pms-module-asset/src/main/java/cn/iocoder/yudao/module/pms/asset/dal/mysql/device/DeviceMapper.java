@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.pms.asset.dal.mysql.device;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
-import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceArchivePageReqVO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CustomerDeviceSummaryPageQuery;
@@ -19,6 +18,9 @@ import java.util.List;
 
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
+
+    java.util.Set<String> selectContractCandidates(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery query);
 
     default DeviceDO selectByTenantAndSn(Long tenantId, String sn) {
         return selectOne(new LambdaQueryWrapperX<DeviceDO>()
@@ -60,17 +62,17 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .in(DeviceDO::getSn, sns));
     }
 
-    /** 设备档案分页（ast_device 承载，自 pms_equipment_retired 旧链分页承接）。 */
-    default PageResult<DeviceDO> selectArchivePage(Long tenantId, DeviceArchivePageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<DeviceDO>()
-                .eq(DeviceDO::getTenantId, tenantId)
-                .likeIfPresent(DeviceDO::getSn, reqVO.getSn())
-                .likeIfPresent(DeviceDO::getName, reqVO.getName())
-                .eqIfPresent(DeviceDO::getStatus, reqVO.getStatus())
-                .eqIfPresent(DeviceDO::getProjectId, reqVO.getProjectId())
-                .eqIfPresent(DeviceDO::getCustomerId, reqVO.getCustomerId())
-                .orderByDesc(DeviceDO::getId));
+    /** 与设备工作台共用当前用户的项目数据范围。 */
+    default PageResult<DeviceDO> selectArchivePage(VisibleDevicePageQuery query) {
+        if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())
+                && (query.visibleContractNumbers() == null || query.visibleContractNumbers().isEmpty())
+                && (query.organizationGrants() == null || query.organizationGrants().isEmpty())) {
+            return PageResult.empty();
+        }
+        return new PageResult<>(selectVisibleArchiveList(query), selectVisibleDeviceCount(query));
     }
+
+    List<DeviceDO> selectVisibleArchiveList(@Param("query") VisibleDevicePageQuery query);
 
     DeviceDO selectByTenantAndIdForUpdate(
             @Param("tenantId") Long tenantId,
@@ -91,7 +93,9 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     }
 
     static PageResult<DeviceListProjection> emptyWhenInvisible(VisibleDevicePageQuery query) {
-        if (query.visibleProjectIds() != null && query.visibleProjectIds().isEmpty()) {
+        if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())
+                && (query.visibleContractNumbers() == null || query.visibleContractNumbers().isEmpty())
+                && (query.organizationGrants() == null || query.organizationGrants().isEmpty())) {
             return PageResult.empty();
         }
         return null;

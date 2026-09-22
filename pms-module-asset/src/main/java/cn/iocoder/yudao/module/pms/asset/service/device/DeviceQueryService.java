@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery;
 import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,10 +24,15 @@ public class DeviceQueryService {
         if (tenantId == null || query.tenantId() != null && !tenantId.equals(query.tenantId())) {
             return PageResult.empty();
         }
+        var grants = accessScopeService.organizationGrants(tenantId, SecurityFrameworkUtils.getLoginUserId());
+        var contracts = accessScopeService.contractScope(tenantId, SecurityFrameworkUtils.getLoginUserId(),
+                new DeviceContractCandidateQuery(tenantId, null, query.sn(), query.productCode(),
+                        query.projectId(), query.customerId(), query.name(), query.status(), grants));
         VisibleDevicePageQuery scopedQuery = new VisibleDevicePageQuery(
                 tenantId, accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()),
                 query.sn(), query.productCode(), query.projectId(),
-                query.customerId(), query.pageNo(), query.pageSize());
+                query.customerId(), query.pageNo(), query.pageSize(), query.name(), query.status(),
+                contracts, grants);
         return deviceMapper.selectVisibleDevicePage(scopedQuery);
     }
 

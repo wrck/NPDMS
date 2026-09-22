@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.DeviceProjectOrganizationMapper">
+  <select id="selectVisibleProjectIds" resultType="java.lang.Long">
+    SELECT id FROM proj_project WHERE tenant_id=#{query.tenantId} AND deleted=0
+    <choose><when test="query.grants != null and !query.grants.isEmpty()">
+      AND <foreach collection="query.grants" item="grant" open="(" close=")" separator=" OR ">
+        (company_id=#{grant.companyId}<if test="grant.departmentId != null"> AND department_id=#{grant.departmentId}</if>)
+      </foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </select>
+  <select id="selectOrganizations" resultType="cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi$Organization">
+    SELECT id AS project_id,company_id,company_name,department_id,department_code,department_name
+    FROM proj_project WHERE tenant_id=#{query.tenantId} AND deleted=0
+    <choose><when test="query.projectIds != null and !query.projectIds.isEmpty()">
+      AND id IN <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </select>
+</mapper>

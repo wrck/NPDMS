@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceOrganizationMapper">
+  <sql id="selection">
+    FROM ast_device WHERE tenant_id=#{query.tenantId} AND deleted=0 AND id &gt; #{query.afterId}
+    <if test="!query.rebuildAll">
+      AND (
+        <if test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+          id IN <foreach collection="query.deviceIds" item="id" open="(" close=")" separator=",">#{id}</foreach> OR
+        </if>
+        <if test="query.projectIds != null and !query.projectIds.isEmpty()">
+          project_id IN <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach> OR
+        </if>
+        <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+          (project_id IS NULL AND contract_no IN <foreach collection="query.contractNumbers" item="number" open="(" close=")" separator=",">#{number}</foreach>) OR
+        </if>
+        1=0
+      )
+    </if>
+    ORDER BY id LIMIT #{query.limit}
+  </sql>
+  <select id="selectBatchForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+    SELECT id,tenant_id,project_id,contract_no,company_id,company_name,department_id,department_code,department_name,organization_source,organization_updated_at
+    <include refid="selection"/> FOR UPDATE
+  </select>
+  <select id="selectStoredOrganizations" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+    SELECT id,company_id,company_name,department_id,department_code,department_name,organization_source
+    <include refid="selection"/>
+  </select>
+  <update id="updateOrganization">
+    UPDATE ast_device SET company_id=#{query.companyId},company_name=#{query.companyName},
+      department_id=#{query.departmentId},department_code=#{query.departmentCode},department_name=#{query.departmentName},
+      organization_source=#{query.source},organization_updated_at=CURRENT_TIMESTAMP(3)
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.deviceId} AND deleted=0
+  </update>
+</mapper>

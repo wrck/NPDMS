@@ -46,6 +46,23 @@ class ContractAccessServiceTest {
     }
 
     @Test
+    void deviceContractScopeUsesBothAuthoritativeScopes() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "001", 1)));
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery(
+                1L, List.of("001"), List.of(10L));
+        when(contractMapper.selectVisibleDeviceContractNumbers(query)).thenReturn(List.of("C-1"));
+        assertEquals(Set.of("C-1"), service.getVisibleContractNumbers(1L, 7L));
+    }
+
+    @Test
+    void deviceContractScopeWithoutAuthorizationDoesNotReadContracts() {
+        assertTrue(service.getVisibleContractNumbers(1L, 7L).isEmpty());
+        assertTrue(service.getVisibleContractNumbers(null, 7L).isEmpty());
+        verifyNoInteractions(contractMapper);
+    }
+
+    @Test
     void projectOverviewRejectsInvisibleProjectBeforeReadingCommerce() {
         var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);

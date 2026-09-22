@@ -76,15 +76,19 @@ public class DeviceController {
     private final DeviceConfigurationLogQueryService configurationLogQueryService;
     private final DeviceConfigurationLogDownloadService configurationLogDownloadService;
     private final DeviceAccessScopeService accessScopeService;
+    private final cn.iocoder.yudao.module.pms.asset.service.device.DeviceOrganizationService organizationService;
 
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<PageResult<DeviceListRespVO>> getDevicePage(@Valid DevicePageReqVO reqVO) {
         VisibleDevicePageQuery query = new VisibleDevicePageQuery(
                 TenantContextHolder.getTenantId(), null, reqVO.getSn(), reqVO.getProductCode(),
-                reqVO.getProjectId(), reqVO.getCustomerId(), reqVO.getPageNo(), reqVO.getPageSize());
+                reqVO.getProjectId(), reqVO.getCustomerId(), reqVO.getPageNo(), reqVO.getPageSize(), reqVO.getName(), reqVO.getStatus(), java.util.Set.of(), java.util.List.of());
         PageResult<DeviceListProjection> page = deviceQueryService.getPage(query);
-        List<DeviceListRespVO> list = page.getList().stream().map(DeviceController::toListResp).toList();
+        var organizations = organizationService.resolve(currentTenantId(), page.getList().stream().map(item ->
+                new cn.iocoder.yudao.module.pms.asset.service.device.DeviceOrganizationService.Device(
+                        item.deviceId(),item.projectId(),item.contractNo())).toList());
+        List<DeviceListRespVO> list = page.getList().stream().map(item -> toListResp(item,organizations.get(item.deviceId()))).toList();
         return success(new PageResult<>(list, page.getTotal()));
     }
 
@@ -202,14 +206,14 @@ public class DeviceController {
         return success(new DeviceAssignmentRespVO(result.assignmentVersion(), result.operationId()));
     }
 
-    private static DeviceListRespVO toListResp(DeviceListProjection item) {
+    private static DeviceListRespVO toListResp(DeviceListProjection item, cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceOrganizationRespVO organization) {
         return new DeviceListRespVO(
                 item.deviceId(), item.sn(), item.name(), item.status(), item.productCode(),
                 item.productModel(), item.productName(),
                 item.shipmentTime(), item.packageNo(), item.contractNo(), item.shipmentRecordId(),
                 item.projectId(), item.customerId(), item.warrantyStartDate(), item.warrantyEndDate(),
                 item.warrantyStatus(), item.conpVersion(), item.conpType(), item.conpSeries(),
-                item.conpMark(), item.syncStatus());
+                item.conpMark(), item.syncStatus(), item.locationSnapshot(), item.locationResolutionStatus(), organization);
     }
 
     private Long currentTenantId() {

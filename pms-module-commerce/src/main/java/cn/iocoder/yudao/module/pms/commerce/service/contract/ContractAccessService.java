@@ -33,7 +33,7 @@ import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeC
 
 @Service
 @RequiredArgsConstructor
-public class ContractAccessService {
+public class ContractAccessService implements cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi {
 
     private final OrganizationScopeApi organizationScopeApi;
     private final ProjectScopeApi projectScopeApi;
@@ -42,6 +42,46 @@ public class ContractAccessService {
     private final SalesOrderLineMapper lineMapper;
     private final ProjectContractRelationMapper projectRelationMapper;
     private final OperationAuditApi operationAuditApi;
+
+    @Override
+    public Set<String> getOrganizationVisibleContractNumbers(Long tenantId, Long userId) {
+        if (tenantId == null || userId == null) return Set.of();
+        var grants = currentScopes(tenantId,userId,"device-organization-visibility").stream()
+                .filter(s -> s != null && s.getId()!=null && s.getVersion()!=null && s.getCompanyId()!=null)
+                .map(s -> new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery.Grant(
+                        s.getCompanyId(),s.getDepartmentId(),s.getDepartmentCode())).distinct().toList();
+        if (grants.isEmpty()) return Set.of();
+        return Set.copyOf(contractMapper.selectOrganizationVisibleContractNumbers(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery(tenantId,grants)));
+    }
+
+    @Override
+    public List<cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.Organization> getOrganizations(
+            Long tenantId, Set<String> contractNumbers) {
+        if (tenantId==null || contractNumbers==null || contractNumbers.isEmpty()) return List.of();
+        return contractMapper.selectDeviceOrganizations(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationListQuery(tenantId,contractNumbers));
+    }
+
+    @Override
+    public Set<String> getVisibleContractNumbers(Long tenantId, Long userId) {
+        return visibleContractNumbers(tenantId, userId, null);
+    }
+
+    @Override
+    public Set<String> getVisibleContractNumbers(Long tenantId, Long userId, Set<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) return Set.of();
+        return visibleContractNumbers(tenantId, userId, candidates);
+    }
+
+    private Set<String> visibleContractNumbers(Long tenantId, Long userId, Set<String> candidates) {
+        if (tenantId == null || userId == null) return Set.of();
+        AccessScope scope = currentAccessScope(tenantId, userId, "device-contract-visibility");
+        if (scope.empty()) return Set.of();
+        return Set.copyOf(contractMapper.selectVisibleDeviceContractNumbers(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery(
+                        tenantId, scope.companyCodes(), scope.projectIds(), candidates)));
+    }
 
     public PageResult<ContractDO> pageContracts(Long tenantId, Long subjectUserId, String correlationId,
                                                  ContractSearch criteria) {

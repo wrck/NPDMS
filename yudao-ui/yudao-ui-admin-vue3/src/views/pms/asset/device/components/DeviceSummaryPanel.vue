@@ -2,6 +2,19 @@
   <el-descriptions :column="columns" border>
     <el-descriptions-item label="设备序列号">{{ summary.sn }}</el-descriptions-item>
     <el-descriptions-item label="产品">{{ productText }}</el-descriptions-item>
+    <el-descriptions-item label="所属公司">{{
+      organization?.companyName || '待补齐'
+    }}</el-descriptions-item>
+    <el-descriptions-item label="所属部门">{{
+      organization?.departmentName || organization?.departmentCode || '待补齐'
+    }}</el-descriptions-item>
+    <el-descriptions-item label="归属来源">{{
+      organization?.source === 'PROJECT'
+        ? '项目'
+        : organization?.source === 'CONTRACT'
+          ? '合同'
+          : '待补齐'
+    }}</el-descriptions-item>
     <el-descriptions-item label="当前项目">{{ summary.projectId || '--' }}</el-descriptions-item>
     <el-descriptions-item label="当前客户">{{ summary.customerId || '--' }}</el-descriptions-item>
     <el-descriptions-item label="当前位置">--</el-descriptions-item>
@@ -17,8 +30,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useWindowSize } from '@vueuse/core'
-import type { DeviceSummaryVO } from '@/api/pms/asset/device'
-const props = defineProps<{ summary: DeviceSummaryVO }>()
+import type { DeviceSummaryVO, DeviceOrganizationVO } from '@/api/pms/asset/device'
+const props = defineProps<{ summary: DeviceSummaryVO; organization?: DeviceOrganizationVO }>()
 const { width } = useWindowSize()
 const columns = computed(() => (width.value < 768 ? 1 : width.value < 1200 ? 2 : 4))
 const productText = computed(

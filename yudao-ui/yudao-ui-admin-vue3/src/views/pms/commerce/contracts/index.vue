@@ -59,6 +59,12 @@
     <ContentWrap>
       <el-tabs v-model="activeOrderTab" @tab-change="loadOrders">
         <el-tab-pane label="销售订单" name="orders">
+          <el-form inline :model="orderQuery">
+            <el-form-item label="订单号">
+              <el-input v-model="orderQuery.orderNo" clearable @keyup.enter="searchOrders" />
+            </el-form-item>
+            <el-form-item><el-button @click="searchOrders">查询订单</el-button></el-form-item>
+          </el-form>
           <el-table v-loading="orderLoading" :data="orders" empty-text="没有可见销售订单">
             <el-table-column prop="orderNo" label="订单号" min-width="150" />
             <el-table-column prop="orderType" label="类型" min-width="100" />
@@ -71,6 +77,12 @@
               </template>
             </el-table-column>
           </el-table>
+          <Pagination
+            :total="orderTotal"
+            v-model:page="orderQuery.pageNo"
+            v-model:limit="orderQuery.pageSize"
+            @pagination="loadOrders()"
+          />
         </el-tab-pane>
         <el-tab-pane
           :label="selectedOrder ? `订单行 · ${selectedOrder.orderNo}` : '订单行'"
@@ -93,6 +105,13 @@
             <el-table-column prop="unitCode" label="单位" min-width="90" />
             <el-table-column prop="quantityStatus" label="数量状态" min-width="120" />
           </el-table>
+          <Pagination
+            v-if="selectedOrder"
+            :total="lineTotal"
+            v-model:page="lineQuery.pageNo"
+            v-model:limit="lineQuery.pageSize"
+            @pagination="loadLines"
+          />
         </el-tab-pane>
       </el-tabs>
     </ContentWrap>
@@ -125,6 +144,10 @@ const rows = ref<ContractRespVO[]>([])
 const orders = ref<SalesOrderRespVO[]>([])
 const lines = ref<SalesOrderLineRespVO[]>([])
 const total = ref(0)
+const orderTotal = ref(0)
+const lineTotal = ref(0)
+const orderQuery = reactive({ pageNo: 1, pageSize: 10, orderNo: '' })
+const lineQuery = reactive({ pageNo: 1, pageSize: 10 })
 const activeOrderTab = ref('orders')
 const selectedOrder = ref<SalesOrderRespVO>()
 const detailRef = ref<InstanceType<typeof ContractDetail>>()
@@ -150,26 +173,37 @@ const reset = () => {
   search()
 }
 const loadOrders = async (tab?: string | number) => {
-  if ((tab || activeOrderTab.value) !== 'orders' || orders.value.length) return
+  if ((tab || activeOrderTab.value) !== 'orders') return
   orderLoading.value = true
   try {
-    const data = await CommerceApi.getSalesOrderPage({ pageNo: 1, pageSize: 100 })
+    const data = await CommerceApi.getSalesOrderPage(orderQuery)
     orders.value = data.list
+    orderTotal.value = data.total
   } finally {
     orderLoading.value = false
   }
 }
+const searchOrders = () => {
+  orderQuery.pageNo = 1
+  loadOrders()
+}
 const showLines = async (order: SalesOrderRespVO) => {
   selectedOrder.value = order
   activeOrderTab.value = 'lines'
+  lineQuery.pageNo = 1
+  lines.value = []
+  await loadLines()
+}
+const loadLines = async () => {
+  if (!selectedOrder.value) return
   lineLoading.value = true
   try {
     const data = await CommerceApi.getSalesOrderLinePage({
-      pageNo: 1,
-      pageSize: 200,
-      orderId: order.id
+      ...lineQuery,
+      orderId: selectedOrder.value.id
     })
     lines.value = data.list
+    lineTotal.value = data.total
   } finally {
     lineLoading.value = false
   }

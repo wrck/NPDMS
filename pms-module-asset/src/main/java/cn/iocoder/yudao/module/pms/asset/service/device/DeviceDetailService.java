@@ -16,6 +16,7 @@ public class DeviceDetailService {
 
     private final DeviceQueryApi deviceQueryApi;
     private final DeviceNetworkVersionMapper networkVersionMapper;
+    private final DeviceOrganizationService organizationService;
 
     public DeviceDetailRespVO getDetail(Long deviceId) {
         DeviceSummaryDTO summary = deviceQueryApi.getDevice(deviceId);
@@ -29,7 +30,9 @@ public class DeviceDetailService {
                 networkVersion(summary),
                 DeviceSourceSliceRespVO.notAvailable("KNO"),
                 DeviceSourceSliceRespVO.notAvailable("AST"),
-                DeviceSourceSliceRespVO.notAvailable("AST"));
+                DeviceSourceSliceRespVO.notAvailable("AST"),
+                organizationService.resolve(summary.tenantId(), java.util.List.of(new DeviceOrganizationService.Device(
+                        deviceId,summary.projectId(),summary.contractNo()))).get(deviceId));
     }
 
     private DeviceSourceSliceRespVO networkVersion(DeviceSummaryDTO summary) {

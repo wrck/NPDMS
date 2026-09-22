@@ -49,8 +49,8 @@ class DeviceQueryServiceTest {
 
     @Test
     void shouldUseAuthenticatedTenantForPageWhenTenantContextIsDisabled() {
-        VisibleDevicePageQuery request = new VisibleDevicePageQuery(null, null, "SN-8", null, null, null, 1, 20);
-        VisibleDevicePageQuery query = new VisibleDevicePageQuery(1L, Set.of(10L), "SN-8", null, null, null, 1, 20);
+        VisibleDevicePageQuery request = new VisibleDevicePageQuery(null, null, "SN-8", null, null, null, 1, 20, null, null, Set.of(), java.util.List.of());
+        VisibleDevicePageQuery query = new VisibleDevicePageQuery(1L, Set.of(10L), "SN-8", null, null, null, 1, 20, null, null, Set.of(), java.util.List.of());
         PageResult<DeviceListProjection> expected = new PageResult<>(List.of(), 1L);
         when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
         when(deviceMapper.selectVisibleDevicePage(query)).thenReturn(expected);

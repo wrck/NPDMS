@@ -4,12 +4,28 @@ export type DeviceSyncStatus = 'FRESH' | 'STALE' | 'FAILED' | 'PENDING_MAPPING' 
 
 export interface DevicePageReqVO extends PageParam {
   sn?: string
+  name?: string
+  status?: string
   productCode?: string
   projectId?: number
   customerId?: number
 }
 
+export interface DeviceOrganizationVO {
+  companyId?: number
+  companyName?: string
+  departmentId?: number
+  departmentCode?: string
+  departmentName?: string
+  source: 'PROJECT' | 'CONTRACT' | 'UNRESOLVED'
+}
+
 export interface DeviceListVO {
+  organization?: DeviceOrganizationVO
+  name?: string
+  status?: string
+  locationSnapshot?: string
+  locationResolutionStatus?: string
   deviceId: number
   sn: string
   productCode?: string
@@ -66,6 +82,7 @@ export interface DeviceSourceSliceVO<T = Record<string, unknown>> {
 }
 
 export interface DeviceDetailVO {
+  organization?: DeviceOrganizationVO
   summary: DeviceSummaryVO
   factory: DeviceSourceSliceVO
   official: DeviceSourceSliceVO

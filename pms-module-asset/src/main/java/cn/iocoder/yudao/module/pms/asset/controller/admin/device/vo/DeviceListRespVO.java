@@ -24,5 +24,8 @@ public record DeviceListRespVO(
         String conpType,
         String conpSeries,
         String conpMark,
-        String syncStatus) {
+        String syncStatus,
+        String locationSnapshot,
+        String locationResolutionStatus,
+        DeviceOrganizationRespVO organization) {
 }

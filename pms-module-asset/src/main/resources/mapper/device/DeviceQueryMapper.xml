@@ -2,12 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
 
-    <sql id="visibleDeviceConditions">
-        FROM ast_device d
-        WHERE d.tenant_id = #{query.tenantId}
-          AND d.deleted = b'0'
-        <if test="query.visibleProjectIds != null">
-          AND (
+    <sql id="deviceVisibility">
+        AND (
+          <if test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+            (
             d.project_id IN
             <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
               #{projectId}
@@ -25,10 +23,59 @@
                 AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
                 AND r.deleted = b'0'
             )
-          )
-        </if>
+            ) OR
+          </if>
+          <if test="query.visibleContractNumbers != null and !query.visibleContractNumbers.isEmpty()">
+            CAST(d.contract_no AS BINARY) IN
+            <foreach collection="query.visibleContractNumbers" item="contractNo" open="(" separator="," close=")">CAST(#{contractNo} AS BINARY)</foreach> OR
+          </if>
+          <include refid="deviceOrganizationVisibility"/> OR
+          1 = 0
+        )
+    </sql>
+
+    <sql id="deviceOrganizationVisibility">
+          <if test="query.organizationGrants != null and !query.organizationGrants.isEmpty()">
+            <foreach collection="query.organizationGrants" item="grant" separator=" OR ">
+              (d.company_id=#{grant.companyId}
+                <if test="grant.departmentId != null">
+                  AND (d.department_id=#{grant.departmentId}
+                    <if test="grant.departmentCode != null and grant.departmentCode != ''">
+                      OR (d.organization_source='CONTRACT' AND CAST(d.department_code AS BINARY)=CAST(#{grant.departmentCode} AS BINARY))
+                    </if>)
+                </if>)
+            </foreach> OR
+          </if>
+          1 = 0
+    </sql>
+
+    <sql id="visibleDeviceConditions">
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+        <include refid="deviceVisibility"/>
+        <include refid="deviceSearchFilters"/>
+    </sql>
+
+    <select id="selectContractCandidates" resultType="java.lang.String">
+        SELECT DISTINCT CAST(d.contract_no AS BINARY)
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+          AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
+          AND NOT COALESCE((<include refid="deviceOrganizationVisibility"/>), FALSE)
+        <if test="query.deviceId != null">AND d.id = #{query.deviceId}</if>
+        <include refid="deviceSearchFilters"/>
+    </select>
+
+    <sql id="deviceSearchFilters">
         <if test="query.sn != null and query.sn != ''">
           AND d.sn = #{query.sn}
+        </if>
+        <if test="query.name != null and query.name != ''">
+          AND d.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.status != null and query.status != ''">
+          AND d.status = #{query.status}
         </if>
         <if test="query.productCode != null and query.productCode != ''">
           AND d.product_code = #{query.productCode}
@@ -94,6 +141,13 @@
         <include refid="customerSummaryConditions"/>
     </select>
 
+    <select id="selectVisibleArchiveList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT d.id, d.tenant_id, d.sn, d.name, d.product_code, d.product_model, d.product_name, d.product_desc, d.shipment_time, d.package_no, d.contract_no, d.shipment_record_id, d.project_id, d.project_assignment_version, d.customer_id, d.customer_assignment_version, d.site_id, d.site_location_id, d.location_resolution_status, d.location_snapshot, d.location_effective_from, d.location_record_id, d.warranty_start_date, d.warranty_end_date, d.warranty_status, d.conp_version, d.conp_type, d.conp_series, d.conp_mark, d.status, d.remark, d.source_system, d.source_key, d.source_version, d.source_updated_at, d.synced_at, d.sync_status, d.version, d.creator, d.create_time, d.updater, d.update_time, d.deleted
+        <include refid="visibleDeviceConditions"/>
+        ORDER BY d.id DESC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+
     <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
         SELECT d.id AS device_id,
                d.sn,
@@ -115,7 +169,9 @@
                d.conp_type,
                d.conp_series,
                d.conp_mark,
-               d.sync_status
+               d.sync_status,
+               d.location_snapshot,
+               d.location_resolution_status
         <include refid="visibleDeviceConditions"/>
         ORDER BY d.id DESC
         LIMIT #{query.offset}, #{query.pageSize}
@@ -133,25 +189,7 @@
             WHERE d.tenant_id = #{query.tenantId}
               AND d.id = #{query.deviceId}
               AND d.deleted = b'0'
-              AND (
-                d.project_id IN
-                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
-                  #{projectId}
-                </foreach>
-                OR EXISTS (
-                  SELECT 1
-                  FROM ast_device_project_relationship r
-                  WHERE r.tenant_id = d.tenant_id
-                    AND r.device_sn = d.sn
-                    AND r.project_id IN
-                    <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
-                      #{projectId}
-                    </foreach>
-                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
-                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
-                    AND r.deleted = b'0'
-                )
-              )
+              <include refid="deviceVisibility"/>
         )
     </select>
 

@@ -333,6 +333,20 @@ Inspection复用System既有`PermissionApi.hasAnyPermissions(Long userId, String
 
 ## 11. CUS、AST、COM、RES 与 KNO API
 
+### 设备管理三维数据范围补充（2026-09-21 用户批准）
+
+AST 设备列表、详情和档案复用同一授权谓词：当前租户内，公司/部门授权 **OR** 项目授权 **OR** 合同授权。公司与部门必须匹配同一条有效组织授权；无部门限定的公司级授权覆盖公司范围。任何一个维度不可用只关闭该维度，不借异常扩大范围。
+
+- PROJ `ProjectDeviceOrganizationApi.visibleProjectIds(tenantId,userId)` 返回组织授权覆盖的项目 ID；`getOrganizations(tenantId,projectIds)` 批量返回项目当前公司/部门事实，空集合返回空。
+- COM `ContractDeviceVisibilityApi.getVisibleContractNumbers(tenantId,userId)` 复用合同数据范围，排除租户内不能唯一定位的同号合同；`getOrganizationVisibleContractNumbers(tenantId,userId)` 返回公司/部门范围覆盖且归属唯一的合同号，包含已解析的发货合同；`getOrganizations(tenantId,contractNumbers)` 批量返回合同当前组织事实。
+- 上述为模块间只读接口，由 AST 以服务端登录用户/租户调用。组织事实用于 AST 当前归属投影的事务内重建，列表/详情读取固化投影；AST 不直接查询 PROJ/COM 业务表。设备列表及详情增加 `organization`：公司 ID/名称、部门 ID/编码/名称、来源 `PROJECT/CONTRACT/UNRESOLVED`。不保存新的归属历史或改写项目/合同事实。
+- 同日查询优化补充：`ast_device` 固化 `company_id/company_name/department_id/department_code/department_name/organization_source/organization_updated_at`，新增 `(tenant_id,deleted,company_id,department_id,id)` 索引。公司/部门授权仍实时读取 SYSTEM，项目与合同独立 OR 授权不变。
+- AST `DeviceOrganizationProjectionApi.refresh(Refresh)` 接收受信租户及设备 ID/项目 ID/合同号集合，只从 Owner 当前事实重建本模块投影，空集合无操作；与来源变更共用事务，失败回滚。INT `GenericSyncTargetsChanged` 在分块写入后、提交前同步发布，携带租户与目标变更前后事实；预览、冲突和无变更不发布，监听失败回滚整个分块。AST 监听设备及合同变更，避免在通用引擎添加实体适配器。
+- `POST /api/v1/pms/devices/actions/rebuild-organizations?afterId=0` 使用当前服务端租户和既有 `pms:integration:configure` 权限，每次最多重建 500 台，返回 `afterId/processed/updated` 并记录操作审计；仅派生字段重建，不修改来源历史或业务状态。此运维能力不扩展普通设备用户的数据范围。
+- COM 候选范围重载 `getVisibleContractNumbers(tenantId,userId,candidates)` 只校验设备实际关联的合同，null/空候选均返回空；聚合和冲突检查仍覆盖同号所有来源。AST 先筛出尚未命中固化组织范围的候选合同，再在数据库执行完整权限并集与分页，禁止分页后过滤。
+
+
+
 COM-01按PRD修订014补齐受信ERP批次字段：销售订单增加可空`salesType/sourceProjectName/orderComment/orderCreateTime/customerRequiredTime`，订单行增加可空`lineType/bundleCode/profitCenter/realExecutionNo/warrantyMonth`，沿用已有物理列长度和数量精度。旧调用缺失字段保持NULL；同来源版本改变任一字段仍是载荷冲突。仅ERP来源可进入权威接收端口，人工依据继续走候选接口，不晋升为ERP事实。
 
 COM-01范围预览`POST /delivery-scopes/actions/preview`在调整场景成对携带`deliveryScopeId/expectedAllocationVersion`；两者均缺省仍为新增预览。调整目标必须属于当前租户、项目和订单行且为匹配版本的当前范围，可用量为订单数量减去其他当前范围的占用，不能把被调整范围自身当作新增冲突。减量预览复用ACC绑定守卫，预览不写业务事实；实际调整仍重新锁定并执行原有守卫。

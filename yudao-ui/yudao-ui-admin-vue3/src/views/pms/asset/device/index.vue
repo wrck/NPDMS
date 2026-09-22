@@ -4,11 +4,28 @@
       <el-form-item label="设备SN"
         ><el-input v-model="query.sn" clearable @keyup.enter="handleQuery"
       /></el-form-item>
+      <el-form-item label="设备名称">
+        <el-input v-model="query.name" clearable @keyup.enter="handleQuery" />
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" clearable class="!w-160px">
+          <el-option
+            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_DEVICE_STATUS)"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
+        </el-select>
+      </el-form-item>
       <el-form-item label="产品编码"
         ><el-input v-model="query.productCode" clearable @keyup.enter="handleQuery"
       /></el-form-item>
       <el-form-item label="项目ID"
-        ><el-input-number v-model="query.projectId" :min="1" controls-position="right"
+        ><el-input-number
+          v-model="query.projectId"
+          :disabled="props.projectId != null"
+          :min="1"
+          controls-position="right"
       /></el-form-item>
       <el-form-item label="客户ID"
         ><el-input-number v-model="query.customerId" :min="1" controls-position="right"
@@ -16,10 +33,7 @@
       <el-form-item>
         <el-button @click="handleQuery"><Icon icon="ep:search" />查询</el-button>
         <el-button @click="resetQuery"><Icon icon="ep:refresh" />重置</el-button>
-        <el-button
-          type="primary"
-          @click="formDialog?.open()"
-          v-hasPermi="['pms:device:create']"
+        <el-button type="primary" @click="formDialog?.open()" v-hasPermi="['pms:device:create']"
           ><Icon icon="ep:plus" />新增设备</el-button
         >
       </el-form-item>
@@ -41,6 +55,31 @@
       <el-table-column prop="shipmentTime" label="最新发货" min-width="170" />
       <el-table-column prop="packageNo" label="装箱单号" min-width="130" />
       <el-table-column prop="contractNo" label="合同号" min-width="130" />
+      <el-table-column
+        prop="locationSnapshot"
+        label="位置快照"
+        min-width="140"
+        show-overflow-tooltip
+      />
+      <el-table-column prop="locationResolutionStatus" label="地点状态" width="110" />
+      <el-table-column prop="warrantyEndDate" label="保修截止" min-width="120" />
+      <el-table-column label="所属公司" min-width="180" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.organization?.companyName || '待补齐' }}</template>
+      </el-table-column>
+      <el-table-column label="所属部门" min-width="150" show-overflow-tooltip>
+        <template #default="{ row }">{{
+          row.organization?.departmentName || row.organization?.departmentCode || '待补齐'
+        }}</template>
+      </el-table-column>
+      <el-table-column label="归属来源" width="100">
+        <template #default="{ row }">{{
+          row.organization?.source === 'PROJECT'
+            ? '项目'
+            : row.organization?.source === 'CONTRACT'
+              ? '合同'
+              : '待补齐'
+        }}</template>
+      </el-table-column>
       <el-table-column prop="projectId" label="当前项目" min-width="100" />
       <el-table-column prop="customerId" label="当前客户" min-width="100" />
       <el-table-column prop="warrantyStatus" label="维保状态" min-width="100" />
@@ -91,6 +130,7 @@
       <div class="detail-actions">
         <el-button
           v-hasPermi="['pms:device:status-change']"
+          :disabled="!detail.archive"
           @click="statusChangeDialog?.open(detail.archive!)"
           >状态变更</el-button
         >
@@ -113,8 +153,11 @@
         >
       </div>
     </div>
-    <DeviceSummaryPanel :summary="detail.summary" />
+    <DeviceSummaryPanel :summary="detail.summary" :organization="detail.organization" />
     <el-tabs v-model="activeTab" class="device-tabs">
+      <el-tab-pane label="位置与变更轨迹" name="location" lazy>
+        <DeviceLocationPanel :device-id="detail.summary.deviceId" />
+      </el-tab-pane>
       <el-tab-pane label="出厂信息" name="factory"
         ><DeviceFactoryPanel :slice="detail.factory"
       /></el-tab-pane>
@@ -143,13 +186,18 @@
   <DeviceAssemblyTreeDrawer ref="assemblyTreeDrawer" />
   <DeviceAssignProjectDialog ref="assignProjectDialog" @success="refreshDetail" />
   <DeviceAssignCustomerDialog ref="assignCustomerDialog" @success="refreshDetail" />
-  <DeviceArchiveFormDialog ref="formDialog" @success="refreshAll" />
+  <DeviceArchiveFormDialog
+    ref="formDialog"
+    :locked-project-id="props.projectId"
+    @success="refreshAll"
+  />
   <DeviceArchiveStatusChangeDialog ref="statusChangeDialog" @success="refreshAll" />
 </template>
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
-import { DICT_TYPE } from '@/utils/dict'
+import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import * as DeviceApi from '@/api/pms/asset/device'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import type {
@@ -159,6 +207,7 @@ import type {
   DeviceSummaryVO
 } from '@/api/pms/asset/device'
 import type { DeviceArchiveVO } from '@/api/pms/asset/device/archive'
+import DeviceLocationPanel from './components/DeviceLocationPanel.vue'
 import DeviceSummaryPanel from './components/DeviceSummaryPanel.vue'
 import DeviceFactoryPanel from './components/DeviceFactoryPanel.vue'
 import DeviceOfficialInfoPanel from './components/DeviceOfficialInfoPanel.vue'
@@ -175,6 +224,13 @@ import DeviceArchiveFormDialog from './components/DeviceArchiveFormDialog.vue'
 import DeviceArchiveStatusChangeDialog from './components/DeviceArchiveStatusChangeDialog.vue'
 
 defineOptions({ name: 'PmsAssetDeviceWorkbench' })
+const props = defineProps<{ projectId?: number | string }>()
+const route = useRoute()
+const initialProjectId = () => {
+  const value = props.projectId ?? route.query.projectId
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id > 0 ? id : undefined
+}
 const message = useMessage()
 const loading = ref(false)
 const detailLoading = ref(false)
@@ -182,7 +238,7 @@ const rows = ref<DeviceListVO[]>([])
 const total = ref(0)
 const detail = ref<DeviceDetailVO & { archive?: DeviceArchiveVO }>()
 const activeTab = ref('factory')
-const query = reactive<DevicePageReqVO>({ pageNo: 1, pageSize: 10 })
+const query = reactive<DevicePageReqVO>({ pageNo: 1, pageSize: 10, projectId: initialProjectId() })
 const assignmentHistoryDrawer = ref<InstanceType<typeof DeviceAssignmentHistoryDrawer>>()
 const customerRelationshipDrawer = ref<InstanceType<typeof DeviceCustomerRelationshipDrawer>>()
 const assemblyTreeDrawer = ref<InstanceType<typeof DeviceAssemblyTreeDrawer>>()
@@ -206,9 +262,11 @@ const handleQuery = () => {
   load()
 }
 const resetQuery = () => {
+  query.name = undefined
+  query.status = undefined
   query.sn = undefined
   query.productCode = undefined
-  query.projectId = undefined
+  query.projectId = initialProjectId()
   query.customerId = undefined
   handleQuery()
 }
@@ -261,6 +319,14 @@ const refreshAll = async () => {
   await load()
 }
 onMounted(load)
+watch(
+  () => props.projectId ?? route.query.projectId,
+  () => {
+    query.projectId = initialProjectId()
+    detail.value = undefined
+    handleQuery()
+  }
+)
 </script>
 <style scoped>
 .device-detail {

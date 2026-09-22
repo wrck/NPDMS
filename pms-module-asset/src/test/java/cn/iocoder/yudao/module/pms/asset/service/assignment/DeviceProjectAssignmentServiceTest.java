@@ -46,7 +46,7 @@ class DeviceProjectAssignmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DeviceProjectAssignmentService(projectGuardApi, commandExecutionApi, assignmentMapper);
+        service = new DeviceProjectAssignmentService(projectGuardApi, commandExecutionApi, assignmentMapper, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class));
         lenient().doAnswer(invocation -> new PlatformCommandExecutionApi.ExecutionResult<>(
                 PlatformCommandExecutionApi.Decision.NEW,
                 invocation.<Supplier<DeviceProjectAssignmentResult>>getArgument(3).get()))

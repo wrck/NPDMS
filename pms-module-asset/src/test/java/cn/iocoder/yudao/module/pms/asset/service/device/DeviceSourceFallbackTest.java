@@ -22,7 +22,7 @@ class DeviceSourceFallbackTest {
     void shouldKeepLastSuccessfulNetworkVersionWhenCurrentSyncFailed() {
         DeviceQueryApi deviceQueryApi = mock(DeviceQueryApi.class);
         DeviceNetworkVersionMapper versionMapper = mock(DeviceNetworkVersionMapper.class);
-        DeviceDetailService service = new DeviceDetailService(deviceQueryApi, versionMapper);
+        DeviceDetailService service = new DeviceDetailService(deviceQueryApi, versionMapper, org.mockito.Mockito.mock(DeviceOrganizationService.class));
         when(deviceQueryApi.getDevice(8L)).thenReturn(summary());
         DeviceNetworkVersionDO version = new DeviceNetworkVersionDO();
         version.setDeviceSn("SN-8");

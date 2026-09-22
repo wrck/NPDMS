@@ -52,6 +52,7 @@ class CommerceAuthorityIngestServiceTest {
                 contractMapper, salesOrderMapper, orderLineMapper, relationMapper, scopeImpactMapper,
                 conflictNotifier,
                 Clock.fixed(Instant.parse("2026-08-30T12:00:00Z"), ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"deviceOrganizations",org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class));
     }
 
     @Test

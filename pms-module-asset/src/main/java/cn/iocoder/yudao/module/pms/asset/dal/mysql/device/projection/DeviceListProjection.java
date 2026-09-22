@@ -24,5 +24,7 @@ public record DeviceListProjection(
         String conpType,
         String conpSeries,
         String conpMark,
-        String syncStatus) {
+        String syncStatus,
+        String locationSnapshot,
+        String locationResolutionStatus) {
 }

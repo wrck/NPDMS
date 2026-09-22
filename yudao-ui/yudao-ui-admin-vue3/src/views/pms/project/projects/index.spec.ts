@@ -91,7 +91,7 @@ describe('F-PROJ-001 creation submission state', () => {
       'utf8'
     )
     const deviceArchiveSource = readFileSync(
-      new URL('../../asset/device/archive/index.vue', import.meta.url),
+      new URL('../../asset/device/components/DeviceLocationPanel.vue', import.meta.url),
       'utf8'
     )
     const deviceArchiveFormSource = readFileSync(

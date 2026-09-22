@@ -28,6 +28,13 @@ public class DeviceDO extends TenantBaseDO {
     private String contractNo;
     private Long shipmentRecordId;
     private Long projectId;
+    private Long companyId;
+    private String companyName;
+    private Long departmentId;
+    private String departmentCode;
+    private String departmentName;
+    private String organizationSource;
+    private LocalDateTime organizationUpdatedAt;
     private Long projectAssignmentVersion;
     private Long customerId;
     private Long customerAssignmentVersion;

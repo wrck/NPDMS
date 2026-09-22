@@ -59,6 +59,8 @@ public class CommerceAuthorityIngestService {
     private final AuthorityScopeImpactMapper scopeImpactMapper;
     private final DeliveryScopeConflictNotifier conflictNotifier;
     private final Clock clock;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi deviceOrganizations;
 
     @Autowired
     public CommerceAuthorityIngestService(PlatformCommandExecutionApi commandExecutionApi,
@@ -137,6 +139,7 @@ public class CommerceAuthorityIngestService {
             copyContract(row, command, fact);
             row.setVersion(0);
             requireWrite(contractMapper.insert(row), "合同Owner创建失败");
+            refreshDeviceOrganizations(command.tenantId(), row.getContractNo());
             changes.changed = true;
             return;
         }
@@ -147,11 +150,21 @@ public class CommerceAuthorityIngestService {
             return;
         }
         Integer expectedVersion = current.getVersion();
+        String previousContractNo = current.getContractNo();
         copyContract(current, command, fact);
         touch(current);
         requireWrite(contractMapper.updateOwnerByVersion(
                 new ContractAuthorityUpdate(command.tenantId(), current, expectedVersion)), "合同Owner更新失败");
+        refreshDeviceOrganizations(command.tenantId(), previousContractNo, current.getContractNo());
         changes.changed = true;
+    }
+
+    private void refreshDeviceOrganizations(Long tenantId, String... numbers) {
+        var contracts = java.util.Arrays.stream(numbers).filter(java.util.Objects::nonNull)
+                .filter(number -> !number.isBlank()).collect(java.util.stream.Collectors.toSet());
+        if (!contracts.isEmpty()) deviceOrganizations.refresh(
+                new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(
+                        tenantId,java.util.Set.of(),java.util.Set.of(),contracts));
     }
 
     private void applySalesOrders(CommerceAuthorityBatchCommand command, BatchChanges changes) {
