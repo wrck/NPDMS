@@ -18,7 +18,7 @@ public class ImplementationCollectionSources {
     private final ProjectScopeApi scopes;
     @Bean public CollectionSourceAdapter configurationCollectionSource(){return source("configuration","Configuration","配置调试",true,"pms:imp-configuration",(id,lock)->{
         var r=lock?configurations.lockById(id):configurations.selectById(id);return r==null?null:new Owner(r.getTenantId(),r.getProjectId(),r.getEquipmentId(),r.getVersion(),Set.of(0,1,3).contains(r.getStatus()));});}
-    @Bean public CollectionSourceAdapter jointTestCollectionSource(){return source("joint-test","JointTest","业务联调",false,"pms:imp-joint-test",(id,lock)->{
+    @Bean public CollectionSourceAdapter jointTestCollectionSource(){return source("joint-test","JointTest","业务联调",true,"pms:imp-joint-test",(id,lock)->{
         var r=lock?jointTests.lockById(id):jointTests.selectById(id);return r==null?null:new Owner(r.getTenantId(),r.getProjectId(),r.getEquipmentId(),r.getVersion(),Set.of(0,1).contains(r.getStatus()));});}
     private CollectionSourceAdapter source(String entry,String type,String title,boolean manual,String permission,Reader reader){
         return new CollectionSourceAdapter(){

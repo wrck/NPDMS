@@ -32,8 +32,8 @@ public class CollectionConnectionService {
     }
     public List<View> usable(Long actor,Long project,Long device,String protocol,Long template) {
         auth.permission(actor,"pms:device-credential:use");auth.project(actor,project,false,false);
-        if(device==null||template==null)return List.of();devices.validateSelection(project,List.of(device));
-        return queries.usable(new CollectionConnectionQuery(tenant(),actor,project,device,protocol,template.toString(),LocalDateTime.now())).stream().map(this::view).toList();
+        if(device==null)return List.of();devices.validateSelection(project,List.of(device));
+        return queries.usable(new CollectionConnectionQuery(tenant(),actor,project,device,protocol,template == null ? "*" : template.toString(),LocalDateTime.now())).stream().map(this::view).toList();
     }
     public View save(Long actor,Save request) {
         try {
@@ -42,7 +42,7 @@ public class CollectionConnectionService {
             String external=UUID.nameUUIDFromBytes((tenant()+":"+actor+":"+request.requestKey()).getBytes(StandardCharsets.UTF_8)).toString();
             DeviceCredentialDO pending=new TransactionTemplate(transactions).execute(tx->{
                 auth.project(actor,request.projectId(),true,true);
-                templates.forExecution(actor,request.templateId(),"center",request.protocol(),selected.productModel());
+                if(request.templateId()!=null)templates.forExecution(actor,request.templateId(),"center",request.protocol(),selected.productModel());
                 var existing=queries.byExternal(tenant(),external);
                 if(existing!=null){requireSame(existing,actor,request);return existing;}
                 var row=new DeviceCredentialDO();row.setTenantId(tenant());row.setCreator(actor.toString());
@@ -71,7 +71,7 @@ public class CollectionConnectionService {
             if(!"ACTIVE".equals(row.getStatus()))throw new CollectionOperationException("连接未启用");
             if(grantee==null||users.getUser(grantee)==null)throw new CollectionOperationException("被授权用户不存在");
             var device=devices.validateSelection(row.getProjectId(),List.of(row.getDeviceId())).getFirst();
-            templates.forExecution(actor,template,"center",row.getCredentialType(),device.productModel());
+            if(template!=null)templates.forExecution(actor,template,"center",row.getCredentialType(),device.productModel());
             return grantView(grant(row,grantee,template,expires));
         });
     }
@@ -89,7 +89,7 @@ public class CollectionConnectionService {
         auth.permission(actor,"pms:device-credential:use");
         var row=queries.lock(tenant(),id);
         if(row==null||!"ACTIVE".equals(row.getStatus())||!project.equals(row.getProjectId())||!device.equals(row.getDeviceId())||!protocol.equals(row.getCredentialType()))throw new CollectionOperationException("连接不适用于当前设备");
-        var effective=grants.selectEffective(new EffectiveCredentialGrantQuery(tenant(),id,"USER",actor.toString(),device.toString(),protocol,template.toString(),LocalDateTime.now()));
+        var effective=queries.effectiveGrants(new EffectiveCredentialGrantQuery(tenant(),id,"USER",actor.toString(),device.toString(),protocol,template == null ? "*" : template.toString(),LocalDateTime.now()));
         if(effective.size()!=1||!project.toString().equals(effective.getFirst().getProjectId()))throw new CollectionOperationException("连接授权不存在、过期或冲突");
         DeviceOpsResourceApi.Connection remote;
         try{remote=provider().getConnection(row.getExternalConnectionId());}catch(DeviceOpsResourceApi.ResourceException failure){throw new CollectionOperationException(failure.getMessage());}
@@ -108,7 +108,7 @@ public class CollectionConnectionService {
                 &&Objects.equals(task.getHost(),row.getHost())&&Objects.equals(task.getPort(),row.getPort())
                 &&"USER".equals(grant.getGranteeType())&&Objects.equals(task.getCreator(),grant.getGranteeId())
                 &&Objects.equals(task.getProjectId(),grant.getProjectId())&&Objects.equals(task.getDeviceId(),grant.getDeviceId())
-                &&Objects.equals(task.getProtocol(),grant.getProtocol())&&Objects.equals(task.getTemplateId(),grant.getCommandTemplateId())
+                &&Objects.equals(task.getProtocol(),grant.getProtocol())&&("*".equals(grant.getCommandTemplateId())||Objects.equals(task.getTemplateId(),grant.getCommandTemplateId()))
                 &&grant.getExpiresAt()!=null&&grant.getExpiresAt().isAfter(LocalDateTime.now());
     }
     public boolean dispatchAuthorized(CollectionTaskDO task,String connectionId,Long version) {
@@ -118,14 +118,20 @@ public class CollectionConnectionService {
     }
     private CredentialGrantDO grant(DeviceCredentialDO row,Long actor,Long template,LocalDateTime expires) {
         if(expires==null||!expires.isAfter(LocalDateTime.now()))throw new CollectionOperationException("授权有效期须晚于当前时间");
-        var matching=grants.selectEffective(new EffectiveCredentialGrantQuery(tenant(),row.getId(),"USER",actor.toString(),row.getDeviceId().toString(),row.getCredentialType(),template.toString(),LocalDateTime.now()));
+        // A new unrestricted grant must not overlap an existing template-scoped grant.
+        var matching=queries.grants(new ConnectionGrantsQuery(tenant(),row.getId())).stream()
+                .filter(g -> "ACTIVE".equals(g.getStatus()) && "USER".equals(g.getGranteeType())
+                        && actor.toString().equals(g.getGranteeId())
+                        && (g.getExpiresAt()==null || g.getExpiresAt().isAfter(LocalDateTime.now()))
+                        && (template==null || "*".equals(g.getCommandTemplateId()) || template.toString().equals(g.getCommandTemplateId())))
+                .toList();
         if(!matching.isEmpty())throw new CollectionOperationException("相同使用范围已有有效授权，请先撤销旧授权");
-        var g=new CredentialGrantDO();g.setTenantId(tenant());g.setCredentialId(row.getId());g.setGranteeType("USER");g.setGranteeId(actor.toString());g.setProjectId(row.getProjectId().toString());g.setDeviceId(row.getDeviceId().toString());g.setProtocol(row.getCredentialType());g.setCommandTemplateId(template.toString());g.setExpiresAt(expires.withNano(0));g.setStatus("ACTIVE");grants.insert(g);return g;
+        var g=new CredentialGrantDO();g.setTenantId(tenant());g.setCredentialId(row.getId());g.setGranteeType("USER");g.setGranteeId(actor.toString());g.setProjectId(row.getProjectId().toString());g.setDeviceId(row.getDeviceId().toString());g.setProtocol(row.getCredentialType());g.setCommandTemplateId(template == null ? "*" : template.toString());g.setExpiresAt(expires.withNano(0));g.setStatus("ACTIVE");grants.insert(g);return g;
     }
     private DeviceCredentialDO ownedRequired(Long actor,Long id,String permission){auth.permission(actor,permission);var row=queries.lock(tenant(),id);if(row==null||!actor.toString().equals(row.getCreator())||row.getExternalConnectionId()==null)throw new org.springframework.security.access.AccessDeniedException("只能管理本人创建的连接");auth.project(actor,row.getProjectId(),true,false);return row;}
     private void requireSame(DeviceCredentialDO r,Long actor,Save s){if(r==null||!actor.toString().equals(r.getCreator())||!registrationDigest(s).equals(r.getRegistrationDigest()))throw new CollectionOperationException("原保存请求内容已变化");}
     private String registrationDigest(Save s){return CollectionTemplateService.hash(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(Arrays.asList(s.name().trim(),s.projectId(),s.deviceId(),s.host(),s.port(),s.protocol(),s.username().trim(),s.templateId(),s.expiresAt().withNano(0))));}
-    private void validate(Save s){if(s==null||s.requestKey()==null||!s.requestKey().matches("[a-zA-Z0-9-]{16,64}")||s.name()==null||s.name().isBlank()||s.name().length()>64||s.projectId()==null||s.deviceId()==null||s.templateId()==null||s.host()==null||!s.host().matches("[a-zA-Z0-9.:-]{1,253}")||s.port()==null||s.port()<1||s.port()>65535||s.protocol()==null||!Set.of("SSH","TELNET").contains(s.protocol())||s.username()==null||s.username().isBlank()||s.username().length()>128||s.secret()==null||s.secret().length==0||s.secret().length>4096||s.expiresAt()==null||!s.expiresAt().isAfter(LocalDateTime.now()))throw new CollectionOperationException("请填写完整有效的连接和授权信息");}
+    private void validate(Save s){if(s==null||s.requestKey()==null||!s.requestKey().matches("[a-zA-Z0-9-]{16,64}")||s.name()==null||s.name().isBlank()||s.name().length()>64||s.projectId()==null||s.deviceId()==null||s.host()==null||!s.host().matches("[a-zA-Z0-9.:-]{1,253}")||s.port()==null||s.port()<1||s.port()>65535||s.protocol()==null||!Set.of("SSH","TELNET").contains(s.protocol())||s.username()==null||s.username().isBlank()||s.username().length()>128||s.secret()==null||s.secret().length==0||s.secret().length>4096||s.expiresAt()==null||!s.expiresAt().isAfter(LocalDateTime.now()))throw new CollectionOperationException("请填写完整有效的连接和授权信息");}
     private DeviceOpsResourceApi provider(){var value=resources.getIfAvailable();if(value==null)throw new CollectionOperationException("DAC 尚未启用");return value;}
     private Long tenant(){return CollectionAuthorization.tenant();}
     private View view(DeviceCredentialDO r){boolean pending="PENDING".equals(r.getStatus());return new View(r.getId(),r.getCredentialCode(),r.getProjectId(),r.getDeviceId(),r.getCredentialType(),r.getHost(),r.getPort(),r.getUsername(),r.getStatus(),r.getCredentialVersion(),pending?r.getRegistrationKey():null,pending?r.getRegistrationTemplateId():null,pending?r.getRegistrationExpiresAt():null);}

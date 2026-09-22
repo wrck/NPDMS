@@ -29,7 +29,7 @@
         >
       </el-form-item>
     </el-form>
-    <el-alert title="联调记录可使用已发布命令模板采集设备日志；日志自动回传到联调记录，联调结果和通过操作仍按原流程确认。自动对比未接入。" type="info" :closable="false" />
+    <el-alert title="联调记录可直接输入命令或选用已发布模板采集设备日志；日志自动回传到联调记录，联调结果和通过操作仍按原流程确认。自动对比未接入。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
@@ -154,7 +154,7 @@
         <el-col :span="24">
           <el-form-item label-width="110px">
             <el-button v-if="form.id" @click="collection?.open(form.id!)" v-hasPermi="['pms:imp-joint-test:query']">命令采集与日志</el-button>
-            <span class="form-tip">请先保存业务记录，再从统一采集窗口选择模板和凭证。上述非秘密连接信息仍可作为记录备注保存。</span>
+            <span class="form-tip">请先保存业务记录，再从统一采集窗口输入命令或选择模板，并选择认证方式。上述非秘密连接信息仍可作为记录备注保存。</span>
           </el-form-item>
         </el-col>
       </el-row>

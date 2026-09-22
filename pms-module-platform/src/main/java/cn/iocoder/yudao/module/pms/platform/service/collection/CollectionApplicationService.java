@@ -85,7 +85,7 @@ public class CollectionApplicationService implements CollectionApplicationApi {
             template=templates.forExecution(actor,r.getTemplateId(),entry,r.getProtocol(),selected.productModel());
             commands=template.getCommandText();
         }else{
-            if(!source.manualAllowed()||r.getCredentialId()!=null)throw new CollectionOperationException("此入口或认证方式必须使用发布模板");
+            if(!source.manualAllowed())throw new CollectionOperationException("此入口必须使用发布模板");
             commands=CollectionTemplateService.normalize(r.getCommands());
         }
         CollectionConnectionService.Resolved saved=null;

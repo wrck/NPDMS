@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.query.Collectio
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 @Mapper public interface CollectionConnectionMapper {
+    List<CredentialGrantDO> effectiveGrants(@Param("q") cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.query.EffectiveCredentialGrantQuery query);
     List<DeviceCredentialDO> owned(@Param("q") CollectionConnectionQuery query);
     List<DeviceCredentialDO> usable(@Param("q") CollectionConnectionQuery query);
     List<CredentialGrantDO> grants(@Param("q") cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.query.ConnectionGrantsQuery query);

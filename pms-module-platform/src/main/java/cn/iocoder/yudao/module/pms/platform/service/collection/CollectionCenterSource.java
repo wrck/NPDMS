@@ -16,7 +16,7 @@ public class CollectionCenterSource implements CollectionSourceAdapter {
         auth.permission(actor,edit?"pms:device-collection:execute":"pms:device-collection:query");
         auth.project(actor,project,edit,access==Access.EXECUTE);
         String name=device==null?"":devices.validateSelection(project,List.of(device)).getFirst().name();
-        return new Source(entry(),project,"PLT","CollectionCenter",project,device,name,0,false,
+        return new Source(entry(),project,"PLT","CollectionCenter",project,device,name,0,true,
                 auth.allowed(actor,"pms:device-collection:execute"),"CALLBACK_TERMINAL","设备连接与采集");
     }
 }

@@ -6,7 +6,7 @@
     <el-button :loading="loading" @click="load">刷新</el-button>
   </div>
   <el-alert
-    title="密码由 DAC 加密保存，页面不回显。连接仅在指定项目、设备、协议、模板和有效期内授权使用。"
+    title="密码由 DAC 加密保存，页面不回显。连接仅在指定项目、设备、协议和有效期内授权使用。"
     type="info"
     :closable="false"
     class="mb-16px"
@@ -119,19 +119,9 @@
           :disabled="busy"
           autocomplete="new-password"
       /></el-form-item>
-      <el-form-item label="自用模板" prop="templateId"
-        ><el-select
-          v-model="form.templateId"
-          filterable
-          class="!w-full"
-          :disabled="busy || frozen"
-          placeholder="保存成功后为本人建立此模板的使用授权"
-          ><el-option
-            v-for="t in saveTemplates"
-            :key="t.id"
-            :label="`${t.name} · v${t.revision}`"
-            :value="t.id!" /></el-select
-      ></el-form-item>
+      <el-form-item v-if="frozen && form.templateId" label="原模板限定">
+        <span>{{ form.templateId }}（保留原保存请求的授权范围）</span>
+      </el-form-item>
       <el-form-item label="授权到期" prop="expiresAt"
         ><el-date-picker
           v-model="form.expiresAt"
@@ -162,14 +152,6 @@
         ><el-select v-model="grantForm.userId" filterable class="!w-full"
           ><el-option v-for="u in users" :key="u.id" :value="u.id" :label="u.nickname" /></el-select
       ></el-form-item>
-      <el-form-item label="命令模板" prop="templateId"
-        ><el-select v-model="grantForm.templateId" filterable class="!w-full"
-          ><el-option
-            v-for="t in grantTemplates"
-            :key="t.id"
-            :value="t.id!"
-            :label="`${t.name} · v${t.revision}`" /></el-select
-      ></el-form-item>
       <el-form-item label="到期时间" prop="expiresAt"
         ><el-date-picker
           v-model="grantForm.expiresAt"
@@ -191,7 +173,9 @@
       >
       <el-table-column label="模板" min-width="190"
         ><template #default="{ row }">{{
-          allTemplates.find((t) => String(t.id) === row.templateId)?.name || row.templateId
+          row.templateId === '*'
+            ? '不限模板（含手工命令）'
+            : `限定模板 ${row.templateId || '未指定'}`
         }}</template></el-table-column
       >
       <el-table-column
@@ -250,22 +234,11 @@ const form = reactive({
   templateId: undefined as Api.Id | undefined,
   expiresAt: ''
 })
-const allTemplates = ref<Api.Template[]>([])
-const saveTemplates = computed(() =>
-  allTemplates.value.filter((t) => t.protocol === form.protocol && t.status === 'PUBLISHED')
-)
 const saveRules = Object.fromEntries(
-  [
-    'name',
-    'deviceId',
-    'host',
-    'port',
-    'protocol',
-    'username',
-    'secret',
-    'templateId',
-    'expiresAt'
-  ].map((key) => [key, [{ required: true, message: '请填写此项', trigger: 'change' }]])
+  ['name', 'deviceId', 'host', 'port', 'protocol', 'username', 'secret', 'expiresAt'].map((key) => [
+    key,
+    [{ required: true, message: '请填写此项', trigger: 'change' }]
+  ])
 )
 const load = async () => {
   loading.value = true
@@ -280,7 +253,6 @@ const clearSecret = () => {
 }
 const openSave = async (row?: Api.Connection) => {
   clearSecret()
-  allTemplates.value = await Api.templates({ publishedOnly: true })
   Object.assign(
     form,
     row
@@ -320,7 +292,7 @@ const save = async () => {
       ...form,
       projectId: props.projectId,
       deviceId: form.deviceId!,
-      templateId: form.templateId!
+      templateId: form.templateId
     })
     saveVisible.value = false
     message.success('连接已验证并加密保存，已建立本人使用授权')
@@ -357,27 +329,17 @@ const grantForm = reactive({
   templateId: undefined as Api.Id | undefined,
   expiresAt: ''
 })
-const grantTemplates = computed(() =>
-  allTemplates.value.filter(
-    (t) => t.protocol === selected.value?.protocol && t.status === 'PUBLISHED'
-  )
-)
 const grantRules = Object.fromEntries(
-  ['userId', 'templateId', 'expiresAt'].map((key) => [
+  ['userId', 'expiresAt'].map((key) => [
     key,
     [{ required: true, message: '请填写此项', trigger: 'change' }]
   ])
 )
 const openGrants = async (row: Api.Connection) => {
   selected.value = row
-  const result = await Promise.all([
-    Api.grants(row.id),
-    Api.templates({ publishedOnly: true }),
-    UserApi.getSimpleUserList()
-  ])
+  const result = await Promise.all([Api.grants(row.id), UserApi.getSimpleUserList()])
   grantRows.value = result[0]
-  allTemplates.value = result[1]
-  users.value = result[2]
+  users.value = result[1]
   Object.assign(grantForm, { userId: undefined, templateId: undefined, expiresAt: '' })
   grantVisible.value = true
 }
@@ -387,7 +349,6 @@ const grant = async () => {
   try {
     await Api.grantConnection(selected.value!.id, {
       userId: grantForm.userId!,
-      templateId: grantForm.templateId!,
       expiresAt: grantForm.expiresAt
     })
     grantRows.value = await Api.grants(selected.value!.id)

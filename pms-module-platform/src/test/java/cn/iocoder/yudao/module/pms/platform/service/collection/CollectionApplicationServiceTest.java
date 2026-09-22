@@ -62,6 +62,20 @@ class CollectionApplicationServiceTest {
         assertEquals(List.of("show run"),sent.getValue().commands());assertEquals("dac-ref",sent.getValue().connectionId());assertEquals(4L,sent.getValue().connectionVersion());
         verify(dispatch,never()).dispatchManual(any());
     }
+    @Test void savedConnectionExecutesManualCommandsWithoutTemplate() {
+        var credential=new DeviceCredentialDO();credential.setId(60L);
+        when(connections.resolve(7L,60L,21L,31L,"SSH",null)).thenReturn(new CollectionConnectionService.Resolved(credential,70L,new DeviceOpsResourceApi.Connection("dac-ref","stored.example",5555,"SSH","saved-user",4)));
+        var r=request();r.setCredentialId(60L);r.setPassword(null);r.setCommands("show version\nshow run\nshow tech");
+        assertEquals(r.getCommands(),service.submit("configuration",11L,7L,r).commandText());
+        var sent=ArgumentCaptor.forClass(CollectionDispatchApi.SavedCommand.class);verify(dispatch).dispatchSaved(sent.capture());
+        assertEquals(List.of("show version","show run","show tech"),sent.getValue().commands());
+        assertNull(saved().getTemplateRevisionId());verifyNoInteractions(templates);
+    }
+    @Test void registeredJointTestCanExecuteManualCommands() {
+        context=new CollectionSourceAdapter.Source("joint-test",11L,"IMP","JointTest",21L,31L,"device",0,true,true,"BUSINESS_CONSUMPTION","业务联调");
+        when(source.entry()).thenReturn("joint-test");
+        service.submit("joint-test",11L,7L,request());verify(dispatch).dispatchManual(any());verifyNoInteractions(templates);
+    }
     @Test void concurrentWinnerDiscoveredAfterSourceLockIsReturnedWithoutRedispatch(){
         service.submit("configuration",11L,7L,request());var row=saved();clearInvocations(dispatch,requests,tasks);
         when(requests.lockRequest(1L,request().getRequestKey())).thenReturn(row);
@@ -70,7 +84,7 @@ class CollectionApplicationServiceTest {
         assertEquals(41L,service.submit("configuration",11L,7L,request()).id());
         verify(dispatch,never()).dispatchManual(any());verify(tasks,never()).createBatch(any());
     }
-    @Test void manualCommandsAreRejectedForJointTestAndUnregisteredEntrypoints(){
+    @Test void sourceRestrictionAndUnregisteredEntrypointsStillRejectManualCommands(){
         context=new CollectionSourceAdapter.Source("joint-test",11L,"IMP","JointTest",21L,31L,"device",0,false,true,"BUSINESS_CONSUMPTION","业务联调");
         when(source.entry()).thenReturn("joint-test");
         assertThrows(CollectionOperationException.class,()->service.submit("joint-test",11L,7L,request()));

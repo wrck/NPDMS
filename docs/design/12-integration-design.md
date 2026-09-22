@@ -308,3 +308,10 @@ HR与目录字段及恢复策略以02c为准。OA材料/外采及AUT-01再次申
 CUT-08由CUT保存平台请求、外部申请引用、原始状态版本和人工证据；INT-06 Integration ACL拥有连接器、认证、超时及第三方字段映射。CUT发起使用稳定平台requestId和Idempotency-Key，携带任务、项目、设备及冻结需求来源；INT-06接受发起时必须返回不可变externalRequestId，并可返回launchUrl、externalApplicationNo和原始状态。只有跳转地址时保持`REQUEST_PENDING`；后续由INT-06按受信tenantId、platformRequestId、externalSystemCode和externalRequestId调用`bindExternalReference`首次绑定申请号，并在同一CUT事务内原子迁移为`EXTERNAL_REFERENCED`，同值重放返回既有`EXTERNAL_REFERENCED`且不写业务行，身份错配、不同申请号或已绑定仍为`REQUEST_PENDING`均失败关闭。只有非空外部申请号才允许状态回调或显式刷新；超时/结果未知保留`RETRY_PENDING`并按同一平台requestId查询或重试，不创建第二个意图。
 
 回调身份固定为受信租户、externalSystemCode、externalApplicationNo、eventId和正数单调statusVersion。同eventId同载荷重放、异载荷冲突；同申请同版本同载荷重放、异载荷冲突；低版本只审计，高版本追加并成为当前快照。原始状态不映射为CUT库存、审批、到货、领用或P6门禁。生产INT-06尚未实现时，CUT实现只保留端口并在测试域用确定性替身完成正向闭环；线下证据经PLT文件事实关联，恢复后必须按外部申请号核验，不冒充接口成功。
+
+
+### 11.7 命令与模板解耦补充（2026-09-21 需求方确认）
+
+统一采集的独立入口、配置调试、业务联调允许手工命令或可选的已发布模板；两种命令来源均可使用临时秘密或已保存连接。DAC 仍接收冻结脚本及原幂等标识，不因无模板改变签名、超时、取消、对账和日志回传语义。
+
+新增连接授权可省略模板，以明确的 `*` 范围支持手工命令及模板；保留用户、项目、设备、协议和有效期限制。旧限定模板与空值授权不扩大，重叠授权拒绝，旧任务快照不变。该补充覆盖此前联调/独立采集必选模板的接入约束，不扩展其他业务入口。

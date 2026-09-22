@@ -29,6 +29,15 @@ class CollectionConnectionAuthorizationTest {
         grant.setTenantId(2L);assertFalse(service.remainsAuthorized(task));grant.setTenantId(1L);
         connection.setStatus("DISABLED");assertFalse(service.remainsAuthorized(task));
     }
+    @Test void explicitUnrestrictedGrantSupportsManualCommandsButOldScopeDoesNot() {
+        task.setTemplateId("manual-11");assertFalse(service.remainsAuthorized(task));
+        grant.setCommandTemplateId(null);assertFalse(service.remainsAuthorized(task));
+        grant.setCommandTemplateId("*");assertTrue(service.remainsAuthorized(task));
+        task.setTemplateId("another-published-template");assertTrue(service.remainsAuthorized(task));
+        grant.setGranteeId("9");assertFalse(service.remainsAuthorized(task));grant.setGranteeId("8");
+        grant.setDeviceId("32");assertFalse(service.remainsAuthorized(task));grant.setDeviceId("31");
+        grant.setStatus("REVOKED");assertFalse(service.remainsAuthorized(task));
+    }
     @Test void deniedSaveAlwaysClearsSecret(){
         doThrow(new org.springframework.security.access.AccessDeniedException("denied")).when(auth).permission(8L,"pms:device-credential:create");
         char[] secret="test-password".toCharArray();var r=new CollectionConnectionService.Save("request-key-123456","test",21L,31L,"device.example",22,"SSH","user",secret,50L,LocalDateTime.now().plusHours(1));

@@ -95,7 +95,7 @@ export interface SaveConnection {
   port: number
   username: string
   secret: string
-  templateId: Id
+  templateId?: Id
   expiresAt: string
 }
 export interface Grant {
@@ -177,7 +177,7 @@ export const saveConnection = (data: SaveConnection) =>
 export const disableConnection = (id: Id) =>
   request.post<boolean>({ url: `${root}/connections/${id}/disable` })
 export const grants = (id: Id) => request.get<Grant[]>({ url: `${root}/connections/${id}/grants` })
-export const grantConnection = (id: Id, data: { userId: Id; templateId: Id; expiresAt: string }) =>
+export const grantConnection = (id: Id, data: { userId: Id; templateId?: Id; expiresAt: string }) =>
   request.post<Grant>({ url: `${root}/connections/${id}/grants`, data })
 export const revokeGrant = (id: Id, grant: Id) =>
   request.post<boolean>({ url: `${root}/connections/${id}/grants/${grant}/revoke` })

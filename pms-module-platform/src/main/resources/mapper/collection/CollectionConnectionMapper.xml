@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionConnectionMapper">
+ <select id="effectiveGrants" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CredentialGrantDO">
+  SELECT * FROM plt_credential_grant WHERE tenant_id=#{q.tenantId} AND credential_id=#{q.credentialId}
+   AND grantee_type=#{q.granteeType} AND grantee_id=#{q.granteeId}
+   AND device_id=#{q.deviceId} AND protocol=#{q.protocol}
+   AND (command_template_id='*' OR command_template_id=#{q.commandTemplateId})
+   AND status='ACTIVE' AND expires_at &gt; #{q.effectiveAt} AND deleted=b'0'
+ </select>
  <select id="owned" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.DeviceCredentialDO">
   SELECT * FROM plt_device_credential WHERE tenant_id=#{q.tenantId} AND creator=#{q.actorId}
   AND project_id=#{q.projectId} AND external_connection_id IS NOT NULL AND deleted=b'0' ORDER BY id DESC
@@ -11,7 +18,7 @@
   AND c.external_connection_id IS NOT NULL AND c.deleted=b'0'
   AND (SELECT COUNT(*) FROM plt_credential_grant g WHERE g.tenant_id=c.tenant_id AND g.credential_id=c.id
    AND g.grantee_type='USER' AND g.grantee_id=#{q.actorId} AND g.project_id=#{q.projectId}
-   AND g.device_id=#{q.deviceId} AND g.protocol=#{q.protocol} AND g.command_template_id=#{q.templateId}
+   AND g.device_id=#{q.deviceId} AND g.protocol=#{q.protocol} AND (g.command_template_id='*' OR g.command_template_id=#{q.templateId})
    AND g.status='ACTIVE' AND g.expires_at &gt; #{q.now} AND g.deleted=b'0')=1
   ORDER BY c.id DESC
  </select>

@@ -34,12 +34,7 @@
       <el-form-item label="命令来源">
         <el-radio-group v-model="commandMode">
           <el-radio value="template">已发布模板</el-radio>
-          <el-radio
-            v-if="source?.manualAllowed"
-            value="manual"
-            :disabled="credentialMode === 'saved'"
-            >手工命令</el-radio
-          >
+          <el-radio v-if="source?.manualAllowed" value="manual">手工命令</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="commandMode === 'template'" label="命令模板" prop="templateId">
@@ -60,9 +55,7 @@
       <el-form-item label="认证方式">
         <el-radio-group v-model="credentialMode">
           <el-radio value="temporary">本次临时密码</el-radio>
-          <el-radio
-            value="saved"
-            :disabled="commandMode === 'manual' || !checkPermi(['pms:device-credential:use'])"
+          <el-radio value="saved" :disabled="!checkPermi(['pms:device-credential:use'])"
             >已保存连接</el-radio
           >
         </el-radio-group>
@@ -70,7 +63,7 @@
       <el-form-item v-if="credentialMode === 'saved'" label="保存连接" prop="credentialId">
         <el-select
           v-model="form.credentialId"
-          placeholder="仅显示当前设备、协议与模板的有效授权"
+          placeholder="仅显示当前设备、协议和命令范围内的有效授权"
           class="!w-full"
         >
           <el-option
@@ -368,12 +361,12 @@ const loadConnections = async () => {
   const generation = ++connectionGeneration
   if (!source.value || !visible.value) return
   const list =
-    checkPermi(['pms:device-credential:use']) && form.templateId && form.deviceId
+    checkPermi(['pms:device-credential:use']) && form.deviceId
       ? await Api.usableConnections(
           source.value.projectId,
           form.deviceId,
           form.protocol,
-          form.templateId
+          commandMode.value === 'template' ? form.templateId : undefined
         )
       : []
   if (generation !== connectionGeneration) return
@@ -387,7 +380,7 @@ watch(
   }
 )
 watch(
-  () => [form.deviceId, form.templateId],
+  () => [form.deviceId, form.templateId, commandMode.value],
   () => {
     void loadConnections().catch(() => {})
   }
