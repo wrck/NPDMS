@@ -16,6 +16,9 @@ import jakarta.validation.Valid;
  */
 public interface MaterialExchangeService {
 
+    java.util.List<cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSerialVO>
+            getSerials(Long id);
+
     /**
      * 创建换货协同单（校验单号唯一 + 项目存在）
      *

@@ -161,30 +161,9 @@
   <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
     <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <!-- Demo 2.2.1 物料选择：从项目设备档案勾选物料行带入既有字段，不符合项说明填入下方换货原因 -->
-      <el-form-item v-if="!form.id" label="物料选择" prop="materialPick">
-        <div class="material-pick">
-          <el-table
-            v-loading="pickLoading"
-            :data="pickDevices"
-            size="small"
-            border
-            max-height="220"
-            highlight-current-row
-            @current-change="onPickDevice"
-          >
-            <el-table-column type="index" label="勾选" width="60" align="center" />
-            <el-table-column prop="sn" label="序列号" min-width="140" />
-            <el-table-column prop="productModel" label="产品编码" min-width="120" />
-            <el-table-column prop="name" label="产品名称" min-width="140" show-overflow-tooltip />
-            <el-table-column label="操作" width="70" align="center">
-              <template #default="{ row }">
-                <el-button link type="primary" @click="applyPickedDevice(row)">带入</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="material-pick-tip">选中设备后点击「带入」补全关联设备/物料名称/编码；不符合项说明请填写下方「换货原因」。</div>
-        </div>
+      <el-form-item label="物料选择">
+        <MaterialDevicePicker v-if="formVisible" :key="pickerKey" :project-id="form.projectId"
+          :model-value="form.serials || []" @update:model-value="updateSerials" />
       </el-form-item>
       <el-row :gutter="16">
         <el-col :span="12">
@@ -197,6 +176,7 @@
               label-field="projectName"
               value-field="id"
               query-field="projectName"
+              @change="changeProject"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -223,18 +203,6 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="关联设备" prop="equipmentId">
-            <PmsEntitySelect
-              v-model="form.equipmentId"
-              :api="DeviceArchiveApi.getDeviceArchivePage"
-              :label-field="['sn', 'name']"
-              value-field="id"
-              query-field="sn"
-              placeholder="请选择关联设备"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="物料名称" prop="materialName">
             <el-input v-model="form.materialName" />
           </el-form-item>
@@ -251,7 +219,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="数量" prop="quantity">
-            <el-input-number v-model="form.quantity" :min="0" :precision="2" class="!w-full" />
+            <el-input-number v-model="form.quantity" :min="0" :precision="2" :disabled="!!form.serials?.length" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -343,6 +311,12 @@
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
+    <el-table v-if="current.serials?.length" :data="current.serials" border max-height="360" class="mt-4">
+      <el-table-column prop="sn" label="申请序列号" min-width="160" />
+      <el-table-column prop="name" label="设备名称" min-width="140" />
+      <el-table-column prop="productModel" label="产品型号" min-width="120" />
+      <el-table-column prop="contractNo" label="合同号" min-width="140" />
+    </el-table>
   </Dialog>
 
   <!-- 审批对话框 -->
@@ -379,7 +353,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { positiveShortcutId, surveyPath } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
@@ -391,7 +365,8 @@ import * as MaterialExchApi from '@/api/pms/engineering/material-exch'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import * as UserApi from '@/api/system/user'
-import type { MaterialExchangeVO } from '@/api/pms/engineering/material-exch'
+import MaterialDevicePicker from './MaterialDevicePicker.vue'
+import type { MaterialExchangeVO, MaterialExchangeSerialVO } from '@/api/pms/engineering/material-exch'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
@@ -417,28 +392,23 @@ const query = reactive({
   status: undefined as number | undefined
 })
 
-// Demo 2.2.1 物料选择辅助块：候选设备来自项目设备档案，带入后仍走既有保存链路
-const pickLoading = ref(false)
-const pickDevices = ref<DeviceArchiveApi.DeviceArchiveVO[]>([])
 const projectLabel = ref('')
-const loadPickDevices = async () => {
-  pickLoading.value = true
-  try {
-    const data = await DeviceArchiveApi.getDeviceArchivePage({ projectId: form.projectId, pageNo: 1, pageSize: 100 })
-    pickDevices.value = data.list || []
-  } catch {
-    pickDevices.value = []
-  } finally {
-    pickLoading.value = false
-  }
+const pickerKey = ref(0)
+const changeProject = () => {
+  form.serials = []
+  form.equipmentId = undefined
+  form.quantity = undefined!
 }
-const onPickDevice = () => {}
-const applyPickedDevice = (device: DeviceArchiveApi.DeviceArchiveVO) => {
-  form.equipmentId = device.id as number
-  form.materialName = device.name || form.materialName
-  form.materialCode = device.productModel || form.materialCode
-  form.quantity = form.quantity ?? 1
-  form.unit = form.unit || '台'
+const updateSerials = (serials: MaterialExchangeSerialVO[]) => {
+  form.serials = serials
+  form.equipmentId = serials[0]?.equipmentId
+  if (serials.length) {
+    form.quantity = serials.length
+    form.materialName ||= serials[0].name || ''
+    form.materialCode ||= serials[0].productCode || ''
+    form.specification ||= serials[0].productModel || ''
+    form.unit = '台'
+  }
 }
 const loadProjectLabel = async () => {
   if (!props.projectId || projectLabel.value) return
@@ -470,6 +440,7 @@ const form = reactive<MaterialExchangeVO>({
   name: '',
   exchangeType: 'INCOMPATIBLE',
   equipmentId: undefined,
+  serials: [],
   materialName: '',
   materialCode: '',
   specification: '',
@@ -504,6 +475,7 @@ const openCreate = () => {
     name: '',
     exchangeType: 'INCOMPATIBLE',
     equipmentId: undefined,
+  serials: [],
     materialName: '',
     materialCode: '',
     specification: '',
@@ -518,18 +490,27 @@ const openCreate = () => {
   })
   if (props.projectId) {
     loadProjectLabel()
-    loadPickDevices()
+
   }
+  pickerKey.value++
   formVisible.value = true
 }
 const openEdit = async (row: MaterialExchangeVO) => {
   const detail = await MaterialExchApi.getMaterialExchange(row.id!)
-  Object.assign(form, detail)
+  Object.assign(form, detail, { serials: detail.serials || [] })
+  // 旧申请没有子表时保留原设备；下一次显式保存才生成快照。
+  if (!form.serials?.length && detail.equipmentId) {
+    const device = await DeviceArchiveApi.getDeviceArchiveRecord(detail.equipmentId)
+    form.serials = [{ equipmentId: detail.equipmentId, sn: device.sn, name: device.name,
+      productCode: device.productCode, productModel: device.productModel, contractNo: device.contractNo }]
+  }
+  pickerKey.value++
   formVisible.value = true
 }
 const save = async () => {
   if (saving.value) return
   await formRef.value.validate()
+  if (form.serials?.length) form.quantity = form.serials.length
   saving.value = true
   try {
     if (form.id) {

@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Data
 public class MaterialExchangeRespVO {
 
+    private java.util.List<MaterialExchangeSerialVO> serials;
+
     @Schema(description = "主键", example = "1024")
     private Long id;
 

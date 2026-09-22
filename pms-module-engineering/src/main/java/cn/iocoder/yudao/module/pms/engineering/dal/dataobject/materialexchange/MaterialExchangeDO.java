@@ -46,6 +46,7 @@ public class MaterialExchangeDO extends TenantBaseDO {
     /**
      * 原设备编号
      */
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private Long equipmentId;
     /**
      * 物料名称

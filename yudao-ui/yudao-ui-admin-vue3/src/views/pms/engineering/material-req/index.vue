@@ -159,6 +159,7 @@
             <PmsEntitySelect
               v-else
               v-model="form.projectId"
+              @change="form.equipmentId = undefined"
               :api="ProjectApi.getProjectPage"
               label-field="projectName"
               value-field="id"
@@ -190,14 +191,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="关联设备" prop="equipmentId">
-            <PmsEntitySelect
-              v-model="form.equipmentId"
-              :api="DeviceArchiveApi.getDeviceArchivePage"
-              :label-field="['sn', 'name']"
-              value-field="id"
-              query-field="sn"
-              placeholder="请选择设备"
-            />
+            <ProjectDeviceSelect v-model="form.equipmentId" :project-id="form.projectId" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -379,7 +373,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as MaterialReqApi from '@/api/pms/engineering/material-req'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import * as UserApi from '@/api/system/user'
 import type { MaterialRequisitionVO } from '@/api/pms/engineering/material-req'
 import ProjectTag from '@/components/ProjectTag/index.vue'

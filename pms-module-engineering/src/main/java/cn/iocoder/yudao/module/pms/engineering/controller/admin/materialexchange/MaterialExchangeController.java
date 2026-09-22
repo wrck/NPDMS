@@ -72,7 +72,9 @@ public class MaterialExchangeController {
     @PreAuthorize("@ss.hasPermission('pms:imp-material-exch:query')")
     public CommonResult<MaterialExchangeRespVO> getMaterialExchange(@RequestParam("id") Long id) {
         MaterialExchangeDO entity = materialExchangeService.getMaterialExchange(id);
-        return success(BeanUtils.toBean(entity, MaterialExchangeRespVO.class));
+        MaterialExchangeRespVO response = BeanUtils.toBean(entity, MaterialExchangeRespVO.class);
+        if (response != null) response.setSerials(materialExchangeService.getSerials(id));
+        return success(response);
     }
 
     @GetMapping("/page")

@@ -28,6 +28,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class ArrivalServiceImpl implements ArrivalService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
+    @Resource
     private ArrivalMapper arrivalMapper;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
@@ -35,6 +38,9 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createArrival(ArrivalSaveReqVO createReqVO) {
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
         ArrivalDO arrival = BeanUtils.toBean(createReqVO, ArrivalDO.class);
         arrival.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 EngineeringRecordCodeGenerator.ARRIVAL, arrivalMapper,
@@ -52,6 +58,10 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Transactional(rollbackFor = Exception.class)
     public void updateArrival(ArrivalSaveReqVO updateReqVO) {
         ArrivalDO existing = validateArrivalExists(updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         validateStatus(existing, 0, 2);
         validateVersion(existing, updateReqVO.getVersion());
         ArrivalDO update = BeanUtils.toBean(updateReqVO, ArrivalDO.class);

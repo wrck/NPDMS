@@ -97,6 +97,7 @@ public interface ErrorCodeConstants {
     ErrorCode CONFIGURATION_CODE_DUPLICATE = new ErrorCode(1_011_006_001, "配置编码已存在");
     ErrorCode CONFIGURATION_STATUS_INVALID = new ErrorCode(1_011_006_002, "配置当前状态不允许该操作");
     ErrorCode CONFIGURATION_VERSION_NOT_MATCH = new ErrorCode(1_011_006_003, "配置版本号已变更，请刷新后重试");
+    ErrorCode CONFIGURATION_COLLECTION_REJECTED = new ErrorCode(1_011_006_004, "{}");
 
     // ========== 业务联调 joint-test 1-011-007-000 ==========
     ErrorCode JOINT_TEST_NOT_EXISTS = new ErrorCode(1_011_007_000, "业务联调记录不存在");

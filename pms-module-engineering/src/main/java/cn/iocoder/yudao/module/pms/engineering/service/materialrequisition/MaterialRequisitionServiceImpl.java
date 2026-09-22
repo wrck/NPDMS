@@ -31,6 +31,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Slf4j
 public class MaterialRequisitionServiceImpl implements MaterialRequisitionService {
 
+    @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
     /**
      * 状态：0 草稿
      */
@@ -87,6 +90,9 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createMaterialRequisition(MaterialRequisitionSaveReqVO createReqVO) {
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
         // 2. 校验项目存在
@@ -108,6 +114,10 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     public void updateMaterialRequisition(MaterialRequisitionSaveReqVO updateReqVO) {
         // 1. 校验存在
         MaterialRequisitionDO existing = validateMaterialRequisitionExists(updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可编辑
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 乐观锁版本校验

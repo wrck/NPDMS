@@ -34,6 +34,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class InstallationServiceImpl implements InstallationService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
+    @Resource
     private InstallationMapper installationMapper;
     @Resource
     private EngineeringLocationFactService locationFactService;
@@ -45,6 +48,9 @@ public class InstallationServiceImpl implements InstallationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createInstallation(InstallationSaveReqVO createReqVO) {
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
         InstallationDO installation = BeanUtils.toBean(createReqVO, InstallationDO.class);
         installation.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 EngineeringRecordCodeGenerator.INSTALLATION, installationMapper,
@@ -63,6 +69,10 @@ public class InstallationServiceImpl implements InstallationService {
     @Transactional(rollbackFor = Exception.class)
     public void updateInstallation(InstallationSaveReqVO updateReqVO) {
         InstallationDO existing = validateInstallationExists(updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         validateVersion(existing, updateReqVO.getVersion());
         if (Objects.equals(existing.getStatus(), 2)) {
             throw exception(INSTALLATION_STATUS_INVALID);

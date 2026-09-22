@@ -37,6 +37,7 @@ class InstallationLocationServiceTest {
     @BeforeEach
     void setUp() {
         service = new InstallationServiceImpl();
+        ReflectionTestUtils.setField(service, "deviceSelectionApi", org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.class));
         ReflectionTestUtils.setField(service, "installationMapper", mapper);
         ReflectionTestUtils.setField(service, "locationFactService", locationFactService);
         ReflectionTestUtils.setField(service, "assetLocationApi", assetLocationApi);

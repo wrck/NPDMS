@@ -1,6 +1,15 @@
 import request from '@/config/axios'
 import { withRequestTimestamp } from '../requestTime'
 
+export interface MaterialExchangeSerialVO {
+  equipmentId: number
+  sn: string
+  name?: string
+  productCode?: string
+  productModel?: string
+  contractNo?: string
+}
+
 export interface MaterialExchangeVO {
   id?: number
   projectId: number
@@ -8,6 +17,7 @@ export interface MaterialExchangeVO {
   name: string
   exchangeType?: string
   equipmentId?: number
+  serials?: MaterialExchangeSerialVO[]
   materialName: string
   materialCode?: string
   specification?: string

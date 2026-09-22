@@ -16,6 +16,13 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.List;
+import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSerialVO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange.MaterialExchangeSerialDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialexchange.MaterialExchangeSerialMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialexchange.query.MaterialExchangeSerialQuery;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
@@ -98,15 +105,17 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     @Resource
     private MaterialExchangeMapper materialExchangeMapper;
 
+    @Resource
+    private MaterialExchangeSerialMapper serialMapper;
+    @Resource
+    private ProjectDeviceSelectionApi deviceSelectionApi;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createMaterialExchange(MaterialExchangeSaveReqVO createReqVO) {
+        List<SelectedProjectDevice> serials = validateSelection(createReqVO, null);
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
-        // 2. 校验项目存在
-        // 【待确认】跨模块校验项目存在需通过 pms-module-project 暴露的稳定 API；
-        //          当前 engineering 模块未依赖 pms-module-project，遵循 AGENTS.md 模块边界规则暂不直接注入 ProjectMapper。
-        validateProjectExists(createReqVO.getProjectId());
         // 3. 转换并写入，初始单据状态为草稿、CRM 推送状态为待推送
         MaterialExchangeDO entity = BeanUtils.toBean(createReqVO, MaterialExchangeDO.class);
         entity.setStatus(STATUS_DRAFT);
@@ -115,6 +124,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
             entity.setVersion(0);
         }
         materialExchangeMapper.insert(entity);
+        saveSerials(entity.getId(), serials);
         return entity.getId();
     }
 
@@ -122,7 +132,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     @Transactional(rollbackFor = Exception.class)
     public void updateMaterialExchange(MaterialExchangeSaveReqVO updateReqVO) {
         // 1. 校验存在
-        MaterialExchangeDO existing = validateMaterialExchangeExists(updateReqVO.getId());
+        MaterialExchangeDO existing = lockMaterialExchange(updateReqVO.getId());
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可编辑
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 乐观锁版本校验
@@ -131,25 +141,83 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
             throw exception(MATERIAL_EXCH_CODE_DUPLICATE, updateReqVO.getCode());
         }
+        if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) {
+            throw exception(MATERIAL_EXCH_PROJECT_NOT_EXISTS);
+        }
+        List<SelectedProjectDevice> serials = validateSelection(updateReqVO, existing);
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
         MaterialExchangeDO update = BeanUtils.toBean(updateReqVO, MaterialExchangeDO.class);
-        materialExchangeMapper.updateById(update);
+        update.setVersion(existing.getVersion());
+        if (materialExchangeMapper.updateById(update) != 1) {
+            throw exception(MATERIAL_EXCH_VERSION_NOT_MATCH);
+        }
+        // 旧客户端未发送明细时保留已保存快照；显式编辑才替换当前草稿明细。
+        if (updateReqVO.getSerials() != null || serialMapper.selectByExchange(
+                new MaterialExchangeSerialQuery(existing.getId())).isEmpty()) {
+            serialMapper.deleteByExchange(new MaterialExchangeSerialQuery(existing.getId()));
+            saveSerials(existing.getId(), serials);
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteMaterialExchange(Long id) {
         // 1. 校验存在
-        MaterialExchangeDO existing = validateMaterialExchangeExists(id);
+        MaterialExchangeDO existing = lockMaterialExchange(id);
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可删除
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 删除
         materialExchangeMapper.deleteById(id);
+        serialMapper.deleteByExchange(new MaterialExchangeSerialQuery(id));
     }
 
     @Override
     public MaterialExchangeDO getMaterialExchange(Long id) {
         return materialExchangeMapper.selectById(id);
+    }
+
+    @Override
+    public List<MaterialExchangeSerialVO> getSerials(Long id) {
+        validateMaterialExchangeExists(id);
+        return BeanUtils.toBean(serialMapper.selectByExchange(new MaterialExchangeSerialQuery(id)),
+                MaterialExchangeSerialVO.class);
+    }
+
+    private List<SelectedProjectDevice> validateSelection(MaterialExchangeSaveReqVO request,
+                                                           MaterialExchangeDO existing) {
+        List<Long> ids;
+        if (request.getSerials() != null) {
+            ids = request.getSerials().stream().map(MaterialExchangeSerialVO::getEquipmentId).toList();
+        } else if (existing != null) {
+            ids = serialMapper.selectByExchange(new MaterialExchangeSerialQuery(existing.getId())).stream()
+                    .map(MaterialExchangeSerialDO::getEquipmentId).toList();
+            if (ids.isEmpty() && request.getEquipmentId() != null) ids = List.of(request.getEquipmentId());
+        } else {
+            ids = request.getEquipmentId() == null ? List.of() : List.of(request.getEquipmentId());
+        }
+        var devices = deviceSelectionApi.validateSelection(request.getProjectId(), ids);
+        if (request.getSerials() != null && !ids.isEmpty()
+                && (request.getQuantity() == null || request.getQuantity().compareTo(
+                        java.math.BigDecimal.valueOf(ids.size())) != 0)) {
+            throw exception(MATERIAL_EXCH_SERIAL_QUANTITY_INVALID);
+        }
+        // 兼容旧单设备入口；新界面以序列号子表为准。
+        request.setEquipmentId(devices.isEmpty() ? null : devices.getFirst().equipmentId());
+        return devices;
+    }
+
+    private void saveSerials(Long exchangeId, List<SelectedProjectDevice> devices) {
+        for (SelectedProjectDevice device : devices) {
+            MaterialExchangeSerialDO row = new MaterialExchangeSerialDO();
+            row.setExchangeId(exchangeId);
+            row.setEquipmentId(device.equipmentId());
+            row.setSn(device.sn());
+            row.setName(device.name());
+            row.setProductCode(device.productCode());
+            row.setProductModel(device.productModel());
+            row.setContractNo(device.contractNo());
+            serialMapper.insert(row);
+        }
     }
 
     @Override
@@ -170,9 +238,13 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     @Transactional(rollbackFor = Exception.class)
     public void submitMaterialExchange(Long id) {
         // 1. 校验存在
-        MaterialExchangeDO entity = validateMaterialExchangeExists(id);
+        MaterialExchangeDO entity = lockMaterialExchange(id);
         // 2. 状态校验：0 草稿 / 4 已驳回 → 1 已提交
         validateStatus(entity, STATUS_DRAFT, STATUS_REJECTED);
+        var ids = serialMapper.selectByExchange(new MaterialExchangeSerialQuery(id)).stream()
+                .map(MaterialExchangeSerialDO::getEquipmentId).toList();
+        if (ids.isEmpty() && entity.getEquipmentId() != null) ids = List.of(entity.getEquipmentId());
+        deviceSelectionApi.validateSelection(entity.getProjectId(), ids);
         // 3. 更新状态
         updateStatus(entity, STATUS_SUBMITTED, null, null, null);
     }
@@ -275,7 +347,9 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (newStatus == STATUS_PASSED || newStatus == STATUS_REJECTED || newStatus == STATUS_DRAFT) {
             entity.setApproveTime(LocalDateTime.now());
         }
-        materialExchangeMapper.updateById(entity);
+        if (materialExchangeMapper.updateById(entity) != 1) {
+            throw exception(MATERIAL_EXCH_VERSION_NOT_MATCH);
+        }
     }
 
     private void validateCodeUnique(String code, Long excludeId) {
@@ -291,19 +365,14 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         }
     }
 
-    /**
-     * 校验项目存在。
-     * <p>
-     * 【待确认】当前 engineering 模块未依赖 pms-module-project，遵循 AGENTS.md 模块边界规则暂不直接注入 ProjectMapper。
-     * 待跨模块稳定 API（如 ProjectApi）建立后接入实际校验；现阶段保留扩展点不抛错。
-     */
-    private void validateProjectExists(Long projectId) {
-        // 预留扩展点：稳定跨模块 API 就绪后接入 ProjectMapper.selectById(projectId) 校验
-        // 若项目不存在，抛出 exception(MATERIAL_EXCH_PROJECT_NOT_EXISTS)
+    private MaterialExchangeDO lockMaterialExchange(Long id) {
+        MaterialExchangeDO entity = materialExchangeMapper.selectByIdForUpdate(id);
+        if (entity == null) throw exception(MATERIAL_EXCH_NOT_EXISTS);
+        return entity;
     }
 
     private void validateVersion(MaterialExchangeDO entity, Integer version) {
-        if (version != null && !Objects.equals(entity.getVersion(), version)) {
+        if (version == null || !Objects.equals(entity.getVersion(), version)) {
             throw exception(MATERIAL_EXCH_VERSION_NOT_MATCH);
         }
     }

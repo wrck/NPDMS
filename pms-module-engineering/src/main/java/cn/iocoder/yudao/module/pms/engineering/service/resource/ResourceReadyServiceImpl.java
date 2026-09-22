@@ -29,12 +29,19 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class ResourceReadyServiceImpl implements ResourceReadyService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
+    @Resource
     private ResourceReadyMapper resourceReadyMapper;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Long createResourceReady(ResourceReadySaveReqVO createReqVO) {
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
         // 转换并写入，初始状态为未就绪；编码由系统按项目编码自动生成
         ResourceReadyDO entity = BeanUtils.toBean(createReqVO, ResourceReadyDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
@@ -46,9 +53,14 @@ public class ResourceReadyServiceImpl implements ResourceReadyService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void updateResourceReady(ResourceReadySaveReqVO updateReqVO) {
         // 1. 校验存在
         ResourceReadyDO existing = validateResourceReadyExists(updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         // 更新（乐观锁由 MyBatis-Plus @Version 自动处理；编码由系统生成不可改）
         ResourceReadyDO update = BeanUtils.toBean(updateReqVO, ResourceReadyDO.class);
         resourceReadyMapper.updateById(update);

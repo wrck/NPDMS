@@ -16,6 +16,10 @@ import java.time.LocalDateTime;
 @Data
 public class MaterialExchangeSaveReqVO {
 
+    @Schema(description = "选中的设备序列号明细；null表示旧客户端未提供，空数组表示清空")
+    @jakarta.validation.Valid
+    private java.util.List<@NotNull MaterialExchangeSerialVO> serials;
+
     @Schema(description = "主键，更新时必填", example = "1024")
     private Long id;
 
