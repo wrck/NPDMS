@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="https://npdms/pms/normalclosure">
+  <process id="PMS_MINIMAL_NORMAL_CLOSURE" name="项目正常闭环双人工审核" isExecutable="true">
+    <extensionElements>
+      <flowable:executionListener event="start" expression="${bpmNormalClosureGuard.freeze(execution)}"/>
+    </extensionElements>
+    <startEvent id="start" name="发起正常闭环"/>
+    <sequenceFlow id="toServiceManager" sourceRef="start" targetRef="serviceManagerReview"/>
+    <userTask id="serviceManagerReview" name="当前主责服务经理审核" flowable:assignee="${serviceManagerUserId}">
+      <extensionElements>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy>
+        <flowable:candidateParam>${serviceManagerUserId}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType>
+        <flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType>
+        <flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable>
+        <flowable:reasonRequire>false</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${bpmNormalClosureGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${bpmNormalClosureGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${bpmNormalClosureGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toMaterial" sourceRef="serviceManagerReview" targetRef="materialReview"/>
+    <userTask id="materialReview" name="工程材料审核" flowable:assignee="${materialReviewerUserId}">
+      <extensionElements>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy>
+        <flowable:candidateParam>${materialReviewerUserId}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType>
+        <flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType>
+        <flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable>
+        <flowable:reasonRequire>false</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${bpmNormalClosureGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${bpmNormalClosureGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${bpmNormalClosureGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="materialReview" targetRef="end"/>
+    <endEvent id="end" name="审核结束"/>
+  </process>
+</definitions>
