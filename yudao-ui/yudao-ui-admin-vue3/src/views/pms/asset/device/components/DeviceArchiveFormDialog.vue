@@ -1,6 +1,7 @@
 <template>
   <el-drawer
     v-model="visible"
+    class="device-detail-drawer"
     :title="form.id ? '设备详情' : '新增设备'"
     size="min(1200px, 96vw)"
     :close-on-click-modal="false"
@@ -15,7 +16,7 @@
       <el-tag type="info" size="small">{{ readonly ? '只读' : form.id ? '维护' : '新增' }}</el-tag>
     </div>
     <div v-if="$slots.actions && form.id" class="device-actions"><slot name="actions"></slot></div>
-    <el-tabs v-model="activeTab">
+    <el-tabs v-model="activeTab" class="detail-tabs">
       <el-tab-pane label="设备信息" name="profile">
         <el-form
           ref="formRef"
@@ -29,7 +30,7 @@
           <div class="section-heading">基础信息</div>
           <div class="form-grid">
             <el-form-item label="序列号" prop="sn">
-              <el-input v-model="form.sn" :disabled="!!form.id" />
+              <el-input v-model="form.sn" :disabled="!!form.id || readonly || saving" />
             </el-form-item>
             <el-form-item label="设备名称" prop="name"
               ><el-input v-model="form.name"
@@ -212,8 +213,62 @@ const save = async () => {
 defineExpose({ open })
 </script>
 <style scoped>
+:global(.device-detail-drawer) {
+  font-family: var(--el-font-family, 'Helvetica Neue', 'Microsoft YaHei', sans-serif);
+}
+
+:global(.device-detail-drawer .el-drawer__header) {
+  padding-bottom: 16px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+}
+
+:global(.device-detail-drawer .el-drawer__body) {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:global(.device-detail-drawer .el-drawer__footer) {
+  border-top: 1px solid var(--el-border-color-extra-light);
+}
+
+.detail-tabs {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.detail-tabs > :deep(.el-tabs__header) {
+  flex-shrink: 0;
+}
+
+.detail-tabs > :deep(.el-tabs__content) {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+:deep(.el-input.is-disabled .el-input__inner),
+:deep(.el-textarea.is-disabled .el-textarea__inner) {
+  -webkit-text-fill-color: var(--el-text-color-regular);
+}
+
+.device-form :deep(.el-date-editor.el-input) {
+  width: 100%;
+}
+
+.device-form > .section-heading:not(:first-child) {
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1px solid var(--el-border-color-extra-light);
+}
+
 .form-intro {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
@@ -242,7 +297,21 @@ defineExpose({ open })
 }
 
 .device-actions {
+  flex-shrink: 0;
   margin-bottom: 16px;
+}
+
+.device-actions :deep(.el-space) {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.field-help {
+  overflow-wrap: anywhere;
+}
+
+.form-grid :deep(.el-form-item) {
+  min-width: 0;
 }
 
 .field-control {
@@ -282,6 +351,16 @@ defineExpose({ open })
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .drawer-footer > div {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .drawer-footer :deep(.el-button + .el-button) {
+    margin-left: 0;
   }
 }
 </style>

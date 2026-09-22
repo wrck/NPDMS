@@ -2,7 +2,7 @@
   <el-drawer
     v-model="visible"
     class="customer-form-drawer"
-    :title="readonly ? '客户详情' : customer ? '维护客户信息' : '创建客户'"
+    :title="customer ? '客户详情' : '创建客户'"
     size="min(760px, 96vw)"
     :close-on-click-modal="false"
     :before-close="beforeClose"
@@ -24,7 +24,7 @@
       }}</el-tag>
     </div>
 
-    <el-tabs v-model="activeTab">
+    <el-tabs v-model="activeTab" class="detail-tabs">
       <el-tab-pane label="客户信息" name="profile">
         <el-form
           ref="formRef"
@@ -468,6 +468,49 @@ const submit = async () => {
 defineExpose({ open })
 </script>
 <style scoped>
+:global(.customer-form-drawer) {
+  font-family: var(--el-font-family, 'Helvetica Neue', 'Microsoft YaHei', sans-serif);
+}
+
+:global(.customer-form-drawer .el-drawer__header) {
+  padding-bottom: 16px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+}
+
+:global(.customer-form-drawer .el-drawer__body) {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:global(.customer-form-drawer .el-drawer__footer) {
+  border-top: 1px solid var(--el-border-color-extra-light);
+}
+
+.detail-tabs {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.detail-tabs > :deep(.el-tabs__header) {
+  flex-shrink: 0;
+}
+
+.detail-tabs > :deep(.el-tabs__content) {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+:deep(.el-input.is-disabled .el-input__inner),
+:deep(.el-textarea.is-disabled .el-textarea__inner) {
+  -webkit-text-fill-color: var(--el-text-color-regular);
+}
+
 :deep(.customer-section) {
   padding-bottom: 16px;
   margin-bottom: 16px;
@@ -532,24 +575,25 @@ defineExpose({ open })
 
 .form-intro {
   display: flex;
-  align-items: center;
-  gap: 12px;
   padding: 12px 16px;
   margin-bottom: 16px;
+  background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-base);
-  background: var(--el-fill-color-light);
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
 }
 
 .form-intro-icon {
   display: grid;
-  flex: 0 0 36px;
   width: 36px;
   height: 36px;
-  place-items: center;
-  border-radius: var(--el-border-radius-base);
-  background: var(--el-color-primary-light-8);
   color: var(--el-color-primary);
+  background: var(--el-color-primary-light-8);
+  border-radius: var(--el-border-radius-base);
+  flex: 0 0 36px;
+  place-items: center;
 }
 
 .form-intro-copy {
@@ -558,20 +602,18 @@ defineExpose({ open })
 }
 
 .form-intro-title {
-  overflow: hidden;
-  color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 600;
   line-height: 22px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--el-text-color-primary);
+  overflow-wrap: anywhere;
 }
 
 .form-intro-description,
 .field-help {
-  color: var(--el-text-color-secondary);
   font-size: 12px;
   line-height: 20px;
+  color: var(--el-text-color-secondary);
 }
 
 .form-section {
@@ -595,15 +637,15 @@ defineExpose({ open })
 
 .form-section-heading h3 {
   margin: 0;
-  color: var(--el-text-color-primary);
   font-size: 15px;
   font-weight: 600;
   line-height: 24px;
+  color: var(--el-text-color-primary);
 }
 
 .form-section-heading span {
-  color: var(--el-text-color-secondary);
   font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .form-grid {
@@ -642,6 +684,7 @@ defineExpose({ open })
 
 .readonly-field {
   display: flex;
+  width: 100%;
   align-items: center;
   min-height: 32px;
   color: var(--el-text-color-regular);
@@ -649,9 +692,9 @@ defineExpose({ open })
 
 .classification-caption {
   width: 100%;
-  color: var(--el-text-color-secondary);
   font-size: 12px;
   line-height: 20px;
+  color: var(--el-text-color-secondary);
 }
 
 .drawer-footer {
@@ -662,15 +705,15 @@ defineExpose({ open })
 }
 
 .required-tip {
-  color: var(--el-text-color-secondary);
   font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .required-tip span {
   color: var(--el-color-danger);
 }
 
-@media (max-width: 600px) {
+@media (width <= 600px) {
   .form-intro {
     align-items: flex-start;
   }
