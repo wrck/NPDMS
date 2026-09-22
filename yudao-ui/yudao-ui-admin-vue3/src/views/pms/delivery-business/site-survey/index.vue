@@ -13,9 +13,6 @@
           :disabled="projectLocked"
         />
       </el-form-item>
-      <el-form-item label="工勘编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="工勘名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
@@ -39,7 +36,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="工勘编码" min-width="140" />
       <el-table-column prop="name" label="工勘名称" min-width="180" />
       <el-table-column prop="location" label="工勘地点" min-width="180" show-overflow-tooltip />
       <el-table-column prop="locationResolutionStatus" label="地点状态" width="110">
@@ -143,11 +139,6 @@
               placeholder="请选择项目"
               :disabled="!!form.id || projectLocked"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="工勘编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -420,16 +411,14 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: props.projectId as number | undefined,
-  code: '',
   name: '',
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<SiteSurveyVO>({ projectId: 0, code: '', name: '', businessValues: {} })
+const form = reactive<SiteSurveyVO>({ projectId: 0, name: '', businessValues: {} })
 const rules = {
   projectId: [{ required: true, validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => callback(/^[1-9]\d*$/.test(String(value ?? '')) ? undefined : new Error('请选择项目')) }],
-  code: [{ required: true, message: '请输入工勘编码' }],
   name: [{ required: true, message: '请输入工勘名称' }]
 }
 
@@ -482,7 +471,6 @@ const openForm = async (row?: SiteSurveyVO, view = false) => {
     {
       id: undefined,
       projectId: ownerId(props.projectId ?? 0),
-      code: '',
       name: '',
       surveyDate: '',
       surveyorUserId: undefined,
@@ -734,7 +722,7 @@ const handleAction = async (row: SiteSurveyVO, action: 'confirm' | 'reject' | 'a
   if (!['confirm', 'reject', 'archive'].includes(action) || !can(action.toUpperCase()) || !inProject(row) || saving.value || row.status !== (action === 'archive' ? 1 : 0)) return
   const context = contextSequence
   const actionText = { confirm: '确认', reject: '驳回', archive: '归档' }[action]
-  await message.confirm(`是否${actionText}工勘【${row.code}】？`)
+  await message.confirm(`是否${actionText}工勘【${row.name}】？`)
   if (!current(context) || !can(action.toUpperCase()) || !inProject(row)) return
   if (action === 'confirm') await SiteSurveyApi.confirmSiteSurvey(row.id!, execution)
   if (action === 'reject') await SiteSurveyApi.rejectSiteSurvey(row.id!, execution)

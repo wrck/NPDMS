@@ -462,6 +462,8 @@
 
         <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
           <ProjectRequirementAnalysisPanel
+            ref="requirementRef"
+            :open-briefing="() => switchTab('briefing')"
             :project="detail"
           />
         </div>
@@ -587,7 +589,7 @@ import type { TaskNode } from '@/api/pms/project/task-workbench'
 import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'
 import DeliverableSummaryPanel from '@/views/pms/engineering/deliverable/summary/index.vue'
 import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
-import ArrivalAcceptanceWorkbench from '@/views/pms/engineering/arrival-acceptance/index.vue'
+import ArrivalAcceptanceWorkbench from './components/ProjectArrivalReceiptPanel.vue'
 import InstallationWorkbench from '@/views/pms/engineering/installation/index.vue'
 import ConfigurationWorkbench from '@/views/pms/engineering/configuration/index.vue'
 import JointTestWorkbench from '@/views/pms/engineering/joint-test/index.vue'
@@ -739,7 +741,9 @@ const openConfigLogForDeviceId = async (deviceId: number) => {
   await switchTab('config-log')
 }
 
+const requirementRef = ref<InstanceType<typeof ProjectRequirementAnalysisPanel>>()
 const switchTab = async (key: string) => {
+  if (key !== activeTab.value && activeTab.value === 'requirement-analysis' && (await requirementRef.value?.requestLeave()) === false) return
   if (key !== activeTab.value && activeTab.value === 'schedule' && (await scheduleRef.value?.requestLeave()) === false) return
   if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return
   if (key !== activeTab.value && (await acceptanceReportRef.value?.requestLeave()) === false) return

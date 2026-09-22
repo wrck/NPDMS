@@ -43,6 +43,7 @@
           :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail" :execution="loadedExecution"
           @dirty-change="formDirty = $event" @saved="emit('changed')"
         />
+        <RequirementBriefingSection v-if="project.id" :project-id="project.id" :manage="openBriefing" />
         <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
       </template>
     </ContentWrap>
@@ -63,12 +64,13 @@ import type { EntityId, View, Workspace } from '@/api/pms/engineering/requiremen
 import { useMessage } from '@/hooks/web/useMessage'
 import { onBeforeRouteLeave } from 'vue-router'
 import EntityForm from './EntityForm.vue'
+import RequirementBriefingSection from './RequirementBriefingSection.vue'
 import RevisionDrawer from './RevisionDrawer.vue'
 import CompareDrawer from './CompareDrawer.vue'
 import { stableCommandIntent } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
-const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
+const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean; openBriefing?: () => unknown }>()
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {
     ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),

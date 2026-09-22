@@ -9,6 +9,7 @@ vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@vueuse/core', () => ({ useWindowSize: () => ({ width: { value: 1280 } }) }))
 vi.mock('./RevisionDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./CompareDrawer.vue', () => ({ default: { render: () => null } }))
+vi.mock('./RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('./EntityForm.vue', () => ({ default: defineComponent({ props: ['detail'], setup(props, { expose }) { expose({ isSaving: () => false, discardChanges: () => true }); return () => h('div', `revision:${props.detail.revision.ref.revisionId}`) } }) }))
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
 const findButton = (root: TestNode, text: string): TestNode | undefined => root.type === 'button' && textOf(root).includes(text) ? root : root.children.map(child => findButton(child,text)).find(Boolean)
