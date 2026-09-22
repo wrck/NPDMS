@@ -1,18 +1,15 @@
 <template>
   <div class="source-status">
     <el-tag :type="tagType" effect="plain">{{ slice.syncStatus }}</el-tag>
-    <el-descriptions :column="2" border size="small">
-      <el-descriptions-item label="来源">{{ slice.sourceSystem || '--' }}</el-descriptions-item>
-      <el-descriptions-item label="来源版本">{{
-        slice.sourceVersion || '--'
-      }}</el-descriptions-item>
-      <el-descriptions-item label="来源更新时间">{{
-        formatDate(slice.sourceUpdatedAt)
-      }}</el-descriptions-item>
-      <el-descriptions-item label="最近成功同步">{{
-        formatDate(slice.syncedAt)
-      }}</el-descriptions-item>
-    </el-descriptions>
+    <DeviceReadOnlyFields
+      title="来源信息"
+      :fields="[
+        { label: '来源', value: slice.sourceSystem },
+        { label: '来源版本', value: slice.sourceVersion },
+        { label: '来源更新时间', value: formatNullableDate(slice.sourceUpdatedAt) },
+        { label: '最近成功同步', value: formatNullableDate(slice.syncedAt) }
+      ]"
+    />
     <el-alert
       v-if="slice.syncStatus === 'NOT_AVAILABLE'"
       title="当前来源能力尚未接入，仅展示稳定接口降级状态。"
@@ -31,7 +28,8 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatDate } from '@/utils/formatTime'
+import { formatNullableDate } from '@/utils/formatTime'
+import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import type { DeviceSourceSliceVO } from '@/api/pms/asset/device'
 const props = defineProps<{ slice: DeviceSourceSliceVO }>()
 const tagType = computed(() => {
