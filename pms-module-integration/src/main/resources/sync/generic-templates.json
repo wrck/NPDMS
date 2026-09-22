@@ -839,8 +839,8 @@
       "overlapSeconds": 60, "retryCount": 1, "retryIntervalSeconds": 60, "maxRows": 10000, "maxBytes": 67108864,
       "readStrategy": "STREAMING_CURSOR", "fetchSize": 2000, "chunkSize": 500, "restartPolicy": "CHECKPOINT_KEY", "queryTimeoutSeconds": 0,
       "sources": [{
-        "object": "PRODUCT", "sourceObject": "DPtech_v_product_info_single", "readMode": "TABLE", "table": "DPtech_v_product_info_single",
-        "sql": null, "parameters": {},
+        "object": "PRODUCT", "sourceObject": "DPtech_v_product_info_single", "readMode": "SQL", "table": "DPtech_v_product_info_single",
+        "sql": "SELECT itemCode,itemModel,itemDesc,remark,statecode,updateTime FROM (SELECT itemCode,itemModel,itemDesc,remark,statecode,updateTime,ROW_NUMBER() OVER (PARTITION BY itemCode ORDER BY updateTime DESC,createTime DESC,itemModel DESC) AS row_rank FROM DPtech_v_product_info_single) ranked WHERE row_rank=1", "parameters": {},
         "columns": ["itemCode","itemModel","itemDesc","remark","statecode","updateTime"], "filters": [],
         "sourceKey": "itemCode", "updatedAt": "updateTime", "mappings": [], "issueField": null, "primaryTarget": "product",
         "targets": [{
@@ -874,7 +874,7 @@
       "overlapSeconds": 60, "retryCount": 1, "retryIntervalSeconds": 60, "maxRows": 10000, "maxBytes": 67108864,
       "readStrategy": "STREAMING_CURSOR", "fetchSize": 2000, "chunkSize": 500, "restartPolicy": "CHECKPOINT_KEY", "queryTimeoutSeconds": 0,
       "sources": [{
-        "object": "CUSTOMER", "sourceObject": "Account", "readMode": "TABLE", "table": "Account", "sql": null, "parameters": {},
+        "object": "CUSTOMER", "sourceObject": "Account", "readMode": "SQL", "table": "Account", "sql": "SELECT AccountId,AccountNumber,Name,Telephone1,EMailAddress1,Address1_Composite,new_mkt_unit_id,new_mkt_unit_idName,new_industry_level1_id,new_industry_level1_idName,new_industry_level2_id,new_industry_level2_idName,new_industry_level3_id,new_industry_level3_idName,new_industry_level4_id,new_industry_level4_idName,StateCode,ModifiedOn,CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY AccountNumber)>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migrationIssue FROM Account", "parameters": {},
         "columns": ["AccountId","AccountNumber","Name","Telephone1","EMailAddress1","Address1_Composite","new_mkt_unit_id","new_mkt_unit_idName","new_industry_level1_id","new_industry_level1_idName","new_industry_level2_id","new_industry_level2_idName","new_industry_level3_id","new_industry_level3_idName","new_industry_level4_id","new_industry_level4_idName","StateCode","ModifiedOn"],
         "filters": [], "sourceKey": "AccountId", "updatedAt": "ModifiedOn", "issueField": null,
         "mappings": [
@@ -887,7 +887,8 @@
           {"target":"expendCode","source":"new_industry_level3_id","conversion":"STRING"}, {"target":"expendName","source":"new_industry_level3_idName","conversion":"TRIM"},
           {"target":"industryCode","source":"new_industry_level4_id","conversion":"STRING"}, {"target":"industryName","source":"new_industry_level4_idName","conversion":"TRIM"},
           {"target":"lifecycleStatus","source":"StateCode","conversion":"ENUM","values":{"0":"ENABLED","1":"DISABLED"}},
-          {"target":"sourceVersion","source":"ModifiedOn","conversion":"STRING"}, {"target":"dataAsOf","source":"ModifiedOn","conversion":"DATETIME"}
+          {"target":"sourceVersion","source":"ModifiedOn","conversion":"STRING"}, {"target":"dataAsOf","source":"ModifiedOn","conversion":"DATETIME"},
+          {"target":"migrationIssue","source":"migrationIssue","conversion":"TRIM"}
         ]
       }]
     }

@@ -79,8 +79,7 @@ public class CustomerMasterDataApiImpl implements CustomerMasterDataApi {
     private static int compareVersion(String incoming,String current) {return incoming.compareTo(current);}
     private static void validate(CustomerMasterDataCommand c) {
         if(c==null||!Objects.equals(TenantContextHolder.getRequiredTenantId(),c.tenantId())||blank(c.customerCode())||blank(c.customerName())
-                ||blank(c.sourceKey())||blank(c.sourceVersion())||c.dataAsOf()==null||blank(c.operationId())
-                ||blank(c.departmentCode())||blank(c.marketCode())||blank(c.systemCode())||blank(c.expendCode())||blank(c.industryCode()))
+                ||blank(c.sourceKey())||blank(c.sourceVersion())||c.dataAsOf()==null||blank(c.operationId()))
             throw new IllegalArgumentException("CRM客户主数据命令不完整");
         if(!java.util.Set.of("ENABLED","DISABLED").contains(c.lifecycleStatus()))throw new IllegalArgumentException("CRM客户状态无效");
     }

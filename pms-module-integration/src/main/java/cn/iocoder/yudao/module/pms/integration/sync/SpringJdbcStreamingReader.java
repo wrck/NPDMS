@@ -210,11 +210,11 @@ public class SpringJdbcStreamingReader {
     }
 
     private static void verifyTransactionalTables(Connection connection,String sql,Set<String> visited)throws SQLException {
+        String product=Objects.toString(connection.getMetaData().getDatabaseProductName(),"").toLowerCase(Locale.ROOT);
+        if(!product.contains("mysql"))return;
         List<String> tables;
         try { tables=new TablesNamesFinder().getTableList(CCJSqlParserUtil.parse(sql)); }
         catch(Exception ex) { throw new IllegalArgumentException("无法确认来源表范围"); }
-        String product=Objects.toString(connection.getMetaData().getDatabaseProductName(),"").toLowerCase(Locale.ROOT);
-        if(!product.contains("mysql"))return;
         for(String raw:tables) {
             String table=raw.replace("`","");
             String schema=connection.getCatalog();
