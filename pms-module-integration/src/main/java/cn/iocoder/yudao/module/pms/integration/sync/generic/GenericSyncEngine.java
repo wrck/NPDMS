@@ -21,6 +21,7 @@ public class GenericSyncEngine {
     private static final Set<String> CONVERSIONS = Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","DATE","ENUM","LOOKUP","CONSTANT","JSON");
     private final GenericTargetCatalog catalog;
     private final GenericSyncJdbcStore store;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     public DataSyncAdapter.Descriptor descriptor() {
         return new DataSyncAdapter.Descriptor(KEY,"通用表映射与迁移",List.of(),List.of("RETAIN"),List.of("UPSERT"),false,true);
@@ -209,8 +210,13 @@ public class GenericSyncEngine {
                     changes.add(new Change(row.object(),row.sourceKey(),null,ex instanceof Conflict?"CONFLICT":"ISSUE",Map.of(),row.fields(),ex.getMessage()));
                 }
             }
-            if(apply && changes.stream().noneMatch(c->"CONFLICT".equals(c.action())))for(var mutation:mutations) {
-                if(mutation.before()==null)store.insert(mutation.table(),mutation.values());else store.update(mutation.table(),mutation.before(),mutation.values());
+            if(apply && changes.stream().noneMatch(c->"CONFLICT".equals(c.action()))) {
+                for(var mutation:mutations) {
+                    if(mutation.before()==null)store.insert(mutation.table(),mutation.values());else store.update(mutation.table(),mutation.before(),mutation.values());
+                }
+                if (!mutations.isEmpty()) events.publishEvent(new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged(
+                        tenant, mutations.stream().map(m -> new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged.Target(
+                                m.table().table(),m.before()==null ? Map.of() : m.before(),m.values())).toList()));
             }
             return changes;
         }

@@ -33,7 +33,7 @@ public class MysqlSyncReader {
     public List<Table> tables(Long connectionId) throws SQLException {
         try (Connection c=sources.openReadOnly(connectionId)) {
             List<Table> out=new ArrayList<>();
-            try(ResultSet r=c.getMetaData().getTables(c.getCatalog(),null,"%",new String[]{"TABLE","VIEW"})) {
+            try(ResultSet r=c.getMetaData().getTables(c.getCatalog(),schema(c),"%",new String[]{"TABLE","VIEW"})) {
                 while(r.next()) out.add(new Table(r.getString("TABLE_NAME"),r.getString("TABLE_TYPE")));
             }
             return out;
@@ -43,7 +43,7 @@ public class MysqlSyncReader {
         identifier(table);
         try(Connection c=sources.openReadOnly(connectionId)) {
             List<Column> out=new ArrayList<>();
-            try(ResultSet r=c.getMetaData().getColumns(c.getCatalog(),null,table,"%")) {
+            try(ResultSet r=c.getMetaData().getColumns(c.getCatalog(),schema(c),table,"%")) {
                 while(r.next()) out.add(new Column(r.getString("COLUMN_NAME"),r.getString("TYPE_NAME"),
                         r.getInt("NULLABLE")!=DatabaseMetaData.columnNoNulls));
             }
@@ -242,6 +242,15 @@ public class MysqlSyncReader {
     static String identifier(String value) {
         if(value==null||!IDENTIFIER.matcher(value).matches()) throw new IllegalArgumentException("来源字段或表名无效");
         return "`"+value+"`";
+    }
+    static String identifier(Connection connection,String value)throws SQLException {
+        if(value==null||!IDENTIFIER.matcher(value).matches())throw new IllegalArgumentException("来源字段或表名无效");
+        String product=Objects.toString(connection.getMetaData().getDatabaseProductName(),"").toLowerCase(Locale.ROOT);
+        return product.contains("microsoft sql server")?"["+value+"]":identifier(value);
+    }
+    private static String schema(Connection connection)throws SQLException {
+        String product=Objects.toString(connection.getMetaData().getDatabaseProductName(),"").toLowerCase(Locale.ROOT);
+        return product.contains("microsoft sql server")?"dbo":null;
     }
     static PreparedStatement prepare(Connection connection,BoundSql bound)throws SQLException {
         var factory=new org.springframework.jdbc.core.PreparedStatementCreatorFactory(bound.sql());

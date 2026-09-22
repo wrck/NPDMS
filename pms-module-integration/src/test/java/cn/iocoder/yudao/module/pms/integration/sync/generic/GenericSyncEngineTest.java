@@ -20,7 +20,7 @@ class GenericSyncEngineTest {
         TenantContextHolder.setTenantId(1L);
         var ds=new JdbcDataSource();ds.setURL("jdbc:h2:mem:generic"+UUID.randomUUID()+";MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1");
         jdbc=new JdbcTemplate(ds);tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
-        catalog=new GenericTargetCatalog();engine=new GenericSyncEngine(catalog,new GenericSyncJdbcStore(jdbc.getDataSource()));
+        catalog=new GenericTargetCatalog();engine=new GenericSyncEngine(catalog,new GenericSyncJdbcStore(jdbc.getDataSource()), org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class));
         templates=new GenericSyncTemplates().list(1L);
         for(var table:catalog.tables()) {
             Map<String,String> columns=new LinkedHashMap<>();
@@ -36,6 +36,14 @@ class GenericSyncEngineTest {
         jdbc.execute("ALTER TABLE com_shipment_package ADD CHECK(warranty_end_time IS NULL OR warranty_start_time IS NULL OR warranty_end_time >= warranty_start_time)");
     }
     @AfterEach void clear(){TenantContextHolder.clear();}
+    @Test void projectionFailureRollsBackWritesAndPreviewDoesNotPublish() {
+        org.springframework.context.ApplicationEventPublisher publisher = event -> { throw new IllegalStateException("projection failed"); };
+        engine = new GenericSyncEngine(catalog,new GenericSyncJdbcStore(jdbc.getDataSource()),publisher);
+        var d=definition(2);var source=row(d,"rollback",barcode("ROLLBACK-SN"));
+        assertEquals("CREATED",engine.bind(d).preview(batch(source)).getFirst().action());
+        assertThrows(IllegalStateException.class,()->apply(d,source));
+        assertEquals(0,count("ast_device"));assertEquals(0,count("ast_device_shipment"));
+    }
     SyncDefinition definition(int index){return templates.get(index).definition();}
     DataSyncAdapter.Batch batch(DataSyncAdapter.Row...rows){return new DataSyncAdapter.Batch("test",List.of(rows),List.of(),true,"RETAIN",false,"UPSERT",false);}
     DataSyncAdapter.Row row(SyncDefinition d,String key,Map<String,Object> overrides) {
@@ -51,10 +59,13 @@ class GenericSyncEngineTest {
     int count(String table){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class);}
     Map<String,Object> barcode(String sn){return Map.of("barcode",sn,"item","ITEM-1","pack_id","PACK-1","shipment_time","2026-09-20T12:00:00","contract_no","C-1","event_type","SHIPMENT","rma_marked",0);}
 
-    @Test void fourTemplatesPassValidationAndKeepDistinctTaskIdentities() {
+    @Test void templatesPassGenericValidationAndKeepDistinctTaskIdentities() {
         var validator=new SyncDefinitionValidator(List.of());ReflectionTestUtils.setField(validator,"genericEngine",engine);
-        assertEquals(4,templates.size());Set<String> identities=new HashSet<>();
-        for(var template:templates){validator.validate(template.definition());assertTrue(identities.add(SyncDefinitionValidator.taskIdentity(template.definition())));}
+        assertEquals(6,templates.size());Set<String> identities=new HashSet<>();
+        for(var template:templates){
+            assertTrue(identities.add(SyncDefinitionValidator.taskIdentity(template.definition())));
+            if("TABLE_MAPPING".equals(template.definition().adapter()))validator.validate(template.definition());
+        }
         assertTrue(validator.descriptors().stream().anyMatch(d->d.key().equals("TABLE_MAPPING")));
     }
     @Test void previewDoesNotWriteAndReplayKeepsOneTargetPerSource() {

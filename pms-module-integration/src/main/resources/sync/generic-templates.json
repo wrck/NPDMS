@@ -829,5 +829,67 @@
         }
       ]
     }
+  },
+  {
+    "key": "crm-product",
+    "name": "CRM产品信息同步",
+    "definition": {
+      "adapter": "TABLE_MAPPING", "taskKey": "crm-product", "sourceSystem": "CRM", "mode": "INCREMENTAL",
+      "loadingMode": "UPSERT", "missingPolicy": "RETAIN", "cron": "0 0 2 * * ?", "fullCron": "0 0 2 ? * SUN",
+      "overlapSeconds": 60, "retryCount": 1, "retryIntervalSeconds": 60, "maxRows": 10000, "maxBytes": 67108864,
+      "readStrategy": "STREAMING_CURSOR", "fetchSize": 2000, "chunkSize": 500, "restartPolicy": "CHECKPOINT_KEY", "queryTimeoutSeconds": 0,
+      "sources": [{
+        "object": "PRODUCT", "sourceObject": "DPtech_v_product_info_single", "readMode": "TABLE", "table": "DPtech_v_product_info_single",
+        "sql": null, "parameters": {},
+        "columns": ["itemCode","itemModel","itemDesc","remark","statecode","updateTime"], "filters": [],
+        "sourceKey": "itemCode", "updatedAt": "updateTime", "mappings": [], "issueField": null, "primaryTarget": "product",
+        "targets": [{
+          "name": "product", "table": "ast_product_official_info", "keys": ["source_system","source_key"], "mode": "UPSERT", "nullPolicy": "IGNORE",
+          "updateColumns": ["product_model","product_name","product_desc","technical_spec","source_version","source_updated_at","synced_at","sync_status","status"],
+          "whenField": null, "newerBy": "source_updated_at",
+          "mappings": [
+            {"target":"product_code","source":"itemCode","conversion":"TRIM"},
+            {"target":"product_model","source":"itemModel","conversion":"TRIM"},
+            {"target":"product_name","source":"itemDesc","conversion":"TRIM"},
+            {"target":"product_desc","source":"itemDesc","conversion":"TRIM"},
+            {"target":"technical_spec","source":"remark","conversion":"TRIM"},
+            {"target":"source_system","source":"$SOURCE_SYSTEM","conversion":"DIRECT"},
+            {"target":"source_key","source":"$SOURCE_KEY","conversion":"STRING"},
+            {"target":"source_version","source":"updateTime","conversion":"STRING"},
+            {"target":"source_updated_at","source":"updateTime","conversion":"DATETIME"},
+            {"target":"synced_at","source":"updateTime","conversion":"DATETIME"},
+            {"target":"sync_status","source":null,"conversion":"CONSTANT","constant":"SUCCESS"},
+            {"target":"status","source":"statecode","conversion":"ENUM","values":{"0":"ACTIVE","1":"INACTIVE"}}
+          ], "lookups": []
+        }]
+      }]
+    }
+  },
+  {
+    "key": "crm-customer",
+    "name": "CRM客户信息同步",
+    "definition": {
+      "adapter": "CRM_CUSTOMER", "taskKey": "crm-customer", "sourceSystem": "CRM", "mode": "INCREMENTAL",
+      "loadingMode": "UPSERT", "missingPolicy": "RETAIN", "cron": "0 30 2 * * ?", "fullCron": "0 30 2 ? * SUN",
+      "overlapSeconds": 60, "retryCount": 1, "retryIntervalSeconds": 60, "maxRows": 10000, "maxBytes": 67108864,
+      "readStrategy": "STREAMING_CURSOR", "fetchSize": 2000, "chunkSize": 500, "restartPolicy": "CHECKPOINT_KEY", "queryTimeoutSeconds": 0,
+      "sources": [{
+        "object": "CUSTOMER", "sourceObject": "Account", "readMode": "TABLE", "table": "Account", "sql": null, "parameters": {},
+        "columns": ["AccountId","AccountNumber","Name","Telephone1","EMailAddress1","Address1_Composite","new_mkt_unit_id","new_mkt_unit_idName","new_industry_level1_id","new_industry_level1_idName","new_industry_level2_id","new_industry_level2_idName","new_industry_level3_id","new_industry_level3_idName","new_industry_level4_id","new_industry_level4_idName","StateCode","ModifiedOn"],
+        "filters": [], "sourceKey": "AccountId", "updatedAt": "ModifiedOn", "issueField": null,
+        "mappings": [
+          {"target":"customerCode","source":"AccountNumber","conversion":"TRIM"}, {"target":"customerName","source":"Name","conversion":"TRIM"},
+          {"target":"contactPhone","source":"Telephone1","conversion":"TRIM"}, {"target":"contactEmail","source":"EMailAddress1","conversion":"TRIM"},
+          {"target":"address","source":"Address1_Composite","conversion":"TRIM"},
+          {"target":"departmentCode","source":"new_mkt_unit_id","conversion":"STRING"}, {"target":"departmentName","source":"new_mkt_unit_idName","conversion":"TRIM"},
+          {"target":"marketCode","source":"new_industry_level1_id","conversion":"STRING"}, {"target":"marketName","source":"new_industry_level1_idName","conversion":"TRIM"},
+          {"target":"systemCode","source":"new_industry_level2_id","conversion":"STRING"}, {"target":"systemName","source":"new_industry_level2_idName","conversion":"TRIM"},
+          {"target":"expendCode","source":"new_industry_level3_id","conversion":"STRING"}, {"target":"expendName","source":"new_industry_level3_idName","conversion":"TRIM"},
+          {"target":"industryCode","source":"new_industry_level4_id","conversion":"STRING"}, {"target":"industryName","source":"new_industry_level4_idName","conversion":"TRIM"},
+          {"target":"lifecycleStatus","source":"StateCode","conversion":"ENUM","values":{"0":"ENABLED","1":"DISABLED"}},
+          {"target":"sourceVersion","source":"ModifiedOn","conversion":"STRING"}, {"target":"dataAsOf","source":"ModifiedOn","conversion":"DATETIME"}
+        ]
+      }]
+    }
   }
 ]

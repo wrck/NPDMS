@@ -277,6 +277,26 @@
     ]
   },
   {
+    "table": "ast_product_official_info",
+    "label": "CRM产品信息副本",
+    "context": "AST",
+    "writable": true,
+    "immutable": false,
+    "columns": [
+      "product_code", "product_model", "product_name", "product_desc", "technical_spec",
+      "source_system", "source_key", "source_version", "source_updated_at", "synced_at", "sync_status", "status"
+    ],
+    "updateColumns": [
+      "product_model", "product_name", "product_desc", "technical_spec", "source_version", "source_updated_at", "synced_at", "sync_status", "status"
+    ],
+    "keys": [["source_system", "source_key"]],
+    "insertDefaults": {},
+    "ownerColumn": "source_system",
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": true
+  },
+  {
     "table": "system_company",
     "label": "公司目录",
     "context": "SYSTEM",

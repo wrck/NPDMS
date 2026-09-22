@@ -13,6 +13,16 @@
 
 ## 当前检查点
 
+### 2026-09-20 执行单同步性能优化（30秒目标未验收）
+
+- 依据：需求方要求执行单表映射约10万行在30秒内完成，并明确只做代码层面优化；关联本Task的COM-01来源执行单及INT-01同步链路。本次不改变Feature状态、来源权威、业务键、缺失保留策略或审计义务。
+- 代码：COM执行单适配器改为批量新增/更新，按租户、来源系统和执行单编号利用既有唯一索引，金额比较忽略无业务差异的小数位数；INTEGRATION映射查询补齐来源对象索引条件，在适配器锁内复用分块映射快照，未变映射仅批量更新最近运行标记，缓存完成仅更新标记、不重写结果JSON，并记录分阶段耗时；PLT证据追加使用有大小边界的多行INSERT，来源可见性检查仅读ID；SQL解析缓存保持1024条上限，热SQL按访问续期5分钟，继续逐次反序列化以隔离可变解析树。
+- 映射与测试：`pms-module-commerce/**/service/sync/DppmsExecutionOrderSyncAdapter` → `DppmsExecutionOrderSyncAdapterTest`；`pms-module-integration/**/sync/SyncRunService`及同步Mapper → `SyncRunTransactionTest`、`SyncConfigurationTest`、`SyncRunMaintenanceTest`；`pms-module-platform/**/migration/PlatformMigrationEvidenceTransactionExecutor`及证据Mapper → `PlatformMigrationEvidenceMySqlTest`；MyBatis公共解析缓存 → `YudaoMybatisAutoConfigurationTest`。公共API、Schema和既有不可变证据未变更。
+- 原实例：59191 / `npdms_domain_test`，任务`2101625228492091393`，来源102520行，映射保留102520条、关联83462个业务目标（来源包含同业务键的历史版本）。基线首次执行266.106秒，重跑441.045秒；代码迭代完整实测依次为220.283秒、100.594秒、80.865秒，最后一个完整原配置运行ID为`2101638521453662209`。80.865秒仍高于目标，且不是最终全部代码的验收结果。
+- 验证：最终聚焦单元/事务测试51项通过（执行单8、同步事务23、同步配置16、恢复维护2、解析树隔离等2），`mvn -pl yudao-server -am compile -DskipTests`通过，自审已完成；PLT已有5项真实MySQL回归通过，覆盖幂等、租户拒绝和事务回滚。其后补充的大载荷分包回滚测试已加入但尚未执行；最终增量的部署及端到端验收仍需以下环境阻塞解除后收口。
+- 阻塞：最新运行`2101641130298052610`在约62000行时MySQL退出，Docker报存储文件系统只读；Docker磁盘位置为`M:\DockerDisk\DockerDesktopWSL`，宿主M盘仅余约10MB。该运行不计为成功或达标，恢复后须走既有中断维护/关联重试，不直接改状态或清除映射。Browser组件同时缺失运行文件，本次未完成浏览器验收。
+- 配置边界：临时缓冲池实验已按需求方指令恢复为134217728字节，不保留环境调优、不修改Compose；实验运行不作代码优化对比证据。保留所有真实同步审计记录，不为性能验收删除历史。本次未提交或推送。
+
 ### 2026-09-17 合同来源表补齐（局部实施）
 
 - 需求方明确要求先补齐 `proj_project_party`、`com_contract_receivable`、`com_shipment_contract_reference`、`com_shipment_package`。本次为现有核心迁移物理模型的建表承接，不宣称完成历史迁移、财务业务或整个Feature。

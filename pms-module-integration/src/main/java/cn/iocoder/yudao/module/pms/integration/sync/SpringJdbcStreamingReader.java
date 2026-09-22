@@ -68,19 +68,19 @@ public class SpringJdbcStreamingReader {
     private void streamSource(JdbcTemplate jdbc,Connection connection,SyncDefinition definition,SyncDefinition.Source source,
                               int sourceIndex,LocalDateTime lower,LocalDateTime upper,boolean full,Object checkpoint,
                               int[] sequence,long[] totalRows,Consumer<StreamChunk> consumer)throws SQLException {
-        var base=MysqlSyncReader.compile(source);
+        var base=compile(connection,source);
         verifyTransactionalTables(connection,base.sql(),new HashSet<>());
         List<Object> values=new ArrayList<>(base.values());
         List<String> predicates=new ArrayList<>();
         if(!full) {
-            String updatedAt=MysqlSyncReader.identifier(source.updatedAt());
+            String updatedAt=MysqlSyncReader.identifier(connection,source.updatedAt());
             predicates.add(updatedAt+" >= ?");
             predicates.add(updatedAt+" < ?");
             values.add(Timestamp.valueOf(lower.minusSeconds(definition.overlapSeconds())));
             values.add(Timestamp.valueOf(upper));
         }
         boolean checkpointed="CHECKPOINT_KEY".equals(definition.effectiveRestartPolicy());
-        String key=MysqlSyncReader.identifier(source.sourceKey());
+        String key=MysqlSyncReader.identifier(connection,source.sourceKey());
         if(checkpointed&&checkpoint!=null) {
             predicates.add(key+" > ?");
             values.add(checkpoint);
@@ -187,7 +187,26 @@ public class SpringJdbcStreamingReader {
         }
     }
     private static LocalDateTime currentTime(JdbcTemplate jdbc) {
-        return Objects.requireNonNull(jdbc.queryForObject("SELECT CURRENT_TIMESTAMP(6)",(rs,rowNum)->rs.getTimestamp(1).toLocalDateTime()));
+        return Objects.requireNonNull(jdbc.execute((Connection connection)->{
+            String product=Objects.toString(connection.getMetaData().getDatabaseProductName(),"").toLowerCase(Locale.ROOT);
+            String sql=product.contains("microsoft sql server")?"SELECT SYSDATETIME()":"SELECT CURRENT_TIMESTAMP(6)";
+            try(Statement statement=connection.createStatement();ResultSet rs=statement.executeQuery(sql)) {
+                rs.next();return rs.getTimestamp(1).toLocalDateTime();
+            }
+        }));
+    }
+
+    private static MysqlSyncReader.BoundSql compile(Connection connection,SyncDefinition.Source source)throws SQLException {
+        var base=MysqlSyncReader.compile(source);
+        String product=Objects.toString(connection.getMetaData().getDatabaseProductName(),"").toLowerCase(Locale.ROOT);
+        if(!product.contains("microsoft sql server"))return base;
+        String sql=base.sql();
+        for(String column:source.columns()==null?List.<String>of():source.columns())
+            sql=sql.replace(MysqlSyncReader.identifier(column),MysqlSyncReader.identifier(connection,column));
+        if(source.table()!=null)sql=sql.replace(MysqlSyncReader.identifier(source.table()),MysqlSyncReader.identifier(connection,source.table()));
+        if(source.filters()!=null)for(var filter:source.filters())
+            sql=sql.replace(MysqlSyncReader.identifier(filter.column()),MysqlSyncReader.identifier(connection,filter.column()));
+        return new MysqlSyncReader.BoundSql(sql,base.values());
     }
 
     private static void verifyTransactionalTables(Connection connection,String sql,Set<String> visited)throws SQLException {
