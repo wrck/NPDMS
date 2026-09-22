@@ -15,7 +15,7 @@
           <el-input v-model="query.status" clearable @keyup.enter="search" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="search"><Icon icon="ep:search" />查询</el-button>
+          <el-button @click="search"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="reset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -59,11 +59,14 @@
     <ContentWrap>
       <el-tabs v-model="activeOrderTab" @tab-change="loadOrders">
         <el-tab-pane label="销售订单" name="orders">
-          <el-form inline :model="orderQuery">
+          <el-form inline :model="orderQuery" class="query-form" @submit.prevent="searchOrders">
             <el-form-item label="订单号">
               <el-input v-model="orderQuery.orderNo" clearable @keyup.enter="searchOrders" />
             </el-form-item>
-            <el-form-item><el-button @click="searchOrders">查询订单</el-button></el-form-item>
+            <el-form-item>
+              <el-button @click="searchOrders">查询订单</el-button>
+              <el-button @click="resetOrders">重置</el-button>
+            </el-form-item>
           </el-form>
           <el-table v-loading="orderLoading" :data="orders" empty-text="没有可见销售订单">
             <el-table-column prop="orderNo" label="订单号" min-width="150" />
@@ -94,7 +97,19 @@
             type="info"
             :closable="false"
           />
-          <el-table v-else v-loading="lineLoading" :data="lines" empty-text="该订单没有订单行">
+          <div v-if="selectedOrder" class="order-context">
+            <el-button @click="activeOrderTab = 'orders'">返回销售订单</el-button>
+            <span
+              >{{ selectedOrder.orderNo }} ·
+              {{ selectedOrder.customerName || '未提供客户名称' }}</span
+            >
+          </div>
+          <el-table
+            v-if="selectedOrder"
+            v-loading="lineLoading"
+            :data="lines"
+            empty-text="该订单没有订单行"
+          >
             <el-table-column prop="lineNo" label="行号" min-width="90" />
             <el-table-column prop="itemCode" label="物料编码" min-width="140" />
             <el-table-column prop="productCode" label="ERP 产品编码" min-width="150">
@@ -187,25 +202,34 @@ const searchOrders = () => {
   orderQuery.pageNo = 1
   loadOrders()
 }
+const resetOrders = () => {
+  orderQuery.orderNo = ''
+  searchOrders()
+}
+let lineRequest = 0
 const showLines = async (order: SalesOrderRespVO) => {
   selectedOrder.value = order
   activeOrderTab.value = 'lines'
   lineQuery.pageNo = 1
   lines.value = []
+  lineTotal.value = 0
   await loadLines()
 }
 const loadLines = async () => {
   if (!selectedOrder.value) return
+  const request = ++lineRequest
   lineLoading.value = true
   try {
     const data = await CommerceApi.getSalesOrderLinePage({
       ...lineQuery,
       orderId: selectedOrder.value.id
     })
-    lines.value = data.list
-    lineTotal.value = data.total
+    if (request === lineRequest) {
+      lines.value = data.list
+      lineTotal.value = data.total
+    }
   } finally {
-    lineLoading.value = false
+    if (request === lineRequest) lineLoading.value = false
   }
 }
 
@@ -224,6 +248,15 @@ onMounted(() => Promise.all([load(), loadOrders()]))
 
 .page-heading p {
   margin: 8px 0 20px;
+  color: var(--el-text-color-secondary);
+}
+
+.order-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
   color: var(--el-text-color-secondary);
 }
 
