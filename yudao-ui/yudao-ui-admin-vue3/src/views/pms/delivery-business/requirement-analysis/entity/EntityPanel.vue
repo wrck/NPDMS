@@ -30,7 +30,7 @@
       </template>
     </ContentWrap>
     <ContentWrap v-if="overview" :body-style="{ padding: '20px' }">
-      <el-empty v-if="!selectedRevisionId" description="创建草稿后可填写11项核心内容及项目模板扩展项" />
+      <el-empty v-if="!selectedRevisionId" description="创建草稿后可填写11项核心内容及表单扩展项" />
       <el-skeleton v-else-if="detailLoading" :rows="8" animated />
       <template v-else-if="detail">
         <div class="analysis-heading">

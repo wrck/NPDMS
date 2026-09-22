@@ -33,7 +33,6 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
     private final RequirementAnalysisRevisionFiles files;
     private final OperationAuditApi audit;
     private final EngineeringRuleReevaluationEvents events;
-    private final cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi businessForms;
 
     @Override public String ownerModule() { return "SOL"; }
     @Override public String entityType() { return "REQUIREMENT_ANALYSIS"; }
@@ -116,7 +115,6 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         if (mapper.insertRevision(draft) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         ProjectOwnerOperationScope.registerCreated(actor.tenantId(), actor.userId(), projectId, ownerModule(), entityType(),
                 "SOL.REQUIREMENT_ANALYSIS.CREATE", 1, null, draft.getId().toString());
-        bindInitialForm(draft, actor, execution);
         record("REQUIREMENT_ANALYSIS_INITIALIZE", draft, actor);
         return draft.revisionMetadata();
     }
@@ -258,22 +256,6 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         draft.setProjectTemplateRevisionId(execution.templateRevisionId());
         draft.setExecutionSnapshot(JsonUtils.toJsonString(execution));
         return draft;
-    }
-
-    private void bindInitialForm(RequirementAnalysisRevisionDO row, EntityActor actor,
-                                 RequirementAnalysisExecutionAccess.Frozen execution) {
-        var formRevision = execution.formRevisionId();
-        if (formRevision == null) return;
-        Map<String, String> fields = new LinkedHashMap<>();
-        var revision = businessForms.inspectRevisionForUsage(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery(
-                actor.tenantId(), actor.userId(), new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey(ownerModule(), entityType()),
-                formRevision, formUsage(), cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE, null));
-        revision.fields().stream().filter(field -> !field.controlledFile()).forEach(field -> {
-            String property = RequirementAnalysisFields.property(field.fieldKey());
-            if (property != null) fields.put(field.fieldKey(), property);
-        });
-        forms.bind(new EntityFormApi.Bind(EntityDataRef.revision(row.revisionRef()), actor, row.getVersion(),
-                0, formRevision, null, fields, true));
     }
 
     private void copyExtensions(EntityDataRef source, EntityDataRef target, int targetVersion, EntityActor actor) {

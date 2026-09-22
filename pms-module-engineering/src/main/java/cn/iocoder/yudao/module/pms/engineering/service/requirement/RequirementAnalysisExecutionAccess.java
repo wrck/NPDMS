@@ -137,12 +137,12 @@ public class RequirementAnalysisExecutionAccess {
     public ProjectWorkBindingFact currentBinding(Long projectId, String snapshot, ProjectBusinessExecutionSelection requested) {
         Frozen frozen = frozen(projectId, snapshot);
         if (requested != null) requireSelection(projectId, requested);
-        if (frozen.configuration() != null) {
+        if (frozen.independent()) {
             if (requested == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
             var selected = requested.stage() != null
                     ? bindings.inspectStage(new ProjectWorkBindingStageFactQuery(projectId, requested.stage().stageId(), ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
                     : bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, requested.task().taskId(), ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
-            if (!RequirementAnalysisConfiguration.matches(frozen.configuration(), selected)
+            if (!sameTarget(projectId, selected)
                     || !Objects.equals(requested.stage() == null ? null : requested.stage().stageId(), selected.projectStageId())
                     || !Objects.equals(requested.task() == null ? null : requested.task().taskId(), selected.projectTaskId()))
                 throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
@@ -173,6 +173,14 @@ public class RequirementAnalysisExecutionAccess {
         try { frozen = snapshot == null ? null : JsonUtils.parseObject(snapshot, Frozen.class); }
         catch (RuntimeException invalid) { throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID); }
         requireFrozenIdentity(frozen);
+        if (frozen.businessOrigin() != null) {
+            if (!Objects.equals(projectId, frozen.businessOrigin().projectId())) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            return frozen;
+        }
+        if (frozen.moduleForm() != null) {
+            RequirementAnalysisConfiguration.require(frozen.moduleForm(), frozen.moduleForm().tenantId(), projectId);
+            return frozen;
+        }
         if (frozen.configuration() != null) {
             RequirementAnalysisConfiguration.require(frozen.configuration(), frozen.configuration().tenantId(), projectId);
             return frozen;
@@ -194,18 +202,17 @@ public class RequirementAnalysisExecutionAccess {
             throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
     }
 
-    private boolean sameBusinessBinding(ProjectWorkBindingFact origin,ProjectWorkBindingFact current) {
-        if (current == null || !Objects.equals(origin.projectId(),current.projectId())
-                || !Objects.equals(origin.workBindingTypeCode(),current.workBindingTypeCode())
-                || !Objects.equals(origin.targetContextCode(),current.targetContextCode())
-                || !Objects.equals(origin.targetObjectType(),current.targetObjectType())
-                || !Objects.equals(origin.targetObjectKey(),current.targetObjectKey())
-                || !Objects.equals(origin.dynamicFormTemplateId(),current.dynamicFormTemplateId())
-                || !Objects.equals(origin.dynamicFormTemplateRevisionId(),current.dynamicFormTemplateRevisionId())) return false;
-        // Contract/plan/round versions can advance. Owner binding parameters may not silently change under an existing record.
-        if (Objects.equals(origin.bindingParameterSnapshot(),current.bindingParameterSnapshot())) return true;
-        return origin.bindingParameterSnapshot() != null && current.bindingParameterSnapshot() != null
-                && Objects.equals(JsonUtils.parseTree(origin.bindingParameterSnapshot()),JsonUtils.parseTree(current.bindingParameterSnapshot()));
+    private boolean sameTarget(Long projectId, ProjectWorkBindingFact current) {
+        var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
+        return current != null && Objects.equals(projectId, current.projectId())
+                && Objects.equals(target.workBindingTypeCode(), current.workBindingTypeCode())
+                && Objects.equals(target.targetContextCode(), current.targetContextCode())
+                && Objects.equals(target.targetObjectType(), current.targetObjectType())
+                && Objects.equals(target.targetObjectKey(), current.targetObjectKey());
+    }
+
+    private boolean sameBusinessBinding(ProjectWorkBindingFact origin, ProjectWorkBindingFact current) {
+        return sameTarget(origin.projectId(), current);
     }
 
     private ProjectTaskExecutionQuery query(ProjectWorkBindingFact binding) {
@@ -224,6 +231,20 @@ public class RequirementAnalysisExecutionAccess {
 
     private void requireFrozenIdentity(Frozen frozen) {
         if (frozen == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+        if (frozen.businessOrigin() != null) {
+            var origin = frozen.businessOrigin();
+            if (origin.tenantId() == null || origin.tenantId() <= 0 || origin.projectId() == null || origin.projectId() <= 0
+                    || frozen.binding() != null || frozen.execution() != null || frozen.stageExecution() != null
+                    || frozen.configuration() != null || frozen.moduleForm() != null)
+                throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            return;
+        }
+        if (frozen.moduleForm() != null) {
+            if (frozen.binding() != null || frozen.execution() != null || frozen.stageExecution() != null || frozen.configuration() != null)
+                throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            RequirementAnalysisConfiguration.require(frozen.moduleForm(), frozen.moduleForm().tenantId(), frozen.moduleForm().projectId());
+            return;
+        }
         if (frozen.configuration() != null) {
             if (frozen.binding() != null || frozen.execution() != null || frozen.stageExecution() != null)
                 throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
@@ -238,15 +259,33 @@ public class RequirementAnalysisExecutionAccess {
             throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
     }
 
+    public record BusinessOrigin(Long tenantId, Long projectId) { }
+    public static Frozen independent(Long tenantId, Long projectId) {
+        return new Frozen(null, null, null, null, null, new BusinessOrigin(tenantId, projectId));
+    }
+
     public record Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution,
             @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-            Configuration configuration) {
-        public Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution) {
-            this(binding, execution, stageExecution, null);
+            Configuration configuration,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            RequirementAnalysisConfiguration.ModuleForm moduleForm,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            BusinessOrigin businessOrigin) {
+        public Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution,
+                Configuration configuration, RequirementAnalysisConfiguration.ModuleForm moduleForm) {
+            this(binding, execution, stageExecution, configuration, moduleForm, null);
         }
-        public Long projectTemplateId() { return configuration == null ? binding.projectTemplateId() : configuration.projectTemplateId(); }
-        public Long templateRevisionId() { return configuration == null ? binding.templateRevisionId() : configuration.templateRevisionId(); }
-        public Long formRevisionId() { return configuration == null ? binding.dynamicFormTemplateRevisionId()
+        public Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution) {
+            this(binding, execution, stageExecution, null, null);
+        }
+        public Frozen(ProjectWorkBindingFact binding, ProjectTaskExecutionContext execution, ProjectStageExecutionContext stageExecution, Configuration configuration) {
+            this(binding, execution, stageExecution, configuration, null);
+        }
+        public boolean independent() { return businessOrigin != null || moduleForm != null || configuration != null; }
+        public Long configurationTenantId() { return businessOrigin != null ? businessOrigin.tenantId() : moduleForm != null ? moduleForm.tenantId() : configuration.tenantId(); }
+        public Long projectTemplateId() { return businessOrigin != null ? null : moduleForm != null ? null : configuration == null ? binding.projectTemplateId() : configuration.projectTemplateId(); }
+        public Long templateRevisionId() { return businessOrigin != null ? null : moduleForm != null ? null : configuration == null ? binding.templateRevisionId() : configuration.templateRevisionId(); }
+        public Long formRevisionId() { return businessOrigin != null ? null : moduleForm != null ? moduleForm.revisionId() : configuration == null ? binding.dynamicFormTemplateRevisionId()
                 : RequirementAnalysisConfiguration.form(configuration.parameters()).revisionId(); }
     }
 }

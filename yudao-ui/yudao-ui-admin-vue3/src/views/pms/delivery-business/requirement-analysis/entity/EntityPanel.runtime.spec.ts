@@ -45,3 +45,9 @@ it('creates first draft only through the new endpoint', async () => {
   expect(api.create).toHaveBeenCalledWith(7,expect.any(String),undefined)
   mounted.app.unmount()
 })
+it('keeps creation governed by business actions', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: null, currentEffective: null, allowedActions: [] })
+  const mounted = render(); await flush()
+  expect(findButton(mounted.root, '创建需求分析草稿')).toBeUndefined()
+  mounted.app.unmount()
+})

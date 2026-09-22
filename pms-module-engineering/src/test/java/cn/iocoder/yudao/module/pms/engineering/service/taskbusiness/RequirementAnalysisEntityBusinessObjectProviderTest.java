@@ -72,14 +72,14 @@ class RequirementAnalysisEntityBusinessObjectProviderTest {
         assertThrows(RuntimeException.class, () -> provider.lockCompletionFact(request,"42"));
         verifyNoInteractions(queries,facts);
     }
-    @Test void automaticAssociationRetainsOriginalFormBindingIdentity() {
+    @Test void automaticAssociationUsesBusinessIdentityIndependentlyOfPresentation() {
         SecurityContextHolder.clearContext();
         row.setExecutionSnapshot("{\"binding\":{\"dynamicFormTemplateRevisionId\":701}}");
         when(mapper.selectDraft(any())).thenReturn(row);
         var match = new TaskBusinessObjectProvider.AssociationContext(1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":701}");
         assertEquals("42",provider.associationCandidates(match,null,100).getFirst().objectId());
         var mismatch = new TaskBusinessObjectProvider.AssociationContext(1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":702}");
-        assertTrue(provider.associationCandidates(mismatch,null,100).isEmpty());
+        assertEquals("42", provider.associationCandidates(mismatch,null,100).getFirst().objectId());
         verifyNoInteractions(queries,facts,executions);
     }
     @Test void draftRevalidationRejectsStaleVersionAndForeignProject() {

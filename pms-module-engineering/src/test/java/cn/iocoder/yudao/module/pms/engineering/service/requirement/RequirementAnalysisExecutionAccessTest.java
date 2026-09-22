@@ -142,14 +142,17 @@ class RequirementAnalysisExecutionAccessTest {
         assertEquals(original,root.getExecutionSnapshot());
     }
 
-    @Test void differentTaskOrOwnerFormBindingCannotReuseAnExistingBusinessRecord() {
+    @Test void differentTaskIsRejectedWhilePresentationChangesRetainBusinessAccess() {
         var root = root();
         when(bindings.inspectTask(any())).thenReturn(bindingWith("projectTaskId",201L));
         assertFalse(service.canWrite(root));
-        when(bindings.inspectTask(any())).thenReturn(bindingWith("dynamicFormTemplateRevisionId",703L));
-        assertFalse(service.canWrite(root));
         verify(api,never()).inspect(any());
         assertThrows(RuntimeException.class,()->service.lockForWrite(root));
+        when(bindings.inspectTask(any())).thenReturn(bindingWith("dynamicFormTemplateRevisionId",703L));
+        when(api.inspect(any())).thenReturn(context(400L,500L,1,true));
+        assertTrue(service.canWrite(root));
+        service.lockForWrite(root);
+        verify(businessExecutions).lockForWrite(any());
     }
 
     @Test void unavailableCurrentBindingIsNotTreatedAsTheOriginContractStillBeingValid() {

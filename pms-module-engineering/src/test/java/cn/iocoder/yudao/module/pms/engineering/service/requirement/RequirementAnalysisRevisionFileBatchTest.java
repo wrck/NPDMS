@@ -38,6 +38,22 @@ class RequirementAnalysisRevisionFileBatchTest {
         when(access.read(eq(3L), any())).thenThrow(new IllegalStateException("authorization revoked"));
         assertThrows(IllegalStateException.class, () -> policy.inspectReferenceSets(List.of(queries.getFirst())));
     }
+    @Test void baseBusinessAttachmentsRemainAvailableWithoutAnyPresentationBinding() {
+        var forms = mock(EntityFormApi.class);
+        var access = mock(RequirementAnalysisAccess.class);
+        @SuppressWarnings("unchecked") var lazy = (ObjectProvider<EntityFormApi>) mock(ObjectProvider.class);
+        when(lazy.getObject()).thenReturn(forms);
+        var row = new RequirementAnalysisRevisionDO(); row.setId(3L); row.setEntityId(2L); row.setTenantId(1L);
+        row.setProjectId(9L); row.setRevisionState("DRAFT");
+        when(access.read(eq(3L), any())).thenReturn(row);
+        when(access.isManager(eq(9L),any())).thenReturn(true);
+        var policy = new RequirementAnalysisRevisionFilePolicy(mock(RequirementAnalysisMapper.class), access, lazy);
+        assertTrue(policy.inspectReferenceSet(query(1L,7L,"PROJECT_BACKGROUND__ATTACHMENTS")).allowed());
+        assertFalse(policy.inspectReferenceSet(query(1L,7L,"UNREGISTERED__ATTACHMENTS")).allowed());
+        row.setRevisionState("FROZEN");
+        assertTrue(policy.inspectReferenceSet(query(1L,7L,"PROJECT_BACKGROUND__ATTACHMENTS")).allowed());
+    }
+
     private FileBusinessObjectReferenceSetQuery query(Long tenant, Long actor, String field) {
         return new FileBusinessObjectReferenceSetQuery(tenant, actor,
                 new FileReferenceSetKey("SOL", "REQUIREMENT_ANALYSIS_REVISION", "3", "FORM_FIELD_ATTACHMENT/" + field), "READ");

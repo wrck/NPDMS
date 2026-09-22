@@ -20,8 +20,8 @@ export interface Revision {
 }
 export interface Field { code: string; type: string; required: boolean }
 export interface FormLayout {
-  binding: { formRevisionId: EntityId; extensionDefinitionRevisionId?: EntityId; fieldBindings: Record<string, string>; version: number }
-  templateId: EntityId
+  binding: { formRevisionId?: EntityId; extensionDefinitionRevisionId?: EntityId; fieldBindings: Record<string, string>; version: number }
+  templateId?: EntityId
   revisionNo: number
   formVersion: number
   engineCode: string
@@ -90,3 +90,9 @@ export const revisions = (entityId: EntityId, beforeId?: EntityId, limit = 20) =
   request.get<Revision[]>({ url: `${baseUrl}/${entityId}/revisions`, params: { beforeId, limit } })
 export const compare = (entityId: EntityId, leftRevisionId: EntityId, rightRevisionId: EntityId) =>
   request.get<Difference[]>({ url: `${baseUrl}/${entityId}/compare`, params: { leftRevisionId, rightRevisionId } })
+
+export interface PresentationOption { name: string; layout: FormLayout }
+export interface Presentations { defaultTemplateId?: EntityId; defaultRevisionId?: EntityId; options: PresentationOption[] }
+export const presentations = (revisionId: EntityId, execution?: ProjectBusinessExecutionSelection) =>
+  request.get<Presentations>({ url: `${baseUrl}/revisions/${revisionId}/presentations`,
+    params: { stageId: execution?.stage?.stageId, taskId: execution?.task?.taskId } })

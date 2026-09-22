@@ -88,8 +88,8 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
                 1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":701}");
         assertEquals("42",provider.associationCandidates(association,null,100).getFirst().objectId());
         verifyNoInteractions(executions,query,facts);
-        assertTrue(provider.associationCandidates(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
-                1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":702}"),null,100).isEmpty());
+        assertEquals("42", provider.associationCandidates(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
+                1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":702}"),null,100).getFirst().objectId());
     }
 
     @Test void automaticAssociationAcceptsIndependentRevisionsThroughTheirFrozenConfiguration() {
@@ -101,12 +101,14 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
         var association = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
                 1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":701}");
         assertEquals("42",provider.associationCandidates(association,null,100).getFirst().objectId());
-        assertTrue(provider.associationCandidates(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
-                1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":702}"),null,100).isEmpty());
+        assertEquals("42", provider.associationCandidates(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
+                1L,9L,"PRE_04_REQUIREMENT_ANALYSIS","{\"dynamicFormTemplateRevisionId\":702}"),null,100).getFirst().objectId());
+        independent.setExecutionSnapshot("{\"moduleForm\":{\"tenantId\":1,\"projectId\":9,\"templateId\":700,\"revisionId\":701,\"revisionNo\":1,\"factVersion\":1}}");
+        assertEquals("42",provider.associationCandidates(association,null,100).getFirst().objectId());
         var unconfigured = new RequirementAnalysisRevisionDO(); unconfigured.setId(42L); unconfigured.setProjectId(9L);
         unconfigured.setExecutionSnapshot("{\"binding\":null,\"configuration\":null}");
         when(roots.selectDraft(any())).thenReturn(unconfigured);
-        assertThrows(RuntimeException.class, () -> provider.associationCandidates(association,null,100));
+        assertEquals("42", provider.associationCandidates(association,null,100).getFirst().objectId());
     }
 
     @Test void unattendedCompletionReadsOnlySameRoundOwnerResultWithoutBrowserIdentityOrPrivateBody() {

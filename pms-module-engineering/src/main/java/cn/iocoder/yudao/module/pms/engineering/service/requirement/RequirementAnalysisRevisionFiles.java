@@ -19,9 +19,10 @@ public class RequirementAnalysisRevisionFiles {
         var row = access.read(revision.revisionId(), actor);
         if (!row.entityRef().equals(revision.entity())) throw new IllegalArgumentException("File revision identity mismatch");
         var layout = forms.layout(EntityDataRef.revision(revision), actor);
-        if (layout == null) return List.of();
-        var keys = layout.fields().stream().filter(field -> field.controlledFile()).map(field -> key(revision,
-                FormAttachmentPolicy.PURPOSE_PREFIX + field.fieldKey())).toList();
+        Set<String> purposes = new LinkedHashSet<>(RequirementAnalysisFields.attachmentKeys());
+        // Existing extra file slots remain part of the original business evidence.
+        if (layout != null) layout.fields().stream().filter(field -> field.controlledFile()).forEach(field -> purposes.add(field.fieldKey()));
+        var keys = purposes.stream().map(field -> key(revision, FormAttachmentPolicy.PURPOSE_PREFIX + field)).toList();
         if (keys.isEmpty()) return List.of();
         return files.inspectReferenceSets(new FileReferenceSetCollectionQuery(keys, FileActionCodes.READ));
     }

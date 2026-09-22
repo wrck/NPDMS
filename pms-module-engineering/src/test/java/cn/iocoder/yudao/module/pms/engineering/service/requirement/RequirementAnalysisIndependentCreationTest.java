@@ -18,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.ObjectProvider;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.*;
@@ -33,7 +32,6 @@ class RequirementAnalysisIndependentCreationTest {
             + "\"dynamicFormTemplateRevisionId\":42,\"dynamicFormRevisionNo\":3,\"dynamicFormRevisionFactVersion\":4}";
     private final EntityActor actor = new EntityActor(7L, 19L, "ordinary-owner-command");
     private final RequirementAnalysisMapper mapper = mock(RequirementAnalysisMapper.class);
-    private final ProjectBusinessConfigurationApi configuration = mock(ProjectBusinessConfigurationApi.class);
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectParticipantFactApi participants = mock(ProjectParticipantFactApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
@@ -52,11 +50,9 @@ class RequirementAnalysisIndependentCreationTest {
     private RequirementAnalysisEntityProvider provider;
 
     @BeforeEach void setUp() {
-        access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions, of(configuration));
-        provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files, audit, events,
-                RequirementAnalysisTestForms.published());
+        access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions);
+        provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files, audit, events);
         when(extensions.read(any(), any())).thenReturn(new EntityExtensionApi.Values(null, Map.of(), 0));
-        when(configuration.resolve(any())).thenReturn(config(PARAMETERS));
         when(permissions.hasAnyPermissions(eq(19L), any(String[].class))).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
@@ -91,15 +87,14 @@ class RequirementAnalysisIndependentCreationTest {
                 .when(extensions).copy(any(), any(), anyInt(), any());
     }
 
-    @Test void initialDraftAndFormCallbackUseOnlyTheExactOwnerConfiguration() {
+    @Test void initialDraftNeedsNoTemplateOrFormCallback() {
         var result = provider.createInitial(80L, actor, null);
         var row = rows.get(result.ref().revisionId());
         var frozen = executions.frozen(80L, row.getExecutionSnapshot());
-        assertEquals(config(PARAMETERS), frozen.configuration());
+        assertEquals(new RequirementAnalysisExecutionAccess.BusinessOrigin(7L,80L), frozen.businessOrigin());
         assertNull(frozen.binding()); assertNull(frozen.execution()); assertNull(frozen.stageExecution());
-        assertEquals(90L, row.getProjectTemplateId()); assertEquals(91L, row.getProjectTemplateRevisionId());
-        verify(configuration).resolve(new ProjectBusinessConfigurationApi.Query(7L,19L,80L,ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
-        verify(forms).bind(argThat(command -> command.formRevisionId().equals(42L)));
+        assertNull(row.getProjectTemplateId()); assertNull(row.getProjectTemplateRevisionId());
+        verifyNoInteractions(forms);
         verify(scopes, atLeastOnce()).lockAndRevalidate(any());
         verifyNoInteractions(nodes, bindings, guard, events);
     }
@@ -109,7 +104,6 @@ class RequirementAnalysisIndependentCreationTest {
         var row = rows.get(created.ref().revisionId());
         String frozen = row.getExecutionSnapshot();
         // The live configuration service is no longer a dependency once the Owner revision exists.
-        when(configuration.resolve(any())).thenThrow(new IllegalStateException("new plan has a different configuration"));
         Map<String, Object> values = new LinkedHashMap<>();
         RequirementAnalysisEntityProvider.FIELDS.fields().stream().filter(EntityField::required).forEach(field -> values.put(field.code(), "有效业务内容"));
         var saved = provider.save(created.ref(), created.version(), values, actor);
@@ -119,14 +113,13 @@ class RequirementAnalysisIndependentCreationTest {
         assertEquals(frozen, row.getExecutionSnapshot());
         assertEquals(frozen, rows.get(copy.ref().revisionId()).getExecutionSnapshot());
         assertEquals(2, rows.get(copy.ref().revisionId()).getRevisionNo());
-        verify(configuration, times(1)).resolve(any());
         verify(events).changed(80L, "RequirementAnalysis", row.getId(), 19L, actor.correlationId());
         verify(files).lockForFreeze(created.ref(), actor);
         verifyNoInteractions(nodes, bindings, guard);
     }
 
     @ParameterizedTest @ValueSource(strings = {"absent", "tenant", "project", "template", "publication", "version", "form"})
-    void invalidInitialConfigurationStopsBeforeTheFirstWrite(String damage) {
+    void corruptLegacyProvenanceStopsBeforeAnyWrite(String damage) {
         var invalid = switch (damage) {
             case "absent" -> null;
             case "tenant" -> new ProjectBusinessConfigurationApi.Configuration(8L,80L,90L,91L,3,null,PARAMETERS);
@@ -137,8 +130,7 @@ class RequirementAnalysisIndependentCreationTest {
             case "form" -> new ProjectBusinessConfigurationApi.Configuration(7L,80L,90L,91L,3,43L,PARAMETERS);
             default -> throw new AssertionError(damage);
         };
-        when(configuration.resolve(any())).thenReturn(invalid);
-        assertThrows(RuntimeException.class, () -> provider.createInitial(80L, actor, null));
+        assertThrows(RuntimeException.class, () -> access.lockExecution(80L, JsonUtils.toJsonString(frozenConfig(invalid)), null, actor, null));
         verify(mapper, never()).insertRevision(any());
         verifyNoInteractions(forms, extensions, files, events, nodes, bindings, guard);
     }
@@ -156,8 +148,7 @@ class RequirementAnalysisIndependentCreationTest {
             case "schema" -> parameters.put("schemaVersion", 3);
             default -> throw new AssertionError(damage);
         }
-        when(configuration.resolve(any())).thenReturn(config(parameters.toString()));
-        assertThrows(RuntimeException.class, () -> provider.createInitial(80L, actor, null));
+        assertThrows(RuntimeException.class, () -> executions.frozen(80L, JsonUtils.toJsonString(frozenConfig(config(parameters.toString())))));
         verify(mapper, never()).insertRevision(any());
         verifyNoInteractions(nodes, bindings, guard, forms);
     }
@@ -165,42 +156,64 @@ class RequirementAnalysisIndependentCreationTest {
     @Test void displayMetadataDoesNotBecomeAWriteOrAFormConfiguration() {
         String parameters = PARAMETERS.substring(0, PARAMETERS.length()-1)
                 + ",\"businessViewRevisionId\":999,\"instanceResolutionStrategy\":\"BY_PROJECT\",\"contextMapping\":{}}";
-        when(configuration.resolve(any())).thenReturn(config(parameters));
-        assertEquals(42L, executions.frozen(80L, rows.get(provider.createInitial(80L,actor,null).ref().revisionId()).getExecutionSnapshot()).formRevisionId());
+        assertNull(executions.frozen(80L, rows.get(provider.createInitial(80L,actor,null).ref().revisionId()).getExecutionSnapshot()).formRevisionId());
         verifyNoInteractions(nodes, bindings, guard);
     }
 
     @Test void unavailableExplicitProjectEntryDoesNotUseTheOrdinaryConfiguration() {
         var selection = selection();
         assertThrows(RuntimeException.class, () -> provider.createInitial(80L, actor, selection));
-        verifyNoInteractions(configuration, forms, extensions, events);
+        verifyNoInteractions(forms, extensions, events);
         verify(nodes).lockAndRevalidate(selection.task());
         verify(mapper, never()).insertRevision(any());
     }
 
-    @Test void failedFormCallbackDoesNotProduceAnOwnerSuccessAudit() {
+    @Test void unavailablePresentationCannotBlockBusinessCreation() {
         doThrow(new IllegalStateException("form unavailable")).when(forms).bind(any());
-        assertThrows(IllegalStateException.class, () -> provider.createInitial(80L, actor, null));
-        verifyNoInteractions(audit, events, nodes, bindings, guard);
+        assertNotNull(provider.createInitial(80L, actor, null));
+        verifyNoInteractions(forms, events, nodes, bindings, guard);
         // Transaction rollback belongs to integration coverage, not the in-memory repository double.
     }
 
     @Test void emptyWorkspaceOffersCreationWithoutRequestingANode() {
         var query = new RequirementAnalysisEntityQueryService(mapper, provider, access, extensions, forms, files, executions, bindings);
         assertEquals(List.of("CREATE_INITIAL_DRAFT"), query.workspace(80L, actor).allowedActions());
-        when(configuration.resolve(any())).thenThrow(new IllegalStateException("ambiguous configuration"));
-        assertTrue(query.workspace(80L, actor).allowedActions().isEmpty());
+        var blocked = query.workspace(80L, actor);
+        assertEquals(List.of("CREATE_INITIAL_DRAFT"), blocked.allowedActions());
         verifyNoInteractions(nodes, bindings, guard, forms, extensions, files);
     }
 
-    @Test void standaloneProvenanceCanOnlyEnterAnExplicitNodeWithTheSameForm() {
+    @Test void legacyModuleSnapshotRemainsCompatibleThroughSaveAndCopy() {
+        var form = new RequirementAnalysisConfiguration.ModuleForm(7L,80L,41L,42L,3,4);
+        var created = provider.createInitial(80L, actor, null);
+        var row = rows.get(created.ref().revisionId());
+        assertNull(row.getProjectTemplateId());
+        assertNull(row.getProjectTemplateRevisionId());
+        String snapshot = row.getExecutionSnapshot();
+        row.setExecutionSnapshot(JsonUtils.toJsonString(new RequirementAnalysisExecutionAccess.Frozen(null,null,null,null,form)));
+        snapshot = row.getExecutionSnapshot();
+        final String legacySnapshot = snapshot;
+        assertEquals(form, executions.frozen(80L,snapshot).moduleForm());
+        Map<String, Object> values = new LinkedHashMap<>();
+        RequirementAnalysisEntityProvider.FIELDS.fields().stream().filter(EntityField::required).forEach(field -> values.put(field.code(), "有效业务内容"));
+        var saved = provider.save(created.ref(), created.version(), values, actor);
+        var completed = provider.freeze(saved.ref(), saved.version(), actor);
+        var active = provider.activate(completed.ref(), completed.version(), actor);
+        var copy = provider.createDraft(active.ref().entity(),active.ref(),"修订",actor);
+        assertEquals(snapshot,rows.get(copy.ref().revisionId()).getExecutionSnapshot());
+        assertThrows(RuntimeException.class,()->access.lockExecution(80L,legacySnapshot,null,new EntityActor(8L,19L,"wrong-tenant"),null));
+        assertThrows(RuntimeException.class,()->executions.frozen(81L,legacySnapshot));
+        verifyNoInteractions(nodes,bindings,guard);
+    }
+
+    @Test void standaloneProvenanceAcceptsDifferentPresentationOnSameBusinessTarget() {
         var initial = provider.createInitial(80L, actor, null);
         String snapshot = rows.get(initial.ref().revisionId()).getExecutionSnapshot();
         var selected = binding(PARAMETERS);
         when(bindings.inspectTask(any())).thenReturn(selected);
         assertSame(selected, executions.currentBinding(80L, snapshot, selection()));
         when(bindings.inspectTask(any())).thenReturn(binding(PARAMETERS.replace("\"dynamicFormRevisionNo\":3", "\"dynamicFormRevisionNo\":4")));
-        assertThrows(RuntimeException.class, () -> executions.currentBinding(80L, snapshot, selection()));
+        assertNotNull(executions.currentBinding(80L, snapshot, selection()));
         assertThrows(RuntimeException.class, () -> executions.currentBinding(80L, snapshot, null));
         assertEquals(snapshot, rows.get(initial.ref().revisionId()).getExecutionSnapshot());
     }
@@ -209,7 +222,7 @@ class RequirementAnalysisIndependentCreationTest {
         var initial = provider.createInitial(80L, actor, null);
         var row = rows.get(initial.ref().revisionId());
         var document = (ObjectNode) JsonUtils.parseTree(row.getExecutionSnapshot());
-        var otherTenant = document.deepCopy(); ((ObjectNode) otherTenant.get("configuration")).put("tenantId", 8L);
+        var otherTenant = document.deepCopy(); ((ObjectNode) otherTenant.get("businessOrigin")).put("tenantId", 8L);
         row.setExecutionSnapshot(otherTenant.toString());
         assertThrows(RuntimeException.class, () -> access.lock(row.getId(), 1, actor, null, true));
         document.set("binding", JsonUtils.parseTree(JsonUtils.toJsonString(binding(PARAMETERS))));
@@ -236,7 +249,7 @@ class RequirementAnalysisIndependentCreationTest {
         return new ProjectWorkBindingFact(80L,1,30L,1,40L,1,90L,1,"BUSINESS_OBJECT","SOL","REQUIREMENT_ANALYSIS",
                 "PRE_04_REQUIREMENT_ANALYSIS",null,null,null,null,91L,3,parameters,41L,42L,3,4);
     }
-    @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T instance) {
-        ObjectProvider<T> result = mock(ObjectProvider.class); when(result.getObject()).thenReturn(instance); return result;
+    private RequirementAnalysisExecutionAccess.Frozen frozenConfig(ProjectBusinessConfigurationApi.Configuration value) {
+        return new RequirementAnalysisExecutionAccess.Frozen(null, null, null, value);
     }
 }

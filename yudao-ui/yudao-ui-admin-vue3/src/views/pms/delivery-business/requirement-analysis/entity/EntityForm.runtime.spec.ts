@@ -6,7 +6,7 @@ import EntityForm from './EntityForm.vue'
 import { formValues, businessPatch } from './entityForm'
 import { mount, findByTestId } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ save: vi.fn() }))
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ save: vi.fn(), presentations: vi.fn(async () => ({ options: [] })) }))
 vi.mock('@form-create/element-ui', () => ({ default: { component: vi.fn() } }))
 vi.mock('./RevisionFiles.vue', () => ({ default: defineComponent(() => () => h('div')) }))
 vi.mock('@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents', () => ({ registerDynamicFormComponents: vi.fn() }))
@@ -68,6 +68,30 @@ describe('independent requirement entity form', () => {
     await nextTick()
     expect(form.value.isDirty()).toBe(false)
     mounted.app.unmount()
+  })
+  it('switches presentation while retaining hidden unsaved business values and frozen read-only state', async () => {
+    const view = detail(), form = ref<any>()
+    const layout = { ...view.form!, binding: { ...view.form!.binding, formRevisionId: '61', fieldBindings: { count: 'count' } },
+      formRulesJson: JSON.stringify([{ type: 'inputNumber', field: 'count' }]) }
+    vi.mocked(api.presentations).mockResolvedValue({ options: [{ name: '简表', layout }] })
+    vi.mocked(api.save).mockResolvedValue(view.revision)
+    const reload = async () => ({ ...view, revision: { ...view.revision, version: 7 }, values: { projectBackground: 'changed', count: 0, enabled: false } })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: view, reload, ref: form }) }), {}, { 'form-create': renderer })
+    await nextTick(); await nextTick()
+    await (findByTestId(mounted.root, 'edit')!.props!.onClick as Function)(); await nextTick()
+    form.value.switchPresentation('61'); await nextTick()
+    expect(form.value.isDirty()).toBe(true)
+    expect(api.save).not.toHaveBeenCalled()
+    expect(await form.value.save()).toBe(true)
+    expect(api.save).toHaveBeenCalledWith(view.revision, { values: { projectBackground: 'changed' }, expectedExtensionVersion: 3,
+      extensionDefinitionRevisionId: '80', extensionValues: { count: 0, enabled: false } }, expect.any(String))
+    mounted.app.unmount()
+    const frozen = { ...view, revision: { ...view.revision, state: 'FROZEN' as const }, allowedActions: [] }
+    const readonly = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: frozen, ref: form }) }), {}, { 'form-create': renderer })
+    await nextTick(); form.value.switchPresentation('base'); await nextTick()
+    expect(await form.value.save()).toBe(false)
+    expect(api.save).toHaveBeenCalledTimes(1)
+    readonly.app.unmount()
   })
   it('keeps local changes on failed save and prevents writing a frozen revision', async () => {
     const view = detail(), form = ref<any>()

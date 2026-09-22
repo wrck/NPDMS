@@ -87,18 +87,7 @@ public class RequirementAnalysisEntityBusinessObjectProvider implements TaskBusi
         var current = rootMapper.selectDraft(project);
         if (current == null) current = rootMapper.selectEffective(project);
         if (current == null) return List.of();
-        var frozen = JsonUtils.parseObject(current.getExecutionSnapshot(),
-                cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionAccess.Frozen.class);
-        var parameters = JsonUtils.parseTree(context.bindingParameters());
-        if (frozen == null || parameters == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
-        // Stage-created revisions freeze their work binding; independently created revisions freeze only the Owner
-        // configuration resolved from the same publication, which carries the identical template revision evidence.
-        String templateRevision = frozen.binding() != null ? String.valueOf(frozen.binding().dynamicFormTemplateRevisionId())
-                : frozen.configuration() == null || frozen.configuration().parameters() == null ? null
-                : JsonUtils.parseTree(frozen.configuration().parameters()).path("dynamicFormTemplateRevisionId").asText(null);
-        if (templateRevision == null || templateRevision.isBlank())
-            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
-        if (!Objects.equals(parameters.path("dynamicFormTemplateRevisionId").asText(), templateRevision)) return List.of();
+        // Association selects the business result; presentation revision is not business identity.
         return List.of(new AssociationCandidate(current.getId().toString(),
                 "SOL_REQUIREMENT_ASSOCIATION:" + current.getId() + ":" + current.getVersion()));
     }

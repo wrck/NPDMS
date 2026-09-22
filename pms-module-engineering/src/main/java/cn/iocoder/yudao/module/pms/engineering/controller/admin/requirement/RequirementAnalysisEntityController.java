@@ -19,6 +19,7 @@ public class RequirementAnalysisEntityController {
     private final RequirementAnalysisEntityQueryService queries;
     private final RequirementAnalysisEntityCommands commands;
     private final EntityVersionApi versions;
+    private final RequirementAnalysisPresentations presentations;
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:query')")
@@ -31,6 +32,12 @@ public class RequirementAnalysisEntityController {
     @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:query')")
     public CommonResult<RequirementAnalysisEntityQueryService.View> revision(@PathVariable Long revisionId) {
         return success(queries.revision(revisionId, actor()));
+    }
+
+    @GetMapping("/revisions/{revisionId}/presentations")
+    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:query')")
+    public CommonResult<RequirementAnalysisPresentations.Selection> presentations(@PathVariable Long revisionId, @RequestParam(required = false) Long stageId, @RequestParam(required = false) Long taskId) {
+        return success(presentations.list(revisionId, actor(), stageId, taskId));
     }
 
     @GetMapping("/{entityId}/revisions")

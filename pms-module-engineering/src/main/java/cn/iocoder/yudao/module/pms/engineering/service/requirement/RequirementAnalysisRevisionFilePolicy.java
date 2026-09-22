@@ -85,7 +85,8 @@ public class RequirementAnalysisRevisionFilePolicy implements FileBusinessObject
         var row = inspected.row();
         var layout = inspected.layout();
         String fieldKey = purpose.substring(FormAttachmentPolicy.PURPOSE_PREFIX.length());
-        if (layout == null || layout.fields().stream().noneMatch(field -> field.controlledFile() && field.fieldKey().equals(fieldKey))) {
+        if (!RequirementAnalysisFields.attachmentKeys().contains(fieldKey)
+                && (layout == null || layout.fields().stream().noneMatch(field -> field.controlledFile() && field.fieldKey().equals(fieldKey)))) {
             return FormAttachmentPolicy.fact(false, null, true);
         }
         if (expectedVersion != null) {

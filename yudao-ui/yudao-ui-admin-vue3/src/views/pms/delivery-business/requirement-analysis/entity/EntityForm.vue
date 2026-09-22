@@ -1,5 +1,15 @@
 <template>
   <section class="requirement-form-shell" aria-label="需求分析动态表单">
+    <div class="presentation-toolbar">
+      <label for="requirement-presentation">展示模板</label>
+      <el-select id="requirement-presentation" :model-value="selectedPresentation" :disabled="saving" style="width: 300px" @change="switchPresentation">
+        <el-option label="基础业务表单" value="base" />
+        <el-option v-if="detail.form" label="原始展示模板" value="original" />
+        <el-option v-for="option in presentationOptions" :key="String(option.layout.binding.formRevisionId)"
+          :label="`${option.name} · V${option.layout.revisionNo}`" :value="String(option.layout.binding.formRevisionId)" />
+      </el-select>
+      <span v-if="presentationError" role="status">{{ presentationError }}</span>
+    </div>
     <div v-form-create-keyboard-rows="!editable" class="form-host" :class="{ 'is-readonly': !editable }">
       <form-create
         v-model="values"
@@ -22,13 +32,14 @@ import { toRaw } from 'vue'
 import { vFormCreateKeyboardRows } from '@/views/pms/project/project-master-detail/components/formCreateKeyboardRows'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
-import type { View } from '@/api/pms/engineering/requirement-analysis/entity'
+import type { View, PresentationOption } from '@/api/pms/engineering/requirement-analysis/entity'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
 import { collectValueFields, stableCommandIntent, changedOrdinaryValues, reconcileInstancePatch } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
 import formCreateEngine from '@form-create/element-ui'
 import RevisionFiles from './RevisionFiles.vue'
 import { formValues, businessPatch } from './entityForm'
+import { basePresentation, canonicalValues, displayedValues, mergePresentationEdits } from './presentation'
 import { registerDynamicFormComponents } from '@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents'
 
 
@@ -47,6 +58,43 @@ const message = useMessage()
 registerDynamicFormComponents()
 formCreateEngine.component('RequirementRevisionFiles', RevisionFiles)
 
+const selectedPresentation = ref(props.detail.form ? 'original' : 'base')
+const presentationOptions = ref<PresentationOption[]>([])
+const presentationError = ref('')
+const retainedEdits = ref<JsonObject>({})
+const renderedDetail = shallowRef<View>(props.detail)
+const withPresentation = (detail: View): View => ({ ...detail, form:
+  selectedPresentation.value === 'base' ? basePresentation(detail)
+    : selectedPresentation.value === 'original' ? detail.form || basePresentation(detail)
+      : presentationOptions.value.find(option => String(option.layout.binding.formRevisionId) === selectedPresentation.value)?.layout || basePresentation(detail)
+})
+const allEdits = computed(() => mergePresentationEdits(renderedDetail.value, retainedEdits.value,
+  changedOrdinaryValues(values.value, baseline.value, ordinaryFields.value)))
+const switchPresentation = (selected: string) => {
+  if (saving.value) return
+  const edits = cloneValues(allEdits.value)
+  selectedPresentation.value = selected
+  apply(props.detail, edits)
+}
+let presentationSequence = 0
+const loadPresentations = async () => {
+  const sequence = ++presentationSequence
+  try {
+    const result = await RequirementAnalysisApi.presentations(props.detail.revision.ref.revisionId, props.execution)
+    if (sequence !== presentationSequence) return
+    presentationOptions.value = result.options
+    presentationError.value = ''
+    if ((result.defaultRevisionId != null || !props.detail.form && selectedPresentation.value === 'base') && !dirty.value) {
+      const preferred = result.options.find(option => result.defaultRevisionId != null
+        ? String(option.layout.binding.formRevisionId) === String(result.defaultRevisionId)
+        : result.defaultTemplateId != null && String(option.layout.templateId) === String(result.defaultTemplateId))
+      if (preferred) switchPresentation(String(preferred.layout.binding.formRevisionId))
+    }
+  } catch {
+    if (sequence === presentationSequence) presentationError.value = '展示模板暂时不可用，可继续使用基础业务表单。'
+  }
+}
+
 const baseline = ref<JsonObject>({})
 const values = ref<JsonObject>({})
 const ordinaryFields = ref(new Set<string>())
@@ -61,15 +109,15 @@ const editable = computed(
 const pendingKey = computed(
   () => `pms:requirement-entity:patch:${props.detail.revision.ref.revisionId}`
 )
-const dirty = computed(() =>
-  Object.keys(changedOrdinaryValues(values.value, baseline.value, ordinaryFields.value)).length > 0
-)
+const dirty = computed(() => Object.keys(allEdits.value).length > 0)
 // Form values are JSON; nested arrays/rows can still be Vue proxies after mapping field keys.
 const cloneValues = (source: JsonObject): JsonObject => JSON.parse(JSON.stringify(source))
 
 const readPending = (): JsonObject | undefined => {
   const raw = sessionStorage.getItem(pendingKey.value)
-  return raw ? (JSON.parse(raw) as JsonObject) : undefined
+  if (!raw) return undefined
+  const stored = JSON.parse(raw) as JsonObject
+  return stored.encoding === 'ENTITY_FIELDS' ? stored.values as JsonObject : canonicalValues(props.detail, stored)
 }
 
 const updateEditorReadonly = (rules: JsonObject[]) => {
@@ -88,15 +136,20 @@ const updateEditorReadonly = (rules: JsonObject[]) => {
   }
 }
 
-const apply = (detail: View, preserve?: JsonObject) => {
+const apply = (source: View, preserve?: JsonObject) => {
+  const detail = withPresentation(source)
+  renderedDetail.value = detail
+  retainedEdits.value = cloneValues(preserve || {})
   const decoded = detail.form
     ? decodeDynamicForm(JSON.parse(detail.form.formConfJson), JSON.parse(detail.form.formRulesJson))
     : { option: {}, rule: detail.fieldCatalog.map(field => ({ field: field.code, title: field.code,
         type: 'input', props: { type: 'textarea' }, validate: field.required ? [{ required: true, message: '请填写此项' }] : [] })) }
   const fields = collectValueFields(decoded.rule as JsonObject[])
   const visit = (rules: JsonObject[]) => rules.forEach(rule => {
-    // Display-only layout: preserve the frozen field bindings, validation and stored values.
+    // Display aliases map to stable business fields; presentation is never the data owner.
     const code = detail.form?.binding.fieldBindings[String(rule.field)] || String(rule.field)
+    // SOL checks business completeness on completion; layout validation cannot block draft saves.
+    rule.validate = []
     const titles: Record<string, string> = {
       TRANSMISSION_REQUIREMENT: '传输现状说明', TRAFFIC_REQUIREMENT: '流量现状说明',
       BUSINESS_REQUIREMENT: '运行业务情况说明', IP_PLANNING: 'IP资源情况说明',
@@ -118,7 +171,7 @@ const apply = (detail: View, preserve?: JsonObject) => {
   })
   visit(decoded.rule as JsonObject[])
   baseline.value = cloneValues(formValues(detail))
-  values.value = { ...cloneValues(baseline.value), ...(preserve || {}) }
+  values.value = { ...cloneValues(baseline.value), ...displayedValues(detail, preserve || {}) }
   editorReadonlyDefaults.clear()
   updateEditorReadonly(decoded.rule as JsonObject[])
   render.option = { ...decoded.option,
@@ -126,17 +179,6 @@ const apply = (detail: View, preserve?: JsonObject) => {
     submitBtn: false, resetBtn: false }
   render.rule = decoded.rule as JsonObject[]
   ordinaryFields.value = fields.ordinary
-}
-
-const validate = async () => {
-  if (!formApi.value) return true
-  try {
-    await formApi.value.validate()
-    return true
-  } catch {
-    message.warning('请先修正表单中的校验错误')
-    return false
-  }
 }
 
 const save = async () => {
@@ -150,17 +192,17 @@ const save = async () => {
     message.warning('实体回读接口未配置，不能将本地表单标记为已保存。')
     return false
   }
-  if (!editable.value || saving.value || !(await validate())) return false
+  if (!editable.value || saving.value) return false
   if (!editable.value || saving.value || entityId !== props.detail.revision.ref.revisionId || !props.reload) return false
-  const patch = { values: changedOrdinaryValues(values.value, baseline.value, ordinaryFields.value) }
+  const patch = { values: cloneValues(allEdits.value) }
   if (!Object.keys(patch.values).length) {
     message.info('普通字段没有变化')
     return true
   }
-  sessionStorage.setItem(cacheKey, JSON.stringify(patch.values))
+  sessionStorage.setItem(cacheKey, JSON.stringify({ encoding: 'ENTITY_FIELDS', values: patch.values }))
   let payload: ReturnType<typeof businessPatch> & { execution?: typeof execution }
   try {
-    payload = { ...businessPatch(props.detail, patch.values), ...(execution ? { execution } : {}) }
+    payload = { ...businessPatch({ ...props.detail, form: undefined }, patch.values), ...(execution ? { execution } : {}) }
   } catch (error) {
     message.warning(error instanceof Error ? error.message : '表单字段绑定无效，已保留填写内容')
     return false
@@ -183,7 +225,7 @@ const save = async () => {
     try {
       const authoritative = await props.reload()
       if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId) return false
-      const reconciled = reconcileInstancePatch(formValues(authoritative), patch.values)
+      const reconciled = reconcileInstancePatch(authoritative.values, patch.values)
       if (reconciled.committed) {
         intent.clear()
         sessionStorage.removeItem(cacheKey)
@@ -206,6 +248,7 @@ const save = async () => {
 const discardChanges = () => {
   if (saving.value) return false
   values.value = cloneValues(baseline.value)
+  retainedEdits.value = {}
   sessionStorage.removeItem(pendingKey.value)
   return true
 }
@@ -216,6 +259,12 @@ watch(
   () => apply(props.detail, editable.value ? readPending() : undefined),
   { immediate: true }
 )
+watch(() => props.detail.revision.ref.revisionId, () => {
+  selectedPresentation.value = props.detail.form ? 'original' : 'base'
+  presentationOptions.value = []
+  apply(props.detail, editable.value ? readPending() : undefined)
+  void loadPresentations()
+}, { immediate: true })
 // PM-03: authorization is independent from document reload. Update controlled-file actions
 // in place so neither form-create rules nor ordinary unsaved values are replaced.
 watch([editable, () => props.execution], () => {
@@ -233,7 +282,7 @@ watch([editable, () => props.execution], () => {
 }, { deep: true })
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 
-defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value })
+defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value, switchPresentation })
 </script>
 
 <style scoped lang="scss">
@@ -244,6 +293,14 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
 .requirement-form-shell,
 .form-host {
   min-width: 0;
+}
+
+.presentation-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
 .form-actions {

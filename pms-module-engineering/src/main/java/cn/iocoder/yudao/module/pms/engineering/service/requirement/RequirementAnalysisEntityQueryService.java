@@ -38,12 +38,7 @@ public class RequirementAnalysisEntityQueryService {
         ProjectBusinessExecutionSelection selected = null;
         boolean explicitEntry = stageId != null || taskId != null;
         boolean existing = effective != null || draft != null;
-        boolean canCreate = !explicitEntry && existing;
-        if (!explicitEntry && !existing && manager) try {
-            canCreate = access.initialConfiguration(projectId, actor) != null;
-        } catch (RuntimeException unavailable) {
-            // Missing or ambiguous configuration disables creation, not the independent read path.
-        }
+        boolean canCreate = !explicitEntry;
         if (explicitEntry) try {
             var binding = stageId != null ? bindings.inspectStage(new ProjectWorkBindingStageFactQuery(projectId, stageId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
                     : bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, taskId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
@@ -111,7 +106,7 @@ public class RequirementAnalysisEntityQueryService {
     }
     public record AttachmentValue(Long artifactId, Integer versionNo) {}
 
-    public record Workspace(Long projectId, View currentEffective, View draft, List<String> allowedActions) {}
+    public record Workspace(Long projectId, View currentEffective, View draft, List<String> allowedActions) { }
     public record View(Long projectId, EntityVersionProvider.Revision revision, Integer entityVersion,
                        EntityFormApi.Layout form, Long extensionDefinitionRevisionId, int extensionValueVersion,
                        Map<String, Object> values, List<FileReferenceSetFact> attachments, List<String> allowedActions,

@@ -72,7 +72,8 @@ class RequirementAnalysisOwnerOperationContextTest {
                     if (Set.of("CREATE", "COPY").contains(action)) {
                         var destination = result.ref().revisionId().toString();
                         assertNotEquals("40", destination);
-                        assertTrue(f.checked.stream().anyMatch(r -> destination.equals(r.objectId())), "new revision callbacks must be checked");
+                        if ("COPY".equals(action)) assertTrue(f.checked.stream().anyMatch(r -> destination.equals(r.objectId())), "copy callbacks must be checked");
+                        else verify(f.forms, never()).bind(any());
                         if ("COPY".equals(action)) verify(f.files).copy(eq(f.source.revisionRef()), eq(result.ref()), eq(f.actor));
                     } else {
                         assertTrue(f.checked.stream().allMatch(r -> "40".equals(r.objectId())));
@@ -233,12 +234,12 @@ class RequirementAnalysisOwnerOperationContextTest {
             };
             executions = new RequirementAnalysisExecutionAccess(nodes, bindings, guard);
             access = spy(new RequirementAnalysisAccess(mapper, mock(ProjectScopeApi.class), mock(ProjectParticipantFactApi.class),
-                    mock(PermissionApi.class), bindings, executions, null));
+                    mock(PermissionApi.class), bindings, executions));
             // Stub external project-authorization collaborators only, not the execution/target checks under test.
             doNothing().when(access).requireRead(anyLong(), any(), anyBoolean());
             doNothing().when(access).lockScope(anyLong(), any());
             provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files,
-                    audit, events, RequirementAnalysisTestForms.published());
+                    audit, events);
             when(extensions.read(any(), any())).thenReturn(new EntityExtensionApi.Values(null, Map.of(), 0));
             commands = new RequirementAnalysisEntityCommands(provider, access, versions, extensions, idempotency);
             when(nodes.inspect(any())).thenReturn(selection.task());

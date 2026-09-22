@@ -16,6 +16,12 @@ public final class RequirementAnalysisFields {
                 .filter(field -> field.equals(code) || formKey(field).equals(code)).findFirst().orElse(null);
     }
     static String formKey(String property) { return StrUtil.toUnderlineCase(property).toUpperCase(Locale.ROOT); }
+    public static Set<String> attachmentKeys() {
+        var keys = new LinkedHashSet<String>();
+        RequirementAnalysisEntityProvider.FIELDS.fields().stream().filter(field -> !STRUCTURED.contains(field.code()))
+                .forEach(field -> keys.add(formKey(field.code()) + "__ATTACHMENTS"));
+        return Set.copyOf(keys);
+    }
     static Map<String, Object> extensions(Map<String, Object> values) {
         Map<String, Object> result = new LinkedHashMap<>();
         values.forEach((key, value) -> { if (property(key) == null) result.put(key, value); });

@@ -10,8 +10,6 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuer
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessConfigurationApi;
-import org.springframework.beans.factory.ObjectProvider;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectVerifiedOperationScope;
@@ -35,7 +33,6 @@ public class RequirementAnalysisAccess {
     private final PermissionApi permissions;
     private final ProjectWorkBindingFactApi bindings;
     private final RequirementAnalysisExecutionAccess executions;
-    private final ObjectProvider<ProjectBusinessConfigurationApi> configurations;
 
     public RequirementAnalysisRevisionDO read(Long revisionId, EntityActor actor) {
         var row = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
@@ -95,13 +92,22 @@ public class RequirementAnalysisAccess {
         // Owner authorization and row concurrency are enforced by the caller; the source round is only provenance.
         if (selection == null && snapshot != null) {
             var frozen = executions.frozen(projectId, snapshot);
+            if (frozen.businessOrigin() != null && (actor == null || !Objects.equals(actor.tenantId(), frozen.businessOrigin().tenantId())))
+                throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            if (frozen.moduleForm() != null) {
+                if (actor == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+                RequirementAnalysisConfiguration.require(frozen.moduleForm(), actor.tenantId(), projectId);
+            }
             if (frozen.configuration() != null) {
                 if (actor == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
                 RequirementAnalysisConfiguration.require(frozen.configuration(), actor.tenantId(), projectId);
             }
             return frozen;
         }
-        if (selection == null && actor != null) return initialConfiguration(projectId, actor);
+        if (selection == null && actor != null) {
+            requireRead(projectId, actor, false);
+            return RequirementAnalysisExecutionAccess.independent(actor.tenantId(), projectId);
+        }
         ProjectWorkBindingFact binding;
         if (selection != null) {
             binding = executions.lockRequested(projectId, selection);
@@ -114,15 +120,6 @@ public class RequirementAnalysisAccess {
         var lockedBinding = executions.lockBinding(binding);
         return actor == null ? executions.lockCurrent(lockedBinding)
                 : executions.lockCurrent(lockedBinding, actor, targetRevisionId);
-    }
-
-    /** Read-only initial configuration. The writer separately retains Owner scope and manager locks. */
-    public RequirementAnalysisExecutionAccess.Frozen initialConfiguration(Long projectId, EntityActor actor) {
-        requireRead(projectId, actor, false);
-        var configuration = configurations.getObject().resolve(new ProjectBusinessConfigurationApi.Query(
-                actor.tenantId(), actor.userId(), projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
-        RequirementAnalysisConfiguration.require(configuration, actor.tenantId(), projectId);
-        return new RequirementAnalysisExecutionAccess.Frozen(null, null, null, configuration);
     }
 
     public RequirementAnalysisRevisionDO lock(Long revisionId, Integer expectedVersion, EntityActor actor,

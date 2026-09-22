@@ -34,7 +34,7 @@ class RequirementAnalysisEntityFactApiTest {
     private final RequirementAnalysisExecutionAccess executionAccess = new RequirementAnalysisExecutionAccess(
             mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class), bindings,
             mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.class));
-    private final RequirementAnalysisEntityFactApi api = new RequirementAnalysisEntityFactApiImpl(mapper, permissions, scopes, projects, bindings, queries, files, executionAccess);
+    private final RequirementAnalysisEntityFactApi api = new RequirementAnalysisEntityFactApiImpl(mapper, permissions, scopes, projects, queries, files, executionAccess);
     private final RequirementAnalysisEntityFactApi.Query query = new RequirementAnalysisEntityFactApi.Query(100L, 500L, 501L);
     private RequirementAnalysisRevisionDO row;
 
@@ -128,6 +128,34 @@ class RequirementAnalysisEntityFactApiTest {
         var fact = api.inspect(query);
         doThrow(new IllegalStateException("FILE_UNAVAILABLE")).when(files).lockForFreeze(any(), any());
         assertThrows(IllegalStateException.class, () -> api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+    }
+
+    @Test void moduleConfiguredResultCanBeConsumedWithoutProjectTemplateOrNode() {
+        row.setProjectTemplateId(null);
+        row.setProjectTemplateRevisionId(null);
+        row.setExecutionSnapshot("{\"moduleForm\":{\"tenantId\":1,\"projectId\":100,\"templateId\":16,\"revisionId\":17,\"revisionNo\":1,\"factVersion\":2}}");
+        var fact = api.inspect(query);
+        assertNull(fact.workBinding());
+        assertEquals(fact, api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+        row.setExecutionSnapshot(row.getExecutionSnapshot().replace("\"tenantId\":1", "\"tenantId\":2"));
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+    }
+
+    @Test void completedBusinessFactSurvivesUnavailableOriginPresentationAndNode() {
+        when(bindings.inspectTask(any())).thenThrow(new IllegalStateException("origin retired"));
+        when(bindings.lockAndRevalidate(any())).thenThrow(new IllegalStateException("origin retired"));
+        var fact = api.inspect(query);
+        assertEquals(fact,api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+    }
+
+    @Test void businessOriginHasNoTemplatePrerequisiteForConsumers() {
+        row.setProjectTemplateId(null); row.setProjectTemplateRevisionId(null);
+        row.setExecutionSnapshot(JsonUtils.toJsonString(RequirementAnalysisExecutionAccess.independent(1L,100L)));
+        var fact = api.inspect(query);
+        assertNull(fact.workBinding()); assertEquals(fact,api.lockAndRevalidate(fact));
         verifyNoInteractions(bindings);
     }
 

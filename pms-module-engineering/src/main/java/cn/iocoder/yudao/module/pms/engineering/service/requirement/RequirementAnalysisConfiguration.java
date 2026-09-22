@@ -2,8 +2,6 @@ package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessConfigurationApi.Configuration;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
 import tools.jackson.databind.JsonNode;
 
 import java.util.HashSet;
@@ -20,6 +18,19 @@ final class RequirementAnalysisConfiguration {
     private static final Set<String> PRESENTATION_FIELDS = Set.of("businessViewRevisionId", "instanceResolutionStrategy", "contextMapping");
 
     private RequirementAnalysisConfiguration() { }
+
+    record ModuleForm(Long tenantId, Long projectId, Long templateId, Long revisionId,
+                      Integer revisionNo, Integer factVersion) { }
+
+    static ModuleForm require(ModuleForm value, Long tenantId, Long projectId) {
+        if (value == null || !positive(tenantId) || !positive(projectId)
+                || !Objects.equals(tenantId, value.tenantId()) || !Objects.equals(projectId, value.projectId())
+                || !positive(value.templateId()) || !positive(value.revisionId())
+                || value.revisionNo() == null || value.revisionNo() <= 0
+                || value.factVersion() == null || value.factVersion() <= 0)
+            throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+        return value;
+    }
 
     static Configuration require(Configuration value, Long tenantId, Long projectId) {
         if (value == null || !positive(tenantId) || !positive(projectId)
@@ -45,21 +56,6 @@ final class RequirementAnalysisConfiguration {
         } catch (RuntimeException invalid) {
             throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
         }
-    }
-
-    static boolean matches(Configuration origin, ProjectWorkBindingFact selected) {
-        var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
-        if (selected == null || !Objects.equals(origin.projectId(), selected.projectId())
-                || !Objects.equals(target.workBindingTypeCode(), selected.workBindingTypeCode())
-                || !Objects.equals(target.targetContextCode(), selected.targetContextCode())
-                || !Objects.equals(target.targetObjectType(), selected.targetObjectType())
-                || !Objects.equals(target.targetObjectKey(), selected.targetObjectKey())) return false;
-        Form frozen = form(origin.parameters());
-        return Objects.equals(frozen.templateId(), selected.dynamicFormTemplateId())
-                && Objects.equals(frozen.revisionId(), selected.dynamicFormTemplateRevisionId())
-                && Objects.equals(frozen.revisionNo(), selected.dynamicFormRevisionNo())
-                && Objects.equals(frozen.factVersion(), selected.dynamicFormRevisionFactVersion())
-                && frozen.equals(form(selected.bindingParameterSnapshot()));
     }
 
     private static long number(JsonNode value, String field) {
