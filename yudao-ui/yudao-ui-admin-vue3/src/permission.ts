@@ -24,11 +24,11 @@ const whiteList = [
   '/oauthLogin/gitee'
 ]
 
-const isPublicSatisfactionQuestionnaire = (route: {
+const isPublicCustomerConfirmation = (route: {
   name?: unknown
   params?: Record<string, unknown>
 }) =>
-  route.name === 'PmsSatisfactionQuestionnairePublic' &&
+  (route.name === 'PmsSatisfactionQuestionnairePublic' || route.name === 'PmsTrainingRecordPublic') &&
   typeof route.params?.token === 'string' &&
   route.params.token.length > 0
 
@@ -36,6 +36,10 @@ const isPublicSatisfactionQuestionnaire = (route: {
 router.beforeEach(async (to, from, next) => {
   start()
   loadStart()
+  if (isPublicCustomerConfirmation(to)) {
+    next()
+    return
+  }
   if (getAccessToken()) {
     if (to.path === '/login') {
       next({ path: '/' })
@@ -70,7 +74,7 @@ router.beforeEach(async (to, from, next) => {
       }
     }
   } else {
-    if (whiteList.indexOf(to.path) !== -1 || isPublicSatisfactionQuestionnaire(to)) {
+    if (whiteList.indexOf(to.path) !== -1) {
       next()
     } else {
       next(`/login?redirect=${encodeURIComponent(to.fullPath)}`) // 否则全部重定向到登录页

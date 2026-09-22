@@ -690,6 +690,16 @@ SYSTEM在已有PMS组织扩展`OrganizationScopeApi`上提供加法方法`pageCo
 
 实现查询复制既有候选SQL中可复用部分后增强为独立场景Query/XML；公司与角色必须落在同一授权记录谓词，用户去重与COUNT使用同一条件。必要测试只覆盖精确公司/角色、跨部门、多记录去重、错误公司/角色、过期/停用、空userIds、分页及旧服务经理查询不变。当前为待实现合同，不宣称接口已装配或Runtime通过。
 
+
+## 现场培训 PDF 导出补充（2026-09-20）
+
+- Requirement：ACC-01；Feature：F-ACC-005；依据：用户明确要求PDF下载与管理员统一配置的独立打印模板。
+- `GET /api/v1/pms/training-records/{id}/pdf`：管理端鉴权，沿用部署的admin-api入口前缀及租户头；权限`pms:imp-training:query`。按现有培训查询取得租户内记录，不存在拒绝；返回`application/pdf`、`Content-Disposition: attachment`、`Cache-Control: no-store`。只读生成，不更新文件、版本、归档或状态。
+- 既有培训create/update增加可选`printTemplateId`，get/page增加`printTemplateId`及`printRevisionId`。草稿首次选择/更换模板时，通过PLT既有`inspectCurrentRevisionForUsage`与`lockAndRevalidateRevisionForUsage`获取并锁定当前发布修订，在培训保存事务内存储验证后的布局快照。普通保存保留已绑定快照；已外发/已确认仍按原状态规则拒绝编辑。
+- IMP注册provider key `(IMP, TRAINING_PRINT)`、usage `TRAINING_PRINT`。复用PLT公开API和现有模板权限，新打印模板使用原生FormCreate配置与规则（分类TRAINING_PRINT_FORM），绑定时校验培训名称、内容、时间和签字图片字段并保存完整快照；管理端培训get响应增加printLayoutSnapshot供预览导出，公开响应不包含此字段。旧trainingPrint配置保持兼容。模板CRUD、发布、启停及并发语义保持原契约，不新增PLT接口或跨模块表访问。原PDF接口遇到原生FormCreate快照返回业务错误，提示在前端打印预览生成PDF。
+- 既有无快照记录使用内置标准版式，不回写历史；旧HTML生成及归档接口保留。业务字段、版式约束、迁移和验证见[F-ACC-005](../../specs/features/F-ACC-005-training-pdf-print-template.md)。
+
+
 ## 统一设备采集公共接口（2026-09-21 专项批准）
 
 Requirement：INT-12、EXE-03、EXE-04、NFR-02。管理端部署前缀仍为 `admin-api`。租户来自认证上下文；页面不得指定权威业务项目、完成方式或日志消费者。
