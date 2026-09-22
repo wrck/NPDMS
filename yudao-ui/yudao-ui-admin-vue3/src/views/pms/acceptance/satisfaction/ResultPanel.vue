@@ -1,6 +1,6 @@
 <template>
   <el-form inline class="-mb-15px satisfaction-query">
-    <el-form-item label="项目">
+    <el-form-item v-if="!context.scoped" label="项目">
       <el-input-number
         v-if="!context.scoped"
         v-model="projectId"
@@ -32,7 +32,7 @@
   <el-empty v-else-if="!results.length" description="当前范围内暂无满意度结果" />
   <el-table v-else :data="results" stripe>
     <el-table-column prop="resultId" label="结果ID" min-width="150" />
-    <el-table-column prop="projectId" label="项目ID" min-width="150" />
+    <el-table-column v-if="!context.scoped" prop="projectId" label="项目ID" min-width="150" />
     <el-table-column prop="taskRevisionNo" label="轮次" width="80" />
     <el-table-column label="得分 / 阈值" min-width="130"
       ><template #default="scope"
@@ -69,7 +69,7 @@
     ></el-form>
     <template #footer
       ><el-button @click="downloadVisible = false">取消</el-button
-      ><el-button type="primary" @click="download">创建下载票据</el-button></template
+      ><el-button type="primary" @click="download">下载</el-button></template
     >
   </el-dialog>
 

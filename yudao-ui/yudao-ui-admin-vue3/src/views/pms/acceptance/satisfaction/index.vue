@@ -1,5 +1,6 @@
 <template>
-  <ContentWrap>
+  <ContentWrap :body-style="{ padding: '20px', overflow: 'hidden' }" class="satisfaction-content">
+    <header class="satisfaction-heading"><h2>满意度调查</h2><p>邀请客户填写问卷，查看评价结果并跟进整改。</p></header>
     <el-tabs v-model="activeTab">
       <el-tab-pane v-if="!scoped && !props.readonly" label="问卷模板" name="templates"
         ><TemplatePanel
@@ -77,3 +78,9 @@ defineExpose({
   }
 })
 </script>
+
+<style scoped>
+.satisfaction-heading { margin-bottom: 20px; }
+.satisfaction-heading h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+.satisfaction-heading p { margin: 0; font-size: 13px; color: var(--el-text-color-secondary); }
+</style>

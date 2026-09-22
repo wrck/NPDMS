@@ -24,7 +24,6 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionTaskTodoProjectionService {
-    private static final String TASK_CODE = "T-SAT-SURVEY";
     private final ProjectWorkBindingFactApi workBindingFactApi;
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
@@ -70,7 +69,7 @@ public class SatisfactionTaskTodoProjectionService {
 
     private boolean exact(ProjectSatisfactionTaskFact fact, SatisfactionCollectionTaskDO task,
                           SatisfactionTaskCreatedMessage event) {
-        return fact != null && task != null && TASK_CODE.equals(fact.taskCode())
+        return fact != null && task != null && Objects.equals(fact.taskCode(), event.taskCode())
                 && Objects.equals(fact.projectId(), event.projectId())
                 && Objects.equals(fact.projectTaskId(), event.projectTaskId())
                 && Objects.equals(fact.projectTaskVersion(), event.projectTaskVersion())
@@ -95,7 +94,7 @@ public class SatisfactionTaskTodoProjectionService {
     private void require(SatisfactionTaskCreatedMessage event) {
         if (event == null || blank(event.eventId()) || event.tenantId() == null || event.projectId() == null
                 || event.projectTaskId() == null || event.projectTaskVersion() == null
-                || event.projectTaskVersion() < 0 || !TASK_CODE.equals(event.taskCode()) || event.taskId() == null
+                || event.projectTaskVersion() < 0 || blank(event.taskCode()) || event.taskId() == null
                 || blank(event.collectionKey()) || event.taskRevisionNo() == null || event.taskRevisionNo() <= 0
                 || blank(event.sourceOwnerContext()) || blank(event.sourceObjectType()) || blank(event.sourceObjectId())
                 || event.sourceObjectVersion() == null || event.sourceObjectVersion() <= 0

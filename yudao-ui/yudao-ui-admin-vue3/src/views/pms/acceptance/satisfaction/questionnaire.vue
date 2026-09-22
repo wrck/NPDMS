@@ -3,7 +3,7 @@
     <section class="questionnaire-shell" aria-labelledby="questionnaire-title">
       <header>
         <span class="eyebrow">项目满意度调查</span>
-        <h1 id="questionnaire-title">请完成本次满意度问卷</h1>
+        <h1 id="questionnaire-title">{{ outcome ? '感谢您的反馈' : '请评价本次项目交付' }}</h1>
         <p v-if="questionnaire"
           >链接有效至 {{ formatDate(questionnaire.expiresAt) }}。答案、签字与附件提交后不可修改。</p
         >
@@ -29,81 +29,60 @@
           ></template
         >
       </el-result>
-      <el-form v-else label-position="top" class="questionnaire-form" @submit.prevent>
-        <article
-          v-for="(question, index) in definition.questions"
-          :key="question.code"
-          class="question-card"
-        >
-          <h2
-            ><span>{{ index + 1 }}</span
-            >{{ question.title }}<em v-if="question.required">必答</em></h2
-          >
-          <el-radio-group
-            v-if="question.type === 'SINGLE_CHOICE' || question.type === 'RATING'"
-            :model-value="singleAnswer(question.code)"
-            class="option-stack"
-            @update:model-value="setSingleAnswer(question.code, $event)"
-          >
-            <el-radio
-              v-for="option in question.options"
-              :key="option.code"
-              :value="option.code"
-              border
-              >{{ option.label }}</el-radio
-            >
-          </el-radio-group>
-          <el-checkbox-group
-            v-else-if="question.type === 'MULTIPLE_CHOICE'"
-            :model-value="multipleAnswer(question.code)"
-            class="option-stack"
-            @update:model-value="setMultipleAnswer(question.code, $event)"
-          >
-            <el-checkbox
-              v-for="option in question.options"
-              :key="option.code"
-              :value="option.code"
-              border
-              >{{ option.label }}</el-checkbox
-            >
-          </el-checkbox-group>
-          <el-input
-            v-else
-            :model-value="singleAnswer(question.code)"
-            type="textarea"
-            :rows="4"
-            :maxlength="question.maxLength"
-            show-word-limit
-            @update:model-value="setSingleAnswer(question.code, $event)"
-          />
-          <p v-if="question.type === 'MULTIPLE_CHOICE'" class="constraint"
-            >请选择 {{ question.minSelections }} 至 {{ question.maxSelections }} 项</p
-          >
-        </article>
+      <section v-else-if="questionnaire" class="questionnaire-form">
+        <div class="customer-confirmation-form">
+          <form-create v-model="answers" v-model:api="questionFormApi" :rule="questionRules" :option="questionFormOption" />
+        </div>
         <section class="file-section">
           <h2>签字与附件</h2>
-          <el-form-item label="客户联系人"
-            ><el-input v-model="customerContactRef" maxlength="256"
-          /></el-form-item>
-          <el-form-item label="签字文件（必需）">
-            <el-upload
-              :auto-upload="false"
-              :limit="1"
-              :on-change="onSignatureChange"
-              :on-remove="() => (signatureFile = undefined)"
-              ><el-button>选择签字文件</el-button></el-upload
+          <label class="contact-label" for="customer-contact">客户联系人（必填）</label>
+          <el-input
+            id="customer-contact"
+            v-model="customerContactRef"
+            maxlength="256"
+            size="large"
+            :disabled="submitting"
+          />
+          <el-radio-group v-model="signatureMode" :disabled="submitting" class="signature-mode" aria-label="签字方式">
+            <el-radio-button value="draw">手写签字</el-radio-button>
+            <el-radio-button value="upload">上传已有签字文件</el-radio-button>
+          </el-radio-group>
+          <div v-if="signatureMode === 'draw'" class="customer-confirmation-form">
+            <form-create
+              v-model="signatureValues"
+              :rule="signatureRules"
+              :option="questionFormOption"
+            />
+            <a
+              v-if="signatureValues.signatureImageDataUrl"
+              :href="signatureValues.signatureImageDataUrl"
+              download="客户手写签字.png"
+              >保存签字图片</a
             >
-          </el-form-item>
-          <el-form-item label="补充附件（可选）">
+          </div>
+          <el-upload
+            v-else
+            :auto-upload="false"
+            :limit="1"
+            :disabled="submitting"
+            :on-change="onSignatureChange"
+            :on-remove="() => (signatureFile = undefined)"
+          >
+            <el-button>选择签字文件</el-button>
+          </el-upload>
+          <div class="attachment-field"
+            ><p>补充附件（可选）</p>
             <el-upload
               multiple
               :auto-upload="false"
+              :disabled="submitting"
               :on-change="onAttachmentChange"
               :on-remove="onAttachmentRemove"
               ><el-button>选择附件</el-button></el-upload
             >
-          </el-form-item>
+          </div>
         </section>
+        <p>请确认由客户本人填写并签字。提交后答卷不可修改。</p>
         <el-button
           type="primary"
           size="large"
@@ -112,14 +91,20 @@
           @click="submit"
           >提交答卷</el-button
         >
-      </el-form>
+      </section>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
 import type { UploadFile } from 'element-plus'
+import type { Api as FormApi } from '@form-create/element-ui'
 import { useRoute } from 'vue-router'
+import { generateUUID } from '@/utils'
+import {
+  customerFormOption,
+  signaturePngFile
+} from '@/components/FormCreate/src/customerConfirmation'
 import * as Api from '@/api/pms/acceptance/satisfaction'
 import { formatDate } from '@/utils/formatTime'
 import type {
@@ -137,25 +122,55 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const questionnaire = ref<PublicQuestionnaire>()
 const definition = ref<QuestionnaireDefinition>({ schemaVersion: 1, questions: [] })
-const answers = reactive<Record<string, string | string[]>>({})
+const answers = ref<Record<string, string | string[]>>({})
+const questionFormApi = ref<FormApi>()
+const questionFormOption = computed(() => ({
+  ...customerFormOption,
+  form: { ...customerFormOption.form, disabled: submitting.value }
+}))
+const questionRules = computed(() =>
+  definition.value.questions.map((question) => ({
+    type:
+      question.type === 'MULTIPLE_CHOICE'
+        ? 'checkbox'
+        : question.type === 'TEXT'
+          ? 'input'
+          : 'radio',
+    field: question.code,
+    title: question.title,
+    info:
+      question.type === 'MULTIPLE_CHOICE'
+        ? `请选择 ${question.minSelections ?? 0} 至 ${question.maxSelections ?? question.options?.length ?? 0} 项`
+        : '',
+    options: question.options?.map((option) => ({ label: option.label, value: option.code })),
+    props:
+      question.type === 'TEXT'
+        ? { type: 'textarea', rows: 4, maxlength: question.maxLength, showWordLimit: true }
+        : {},
+    validate: [{ required: question.required, message: `请填写${question.title}` }]
+  }))
+)
 const customerContactRef = ref('')
+const signatureValues = ref({ signatureImageDataUrl: '' })
+const signatureMode = ref('draw')
 const signatureFile = ref<File>()
+const onSignatureChange = (file: UploadFile) => {
+  signatureFile.value = file.raw
+}
+const signatureRules = [
+  {
+    type: 'signaturePad',
+    field: 'signatureImageDataUrl',
+    title: '客户手写签字',
+    validate: [{ required: true, message: '请手写签字' }]
+  }
+]
 const attachmentFiles = ref<File[]>([])
 const outcome = ref<SubmissionOutcome>()
-const requestId = crypto.randomUUID()
+const requestId = generateUUID()
+const uploadOperationIds = new Map<string, string>()
 const token = String(route.params.token || '')
 const tenantId = String(route.query.tenantId || '')
-const singleAnswer = (code: string) =>
-  typeof answers[code] === 'string' ? (answers[code] as string) : ''
-const multipleAnswer = (code: string) =>
-  Array.isArray(answers[code]) ? (answers[code] as string[]) : []
-const setSingleAnswer = (code: string, value: string | number | boolean | undefined) => {
-  answers[code] = String(value ?? '')
-}
-const setMultipleAnswer = (code: string, value: Array<string | number>) => {
-  answers[code] = value.map(String)
-}
-
 const load = async () => {
   if (!token || !/^\d+$/.test(tenantId)) {
     errorMessage.value = '受控链接缺少有效租户信息。'
@@ -166,16 +181,13 @@ const load = async () => {
     questionnaire.value = await Api.inspectPublicQuestionnaire(token, tenantId)
     definition.value = JSON.parse(questionnaire.value.frozenQuestions)
     definition.value.questions.forEach((question) => {
-      answers[question.code] = question.type === 'MULTIPLE_CHOICE' ? [] : ''
+      answers.value[question.code] = question.type === 'MULTIPLE_CHOICE' ? [] : ''
     })
   } catch {
     errorMessage.value = '链接已过期、已失效或无权访问。'
   } finally {
     loading.value = false
   }
-}
-const onSignatureChange = (file: UploadFile) => {
-  signatureFile.value = file.raw
 }
 const onAttachmentChange = (file: UploadFile) => {
   if (file.raw && !attachmentFiles.value.includes(file.raw)) attachmentFiles.value.push(file.raw)
@@ -188,7 +200,12 @@ const upload = async (
   policyKey: string,
   ordinal: number
 ): Promise<{ fact: GrantFileFact; responseId: number }> => {
-  const operationId = `${requestId}:${policyKey}:${ordinal}`
+  const slot = `${policyKey}:${ordinal}`
+  let operationId = uploadOperationIds.get(slot)
+  if (!operationId) {
+    operationId = generateUUID().replace(/-/g, '')
+    uploadOperationIds.set(slot, operationId)
+  }
   const initialized = await Api.initializeGrantFile(token, tenantId, {
     requestId,
     policyKey,
@@ -216,13 +233,48 @@ const upload = async (
   return { fact, responseId: initialized.responseId }
 }
 const submit = async () => {
-  if (!signatureFile.value || !customerContactRef.value.trim()) {
-    message.warning('请填写客户联系人并选择签字文件')
+  if (submitting.value || outcome.value || !questionFormApi.value) return
+  try { await questionFormApi.value.validate() }
+  catch { message.warning('请完成必填问卷内容'); return }
+  const hasSignature =
+    signatureMode.value === 'draw'
+      ? !!signatureValues.value.signatureImageDataUrl
+      : !!signatureFile.value
+  if (!hasSignature || !customerContactRef.value.trim()) {
+    message.warning('请填写客户联系人并完成签字')
     return
+  }
+  for (const question of definition.value.questions) {
+    const answer = answers.value[question.code]
+    const length = typeof answer === 'string' ? answer.trim().length : answer?.length || 0
+    if (question.required && !length) {
+      message.warning(`请填写${question.title}`)
+      return
+    }
+    if (question.type === 'TEXT' && length &&
+      (length < (question.minLength ?? 0) || length > (question.maxLength ?? Infinity))) {
+      message.warning(`请按要求填写${question.title}的字数`)
+      return
+    }
+    if (
+      Array.isArray(answer) &&
+      answer.length &&
+      (answer.length < (question.minSelections ?? 0) ||
+        answer.length > (question.maxSelections ?? Infinity))
+    ) {
+      message.warning(`请按要求选择${question.title}`)
+      return
+    }
   }
   submitting.value = true
   try {
-    const signature = await upload(signatureFile.value, 'SATISFACTION_SIGNATURE', 1)
+    const signature = await upload(
+      signatureMode.value === 'draw'
+        ? signaturePngFile(signatureValues.value.signatureImageDataUrl)
+        : signatureFile.value!,
+      'SATISFACTION_SIGNATURE',
+      1
+    )
     const facts: GrantFileFact[] = [signature.fact]
     for (let index = 0; index < attachmentFiles.value.length; index++) {
       facts.push(
@@ -245,12 +297,13 @@ const submit = async () => {
     }))
     const answerSnapshot = JSON.stringify({
       answers: definition.value.questions
-        .filter((question) =>
-          Array.isArray(answers[question.code])
-            ? answers[question.code].length
-            : String(answers[question.code]).length
-        )
-        .map((question) => ({ questionCode: question.code, value: answers[question.code] }))
+        .filter((question) => {
+          const value = answers.value[question.code]
+          return Array.isArray(value)
+            ? value.length > 0
+            : typeof value === 'string' && value.length > 0
+        })
+        .map((question) => ({ questionCode: question.code, value: answers.value[question.code] }))
     })
     outcome.value = await Api.submitPublicResponse(token, tenantId, {
       requestId,
@@ -268,11 +321,15 @@ onMounted(load)
 
 <style scoped lang="scss">
 .public-page {
-  min-height: 100vh;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
   padding: 40px 16px;
   background: var(--el-fill-color-light);
 }
 .questionnaire-shell {
+  box-sizing: border-box;
   width: min(760px, 100%);
   margin: 0 auto;
   padding: 28px;
@@ -289,46 +346,25 @@ header h1 {
   color: var(--el-color-primary);
   font-weight: 600;
 }
-header p,
-.constraint {
+header p {
   color: var(--el-text-color-secondary);
 }
 .questionnaire-form {
   margin-top: 28px;
 }
-.question-card {
-  padding: 20px 0;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-.question-card h2,
 .file-section h2 {
   margin: 0 0 16px;
   font-size: 17px;
 }
-.question-card h2 span {
-  display: inline-grid;
-  width: 28px;
-  height: 28px;
-  margin-right: 10px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+.contact-label {
+  display: block;
+  margin-bottom: 8px;
 }
-.question-card h2 em {
-  margin-left: 8px;
-  color: var(--el-color-danger);
-  font-size: 12px;
-  font-style: normal;
+.signature-mode {
+  margin: 20px 0;
 }
-.option-stack {
-  display: grid;
-  gap: 10px;
-}
-.option-stack :deep(.el-radio),
-.option-stack :deep(.el-checkbox) {
-  width: 100%;
-  margin: 0;
+.attachment-field {
+  margin-top: 20px;
 }
 .file-section {
   padding-top: 20px;

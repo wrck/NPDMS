@@ -117,7 +117,8 @@ public class SatisfactionTemplateManagementService {
                 revision.getSigningMode(), revision.getImplementationMode(), revision.getBusinessPurposeCode(),
                 revision.getApplicableTimingCode(), revision.getPriority());
         if (revisionMapper.selectPublishedByApplicability(applicability).stream()
-                .anyMatch(other -> !other.getId().equals(revisionId))) {
+                .anyMatch(other -> !Objects.equals(other.getId(), root.getCurrentRevisionId())
+                        || !Objects.equals(other.getTemplateId(), templateId))) {
             throw new IllegalStateException("SATISFACTION_TEMPLATE_APPLICABILITY_AMBIGUOUS");
         }
         LocalDateTime now = LocalDateTime.now();

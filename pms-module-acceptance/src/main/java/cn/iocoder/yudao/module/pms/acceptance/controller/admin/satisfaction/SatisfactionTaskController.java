@@ -3,6 +3,9 @@ package cn.iocoder.yudao.module.pms.acceptance.controller.admin.satisfaction;
 import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.IndependentSatisfactionService;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionTaskInitializationApiImpl;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTaskInitializationResult;
+import jakarta.validation.constraints.Positive;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
@@ -50,6 +53,8 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @Validated
 @RequiredArgsConstructor
 public class SatisfactionTaskController {
+    private final SatisfactionTaskInitializationApiImpl initializationService;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi manualProjects;
     private final SatisfactionAccessGrantService grantService;
     private final SatisfactionTaskManagementService taskService;
     private final SatisfactionAssistedResponseApplicationService assistedService;
@@ -70,6 +75,25 @@ public class SatisfactionTaskController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key,
             @RequestBody IndependentSatisfactionService.Create command) {
         return withTenant(() -> success(independentService.create(tenantId(), actorId(), command, key)));
+    }
+
+    @PostMapping("/actions/start")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    public CommonResult<SatisfactionTaskInitializationResult> start(
+            @RequestParam @Positive Long projectId,
+            @RequestParam(required = false) @Positive Long projectTaskId,
+            @RequestParam(required = false) @Positive Long templateId,
+            @RequestParam(required = false) @Positive Long revisionId,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String operationId) {
+        return withTenant(() -> success(initializationService.startManual(projectId, actorId(), operationId,
+                projectTaskId, templateId, revisionId)));
+    }
+
+    @GetMapping("/start-options")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    public CommonResult<cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi.Options> startOptions(
+            @RequestParam @Positive Long projectId) {
+        return withTenant(() -> success(manualProjects.options(projectId, actorId())));
     }
 
     @GetMapping

@@ -2,6 +2,25 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper">
+    <select id="selectManualSatisfactionOptions"
+            resultType="cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi$TaskOption">
+        SELECT id, name, stage_code AS stageCode, acc_satisfaction_template_id AS templateId
+        FROM proj_project_task
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'
+          AND (acc_satisfaction_template_id IS NOT NULL OR
+               (actual_end_time IS NULL AND status NOT IN ('DONE','CLOSED','CANCELLED')))
+        ORDER BY sort_order, id
+    </select>
+    <update id="freezeManualSatisfaction">
+        UPDATE proj_project_task SET satisfaction_timing=COALESCE(NULLIF(satisfaction_timing,''),'MANUAL'),
+            acc_satisfaction_template_id=#{query.templateId}, template_revision_id=#{query.revisionId},
+            template_version=#{query.templateVersion}, satisfaction_rule_version=#{query.ruleVersion},
+            satisfaction_threshold=#{query.threshold}, version=version+1, updater=#{query.updater}, update_time=NOW(3)
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.projectTaskId}
+          AND version=#{query.expectedVersion} AND acc_satisfaction_template_id IS NULL
+          AND actual_end_time IS NULL
+          AND status NOT IN ('DONE','CLOSED','CANCELLED') AND deleted=b'0'
+    </update>
     <resultMap id="taskInstance" type="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO" autoMapping="true">
         <id property="id" column="id"/>
         <result property="code" column="task_code"/>
@@ -117,7 +136,7 @@
                t.template_version                AS templateVersion,
                t.satisfaction_rule_version       AS ruleVersion,
                t.satisfaction_threshold          AS threshold,
-               a.assignee_user_id                AS currentAssigneeUserId
+               COALESCE(a.assignee_user_id, p.manager_id) AS currentAssigneeUserId
         FROM proj_project p
         JOIN proj_project_task t
           ON t.tenant_id = p.tenant_id

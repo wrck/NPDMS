@@ -1,6 +1,12 @@
 <template>
   <el-form inline class="-mb-15px satisfaction-query">
-    <el-form-item label="项目">
+    <el-form-item v-if="!props.readonly">
+      <el-button v-hasPermi="['pms:acceptance:satisfaction:manage']" type="primary"
+        :loading="starting || preparingStart" :disabled="!canWrite || !context.projectId" @click="openStart">
+        手动发起
+      </el-button>
+    </el-form-item>
+    <el-form-item v-if="!context.scoped" label="项目">
       <el-input-number
         v-if="!context.scoped"
         v-model="projectId"
@@ -11,7 +17,7 @@
       />
       <el-input v-else :model-value="`项目 #${props.projectId}`" disabled class="!w-220px" />
     </el-form-item>
-    <el-form-item><el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button></el-form-item>
+    <el-form-item><el-button :loading="loading" @click="load"><Icon icon="ep:refresh" />{{ context.scoped ? '刷新任务' : '查询' }}</el-button></el-form-item>
     <el-form-item v-if="canCreate"><el-button type="primary" :loading="creating" @click="openCreate">发起满意度调查</el-button></el-form-item>
   </el-form>
   <el-dialog v-model="createVisible" title="发起满意度调查" width="min(560px, 94vw)" :close-on-click-modal="false" :close-on-press-escape="!creating" :show-close="!creating">
@@ -37,18 +43,18 @@
   />
   <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
   <el-skeleton v-else-if="loading" :rows="4" animated />
-  <el-empty v-else-if="!tasks.length" description="当前可见范围暂无满意度调查，可选择已发布问卷发起调查。" />
+  <el-empty v-else-if="!tasks.length" description="暂无分配给您的满意度调查任务。有管理权限时可选择项目手动发起首轮，无需等待初验。" />
   <el-table v-else :data="tasks" stripe>
-    <el-table-column prop="id" label="任务ID" min-width="150" />
-    <el-table-column prop="projectId" label="项目ID" min-width="150" />
+    <el-table-column prop="collectionKey" label="调查编号" min-width="180" show-overflow-tooltip />
+    <el-table-column v-if="!context.scoped" prop="projectId" label="项目ID" min-width="150" />
     <el-table-column prop="revisionNo" label="轮次" width="80" />
     <el-table-column prop="assignedToUserId" label="责任人" min-width="130" />
-    <el-table-column prop="status" label="任务状态" min-width="140" />
-    <el-table-column prop="questionnaireStatus" label="问卷状态" min-width="120" />
+    <el-table-column label="任务状态" min-width="120"><template #default="{ row }"><el-tag>{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+    <el-table-column label="问卷状态" min-width="100"><template #default="{ row }">{{ statusLabel(row.questionnaireStatus) }}</template></el-table-column>
     <el-table-column v-if="canWrite" label="操作" width="340" fixed="right">
       <template #default="scope">
         <el-button link type="primary" @click="openAssign(scope.row)">指派</el-button>
-        <el-button link type="primary" @click="openGrant(scope.row)">受控链接</el-button>
+        <el-button link type="primary" @click="openGrant(scope.row)">发送问卷</el-button>
         <el-button link type="primary" @click="openAssisted(scope.row)">现场协助</el-button>
         <el-button v-if="scope.row.resultId" link type="warning" @click="openRecollect(scope.row)"
           >整改重收</el-button
@@ -57,10 +63,11 @@
     </el-table-column>
   </el-table>
 
+  <ManualStartDialog v-model="startVisible" :options="startOptions" :submitting="starting" :error="errorText" @submit="startTask" />
   <el-dialog v-model="assignVisible" title="指派采集责任人" width="min(460px, 94vw)">
     <el-form label-position="top" :disabled="!canWrite"
-      ><el-form-item label="用户ID"
-        ><el-input-number v-model="assignedUserId" :min="1" /></el-form-item
+      ><el-form-item label="采集责任人"
+        ><PmsEntitySelect v-model="assignedUserId" :api="getUserPage" label-field="nickname" value-field="id" query-field="nickname" placeholder="选择项目参与人" /></el-form-item
     ></el-form>
     <template #footer
       ><el-button @click="assignVisible = false">取消</el-button
@@ -70,7 +77,7 @@
     >
   </el-dialog>
 
-  <el-dialog v-model="grantVisible" title="受控问卷链接" width="min(560px, 94vw)" destroy-on-close>
+  <el-dialog v-model="grantVisible" title="受控问卷链接" width="min(640px, 94vw)" destroy-on-close @closed="closeGrant">
     <template v-if="!grantUrl">
       <el-form label-position="top" :disabled="!canWrite"
         ><el-form-item label="有效期"
@@ -87,22 +94,34 @@
       />
     </template>
     <div v-else class="grant-result">
-      <Qrcode :text="grantUrl" :width="200" />
-      <el-input :model-value="grantUrl" readonly
+      <Qrcode v-if="customerGrantUrl" :key="customerGrantUrl" :text="customerGrantUrl" :width="200" @done="url => grantQrImage = url" />
+      <p>客户扫码后可直接填写满意度问卷并手写签字。</p>
+      <a v-if="grantQrImage && customerGrantUrl" :href="grantQrImage" download="满意度调查二维码.png">保存二维码</a>
+      <el-form label-position="top" class="grant-address">
+        <el-form-item label="客户可访问的系统地址">
+          <el-input v-model="publicBaseUrl" placeholder="例如 https://pms.example.com" />
+          <span>请使用客户手机可访问的域名或局域网地址。</span>
+        </el-form-item>
+      </el-form>
+      <el-alert v-if="!customerGrantUrl" title="请输入有效的 HTTP 或 HTTPS 系统地址。" type="error" :closable="false" />
+      <el-alert v-else-if="isLoopbackAddress" title="当前地址仅限本机访问；客户用其他手机扫码前，请修改系统地址。" type="warning" :closable="false" />
+      <p>有效期至 {{ formatDate(new Date(grantExpiresAt)) }}。请在关闭前保存二维码或复制链接。</p>
+      <el-input :model-value="customerGrantUrl" readonly
         ><template #append><el-button @click="copyLink">复制</el-button></template></el-input
       >
+      <el-link v-if="customerGrantUrl" :href="customerGrantUrl" target="_blank" rel="noopener noreferrer" type="primary">打开客户问卷</el-link>
     </div>
     <template #footer
       ><el-button @click="closeGrant">关闭</el-button
-      ><el-button v-if="!grantUrl" type="primary" :disabled="!canWrite" @click="createGrant"
+      ><el-button v-if="!grantUrl" type="primary" :loading="grantCreating" :disabled="!canWrite" @click="createGrant"
         >创建链接</el-button
       ></template
     >
   </el-dialog>
 
-  <el-dialog v-model="assistedVisible" title="现场协助提交" width="min(720px, 94vw)">
+  <el-dialog v-model="assistedVisible" title="现场协助填写问卷" width="min(720px, 94vw)" destroy-on-close>
     <el-alert
-      title="提交时将先预留答卷身份，再把所选文件上传到该答卷；服务端会重验任务、范围和文件事实。"
+      title="请按客户反馈填写本轮问卷，并上传客户签字。提交后答卷不可修改。"
       type="info"
       :closable="false"
     />
@@ -110,14 +129,7 @@
       <el-form-item label="客户联系人"
         ><el-input v-model="assisted.customerContactRef" data-testid="assisted-customer-contact"
       /></el-form-item>
-      <el-form-item label="答卷 JSON"
-        ><el-input
-          v-model="assisted.answerSnapshot"
-          data-testid="assisted-answer"
-          type="textarea"
-          :rows="7"
-          spellcheck="false"
-      /></el-form-item>
+      <QuestionnaireFields ref="questionnaireRef" :frozen-questions="selected?.frozenQuestions" />
       <el-form-item label="客户签字（必填）">
         <el-upload
           v-model:file-list="assistedSignatureFiles"
@@ -184,16 +196,27 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { Qrcode } from '@/components/Qrcode'
 import { getTenantId } from '@/utils/auth'
 import { checkPermi } from '@/utils/permission'
+import { formatDate } from '@/utils/formatTime'
 import * as Api from '@/api/pms/acceptance/satisfaction'
 import type { TaskView } from '@/api/pms/acceptance/satisfaction'
 import type { UploadUserFile } from 'element-plus'
 import { satisfactionProjectContext, type SatisfactionViewProps } from './projectContext'
+import { getUserPage } from '@/api/system/user'
+import QuestionnaireFields from './QuestionnaireFields.vue'
+import ManualStartDialog from './ManualStartDialog.vue'
+const questionnaireRef = ref<InstanceType<typeof QuestionnaireFields>>()
+const statusLabel = (status?: string) => ({ PENDING_ASSIGNMENT: '待指派', PENDING_COLLECTION: '待采集', ASSIGNED: '已指派', PENDING_DECISION: '待判定', PENDING_ARCHIVE: '待归档', FAILED: '未达标', ACTIVE: '可填写', SUBMITTED: '已提交', ARCHIVED: '已归档', INVALIDATED: '已失效' }[status || ''] || status || '—')
 
 const props = defineProps<SatisfactionViewProps>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
 
 const message = useMessage()
 const loading = ref(false)
+const starting = ref(false)
+const startOperationIds = new Map<string, string>()
+const startVisible = ref(false)
+const preparingStart = ref(false)
+const startOptions = ref<Api.ManualStartOptions>({ configured: false, tasks: [] })
 const projectId = ref<number>()
 const context = computed(() => satisfactionProjectContext(props.projectId, projectId.value))
 const canWrite = computed(() => !props.readonly && context.value.valid)
@@ -216,6 +239,21 @@ const assignedUserId = ref<number>()
 const grantVisible = ref(false)
 const grantExpiresAt = ref('')
 const grantUrl = ref('')
+const grantCreating = ref(false)
+const grantQrImage = ref('')
+const publicBaseUrl = ref(import.meta.env.VITE_CUSTOMER_CONFIRM_BASE_URL || window.location.origin)
+const customerGrantUrl = computed(() => {
+  if (!grantUrl.value) return ''
+  try {
+    const base = new URL(publicBaseUrl.value)
+    if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password) return ''
+    const link = new URL(grantUrl.value)
+    return new URL(link.pathname + link.search, base.origin).href
+  } catch { return '' }
+})
+const isLoopbackAddress = computed(() => !!customerGrantUrl.value &&
+  ['localhost', '127.0.0.1', '[::1]'].includes(new URL(customerGrantUrl.value).hostname))
+watch(customerGrantUrl, () => { grantQrImage.value = '' })
 const assistedVisible = ref(false)
 const assistedSubmitting = ref(false)
 const assistedRequestId = ref('')
@@ -283,6 +321,47 @@ const load = async () => {
     if (sequence === loadSequence) loading.value = false
   }
 }
+const openStart = async () => {
+  const target = context.value.projectId
+  if (!canWrite.value || !target || starting.value || preparingStart.value) return
+  const version = contextVersion
+  preparingStart.value = true
+  errorText.value = ''
+  try {
+    const options = await Api.getStartOptions(target)
+    if (version !== contextVersion || target !== context.value.projectId) return
+    if (options.configured) await startTask()
+    else { startOptions.value = options; startVisible.value = true }
+  } catch {
+    if (version === contextVersion && target === context.value.projectId) errorText.value = '发起配置加载失败，请重试。'
+  } finally { preparingStart.value = false }
+}
+const startTask = async (selection?: Api.ManualStartSelection) => {
+  const targetProjectId = context.value.projectId
+  if (!canWrite.value || !targetProjectId || starting.value) return
+  const version = contextVersion
+  starting.value = true
+  try {
+    const requestKey = JSON.stringify([targetProjectId, selection])
+    const operationId = startOperationIds.get(requestKey) ?? generateUUID()
+    startOperationIds.set(requestKey, operationId)
+    const result = selection ? await Api.startTask(targetProjectId, operationId, selection) : await Api.startTask(targetProjectId, operationId)
+    startOperationIds.delete(requestKey)
+    if (version !== contextVersion || targetProjectId !== context.value.projectId) return
+    message.success(result.outcome === 'CREATED'
+      ? '满意度调查已发起，由项目当前满意度责任人继续办理'
+      : '该项目已有满意度调查，请由责任人继续办理；未达标请使用整改重收')
+    emit('changed')
+    startVisible.value = false
+    await load()
+  } catch {
+    if (version === contextVersion && targetProjectId === context.value.projectId) {
+      errorText.value = '满意度调查发起失败，请根据错误提示检查项目权限、冻结问卷、责任人及交付件配置后重试。'
+    }
+  } finally {
+    starting.value = false
+  }
+}
 const openAssign = (task: TaskView) => {
   if (!writableTask(task)) return
   selected.value = task
@@ -303,20 +382,30 @@ const openGrant = (task: TaskView) => {
   if (!writableTask(task)) return
   selected.value = task
   grantUrl.value = ''
-  grantExpiresAt.value = new Date(Date.now() + 24 * 3600_000).toISOString().slice(0, 19)
+  grantExpiresAt.value = formatDate(new Date(Date.now() + 24 * 3600_000), 'YYYY-MM-DDTHH:mm:ss')
   grantVisible.value = true
 }
 const createGrant = async () => {
-  if (!selected.value || !writableTask(selected.value) || !grantExpiresAt.value) return
+  if (grantCreating.value || !selected.value || !writableTask(selected.value) || !grantExpiresAt.value) return
+  if (!(new Date(grantExpiresAt.value).getTime() > Date.now())) {
+    message.warning('请选择未来的链接有效期')
+    return
+  }
   const version = contextVersion
+  grantCreating.value = true
+  try {
   const grant = await Api.createGrant(selected.value.id, new Date(grantExpiresAt.value).getTime())
-  if (version !== contextVersion || !canWrite.value) return
+  if (version !== contextVersion || !canWrite.value || !grantVisible.value) return
   const tenantId = getTenantId() ?? 0
   grantUrl.value = `${window.location.origin}/satisfaction-questionnaires/${encodeURIComponent(grant.token)}?tenantId=${tenantId}`
+  } finally { grantCreating.value = false }
 }
 const copyLink = async () => {
-  await navigator.clipboard.writeText(grantUrl.value)
-  message.success('链接已复制')
+  if (!customerGrantUrl.value) return
+  try {
+    await navigator.clipboard.writeText(customerGrantUrl.value)
+    message.success('链接已复制')
+  } catch { message.warning('自动复制不可用，请选中上方链接手动复制') }
 }
 const closeGrant = () => {
   grantVisible.value = false
@@ -399,9 +488,10 @@ const submitAssisted = async () => {
   if (!assisted.customerContactRef.trim()) return message.warning('请输入客户联系人')
   if (!signature) return message.warning('请选择客户签字文件')
   try {
-    JSON.parse(assisted.answerSnapshot)
-  } catch {
-    return message.warning('答卷 JSON 格式不正确')
+    if (!questionnaireRef.value) throw new Error('请等待问卷加载')
+    assisted.answerSnapshot = questionnaireRef.value.snapshot()
+  } catch (error) {
+    return message.warning(error instanceof Error ? error.message : '请检查问卷内容')
   }
   assistedSubmitting.value = true
   const version = contextVersion
@@ -484,9 +574,11 @@ const dirty = computed(
     assistedVisible.value ||
     recollectVisible.value ||
     createVisible.value || creating.value ||
+    starting.value || startVisible.value || preparingStart.value ||
     assistedSubmitting.value
 )
 const resetDialogs = () => {
+  startVisible.value = false
   createVisible.value = false
   createContext.value = undefined
   selectedRevisionId.value = undefined
@@ -519,7 +611,7 @@ onBeforeUnmount(() => {
 defineExpose({
   isDirty: () => dirty.value,
   discardChanges: () => {
-    if (assistedSubmitting.value || creating.value) return false
+    if (assistedSubmitting.value || creating.value || starting.value) return false
     contextVersion++
     resetDialogs()
     return true
@@ -536,6 +628,7 @@ defineExpose({
 .dialog-form {
   margin-top: 16px;
 }
+.grant-address { width: 100%; }
 @media (width <= 767px) {
   .satisfaction-query :deep(.el-form-item) {
     width: 100%;

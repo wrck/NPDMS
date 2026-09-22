@@ -1,5 +1,6 @@
 import { generateUUID } from '@/utils'
 import request from '@/config/axios'
+import { customerConfirmationBaseUrl } from '@/api/pms/customerConfirmation'
 
 export interface QuestionnaireOption {
   code: string
@@ -63,6 +64,7 @@ export interface TaskView {
   version: number
   questionnaireStatus: string
   templateRevisionId: number
+  frozenQuestions?: string
 }
 
 export interface ResultView {
@@ -197,6 +199,21 @@ export const publishRevision = (templateId: number, revision: TemplateRevision) 
 export const listTasks = (projectId?: number) =>
   request.get<TaskView[]>({ url: '/api/v1/pms/satisfaction-tasks', params: { projectId } })
 
+export interface ManualStartSelection { projectTaskId: number; templateId: number; revisionId: number }
+export interface ManualStartOptions {
+  configured: boolean
+  tasks: { id: number; name: string; stageCode: string; templateId?: number }[]
+}
+export const getStartOptions = (projectId: number) =>
+  request.get<ManualStartOptions>({ url: '/api/v1/pms/satisfaction-tasks/start-options', params: { projectId } })
+
+export const startTask = (projectId: number, operationId: string, selection?: ManualStartSelection) =>
+  request.post<{ outcome: 'CREATED' | 'REPLAYED'; taskId: number }>({
+    url: '/api/v1/pms/satisfaction-tasks/actions/start',
+    params: { projectId, ...selection },
+    headers: { 'Idempotency-Key': operationId }
+  })
+
 export const assignTask = (task: TaskView, assignedToUserId: number) =>
   request.post({
     url: `/api/v1/pms/satisfaction-tasks/${task.id}/actions/assign`,
@@ -286,7 +303,8 @@ export const getExportAccessTicket = (taskId: number) =>
 export const inspectPublicQuestionnaire = (token: string, tenantId: string | number) =>
   request.get<PublicQuestionnaire>({
     url: `/api/v1/pms/satisfaction-questionnaires/${encodeURIComponent(token)}`,
-    headers: tenantHeaders(tenantId)
+    baseURL: customerConfirmationBaseUrl(),
+    headers: { ...tenantHeaders(tenantId), isToken: false }
   })
 
 export const initializeGrantFile = (
@@ -304,7 +322,8 @@ export const initializeGrantFile = (
   }>({
     url: `/api/v1/pms/satisfaction-questionnaires/${encodeURIComponent(token)}/files/initialize`,
     data,
-    headers: tenantHeaders(tenantId)
+    baseURL: customerConfirmationBaseUrl(),
+    headers: { ...tenantHeaders(tenantId), isToken: false }
   })
 
 export const completeGrantFile = (
@@ -321,7 +340,8 @@ export const completeGrantFile = (
     url: `/api/v1/pms/satisfaction-questionnaires/${encodeURIComponent(token)}/files/${sessionId}/complete`,
     data,
     headersType: 'multipart/form-data',
-    headers: tenantHeaders(tenantId)
+    baseURL: customerConfirmationBaseUrl(),
+    headers: { ...tenantHeaders(tenantId), isToken: false }
   })
 }
 
@@ -333,7 +353,8 @@ export const submitPublicResponse = (
   request.post<SubmissionOutcome>({
     url: `/api/v1/pms/satisfaction-questionnaires/${encodeURIComponent(token)}/responses`,
     data,
-    headers: tenantHeaders(tenantId)
+    baseURL: customerConfirmationBaseUrl(),
+    headers: { ...tenantHeaders(tenantId), isToken: false }
   })
 
 export interface IndependentCollectionContext {

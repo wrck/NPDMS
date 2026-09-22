@@ -230,7 +230,9 @@ F-IMP-002的无用户主体豁免到期命令使用PROJ支撑Task `T-FIMP002-PRO
 | `/service-handovers` | create、`submit`、`accept` | 只做持续服务交接，不提供 renew/续保接口 |
 | `/satisfaction-questionnaire-templates`、`/satisfaction-questionnaire-templates/{id}/revisions` | GET/POST | `query`读取根和修订；`manage`创建根/草稿修订。修订命令携带五维适用条件、优先级和唯一`schemaVersion=1`配置包，不接受PUBLISHED状态、current指针或服务端审计字段 |
 | `/satisfaction-questionnaire-templates/{id}/revisions/{revisionId}/actions/publish` | POST | `manage`权限、expectedRevisionVersion和Idempotency-Key；服务端验证受控题型/策略/舍入、封闭Schema、编码唯一、分值/weight/threshold可判定及五维歧义后原子发布修订并切换根指针，失败保持DRAFT |
-| `/satisfaction-tasks` | list/detail | 按租户、项目范围和责任人范围读取；领域任务只由受信业务时点初始化，不提供任意公共create |
+| `/satisfaction-tasks` | list/detail | 按租户、项目范围和责任人范围读取；由受信业务时点或下述受控手动入口初始化 |
+| `/satisfaction-tasks/actions/start?projectId={id}` | POST | 2026-09-20需求方批准的手动首轮入口（ACC-02/F-ACC-002）；要求`manage`、`PROJECT_EDIT`与`Idempotency-Key`，actor/tenant从认证上下文取得。复用项目冻结问卷、责任人和交付件关联，无需等待初验；返回`CREATED/REPLAYED`及taskId/questionnaireId/collectionKey/taskRevisionNo/taskVersion。手动来源为`ACC/SatisfactionManualInitiation`；项目任务事实锁内与自动入口共同查重，已有首轮直接返回、不重复发布创建事件，失败/失效仍走整改重收 |
+| `/satisfaction-tasks/start-options?projectId={id}` | GET | 2026-09-21补充（ACC-02/F-ACC-002）：`manage`和`PROJECT_EDIT`；返回是否已有冻结配置及当前项目可选未完成任务。无配置时上述start额外接受`projectTaskId/templateId/revisionId`，必须明确选择当前发布修订；已有配置时这些参数不得替换原配置。通过PROJ `ProjectManualSatisfactionApi.options/freeze`校验项目归属、锁定项目和首次冻结，不修改生命周期；ACC `SatisfactionQuestionnaireTemplateApi.inspectPublished`只接受当前发布版，已有冻结读接口可读SUPERSEDED历史版。没有任务交付件时ACC创建`D-SAT-MANUAL-{projectTaskId}`可选报告载体；有唯一载体时复用，歧义时拒绝。与问卷及首轮创建同事务回滚 |
 | `/satisfaction-tasks/{id}/actions/{assign|recollect}` | POST | 指派只接受获授权项目成员；recollect要求前一失败/失效Result、`remediationRequestId`和整改证据，在ACC事务内先形成不可变`SatisfactionRemediationFact`，再以该Fact为新trigger创建同collectionKey的`taskRevisionNo+1` Task/Questionnaire；source仍为首任务原始业务Fact。同整改request/Fact同载荷重放返回原revision，异载荷冲突，不回退旧状态 |
 | `/satisfaction-tasks/{id}/access-grants` | POST | 创建V1受控链接；二维码仅表示同一链接；令牌只返回一次，库内仅存摘要，V2自动发送不在本Feature实现 |
 | `/satisfaction-questionnaires/{token}` | GET | 令牌只读返回唯一ACTIVE问卷的冻结题目和必要展示事实，不返回项目其他数据或内部规则实现 |

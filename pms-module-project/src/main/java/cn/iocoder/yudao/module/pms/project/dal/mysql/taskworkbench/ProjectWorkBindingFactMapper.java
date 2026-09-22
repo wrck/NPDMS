@@ -15,6 +15,12 @@ import java.util.List;
 @Mapper
 public interface ProjectWorkBindingFactMapper {
 
+    List<cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi.TaskOption> selectManualSatisfactionOptions(
+            @Param("query") ProjectSatisfactionTaskProjectLockQuery query);
+
+    int freezeManualSatisfaction(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectManualSatisfactionFreeze query);
+
     List<ProjectWorkBindingFactRecord> selectCurrentFacts(
             @Param("query") ProjectWorkBindingFactLookupQuery query);
 

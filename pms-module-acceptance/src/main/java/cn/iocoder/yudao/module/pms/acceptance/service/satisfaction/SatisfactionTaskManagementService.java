@@ -238,7 +238,8 @@ public class SatisfactionTaskManagementService {
                 row.getTaskRevisionNo(), row.getPriorTaskId(), row.getAssignedToUserId(), row.getAssignedByUserId(),
                 row.getTaskStatus(), row.getQuestionnaireId(), row.getResultId(), row.getVersion(),
                 questionnaire == null ? null : questionnaire.getQuestionnaireStatus(),
-                questionnaire == null ? null : questionnaire.getTemplateRevisionId());
+                questionnaire == null ? null : questionnaire.getTemplateRevisionId(),
+                questionnaire == null ? null : questionnaire.getFrozenQuestionJson());
     }
 
     private <T> T requireExecution(PlatformCommandExecutionApi.ExecutionResult<T> execution, String code) {
@@ -256,7 +257,7 @@ public class SatisfactionTaskManagementService {
     public record TaskView(Long id, Long projectId, Long projectTaskId, String collectionKey, Integer revisionNo,
                            Long priorTaskId, Long assignedToUserId, Long assignedByUserId, String status,
                            Long questionnaireId, Long resultId, Integer version, String questionnaireStatus,
-                           Long templateRevisionId) {}
+                           Long templateRevisionId, String frozenQuestions) {}
     public record AssignmentResult(Long taskId, Long assignedToUserId, Integer version, boolean replayed) {}
     public record Recollect(Long priorResultId, String remediationRequestId, String evidenceSummary,
                             String evidenceFileFactVersion) {}

@@ -45,11 +45,16 @@
 
 ### BR-FACC002-001 模板冻结与首次触发
 
+- 2026-09-21需求方补充批准：无冻结满意度配置的现有项目，首次手动发起可明确选择已发布问卷修订，并冻结题目/计分/阈值；不再要求项目创建时已具备该快照。发起人明确选择本项目尚未完成的关联任务，PROJ在项目锁内写入首次配置（不改任务生命周期、不覆盖已有配置），责任人沿用当前任务指派，缺省项目经理。ACC复用既有唯一任务交付件；不存在时创建本次手动调查的可选报告载体，不改变项目闭环必传条件。配置、首轮、问卷、关联载体同事务成功或回滚。已有配置始终沿用，已有调查仅返回原首轮。
+- 2026-09-21需求方进一步要求参照现场培训，并确认同时使用可视化模板配置：管理端以表单配置既定问卷题型、选项分值、权重及评分规则，提供客户问卷预览；继续使用schemaVersion=1及原修订/发布/冻结机制。同一模板当前发布版可被新修订替代，不同模板相同适用条件和优先级仍阻止发布。外发集中展示二维码、可复制链接和有效期，支持修改客户可访问地址；客户填写沿用共享表单与签字组件，并在上传前校验必填及题目限制。此交互优化不增加调查轮次、不改变评分语义或归档判定。
+
+- 2026-09-20需求方批准：允许具备`manage`与项目`PROJECT_EDIT`权限的用户随时手动发起首轮，不等待初验等业务时点；仍要求项目已有完整冻结问卷、满意度任务责任人和交付件关联。已有调查返回首轮，不创建并行调查或覆盖历史；未达标/失效仍走整改重收。手动来源明确记录为`ACC/SatisfactionManualInitiation`，不得伪装成验收完成事实。后续自动触发复用已存在首轮，不重复创建；自动入口原有时点校验保留。
+
 - ACC以`SatisfactionQuestionnaireTemplateApi.resolvePublished`按项目类别、签约方式、实施方式、业务用途、适用时点唯一返回发布修订Fact；零匹配或最高优先级并列失败。
 - 模板由具`manage`权限的ACC管理入口创建草稿修订并发布；已发布修订不可更新/删除，新规则只能追加修订。不得以Flyway受管种子替代正式模板配置正向路径。
 - PROJ在项目创建事务内把模板/修订/规则/阈值Fact冻结到`satisfaction_timing` ProjectTask，不按任务名、任务码或默认模板推断。
 - V1正向业务时点至少由已交付ACC初验活动完成Fact触发：ACC完成初验活动的同一事务按冻结`AFTER_INITIAL_ACCEPTANCE`任务调用initializer；其他模板时点只在其Owner交付后调用同一接口，不由ACC/PROJ猜测。ACC经`ProjectWorkBindingFactApi`重验同租户项目、ProjectTask、冻结Fact、时点和当前责任人，并以`MANDATORY`加入调用方事务；未显式指派时责任人为当前项目经理。
-- 首次任务由ACC分配稳定`collectionKey`和`taskRevisionNo=1`；source和trigger都冻结原始业务时点Fact。同Fact同载荷返回原任务，异载荷冲突。
+- 首次任务由ACC分配稳定`collectionKey`和`taskRevisionNo=1`；自动发起的source和trigger冻结原始业务时点Fact，手动发起冻结上述明确的手动来源。同Fact同载荷返回原任务，异载荷冲突。
 - 配置包根只允许`schemaVersion/questions/scoring`。题型仅`SINGLE_CHOICE/MULTIPLE_CHOICE/RATING/TEXT`，策略仅`SUM_V1/WEIGHTED_AVERAGE_V1`，舍入仅`HALF_UP/HALF_EVEN/DOWN`且precision为0..2；未知字段、脚本、表达式或客户端算法标识拒绝发布。
 - MULTIPLE_CHOICE必须满足`1<=minSelections<=maxSelections<=options数量`，TEXT必须满足`0<=minLength<=maxLength`，字段均必填非空且不适用参数必须缺失。多选最大可达分取全部合法去重选择集合的option score平均值之最大值；SUM/加权策略的scoreMax必须由各题真实最大可达分派生，threshold只能位于0..scoreMax。
 

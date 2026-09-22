@@ -16,13 +16,11 @@
         JOIN acc_satisfaction_questionnaire_template t
           ON t.tenant_id = r.tenant_id
          AND t.id = r.template_id
-         AND t.current_revision_id = r.id
-         AND t.status = 'PUBLISHED'
          AND t.deleted = b'0'
         WHERE r.tenant_id = #{query.tenantId}
           AND r.template_id = #{query.templateId}
           AND r.id = #{query.templateRevisionId}
-          AND r.revision_status = 'PUBLISHED'
+          AND r.revision_status IN ('PUBLISHED','SUPERSEDED')
           AND r.deleted = b'0'
     </select>
 </mapper>

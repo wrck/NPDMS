@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionCollectionTaskDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskTriggerLockQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionFirstTaskQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskDecisionUpdate;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskResultUpdate;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskScopeQuery;
@@ -12,6 +13,8 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface SatisfactionCollectionTaskMapper extends BaseMapperX<SatisfactionCollectionTaskDO> {
+    SatisfactionCollectionTaskDO selectFirstByProjectForUpdate(
+            @Param("query") SatisfactionFirstTaskQuery query);
     java.util.List<SatisfactionCollectionTaskDO> selectByScope(
             @Param("query") SatisfactionTaskScopeQuery query);
     SatisfactionCollectionTaskDO selectByTriggerForUpdate(@Param("query") SatisfactionTaskTriggerLockQuery query);

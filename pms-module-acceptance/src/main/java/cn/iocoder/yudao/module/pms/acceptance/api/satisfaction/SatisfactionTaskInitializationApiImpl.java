@@ -8,6 +8,9 @@ import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionT
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskProjectQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionFirstTaskQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
@@ -52,9 +55,56 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper deliverableMapper;
 
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi manualProjects;
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public SatisfactionTaskInitializationResult initialize(SatisfactionTaskInitializationCommand command) {
+        return initialize(command, false, null);
+    }
+
+    /** 管理端首轮发起；来源和冻结配置由服务端生成，不接受客户端提供业务完成事实。 */
+    @Transactional(rollbackFor = Exception.class)
+    public SatisfactionTaskInitializationResult startManual(Long projectId, Long actorUserId, String operationId) {
+        return startManual(projectId, actorUserId, operationId, null, null, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public SatisfactionTaskInitializationResult startManual(Long projectId, Long actorUserId, String operationId,
+                                                            Long projectTaskId, Long templateId, Long revisionId) {
+        Long tenantId = trustedTenantId();
+        if (!positive(projectId) || !positive(actorUserId) || blank(operationId)) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT));
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(projectId)) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        var fact = projectTaskId == null && templateId == null && revisionId == null
+                ? workBindingFactApi.lockCurrentSatisfactionTaskByProject(new ProjectSatisfactionTaskProjectQuery(projectId))
+                : manualProjects.freeze(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi.Selection(
+                        projectId, projectTaskId, templateId, revisionId, actorUserId));
+        var lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT, scope.treeVersion()));
+        if (lockedScope == null || !Objects.equals(scope.treeVersion(), lockedScope.treeVersion())
+                || lockedScope.fullProjectIds() == null || !lockedScope.fullProjectIds().contains(projectId)) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        var command = new SatisfactionTaskInitializationCommand(tenantId, projectId, fact.projectTaskId(),
+                fact.projectTaskVersion(), "ACC", "SatisfactionManualInitiation", String.valueOf(projectId),
+                1L, "ACC", "SatisfactionManualInitiation", String.valueOf(projectId), 1L, operationId);
+        var result = initialize(command, true, actorUserId);
+        if (!"CREATED".equals(result.outcome()) && !"REPLAYED".equals(result.outcome())) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+        return result;
+    }
+
+    private SatisfactionTaskInitializationResult initialize(SatisfactionTaskInitializationCommand command,
+                                                            boolean manual, Long manualActorId) {
         Long tenantId = trustedTenantId();
         if (!valid(command, tenantId)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
@@ -64,16 +114,22 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
                 new ProjectSatisfactionTaskFactQuery(command.projectId(), command.projectTaskId(),
                         command.expectedProjectTaskVersion()));
         if (!Objects.equals(taskFact.projectId(), command.projectId())
-                || !Objects.equals(taskFact.projectTaskId(), command.projectTaskId())
-                || !APPLICABLE_TIMING.equals(taskFact.satisfactionTiming())) {
+                || !Objects.equals(taskFact.projectTaskId(), command.projectTaskId())) {
             return conflict();
+        }
+        if (!manual && !APPLICABLE_TIMING.equals(taskFact.satisfactionTiming())) {
+            var first = taskMapper.selectFirstByProjectForUpdate(new SatisfactionFirstTaskQuery(tenantId, command.projectId()));
+            if (first == null || !Objects.equals(first.getProjectTaskId(), command.projectTaskId())) return conflict();
+            return new SatisfactionTaskInitializationResult("REPLAYED", first.getId(), first.getQuestionnaireId(),
+                    first.getCollectionKey(), first.getTaskRevisionNo(), first.getVersion());
         }
 
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         tenantId, "ACC_SATISFACTION_TASK_INITIALIZATION",
-                        taskFact.currentAssigneeUserId(), command.operationId()),
-                digest(command), SatisfactionTaskInitializationResult.class,
-                () -> initializeOnce(command, taskFact, tenantId),
+                        manual ? manualActorId : taskFact.currentAssigneeUserId(), command.operationId()),
+                digest(manual ? List.of("MANUAL", command.tenantId(), command.projectId()) : command),
+                SatisfactionTaskInitializationResult.class,
+                () -> initializeOnce(command, taskFact, tenantId, manualActorId),
                 result -> successFacts(command, taskFact, result));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
@@ -91,13 +147,21 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
 
     private SatisfactionTaskInitializationResult initializeOnce(SatisfactionTaskInitializationCommand command,
                                                                   ProjectSatisfactionTaskFact taskFact,
-                                                                  Long tenantId) {
+                                                                  Long tenantId, Long manualActorId) {
         SatisfactionTaskTriggerLockQuery triggerQuery = new SatisfactionTaskTriggerLockQuery(tenantId,
                 command.projectTaskId(), command.triggerOwnerContext(), command.triggerObjectType(),
                 command.triggerFactId(), command.triggerFactVersion());
         SatisfactionCollectionTaskDO existing = taskMapper.selectByTriggerForUpdate(triggerQuery);
         if (existing != null) {
             return replayOrConflict(existing, command);
+        }
+
+        // PROJ事实锁串行化手动/自动首轮创建；后续自动触发不能创建第二条收集链。
+        var first = taskMapper.selectFirstByProjectForUpdate(new SatisfactionFirstTaskQuery(tenantId, command.projectId()));
+        if (first != null) {
+            if (!Objects.equals(first.getProjectTaskId(), command.projectTaskId())) return conflict();
+            return new SatisfactionTaskInitializationResult("REPLAYED", first.getId(), first.getQuestionnaireId(),
+                    first.getCollectionKey(), first.getTaskRevisionNo(), first.getVersion());
         }
 
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(tenantId,
@@ -116,6 +180,17 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         var deliverables = deliverableMapper.selectTaskDeliverablesForUpdate(
                 new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper.TaskDeliverablesQuery(
                         tenantId, command.projectId(), taskFact.taskCode()));
+        if (deliverables.isEmpty() && "SatisfactionManualInitiation".equals(command.sourceObjectType())) {
+            var option = manualProjects.options(command.projectId(), manualActorId).tasks().stream()
+                    .filter(task -> task.id().equals(taskFact.projectTaskId())).findFirst().orElseThrow();
+            var report = new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO();
+            report.setId(IdWorker.getId()); report.setTenantId(tenantId); report.setProjectId(command.projectId());
+            report.setDeliverableCode("D-SAT-MANUAL-" + taskFact.projectTaskId()); report.setName("满意度调查报告");
+            report.setStageCode(option.stageCode()); report.setTaskCode(taskFact.taskCode());
+            report.setRequired(false); report.setStatus("PENDING"); report.setArchiveStatus("PENDING"); report.setVersion(0);
+            if (deliverableMapper.insert(report) != 1) throw new IllegalStateException("SATISFACTION_DELIVERABLE_CREATE_FAILED");
+            deliverables = List.of(report);
+        }
         if (deliverables.size() != 1) throw new IllegalStateException("SATISFACTION_DELIVERABLE_BINDING_NOT_UNIQUE");
         var deliverable = deliverables.getFirst();
         if (!Objects.equals(deliverable.getTenantId(), tenantId) || !Objects.equals(deliverable.getProjectId(), command.projectId())
@@ -173,6 +248,11 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
                     "{}", List.of());
         }
         String eventId = UUID.randomUUID().toString();
+        if ("REPLAYED".equals(result.outcome())) {
+            return new PlatformCommandExecutionApi.SuccessFacts("SATISFACTION_TASK_INITIALIZATION_REPLAYED",
+                    "SatisfactionCollectionTask", String.valueOf(result.taskId()), command.operationId(),
+                    JsonUtils.toJsonString(result), List.of());
+        }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("eventId", eventId); payload.put("tenantId", command.tenantId());
         payload.put("projectId", command.projectId()); payload.put("projectTaskId", command.projectTaskId());
@@ -196,7 +276,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
                         JsonUtils.toJsonString(payload))));
     }
 
-    private String digest(SatisfactionTaskInitializationCommand command) {
+    private String digest(Object command) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(JsonUtils.toJsonString(command).getBytes(StandardCharsets.UTF_8)));

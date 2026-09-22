@@ -119,6 +119,65 @@ class SatisfactionTaskInitializationApiImplTest {
     }
 
     @Test
+    void manualStartUsesFrozenTemplateBeforeConfiguredTiming() {
+        var original = taskFact();
+        var fact = new ProjectSatisfactionTaskFact(original.projectId(), original.projectTaskId(), original.taskCode(),
+                original.projectTaskVersion(), "AFTER_FINAL_ACCEPTANCE", original.templateId(),
+                original.templateRevisionId(), original.templateVersion(), original.ruleVersion(),
+                original.threshold(), original.currentAssigneeUserId());
+        when(workBindingFactApi.lockCurrentSatisfactionTaskByProject(any())).thenReturn(fact);
+        when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(fact);
+        var scope = new ProjectScopeResult(100L, 9L, Set.of(100L), Set.of());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope);
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope);
+        when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
+        when(deliverableMapper.selectTaskDeliverablesForUpdate(any())).thenReturn(java.util.List.of(deliverable()));
+        assertEquals("CREATED", api.startManual(100L, 2000L, "manual-1").outcome());
+        var task = ArgumentCaptor.forClass(SatisfactionCollectionTaskDO.class);
+        verify(taskMapper).insert(task.capture());
+        assertEquals("SatisfactionManualInitiation", task.getValue().getSourceObjectType());
+        assertEquals(1000L, task.getValue().getAssignedToUserId());
+        var scopeCaptor = ArgumentCaptor.forClass(PlatformCommandExecutionApi.IdempotencyScope.class);
+        verify(commandExecutionApi).execute(scopeCaptor.capture(), any(), any(), any(), any());
+        assertEquals(2000L, scopeCaptor.getValue().actorId());
+    }
+
+    @Test
+    void manualStartRejectsMissingProjectEditScopeBeforeReadingFrozenFacts() {
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L, Set.of(), Set.of()));
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                () -> api.startManual(100L, 2000L, "denied"));
+        org.mockito.Mockito.verifyNoInteractions(workBindingFactApi, taskMapper, questionnaireMapper);
+    }
+
+    @Test
+    void laterAutomaticTriggerReusesManualFirstRoundWithoutWritesOrDuplicateEvents() {
+        when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(taskFact());
+        var first = existingTask();
+        first.setSourceObjectType("SatisfactionManualInitiation");
+        first.setSourceObjectId("100");
+        when(taskMapper.selectFirstByProjectForUpdate(any())).thenReturn(first);
+        assertEquals("REPLAYED", api.initialize(command()).outcome());
+        assertEquals(java.util.List.of(), emitted.get().businessEvents());
+        verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
+        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper, revisionMapper, deliverableMapper);
+    }
+
+    @Test
+    void manualStartReusesExistingAutomaticRoundWithoutChangingHistory() {
+        when(workBindingFactApi.lockCurrentSatisfactionTaskByProject(any())).thenReturn(taskFact());
+        when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(taskFact());
+        var scope = new ProjectScopeResult(100L, 9L, Set.of(100L), Set.of());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope);
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope);
+        when(taskMapper.selectFirstByProjectForUpdate(any())).thenReturn(existingTask());
+        assertEquals(200L, api.startManual(100L, 2000L, "manual-2").taskId());
+        assertEquals(java.util.List.of(), emitted.get().businessEvents());
+        verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
+        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper, revisionMapper, deliverableMapper);
+    }
+
+    @Test
     void rejectsAbsentOrAmbiguousDeliverableBeforeOwnerWrites() {
         when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(taskFact());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L,

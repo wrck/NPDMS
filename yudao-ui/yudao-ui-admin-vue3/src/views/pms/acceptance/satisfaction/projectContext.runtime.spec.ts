@@ -14,6 +14,8 @@ const api = vi.hoisted(() => ({
   listTemplates: vi.fn(),
   getIndependentCollectionContext: vi.fn(),
   createIndependentCollection: vi.fn(),
+  getStartOptions: vi.fn(),
+  startTask: vi.fn(),
   listTasks: vi.fn(),
   listResults: vi.fn(),
   assignTask: vi.fn(),
@@ -36,6 +38,7 @@ vi.mock('vue-router', () => ({
   onBeforeRouteUpdate: (guard: () => boolean) => routeGuards.update.push(guard)
 }))
 vi.mock('@/api/pms/acceptance/satisfaction', () => api)
+vi.mock('@/api/system/user', () => ({ getUserPage: vi.fn() }))
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/auth', () => ({ getTenantId: () => 1 }))
@@ -53,6 +56,7 @@ const task = (projectId: number) => ({
   id: projectId * 10,
   projectId,
   version: 3,
+  frozenQuestions: JSON.stringify({ schemaVersion: 1, questions: [{ code: 'remark', title: '建议', type: 'TEXT', required: false }] }),
   resultId: projectId * 100
 })
 const result = (projectId: number) => ({
@@ -156,6 +160,64 @@ describe('ACC-02 existing panels in a project context', () => {
     await opened
     expect(view.state().createVisible).toBe(false)
     expect(api.createIndependentCollection).not.toHaveBeenCalled()
+  })
+  it('opens first-time configuration instead of posting an incomplete start command', async () => {
+    api.getStartOptions.mockResolvedValue({ configured: false, tasks: [{ id: 410, name: '调查任务', stageCode: 'S5' }] })
+    const page = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    await page.state().openStart()
+    expect(page.state().startVisible).toBe(true)
+    expect(api.startTask).not.toHaveBeenCalled()
+  })
+  it('submits explicit task and published revision selection', async () => {
+    api.startTask.mockResolvedValue({ outcome: 'CREATED', taskId: 410 })
+    const page = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    const selection = { projectTaskId: 410, templateId: 5, revisionId: 6 }
+    await page.state().startTask(selection)
+    expect(api.startTask).toHaveBeenCalledWith(41, expect.any(String), selection)
+  })
+  it('starts the first survey in the current project and reloads without waiting for acceptance', async () => {
+    api.startTask.mockResolvedValue({ outcome: 'CREATED', taskId: 410 })
+    const page = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    await page.state().startTask()
+    expect(api.startTask).toHaveBeenCalledWith(41, expect.any(String))
+    expect(api.listTasks).toHaveBeenLastCalledWith(41)
+    expect(message.success).toHaveBeenCalledWith('满意度调查已发起，由项目当前满意度责任人继续办理')
+  })
+
+  it('does not start a survey from a readonly or missing project context', async () => {
+    const readonly = renderPanel(TaskPanel, { projectId: 41, readonly: true })
+    const unscoped = renderPanel(TaskPanel)
+    await flush()
+    await readonly.state().startTask()
+    await unscoped.state().startTask()
+    expect(api.startTask).not.toHaveBeenCalled()
+  })
+
+  it('shows start failure and reuses the request key on retry', async () => {
+    api.startTask.mockRejectedValueOnce(new Error('network failure')).mockResolvedValueOnce({ outcome: 'REPLAYED', taskId: 410 })
+    const page = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    await page.state().startTask()
+    expect(page.state().errorText).toContain('满意度调查发起失败')
+    expect(page.state().starting).toBe(false)
+    await page.state().startTask()
+    expect(api.startTask.mock.calls[0][1]).toBe(api.startTask.mock.calls[1][1])
+  })
+
+  it('blocks duplicate clicks while starting and reports an existing survey', async () => {
+    const pending = deferred<{ outcome: string; taskId: number }>()
+    api.startTask.mockReturnValue(pending.promise)
+    const page = renderPanel(TaskPanel, { projectId: 41 })
+    await flush()
+    const first = page.state().startTask()
+    await page.state().startTask()
+    expect(api.startTask).toHaveBeenCalledTimes(1)
+    pending.resolve({ outcome: 'REPLAYED', taskId: 410 })
+    await first
+    expect(message.success).toHaveBeenCalledWith('该项目已有满意度调查，请由责任人继续办理；未达标请使用整改重收')
   })
   it('prevents navigation away from an unfinished satisfaction operation', async () => {
     const page = renderPanel(Workbench, { projectId: 41 })
@@ -268,6 +330,29 @@ describe('ACC-02 existing panels in a project context', () => {
     expect(view.state().selected).toBeUndefined()
   })
 
+  it('preserves token and tenant when changing the customer address and rejects unsafe schemes', async () => {
+    const view = renderPanel(TaskPanel, { projectId: 1 })
+    view.state().grantUrl = 'http://localhost/satisfaction-questionnaires/fixture-only?tenantId=1'
+    view.state().publicBaseUrl = 'https://customer.example.com'
+    expect(view.state().customerGrantUrl).toBe('https://customer.example.com/satisfaction-questionnaires/fixture-only?tenantId=1')
+    view.state().publicBaseUrl = 'javascript:alert(1)'
+    expect(view.state().customerGrantUrl).toBe('')
+  })
+
+  it('prevents duplicate issuance and does not redisplay a link after closing', async () => {
+    const grant = deferred<any>()
+    api.createGrant.mockReturnValueOnce(grant.promise)
+    const view = renderPanel(TaskPanel, { projectId: 1 })
+    view.state().openGrant(task(1))
+    const pending = view.state().createGrant()
+    await view.state().createGrant()
+    expect(api.createGrant).toHaveBeenCalledTimes(1)
+    view.state().closeGrant()
+    grant.resolve({ token: 'fixture-only' })
+    await pending
+    expect(view.state().grantUrl).toBe('')
+  })
+
   it('stops follow-on uploads after readonly changes while response reservation is in flight', async () => {
     const reservation = deferred<any>()
     api.reserveAssistedResponse.mockReturnValueOnce(reservation.promise)
@@ -277,6 +362,7 @@ describe('ACC-02 existing panels in a project context', () => {
     view.state().assistedSignatureFiles = [
       { raw: { name: 'signature.png', type: 'image/png', size: 1 } }
     ]
+    await flush()
     const pending = view.state().submitAssisted()
     view.props.readonly = true
     await flush()

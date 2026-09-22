@@ -21,6 +21,23 @@ public class SatisfactionQuestionnaireTemplateApiImpl implements SatisfactionQue
 
     private final SatisfactionQuestionnaireTemplateMapper templateMapper;
 
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateRevisionMapper revisionMapper;
+
+    @Override
+    public SatisfactionTemplateFact inspectPublished(Long templateId, Long revisionId) {
+        var template = templateMapper.selectByIdForUpdate(trustedTenantId(), templateId);
+        if (template == null || !"PUBLISHED".equals(template.getStatus())
+                || !Objects.equals(template.getCurrentRevisionId(), revisionId)) throw exception(PROJECT_TASK_QUERY_INVALID);
+        var revision = revisionMapper.selectFrozenRevision(
+                new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTemplateRevisionQuery(
+                        trustedTenantId(), templateId, revisionId));
+        if (revision == null) throw exception(PROJECT_TASK_QUERY_INVALID);
+        cn.iocoder.yudao.module.pms.acceptance.domain.satisfaction.SatisfactionQuestionnaireDefinition.parse(revision.getFrozenQuestionJson());
+        return new SatisfactionTemplateFact("FOUND", revision.getTemplateId(), revision.getId(),
+                revision.getRevisionNo(), revision.getRuleVersion(), revision.getFrozenThreshold());
+    }
+
     @Override
     public SatisfactionTemplateFact resolvePublished(SatisfactionTemplateResolveQuery query) {
         Long tenantId = trustedTenantId();
