@@ -24,6 +24,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AssetLocationApiImplTest {
 
+    @Mock private cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;
+    @Mock private LocationCodeService locationCodeService;
     @Mock private AddressMapper addressMapper;
     @Mock private SiteMapper siteMapper;
     @Mock private LocationSourceMappingMapper sourceMappingMapper;
@@ -35,7 +37,7 @@ class AssetLocationApiImplTest {
 
     @BeforeEach
     void setUp() {
-        api = new AssetLocationApiImpl(addressMapper, siteMapper, sourceMappingMapper, treeService, mappingService,
+        api = new AssetLocationApiImpl(customerQueryApi, locationCodeService, addressMapper, siteMapper, sourceMappingMapper, treeService, mappingService,
                 deviceLocationEffectiveService);
     }
 
@@ -125,6 +127,31 @@ class AssetLocationApiImplTest {
                 new AddressInput(12L, 0, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
                 new SiteInput(21L, 0, null, null, null, null), null, null, "SURVEY", "S-1", "v3")));
+    }
+
+    @Test
+    void shouldGenerateCustomerCodeAndKeepItWhenCustomerChanges() {
+        when(addressMapper.selectById(11L)).thenReturn(address(11L, 0));
+        when(customerQueryApi.getCustomer(7L)).thenReturn(
+                new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO(
+                        7L, 1L, "CUS-7", "客户", null, "ACTIVE", "PLATFORM_CREATED", 0L, null));
+        when(locationCodeService.next("CUS-7-S-")).thenReturn("CUS-7-S-0001");
+        var captor = org.mockito.ArgumentCaptor.forClass(SiteDO.class);
+        api.maintain(new LocationMaintenanceCommand(null,
+                new AddressInput(11L, 0, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                new SiteInput(null, null, null, "站点", 7L, "CUSTOMER_SITE"), null, null, null, null, null));
+        verify(siteMapper).insert(captor.capture());
+        SiteDO created = captor.getValue();
+        assertEquals("CUS-7-S-0001", created.getCode());
+        created.setId(21L);
+        when(siteMapper.selectById(21L)).thenReturn(created);
+        when(siteMapper.updateByIdAndVersion(any(), org.mockito.ArgumentMatchers.eq(0))).thenReturn(1);
+        api.maintain(new LocationMaintenanceCommand(null, null,
+                new SiteInput(21L, 0, null, "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null));
+        verify(siteMapper).updateByIdAndVersion(captor.capture(), org.mockito.ArgumentMatchers.eq(0));
+        assertEquals("CUS-7-S-0001", captor.getValue().getCode());
+        assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null, null,
+                new SiteInput(21L, 0, "RECODE", "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null)));
     }
 
     private AddressDO address(Long id, int version) {

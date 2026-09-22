@@ -32,6 +32,8 @@ public class AssetLocationApiImpl implements AssetLocationApi {
 
     private static final String SOURCE_SYSTEM_PMS = "PMS";
 
+    private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;
+    private final cn.iocoder.yudao.module.pms.asset.service.location.LocationCodeService locationCodeService;
     private final AddressMapper addressMapper;
     private final SiteMapper siteMapper;
     private final LocationSourceMappingMapper sourceMappingMapper;
@@ -163,8 +165,23 @@ public class AssetLocationApiImpl implements AssetLocationApi {
             if (maintainedAddress == null) {
                 throw exception(AST_LOCATION_REFERENCE_INVALID);
             }
-            validateSiteCodeUnique(null, input.code());
             SiteDO entity = copySite(input);
+            if (!hasText(input.code())) {
+                String prefix = "PUBLIC-S-";
+                if (input.customerId() != null) {
+                    var customer = customerQueryApi.getCustomer(input.customerId());
+                    if (customer == null || !hasText(customer.code())) {
+                        throw exception(AST_LOCATION_REFERENCE_INVALID);
+                    }
+                    prefix = customer.code() + "-S-";
+                }
+                String code;
+                do {
+                    code = locationCodeService.next(prefix);
+                } while (siteMapper.selectByCode(code) != null);
+                entity.setCode(code);
+            }
+            validateSiteCodeUnique(null, entity.getCode());
             entity.setAddressId(maintainedAddress.getId());
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
             entity.setVersion(0);
@@ -180,8 +197,11 @@ public class AssetLocationApiImpl implements AssetLocationApi {
                 || Objects.equals(existing.getAddressId(), maintainedAddress.getId()))) {
             return existing;
         }
-        validateSiteCodeUnique(existing.getId(), isReferenceOnly(input) ? existing.getCode() : input.code());
+        if (hasText(input.code()) && !Objects.equals(input.code(), existing.getCode())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
         SiteDO update = isReferenceOnly(input) ? copySite(existing) : copySite(input);
+        update.setCode(existing.getCode());
         update.setId(existing.getId());
         update.setAddressId(maintainedAddress == null ? existing.getAddressId() : maintainedAddress.getId());
         update.setVersion(existing.getVersion() + 1);

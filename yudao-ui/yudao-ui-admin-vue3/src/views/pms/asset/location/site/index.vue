@@ -73,9 +73,9 @@
       label-width="92px"
       v-loading="formLoading"
     >
-      <el-form-item label="站点编码" prop="code"
-        ><el-input v-model="formData.code" placeholder="例如：SITE-HZ-01"
-      /></el-form-item>
+      <el-form-item label="站点编码">
+        <el-input :model-value="formData.code" disabled placeholder="保存时根据客户自动生成" />
+      </el-form-item>
       <el-form-item label="站点名称" prop="name"><el-input v-model="formData.name" /></el-form-item>
       <el-form-item label="地址" prop="addressId">
         <el-select
@@ -152,7 +152,6 @@ const treeDrawerRef = ref()
 const emptyForm = (): LocationApi.SiteVO => ({ code: '', name: '', siteType: 'CUSTOMER_SITE' })
 const formData = ref<LocationApi.SiteVO>(emptyForm())
 const formRules = {
-  code: [{ required: true, message: '站点编码不能为空', trigger: 'blur' }],
   name: [{ required: true, message: '站点名称不能为空', trigger: 'blur' }],
   addressId: [{ required: true, message: '地址不能为空', trigger: 'change' }],
   siteType: [{ required: true, message: '站点类型不能为空', trigger: 'blur' }]
@@ -204,7 +203,7 @@ const submitForm = async () => {
       site: {
         id: formData.value.id,
         expectedVersion: formData.value.version,
-        code: formData.value.code,
+        code: undefined,
         name: formData.value.name,
         customerId: formData.value.customerId,
         siteType: formData.value.siteType

@@ -64,9 +64,9 @@
             placeholder="空表示根位置"
           />
         </el-form-item>
-        <el-form-item label="位置编码" prop="code"
-          ><el-input v-model="nodeForm.code"
-        /></el-form-item>
+        <el-form-item label="位置编码">
+          <el-input :model-value="nodeForm.code" disabled placeholder="保存时根据站点自动生成" />
+        </el-form-item>
         <el-form-item label="位置名称" prop="name"
           ><el-input v-model="nodeForm.name"
         /></el-form-item>
@@ -105,7 +105,6 @@ const emptyNode = (): LocationApi.SiteLocationVO => ({
 })
 const nodeForm = ref<LocationApi.SiteLocationVO>(emptyNode())
 const nodeRules = {
-  code: [{ required: true, message: '位置编码不能为空', trigger: 'blur' }],
   name: [{ required: true, message: '位置名称不能为空', trigger: 'blur' }],
   locationType: [{ required: true, message: '位置类型不能为空', trigger: 'blur' }]
 }
@@ -138,7 +137,7 @@ const saveNode = async () => {
       id: nodeForm.value.id,
       expectedVersion: nodeForm.value.version,
       parentId: nodeForm.value.parentId,
-      code: nodeForm.value.code,
+      code: undefined,
       name: nodeForm.value.name,
       locationType: nodeForm.value.locationType,
       treeSort: nodeForm.value.treeSort

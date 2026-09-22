@@ -85,16 +85,23 @@
       v-loading="formLoading"
     >
       <el-divider content-position="left">行政区划</el-divider>
-      <el-row :gutter="16">
-        <el-col v-for="field in divisionFields" :key="field.code" :xs="24" :sm="12">
-          <el-form-item :label="field.label + '编码'" :prop="field.code"
-            ><el-input v-model="formData[field.code]"
-          /></el-form-item>
-          <el-form-item :label="field.label + '名称'" :prop="field.name"
-            ><el-input v-model="formData[field.name]"
-          /></el-form-item>
-        </el-col>
-      </el-row>
+      <el-form-item v-if="!foreignAddress" label="省市区" prop="districtCode">
+        <el-cascader
+          v-model="areaPath"
+          :options="areaOptions"
+          :props="{ label: 'name', value: 'id', emitPath: true }"
+          filterable
+          clearable
+          class="!w-100%"
+          placeholder="请选择省、市、区县"
+          :disabled="areaLoading"
+          @change="handleAreaChange"
+        />
+      </el-form-item>
+      <el-form-item v-else label="行政区划">
+        <el-input :model-value="divisionText(formData)" disabled />
+        <span class="text-12px text-[var(--el-text-color-secondary)]">境外行政区划保留原值</span>
+      </el-form-item>
       <el-divider content-position="left">地址明细</el-divider>
       <el-form-item label="详细地址" prop="detailAddress"
         ><el-input v-model="formData.detailAddress" placeholder="道路、门牌号等"
@@ -130,6 +137,7 @@
 
 <script lang="ts" setup>
 import * as LocationApi from '@/api/pms/asset/location'
+import { getAreaTree } from '@/api/system/area'
 
 defineOptions({ name: 'PmsAssetAddress' })
 const message = useMessage()
@@ -146,26 +154,48 @@ const queryParams = reactive({
 const dialogVisible = ref(false)
 const formLoading = ref(false)
 const formRef = ref()
-type DivisionKey =
-  | 'countryCode'
-  | 'countryName'
-  | 'provinceCode'
-  | 'provinceName'
-  | 'cityCode'
-  | 'cityName'
-  | 'districtCode'
-  | 'districtName'
-const divisionFields: { label: string; code: DivisionKey; name: DivisionKey }[] = [
-  { label: '国家', code: 'countryCode', name: 'countryName' },
-  { label: '省', code: 'provinceCode', name: 'provinceName' },
-  { label: '市', code: 'cityCode', name: 'cityName' },
-  { label: '区县', code: 'districtCode', name: 'districtName' }
-]
+interface AreaNode {
+  id: number
+  name: string
+  children?: AreaNode[]
+}
+const areaOptions = ref<AreaNode[]>([])
+const areaPath = ref<number[]>([])
+const areaLoading = ref(false)
+const foreignAddress = computed(
+  () => !!formData.value.countryCode && formData.value.countryCode !== 'CN'
+)
+const handleAreaChange = () => {
+  let nodes = areaOptions.value
+  const selected = (areaPath.value || []).map((id) => {
+    const node = nodes.find((item) => item.id === id)
+    nodes = node?.children || []
+    return node
+  })
+  Object.assign(formData.value, {
+    countryCode: 'CN',
+    countryName: '中国',
+    provinceCode: selected[0] ? String(selected[0].id) : undefined,
+    provinceName: selected[0]?.name,
+    cityCode: selected[1] ? String(selected[1].id) : undefined,
+    cityName: selected[1]?.name,
+    districtCode: selected[2] ? String(selected[2].id) : undefined,
+    districtName: selected[2]?.name
+  })
+}
 const emptyForm = (): LocationApi.AddressVO => ({ detailAddress: '', fullAddress: '' })
 const formData = ref<LocationApi.AddressVO>(emptyForm())
 const formRules = {
   countryCode: [{ required: true, message: '国家编码不能为空', trigger: 'blur' }],
   countryName: [{ required: true, message: '国家名称不能为空', trigger: 'blur' }],
+  districtCode: [
+    {
+      validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+        callback(!foreignAddress.value && !value ? new Error('请选择完整的省市区') : undefined)
+      },
+      trigger: 'change'
+    }
+  ],
   detailAddress: [{ required: true, message: '详细地址不能为空', trigger: 'blur' }],
   fullAddress: [{ required: true, message: '完整地址不能为空', trigger: 'blur' }]
 }
@@ -193,8 +223,25 @@ const divisionText = (row: LocationApi.AddressVO) =>
 const coordinateText = (row: LocationApi.AddressVO) =>
   row.longitude == null || row.latitude == null ? '未维护' : `${row.longitude}, ${row.latitude}`
 const openForm = async (id?: number) => {
-  formData.value = id ? await LocationApi.getAddress(id) : emptyForm()
+  formData.value = id
+    ? await LocationApi.getAddress(id)
+    : { ...emptyForm(), countryCode: 'CN', countryName: '中国' }
+  areaPath.value = [
+    formData.value.provinceCode,
+    formData.value.cityCode,
+    formData.value.districtCode
+  ]
+    .filter(Boolean)
+    .map(Number)
   dialogVisible.value = true
+  if (!areaOptions.value.length) {
+    areaLoading.value = true
+    try {
+      areaOptions.value = await getAreaTree()
+    } finally {
+      areaLoading.value = false
+    }
+  }
   nextTick(() => formRef.value?.clearValidate())
 }
 const submitForm = async () => {
