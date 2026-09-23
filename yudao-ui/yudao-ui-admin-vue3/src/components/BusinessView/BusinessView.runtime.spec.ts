@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
@@ -18,6 +19,7 @@ import {
 // The custom renderer has no DOM; keyboard/ARIA integration is covered by its DOM suite.
 vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
 vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', () => ({ default: { render: () => null } }))
@@ -135,6 +137,7 @@ const requirementView = (id: string | number = 91, state = 'DRAFT', allowedActio
     revisionNo: 1, state, effective: state === 'FROZEN', version: 4 },
   extensionValueVersion: 0, allowedActions, fieldCatalog: [{ code: 'note', type: 'TEXT', required: false }],
   form: { binding: { formRevisionId: 20, version: 1, fieldBindings: { note: 'note' } }, revisionNo: 1,
+    fields: [{ field: 'note', type: 'input' }],
     formConfJson: '{}', formRulesJson: '[{"type":"input","field":"note"}]' },
   values: { note: 'old' }, attachments: []
 }) as any

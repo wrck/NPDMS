@@ -1,0 +1,41 @@
+{
+  "templateId": 993009900014,
+  "code": "TPL-DELIVERY-FLOW-20260922",
+  "name": "项目交付全流程模板（流程图2）",
+  "state": "SAVED_DRAFT",
+  "validation": {
+    "valid": false,
+    "issues": [
+      {
+        "field": "stages[0].completionRule",
+        "code": "REQUIRED",
+        "message": "阶段必须配置完成规则"
+      },
+      {
+        "field": "stages[1].completionRule",
+        "code": "REQUIRED",
+        "message": "阶段必须配置完成规则"
+      },
+      {
+        "field": "tasks[4].completionRule",
+        "code": "REQUIRED",
+        "message": "任务必须配置完成规则"
+      },
+      {
+        "field": "tasks[5].completionRule",
+        "code": "REQUIRED",
+        "message": "任务必须配置完成规则"
+      },
+      {
+        "field": "tasks[11].completionRule",
+        "code": "REQUIRED",
+        "message": "任务必须配置完成规则"
+      }
+    ]
+  },
+  "status": "DRAFT",
+  "version": 7,
+  "publishedRevisionCount": 0,
+  "baselineTemplatesChecked": 25,
+  "baselineVersionOrStatusChanges": []
+}

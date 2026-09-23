@@ -28,12 +28,12 @@ public class ProjectAttributeResolutionService {
     public TemplateMatchDecision resolveInitial(ProjectMasterDO project, Long selectedRevisionId,
                                                 String candidateWatermark) {
         ProjectAttributeSnapshot normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(project));
-        return resolveInitialNormalized(ProjectRuleFields.manualCreationFacts(project).withAttributes(normalized), selectedRevisionId, candidateWatermark);
+        return resolveInitialNormalized(projectRuleFields.normalizedCreationFacts(project, normalized, true), selectedRevisionId, candidateWatermark);
     }
 
     public TemplateMatchDecision resolveSourceInitial(ProjectMasterDO project, Long selectedRevisionId,
                                                       String candidateWatermark) {
-        return resolveInitialNormalized(ProjectRuleFields.creationFacts(project).withAttributes(normalizeCommon(attributes(project))), selectedRevisionId, candidateWatermark);
+        return resolveInitialNormalized(projectRuleFields.normalizedCreationFacts(project, normalizeCommon(attributes(project)), false), selectedRevisionId, candidateWatermark);
     }
 
     private TemplateMatchDecision resolveInitialNormalized(TemplateMatchFacts facts,
@@ -60,7 +60,7 @@ public class ProjectAttributeResolutionService {
 
     public TemplateMatchDecision evaluateImpact(ProjectMasterDO project, ProjectAttributeSnapshot attributes) {
         ProjectAttributeSnapshot normalized = normalizeCommon(attributes);
-        TemplateMatchResult match = projectTemplateService.matchPreview(ProjectRuleFields.creationFacts(project).withAttributes(normalized));
+        TemplateMatchResult match = projectTemplateService.matchPreview(projectRuleFields.normalizedCreationFacts(project, normalized, false));
         TemplateMatchCandidate matched = match.getOutcome() == TemplateMatchResult.Outcome.MATCHED
                 ? match.getMatched() : null;
         return decision(match, null, matched);
@@ -88,4 +88,6 @@ public class ProjectAttributeResolutionService {
     private ProjectAttributeSnapshot normalizeCommon(ProjectAttributeSnapshot attributes) {
         return TemplateMatchDecisionRules.requireCommonAttributes(attributes);
     }
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

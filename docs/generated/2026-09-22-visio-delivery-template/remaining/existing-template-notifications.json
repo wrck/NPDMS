@@ -1,0 +1,24 @@
+{
+  "currentTemplateValidation": {
+    "valid": true,
+    "issues": []
+  },
+  "otherTemplateReadErrors": [
+    {
+      "path": "/admin-api/api/v1/pms/project-templates/910002/draft",
+      "code": 1014040004,
+      "message": "交付定义引用无效：exact definitionRevisionId required"
+    },
+    {
+      "path": "/admin-api/api/v1/pms/project-templates/910003/draft",
+      "code": 1014040004,
+      "message": "交付定义引用无效：exact definitionRevisionId required"
+    },
+    {
+      "path": "/admin-api/api/v1/pms/project-templates/910001/draft",
+      "code": 1014040004,
+      "message": "交付定义引用无效：exact definitionRevisionId required"
+    }
+  ],
+  "note": "Other template errors retained; no data or validation was changed to conceal them."
+}

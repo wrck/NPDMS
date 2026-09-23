@@ -38,7 +38,7 @@ public class ProjectRulePublicationValidator {
         List<Issue> issues = new ArrayList<>();
         try {
             var program = compiler.compile(expression);
-            validateProgram("rule", program, ProjectRuleFields.codes(), false, issues);
+            validateProgram("rule", program, projectRuleFields.codes(), false, issues);
             for (var leaf : program.leaves()) if (leaf.parameters().has("sourceNodeKey"))
                 issues.add(new Issue("rule." + leaf.path(), "RULE_SOURCE_REQUIRES_VERSION", "来源节点属于模板或项目计划版本，请在节点侧栏配置"));
         } catch (RuntimeException invalid) {
@@ -67,13 +67,13 @@ public class ProjectRulePublicationValidator {
         if (document.getTasks() != null) document.getTasks().stream().filter(Objects::nonNull).forEach(node ->
                 bindings.put(node.getNodeKey(), binding(DeliveryDefinitionKind.TASK, node.getWorkBinding())));
         Map<String, RuleProgram> programs = new LinkedHashMap<>();
-        Set<String> creationFields = ProjectRuleFields.catalog().stream()
+        Set<String> creationFields = projectRuleFields.catalog().stream()
                 .filter(ProjectRuleFields.Field::availableAtCreation).map(ProjectRuleFields.Field::code)
                 .collect(Collectors.toUnmodifiableSet());
         for (VersionRule rule : rules.values()) {
             String path = "rules." + rule.key();
             boolean matching = uses.get(rule.key()).contains(RuleUse.MATCHING);
-            Set<String> fields = new java.util.HashSet<>(matching ? creationFields : ProjectRuleFields.codes());
+            Set<String> fields = new java.util.HashSet<>(matching ? creationFields : projectRuleFields.codes());
             if (uses.get(rule.key()).equals(Set.of(RuleUse.POST))) fields.addAll(ProjectOperationResultFields.codes());
             try {
                 RuleProgram program = rule.kind() == VersionRule.Kind.CONDITION
@@ -205,7 +205,7 @@ public class ProjectRulePublicationValidator {
                     issues.add(new Issue(path, "RULE_FIELD_UNAVAILABLE", "字段未开放或创建时不可用"));
                     return;
                 }
-                var field = java.util.stream.Stream.concat(ProjectRuleFields.catalog().stream(), ProjectOperationResultFields.catalog().stream())
+                var field = java.util.stream.Stream.concat(projectRuleFields.catalog().stream(), ProjectOperationResultFields.catalog().stream())
                         .filter(item -> item.code().equals(fieldCode)).findFirst().orElseThrow();
                 if (!field.valueType().equals(leaf.parameters().path("valueType").asText()))
                     issues.add(new Issue(path, "RULE_FIELD_TYPE_MISMATCH", "条件字段类型与开放字段目录不一致"));
@@ -288,4 +288,5 @@ public class ProjectRulePublicationValidator {
             use(expression.path("parameters").path("ruleKey").asText(null), checkpoint, rules, uses);
         }
     }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

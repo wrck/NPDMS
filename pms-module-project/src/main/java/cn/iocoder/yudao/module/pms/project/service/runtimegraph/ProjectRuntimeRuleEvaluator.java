@@ -61,9 +61,9 @@ public class ProjectRuntimeRuleEvaluator {
         if ("DECISION".equals(predicate))
             return decisions.resolve(facts.project().getTenantId(), "project:" + facts.project().getId()
                     + ":plan:" + facts.project().getActivePlanVersionId(), leaf,
-                    code -> cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(facts.project(), code));
+                    code -> projectRuleFields.read(facts.project(), code));
         if ("FIELD".equals(predicate))
-            return cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(
+            return projectRuleFields.read(
                     facts.project(), leaf.parameters().path("fieldCode").asText());
         if ("STAGE_NATIVE_STATUS".equals(predicate)) {
             if (facts.stage() == null) return RuleFact.unknown("STAGE_CONTEXT_REQUIRED");
@@ -102,4 +102,5 @@ public class ProjectRuntimeRuleEvaluator {
     public RuleFact resolveRelativeTime(RuleProgram.Leaf leaf, Facts facts, Long executionId) {
         return relativeTime.resolve(facts.project().getTenantId(), facts.project().getId(), executionId, leaf.parameters());
     }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

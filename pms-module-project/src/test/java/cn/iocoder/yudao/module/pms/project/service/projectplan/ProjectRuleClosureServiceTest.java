@@ -45,7 +45,7 @@ class ProjectRuleClosureServiceTest {
         when(plans.selectEffective(any())).thenReturn(plan);
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(new ProjectStageInstanceDO().setStatus("DONE")));
         service = new ProjectRuleClosureService(projects, plans, executions, graph, references,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, processes);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)), audit, processes);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
                 mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
     }

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="https://npdms/pms/solutionreview">
+  <process id="PMS_DELIVERY_SOLUTION_REVIEW" name="实施方案服务经理初审与工程管理部复审" isExecutable="true">
+    <extensionElements><flowable:executionListener event="start" expression="${solutionReviewBpmGuard.freeze(execution)}"/></extensionElements>
+    <startEvent id="start" name="提交冻结方案"/>
+    <sequenceFlow id="toFirst" sourceRef="start" targetRef="serviceManagerReview"/>
+    <userTask id="serviceManagerReview" name="服务经理审核" flowable:assignee="${solutionReviewCandidates['serviceManagerReview']}">
+      <extensionElements>
+        <flowable:pmsReviewResponsibility>SERVICE_MANAGER</flowable:pmsReviewResponsibility>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy>
+        <flowable:candidateParam>${solutionReviewCandidates['serviceManagerReview']}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${solutionReviewBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${solutionReviewBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${solutionReviewBpmGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toSecond" sourceRef="serviceManagerReview" targetRef="engineeringManagementReview"/>
+    <userTask id="engineeringManagementReview" name="工程管理部复审" flowable:assignee="${solutionReviewCandidates['engineeringManagementReview']}">
+      <extensionElements>
+        <flowable:pmsReviewResponsibility>ENGINEERING_MANAGEMENT</flowable:pmsReviewResponsibility>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy>
+        <flowable:candidateParam>${solutionReviewCandidates['engineeringManagementReview']}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${solutionReviewBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${solutionReviewBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${solutionReviewBpmGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="engineeringManagementReview" targetRef="end"/>
+    <endEvent id="end" name="方案审核结束"/>
+  </process>
+  <bpmndi:BPMNDiagram id="diagram"><bpmndi:BPMNPlane id="plane" bpmnElement="PMS_DELIVERY_SOLUTION_REVIEW">
+    <bpmndi:BPMNShape id="s0" bpmnElement="start"><dc:Bounds x="40" y="132" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s1" bpmnElement="serviceManagerReview"><dc:Bounds x="140" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s2" bpmnElement="engineeringManagementReview"><dc:Bounds x="350" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s3" bpmnElement="end"><dc:Bounds x="560" y="132" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="e0" bpmnElement="toFirst"><di:waypoint x="76" y="150"/><di:waypoint x="140" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="e1" bpmnElement="toSecond"><di:waypoint x="280" y="150"/><di:waypoint x="350" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="e2" bpmnElement="toEnd"><di:waypoint x="490" y="150"/><di:waypoint x="560" y="150"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

@@ -1,0 +1,186 @@
+[
+  {
+    "id": "2102312813843894274",
+    "entityType": "PROJECT_ASSIGNMENT",
+    "viewKey": "VISIO_DELIVERY_20260922_PROJECT_ASSIGNMENT",
+    "revisionNo": 1,
+    "ownerContext": "PROJ",
+    "viewSource": "PAGE",
+    "componentKey": "PROJ_PROJECT_ASSIGNMENT",
+    "componentVersion": "1",
+    "dynamicFormRevisionId": null,
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "PROJ_PROJECT_ASSIGNMENT_QUERY",
+    "commandProviderKey": "PROJ_PROJECT_ASSIGNMENT_COMMAND",
+    "permissionProviderKey": "PROJ_PROJECT_ASSIGNMENT_PERMISSION",
+    "publishedAt": 1790065408779,
+    "disabledAt": null,
+    "version": 1,
+    "status": "PUBLISHED",
+    "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+    ]
+  },
+  {
+    "id": "2102312815597113345",
+    "entityType": "STAGE_PLAN",
+    "viewKey": "VISIO_DELIVERY_20260922_STAGE_PLAN",
+    "revisionNo": 1,
+    "ownerContext": "PLN",
+    "viewSource": "PAGE",
+    "componentKey": "PLN_STAGE_PLAN_APPROVAL",
+    "componentVersion": "1",
+    "dynamicFormRevisionId": null,
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "PLN_STAGE_PLAN_APPROVAL_QUERY",
+    "commandProviderKey": "PLN_STAGE_PLAN_APPROVAL_COMMAND",
+    "permissionProviderKey": "PLN_STAGE_PLAN_APPROVAL_PERMISSION",
+    "publishedAt": 1790065409111,
+    "disabledAt": null,
+    "version": 1,
+    "status": "PUBLISHED",
+    "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+    ]
+  },
+  {
+    "id": "2102312816972845058",
+    "entityType": "IMPLEMENTATION_SOLUTION",
+    "viewKey": "VISIO_DELIVERY_20260922_IMPLEMENTATION_SOLUTION",
+    "revisionNo": 1,
+    "ownerContext": "SOL",
+    "viewSource": "PAGE",
+    "componentKey": "SOL_IMPLEMENTATION_SOLUTION",
+    "componentVersion": "1",
+    "dynamicFormRevisionId": null,
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "SOL_IMPLEMENTATION_SOLUTION_QUERY",
+    "commandProviderKey": "SOL_IMPLEMENTATION_SOLUTION_COMMAND",
+    "permissionProviderKey": "SOL_IMPLEMENTATION_SOLUTION_PERMISSION",
+    "publishedAt": 1790065409458,
+    "disabledAt": null,
+    "version": 1,
+    "status": "PUBLISHED",
+    "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+    ]
+  },
+  {
+    "id": "2102312818482794497",
+    "entityType": "CUTOVER_TASK",
+    "viewKey": "VISIO_DELIVERY_20260922_CUTOVER_TASK",
+    "revisionNo": 1,
+    "ownerContext": "CUT",
+    "viewSource": "PAGE",
+    "componentKey": "CUT_CUTOVER_COMPLETION",
+    "componentVersion": "1",
+    "dynamicFormRevisionId": null,
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "CUT_CUTOVER_COMPLETION_QUERY",
+    "commandProviderKey": "CUT_CUTOVER_COMPLETION_COMMAND",
+    "permissionProviderKey": "CUT_CUTOVER_COMPLETION_PERMISSION",
+    "publishedAt": 1790065409823,
+    "disabledAt": null,
+    "version": 1,
+    "status": "PUBLISHED",
+    "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+    ]
+  }
+]

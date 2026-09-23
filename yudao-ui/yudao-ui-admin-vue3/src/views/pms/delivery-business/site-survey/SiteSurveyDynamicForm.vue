@@ -28,6 +28,7 @@ import SurveyOutsourceShortcut from './SurveyOutsourceShortcut.vue'
 import SurveyProcurementLinks from './SurveyProcurementLinks.vue'
 import SurveyMaterialSelector from './SurveyMaterialSelector.vue'
 import SurveyProjectEndDate from './SurveyProjectEndDate.vue'
+import SurveyPreparationBranches from './SurveyPreparationBranches.vue'
 
 // Domain components follow FormCreate's modelValue/update:modelValue contract.
 // https://www.form-create.com/v3/guide/custom-form-component
@@ -35,7 +36,8 @@ const businessComponents = {
   SurveyOutsourceShortcut,
   SurveyProcurementLinks,
   SurveyMaterialSelector,
-  SurveyProjectEndDate
+  SurveyProjectEndDate,
+  SurveyPreparationBranches
 }
 Object.entries(businessComponents).forEach(([name, component]) =>
   formCreateEngine.component(`Entity${name}`, component)

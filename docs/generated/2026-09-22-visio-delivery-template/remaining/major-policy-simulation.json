@@ -1,0 +1,41 @@
+{
+  "kind": "real_engine_simulation_not_crm_project_write",
+  "cases": [
+    {
+      "case": "办事处级重大项目",
+      "major": "MATCHED",
+      "ordinary": "NOT_MATCHED"
+    },
+    {
+      "case": "市场部级重大项目",
+      "major": "MATCHED",
+      "ordinary": "NOT_MATCHED"
+    },
+    {
+      "case": "公司级重大项目",
+      "major": "MATCHED",
+      "ordinary": "NOT_MATCHED"
+    },
+    {
+      "case": "unlisted_test_value",
+      "major": "NOT_MATCHED",
+      "ordinary": "MATCHED"
+    },
+    {
+      "case": "null",
+      "major": "NOT_MATCHED",
+      "ordinary": "NOT_MATCHED"
+    },
+    {
+      "case": "empty",
+      "major": "NOT_MATCHED",
+      "ordinary": "NOT_MATCHED"
+    },
+    {
+      "case": "unavailable",
+      "major": "UNKNOWN",
+      "ordinary": "UNKNOWN"
+    }
+  ],
+  "existingUnconfiguredTemplateCompatible": true
+}

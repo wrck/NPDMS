@@ -39,12 +39,12 @@ class AbsoluteTimeConditionTest {
 
     @Test void publicationAcceptsTimeConditionsWithoutASeparateBusinessProvider() {
         var validator = new ProjectRulePublicationValidator(compiler, null,
-                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry.class));
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         assertTrue(validator.validateCondition(JsonUtils.parseTree("{\"predicate\":\"TIME_REACHED\",\"parameters\":{\"at\":\"2026-09-15T01:00:00Z\"}}")).isEmpty());
     }
 
     @Test void simulationUsesOneExplicitClockAndTheSameComparisonNotAnOverrideBoolean() {
-        var service = new ProjectRuleSimulationService(compiler, engine.evaluator(), null);
+        var service = new ProjectRuleSimulationService(compiler, engine.evaluator(), null, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         var expression = JsonUtils.parseTree("{\"predicate\":\"TIME_REACHED\",\"parameters\":{\"at\":\"2026-09-15T09:00:00+08:00\"}}");
         var rule = new VersionRule("due", "到达交付时间", VersionRule.Kind.CONDITION, false, expression, null);
         var result = service.simulate(7L, List.of(rule), "due", Map.of("clock.now",JsonUtils.parseTree("\"2026-09-15T01:00:00Z\"")));

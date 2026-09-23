@@ -39,10 +39,10 @@ class PreparationRelativeWaitSampleTest {
         decisions = new ProjectDecisionEngineConfiguration().projectDecisionEngine();
         var compiler = new ProjectRuleCompiler();
         var tables = new ProjectDecisionTableService(decisions);
-        simulation = new ProjectRuleSimulationService(compiler, engine.evaluator(), tables);
+        simulation = new ProjectRuleSimulationService(compiler, engine.evaluator(), tables, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         publication = new ProjectRulePublicationValidator(compiler, tables, new TaskBusinessProviderRegistry(List.of(
                 owner("SITE_SURVEY", "SURVEY_CONFIRMED"),
-                owner("REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED"))));
+                owner("REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED"))), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
 
     @AfterAll static void stop() {

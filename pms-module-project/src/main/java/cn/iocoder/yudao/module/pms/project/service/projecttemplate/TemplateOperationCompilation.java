@@ -130,7 +130,7 @@ public class TemplateOperationCompilation {
     /** Supported synchronous facts are deliberately narrower than node-completion facts. */
     public static boolean supports(RuleProgram program, Checkpoint checkpoint) {
         if (program == null || program.kind() != VersionRule.Kind.CONDITION || program.leaves().isEmpty()) return false;
-        var fields = new java.util.HashSet<>(ProjectRuleFields.codes());
+        var fields = new java.util.HashSet<>(ProjectRuleFields.readableCodes());
         if (checkpoint == Checkpoint.POST)
             fields.addAll(cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultFields.codes());
         for (var leaf : program.leaves()) {

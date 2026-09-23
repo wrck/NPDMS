@@ -22,7 +22,7 @@ class ProjectChildDraftFactoryTest {
         var item = new ProjectSplitItemDO(); item.setProjectName("现场工勘");
         item.setBusinessLevelCode("CHILD"); item.setDepartmentCode("CHILD-OFFICE");
         var draft = new ProjectChildDraftFactory(departments).create(parent, item);
-        var facts = ProjectRuleFields.manualCreationFacts(draft).values();
+        var facts = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(draft).values();
         assertEquals("现场工勘", facts.get("project.projectName").value());
         assertEquals("CHILD", facts.get("project.businessLevelCode").value());
         assertEquals("CHILD-OFFICE", facts.get("project.departmentCode").value());

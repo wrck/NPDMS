@@ -1,0 +1,107 @@
+[
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultFieldsTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionServiceTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationServiceTest",
+    "tests": "17",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateSelectionServiceTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateV2MatchEligibilityTest",
+    "tests": "9",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCreationFactsTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFieldConfigurationTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidatorTest",
+    "tests": "20",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleSimulationServiceTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectAssignmentCompletionProviderTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionLocalLifecycleTest",
+    "tests": "6",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.stageplan.StagePlanBatchServiceTest",
+    "tests": "16",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.SolutionApprovalCompletionProviderTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.StagePlanApprovalCompletionProviderTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.cutover.service.taskbusiness.CutoverCompletionProviderTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  }
+]

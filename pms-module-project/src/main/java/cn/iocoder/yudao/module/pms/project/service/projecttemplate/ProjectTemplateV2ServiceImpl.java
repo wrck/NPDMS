@@ -179,6 +179,20 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
                 v2TemplateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE);
         List<TemplateMatchCandidate> candidates = new ArrayList<>();
         List<TemplateMatchResult.Evaluation> evaluations = new ArrayList<>();
+        // Only actual rule inputs belong to the preview watermark. Entity discovery also includes
+        // attributes populated later during creation, which must not invalidate an unchanged match.
+        var observed = new java.util.TreeMap<String, cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact>();
+        java.util.Map<String, cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact> inputs = new java.util.AbstractMap<>() {
+            @Override public java.util.Set<Entry<String, cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact>> entrySet() {
+                return facts.values().entrySet();
+            }
+            @Override public cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact get(Object key) {
+                var value = facts.values().get(key);
+                if (key instanceof String code) observed.put(code, value == null
+                        ? cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.unknown("MATCH_FIELD_UNAVAILABLE") : value);
+                return value;
+            }
+        };
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         for (ProjectTemplateDO activeTemplate : activeTemplates) {
             List<ProjectTemplateRevisionDO> published =
@@ -199,7 +213,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
             candidate.setMatchPriority(activeTemplate.getMatchPriority());
             candidate.setLatestRevisionNo(latest.getRevisionNo());
             candidate.setTemplateRevisionId(latest.getId());
-            var evaluation = matchRuleEvaluator.evaluate(tenantId, latest.getId(), snapshot, facts.values());
+            var evaluation = matchRuleEvaluator.evaluate(tenantId, latest.getId(), snapshot, inputs);
             String ruleName = matchRuleName(snapshot);
             candidate.setRuleName(ruleName);
             evaluations.add(new TemplateMatchResult.Evaluation(activeTemplate.getId(), latest.getId(), ruleName, evaluation));
@@ -207,7 +221,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         }
         TemplateMatchResult result = TemplateMatcher.selectByPriority(candidates);
         result.setEvaluations(List.copyOf(evaluations));
-        result.setCandidateWatermark(candidateWatermark(candidates, facts));
+        result.setCandidateWatermark(candidateWatermark(candidates, new TemplateMatchFacts(observed)));
         return result;
     }
 

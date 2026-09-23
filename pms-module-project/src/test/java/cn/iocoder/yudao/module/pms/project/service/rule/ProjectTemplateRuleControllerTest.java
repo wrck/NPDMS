@@ -22,7 +22,7 @@ class ProjectTemplateRuleControllerTest {
         var simulation = mock(ProjectRuleSimulationService.class);
         when(simulation.simulate(7L, List.of(), "bad", Map.of()))
                 .thenThrow(new IllegalArgumentException("DMN contained sensitive-trial-value"));
-        var controller = new ProjectTemplateRuleController(simulation);
+        var controller = new ProjectTemplateRuleController(simulation, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         var failure = assertThrows(ServiceException.class, () -> controller.simulate(
                 new ProjectTemplateRuleController.SimulationRequest(List.of(), "bad", Map.of())));
         assertEquals(PROJECT_TEMPLATE_RULE_SIMULATION_INVALID.getCode(), failure.getCode());

@@ -368,7 +368,12 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             update.setVersion(batch.getVersion());
             if (batchMapper.updateById(update) != 1) throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
         }
+        completionEvents.changed(batch.getProjectId(), "StagePlanBatch", batch.getId(),
+                batch.getSubmittedBy(), "stage-plan-result:" + processInstanceId);
     }
+
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
 
     @Override
     public StagePlanBatchRespVO getBatch(Long batchId) {

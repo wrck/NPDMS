@@ -33,7 +33,7 @@ public class ProjectTemplateRuleController {
     @Operation(summary = "模板规则可用项目字段目录，不读取实例数据")
     @PreAuthorize("@ss.hasAnyPermissions('pms:project-template:query', 'pms:project-plan:manage')")
     public CommonResult<List<ProjectRuleFields.Field>> fields() {
-        return success(ProjectRuleFields.catalog());
+        return success(projectRuleFields.catalog());
     }
 
     @GetMapping("/operation-result-fields")
@@ -60,4 +60,5 @@ public class ProjectTemplateRuleController {
             throw exception(PROJECT_TEMPLATE_RULE_SIMULATION_INVALID);
         }
     }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

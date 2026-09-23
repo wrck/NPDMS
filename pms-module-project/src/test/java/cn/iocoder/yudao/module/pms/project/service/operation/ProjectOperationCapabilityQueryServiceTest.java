@@ -68,7 +68,7 @@ class ProjectOperationCapabilityQueryServiceTest {
         ProjectBusinessOperationProvider descriptors = () -> List.of(new ProjectBusinessOperationDescriptor(OP, 1,
                 "SOL", "SITE_SURVEY", "确认", "CONFIRM", Set.of("PRE", "POST"), TestOwner.class, "confirm"));
         var registry = new ProjectBusinessOperationRegistry(List.of(descriptors), List.of((code, version) -> OP.equals(code) && version == 1));
-        var evaluator = new ProjectOperationRuleEvaluator(mock(ProjectRuleEvaluationService.class), mock(ProjectDecisionTableService.class));
+        var evaluator = new ProjectOperationRuleEvaluator(mock(ProjectRuleEvaluationService.class), mock(ProjectDecisionTableService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         return new ProjectOperationCapabilityQueryService(context, registry, List.of(owner), evaluator, mock(BusinessViewQueryApi.class));
     }
 }

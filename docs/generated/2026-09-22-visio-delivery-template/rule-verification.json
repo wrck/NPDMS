@@ -1,0 +1,784 @@
+[
+  {
+    "name": "工前准备完成后计划可进入",
+    "ruleKey": "S2_ENTER",
+    "facts": {
+      "STATE:S1_COMPLETED": true
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S2_ENTER",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "方案不等待计划，可并行进入",
+    "ruleKey": "S3_ENTER",
+    "facts": {
+      "STATE:S1_COMPLETED": true,
+      "STATE:S2_COMPLETED": false
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S3_ENTER",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "工前未完成不能进入计划",
+    "ruleKey": "S2_ENTER",
+    "facts": {
+      "STATE:S1_COMPLETED": false
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S2_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "部署等待方案，不只看计划",
+    "ruleKey": "S4_ENTER",
+    "facts": {
+      "STATE:S2_COMPLETED": true,
+      "STATE:S3_COMPLETED": false
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S4_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "部署等待计划，不只看方案",
+    "ruleKey": "S4_ENTER",
+    "facts": {
+      "STATE:S2_COMPLETED": false,
+      "STATE:S3_COMPLETED": true
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S4_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "计划方案均完成才可部署",
+    "ruleKey": "S4_ENTER",
+    "facts": {
+      "STATE:S2_COMPLETED": true,
+      "STATE:S3_COMPLETED": true
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S4_ENTER",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRulePredicate",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "缺少方案事实不能放行",
+    "ruleKey": "S4_ENTER",
+    "facts": {
+      "STATE:S2_COMPLETED": true
+    },
+    "expected": "UNKNOWN",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S4_ENTER",
+      "outcome": "UNKNOWN",
+      "reasonCode": "FACT_UNAVAILABLE",
+      "conditions": [
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRulePrepare",
+          "outcome": "UNKNOWN",
+          "reasonCode": "SIMULATION_INPUT_MISSING"
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "直签到货验收准入",
+    "ruleKey": "DEPLOY_ARRIVAL_ENTER",
+    "facts": {
+      "TASK:DEPLOY_COORDINATE": true,
+      "project.signingMethod": "DIRECT_SIGN"
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_ARRIVAL_ENTER",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "非直签不产生到货验收义务",
+    "ruleKey": "DEPLOY_ARRIVAL_ENTER",
+    "facts": {
+      "TASK:DEPLOY_COORDINATE": true,
+      "project.signingMethod": "CHANNEL_SIGN"
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_ARRIVAL_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRuleField",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "直签硬件实施等待到货验收",
+    "ruleKey": "DEPLOY_HARDWARE_ENTER",
+    "facts": {
+      "TASK:DEPLOY_COORDINATE": true,
+      "TASK:DEPLOY_ARRIVAL": false,
+      "project.signingMethod": "DIRECT_SIGN"
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_HARDWARE_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition2",
+          "path": "rule.rules[1].rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition3",
+          "path": "rule.rules[1].rules[1].rules[1]",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleField",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "非直签硬件实施跳过到货验收",
+    "ruleKey": "DEPLOY_HARDWARE_ENTER",
+    "facts": {
+      "TASK:DEPLOY_COORDINATE": true,
+      "TASK:DEPLOY_ARRIVAL": false,
+      "project.signingMethod": "CHANNEL_SIGN"
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_HARDWARE_ENTER",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "引用任务事实缺失仍阻断，不把缺失当不适用",
+    "ruleKey": "DEPLOY_HARDWARE_ENTER",
+    "facts": {
+      "TASK:DEPLOY_COORDINATE": true,
+      "project.signingMethod": "CHANNEL_SIGN"
+    },
+    "expected": "UNKNOWN",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_HARDWARE_ENTER",
+      "outcome": "UNKNOWN",
+      "reasonCode": "FACT_UNAVAILABLE",
+      "conditions": [
+        {
+          "key": "condition3",
+          "path": "rule.rules[1].rules[1].rules[1]",
+          "component": "pmsRulePrepare",
+          "outcome": "UNKNOWN",
+          "reasonCode": "SIMULATION_INPUT_MISSING"
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "未知签约方式不得按非直签放行",
+    "ruleKey": "DEPLOY_HARDWARE_ENTER",
+    "facts": {
+      "TASK:DEPLOY_COORDINATE": true
+    },
+    "expected": "UNKNOWN",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_HARDWARE_ENTER",
+      "outcome": "UNKNOWN",
+      "reasonCode": "FACT_UNAVAILABLE",
+      "conditions": [
+        {
+          "key": "condition1",
+          "path": "rule.rules[1].rules[0]",
+          "component": "pmsRulePrepare",
+          "outcome": "UNKNOWN",
+          "reasonCode": "SIMULATION_INPUT_MISSING"
+        },
+        {
+          "key": "condition2",
+          "path": "rule.rules[1].rules[1].rules[0]",
+          "component": "pmsRulePrepare",
+          "outcome": "UNKNOWN",
+          "reasonCode": "SIMULATION_INPUT_MISSING"
+        },
+        {
+          "key": "condition3",
+          "path": "rule.rules[1].rules[1].rules[1]",
+          "component": "pmsRulePrepare",
+          "outcome": "UNKNOWN",
+          "reasonCode": "SIMULATION_INPUT_MISSING"
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "非直签跳过初验",
+    "ruleKey": "ACCEPT_INITIAL_ENTER",
+    "facts": {
+      "TASK:ACCEPT_COORDINATE": true,
+      "project.signingMethod": "CHANNEL_SIGN"
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:ACCEPT_INITIAL_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRuleField",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "非直签跳过终验",
+    "ruleKey": "ACCEPT_FINAL_ENTER",
+    "facts": {
+      "TASK:ACCEPT_COORDINATE": true,
+      "TASK:ACCEPT_INITIAL": false,
+      "project.signingMethod": "CHANNEL_SIGN"
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:ACCEPT_FINAL_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1]",
+          "component": "pmsRuleField",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "非直签不等待验收进入培训",
+    "ruleKey": "ACCEPT_TRAINING_ENTER",
+    "facts": {
+      "TASK:ACCEPT_COORDINATE": true,
+      "TASK:ACCEPT_FINAL": false,
+      "project.signingMethod": "CHANNEL_SIGN"
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:ACCEPT_TRAINING_ENTER",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "业务联调不早于配置调试",
+    "ruleKey": "DEPLOY_JOINT_ENTER",
+    "facts": {
+      "TASK:DEPLOY_CONFIG": false
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_JOINT_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "割接不早于联调完成",
+    "ruleKey": "DEPLOY_CUTOVER_ENTER",
+    "facts": {
+      "TASK:DEPLOY_JOINT": false
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:DEPLOY_CUTOVER_ENTER",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "非直签阶段完成不要求初终验",
+    "ruleKey": "S5_DONE",
+    "facts": {
+      "project.signingMethod": "CHANNEL_SIGN",
+      "TASK:ACCEPT_COORDINATE": true,
+      "TASK:ACCEPT_TRAINING": true,
+      "TASK:ACCEPT_SATISFACTION": true,
+      "TASK:ACCEPT_INITIAL": false,
+      "TASK:ACCEPT_FINAL": false
+    },
+    "expected": "MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S5_DONE",
+      "outcome": "MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition4",
+          "path": "rule.rules[2].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition7",
+          "path": "rule.rules[3]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition8",
+          "path": "rule.rules[4]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleField",
+        "pmsRulePredicate",
+        "pmsRulePredicate",
+        "pmsRuleMatched"
+      ],
+      "diagnostics": []
+    }
+  },
+  {
+    "name": "直签阶段完成仍要求初终验",
+    "ruleKey": "S5_DONE",
+    "facts": {
+      "project.signingMethod": "DIRECT_SIGN",
+      "TASK:ACCEPT_COORDINATE": true,
+      "TASK:ACCEPT_TRAINING": true,
+      "TASK:ACCEPT_SATISFACTION": true,
+      "TASK:ACCEPT_INITIAL": true,
+      "TASK:ACCEPT_FINAL": false
+    },
+    "expected": "NOT_MATCHED",
+    "actual": {
+      "kind": "CONDITION",
+      "ruleVersionRef": "simulation:S5_DONE",
+      "outcome": "NOT_MATCHED",
+      "reasonCode": null,
+      "conditions": [
+        {
+          "key": "condition0",
+          "path": "rule.rules[0]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition1",
+          "path": "rule.rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition2",
+          "path": "rule.rules[1].rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition3",
+          "path": "rule.rules[1].rules[1].rules[1]",
+          "component": "pmsRulePredicate",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition4",
+          "path": "rule.rules[2].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition5",
+          "path": "rule.rules[2].rules[1].rules[0]",
+          "component": "pmsRuleField",
+          "outcome": "MATCHED",
+          "reasonCode": null
+        },
+        {
+          "key": "condition6",
+          "path": "rule.rules[2].rules[1].rules[1]",
+          "component": "pmsRulePredicate",
+          "outcome": "NOT_MATCHED",
+          "reasonCode": null
+        }
+      ],
+      "steps": [
+        "pmsRulePrepare",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleField",
+        "pmsRulePredicate",
+        "pmsRuleField",
+        "pmsRuleField",
+        "pmsRulePredicate",
+        "pmsRuleNotMatched"
+      ],
+      "diagnostics": []
+    }
+  }
+]

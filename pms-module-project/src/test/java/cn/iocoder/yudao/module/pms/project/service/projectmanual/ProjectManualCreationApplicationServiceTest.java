@@ -85,6 +85,8 @@ class ProjectManualCreationApplicationServiceTest {
     @Mock
     private CustomerQueryApi customerQueryApi;
 
+    @org.mockito.Spy
+    private cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null);
     @InjectMocks
     private ProjectManualCreationApplicationService service;
 

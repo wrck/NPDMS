@@ -95,6 +95,13 @@ it('renders a frozen PAGE entry that only navigates without producing facts', as
   expect(router.push).toHaveBeenCalledWith('/pms/survey')
 })
 
+it('opens the confirmation page for the current project using its configured placeholder', async () => {
+  api.getStageBusinessContext.mockResolvedValue({ ...native, bindingType: 'PAGE', routePath: '/pms/project-management/project-master-detail?projectId={projectId}&tab=preparation' })
+  const view = render(); await flush()
+  await clickButton(view.root, '打开页面')
+  expect(router.push).toHaveBeenCalledWith('/pms/project-management/project-master-detail?projectId=9&tab=preparation')
+})
+
 it('passes the exact stage execution and retains the Owner page when the same project metadata refreshes', async () => {
   const execution = { projectId: '9', stageId: '90', executionId: '101', executionVersion: 2, roundNo: 2 }
   api.getStageBusinessContext.mockResolvedValue({ ...native, execution, bindingType: 'BUSINESS_OBJECT', businessView: { id: 88 } })

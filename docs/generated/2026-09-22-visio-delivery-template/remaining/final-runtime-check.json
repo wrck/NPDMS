@@ -1,0 +1,38 @@
+{
+  "negativeChecks": [
+    {
+      "case": "stale_confirmation",
+      "code": 400
+    },
+    {
+      "case": "missing_required",
+      "code": 400
+    },
+    {
+      "case": "stale_form",
+      "code": 400
+    },
+    {
+      "case": "non_manager_cannot_confirm",
+      "code": 403
+    },
+    {
+      "case": "foreign_tenant_review_source",
+      "code": 403
+    }
+  ],
+  "failedWritesPreservedCurrentConfirmation": true,
+  "otherTemplatesUnchanged": 25,
+  "templateValidation": {
+    "valid": true,
+    "issues": []
+  },
+  "templateCounts": {
+    "stages": 6,
+    "tasks": 17,
+    "deliverables": 17,
+    "gates": 5,
+    "transitions": 6,
+    "rules": 39
+  }
+}

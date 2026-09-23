@@ -22,8 +22,12 @@ class SolutionLocalLifecycleTest {
     private final DeliverableMapper deliverableMapper = mock(DeliverableMapper.class);
     private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final SolutionServiceImpl service = new SolutionServiceImpl();
+    private final cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tiered = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.class);
     private SolutionDO row;
     @BeforeEach void setUp() {
+        ReflectionTestUtils.setField(service, "reviewPolicies", mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService.class));
+        ReflectionTestUtils.setField(service, "tieredReviewMapper", tiered);
+        ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "solutionMapper", mapper);
         ReflectionTestUtils.setField(service, "deliverableMapper", deliverableMapper);
         doReturn("PROJ-FA-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.SOLUTION), any(), any(), any());
@@ -76,6 +80,32 @@ class SolutionLocalLifecycleTest {
         assertEquals(SOLUTION_REVIEW_NOT_CONNECTED.getCode(), assertThrows(ServiceException.class, () -> service.approveSolution(approval)).getCode());
         assertEquals(2, row.getStatus());
         assertNull(row.getBaselineVersion());
+        verify(mapper, never()).updateById(any(SolutionDO.class));
+    }
+
+    @Test void configuredProjectCannotUseLegacyOrdinaryCommandsToSkipReview() {
+        row.setSolutionType("IMPLEMENTATION"); when(tiered.source(any())).thenReturn(row);
+        var policies = mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService.class);
+        ReflectionTestUtils.setField(service, "reviewPolicies", policies);
+        doThrow(new IllegalArgumentException("需要复审")).when(policies).freeze(row, 0);
+        assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
+        assertEquals(0, row.getStatus());
+        row.setStatus(2);
+        doThrow(new IllegalArgumentException("缺少判定")).when(policies).requireOrdinaryApproval(row);
+        assertThrows(IllegalArgumentException.class, () -> service.approveSolution(new SolutionApproveReqVO() {{ setId(1L); }}));
+        assertEquals(2, row.getStatus()); assertNull(row.getBaselineVersion());
+        verify(mapper, never()).updateById(any(SolutionDO.class)); verifyNoInteractions(deliverableMapper);
+    }
+
+    @Test void originalActionsCannotBypassAnActiveTieredProcess() {
+        row.setStatus(2); row.setReviewLevel(1); row.setSolutionType("IMPLEMENTATION");
+        when(tiered.source(any())).thenReturn(row);
+        var review = new cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solutionreview.SolutionReviewDO();
+        review.setStatus("RUNNING"); when(tiered.bySolution(any())).thenReturn(review);
+        var rejection = new SolutionApproveReqVO(); rejection.setId(1L); rejection.setVersion(6);
+        assertThrows(IllegalStateException.class, () -> service.rejectSolution(rejection));
+        assertThrows(IllegalStateException.class, () -> service.withdrawSolution(1L));
+        assertThrows(IllegalStateException.class, () -> service.terminateSolution(1L));
         verify(mapper, never()).updateById(any(SolutionDO.class));
     }
 

@@ -138,7 +138,7 @@ class ProjectBusinessFactSourceServiceTest {
         String json = "{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"sourceNodeKey\":\"prep\",\"factCode\":\"SURVEY_CONFIRMED\",\"quantifier\":\"ALL\"}}";
         if (not) json = "{\"operator\":\"NOT\",\"rules\":[" + json + "]}";
         var runtime = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler,
-                engine.evaluator(), mock(ProjectDecisionTableService.class), sources);
+                engine.evaluator(), mock(ProjectDecisionTableService.class), sources, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         return runtime.evaluate("plan:" + plan.getId() + ":consumer", compiler.compile(JsonUtils.parseTree(json)),
                 new ProjectRuntimeRuleEvaluator.Facts(project, null, List.of(), List.of(), List.of(), false));
     }

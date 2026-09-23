@@ -1,0 +1,56 @@
+{
+  "projectId": 992203060019,
+  "pageErrors": [],
+  "apiErrors": [],
+  "legacyRequests": [],
+  "packagedHistoryClassesAndMapperAbsent": true,
+  "removedEndpointGET": {
+    "status": 200,
+    "code": 404
+  },
+  "removedEndpointPOST": {
+    "status": 200,
+    "code": 404
+  },
+  "historyUiRemoved": true,
+  "surveyDetailsAndBranchesAvailable": true,
+  "confirmedSurveyReadOnly": true,
+  "surveyUnchanged": true,
+  "projectRuleFieldCount": 56,
+  "template": {
+    "id": 993009900014,
+    "version": 16,
+    "status": "DRAFT"
+  },
+  "templatePrecheck": {
+    "valid": true,
+    "issues": []
+  },
+  "backendTests": [
+    {
+      "name": "ProjectRuleFieldConfigurationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "ProjectFieldRuleApiImplTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "backendHealth": {
+    "groups": [
+      "liveness",
+      "readiness"
+    ],
+    "status": "UP"
+  },
+  "frontendTypecheck": "PASS",
+  "sourceReferenceCount": 0,
+  "removedSourceFiles": 9,
+  "databaseMigrationsAndHistoricalRows": "UNCHANGED"
+}

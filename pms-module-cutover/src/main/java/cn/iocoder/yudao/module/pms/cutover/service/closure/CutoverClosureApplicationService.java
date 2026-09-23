@@ -870,7 +870,14 @@ public class CutoverClosureApplicationService {
 
     private PlatformCommandExecutionApi.SuccessFacts submitSuccessFacts(
             SubmitCutoverClosureCommand command, CutoverClosureCommandResult result, LocalDateTime submittedAt) {
-        List<BusinessEvent> events = List.of();
+        List<BusinessEvent> events = new java.util.ArrayList<>();
+        var closure = closureMapper.selectByTask(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery(
+                command.tenantId(), result.taskId()));
+        if (closure == null) throw new IllegalStateException("CUTOVER_CLOSURE_RESULT_MISSING");
+        var wakeup = cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.create(
+                command.tenantId(), closure.getProjectId(), command.actorId(), command.correlationId());
+        events.add(new BusinessEvent(wakeup.eventId(),
+                cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.EVENT_TYPE, JsonUtils.toJsonString(wakeup)));
         if ("SUCCESS".equals(command.finalResult())) {
             String resultRef = "CUTOVER_CLOSURE:" + result.closureId() + ":" + result.closureVersion();
             String eventId = "CUTOVER_COMPLETED:" + result.closureId() + ":" + result.closureVersion();
@@ -882,7 +889,7 @@ public class CutoverClosureApplicationService {
             // Use the same clock zone as submittedAt, independent of the host's default timezone.
             payload.put("archivedAt", submittedAt.atZone(clock.getZone()).toInstant().toEpochMilli());
             payload.put("correlationId", command.correlationId());
-            events = List.of(new BusinessEvent(eventId, "CutoverCompleted", JsonUtils.toJsonString(payload)));
+            events.add(new BusinessEvent(eventId, "CutoverCompleted", JsonUtils.toJsonString(payload)));
         }
         return new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_CLOSURE_SUBMIT", "CutoverClosure",
                 String.valueOf(result.closureId()), command.correlationId(), JsonUtils.toJsonString(result), events);

@@ -173,7 +173,7 @@ public class ProjectTemplateController {
     public CommonResult<ProjectTemplateMatchRespVO> matchPreview(@Valid @RequestBody ProjectTemplateMatchPreviewReqVO reqVO) {
         try {
             TemplateMatchResult result = projectTemplateService.matchPreview(
-                    ProjectRuleFields.suppliedCreationFacts(reqVO.getFacts()));
+                    projectRuleFields.suppliedCreationFacts(reqVO.getFacts()));
             ProjectTemplateMatchRespVO respVO = new ProjectTemplateMatchRespVO();
             respVO.setOutcome(result.getOutcome() == null ? null : result.getOutcome().name());
             respVO.setMatched(result.getMatched());
@@ -197,4 +197,6 @@ public class ProjectTemplateController {
             completionFactCatalog() {
         return success(taskBusinessProviderRegistry.completionFactCatalog());
     }
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

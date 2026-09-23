@@ -1,4 +1,5 @@
 import { markRaw, type Component } from 'vue'
+import OwnerCompletionEntry from './OwnerCompletionEntry.vue'
 import { businessPageRoutes, validatePagePresentation, type PagePresentation } from './presentationRoute'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platform/business-view'
@@ -41,6 +42,38 @@ interface Adapter {
 const positiveId = isBusinessViewId
 // Paths only select these statically imported components; URL metadata never becomes an import or command.
 const adapters: readonly Adapter[] = [
+  {
+    ...businessPageRoutes.PROJ_PROJECT_ASSIGNMENT,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '人员指派', tab: 'members' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.PLN_STAGE_PLAN_APPROVAL,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '施工计划审批', tab: 'schedule' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.SOL_IMPLEMENTATION_SOLUTION,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '实施方案审核', tab: 'solution' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.CUT_CUTOVER_COMPLETION,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '割接上线', tab: 'cutover' }
+        : undefined
+  },
   {
     ...businessPageRoutes.ACC_ACCEPTANCE_REPORT,
     component: markRaw(AcceptanceReportPage),

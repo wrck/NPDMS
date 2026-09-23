@@ -6,6 +6,10 @@ import { acceptanceReportOperationActions } from '@/api/pms/acceptance/acceptanc
 export interface PagePresentation { pageUrl: string; query: Readonly<Record<string, string>> }
 /** The single code-owned directory for embedded routes; the Vue registry adds only static components. */
 export const businessPageRoutes = {
+  PROJ_PROJECT_ASSIGNMENT: { componentKey: 'PROJ_PROJECT_ASSIGNMENT', componentVersion: '1', ownerContext: 'PROJ', entityType: 'PROJECT_ASSIGNMENT', viewSource: 'PAGE', pageUrl: '/pms/project-management/project-master-detail' },
+  PLN_STAGE_PLAN_APPROVAL: { componentKey: 'PLN_STAGE_PLAN_APPROVAL', componentVersion: '1', ownerContext: 'PLN', entityType: 'STAGE_PLAN', viewSource: 'PAGE', pageUrl: '/pms/imp-stage-plan' },
+  SOL_IMPLEMENTATION_SOLUTION: { componentKey: 'SOL_IMPLEMENTATION_SOLUTION', componentVersion: '1', ownerContext: 'SOL', entityType: 'IMPLEMENTATION_SOLUTION', viewSource: 'PAGE', pageUrl: '/pms/engineering/preparation/sol-solution' },
+  CUT_CUTOVER_COMPLETION: { componentKey: 'CUT_CUTOVER_COMPLETION', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_TASK', viewSource: 'PAGE', pageUrl: '/pms/cutover/cutover-task' },
   ACC_ACCEPTANCE_REPORT: { componentKey: 'ACC_ACCEPTANCE_REPORT', componentVersion: '1', ownerContext: 'ACC', entityType: 'ACCEPTANCE', viewSource: 'PAGE', pageUrl: '/pms/project/acceptance-report', operationActions: acceptanceReportOperationActions },
   SOL_SITE_SURVEY: { componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/site-survey', operationActions: siteSurveyOperationActions },
   PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis', operationActions: requirementAnalysisOperationActions },

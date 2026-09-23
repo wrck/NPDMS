@@ -15,23 +15,23 @@ class ProjectRuleCreationFactsTest {
             request = JsonUtils.parseObject(new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8),
                     cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateMatchPreviewReqVO.class);
         }
-        var facts = ProjectRuleFields.suppliedCreationFacts(request.getFacts()).values();
+        var facts = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).suppliedCreationFacts(request.getFacts()).values();
         assertFalse(facts.containsKey("project.businessType"));
         assertTrue(facts.get("project.customerCode").available()); assertNull(facts.get("project.customerCode").value());
         assertEquals(false, facts.get("project.isChild").value());
         assertEquals("现场工勘", facts.get("project.projectName").value());
     }
     @Test void invalidTypesRemainUnknownAndRuntimeFieldsCannotEnterPreview() {
-        var facts = ProjectRuleFields.suppliedCreationFacts(Map.of(
+        var facts = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).suppliedCreationFacts(Map.of(
                 "project.isChild", json("\"false\""), "project.projectName", json("{}"))).values();
         assertFalse(facts.get("project.isChild").available()); assertFalse(facts.get("project.projectName").available());
-        assertThrows(IllegalArgumentException.class, () -> ProjectRuleFields.suppliedCreationFacts(Map.of("project.lifecycleStatus", json("\"ACTIVE\""))));
+        assertThrows(IllegalArgumentException.class, () -> new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).suppliedCreationFacts(Map.of("project.lifecycleStatus", json("\"ACTIVE\""))));
     }
-    @Test void ownerFactsContainAllAndOnlyCreationFieldsWithKnownEmptyValues() {
-        var facts = ProjectRuleFields.creationFacts(new ProjectMasterDO()).values();
-        assertEquals(ProjectRuleFields.catalog().stream().filter(ProjectRuleFields.Field::availableAtCreation).count(), facts.size());
+    @Test void ownerFactsKeepStableBindingsWhilePreviewRestrictsCreationEligibility() {
+        var facts = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).creationFacts(new ProjectMasterDO()).values();
+        assertEquals(ProjectRuleFields.readableCodes().size(), facts.size());
         assertTrue(facts.values().stream().allMatch(fact -> fact.available()));
-        assertFalse(facts.containsKey("project.lifecycleStatus")); assertFalse(facts.containsKey("project.projectEndDate"));
+        assertNull(facts.get("project.lifecycleStatus").value()); assertNull(facts.get("project.projectEndDate").value());
     }
     private JsonNode json(String text) { return JsonUtils.parseObject(text, JsonNode.class); }
 }

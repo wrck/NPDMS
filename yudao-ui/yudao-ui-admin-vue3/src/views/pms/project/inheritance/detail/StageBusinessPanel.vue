@@ -57,7 +57,10 @@ const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false
 const refresh = async () => { if (await requestLeave()) await load() }
 const handleChanged = async () => { await load(); emit('changed') }
 const router = useRouter()
-const openPage = () => { if (context.value?.routePath) void router.push(context.value.routePath) }
+const openPage = () => {
+  if (context.value?.routePath)
+    void router.push(context.value.routePath.replaceAll('{projectId}', encodeURIComponent(String(props.project.id))))
+}
 watch([() => props.project.id, () => props.stageCode], () => { context.value = undefined; void load() }, { immediate: true })
 onBeforeUnmount(() => { ++sequence })
 defineExpose({ requestLeave, refresh, isBusy: () => loading.value || !!approvalRef.value?.isBusy() })

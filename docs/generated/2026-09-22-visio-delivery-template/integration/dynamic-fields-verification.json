@@ -1,0 +1,9 @@
+{
+  "immediateConfigurationChange": true,
+  "dynamicLabelVisibleInFieldSelector": true,
+  "disabledFieldAbsentFromSelector": true,
+  "selectedFieldLabel": "项目负责人（动态配置验证）",
+  "pageErrors": [],
+  "configurationRestored": true,
+  "draftUnchangedByFieldPickerInspection": true
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "ownerContext": "PROJ",
+    "objectType": "PROJECT_ASSIGNMENT",
+    "factCode": "PROJECT_ASSIGNMENT_COMPLETED",
+    "label": "主责服务经理与主项目经理已有效指派"
+  },
+  {
+    "ownerContext": "PLN",
+    "objectType": "CONSTRUCTION_PLAN",
+    "factCode": "DURATION_EFFECTIVE",
+    "label": "当前有效工期基线已生效"
+  },
+  {
+    "ownerContext": "SOL",
+    "objectType": "REQUIREMENT_ANALYSIS",
+    "factCode": "REQUIREMENT_ANALYSIS_COMPLETED",
+    "label": "需求分析版本已完成"
+  },
+  {
+    "ownerContext": "SOL",
+    "objectType": "SITE_SURVEY",
+    "factCode": "SURVEY_CONFIRMED",
+    "label": "工勘记录已确认（不等同实施就绪）"
+  },
+  {
+    "ownerContext": "SOL",
+    "objectType": "SITE_SURVEY",
+    "factCode": "SURVEY_ARCHIVED",
+    "label": "工勘记录已归档"
+  },
+  {
+    "ownerContext": "SOL",
+    "objectType": "IMPLEMENTATION_SOLUTION",
+    "factCode": "IMPLEMENTATION_SOLUTION_APPROVED",
+    "label": "实施方案普通审核通过并形成批准基线"
+  },
+  {
+    "ownerContext": "PLN",
+    "objectType": "STAGE_PLAN",
+    "factCode": "CONSTRUCTION_PLAN_APPROVED",
+    "label": "当前施工计划已审批生效且工期基线一致"
+  },
+  {
+    "ownerContext": "CUT",
+    "objectType": "CUTOVER_TASK",
+    "factCode": "CUTOVER_COMPLETED",
+    "label": "割接成功并完成P6归档"
+  },
+  {
+    "ownerContext": "ACC",
+    "objectType": "ACCEPTANCE",
+    "factCode": "FINAL_ACCEPTANCE_PASSED",
+    "label": "终验报告有效且结论通过"
+  },
+  {
+    "ownerContext": "ACC",
+    "objectType": "ACCEPTANCE",
+    "factCode": "PRELIMINARY_ACCEPTANCE_PASSED",
+    "label": "初验报告有效且结论通过"
+  },
+  {
+    "ownerContext": "ACC",
+    "objectType": "ACCEPTANCE",
+    "factCode": "REPORT_EFFECTIVE",
+    "label": "当前报告证据有效（不等同验收通过）"
+  }
+]

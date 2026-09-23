@@ -160,8 +160,7 @@ public class ProjectManualCreationApplicationService {
         var normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(draft));
         draft.setTenantId(actor.tenantId());
         assignOrganization(draft, resolveCompany(companyId), resolveDepartment(departmentId));
-        return projectTemplateService.matchPreview(ProjectRuleFields
-                .manualCreationFacts(draft).withAttributes(normalized));
+        return projectTemplateService.matchPreview(projectRuleFields.normalizedCreationFacts(draft, normalized, true));
     }
 
     private void assignOrganization(ProjectMasterDO draft, CompanyRespDTO company, DeptRespDTO department) {
@@ -331,4 +330,6 @@ public class ProjectManualCreationApplicationService {
 
     public record Actor(Long tenantId, Long actorId, String correlationId) {
     }
+    @jakarta.annotation.Resource
+    private ProjectRuleFields projectRuleFields;
 }

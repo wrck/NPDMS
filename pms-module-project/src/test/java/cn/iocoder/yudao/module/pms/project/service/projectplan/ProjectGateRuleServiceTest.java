@@ -50,7 +50,7 @@ class ProjectGateRuleServiceTest {
         when(owner.providerKeys()).thenReturn(Set.of("PROJ_TASK", "BPM_PROCESS"));
         var compiler = new ProjectRuleCompiler();
         service = new ProjectGateRuleService(projects,plans,graph,gates,refs,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(owner), graph, executions),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),audit);
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(owner), graph, executions),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)),audit);
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(51L); project.setLifecycleStatus("ACTIVE");
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
         gate = new ProjectGateInstanceDO(); gate.setId(21L); gate.setTenantId(7L); gate.setProjectId(9L); gate.setGateCode("READY");

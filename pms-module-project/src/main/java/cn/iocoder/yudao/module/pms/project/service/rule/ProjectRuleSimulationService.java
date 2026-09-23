@@ -54,7 +54,7 @@ public class ProjectRuleSimulationService {
                 var table = table(leaf);
                 decisions.validate(table, table.inputFields().values().stream().collect(java.util.stream.Collectors.toSet()));
                 table.inputFields().values().forEach(key -> inputs.putIfAbsent(key, new Input(key, key,
-                        ProjectRuleFields.catalog().stream().filter(field -> field.code().equals(key))
+                        projectRuleFields.catalog().stream().filter(field -> field.code().equals(key))
                                 .map(ProjectRuleFields.Field::valueType).findFirst().orElse("TEXT"))));
             } else {
                 String key = inputKey(leaf);
@@ -133,4 +133,5 @@ public class ProjectRuleSimulationService {
         if (value.isTextual()) return RuleFact.known(value.asText());
         return RuleFact.unknown("SIMULATION_INPUT_TYPE_INVALID");
     }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

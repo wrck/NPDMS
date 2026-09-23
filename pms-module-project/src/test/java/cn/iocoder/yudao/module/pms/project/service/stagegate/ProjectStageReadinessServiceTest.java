@@ -67,7 +67,7 @@ class ProjectStageReadinessServiceTest {
                 new ProjectRuntimeRuleEvaluator(providerRegistry,
                         new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
                         mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
-                        mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)));
+                        mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)));
         service = new ProjectStageReadinessService(graphResolver, projectMapper,
                 mock(ProjectStageInstanceMapper.class), mock(ProjectGateInstanceMapper.class), referenceMapper,
                 providerRegistry, scopeApi, participantFactApi, permissionApi, memberMapper);

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.completion.StagePlanCompletionMapper">
+  <select id="current" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan.StagePlanBatchDO">
+    SELECT * FROM sol_stage_plan_batch
+    WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0 AND status = 2
+    ORDER BY effective_at DESC, id DESC LIMIT 1
+    <if test="query.lock">FOR UPDATE</if>
+  </select>
+</mapper>

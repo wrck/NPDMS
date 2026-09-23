@@ -46,7 +46,7 @@ class ProjectTaskPlanCompletionServiceTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         service=new ProjectTaskPlanCompletionService(plans,executions,graph,references,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)),
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),compiler,engine.evaluator(),mock(ProjectDecisionTableService.class),mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)),
                 engine.evaluator(),compiler,business, executionApi,gateRules);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "approvals", approvals);
         project=new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(52L); project.setLifecycleStatus("ACTIVE"); project.setProjectName("private-actual-value");

@@ -25,7 +25,7 @@ class ChildProjectWaitRuleTest {
         return expression("DIRECT", "[\"NORMAL_CLOSED\"]", quantifier, empty);
     }
     RuleEvaluation simulate(JsonNode rule, JsonNode values) {
-        var service = new ProjectRuleSimulationService(compiler, engine.evaluator(), mock(ProjectDecisionTableService.class));
+        var service = new ProjectRuleSimulationService(compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         var definition = new VersionRule("wait", "子项目等待", VersionRule.Kind.CONDITION, false, rule, null);
         return (RuleEvaluation) service.simulate(7L, List.of(definition), "wait",
                 values == null ? Map.of() : Map.of("children:DIRECT", values)).evaluation();
@@ -75,7 +75,7 @@ class ChildProjectWaitRuleTest {
         var document = new TemplateDesignerDocument();
         document.setRules(List.of(new VersionRule("wait", "等待", VersionRule.Kind.CONDITION, false, normal("ALL", true), null)));
         document.setMatchRuleKey("wait");
-        var validator = new ProjectRulePublicationValidator(compiler, mock(ProjectDecisionTableService.class), mock(TaskBusinessProviderRegistry.class));
+        var validator = new ProjectRulePublicationValidator(compiler, mock(ProjectDecisionTableService.class), mock(TaskBusinessProviderRegistry.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         assertTrue(validator.validate(document).stream().anyMatch(issue -> issue.code().equals("MATCH_REQUIRES_CREATION_FACTS")));
     }
     @Test void versionProgramsRoundTripWithoutReadingAnotherRuleSource() {

@@ -593,7 +593,7 @@ import ArrivalAcceptanceWorkbench from './components/ProjectArrivalReceiptPanel.
 import InstallationWorkbench from '@/views/pms/engineering/installation/index.vue'
 import ConfigurationWorkbench from '@/views/pms/engineering/configuration/index.vue'
 import JointTestWorkbench from '@/views/pms/engineering/joint-test/index.vue'
-import SolutionWorkbench from '@/views/pms/engineering/solution/index.vue'
+import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
 import MaterialExchWorkbench from '@/views/pms/engineering/material-exch/index.vue'
 import CutoverTaskWorkbench from '@/views/pms/cutover/cutover-task/index.vue'
 import ConfigLogWorkbench from '@/views/pms/asset/device/config-log/index.vue'

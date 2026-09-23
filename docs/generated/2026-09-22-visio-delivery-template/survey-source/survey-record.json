@@ -1,0 +1,197 @@
+{
+  "addressId": null,
+  "addressSnapshot": null,
+  "addressVersion": null,
+  "businessValues": {
+    "powerSupply": null,
+    "cabinet": null,
+    "networkPort": null,
+    "fiber": null,
+    "module": null,
+    "cable": null,
+    "ground": null,
+    "constructionResource": null,
+    "conclusion": null,
+    "remark": null,
+    "cabinetReady": null,
+    "cableReady": null,
+    "moduleReady": null,
+    "originalModule": null,
+    "manufacturerInstallation": true,
+    "railTrayRequired": false,
+    "materialMatches": true,
+    "requiredEndDate": null,
+    "powerTypes": [],
+    "powerEnvironments": [],
+    "networkPortTypes": [],
+    "selectedMaterials": []
+  },
+  "cabinet": null,
+  "cable": null,
+  "code": "PJT2026000013-GK-001",
+  "conclusion": null,
+  "constructionResource": null,
+  "createTime": 1790083188648,
+  "extensionDefinitionRevisionId": null,
+  "extensionValues": {},
+  "fiber": null,
+  "fieldBindings": {
+    "module": "module",
+    "extra_moduleReady": "moduleReady",
+    "extra_powerEnvironments": "powerEnvironments",
+    "constructionResource": "constructionResource",
+    "powerSupply": "powerSupply",
+    "fiber": "fiber",
+    "networkPort": "networkPort",
+    "extra_selectedMaterials": "selectedMaterials",
+    "remark": "remark",
+    "conclusion": "conclusion",
+    "extra_cabinetReady": "cabinetReady",
+    "cable": "cable",
+    "cabinet": "cabinet",
+    "extra_networkPortTypes": "networkPortTypes",
+    "extra_requiredEndDate": "requiredEndDate",
+    "extra_manufacturerInstallation": "manufacturerInstallation",
+    "extra_powerTypes": "powerTypes",
+    "ground": "ground",
+    "extra_originalModule": "originalModule",
+    "extra_railTrayRequired": "railTrayRequired",
+    "extra_materialMatches": "materialMatches",
+    "extra_cableReady": "cableReady"
+  },
+  "fieldCatalog": [
+    {
+      "code": "powerSupply",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "cabinet",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "networkPort",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "fiber",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "module",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "cable",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "ground",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "constructionResource",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "conclusion",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "remark",
+      "type": "TEXT",
+      "required": false
+    },
+    {
+      "code": "cabinetReady",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "cableReady",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "moduleReady",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "originalModule",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "manufacturerInstallation",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "railTrayRequired",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "materialMatches",
+      "type": "BOOLEAN",
+      "required": false
+    },
+    {
+      "code": "requiredEndDate",
+      "type": "DATE",
+      "required": false
+    },
+    {
+      "code": "powerTypes",
+      "type": "TEXT_LIST",
+      "required": false
+    },
+    {
+      "code": "powerEnvironments",
+      "type": "TEXT_LIST",
+      "required": false
+    },
+    {
+      "code": "networkPortTypes",
+      "type": "TEXT_LIST",
+      "required": false
+    },
+    {
+      "code": "selectedMaterials",
+      "type": "OBJECT_LIST",
+      "required": false
+    }
+  ],
+  "formRevisionId": 992209220346,
+  "formRevisionVersion": 1,
+  "ground": null,
+  "id": "2102387388929748993",
+  "location": "隔离环境工勘来源验证地点",
+  "locationResolutionStatus": "UNRESOLVED",
+  "locationSnapshot": null,
+  "module": null,
+  "name": "工勘来源复用验收20260922",
+  "networkPort": null,
+  "outsourceRequestId": null,
+  "outsourceRequired": false,
+  "powerSupply": null,
+  "projectId": 992203060019,
+  "remark": null,
+  "siteId": null,
+  "siteLocationId": null,
+  "siteLocationVersion": null,
+  "siteVersion": null,
+  "status": 1,
+  "surveyDate": null,
+  "surveyorUserId": null,
+  "version": 2
+}

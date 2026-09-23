@@ -760,3 +760,22 @@ Requirement：INT-12、EXE-03、EXE-04、NFR-02。管理端部署前缀仍为 `a
 按需求方明确的能力与展示分离原则，新增只读`GET /api/v1/pms/requirement-analyses/revisions/{revisionId}/presentations`，返回本版本可用的展示候选及可选默认模板；可选stageId/taskId互斥，仅指定默认展示上下文，不改变业务对象。使用既有需求分析query权限、当前租户及项目数据范围；不提供通过展示切换写业务数据的出口。候选字段须映射到SOL既有实体/扩展定义，附件使用SOL稳定业务用途码，停用/未发布或不兼容模板不参与。客户端基础业务表单始终可用；显示选择只影响当前页面。
 
 PLT共享`EntityPresentationApi.list(Query(target, actor, categoryCode))`基于实体Owner读取权限列出同租户启用模板的当前发布修订，返回模板标识/名称与只读Schema，不创建或修改表单绑定、扩展定义或业务对象。SOL负责用途/字段兼容及别名映射。来源模板的历史绑定保留为来源证据，不决定操作资格、成果有效性或附件归属。
+
+
+### 实施方案分级复审接入（2026-09-22，SCH-05 / F-PROJ-009）
+
+新增 `/api/v1/pms/solution-reviews`：GET 按 projectId、solutionId 读取版本关联；POST 按 expectedVersion、processDefinitionId 和以实际 taskDefinitionKey 为键的 candidates 提交。GET `/definition` 返回部署定义和职责元数据；POST `/refresh` 回源重验 BPM 终态；POST `/revise` 从终态复制新的方案草稿。查询使用方案 query 权限与项目范围；写入使用相应 create/update 权限、当前项目经理资格和租户，旧接口不能修改正在分级审批的对象。重复同版本、同定义、同候选人的请求返回同一在审记录，冲突请求拒绝。
+
+SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取历史，BPM 原创建、权限、任务处理与历史不改写。初审候选人重验项目服务经理关系；工程管理部复审须独立显式权限 `pms:sol-solution:major-review` 及项目范围，申请人不得自审。定义和完整任务 key、职责均来自模型；候选人通过 BPM identity links 冻结，任务操作前重新校验。只有真实结束且所需人工审核历史完整才返回批准；结果在 BPM 原事务内经受信事件由 SOL CAS 形成批准基线及交付件，不直接推进项目阶段。
+
+### 项目工前确认历史（2026-09-22，F-PROJ-009 更正）
+
+需求方明确从代码中剔除“历史工前确认记录”。`/api/v1/pms/projects/{projectId}/preparation-confirmation` 的 GET / POST 均删除，不再提供兼容入口；对应业务服务、表单策略、实体和 Mapper 一并移除。原数据库记录及已执行迁移保留归档，不再由应用读取。
+
+工前数据统一沿用 SOL 工勘原有读写、字段目录、表单绑定及确认命令。独立支线的显示条件由工勘表单修订配置，不新增项目字段来源或跨模块读表接口。
+
+方案复审另提供 GET `/api/v1/pms/solution-reviews/source?businessKey=...`，仅返回当前租户、当前项目范围内对应真实审批关联的只读方案正文，供 BPM 审批页查看。
+
+GET `/api/v1/pms/solution-reviews/policy?projectId=...` 只读预览服务器计算的审核级别与不可用原因。内部 `ProjectFieldRuleApi` 按项目冻结模板修订和规则 key 读取既有发布程序，只接受实体 FIELD/CONSTANT 条件，不从请求接收业务事实或重新编译历史规则。读接口校验当前主体与项目范围；提交用事务锁定项目版本的求值接口。返回配置是否存在、各规则三值结果及规则/项目事实快照。无配置与配置不完整分开处理，未知结果不按普通审批放行。
+
+未绑定模板的导入旧项目返回未配置并保留原 SOL 行为；存在部分模板引用而无法验证精确修订时仍返回不可用，不据损坏引用选择普通审核。读取服务在业务调用时解析原发布 Reader，避免发布校验器发现 SOL Provider 时产生初始化循环依赖。

@@ -33,7 +33,7 @@ class ProjectRulePublicationValidatorTest {
         rules = new RuleEngineTestFixture();
         decisions = new ProjectDecisionEngineConfiguration().projectDecisionEngine();
         validator = new ProjectRulePublicationValidator(new ProjectRuleCompiler(), new ProjectDecisionTableService(decisions),
-                new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry(List.of()));
+                new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry(List.of()), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
     @AfterAll static void stop() { if (decisions != null) decisions.close(); if (rules != null) rules.close(); }
 
@@ -341,7 +341,7 @@ class ProjectRulePublicationValidatorTest {
 
     private static ProjectRulePublicationValidator businessValidator(TaskBusinessObjectProvider... providers) {
         return new ProjectRulePublicationValidator(new ProjectRuleCompiler(), new ProjectDecisionTableService(decisions),
-                new TaskBusinessProviderRegistry(List.of(providers)));
+                new TaskBusinessProviderRegistry(List.of(providers)), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
 
     private static TaskBusinessObjectProvider businessProvider(String owner, String type, boolean stages, Set<String> codes) {

@@ -1,0 +1,338 @@
+[
+  {
+    "code": "project.id",
+    "label": "项目ID",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.projectCode",
+    "label": "项目编码（租户内唯一，创建后不可变）",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.codeRootId",
+    "label": "编码命名空间根项目ID（根项目=自身ID）",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.projectSequence",
+    "label": "编码命名空间内流水号（根项目=0，子项目>0 属 PM-02）",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.codeRuleVersion",
+    "label": "编码规则版本（创建时冻结）",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.projectName",
+    "label": "项目名称",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.parentId",
+    "label": "父项目ID（NULL=根项目）",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.customerCode",
+    "label": "客户编码",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.customerName",
+    "label": "客户名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.managerName",
+    "label": "负责人姓名",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.managerId",
+    "label": "主项目经理用户ID（项目实施经理）",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.companyId",
+    "label": "下单公司稳定ID",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.companyCode",
+    "label": "下单公司编码",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.companyName",
+    "label": "下单公司名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.departmentId",
+    "label": "下单办事处部门稳定ID",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.departmentCode",
+    "label": "下单办事处部门编码",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.departmentName",
+    "label": "下单办事处部门名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.signingMethod",
+    "label": "签约方式",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.projectCategory",
+    "label": "项目类别",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.implementationMode",
+    "label": "实施方式",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.majorProjectLevel",
+    "label": "重大项目级别（NULL=不限）",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.serviceLevelCode",
+    "label": "服务等级编码（金/银/铜，pms_service_level 字典）",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.contractNo",
+    "label": "手工登记合同号",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.implementationLocation",
+    "label": "实施地点",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.locationResolutionStatus",
+    "label": "地点解析状态：RESOLVED/UNRESOLVED",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.creationReason",
+    "label": "手工创建原因",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.lifecycleTemplateId",
+    "label": "冻结的生命周期模板ID",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.lifecycleTemplateRevisionNo",
+    "label": "冻结的模板版本号",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.templateLoadMethod",
+    "label": "模板加载方式：AUTO_DEFAULT/MANUAL_SELECTED",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.processDefinitionKey",
+    "label": "冻结的流程定义引用",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.processDefinitionVersion",
+    "label": "冻结的流程定义版本",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.sourceType",
+    "label": "创建来源：MANUAL/ORDER/MIGRATION",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.status",
+    "label": "项目状态（S0~S6/MAINT）",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.lifecycleStatus",
+    "label": "生命周期状态",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.currentStage",
+    "label": "当前阶段",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.assignmentStatus",
+    "label": "主责指派状态",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.version",
+    "label": "Project乐观锁版本",
+    "valueType": "NUMBER",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.projectStartTime",
+    "label": "项目开始时间",
+    "valueType": "DATETIME",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.projectEndDate",
+    "label": "工勘提供的项目结束日期，作为工期倒排截止日期",
+    "valueType": "DATE",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.projectType",
+    "label": "项目数据类型（保留来源编码）",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.marketCode",
+    "label": "市场编码",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.marketName",
+    "label": "市场名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.systemCode",
+    "label": "系统编码",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.systemName",
+    "label": "系统名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.expendCode",
+    "label": "拓展编码",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.expendName",
+    "label": "拓展名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.industryCode",
+    "label": "行业编码",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.industryName",
+    "label": "行业名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.customerProjectName",
+    "label": "客户项目名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.salesType",
+    "label": "销售类型",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.businessType",
+    "label": "业务类型",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.notTrackReason",
+    "label": "不予跟踪原因",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.businessLevelCode",
+    "label": "业务层级编码",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.businessLevelName",
+    "label": "业务层级名称",
+    "valueType": "TEXT",
+    "availableAtCreation": false
+  },
+  {
+    "code": "project.implementationMethod",
+    "label": "实施方式",
+    "valueType": "TEXT",
+    "availableAtCreation": true
+  },
+  {
+    "code": "project.isChild",
+    "label": "是否子项目",
+    "valueType": "BOOLEAN",
+    "availableAtCreation": true
+  }
+]

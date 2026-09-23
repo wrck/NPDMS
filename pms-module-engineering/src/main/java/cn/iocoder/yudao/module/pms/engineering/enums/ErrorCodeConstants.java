@@ -65,6 +65,7 @@ public interface ErrorCodeConstants {
     ErrorCode SOLUTION_VERSION_NOT_MATCH = new ErrorCode(1_011_003_003, "方案版本号已变更，请刷新后重试");
     ErrorCode SOLUTION_PROJECT_NOT_EXISTS = new ErrorCode(1_011_003_004, "所属项目不存在");
     ErrorCode SOLUTION_REVIEW_NOT_CONNECTED = new ErrorCode(1_011_003_005, "重大方案复审尚未接入，不能在当前入口直接通过");
+    ErrorCode SOLUTION_REVIEW_POLICY_INVALID = new ErrorCode(1_011_003_006, "{}");
 
     // ========== 到货签收 arrival 1-011-004-000 ==========
     ErrorCode ARRIVAL_NOT_EXISTS = new ErrorCode(1_011_004_000, "到货签收不存在");

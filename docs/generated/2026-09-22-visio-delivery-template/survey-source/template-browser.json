@@ -1,0 +1,31 @@
+{
+  "pageErrors": [],
+  "apiErrors": [
+    {
+      "path": "/admin-api/api/v1/pms/project-templates/910003/draft",
+      "code": 1014040004,
+      "msg": "交付定义引用无效：exact definitionRevisionId required"
+    },
+    {
+      "path": "/admin-api/api/v1/pms/project-templates/910002/draft",
+      "code": 1014040004,
+      "msg": "交付定义引用无效：exact definitionRevisionId required"
+    },
+    {
+      "path": "/admin-api/api/v1/pms/project-templates/910001/draft",
+      "code": 1014040004,
+      "msg": "交付定义引用无效：exact definitionRevisionId required"
+    }
+  ],
+  "reopened": true,
+  "precheck": {
+    "valid": true,
+    "issues": []
+  },
+  "s1TaskRefs": [
+    "PRE_SURVEY",
+    "PRE_REQUIREMENT",
+    "PRE_DURATION",
+    "PRE_CONTACT"
+  ]
+}

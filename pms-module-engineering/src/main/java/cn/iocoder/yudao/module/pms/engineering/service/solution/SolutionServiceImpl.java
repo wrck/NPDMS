@@ -45,6 +45,15 @@ public class SolutionServiceImpl implements SolutionService {
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
 
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tieredReviewMapper;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService reviewPolicies;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSolution(SolutionSaveReqVO createReqVO) {
@@ -62,6 +71,7 @@ public class SolutionServiceImpl implements SolutionService {
             solution.setReviewLevel(0);
         }
         solutionMapper.insert(solution);
+        completionChanged(solution);
         return solution.getId();
     }
 
@@ -87,6 +97,7 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionDO existing = validateSolutionExists(id);
         validateStatus(existing, 0);
         solutionMapper.deleteById(id);
+        completionChanged(existing);
     }
 
     @Override
@@ -104,6 +115,7 @@ public class SolutionServiceImpl implements SolutionService {
     public void submitSolution(Long id) {
         SolutionDO solution = validateSolutionExists(id);
         validateStatus(solution, 0); // 草稿 → 已提交
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) reviewPolicies.freeze(solution, 0);
         updateStatus(solution, 1);
     }
 
@@ -121,6 +133,7 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionDO solution = validateSolutionExists(reqVO.getId());
         validateVersion(solution, reqVO.getVersion());
         validateStatus(solution, 2); // 审批中 → 已通过
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) reviewPolicies.requireOrdinaryApproval(solution);
         if (!Objects.equals(solution.getReviewLevel(), 0)) {
             throw exception(SOLUTION_REVIEW_NOT_CONNECTED);
         }
@@ -178,6 +191,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setStatus(0); // 草稿
         solution.setVersion(0);
         solutionMapper.insert(solution);
+        completionChanged(solution);
         return solution.getId();
     }
 
@@ -214,6 +228,16 @@ public class SolutionServiceImpl implements SolutionService {
         if (solution == null) {
             throw exception(SOLUTION_NOT_EXISTS);
         }
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) {
+            var query = new cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.SolutionReviewQuery(
+                    solution.getTenantId(), solution.getProjectId(), solution.getId(), true);
+            var locked = tieredReviewMapper.source(query);
+            if (locked == null || !Objects.equals(locked.getVersion(), solution.getVersion())) throw exception(SOLUTION_VERSION_NOT_MATCH);
+            var review = tieredReviewMapper.bySolution(query);
+            if (review != null && "RUNNING".equals(review.getStatus()))
+                throw new IllegalStateException("此方案正在分级审批，请在关联的 BPM 流程中处理");
+            solution = locked;
+        }
         return solution;
     }
 
@@ -241,5 +265,11 @@ public class SolutionServiceImpl implements SolutionService {
         if (solutionMapper.updateById(solution) != 1) {
             throw exception(SOLUTION_VERSION_NOT_MATCH);
         }
+        completionChanged(solution);
+    }
+
+    private void completionChanged(SolutionDO solution) {
+        completionEvents.changed(solution.getProjectId(), "ImplementationSolution", solution.getId(),
+                SecurityFrameworkUtils.getLoginUserId(), "solution:" + solution.getId() + ":" + solution.getVersion());
     }
 }

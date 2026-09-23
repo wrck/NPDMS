@@ -27,6 +27,8 @@ class ProjectAttributeResolutionServiceTest {
 
     @Mock
     private ProjectTemplateService projectTemplateService;
+    @org.mockito.Spy
+    private ProjectRuleFields projectRuleFields = new ProjectRuleFields(key -> null);
     @InjectMocks
     private ProjectAttributeResolutionService service;
 
@@ -34,7 +36,7 @@ class ProjectAttributeResolutionServiceTest {
     void uniqueManualCandidateUsesAutoDecision() {
         TemplateMatchResult result = TemplateMatchResult.matched(candidate(1L, 11L));
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview(ProjectRuleFields.manualCreationFacts(project(attributes()))))
+        when(projectTemplateService.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(project(attributes()))))
                 .thenReturn(result);
 
         var decision = service.resolveInitial(project(attributes()), null, "watermark");
@@ -50,7 +52,7 @@ class ProjectAttributeResolutionServiceTest {
         TemplateMatchResult result = TemplateMatchResult.multiMatch(
                 List.of("冲突"), List.of(candidate(1L, 11L), candidate(2L, 22L)));
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview(ProjectRuleFields.manualCreationFacts(project(attributes()))))
+        when(projectTemplateService.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(project(attributes()))))
                 .thenReturn(result);
 
         var decision = service.resolveInitial(project(attributes()), 22L, "watermark");
@@ -64,7 +66,7 @@ class ProjectAttributeResolutionServiceTest {
     void staleCandidateWatermarkIsRejected() {
         TemplateMatchResult result = TemplateMatchResult.matched(candidate(1L, 11L));
         result.setCandidateWatermark("new");
-        when(projectTemplateService.matchPreview(ProjectRuleFields.manualCreationFacts(project(attributes()))))
+        when(projectTemplateService.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(project(attributes()))))
                 .thenReturn(result);
 
         ServiceException error = assertThrows(ServiceException.class,
@@ -77,7 +79,7 @@ class ProjectAttributeResolutionServiceTest {
     void impactNoMatchDoesNotInventTemplateOrDecisionMode() {
         TemplateMatchResult result = TemplateMatchResult.noMatch("无候选");
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview(ProjectRuleFields.creationFacts(project(attributes()))))
+        when(projectTemplateService.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).creationFacts(project(attributes()))))
                 .thenReturn(result);
 
         var decision = service.evaluateImpact(project(attributes()), attributes());
@@ -93,7 +95,7 @@ class ProjectAttributeResolutionServiceTest {
                 "DIRECT_SIGN", "ENGINEERING", "DIRECT_SERVICE", "MAJOR_A");
         TemplateMatchResult result = TemplateMatchResult.matched(candidate(1L, 11L));
         result.setCandidateWatermark("watermark");
-        when(projectTemplateService.matchPreview(ProjectRuleFields.creationFacts(project(source))))
+        when(projectTemplateService.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).creationFacts(project(source))))
                 .thenReturn(result);
 
         var decision = service.resolveSourceInitial(project(source), null, "watermark");

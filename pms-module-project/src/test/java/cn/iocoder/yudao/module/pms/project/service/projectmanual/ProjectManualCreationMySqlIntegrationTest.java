@@ -476,6 +476,11 @@ abstract class ProjectManualCreationMySqlTestSupport {
     static class TestApplication {
 
         @Bean
+        cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields() {
+            return new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null);
+        }
+
+        @Bean
         cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi
                 projectWorkBindingFactApi() {
             return mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi.class);

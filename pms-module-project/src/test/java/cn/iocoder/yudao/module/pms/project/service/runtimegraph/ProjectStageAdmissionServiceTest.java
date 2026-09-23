@@ -78,7 +78,7 @@ class ProjectStageAdmissionServiceTest {
         });
         service = new ProjectStageAdmissionService(projects, graph, stages, references,
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(),
-                        mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), compiler, audit, executions, plans);
+                        mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)), compiler, audit, executions, plans);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(ProjectRuleTimerScheduler.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class));
     }

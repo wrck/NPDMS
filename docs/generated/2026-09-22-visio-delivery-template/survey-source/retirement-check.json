@@ -1,0 +1,11 @@
+{
+  "noNewInputFields": true,
+  "oldHistoryUnchanged": true,
+  "historyCount": 15,
+  "oldPostRejected": {
+    "code": 400,
+    "data": null,
+    "msg": "独立工前确认已停用，请在工勘记录中办理，无需重复填写"
+  },
+  "fieldCount": 56
+}

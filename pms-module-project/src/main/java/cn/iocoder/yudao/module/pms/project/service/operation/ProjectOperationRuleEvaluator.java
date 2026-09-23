@@ -56,6 +56,7 @@ public class ProjectOperationRuleEvaluator {
     private RuleFact field(ProjectMasterDO project,
             cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationResult result, String code) {
         return ProjectOperationResultFields.codes().contains(code)
-                ? ProjectOperationResultFields.read(result, code) : ProjectRuleFields.read(project, code);
+                ? ProjectOperationResultFields.read(result, code) : projectRuleFields.read(project, code);
     }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

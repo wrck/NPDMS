@@ -52,6 +52,7 @@ class StagePlanBatchServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "batchMapper", batchMapper);
         ReflectionTestUtils.setField(service, "itemMapper", itemMapper);
         ReflectionTestUtils.setField(service, "stagePlanApi", stagePlanApi);
