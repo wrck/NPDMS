@@ -1,12 +1,5 @@
 # 项目实施约束
 
-## 实施优先、按变更验证（2026-09-08需求方批准）
-
-- 默认“确认需求与影响 → 实现 → 针对性验证和自审 → 一次记录结果”。串行局部改动不强制独立计划或DU；并行Feature/Task首次认领及Owner/业务职责/排他边界变更先提交到master，再按生效边界写入。普通进度不要求逐次提交，实施分支不要求包含认领提交。详细规则只在[工程链第2、6章](docs/engineering/00-engineering-chain.md)维护。
-- SDS Phase 1/2/3均为设计分类，不执行整阶段批准、全量审计或顺序准入；全分支时间线、历史DU、全文哈希与全库追溯检查也不是日常开发前置。旧分册、计划、模板和技能中的纯流程前置以当前工程链为准，不反复同步状态/标题/批准字样。
-- 验证覆盖改动模块、直接消费者及适用的权限/租户、状态、幂等/并发、回滚和历史保护；有效证据按工程链6.3复用，不因普通合入或文档变更重跑全套。跨Owner契约由相关Owner确认，独立审查仅用于真实高风险或用户指定范围，不为普通变更新建审阅任务。
-- 真实需求冲突、缺失接口/Schema、职责/写入冲突、依赖责任或可用性未确认、适用验证失败和必要授权缺失仍阻断相关部分。不得据流程精简自动清除Question、晋级Feature或发布状态、改写历史GO/NO-GO/FAIL，也不得把未执行校验写成通过。
-
 ## 规格与实现硬规则
 
 - 未经批准的变更请求，不得修改PRD业务语义。
@@ -23,20 +16,7 @@
 ## 缺失、歧义与追溯
 
 - 业务规则缺失、歧义或冲突时不得猜测：标记`BLOCKED_BY_SPEC`，登记到`docs/decisions/open-questions.md`，只继续不依赖该问题的独立工作。
-- 每个Feature、API、数据库变更、事件、工作流和测试须通过Feature/Task映射追溯Requirement ID，维护`Requirement -> SDS -> Feature -> Code -> Test`链路，不在每个类或测试重复抄写编号。
-- Feature Ready由`specs/features/`的Feature Spec维护，Implementation Status/Done由`tasks/features/`的当前Feature Task维护。认领边界直接读取master已提交的`tasks/delivery-units/DU-*.md`（可用`git show master:路径`），再定位提供方Task了解进展；工作树未提交DU与本分支副本不能改变生效边界。master是最终集成事实，索引、矩阵、Git、CI和浏览器只作投影或证据。
-- 同仓库多个Feature/Task同时实施时，无论操作者人数和文件是否交叉，均由同一协调者核对职责与路径并提交认领，一批DU可集中一次提交；不要求各分支合并/包含认领提交，不恢复全量审计或激活历史验真。不能因本分支缺少依赖代码就重复实现提供方职责；先读已提交DU、契约和来源Task，可用增量按授权合入后接入。提交不是写锁，已有活动认领和隔离限制不自动释放。
 - 废弃路径不得承接新Feature，只能由声明`旧功能范围`的DU执行获授权的废弃补强、安全修复、历史只读、迁移解释或删除。
-- 外部集成必须定义系统Owner、方向、权威字段、映射、来源键、幂等键、超时、重试、补偿、对账、降级和审计。
-
-## 任务执行协议
-
-- 日常任务按[工程链6.2](docs/engineering/00-engineering-chain.md#62-delivery-unit认领实施与交接)执行：复用当前Task及无冲突工作树，复杂任务用短计划，并行任务用共同认领；澄清收敛后集中落字，验证与投影集中收口。
-- 先定位再读相关内容；已读且有效的事实、审查和验证直接复用，避免大段输出截断后重复加载。需要裁决时直接提出必要问题并给出建议，不在等待答案时铺开依赖该答案的正式文件。
-
-- 实施任务遵循`READ -> PLAN -> IMPLEMENT -> TEST -> SELF-REVIEW -> REPORT`，这些是工作职责，不要求每步新建文档或等待确认；只读任务不进入IMPLEMENT。
-- 开始时一次说明交付物、完成条件、修改文件、Requirement ID或治理批准依据、实际领域/API/数据库/权限/状态机影响、验证和风险。小改动在对话中给出短计划；多步工作复用当前Task/DU，不另建重复计划或审批表。
-- 结束时先报告完成范围和结果，再给变更文件、需求覆盖、实际验证、未执行项及原因、剩余限制。自审与独立审查、代码存在与功能验收明确区分，不重复粘贴全过程。
 
 ## 技术基线
 
@@ -64,6 +44,7 @@
 - 项目树和任务 WBS 都不得实现为固定层级。
 - 模块间不得依赖目标模块的 `-biz`、Service、Mapper、Repository 或直接访问其业务表。
 - 无稳定跨模块调用方时，不创建空的 `-api` 模块。
+- 服务经理是区域负责人，管理本区域内的所有项目经理，权限层级服务经理高于项目经理
 
 ## 数据库查询编码
 
@@ -74,13 +55,6 @@
 - 空权限集合或空集合筛选必须返回空结果，不能因省略条件扩大查询范围；租户、权限和模块表所有权边界必须保持生效。
 
 # AI编码行为
-
-## 推进与停止
-
-- 已授权且契约明确的变更，采用仓库惯例和最小可行方案持续推进到约定完成点；不因“第一版完成”或通用Skill的重复批准步骤自行停下。用户指定的评审节点仍须停下。
-- 不影响业务语义、Owner、安全或外部副作用的局部实现选择，可说明假设后继续；会改变结果的业务歧义、缺失契约、写入冲突或高影响操作授权必须先确认。提问前完成不依赖该答案的已授权工作，报告具体冲突条款、受影响范围和最小待决事项。
-- 只读审查、诊断和方案请求不授权修改实现或回写状态；“继续”“完成”不扩大原范围。提交遵循用户授权及工程链已有规定，提交前读取并遵守`git-commit`技能，不自动推送。
-- 使用子代理须有用户或适用指令授权，且子任务能独立验收；明确输入、输出和互不重叠的写边界。主代理继续有用的本地工作并负责整合，不把主问题整包转交或重复审查已确认事实。
 
 ## 最小实现与有效验证
 
@@ -93,17 +67,3 @@
 ## 沟通
 
 默认中文，结论在前、证据就近，说明必要的假设和取舍；按任务大小控制篇幅。只报告有意义的进展、发现和决策，不堆固定表格、重复清单或“仍在运行”的空更新。
-
-For long-running asynchronous work:
-
-- Empty `write_stdin` polls MUST use `yield_time_ms >= 180000`;
-  prefer `300000` when intermediate output is not needed.
-- `functions.wait` MUST use `yield_time_ms >= 180000`.
-- `functions.exec` MUST set its outer `@exec yield_time_ms` at least
-  30000 ms longer than the longest nested tool wait, so the outer
-  code cell does not yield first.
-- Do not apply the long wait to non-empty `write_stdin` calls that
-  send interactive input.
-- These tools return early when the process or cell completes.
-
-Do not wake the model merely to report that work is still running.
