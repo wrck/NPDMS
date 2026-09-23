@@ -61,11 +61,13 @@ public class AssetLocationApiImpl implements AssetLocationApi {
 
         AddressDO address = command.address() == null ? null : maintainAddress(command.address());
         SiteDO site = command.site() == null ? null : maintainSite(command.site(), address);
-        if (site == null && command.siteLocation() != null) {
+        if (site == null && (command.siteLocation() != null || hasAppendableLocation(command.extraSiteLocations()))) {
             throw exception(AST_LOCATION_REFERENCE_INVALID);
         }
         SiteLocationDO location = command.siteLocation() == null ? null
                 : siteLocationTreeService.maintain(site.getId(), command.siteLocation());
+        SiteLocationDO chainEnd = maintainExtraSiteLocations(site, location, command.extraSiteLocations());
+        SiteLocationDO referenceLocation = chainEnd != null ? chainEnd : location;
         if (site == null) {
             LocationReferenceDTO addressOnly = new LocationReferenceDTO(LocationResolutionStatus.RESOLVED.name(),
                     address.getId(), address.getVersion(), null, null, null, null, command.fallbackLocation());
@@ -75,10 +77,34 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         LocationReferenceDTO result = new LocationReferenceDTO(LocationResolutionStatus.RESOLVED.name(),
                 address != null ? address.getId() : site.getAddressId(),
                 address != null ? address.getVersion() : getAddress(site.getAddressId(), null).version(),
-                site.getId(), site.getVersion(), location == null ? null : location.getId(),
-                location == null ? null : location.getVersion(), command.fallbackLocation());
+                site.getId(), site.getVersion(), referenceLocation == null ? null : referenceLocation.getId(),
+                referenceLocation == null ? null : referenceLocation.getVersion(), command.fallbackLocation());
         maintainSourceMapping(existingMapping, command, result);
         return result;
+    }
+
+    /**
+     * 按输入顺序把附加位置依次追加为上一级的下级；编码由站点位置树服务自动生成。
+     * 返回追加后的链路末端（最深层位置），无有效追加时返回入参 parent；地点引用即指向该末端节点。
+     */
+    private SiteLocationDO maintainExtraSiteLocations(SiteDO site, SiteLocationDO parent, List<SiteLocationInput> extras) {
+        if (extras == null || extras.isEmpty()) {
+            return parent;
+        }
+        SiteLocationDO last = parent;
+        for (SiteLocationInput extra : extras) {
+            if (extra == null || extra.name() == null || extra.name().isBlank()) {
+                continue;
+            }
+            last = siteLocationTreeService.maintain(site.getId(), new SiteLocationInput(null, null,
+                    last == null ? null : last.getId(), null, extra.name(), extra.locationType(), 0));
+        }
+        return last;
+    }
+
+    private boolean hasAppendableLocation(List<SiteLocationInput> extras) {
+        return extras != null && extras.stream()
+                .anyMatch(extra -> extra != null && hasText(extra.name()));
     }
 
     @Override

@@ -276,11 +276,11 @@ const savePayload = () => {
     payload.locationMaintenance = undefined
     return payload
   }
-  if (!maintenance?.site?.id && !maintenance.address?.detailAddress) {
+  if (!maintenance?.site?.id && !maintenance?.address?.id && !maintenance.address?.detailAddress) {
     message.error('新地点必须填写详细地址')
     return
   }
-  if (!maintenance?.site?.id && !maintenance.address?.provinceCode) {
+  if (!maintenance?.site?.id && !maintenance?.address?.id && !maintenance.address?.provinceCode) {
     message.error('新地点请选择省市区')
     return
   }
@@ -302,8 +302,17 @@ const savePayload = () => {
       .filter(Boolean)
       .join('')
   }
+  const siteLabel = maintenance?.site?.name
+    ? `${maintenance?.site?.name}（${maintenance?.address?.fullAddress ?? maintenance?.addressText ?? ''}）`
+    : (maintenance?.address?.fullAddress ?? maintenance?.addressText)
+  const chainNames = [
+    maintenance?.siteLocation?.name,
+    ...(maintenance?.extraSiteLocations ?? []).map((item) => item?.name)
+  ].filter(Boolean)
   payload.installLocation =
-    maintenance.fallbackLocation || maintenance.address?.fullAddress || payload.installLocation
+    maintenance?.fallbackLocation ||
+    [siteLabel, ...chainNames].filter(Boolean).join(' / ') ||
+    payload.installLocation
   return payload
 }
 const save = async () => {

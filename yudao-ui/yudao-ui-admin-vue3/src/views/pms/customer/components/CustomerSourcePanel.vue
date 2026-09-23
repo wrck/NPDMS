@@ -23,7 +23,7 @@
     </section>
     <section class="customer-section">
       <div class="customer-section-heading"
-        ><h3>联系方式</h3><span>仅展示当前权限范围内的联系信息</span></div
+        ><h3>客户联系人</h3><span>仅展示当前权限范围内的联系信息</span></div
       >
       <div class="customer-field-grid">
         <el-form-item label="联系电话"

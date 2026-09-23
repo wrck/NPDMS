@@ -3,7 +3,7 @@
     v-model="visible"
     class="customer-form-drawer"
     :title="customer ? '客户详情' : '创建客户'"
-    size="min(760px, 96vw)"
+    size="min(1080px, 92vw)"
     :close-on-click-modal="false"
     :before-close="beforeClose"
   >
@@ -178,11 +178,14 @@
           </section>
         </el-form>
       </el-tab-pane>
-      <el-tab-pane v-if="customer" label="来源与联系方式" name="source"
+      <el-tab-pane v-if="customer" label="来源与客户联系人" name="source"
         ><CustomerSourcePanel :customer="customer"
       /></el-tab-pane>
-      <el-tab-pane v-if="customer" label="地点" name="locations"
-        ><CustomerLocationPanel :locations="customer.locations"
+      <el-tab-pane v-if="customer" label="服务等级" name="service-level"
+        ><CustomerServiceLevelPanel :customer="customer"
+      /></el-tab-pane>
+      <el-tab-pane v-if="customer" label="地点与站点" name="locations"
+        ><CustomerLocationPanel :customer="customer"
       /></el-tab-pane>
       <el-tab-pane v-if="customer" label="项目摘要" name="projects"
         ><CustomerRelationSummaryPanel :slice="customer.projects" kind="project"
@@ -229,6 +232,7 @@ import type {
 } from '@/api/pms/customer'
 import { createCustomerIntentStore, customerIntentOf } from '../customerInteraction'
 import CustomerSourcePanel from './CustomerSourcePanel.vue'
+import CustomerServiceLevelPanel from './CustomerServiceLevelPanel.vue'
 import CustomerLocationPanel from './CustomerLocationPanel.vue'
 import CustomerRelationSummaryPanel from './CustomerRelationSummaryPanel.vue'
 import CustomerHistoryPanel from './CustomerHistoryPanel.vue'

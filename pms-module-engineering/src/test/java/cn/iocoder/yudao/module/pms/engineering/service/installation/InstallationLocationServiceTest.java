@@ -235,6 +235,6 @@ class InstallationLocationServiceTest {
     }
 
     private LocationMaintenanceCommand emptyMaintenance() {
-        return new LocationMaintenanceCommand(null, null, null, null, null, null, null, null);
+        return new LocationMaintenanceCommand(null, null, null, null, null, null, null, null, null);
     }
 }

@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteInput;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationInput;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class LocationMaintainReqVO {
 
@@ -13,6 +15,7 @@ public class LocationMaintainReqVO {
     private AddressInput address;
     private SiteInput site;
     private SiteLocationInput siteLocation;
+    private List<SiteLocationInput> extraSiteLocations;
     private String fallbackLocation;
     private String sourceBusinessType;
     private String sourceBusinessId;
@@ -20,7 +23,7 @@ public class LocationMaintainReqVO {
 
     public LocationMaintenanceCommand toCommand() {
         return new LocationMaintenanceCommand(projectId, address, site, siteLocation, fallbackLocation,
-                sourceBusinessType, sourceBusinessId, sourceVersion);
+                sourceBusinessType, sourceBusinessId, sourceVersion, extraSiteLocations);
     }
 
 }
