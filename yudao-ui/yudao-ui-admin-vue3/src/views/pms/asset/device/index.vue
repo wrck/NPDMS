@@ -1,6 +1,6 @@
 <template>
   <ContentWrap>
-    <el-form :model="query" inline class="-mb-15px">
+    <el-form :model="query" inline class="query-form" @submit.prevent>
       <el-form-item label="设备SN"
         ><el-input v-model="query.sn" clearable @keyup.enter="handleQuery"
       /></el-form-item>
@@ -41,7 +41,13 @@
   </ContentWrap>
 
   <ContentWrap>
-    <el-table v-loading="loading" :data="rows" @row-click="openDetail">
+    <el-table
+      v-loading="loading"
+      :data="rows"
+      row-key="deviceId"
+      highlight-current-row
+      empty-text="没有匹配的设备，请调整筛选条件"
+    >
       <el-table-column prop="sn" label="设备SN" min-width="160" fixed="left" />
       <el-table-column prop="name" label="设备名称" min-width="140" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
@@ -90,13 +96,6 @@
           <el-button link type="primary" @click.stop="openDetail(row)">详情</el-button>
           <el-button
             link
-            type="primary"
-            @click.stop="openEdit(row)"
-            v-hasPermi="['pms:device:update']"
-            >编辑</el-button
-          >
-          <el-button
-            link
             type="warning"
             @click.stop="openStatusChange(row)"
             v-hasPermi="['pms:device:status-change']"
@@ -116,18 +115,14 @@
     />
   </ContentWrap>
 
-  <ContentWrap v-if="detail" v-loading="detailLoading" class="device-detail">
-    <div class="detail-heading">
-      <div>
-        <h3>{{ detail.summary.sn }}</h3>
-        <span>{{
-          detail.summary.productName ||
-          detail.summary.productModel ||
-          detail.summary.productCode ||
-          '未维护产品信息'
-        }}</span>
-      </div>
-      <div class="detail-actions">
+  <DeviceArchiveFormDialog
+    ref="formDialog"
+    :locked-project-id="props.projectId"
+    @success="refreshAll"
+    @closed="clearDetail"
+  >
+    <template #actions>
+      <div v-if="detail" class="detail-actions">
         <el-button
           v-hasPermi="['pms:device:status-change']"
           :disabled="!detail.archive"
@@ -152,45 +147,44 @@
           >调整客户</el-button
         >
       </div>
-    </div>
-    <DeviceSummaryPanel :summary="detail.summary" :organization="detail.organization" />
-    <el-tabs v-model="activeTab" class="device-tabs">
-      <el-tab-pane label="位置与变更轨迹" name="location" lazy>
-        <DeviceLocationPanel :device-id="detail.summary.deviceId" />
-      </el-tab-pane>
-      <el-tab-pane label="出厂信息" name="factory"
-        ><DeviceFactoryPanel :slice="detail.factory"
-      /></el-tab-pane>
-      <el-tab-pane label="官网信息" name="official"
-        ><DeviceOfficialInfoPanel :slice="detail.official"
-      /></el-tab-pane>
-      <el-tab-pane label="在网版本" name="network"
-        ><DeviceNetworkVersionPanel :slice="detail.networkVersion"
-      /></el-tab-pane>
-      <el-tab-pane label="技术公告" name="notice"
-        ><DeviceTechnicalNoticePanel :slice="detail.technicalNotice"
-      /></el-tab-pane>
-      <el-tab-pane label="维保信息" name="warranty"
-        ><DeviceWarrantyPanel :device-id="detail.summary.deviceId" :slice="detail.warranty"
-      /></el-tab-pane>
-      <el-tab-pane label="配置Log" name="configuration"
-        ><DeviceConfigurationLogPanel
-          :device-id="detail.summary.deviceId"
-          :slice="detail.configurationLog"
-      /></el-tab-pane>
-    </el-tabs>
-  </ContentWrap>
+    </template>
+    <template #detail>
+      <template v-if="detail">
+        <el-tab-pane label="归属摘要" name="summary">
+          <DeviceSummaryPanel :summary="detail.summary" :organization="detail.organization" />
+        </el-tab-pane>
+        <el-tab-pane label="位置与变更轨迹" name="location" lazy>
+          <DeviceLocationPanel :device-id="detail.summary.deviceId" />
+        </el-tab-pane>
+        <el-tab-pane label="出厂信息" name="factory"
+          ><DeviceFactoryPanel :slice="detail.factory"
+        /></el-tab-pane>
+        <el-tab-pane label="官网信息" name="official"
+          ><DeviceOfficialInfoPanel :slice="detail.official"
+        /></el-tab-pane>
+        <el-tab-pane label="在网版本" name="network"
+          ><DeviceNetworkVersionPanel :slice="detail.networkVersion"
+        /></el-tab-pane>
+        <el-tab-pane label="技术公告" name="notice"
+          ><DeviceTechnicalNoticePanel :slice="detail.technicalNotice"
+        /></el-tab-pane>
+        <el-tab-pane label="维保信息" name="warranty"
+          ><DeviceWarrantyPanel :device-id="detail.summary.deviceId" :slice="detail.warranty"
+        /></el-tab-pane>
+        <el-tab-pane label="配置Log" name="configuration"
+          ><DeviceConfigurationLogPanel
+            :device-id="detail.summary.deviceId"
+            :slice="detail.configurationLog"
+        /></el-tab-pane>
+      </template>
+    </template>
+  </DeviceArchiveFormDialog>
 
   <DeviceAssignmentHistoryDrawer ref="assignmentHistoryDrawer" />
   <DeviceCustomerRelationshipDrawer ref="customerRelationshipDrawer" />
   <DeviceAssemblyTreeDrawer ref="assemblyTreeDrawer" />
   <DeviceAssignProjectDialog ref="assignProjectDialog" @success="refreshDetail" />
   <DeviceAssignCustomerDialog ref="assignCustomerDialog" @success="refreshDetail" />
-  <DeviceArchiveFormDialog
-    ref="formDialog"
-    :locked-project-id="props.projectId"
-    @success="refreshAll"
-  />
   <DeviceArchiveStatusChangeDialog ref="statusChangeDialog" @success="refreshAll" />
 </template>
 <script setup lang="ts">
@@ -233,11 +227,14 @@ const initialProjectId = () => {
 }
 const message = useMessage()
 const loading = ref(false)
-const detailLoading = ref(false)
+let detailRequest = 0
+const clearDetail = () => {
+  detailRequest++
+  detail.value = undefined
+}
 const rows = ref<DeviceListVO[]>([])
 const total = ref(0)
 const detail = ref<DeviceDetailVO & { archive?: DeviceArchiveVO }>()
-const activeTab = ref('factory')
 const query = reactive<DevicePageReqVO>({ pageNo: 1, pageSize: 10, projectId: initialProjectId() })
 const assignmentHistoryDrawer = ref<InstanceType<typeof DeviceAssignmentHistoryDrawer>>()
 const customerRelationshipDrawer = ref<InstanceType<typeof DeviceCustomerRelationshipDrawer>>()
@@ -278,22 +275,13 @@ const loadArchive = async (deviceId: number) => {
   }
 }
 const openDetail = async (row: DeviceListVO | DeviceSummaryVO) => {
-  const deviceId = row.deviceId
-  detailLoading.value = true
-  try {
-    const [data, archive] = await Promise.all([
-      DeviceApi.getDevice(deviceId),
-      loadArchive(deviceId)
-    ])
-    detail.value = { ...data, archive }
-    activeTab.value = 'factory'
-  } finally {
-    detailLoading.value = false
-  }
-}
-const openEdit = async (row: DeviceListVO) => {
-  const archive = await loadArchive(row.deviceId)
-  if (!archive) return message.error('设备档案不存在')
+  const request = ++detailRequest
+  const [data, archive] = await Promise.all([
+    DeviceApi.getDevice(row.deviceId),
+    DeviceArchiveApi.getDeviceArchiveRecord(row.deviceId)
+  ])
+  if (request !== detailRequest) return
+  detail.value = { ...data, archive }
   formDialog.value?.open(archive)
 }
 const openStatusChange = async (row: DeviceListVO) => {
@@ -315,7 +303,7 @@ const refreshDetail = async () => {
   await openDetail(detail.value.summary)
 }
 const refreshAll = async () => {
-  await refreshDetail()
+  clearDetail()
   await load()
 }
 onMounted(load)
@@ -323,26 +311,14 @@ watch(
   () => props.projectId ?? route.query.projectId,
   () => {
     query.projectId = initialProjectId()
-    detail.value = undefined
+    clearDetail()
     handleQuery()
   }
 )
 </script>
 <style scoped>
-.device-detail {
-  overflow: hidden;
-}
-
-.detail-heading {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.detail-heading h3 {
-  margin: 0 0 6px;
+.query-form :deep(.el-input) {
+  width: 180px;
 }
 
 .detail-actions {
@@ -352,13 +328,20 @@ watch(
   justify-content: flex-end;
 }
 
-.device-tabs {
-  margin-top: 16px;
+.detail-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 @media (width <= 767px) {
-  .detail-heading {
-    flex-direction: column;
+  .query-form {
+    display: grid;
+  }
+
+  .query-form :deep(.el-form-item),
+  .query-form :deep(.el-input),
+  .query-form :deep(.el-input-number) {
+    width: 100%;
+    margin-right: 0;
   }
 
   .detail-actions {

@@ -24,6 +24,8 @@ class SiteLocationTreeServiceImplTest {
 
     @Mock private SiteLocationMapper mapper;
     @Mock private DeviceMapper deviceMapper;
+    @Mock private cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper siteMapper;
+    @Mock private LocationCodeService locationCodeService;
 
     private final Map<Long, SiteLocationDO> records = new LinkedHashMap<>();
     private final AtomicLong ids = new AtomicLong(100L);
@@ -31,7 +33,7 @@ class SiteLocationTreeServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SiteLocationTreeServiceImpl(mapper, deviceMapper);
+        service = new SiteLocationTreeServiceImpl(mapper, deviceMapper, siteMapper, locationCodeService);
         when(mapper.selectById(anyLong())).thenAnswer(invocation -> records.get(invocation.getArgument(0)));
         when(mapper.selectBySiteIdAndCode(anyLong(), anyString())).thenAnswer(invocation -> records.values().stream()
                 .filter(item -> item.getSiteId().equals(invocation.getArgument(0))

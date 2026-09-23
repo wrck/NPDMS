@@ -42,7 +42,11 @@
           customerName(scope.row.customerId)
         }}</template></el-table-column
       >
-      <el-table-column prop="siteType" label="站点类型" width="130" />
+      <el-table-column label="站点类型" width="130">
+        <template #default="scope">
+          <dict-tag :type="DICT_TYPE.PMS_SITE_TYPE" :value="scope.row.siteType" />
+        </template>
+      </el-table-column>
       <el-table-column prop="version" label="版本" width="80" />
       <el-table-column label="操作" width="180">
         <template #default="scope">
@@ -73,9 +77,6 @@
       label-width="92px"
       v-loading="formLoading"
     >
-      <el-form-item label="站点编码" prop="code"
-        ><el-input v-model="formData.code" placeholder="例如：SITE-HZ-01"
-      /></el-form-item>
       <el-form-item label="站点名称" prop="name"><el-input v-model="formData.name" /></el-form-item>
       <el-form-item label="地址" prop="addressId">
         <el-select
@@ -108,9 +109,16 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="站点类型" prop="siteType"
-        ><el-input v-model="formData.siteType" placeholder="例如：CUSTOMER_SITE"
-      /></el-form-item>
+      <el-form-item label="站点类型" prop="siteType">
+        <el-select v-model="formData.siteType" class="!w-100%" placeholder="请选择站点类型">
+          <el-option
+            v-for="dict in getStrDictOptions(DICT_TYPE.PMS_SITE_TYPE)"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
+        </el-select>
+      </el-form-item>
     </el-form>
     <template #footer>
       <el-button type="primary" :loading="formLoading" @click="submitForm">保存修订</el-button>
@@ -124,6 +132,7 @@
 <script lang="ts" setup>
 import * as LocationApi from '@/api/pms/asset/location'
 import * as CustomerApi from '@/api/pms/customer'
+import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import LocationTreeDrawer from './LocationTreeDrawer.vue'
 
 defineOptions({ name: 'PmsAssetSite' })
@@ -149,13 +158,12 @@ const dialogVisible = ref(false)
 const formLoading = ref(false)
 const formRef = ref()
 const treeDrawerRef = ref()
-const emptyForm = (): LocationApi.SiteVO => ({ code: '', name: '', siteType: 'CUSTOMER_SITE' })
+const emptyForm = (): LocationApi.SiteVO => ({ name: '', siteType: 'CUSTOMER_SITE' })
 const formData = ref<LocationApi.SiteVO>(emptyForm())
 const formRules = {
-  code: [{ required: true, message: '站点编码不能为空', trigger: 'blur' }],
   name: [{ required: true, message: '站点名称不能为空', trigger: 'blur' }],
   addressId: [{ required: true, message: '地址不能为空', trigger: 'change' }],
-  siteType: [{ required: true, message: '站点类型不能为空', trigger: 'blur' }]
+  siteType: [{ required: true, message: '站点类型不能为空', trigger: 'change' }]
 }
 
 const loadOptions = async () => {
@@ -204,7 +212,7 @@ const submitForm = async () => {
       site: {
         id: formData.value.id,
         expectedVersion: formData.value.version,
-        code: formData.value.code,
+        code: undefined,
         name: formData.value.name,
         customerId: formData.value.customerId,
         siteType: formData.value.siteType

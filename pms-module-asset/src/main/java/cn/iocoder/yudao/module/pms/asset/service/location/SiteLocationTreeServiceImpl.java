@@ -23,6 +23,8 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
 
     private final SiteLocationMapper siteLocationMapper;
     private final DeviceMapper deviceMapper;
+    private final cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper siteMapper;
+    private final LocationCodeService locationCodeService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -31,9 +33,18 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
             throw exception(AST_LOCATION_REFERENCE_INVALID);
         }
         if (input.id() == null) {
-            validateCodeUnique(siteId, null, input.code());
             SiteLocationDO parent = validateParent(siteId, null, input.parentId());
             SiteLocationDO entity = buildEntity(siteId, input, parent);
+            if (input.code() == null || input.code().isBlank()) {
+                var site = siteMapper.selectById(siteId);
+                if (site == null) throw exception(AST_SITE_NOT_EXISTS);
+                String code;
+                do {
+                    code = locationCodeService.next(site.getCode() + "-L-");
+                } while (siteLocationMapper.selectBySiteIdAndCode(siteId, code) != null);
+                entity.setCode(code);
+            }
+            validateCodeUnique(siteId, null, entity.getCode());
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
             entity.setVersion(0);
             siteLocationMapper.insert(entity);
@@ -47,13 +58,16 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         if (isReferenceOnly(input)) {
             return existing;
         }
-        validateCodeUnique(siteId, existing.getId(), input.code());
+        if (input.code() != null && !input.code().isBlank() && !Objects.equals(input.code(), existing.getCode())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
         SiteLocationDO parent = validateParent(siteId, existing.getId(), input.parentId());
         validateNoCycle(existing, parent);
 
         String oldPath = existing.getTreePath();
         Integer oldDepth = existing.getTreeDepth();
         SiteLocationDO update = buildEntity(siteId, input, parent);
+        update.setCode(existing.getCode());
         update.setId(existing.getId());
         update.setVersion(existing.getVersion() + 1);
         if (siteLocationMapper.updateByIdAndVersion(update, existing.getVersion()) == 0) {

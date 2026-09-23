@@ -1,16 +1,10 @@
 <template>
   <DeviceSourceStatus :slice="slice" />
-  <el-empty v-if="!slice.data" description="暂无可展示的出厂信息" />
-  <pre v-else class="slice-data">{{ slice.data }}</pre>
+  <DeviceSourceData :data="slice.data" title="出厂信息" empty-text="暂无可展示的出厂信息" />
 </template>
 <script setup lang="ts">
 import type { DeviceSourceSliceVO } from '@/api/pms/asset/device'
 import DeviceSourceStatus from './DeviceSourceStatus.vue'
+import DeviceSourceData from './DeviceSourceData.vue'
 defineProps<{ slice: DeviceSourceSliceVO }>()
 </script>
-<style scoped>
-.slice-data {
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-</style>

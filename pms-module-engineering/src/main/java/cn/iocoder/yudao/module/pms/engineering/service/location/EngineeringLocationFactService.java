@@ -26,7 +26,7 @@ public class EngineeringLocationFactService {
                                  String fallbackLocation, LocationMaintenanceCommand input) {
         LocationMaintenanceCommand command = new LocationMaintenanceCommand(projectId, input.address(), input.site(),
                 input.siteLocation(), fallbackLocation, businessType, businessId.toString(),
-                String.valueOf(sourceVersion));
+                String.valueOf(sourceVersion), input.extraSiteLocations());
         LocationReferenceDTO reference = assetLocationApi.maintain(command);
         AddressRespDTO address = reference.addressId() == null ? null
                 : assetLocationApi.getAddress(reference.addressId(), reference.addressVersion());

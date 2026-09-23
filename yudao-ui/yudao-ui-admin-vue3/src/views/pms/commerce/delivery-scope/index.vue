@@ -17,7 +17,7 @@
       </div>
       <el-alert
         v-if="!projectContext"
-        title="请从项目工作台进入本页面；路由必须携带服务端返回的 projectId、projectVersion 和 projectScopeVersion。"
+        title="请从项目工作台的交付范围入口进入，选择项目后即可查询与分配；此入口不提供项目上下文，暂不能操作。"
         type="warning"
         :closable="false"
         show-icon
@@ -35,22 +35,32 @@
     </ContentWrap>
 
     <ContentWrap>
-      <el-form :model="query" inline class="query-form">
+      <el-form
+        :model="query"
+        inline
+        class="query-form"
+        :disabled="!projectContext"
+        @submit.prevent="search"
+      >
         <el-form-item label="订单行 ID">
           <el-input-number v-model="query.orderLineId" :min="1" :controls="false" clearable />
         </el-form-item>
         <el-form-item>
-          <el-checkbox v-model="query.includeHistory">显示历史版本</el-checkbox>
+          <el-checkbox v-model="query.includeHistory" @change="search">显示历史版本</el-checkbox>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="search"><Icon icon="ep:search" />查询</el-button>
+          <el-button @click="search"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="reset">重置</el-button>
         </el-form-item>
       </el-form>
     </ContentWrap>
 
     <ContentWrap>
-      <el-table v-loading="loading" :data="rows" empty-text="当前项目范围内没有交付范围">
+      <el-table
+        v-loading="loading"
+        :data="rows"
+        :empty-text="projectContext ? '当前筛选条件下没有交付范围' : '请先从项目工作台进入交付范围'"
+      >
         <el-table-column prop="orderNo" label="订单号" min-width="150" fixed="left" />
         <el-table-column prop="lineNo" label="行号" min-width="80" />
         <el-table-column prop="itemCode" label="物料编码" min-width="130" />
@@ -142,8 +152,11 @@ const historyRef = ref<InstanceType<typeof DeliveryScopeHistoryDrawer>>()
 const intents = createCommerceIntentStore()
 const query = reactive<DeliveryScopePageReqVO>({ pageNo: 1, pageSize: 10, includeHistory: false })
 
+let listRequest = 0
 const load = async () => {
+  const request = ++listRequest
   if (!projectContext.value) {
+    loading.value = false
     rows.value = []
     total.value = 0
     deliveryScopeVersion.value = 0
@@ -158,11 +171,13 @@ const load = async () => {
       }),
       CommerceApi.getDeliveryScopeVersion(projectContext.value.projectId)
     ])
-    rows.value = data.list
-    total.value = data.total
-    deliveryScopeVersion.value = version
+    if (request === listRequest) {
+      rows.value = data.list
+      total.value = data.total
+      deliveryScopeVersion.value = version
+    }
   } finally {
-    loading.value = false
+    if (request === listRequest) loading.value = false
   }
 }
 const search = () => {

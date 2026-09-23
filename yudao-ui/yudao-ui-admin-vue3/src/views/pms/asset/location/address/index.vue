@@ -85,16 +85,7 @@
       v-loading="formLoading"
     >
       <el-divider content-position="left">行政区划</el-divider>
-      <el-row :gutter="16">
-        <el-col v-for="field in divisionFields" :key="field.code" :xs="24" :sm="12">
-          <el-form-item :label="field.label + '编码'" :prop="field.code"
-            ><el-input v-model="formData[field.code]"
-          /></el-form-item>
-          <el-form-item :label="field.label + '名称'" :prop="field.name"
-            ><el-input v-model="formData[field.name]"
-          /></el-form-item>
-        </el-col>
-      </el-row>
+      <PmsDivisionInput v-model="formData" prop="provinceCode" />
       <el-divider content-position="left">地址明细</el-divider>
       <el-form-item label="详细地址" prop="detailAddress"
         ><el-input v-model="formData.detailAddress" placeholder="道路、门牌号等"
@@ -146,26 +137,22 @@ const queryParams = reactive({
 const dialogVisible = ref(false)
 const formLoading = ref(false)
 const formRef = ref()
-type DivisionKey =
-  | 'countryCode'
-  | 'countryName'
-  | 'provinceCode'
-  | 'provinceName'
-  | 'cityCode'
-  | 'cityName'
-  | 'districtCode'
-  | 'districtName'
-const divisionFields: { label: string; code: DivisionKey; name: DivisionKey }[] = [
-  { label: '国家', code: 'countryCode', name: 'countryName' },
-  { label: '省', code: 'provinceCode', name: 'provinceName' },
-  { label: '市', code: 'cityCode', name: 'cityName' },
-  { label: '区县', code: 'districtCode', name: 'districtName' }
-]
 const emptyForm = (): LocationApi.AddressVO => ({ detailAddress: '', fullAddress: '' })
 const formData = ref<LocationApi.AddressVO>(emptyForm())
 const formRules = {
   countryCode: [{ required: true, message: '国家编码不能为空', trigger: 'blur' }],
   countryName: [{ required: true, message: '国家名称不能为空', trigger: 'blur' }],
+  provinceCode: [
+    {
+      validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+        // 境内选中省即代表级联已选到末级叶子（港澳等无下级区划选中即完整）；
+        // 境外行政区划保留原值，不校验省市区。
+        const foreign = !!formData.value.countryCode && formData.value.countryCode !== 'CN'
+        callback(!value && !foreign ? new Error('请选择省市区') : undefined)
+      },
+      trigger: 'change'
+    }
+  ],
   detailAddress: [{ required: true, message: '详细地址不能为空', trigger: 'blur' }],
   fullAddress: [{ required: true, message: '完整地址不能为空', trigger: 'blur' }]
 }
@@ -193,7 +180,9 @@ const divisionText = (row: LocationApi.AddressVO) =>
 const coordinateText = (row: LocationApi.AddressVO) =>
   row.longitude == null || row.latitude == null ? '未维护' : `${row.longitude}, ${row.latitude}`
 const openForm = async (id?: number) => {
-  formData.value = id ? await LocationApi.getAddress(id) : emptyForm()
+  formData.value = id
+    ? await LocationApi.getAddress(id)
+    : { ...emptyForm(), countryCode: 'CN', countryName: '中国' }
   dialogVisible.value = true
   nextTick(() => formRef.value?.clearValidate())
 }

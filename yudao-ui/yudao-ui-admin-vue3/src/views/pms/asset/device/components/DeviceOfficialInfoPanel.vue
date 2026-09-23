@@ -1,16 +1,10 @@
 <template>
   <DeviceSourceStatus :slice="slice" />
-  <el-empty v-if="!slice.data" description="官网信息未维护或来源不可用" />
-  <pre v-else class="slice-data">{{ slice.data }}</pre>
+  <DeviceSourceData :data="slice.data" title="官网信息" empty-text="官网信息未维护或来源不可用" />
 </template>
 <script setup lang="ts">
 import type { DeviceSourceSliceVO } from '@/api/pms/asset/device'
 import DeviceSourceStatus from './DeviceSourceStatus.vue'
+import DeviceSourceData from './DeviceSourceData.vue'
 defineProps<{ slice: DeviceSourceSliceVO }>()
 </script>
-<style scoped>
-.slice-data {
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-</style>

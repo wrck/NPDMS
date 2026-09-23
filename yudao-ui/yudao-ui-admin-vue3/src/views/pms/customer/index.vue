@@ -1,6 +1,12 @@
 <template>
   <ContentWrap>
-    <el-form :model="query" inline class="-mb-15px">
+    <el-form
+      :model="query"
+      inline
+      class="query-form"
+      @submit.prevent="search"
+      @keyup.enter="search"
+    >
       <el-form-item label="客户编码"><el-input v-model="query.code" clearable /></el-form-item>
       <el-form-item label="客户名称"><el-input v-model="query.name" clearable /></el-form-item>
       <el-form-item label="办事处"
@@ -20,7 +26,8 @@
         </el-select>
       </el-form-item>
       <el-form-item
-        ><el-button @click="load"><Icon icon="ep:search" />查询</el-button
+        ><el-button @click="search"><Icon icon="ep:search" />查询</el-button
+        ><el-button @click="reset">重置</el-button
         ><el-button type="primary" v-hasPermi="['pms:customer:create']" @click="formDrawer?.open()"
           ><Icon icon="ep:plus" />创建客户</el-button
         ></el-form-item
@@ -31,29 +38,28 @@
     <el-table
       v-loading="loading"
       :data="rows"
+      row-key="id"
+      empty-text="没有匹配的客户，请调整筛选条件"
       highlight-current-row
-      @current-change="selectCustomer"
     >
-      <el-table-column prop="code" label="客户编码" /><el-table-column
-        prop="name"
-        label="客户名称"
-      /><el-table-column prop="departmentName" label="办事处" /><el-table-column
-        prop="industryName"
-        label="子行业"
-      /><el-table-column prop="sourceType" label="来源" /><el-table-column
-        prop="lifecycleStatus"
-        label="状态"
-      />
-      <el-table-column label="操作" width="260"
+      <el-table-column prop="code" label="客户编码" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="name" label="客户名称" min-width="220" show-overflow-tooltip />
+      <el-table-column prop="departmentName" label="办事处" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="industryName" label="子行业" min-width="140" show-overflow-tooltip />
+      <el-table-column label="来源" width="120">
+        <template #default="{ row }">{{ sourceLabels[row.sourceType] || row.sourceType }}</template>
+      </el-table-column>
+      <el-table-column label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.lifecycleStatus === 'ENABLED' ? 'success' : 'info'">
+            {{ statusLabels[row.lifecycleStatus] || row.lifecycleStatus }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="260" fixed="right"
         ><template #default="{ row }"
-          ><el-button v-if="row.lifecycleStatus !== 'DELETED'" link @click="openDetail(row.id)"
+          ><el-button v-if="row.lifecycleStatus !== 'DELETED'" link @click="openCustomer(row.id)"
             >详情</el-button
-          ><el-button
-            v-if="row.lifecycleStatus !== 'DELETED'"
-            link
-            v-hasPermi="['pms:customer:update']"
-            @click="editCustomer(row.id)"
-            >编辑</el-button
           ><el-button
             v-if="row.lifecycleStatus === 'ENABLED'"
             link
@@ -84,21 +90,6 @@
       @pagination="load"
     />
   </ContentWrap>
-  <ContentWrap v-if="detail">
-    <el-tabs>
-      <el-tab-pane label="来源与联系方式"><CustomerSourcePanel :customer="detail" /></el-tab-pane>
-      <el-tab-pane label="地点"
-        ><CustomerLocationPanel :locations="detail.locations"
-      /></el-tab-pane>
-      <el-tab-pane label="项目摘要"
-        ><CustomerRelationSummaryPanel :slice="detail.projects" kind="project"
-      /></el-tab-pane>
-      <el-tab-pane label="设备摘要"
-        ><CustomerRelationSummaryPanel :slice="detail.devices" kind="device"
-      /></el-tab-pane>
-      <el-tab-pane label="变更历史"><CustomerHistoryPanel :history="detail.history" /></el-tab-pane>
-    </el-tabs>
-  </ContentWrap>
   <CustomerFormDrawer ref="formDrawer" @success="load" />
 </template>
 <script setup lang="ts">
@@ -106,19 +97,25 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CustomerApi from '@/api/pms/customer'
-import type { CustomerDetailRespVO, CustomerPageReqVO, CustomerRespVO } from '@/api/pms/customer'
+import type { CustomerPageReqVO, CustomerRespVO } from '@/api/pms/customer'
 import CustomerFormDrawer from './components/CustomerFormDrawer.vue'
-import CustomerSourcePanel from './components/CustomerSourcePanel.vue'
-import CustomerLocationPanel from './components/CustomerLocationPanel.vue'
-import CustomerRelationSummaryPanel from './components/CustomerRelationSummaryPanel.vue'
-import CustomerHistoryPanel from './components/CustomerHistoryPanel.vue'
 import { createCustomerIntentStore, customerIntentOf } from './customerInteraction'
 defineOptions({ name: 'PmsCustomerWorkbench' })
 const message = useMessage()
 const loading = ref(false)
 const rows = ref<CustomerRespVO[]>([])
 const total = ref(0)
-const detail = ref<CustomerDetailRespVO>()
+let formRequest = 0
+const sourceLabels: Record<string, string> = {
+  CRM_SYNC: 'CRM 同步',
+  PLATFORM_CREATED: '平台创建',
+  PLATFORM_TEMPORARY: '平台临时'
+}
+const statusLabels: Record<string, string> = {
+  ENABLED: '启用',
+  DISABLED: '停用',
+  DELETED: '已删除'
+}
 const formDrawer = ref<InstanceType<typeof CustomerFormDrawer>>()
 const intentKeys = createCustomerIntentStore()
 const query = reactive<CustomerPageReqVO>({ pageNo: 1, pageSize: 10 })
@@ -132,13 +129,27 @@ const load = async () => {
     loading.value = false
   }
 }
-const openDetail = async (id: number) => {
-  detail.value = await CustomerApi.getCustomer(id)
+const search = () => {
+  query.pageNo = 1
+  return load()
 }
-const editCustomer = async (id: number) => formDrawer.value?.open(await CustomerApi.getCustomer(id))
-const selectCustomer = (row?: CustomerRespVO) => {
-  if (row && row.lifecycleStatus !== 'DELETED') openDetail(row.id)
-  else detail.value = undefined
+const reset = () => {
+  Object.assign(query, {
+    code: undefined,
+    name: undefined,
+    departmentCode: undefined,
+    marketCode: undefined,
+    systemCode: undefined,
+    expendCode: undefined,
+    industryCode: undefined,
+    lifecycleStatus: undefined
+  })
+  return search()
+}
+const openCustomer = async (id: number) => {
+  const request = ++formRequest
+  const customer = await CustomerApi.getCustomer(id)
+  if (request === formRequest) formDrawer.value?.open(customer)
 }
 const runLifecycle = async (row: CustomerRespVO, action: 'disable' | 'delete' | 'restore') => {
   const { value } = await ElMessageBox.prompt('请输入操作原因', '客户生命周期操作', {
@@ -157,7 +168,23 @@ const runLifecycle = async (row: CustomerRespVO, action: 'disable' | 'delete' | 
   intentKeys.complete(intent)
   message.success('操作成功')
   await load()
-  if (detail.value?.id === row.id) await openDetail(row.id)
 }
 onMounted(load)
 </script>
+<style scoped>
+.query-form :deep(.el-input) {
+  width: 180px;
+}
+
+@media (width <= 767px) {
+  .query-form {
+    display: grid;
+  }
+
+  .query-form :deep(.el-form-item),
+  .query-form :deep(.el-input) {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+</style>
