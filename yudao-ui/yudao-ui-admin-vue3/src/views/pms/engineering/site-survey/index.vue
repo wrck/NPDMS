@@ -615,18 +615,19 @@ const savePayload = () => {
     payload.locationMaintenance = undefined
     return payload
   }
-  if (
-    !maintenance?.site?.id &&
-    (!maintenance?.address?.countryName || !maintenance.address.detailAddress)
-  ) {
-    message.error('新地点必须填写国家和详细地址')
+  if (!maintenance?.site?.id && !maintenance.address?.detailAddress) {
+    message.error('新地点必须填写详细地址')
     return
   }
-  if (!maintenance.site?.id && (!maintenance.site?.code || !maintenance.site.name)) {
-    message.error('新地点必须填写站点编码和名称')
+  if (!maintenance?.site?.id && !maintenance.address?.provinceCode) {
+    message.error('新地点请选择省市区')
     return
   }
-  if (maintenance.siteLocation && !maintenance.siteLocation.id && !maintenance.siteLocation.code) {
+  if (!maintenance.site?.id && !maintenance.site?.name) {
+    message.error('新地点必须填写站点名称')
+    return
+  }
+  if (maintenance.siteLocation && !maintenance.siteLocation.id && !maintenance.siteLocation.name) {
     maintenance.siteLocation = undefined
   }
   if (maintenance.address && !maintenance.address.id) {

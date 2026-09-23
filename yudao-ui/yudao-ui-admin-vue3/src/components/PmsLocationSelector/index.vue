@@ -18,7 +18,7 @@
         <el-option
           v-for="site in sites"
           :key="site.id"
-          :label="`${site.code} ${site.name}`"
+          :label="site.name"
           :value="site.id ?? 0"
         />
       </el-select>
@@ -38,52 +38,27 @@
 
     <template v-else-if="mode === 'new'">
       <el-divider content-position="left">地址</el-divider>
-      <el-row :gutter="12">
-        <el-col :span="6"
-          ><el-input v-model="addressDraft.countryCode" placeholder="国家编码"
-        /></el-col>
-        <el-col :span="6"
-          ><el-input v-model="addressDraft.countryName" placeholder="国家"
-        /></el-col>
-        <el-col :span="6"
-          ><el-input v-model="addressDraft.provinceCode" placeholder="省编码"
-        /></el-col>
-        <el-col :span="6"><el-input v-model="addressDraft.provinceName" placeholder="省" /></el-col>
-        <el-col :span="6" class="mt-10px"
-          ><el-input v-model="addressDraft.cityCode" placeholder="市编码"
-        /></el-col>
-        <el-col :span="6" class="mt-10px"
-          ><el-input v-model="addressDraft.cityName" placeholder="市"
-        /></el-col>
-        <el-col :span="6" class="mt-10px"
-          ><el-input v-model="addressDraft.districtCode" placeholder="区县编码"
-        /></el-col>
-        <el-col :span="6" class="mt-10px"
-          ><el-input v-model="addressDraft.districtName" placeholder="区/县"
-        /></el-col>
-        <el-col :span="24" class="mt-10px"
-          ><el-input v-model="addressDraft.detailAddress" placeholder="详细地址"
-        /></el-col>
-      </el-row>
+      <!-- 国家默认中国不提供录入入口，countryCode/countryName 由 emptyDraft 固定为 CN/中国 -->
+      <PmsDivisionInput v-model="addressDraft" label="省市区" />
+      <el-input v-model="addressDraft.detailAddress" placeholder="详细地址" class="mt-10px" />
       <el-divider content-position="left">站点</el-divider>
       <el-row :gutter="12">
-        <el-col :span="10"><el-input v-model="siteDraft.code" placeholder="站点编码" /></el-col>
+        <el-col :span="10">
+          <el-input :model-value="siteDraft.code" disabled placeholder="保存时自动生成" />
+        </el-col>
         <el-col :span="14"><el-input v-model="siteDraft.name" placeholder="站点名称" /></el-col>
       </el-row>
       <el-divider content-position="left">站点内位置（可选）</el-divider>
       <el-row :gutter="12">
-        <el-col :span="8"
-          ><el-input v-model="siteLocationDraft.code" placeholder="位置编码"
-        /></el-col>
-        <el-col :span="8"
+        <el-col :span="12"
           ><el-input v-model="siteLocationDraft.name" placeholder="位置名称"
         /></el-col>
-        <el-col :span="8"
+        <el-col :span="12"
           ><el-input v-model="siteLocationDraft.locationType" placeholder="楼栋/楼层/机房/机柜"
         /></el-col>
       </el-row>
       <div class="mt-8px text-12px text-gray-500"
-        >位置树不限定层级；后续可在站点树中继续向下维护。</div
+        >位置编码保存时按站点自动生成；位置树不限定层级，后续可在站点树中继续向下维护。</div
       >
     </template>
 
@@ -114,7 +89,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainReque
 
 const emptyDraft = (): LocationMaintainRequest => ({
   projectId: props.projectId,
-  address: {},
+  address: { countryCode: 'CN', countryName: '中国' },
   site: { siteType: 'CUSTOMER_SITE' },
   siteLocation: { code: '', name: '', locationType: '', treeSort: 0 },
   fallbackLocation: ''
@@ -140,7 +115,7 @@ const selectSite = async (siteId?: number) => {
   const site = sites.value.find((item) => item.id === siteId)
   draft.address = undefined
   draft.siteLocation = undefined
-  draft.fallbackLocation = site ? `${site.code || ''} ${site.name || ''}`.trim() : undefined
+  draft.fallbackLocation = site?.name
   draft.site = site ? { id: site.id, expectedVersion: site.version } : undefined
   if (siteId) locationTree.value = await LocationApi.getSiteLocationTree(siteId)
 }
@@ -169,6 +144,17 @@ watch(
   () => props.projectId,
   (projectId) => (draft.projectId = projectId)
 )
+// radio 的 v-model 同步更新 mode，渲染先于 @change 的 nextTick 回调；
+// 必须在渲染前保证 new 模式结构存在，否则 addressDraft 访问 undefined 崩溃。
+// 外部传入的 modelValue 也可能是残缺结构（如保存时 siteLocation 被共享引用置空），
+// 渲染前同样补齐，只补缺失不清值。
+const ensureStructure = () => {
+  if (mode.value === 'fallback') return
+  if (!draft.address) draft.address = {}
+  if (!draft.site) draft.site = { siteType: 'CUSTOMER_SITE' }
+  if (!draft.siteLocation)
+    draft.siteLocation = { code: '', name: '', locationType: '', treeSort: 0 }
+}
 watch(
   () => props.modelValue,
   async (value) => {
@@ -185,10 +171,12 @@ watch(
         locationTree.value = await LocationApi.getSiteLocationTree(selectedSiteId.value)
       }
     } else if (value.address || value.site || value.siteLocation) mode.value = 'new'
+    ensureStructure()
   },
   { immediate: true, deep: true }
 )
 watch(draft, () => emit('update:modelValue', JSON.parse(JSON.stringify(draft))), { deep: true })
+watch(mode, ensureStructure)
 const changeMode = (value: 'existing' | 'new' | 'fallback') => {
   Object.assign(draft, emptyDraft())
   selectedSiteId.value = undefined

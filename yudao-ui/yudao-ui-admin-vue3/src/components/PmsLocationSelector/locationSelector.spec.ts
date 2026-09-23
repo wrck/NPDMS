@@ -30,4 +30,17 @@ describe('PmsLocationSelector contract', () => {
     assert.match(source, /位置树不限定层级/)
     assert.doesNotMatch(source, /maxDepth|depthLimit/)
   })
+
+  it('defaults country to CN without an input and shows full site names', () => {
+    assert.match(source, /countryCode: 'CN'/)
+    assert.doesNotMatch(source, /国家编码|国家名称/)
+    assert.match(source, /:label="site\.name"/)
+    assert.doesNotMatch(source, /site\.code \|\| ''/)
+  })
+
+  it('places the division cascade before the detail address input', () => {
+    const divisionAt = source.indexOf('<PmsDivisionInput')
+    const detailAt = source.indexOf('addressDraft.detailAddress')
+    assert.ok(divisionAt > -1 && detailAt > divisionAt)
+  })
 })

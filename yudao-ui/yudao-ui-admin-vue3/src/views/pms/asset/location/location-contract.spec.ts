@@ -32,6 +32,12 @@ describe('CHG-PRD-2026-08-23-002 location UI contract', () => {
       assert.match(addressSource, new RegExp(field))
   })
 
+  it('treats leaf-level division selection as complete for domestic addresses', () => {
+    const addressSource = source('./address/index.vue')
+    assert.match(addressSource, /请选择省市区/)
+    assert.doesNotMatch(addressSource, /请选择完整的省市区/)
+  })
+
   it('exposes required department code maintenance', () => {
     const deptSource = source('../../../system/dept/DeptForm.vue')
     assert.match(deptSource, /formData\.code/)
