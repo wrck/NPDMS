@@ -83,7 +83,7 @@
     </template>
 
     <template v-if="extraAvailable">
-      <el-divider content-position="left">站点内位置（可选）</el-divider>
+      <el-divider content-position="left">追加下级位置（可选）</el-divider>
       <el-row :gutter="12">
         <el-col :span="12"
           ><el-input v-model="extraDraft.name" placeholder="位置名称"

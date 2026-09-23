@@ -89,8 +89,8 @@ describe('PmsLocationSelector contract', () => {
   })
 
   it('appends chained child locations through one shared block for both modes', () => {
-    assert.doesNotMatch(source, /追加下级位置（可选）/)
-    assert.equal((source.match(/站点内位置（可选）/g) || []).length, 1)
+    assert.doesNotMatch(source, /站点内位置（可选）/)
+    assert.equal((source.match(/追加下级位置（可选）/g) || []).length, 1)
     assert.match(
       source,
       /mode\.value === 'new' \|\| \(mode\.value === 'existing' && !!selectedSiteId\.value\)/
