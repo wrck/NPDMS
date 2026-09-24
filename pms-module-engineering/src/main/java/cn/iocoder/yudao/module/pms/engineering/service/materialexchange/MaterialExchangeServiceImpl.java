@@ -24,6 +24,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
+import cn.iocoder.yudao.module.pms.asset.api.product.AssetProductOfficialApi;
+import cn.iocoder.yudao.module.pms.asset.api.product.ProductOfficialSnapshot;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeLineFactApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineFact;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineRef;
@@ -119,6 +121,8 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     private ProjectDeviceSelectionApi deviceSelectionApi;
     @Resource
     private DeliveryScopeLineFactApi scopeLineFactApi;
+    @Resource
+    private AssetProductOfficialApi assetProductOfficialApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -128,13 +132,19 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         validateCodeUnique(createReqVO.getCode(), null);
         // 3. 转换并写入，初始单据状态为草稿、CRM 推送状态为待推送
         MaterialExchangeDO entity = BeanUtils.toBean(createReqVO, MaterialExchangeDO.class);
+        // 4. 主表产品编码 = 勾选清单行物料编码去重拼接（换货产品不影响）；名称/型号/原订单号随分流保存退出申报
+        entity.setProductCode(joinedProductCode(lines));
+        entity.setProductName(null);
+        entity.setProductModel(null);
+        entity.setOriginalOrderNo(null);
         entity.setStatus(STATUS_DRAFT);
         entity.setCrmPushStatus(CRM_PUSH_PENDING);
         if (entity.getVersion() == null) {
             entity.setVersion(0);
         }
         materialExchangeMapper.insert(entity);
-        saveSerials(entity.getId(), lines, serialQuantities(createReqVO));
+        saveSerials(entity.getId(), lines, serialQuantities(createReqVO),
+                resolveExchangeProductSnapshots(lines));
         return entity.getId();
     }
 
@@ -155,8 +165,12 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
             throw exception(MATERIAL_EXCH_PROJECT_NOT_EXISTS);
         }
         List<ExchangeLine> lines = resolveAndValidateLines(updateReqVO, existing);
-        // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
+        // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）；产品编码重算拼接，名称/型号/原订单号随分流保存退出申报
         MaterialExchangeDO update = BeanUtils.toBean(updateReqVO, MaterialExchangeDO.class);
+        update.setProductCode(joinedProductCode(lines));
+        update.setProductName(null);
+        update.setProductModel(null);
+        update.setOriginalOrderNo(null);
         update.setVersion(existing.getVersion());
         if (materialExchangeMapper.updateById(update) != 1) {
             throw exception(MATERIAL_EXCH_VERSION_NOT_MATCH);
@@ -165,7 +179,8 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (updateReqVO.getSerials() != null || serialMapper.selectByExchange(
                 new MaterialExchangeSerialQuery(existing.getId())).isEmpty()) {
             serialMapper.deleteByExchange(new MaterialExchangeSerialQuery(existing.getId()));
-            saveSerials(existing.getId(), lines, serialQuantities(updateReqVO));
+            saveSerials(existing.getId(), lines, serialQuantities(updateReqVO),
+                    resolveExchangeProductSnapshots(lines));
         }
     }
 
@@ -207,7 +222,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
             lines = resolveSavedLines(existing);
         } else {
             lines = request.getDeviceId() == null ? List.of()
-                    : List.of(new ExchangeLine(null, request.getDeviceId()));
+                    : List.of(new ExchangeLine(null, request.getDeviceId(), null));
         }
         // 1. 清单行与旧设备行分流校验归属；空集合筛选返回空结果
         var scopeRefs = lines.stream().map(line -> line.scopeRef).filter(Objects::nonNull).toList();
@@ -239,11 +254,13 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         List<ExchangeLine> lines = new ArrayList<>();
         for (MaterialExchangeSerialVO row : serials) {
             if (row.getScopeDetailId() != null) {
-                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null));
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null,
+                        row.getProductId()));
             } else if (row.getScopeId() != null) {
-                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null));
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null,
+                        row.getProductId()));
             } else if (row.getDeviceId() != null) {
-                lines.add(new ExchangeLine(null, row.getDeviceId()));
+                lines.add(new ExchangeLine(null, row.getDeviceId(), null));
             } else {
                 throw exception(MATERIAL_EXCH_SCOPE_LINE_INVALID);
             }
@@ -257,17 +274,30 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         for (MaterialExchangeSerialDO row : serialMapper.selectByExchange(
                 new MaterialExchangeSerialQuery(existing.getId()))) {
             if (row.getScopeDetailId() != null) {
-                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null));
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null,
+                        row.getProductId()));
             } else if (row.getScopeId() != null) {
-                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null));
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null,
+                        row.getProductId()));
             } else if (row.getDeviceId() != null) {
-                lines.add(new ExchangeLine(null, row.getDeviceId()));
+                lines.add(new ExchangeLine(null, row.getDeviceId(), null));
             }
         }
         if (lines.isEmpty() && existing.getDeviceId() != null) {
-            lines.add(new ExchangeLine(null, existing.getDeviceId()));
+            lines.add(new ExchangeLine(null, existing.getDeviceId(), null));
         }
         return lines;
+    }
+
+    /** 换货产品引用校验与快照解析：填写行按产品信息取 ACTIVE 快照，无效或停用拒绝；空集合返回空结果。 */
+    private Map<Long, ProductOfficialSnapshot> resolveExchangeProductSnapshots(List<ExchangeLine> lines) {
+        List<Long> productIds = lines.stream().map(line -> line.exchangeProductId)
+                .filter(Objects::nonNull).distinct().toList();
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+        return assetProductOfficialApi.getActiveProductSnapshots(productIds).stream()
+                .collect(Collectors.toMap(ProductOfficialSnapshot::id, Function.identity()));
     }
 
     /** 行解析结果：清单行（范围事实）与旧序列号行（设备事实）分流；显式行与已保存快照共用。 */
@@ -276,10 +306,12 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         private Long legacyDeviceId;
         private DeliveryScopeLineFact scopeFact;
         private SelectedProjectDevice device;
+        private Long exchangeProductId;
 
-        private ExchangeLine(DeliveryScopeLineRef scopeRef, Long legacyDeviceId) {
+        private ExchangeLine(DeliveryScopeLineRef scopeRef, Long legacyDeviceId, Long exchangeProductId) {
             this.scopeRef = scopeRef;
             this.legacyDeviceId = legacyDeviceId;
+            this.exchangeProductId = exchangeProductId;
         }
 
         private String refKey() {
@@ -317,8 +349,20 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         return serialQuantities(request).values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /** 持久化设备行服务器快照；显式行顺序与客户端一致，数量按行引用回填。 */
-    private void saveSerials(Long exchangeId, List<ExchangeLine> lines, Map<String, BigDecimal> quantities) {
+    /** 主表产品编码：勾选清单行物料编码去重、半角逗号拼接；无清单行（仅旧序列号行）返回 null。 */
+    private String joinedProductCode(List<ExchangeLine> lines) {
+        String joined = lines.stream().map(line -> line.scopeFact)
+                .filter(Objects::nonNull)
+                .map(DeliveryScopeLineFact::itemCode)
+                .filter(code -> code != null && !code.isBlank())
+                .distinct()
+                .collect(Collectors.joining(","));
+        return joined.isBlank() ? null : joined;
+    }
+
+    /** 持久化设备行服务器快照；显式行顺序与客户端一致，数量按行引用回填；换货产品快照按引用由服务端写入。 */
+    private void saveSerials(Long exchangeId, List<ExchangeLine> lines, Map<String, BigDecimal> quantities,
+                             Map<Long, ProductOfficialSnapshot> productSnapshots) {
         for (ExchangeLine line : lines) {
             MaterialExchangeSerialDO row = new MaterialExchangeSerialDO();
             row.setExchangeId(exchangeId);
@@ -342,6 +386,18 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 row.setProductCode(device.productCode());
                 row.setProductModel(device.productModel());
                 row.setContractNo(device.contractNo());
+            }
+            if (line.exchangeProductId != null) {
+                ProductOfficialSnapshot snapshot = productSnapshots.get(line.exchangeProductId);
+                if (snapshot == null) {
+                    throw exception(MATERIAL_EXCH_PRODUCT_INVALID);
+                }
+                row.setProductId(snapshot.id());
+                row.setProductName(snapshot.productName());
+                row.setProductCode(snapshot.productCode());
+                row.setProductModel(snapshot.productModel());
+            } else {
+                row.setProductId(null);
             }
             serialMapper.insert(row);
         }

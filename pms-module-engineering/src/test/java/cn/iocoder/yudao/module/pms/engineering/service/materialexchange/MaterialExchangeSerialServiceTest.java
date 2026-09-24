@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.pms.engineering.service.materialexchange;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
+import cn.iocoder.yudao.module.pms.asset.api.product.AssetProductOfficialApi;
+import cn.iocoder.yudao.module.pms.asset.api.product.ProductOfficialSnapshot;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeLineFactApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineFact;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineRef;
@@ -26,12 +28,14 @@ class MaterialExchangeSerialServiceTest {
     private final MaterialExchangeSerialMapper serialMapper = mock(MaterialExchangeSerialMapper.class);
     private final ProjectDeviceSelectionApi devices = mock(ProjectDeviceSelectionApi.class);
     private final DeliveryScopeLineFactApi scopeLines = mock(DeliveryScopeLineFactApi.class);
+    private final AssetProductOfficialApi products = mock(AssetProductOfficialApi.class);
     private final MaterialExchangeServiceImpl service = new MaterialExchangeServiceImpl();
     @BeforeEach void setup() {
         ReflectionTestUtils.setField(service, "materialExchangeMapper", mapper);
         ReflectionTestUtils.setField(service, "serialMapper", serialMapper);
         ReflectionTestUtils.setField(service, "deviceSelectionApi", devices);
         ReflectionTestUtils.setField(service, "scopeLineFactApi", scopeLines);
+        ReflectionTestUtils.setField(service, "assetProductOfficialApi", products);
         when(devices.validateSelection(10L, List.of(1L, 2L))).thenReturn(List.of(
                 new SelectedProjectDevice(1L, "REAL-1", "设备一", "P1", "M1", "C1"),
                 new SelectedProjectDevice(2L, "REAL-2", "设备二", "P2", "M2", "C1")));
@@ -162,6 +166,62 @@ class MaterialExchangeSerialServiceTest {
         var request = request(); request.setSerials(List.of(orphan));
         assertThrows(ServiceException.class, () -> service.createMaterialExchange(request));
         verifyNoInteractions(mapper, serialMapper);
+    }
+
+    @Test void joinsDistinctScopeItemCodesAndExitsLegacyFacts() {
+        when(scopeLines.validateSelection(10L, List.of(
+                DeliveryScopeLineRef.ofDetail(7L), DeliveryScopeLineRef.ofDetail(8L),
+                DeliveryScopeLineRef.ofDetail(9L)))).thenReturn(List.of(
+                new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1", "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN),
+                new DeliveryScopeLineFact(8L, 60L, "SO-1", "10", "ITEM-1", "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN),
+                new DeliveryScopeLineFact(9L, 60L, "SO-1", "10", "ITEM-2", "设备二", "P-ITEM-2", "AR", "路由器", BigDecimal.TEN)));
+        var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
+        var second = new MaterialExchangeSerialVO(); second.setScopeDetailId(8L);
+        var third = new MaterialExchangeSerialVO(); third.setScopeDetailId(9L);
+        var request = request(); request.setSerials(List.of(first, second, third));
+        request.setQuantity(BigDecimal.valueOf(3));
+        assertEquals(100L, service.createMaterialExchange(request));
+        var capture = ArgumentCaptor.forClass(MaterialExchangeDO.class);
+        verify(mapper).insert(capture.capture());
+        // 编码=勾选清单行物料编码去重拼接；名称/型号/原订单号随分流保存退出申报，无单设备语义
+        assertEquals("ITEM-1,ITEM-2", capture.getValue().getProductCode());
+        assertNull(capture.getValue().getProductName());
+        assertNull(capture.getValue().getProductModel());
+        assertNull(capture.getValue().getOriginalOrderNo());
+        assertNull(capture.getValue().getDeviceId());
+    }
+
+    @Test void rejectsInactiveExchangeProduct() {
+        when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
+                .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
+                        "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN)));
+        var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
+        first.setQuantity(BigDecimal.valueOf(1)); first.setProductId(404L);
+        when(products.getActiveProductSnapshots(List.of(404L))).thenReturn(List.of());
+        var request = request(); request.setSerials(List.of(first)); request.setQuantity(BigDecimal.valueOf(1));
+        // 申报单/设备行均未落库前即拒绝
+        assertThrows(ServiceException.class, () -> service.createMaterialExchange(request));
+        verify(serialMapper, never()).insert(any(MaterialExchangeSerialDO.class));
+    }
+
+    @Test void writesServerSideExchangeProductSnapshot() {
+        when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
+                .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
+                        "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN)));
+        var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
+        first.setQuantity(BigDecimal.valueOf(1)); first.setProductId(11L);
+        when(products.getActiveProductSnapshots(List.of(11L))).thenReturn(List.of(
+                new ProductOfficialSnapshot(11L, "01100003", "DPtech IPS2000-MA-N", "IPS2000-MA-N+1Y")));
+        var request = request(); request.setSerials(List.of(first)); request.setQuantity(BigDecimal.valueOf(1));
+        assertEquals(100L, service.createMaterialExchange(request));
+        var capture = ArgumentCaptor.forClass(MaterialExchangeSerialDO.class);
+        verify(serialMapper).insert(capture.capture());
+        // 快照组由服务端按产品引用写入，覆盖订单行事实预填；清单行引用保持不变
+        assertEquals(11L, capture.getValue().getProductId());
+        assertEquals("01100003", capture.getValue().getProductCode());
+        assertEquals("DPtech IPS2000-MA-N", capture.getValue().getProductName());
+        assertEquals("IPS2000-MA-N+1Y", capture.getValue().getProductModel());
+        assertEquals(7L, capture.getValue().getScopeDetailId());
     }
 
     private MaterialExchangeSaveReqVO request() {
