@@ -131,9 +131,11 @@
         <el-table-column prop="phaseName" label="项目阶段" min-width="140" />
         <el-table-column label="建议计划时间" min-width="200">
           <template #default="{ row }">
+            <!-- Demo 页面9：规则倒排解析的建议最迟完成可为单值，有起止时显示区间 -->
             <span v-if="row.suggestedStart && row.suggestedEnd">
               {{ row.suggestedStart }} ~ {{ row.suggestedEnd }}
             </span>
+            <span v-else-if="row.suggestedEnd">{{ row.suggestedEnd }}</span>
             <span v-else class="text-gray-400">—</span>
           </template>
         </el-table-column>
