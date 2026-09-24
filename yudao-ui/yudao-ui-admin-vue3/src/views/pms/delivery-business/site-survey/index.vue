@@ -128,7 +128,7 @@
       :disabled="readonly || saving"
     >
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col v-if="!projectLocked" :span="12">
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
@@ -141,7 +141,7 @@
             />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col v-if="!projectLocked" :span="12">
           <el-form-item label="工勘名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -339,6 +339,7 @@
 import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
+import { useUserStore } from '@/store/modules/user'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SiteSurveyApi from '@/api/pms/engineering/site-survey/entity'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
@@ -391,6 +392,7 @@ const current = (sequence: number) => sequence === contextSequence
 // Existing location and project API types are numeric; a type assertion never coerces a Snowflake string on the wire.
 const ownerId = (id: number | string) => id as number
 const message = useMessage()
+const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
@@ -473,7 +475,7 @@ const openForm = async (row?: SiteSurveyVO, view = false) => {
       projectId: ownerId(props.projectId ?? 0),
       name: '',
       surveyDate: '',
-      surveyorUserId: undefined,
+      surveyorUserId: userStore.getUser.id,
       location: '',
       locationMaintenance: undefined,
       businessValues: {},
@@ -492,11 +494,21 @@ const openForm = async (row?: SiteSurveyVO, view = false) => {
     row || {}
   )
   form.locationMaintenance = toLocationMaintenance(row)
+  if (!row && projectLocked.value) {
+    // 工勘名称默认取宿主项目名称；项目与名称字段在项目上下文中不显示。
+    const host = await loadHostProject()
+    if (current(context) && sequence === formSequence) form.name = host?.projectName ?? ''
+  }
   if (!row) await useStandardForm()
   if (!current(context) || sequence !== formSequence) return
   openedValue.value = JSON.stringify(form)
   formVisible.value = true
 }
+
+const hostProject = ref<ProjectApi.ProjectMasterVO>()
+const loadHostProject = () => hostProject.value
+  ? Promise.resolve(hostProject.value)
+  : ProjectApi.getProject(ownerId(props.projectId!)).then((row) => (hostProject.value = row))
 
 const useStandardForm = async () => {
   if (readonly.value || !inProject(form)) return

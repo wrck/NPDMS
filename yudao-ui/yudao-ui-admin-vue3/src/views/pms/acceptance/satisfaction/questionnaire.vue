@@ -35,41 +35,13 @@
         </div>
         <section class="file-section">
           <h2>签字与附件</h2>
-          <label class="contact-label" for="customer-contact">客户联系人（必填）</label>
-          <el-input
-            id="customer-contact"
-            v-model="customerContactRef"
-            maxlength="256"
-            size="large"
-            :disabled="submitting"
-          />
-          <el-radio-group v-model="signatureMode" :disabled="submitting" class="signature-mode" aria-label="签字方式">
-            <el-radio-button value="draw">手写签字</el-radio-button>
-            <el-radio-button value="upload">上传已有签字文件</el-radio-button>
-          </el-radio-group>
-          <div v-if="signatureMode === 'draw'" class="customer-confirmation-form">
+          <div class="customer-confirmation-form">
             <form-create
               v-model="signatureValues"
               :rule="signatureRules"
               :option="questionFormOption"
             />
-            <a
-              v-if="signatureValues.signatureImageDataUrl"
-              :href="signatureValues.signatureImageDataUrl"
-              download="客户手写签字.png"
-              >保存签字图片</a
-            >
           </div>
-          <el-upload
-            v-else
-            :auto-upload="false"
-            :limit="1"
-            :disabled="submitting"
-            :on-change="onSignatureChange"
-            :on-remove="() => (signatureFile = undefined)"
-          >
-            <el-button>选择签字文件</el-button>
-          </el-upload>
           <div class="attachment-field"
             ><p>补充附件（可选）</p>
             <el-upload
@@ -150,13 +122,7 @@ const questionRules = computed(() =>
     validate: [{ required: question.required, message: `请填写${question.title}` }]
   }))
 )
-const customerContactRef = ref('')
 const signatureValues = ref({ signatureImageDataUrl: '' })
-const signatureMode = ref('draw')
-const signatureFile = ref<File>()
-const onSignatureChange = (file: UploadFile) => {
-  signatureFile.value = file.raw
-}
 const signatureRules = [
   {
     type: 'signaturePad',
@@ -236,12 +202,8 @@ const submit = async () => {
   if (submitting.value || outcome.value || !questionFormApi.value) return
   try { await questionFormApi.value.validate() }
   catch { message.warning('请完成必填问卷内容'); return }
-  const hasSignature =
-    signatureMode.value === 'draw'
-      ? !!signatureValues.value.signatureImageDataUrl
-      : !!signatureFile.value
-  if (!hasSignature || !customerContactRef.value.trim()) {
-    message.warning('请填写客户联系人并完成签字')
+  if (!signatureValues.value.signatureImageDataUrl) {
+    message.warning('请手写签字')
     return
   }
   for (const question of definition.value.questions) {
@@ -269,9 +231,7 @@ const submit = async () => {
   submitting.value = true
   try {
     const signature = await upload(
-      signatureMode.value === 'draw'
-        ? signaturePngFile(signatureValues.value.signatureImageDataUrl)
-        : signatureFile.value!,
+      signaturePngFile(signatureValues.value.signatureImageDataUrl),
       'SATISFACTION_SIGNATURE',
       1
     )
@@ -308,7 +268,8 @@ const submit = async () => {
     outcome.value = await Api.submitPublicResponse(token, tenantId, {
       requestId,
       responseId,
-      customerContactRef: customerContactRef.value.trim(),
+      // 客户联系人不再采集（界面不展示）；已有手写签字，落"手签"
+      customerContactRef: '手签',
       answerSnapshot,
       files
     })
@@ -355,13 +316,6 @@ header p {
 .file-section h2 {
   margin: 0 0 16px;
   font-size: 17px;
-}
-.contact-label {
-  display: block;
-  margin-bottom: 8px;
-}
-.signature-mode {
-  margin: 20px 0;
 }
 .attachment-field {
   margin-top: 20px;

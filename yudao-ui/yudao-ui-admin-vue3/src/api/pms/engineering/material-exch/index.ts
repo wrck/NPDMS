@@ -2,10 +2,25 @@ import request from '@/config/axios'
 import { withRequestTimestamp } from '../requestTime'
 
 export interface MaterialExchangeSerialVO {
-  equipmentId: number
-  sn: string
-  name?: string
+  /** 设备清单行引用：交付范围明细拆分行（=合同对应销售订单行的分配明细） */
+  scopeDetailId?: number
+  /** 设备清单行引用：无明细拆分的交付范围行 */
+  scopeId?: number
+  /** 换货数量，按清单行填写；缺省按 1 台处理 */
+  quantity?: number
+  orderNo?: string
+  lineNo?: string
+  itemCode?: string
+  productName?: string
   productCode?: string
+  deviceTypeCode?: string
+  deviceTypeName?: string
+  /** 换货产品：产品信息引用；可留空草稿后补 */
+  productId?: number
+  /** 兼容旧序列号快照：原设备ID */
+  deviceId?: number
+  /** 兼容旧序列号快照 */
+  sn?: string
   productModel?: string
   contractNo?: string
 }
@@ -16,11 +31,11 @@ export interface MaterialExchangeVO {
   code: string
   name: string
   exchangeType?: string
-  equipmentId?: number
+  deviceId?: number
   serials?: MaterialExchangeSerialVO[]
-  materialName: string
-  materialCode?: string
-  specification?: string
+  productName?: string
+  productCode?: string
+  productModel?: string
   quantity: number
   unit?: string
   originalOrderNo?: string
@@ -29,7 +44,7 @@ export interface MaterialExchangeVO {
   crmPushStatus?: string
   crmPushTime?: string
   crmOrderNo?: string
-  newEquipmentId?: number
+  newDeviceId?: number
   exchangeProgress?: string
   applicantUserId: number
   applyTime: string | number

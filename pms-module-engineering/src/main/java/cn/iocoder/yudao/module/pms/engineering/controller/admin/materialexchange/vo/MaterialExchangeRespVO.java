@@ -30,17 +30,17 @@ public class MaterialExchangeRespVO {
     @Schema(description = "换货类型", example = "INCOMPATIBLE")
     private String exchangeType;
 
-    @Schema(description = "原设备编号", example = "1024")
-    private Long equipmentId;
+    @Schema(description = "原设备编号（设备表引用）", example = "1024")
+    private Long deviceId;
 
-    @Schema(description = "物料名称", example = "核心交换机")
-    private String materialName;
+    @Schema(description = "产品名称", example = "核心交换机")
+    private String productName;
 
-    @Schema(description = "物料编码", example = "MAT-S9300")
-    private String materialCode;
+    @Schema(description = "产品编码（订单行去重拼接）", example = "ITEM-SEC-DEPLOY,ITEM-SEC-DEPLOY-2")
+    private String productCode;
 
-    @Schema(description = "规格型号描述", example = "48口千兆光交换")
-    private String specification;
+    @Schema(description = "产品型号", example = "48口千兆光交换")
+    private String productModel;
 
     @Schema(description = "数量", example = "1.00")
     private BigDecimal quantity;
@@ -66,8 +66,8 @@ public class MaterialExchangeRespVO {
     @Schema(description = "CRM 工单号", example = "CRM-1024")
     private String crmOrderNo;
 
-    @Schema(description = "新设备编号（换货后设备）", example = "2048")
-    private Long newEquipmentId;
+    @Schema(description = "新设备编号（换货后设备，设备表引用）", example = "2048")
+    private Long newDeviceId;
 
     @Schema(description = "换货进度描述")
     private String exchangeProgress;

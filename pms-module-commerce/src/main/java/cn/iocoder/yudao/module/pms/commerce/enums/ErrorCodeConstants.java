@@ -12,4 +12,6 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_016_001_002, "VERSION_CONFLICT：交付范围权威版本已变化（{}）");
     ErrorCode COMMERCE_SCOPE_DEPENDENCY_UNAVAILABLE =
             new ErrorCode(1_016_001_003, "DEPENDENCY_UNAVAILABLE：交付范围依赖事实不可用（{}）");
+    ErrorCode COMMERCE_SCOPE_LINE_INVALID =
+            new ErrorCode(1_016_001_004, "设备清单行无效或不属于当前项目");
 }

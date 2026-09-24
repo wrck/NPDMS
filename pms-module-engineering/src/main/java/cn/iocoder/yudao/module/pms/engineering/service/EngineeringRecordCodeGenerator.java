@@ -66,4 +66,24 @@ public class EngineeringRecordCodeGenerator {
                 .stream().map(codeGetter).filter(Objects::nonNull).toList();
         return ProjectScopedCodes.next(projectCode, typeCode, existing);
     }
+
+    /**
+     * 生成下一条记录编码，并把调用方已确认占用的编码并入既有全集。
+     * <p>
+     * 软删除行与并发候选在唯一键 (project_id, code) 上仍然生效但本查询不可见，
+     * 插入冲突时调用方把失败候选作为 exclude 传入，序号让位到下一条。
+     */
+    public <T> String next(Long projectId, String typeCode, BaseMapperX<T> mapper,
+                           SFunction<T, Long> projectIdGetter, SFunction<T, String> codeGetter,
+                           String... excludeCodes) {
+        String projectCode = projectCodeQueryApi.getProjectCode(projectId);
+        List<String> existing = new java.util.ArrayList<>(mapper.selectList(new LambdaQueryWrapperX<T>().eq(projectIdGetter, projectId))
+                .stream().map(codeGetter).filter(Objects::nonNull).toList());
+        for (String exclude : excludeCodes) {
+            if (exclude != null && !exclude.isBlank()) {
+                existing.add(exclude);
+            }
+        }
+        return ProjectScopedCodes.next(projectCode, typeCode, existing);
+    }
 }

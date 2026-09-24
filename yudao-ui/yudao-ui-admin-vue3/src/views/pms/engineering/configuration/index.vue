@@ -33,7 +33,7 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="equipmentId" label="设备" min-width="160"><template #default="{ row }"><EquipmentTag :equipment-id="row.equipmentId" /></template></el-table-column>
+      <el-table-column prop="equipmentId" label="设备" min-width="160"><template #default="{ row }"><DeviceTag :device-id="row.equipmentId" /></template></el-table-column>
       <el-table-column prop="debugTime" label="调试时间" width="160" :formatter="dateFormatter" />
       <el-table-column prop="debugResult" label="调试结果" min-width="180" show-overflow-tooltip><template #default="{ row }"><div v-dompurify-html="row.debugResult" class="max-h-60px overflow-hidden"></div></template></el-table-column>
       <el-table-column prop="status" label="状态" width="100">
@@ -151,7 +151,7 @@ import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
+import DeviceTag from '@/components/DeviceTag/index.vue'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 

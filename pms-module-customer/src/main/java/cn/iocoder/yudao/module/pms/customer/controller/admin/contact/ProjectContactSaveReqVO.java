@@ -16,7 +16,6 @@ public class ProjectContactSaveReqVO {
     @Size(max=32) private String mobile;
     @Size(max=32) private String phone;
     @Size(max=128) private String email;
-    @Size(max=64) private String roleCode;
     @Size(max=500) private String remark;
     @NotNull private Boolean primaryFlag;
     @NotNull @Min(0) @Max(1) private Integer status;
@@ -24,7 +23,7 @@ public class ProjectContactSaveReqVO {
 
     public ProjectContactWrite command(Long projectId, Long id) {
         ContactValues values = name == null && sourceContactId != null ? null
-                : new ContactValues(name, department, title, mobile, phone, email, roleCode, remark);
+                : new ContactValues(name, department, title, mobile, phone, email, remark);
         return new ProjectContactWrite(projectId, id, sourceContactId, expectedProjectVersion, version,
                 values, Boolean.TRUE.equals(primaryFlag), status, confirmNoPrimary);
     }

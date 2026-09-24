@@ -16,6 +16,9 @@ import jakarta.validation.Valid;
  */
 public interface MaterialExchangeService {
 
+    /**
+     * 查询换货申请设备行明细：设备清单行（范围引用+订单行快照）或旧序列号快照行。
+     */
     java.util.List<cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSerialVO>
             getSerials(Long id);
 

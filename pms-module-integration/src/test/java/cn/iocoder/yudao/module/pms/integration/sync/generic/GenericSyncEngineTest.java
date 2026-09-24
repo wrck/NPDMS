@@ -61,7 +61,7 @@ class GenericSyncEngineTest {
 
     @Test void templatesPassGenericValidationAndKeepDistinctTaskIdentities() {
         var validator=new SyncDefinitionValidator(List.of());ReflectionTestUtils.setField(validator,"genericEngine",engine);
-        assertEquals(6,templates.size());Set<String> identities=new HashSet<>();
+        assertEquals(7,templates.size());Set<String> identities=new HashSet<>();
         for(var template:templates){
             assertTrue(identities.add(SyncDefinitionValidator.taskIdentity(template.definition())));
             if("TABLE_MAPPING".equals(template.definition().adapter()))validator.validate(template.definition());

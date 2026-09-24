@@ -58,9 +58,6 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional(rollbackFor = Exception.class)
     public Long createSolution(SolutionSaveReqVO createReqVO) {
         SolutionDO solution = BeanUtils.toBean(createReqVO, SolutionDO.class);
-        solution.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.SOLUTION, solutionMapper,
-                SolutionDO::getProjectId, SolutionDO::getCode));
         solution.setStatus(0);
         solution.setVersion(0);
         solution.setBaselineVersion(null);
@@ -70,9 +67,23 @@ public class SolutionServiceImpl implements SolutionService {
         if (solution.getReviewLevel() == null) {
             solution.setReviewLevel(0);
         }
-        solutionMapper.insert(solution);
-        completionChanged(solution);
-        return solution.getId();
+        // 软删除行仍占用唯一键 (project_id, code) 而推号查询不可见：冲突时让位下一序号重试
+        String failedCode = null;
+        org.springframework.dao.DuplicateKeyException lastConflict = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            solution.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                    EngineeringRecordCodeGenerator.SOLUTION, solutionMapper,
+                    SolutionDO::getProjectId, SolutionDO::getCode, failedCode));
+            try {
+                solutionMapper.insert(solution);
+                completionChanged(solution);
+                return solution.getId();
+            } catch (org.springframework.dao.DuplicateKeyException conflict) {
+                lastConflict = conflict;
+                failedCode = solution.getCode();
+            }
+        }
+        throw lastConflict;
     }
 
     @Override

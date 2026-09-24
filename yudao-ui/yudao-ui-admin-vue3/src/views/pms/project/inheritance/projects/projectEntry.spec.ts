@@ -12,16 +12,20 @@ it('uses the separate canonical creation command and keeps its idempotency key',
   expect(request.post).toHaveBeenCalledWith({ url: '/api/v1/pms/projects', data: body, headers: { 'Idempotency-Key': 'stable-intent' } })
 })
 
-it('preserves the original pages and uses selectable customer identity only in the new entry', () => {
+it('uses selectable customer and contract identity in both creation entries', () => {
   const page = read('./index.vue')
   const original = read('../../projects/index.vue')
-  expect(original).toContain('v-model="createForm.customerName"')
   expect(page).toContain('value-field="code"')
   expect(page).toContain(':api="getSelectableCustomers"')
+  expect(page).toContain(':api="getSelectableContracts"')
   expect(page).not.toContain('v-model="createForm.customerName"')
   expect(page).not.toContain('customerName: createForm.customerName || undefined')
+  expect(original).toContain(':api="getSelectableCustomers"')
+  expect(original).toContain(':api="getSelectableContracts"')
+  expect(original).not.toContain('v-model="createForm.customerName"')
+  expect(original).not.toContain('手工登记')
   expect(page).toContain('/pms-inheritance/project-detail')
   expect(page).toContain('createSubmissionIdempotencyState')
-  expect(page).toContain('matchTemplates')
+  expect(page).toContain('useCreationTemplateMatch')
   expect(read('../detail/index.vue')).toContain('legacyOwnerId(route.query.projectId)')
 })

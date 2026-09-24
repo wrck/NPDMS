@@ -250,20 +250,24 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="客户名称" prop="customerName">
-                <el-input v-model="createForm.customerName" placeholder="某公司" />
+              <el-form-item label="客户主档" prop="customerCode">
+                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
+                  :label-field="['code', 'name']" value-field="code" query-field="keyword"
+                  placeholder="按客户名称或编码选择" @change="selectCustomer" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="客户编码" prop="customerCode">
-                <el-input v-model="createForm.customerCode" placeholder="CUS-001" />
+                <el-input :model-value="createForm.customerCode" readonly placeholder="选择客户后自动带入" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="合同号" prop="contractNo">
-                <el-input v-model="createForm.contractNo" placeholder="HT-2026-001（手工登记）" />
+              <el-form-item label="合同主档" prop="contractNo">
+                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
+                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
+                  query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -499,6 +503,9 @@
           <el-descriptions-item label="项目名称">{{ createForm.projectName }}</el-descriptions-item>
           <el-descriptions-item label="客户">{{
             createForm.customerName || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="合同号">{{
+            createForm.contractNo || '-'
           }}</el-descriptions-item>
           <el-descriptions-item label="签约方式">
             {{ dimLabel(createForm.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) }}
@@ -922,6 +929,8 @@ import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
 import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
+import { getSelectableCustomers, type SelectedCustomer } from '../inheritance/projects/customerSelection'
+import { getSelectableContracts, type SelectedContract } from './contractSelection'
 import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
 import { closedProjectStatuses } from './projectStatus'
 
@@ -1073,7 +1082,22 @@ const createForm = reactive({
   creationReason: ''
 })
 
+const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
+  createForm.customerCode = customer && customer.code === code ? customer.code : ''
+  createForm.customerName = customer && customer.code === code ? customer.name : ''
+}
+
+/** 选择合同主档后自动带入合同号，并跟随合同带入客户主档信息。 */
+const selectContract = (no: unknown, contract?: SelectedContract) => {
+  const selected = contract && contract.contractNo === no ? contract : undefined
+  createForm.contractNo = selected?.contractNo ?? ''
+  if (!selected?.customerCode) return
+  createForm.customerCode = selected.customerCode
+  createForm.customerName = selected.customerName ?? selected.customerCode
+}
+
 const createRules = {
+  customerCode: [{ required: true, message: '请选择客户主档', trigger: 'change' }],
   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
   orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
   orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],

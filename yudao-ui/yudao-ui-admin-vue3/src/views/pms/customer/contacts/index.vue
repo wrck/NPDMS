@@ -67,10 +67,7 @@
         </el-table-column>
         <el-table-column prop="name" label="姓名" min-width="100" />
         <el-table-column prop="department" label="部门" min-width="120" />
-        <el-table-column prop="title" label="职务" min-width="120"><template #default="{ row }">{{ getDictLabel('pms_contact_title', row.title) || row.title }}</template></el-table-column>
-        <el-table-column v-if="projectId" prop="roleCode" label="客户联系人角色" min-width="140">
-          <template #default="{ row }">{{ getDictLabel('pms_customer_contact_role', row.roleCode) || row.roleCode || '-' }}</template>
-        </el-table-column>
+        <el-table-column prop="title" label="职务" min-width="120"><template #default="{ row }">{{ row.title }}</template></el-table-column>
         <el-table-column prop="mobile" label="手机" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column prop="primaryFlag" label="主联系人" width="90">
@@ -115,7 +112,7 @@
         <el-form-item v-if="projectId && !form.id && createMode === 'reference'" label="客户联系人">
           <PmsEntitySelect v-model="form.sourceContactId" :api="sourcePage" label-field="name" value-field="id" query-field="name" placeholder="请选择联系人" @change="selectSource" />
         </el-form-item>
-        <ContactFields v-model="form" :project="!!projectId" />
+        <ContactFields v-model="form" />
       </el-form>
       <template #footer>
         <el-button @click="beforeClose(() => visible = false)">取消</el-button>
@@ -143,7 +140,7 @@
         <el-table-column prop="name" label="姓名" min-width="110" />
         <el-table-column prop="department" label="部门" min-width="120" />
         <el-table-column prop="title" label="职务" min-width="120">
-          <template #default="{ row }">{{ getDictLabel('pms_contact_title', row.title) || row.title || '-' }}</template>
+          <template #default="{ row }">{{ row.title || '-' }}</template>
         </el-table-column>
         <el-table-column prop="mobile" label="手机" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
@@ -169,7 +166,7 @@ import { checkPermi } from '@/utils/permission'
 import { useMessage } from '@/hooks/web/useMessage'
 import ContactFields from './ContactFields.vue'
 import ContactHistoryDialog from './ContactHistoryDialog.vue'
-import { getDictLabel, getIntDictOptions } from '@/utils/dict'
+import { getIntDictOptions } from '@/utils/dict'
 
 defineOptions({ name: 'PmsCustomerContactsWorkbench' })
 const props = withDefaults(defineProps<{ projectId?: number; showCustomerFilter?: boolean; showSectionHeader?: boolean }>(), {
@@ -299,7 +296,7 @@ const addSelectedSources = async () => {
 const open = (row?: ContactVO) => {
   if (!canEdit.value || (props.projectId && !customerId.value)) return
   createMode.value = 'new'; sourceRows.clear()
-  form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: false, status: 0, customerId: customerId.value, ...row }
+  form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: !!props.projectId && total.value === 0, status: 0, customerId: customerId.value, ...row }
   operationKey = generateUUID(); initialPrimary = !!row?.primaryFlag
   baseline = JSON.stringify(form.value); visible.value = true
 }

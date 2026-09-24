@@ -21,7 +21,6 @@ export interface ContactVO extends CustomerContactVO {
   projectId?: number
   customerContactId?: number
   sourceContactId?: number
-  roleCode?: string
   expectedProjectVersion?: number
   confirmNoPrimary?: boolean
 }

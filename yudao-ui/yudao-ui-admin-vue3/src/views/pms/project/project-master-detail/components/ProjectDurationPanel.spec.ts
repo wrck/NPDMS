@@ -49,12 +49,14 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain('Object.keys(patch).length === 1')
   })
 
-  it('connects customer-delay evidence without treating a URL as file identity', () => {
-    expect(form).toContain("form.reasonType === 'CUSTOMER_DELAY'")
+  it('fills the reason as required text and keeps the change attachment optional', () => {
+    expect(form).toContain('label="变更原因" prop="reasonDetail"')
+    expect(form).toContain("reasonDetail: [{ required: true, message: '请填写变更原因' }]")
+    expect(form).not.toContain("form.reasonType === 'CUSTOMER_DELAY'")
+    expect(panel).not.toContain('customerEvidenceRequired && !draft.value.customerEvidenceFileId')
     expect(form).toContain('customerEvidenceFileId')
     expect(form).toContain('customerEvidenceFileVersion')
     expect(form).toContain('customerEvidenceReferenceKey')
-    expect(panel).toContain('customerEvidenceRequired && !draft.value.customerEvidenceFileId')
     expect(form).not.toMatch(/customerEvidenceUrl|storagePath/)
     expect(form.match(/emit\('saved'\)/g)?.length).toBeGreaterThanOrEqual(4)
   })

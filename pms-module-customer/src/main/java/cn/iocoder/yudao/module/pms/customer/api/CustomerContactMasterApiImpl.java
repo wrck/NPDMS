@@ -50,7 +50,7 @@ public class CustomerContactMasterApiImpl implements CustomerContactMasterApi {
         var values = command.details();
         if (values == null || command.status() == null) throw exception(CONTACT_VALUES_INVALID, "联系人内容或状态缺失");
         return new ContactMasterWrite(command.customerId(), command.id(), command.version(),
-                new ContactValues(values.name(), values.department(), values.title(), values.mobile(), values.phone(), values.email(), null, values.remark()),
+                new ContactValues(values.name(), values.department(), values.title(), values.mobile(), values.phone(), values.email(), values.remark()),
                 Boolean.TRUE.equals(command.primaryFlag()), command.status(), false);
     }
     private Contact response(CustomerContactMasterDO row) {

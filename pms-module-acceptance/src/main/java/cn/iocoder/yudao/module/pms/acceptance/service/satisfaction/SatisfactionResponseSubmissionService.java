@@ -99,7 +99,8 @@ public class SatisfactionResponseSubmissionService {
         response.setResponseNo(responseMapper.selectNextResponseNo(command.tenantId(), questionnaire.getId()));
         response.setRequestId(command.requestId());
         response.setSubmitChannel(command.submitChannel());
-        response.setCustomerContactRef(command.customerContactRef());
+        // 公共链接不再采集客户联系人（已有手写签字），空值落空串以满足 NOT NULL 列
+        response.setCustomerContactRef(command.customerContactRef() == null ? "" : command.customerContactRef());
         response.setAssistedByUserId(command.assistedByUserId());
         response.setAnswerSnapshot(command.answerSnapshot());
         response.setSubmittedAt(now);
@@ -265,7 +266,7 @@ public class SatisfactionResponseSubmissionService {
         if (command == null || command.tenantId() == null || command.token() == null || command.token().isBlank()
                 || command.requestId() == null || command.requestId().isBlank()
                 || command.answerSnapshot() == null || command.answerSnapshot().isBlank()
-                || command.customerContactRef() == null || command.customerContactRef().isBlank()
+                || command.customerContactRef() == null
                 || command.actorRef() == null || command.actorRef().isBlank()
                 || command.files() == null || command.files().stream().filter(f -> "SIGNATURE".equals(f.role())).count() != 1) {
             throw new IllegalArgumentException("SATISFACTION_RESPONSE_INVALID");

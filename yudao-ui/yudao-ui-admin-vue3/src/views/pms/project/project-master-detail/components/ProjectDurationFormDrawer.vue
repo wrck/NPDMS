@@ -44,36 +44,26 @@
         </el-form-item>
       </div>
       <template v-if="mode !== 'INITIAL'">
-        <el-form-item label="变更原因" prop="reasonType">
-          <el-select v-model="form.reasonType" placeholder="请选择变更原因">
-            <el-option
-              v-for="item in reasonOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="原因说明" prop="reasonDetail">
+        <el-form-item label="变更原因" prop="reasonDetail">
           <el-input
             v-model="form.reasonDetail"
             type="textarea"
             :rows="4"
             maxlength="1000"
             show-word-limit
+            placeholder="请填写变更原因"
           />
         </el-form-item>
-        <section v-if="form.reasonType === 'CUSTOMER_DELAY'" class="evidence-section">
+        <section class="evidence-section">
           <div class="evidence-heading">
             <div>
-              <strong>客户延期依据</strong>
-              <span>文件上传完成后仍需服务端执行适用校验，审批冻结具体版本。</span>
+              <strong>附件</strong>
+              <span>可上传变更依据等支持文件（可选）；服务端执行适用校验，审批冻结具体版本。</span>
             </div>
-            <el-tag v-if="draft?.customerEvidenceRequired" type="danger">必填</el-tag>
           </div>
           <el-alert
             v-if="mode === 'CREATE'"
-            title="先保存工期变更草稿，随后即可在当前抽屉上传客户依据。"
+            title="先保存工期变更草稿，随后即可在当前抽屉上传附件。"
             type="info"
             :closable="false"
           />
@@ -126,7 +116,6 @@ import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useMediaQuery } from '@vueuse/core'
-import { getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { backwardDuration } from './backwardDuration'
 import { initialDurationHint } from './durationEntry'
@@ -169,16 +158,14 @@ const title = computed(() =>
       ? '新建工期变更'
       : '编辑工期变更草稿'
 )
-const reasonOptions = computed(() => getStrDictOptions('pms_duration_change_reason_type'))
-
 type FormModel = DurationChangeFormState
-
 const emptyForm = (): FormModel => ({
   calculationBasis: 'DATE_RANGE',
   startDate: '',
   endDate: '',
   durationDays: undefined,
-  reasonType: '',
+  // 原因改自由文本填写，原因码固定落"其它"，不再选择原因
+  reasonType: 'OTHER',
   reasonDetail: '',
   customerEvidenceFileId: undefined,
   customerEvidenceFileVersion: undefined,
@@ -207,7 +194,7 @@ const rules: FormRules<FormModel> = {
   startDate: [{ required: true, message: '请选择开始日期' }],
   endDate: [{ required: true, message: '请选择结束日期' }],
   durationDays: [{ required: true, message: '请输入自然日天数' }],
-  reasonType: [{ required: true, message: '请选择变更原因' }]
+  reasonDetail: [{ required: true, message: '请填写变更原因' }]
 }
 
 const assign = (value: Partial<FormModel>) => Object.assign(form, emptyForm(), value)
@@ -242,7 +229,7 @@ const openCreate = (value: ConstructionPlanVO) => {
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
-  assign({ ...value.currentRevision, reasonType: '', reasonDetail: '' })
+  assign({ ...value.currentRevision, reasonType: 'OTHER', reasonDetail: '' })
   visible.value = true
 }
 const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) => {
@@ -418,16 +405,15 @@ const save = async () => {
       )
       if (version !== contextVersion) return
       message.success('工期变更草稿已保存')
-      if (form.reasonType === 'CUSTOMER_DELAY') {
-        mode.value = 'EDIT'
-        draft.value = created
-        const snapshot = formStateFromChange(created)
-        assign(snapshot)
-        original.value = structuredClone(snapshot)
-        evidenceSlot.reset(created.customerEvidenceFileId, created.customerEvidenceReferenceKey)
-        emit('saved')
-        return
-      }
+      // 附件（可选）在草稿创建后才可上传，统一停留在编辑态
+      mode.value = 'EDIT'
+      draft.value = created
+      const snapshot = formStateFromChange(created)
+      assign(snapshot)
+      original.value = structuredClone(snapshot)
+      evidenceSlot.reset(created.customerEvidenceFileId, created.customerEvidenceReferenceKey)
+      emit('saved')
+      return
     } else {
       const patch = patchPayload()
       if (Object.keys(patch).length === 1) return message.warning('没有需要保存的变化')

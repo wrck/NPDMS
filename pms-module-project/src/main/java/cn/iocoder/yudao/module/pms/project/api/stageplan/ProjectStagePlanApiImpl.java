@@ -30,6 +30,7 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
     private final ProjectMasterMapper projectMasterMapper;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper planVersionMapper;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper taskInstanceMapper;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectschedule.StageSuggestionRuleMapper suggestionRuleMapper;
     @jakarta.annotation.Resource
     private ProjectRuntimeRuleEvaluator ruleEvaluator;
     @jakarta.annotation.Resource
@@ -73,16 +74,32 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
             current = definitions.get(target);
             if (current == null) throw new IllegalArgumentException("冻结路径目标阶段不存在");
         }
-        var allocations = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.projectschedule.ProjectStageScheduleRules.StageAllocation>();
-        var constraints = new java.util.LinkedHashMap<Long, java.time.LocalDate>();
-        var inputStages = new java.util.ArrayList<java.util.Map<String, Object>>();
+        // Demo 页面9 / Excel 3.1：建议最迟完成按签约方式维护的倒排规则解析（V355 配置），
+        // 未覆盖或未解析的阶段回退阶段实例既有建议；各阶段计划起止仍为逐行直接输入
+        var orderedFacts = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.projectschedule.StageSuggestionRules.StageFacts>();
         for (var definition : ordered) {
-            if (definition.getSchedulePercentage() == null) continue;
             var stage = stages.stream().filter(value -> definition.getCode().equals(value.getCode())).findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("参与计划的阶段实例不存在"));
-            allocations.add(new cn.iocoder.yudao.module.pms.project.domain.projectschedule.ProjectStageScheduleRules.StageAllocation(
-                    stage.getId(), stage.getCode(), definition.getSchedulePercentage()));
-            java.time.LocalDate deadline = stage.getAcceptanceTime() == null ? null : stage.getAcceptanceTime().toLocalDate();
+            orderedFacts.add(new cn.iocoder.yudao.module.pms.project.domain.projectschedule.StageSuggestionRules.StageFacts(
+                    stage.getCode(), stage.getAcceptanceTime() == null ? null : stage.getAcceptanceTime().toLocalDate()));
+        }
+        var ruleQuery = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectschedule.query.StageSuggestionRuleListQuery();
+        ruleQuery.setSigningMethod(project.getSigningMethod());
+        var adviceEnds = cn.iocoder.yudao.module.pms.project.domain.projectschedule.StageSuggestionRules.resolveAdviceEnds(
+                orderedFacts, suggestionRuleMapper.selectActiveRules(ruleQuery).stream()
+                        .map(rule -> new cn.iocoder.yudao.module.pms.project.domain.projectschedule.StageSuggestionRules.RuleFacts(
+                                rule.getStageCode(), rule.getSigningMethod(), rule.getSourceType(), rule.getReferenceStageCode(),
+                                rule.getOffsetMonths(), rule.getOffsetDays(), Boolean.TRUE.equals(rule.getEnabled())))
+                        .toList(),
+                project.getSigningMethod(),
+                // 工期要求锚点：工勘要求结束日期（Demo 工前准备带入）未登记时回退计划域本版工期（倒排截止）
+                project.getProjectEndDate() != null ? project.getProjectEndDate() : end);
+        // Demo 3.1：各阶段计划起止为逐行直接输入；不再按工期占比分配
+        var inputStages = new java.util.ArrayList<java.util.Map<String, Object>>();
+        var planDates = new java.util.ArrayList<StagePlanDate>();
+        for (var definition : ordered) {
+            var stage = stages.stream().filter(value -> definition.getCode().equals(value.getCode())).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("参与计划的阶段实例不存在"));
             var taskInputs = new java.util.ArrayList<java.util.Map<String, Object>>();
             for (var task : tasks) {
                 if (!stage.getCode().equals(task.getStageCode())) continue;
@@ -91,41 +108,25 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
                 taskInput.put("acceptanceTime", task.getAcceptanceTime() == null ? null : task.getAcceptanceTime().toString()); taskInput.put("version", task.getVersion());
                 taskInputs.add(taskInput);
             }
-            if (deadline != null) constraints.put(stage.getId(), deadline);
+            java.time.LocalDate deadline = stage.getAcceptanceTime() == null ? null : stage.getAcceptanceTime().toLocalDate();
             var input = new java.util.LinkedHashMap<String, Object>();
             input.put("stageId", stage.getId()); input.put("stageCode", stage.getCode());
-            input.put("percentage", definition.getSchedulePercentage()); input.put("acceptanceTime", stage.getAcceptanceTime() == null ? null : stage.getAcceptanceTime().toString());
+            input.put("acceptanceTime", stage.getAcceptanceTime() == null ? null : stage.getAcceptanceTime().toString());
             input.put("tasks", taskInputs); inputStages.add(input);
-        }
-        if (allocations.isEmpty()) throw new IllegalArgumentException("冻结项目计划未配置施工阶段工期占比，请在计划修订中补齐后重新推算");
-        java.time.LocalDate anchor = end;
-        if ("DIRECT_SIGN".equals(project.getSigningMethod())) {
-            // The final participating stage owns the project deadline; earlier acceptance nodes stay local constraints.
-            String finalStageCode = allocations.getLast().stageCode();
-            var finalStage = stages.stream().filter(value -> finalStageCode.equals(value.getCode())).findFirst().orElseThrow();
-            anchor = finalStage.getAcceptanceTime() == null ? null : finalStage.getAcceptanceTime().toLocalDate();
-            if (anchor == null) {
-                var deadlines = tasks.stream().filter(task -> finalStageCode.equals(task.getStageCode()) && task.getAcceptanceTime() != null)
-                        .map(task -> task.getAcceptanceTime().toLocalDate()).distinct().toList();
-                if (deadlines.size() != 1) throw new IllegalArgumentException("最终阶段的回款计划验收时间缺失或不唯一，请同步或明确验收节点");
-                anchor = deadlines.getFirst();
-            }
-        } else if (project.getSigningMethod() == null || project.getSigningMethod().isBlank()) {
-            throw new IllegalArgumentException("项目签约方式未明确，不能选择工期基准");
-        }
-        int days = Math.toIntExact(java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1);
-        var result = cn.iocoder.yudao.module.pms.project.domain.projectschedule.ProjectStageScheduleRules.calculate(anchor, days, allocations);
-        for (var value : result.stages()) {
-            var deadline = constraints.get(value.stageId());
-            if (deadline != null && value.endDate().isAfter(deadline)) throw new IllegalArgumentException(value.stageCode() + " 计划结束晚于计划验收时间，请调整工期配置");
+            var adviceEnd = adviceEnds.get(stage.getCode());
+            if (adviceEnd == null) adviceEnd = stage.getSuggestedEndTime() == null ? null : stage.getSuggestedEndTime().toLocalDate();
+            // 合同验收时间为行内约束：阶段建议结束不得晚于计划验收时间
+            if (deadline != null && adviceEnd != null && adviceEnd.isAfter(deadline))
+                throw new IllegalArgumentException(stage.getCode() + " 计划结束晚于计划验收时间，请调整工期配置");
+            planDates.add(new StagePlanDate(stage.getId(),
+                    stage.getSuggestedStartTime() == null ? null : stage.getSuggestedStartTime().toLocalDate(), adviceEnd));
         }
         var inputs = new java.util.LinkedHashMap<String, Object>();
         inputs.put("sourcePlanVersionId", plan.getId()); inputs.put("signingMethod", project.getSigningMethod());
-        inputs.put("durationStart", start); inputs.put("durationEnd", end); inputs.put("anchorEnd", anchor);
+        inputs.put("durationStart", start); inputs.put("durationEnd", end);
         inputs.put("stages", inputStages);
         inputs.put("pathConditions", pathInputs);
-        return new ScheduleCalculation(plan.getId(), result.startDate(), result.endDate(), result.stages().stream()
-                .map(value -> new StagePlanDate(value.stageId(), value.startDate(), value.endDate())).toList(),
+        return new ScheduleCalculation(plan.getId(), start, end, planDates,
                 cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(inputs));
     }
 

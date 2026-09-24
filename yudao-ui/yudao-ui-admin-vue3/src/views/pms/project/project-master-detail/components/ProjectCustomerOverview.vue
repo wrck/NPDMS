@@ -63,17 +63,7 @@
               <section class="dossier-group dossier-group--extension">
                 <h3><Icon icon="ep:connection" />拓展信息</h3>
                 <dl class="field-grid">
-                  <div class="field-item"><dt>CRM 客户ID</dt><dd>{{ customer?.sourceType === 'CRM_SYNC' ? customer.sourceKey || '-' : '不适用' }}</dd></div>
-                  <div class="field-item"><dt>来源版本</dt><dd>{{ customer?.sourceVersion || '-' }}</dd></div>
-                  <div class="field-item"><dt>同步状态</dt><dd>{{ customer?.syncStatus || '-' }}</dd></div>
-                  <div class="field-item"><dt>数据时间</dt><dd>{{ formatNullableDate(customer?.dataAsOf) }}</dd></div>
-                  <div class="field-item"><dt>数据版本</dt><dd>{{ customer?.version ?? '-' }}</dd></div>
-                  <div class="field-item"><dt>对账状态</dt><dd><el-tag :type="customer?.reconciliationPending ? 'warning' : 'success'" size="small">{{ customer?.reconciliationPending ? '待对账' : '无需对账' }}</el-tag></dd></div>
                   <div v-if="customer?.sourceType === 'PLATFORM_TEMPORARY'" class="field-item"><dt>临时客户原因</dt><dd>{{ customer.temporaryReason || '-' }}</dd></div>
-                  <div class="field-item"><dt>创建人</dt><dd>{{ customer?.creator || '-' }}</dd></div>
-                  <div class="field-item"><dt>创建时间</dt><dd>{{ formatNullableDate(customer?.createTime) }}</dd></div>
-                  <div class="field-item"><dt>更新人</dt><dd>{{ customer?.updater || '-' }}</dd></div>
-                  <div class="field-item"><dt>更新时间</dt><dd>{{ formatNullableDate(customer?.updateTime) }}</dd></div>
                   <div class="field-item field-item--wide"><dt>备注</dt><dd class="remark-value">{{ customer?.remark || '-' }}</dd></div>
                 </dl>
               </section>
@@ -104,7 +94,6 @@ import type { CustomerDetailRespVO } from '@/api/pms/customer'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
 import CustomerFormDrawer from '@/views/pms/customer/components/CustomerFormDrawer.vue'
-import { formatNullableDate } from '@/utils/formatTime'
 import { checkPermi } from '@/utils/permission'
 
 const props = defineProps<{ project: ProjectMasterVO }>()

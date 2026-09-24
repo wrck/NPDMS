@@ -235,9 +235,6 @@ const load = async () => {
 }
 const submitDraft = async () => {
   if (!canWrite.value || !plan.value || !draft.value) return
-  if (draft.value.customerEvidenceRequired && !draft.value.customerEvidenceFileId) {
-    return message.warning('请先在编辑草稿中上传客户延期依据')
-  }
   const version = contextVersion
   const currentPlan = plan.value
   const currentDraft = draft.value

@@ -208,4 +208,9 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_STAGE_PROCESS_INVALID = new ErrorCode(1_014_024_052, "项目阶段Gate流程请求不合法");
     ErrorCode PROJECT_STAGE_ACTION_FORBIDDEN = new ErrorCode(1_014_024_053, "无权执行项目阶段Gate动作");
 
+    // ========== 施工计划建议规则 1-014-024-055（Demo 页面9 / Excel 3.1） ==========
+    ErrorCode STAGE_SUGGESTION_RULE_NOT_EXISTS = new ErrorCode(1_014_024_055, "施工计划建议规则不存在");
+    ErrorCode STAGE_SUGGESTION_RULE_DUPLICATE = new ErrorCode(1_014_024_056, "同一阶段与签约方式的建议规则已存在");
+    ErrorCode STAGE_SUGGESTION_RULE_INVALID = new ErrorCode(1_014_024_057, "施工计划建议规则不合法：{}");
+
 }

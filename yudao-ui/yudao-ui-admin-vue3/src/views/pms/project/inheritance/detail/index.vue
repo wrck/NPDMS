@@ -794,9 +794,8 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
         DAMAGED: '损坏',
         OTHER: '其他'
       } },
-      { prop: 'materialName', label: '物料名称', minWidth: 130 },
-      { prop: 'materialCode', label: '物料编码', width: 120 },
-      { prop: 'specification', label: '规格型号', width: 110 },
+      { prop: 'productCode', label: '物料编码', minWidth: 130 },
+      { prop: 'productModel', label: '产品型号', width: 110 },
       { prop: 'quantity', label: '数量', width: 70 },
       { prop: 'unit', label: '单位', width: 70 },
       { prop: 'reason', label: '不符合项说明', minWidth: 150, type: 'html' },

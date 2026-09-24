@@ -31,7 +31,6 @@ public class CustomerContactMasterService {
     private final CustomerQueryService customers;
     private final CustomerScopeContextService scopes;
     private final PlatformCommandExecutionApi commands;
-    private final ContactDictionaryPolicy dictionaryPolicy;
 
     public record Actor(Long tenantId, Long userId) {}
 
@@ -66,7 +65,6 @@ public class CustomerContactMasterService {
 
     private CustomerContactMasterDO createOnce(Actor actor, ContactMasterWrite command) {
         ContactValues values = validated(command);
-        dictionaryPolicy.validateChanges(values, null);
         requirePrimary(actor, command, null);
         CustomerContactMasterDO row = new CustomerContactMasterDO();
         apply(row, values, command);
@@ -83,8 +81,6 @@ public class CustomerContactMasterService {
         CustomerContactMasterDO existing = requireRow(actor, command.customerId(), command.contactId());
         requireVersion(existing, command.expectedVersion());
         ContactValues values = validated(command);
-        dictionaryPolicy.validateChanges(values, new ContactValues(existing.getName(), existing.getDepartment(), existing.getTitle(),
-                existing.getMobile(), existing.getPhone(), existing.getEmail(), null, existing.getRemark()));
         requirePrimary(actor, command, existing.getId());
         CustomerContactMasterDO update = BeanUtils.toBean(existing, CustomerContactMasterDO.class);
         apply(update, values, command);

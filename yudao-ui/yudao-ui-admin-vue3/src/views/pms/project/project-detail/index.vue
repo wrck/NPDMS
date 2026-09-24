@@ -1071,8 +1071,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     get: (id) => MaterialExchangeApi.getMaterialExchange(id),
     columns: [
       { prop: 'code', label: '编码', width: 130 },
-      { prop: 'materialName', label: '物料名称', minWidth: 140 },
-      { prop: 'materialCode', label: '物料编码', width: 120 },
+      { prop: 'productCode', label: '物料编码', minWidth: 140 },
       { prop: 'quantity', label: '数量', width: 70 },
       { prop: 'reason', label: '不符合项说明', minWidth: 150 },
       { prop: 'crmPushStatus', label: 'CRM推送', width: 90 },

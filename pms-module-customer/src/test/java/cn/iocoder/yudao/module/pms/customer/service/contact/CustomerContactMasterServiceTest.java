@@ -22,8 +22,7 @@ class CustomerContactMasterServiceTest {
     private final CustomerQueryService customers = mock(CustomerQueryService.class);
     private final CustomerScopeContextService scopes = mock(CustomerScopeContextService.class);
     private final CustomerContactMasterService service = new CustomerContactMasterService(mapper, history, customers, scopes,
-            mock(cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.class),
-            new ContactDictionaryPolicy(mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class)));
+            mock(cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.class));
     private final CustomerContactMasterService.Actor actor = new CustomerContactMasterService.Actor(1L, 3L);
 
     @BeforeEach void allowedCustomer() {
@@ -36,7 +35,7 @@ class CustomerContactMasterServiceTest {
 
     private ContactMasterWrite write(Integer version) {
         return new ContactMasterWrite(7L, 10L, version,
-                new ContactValues("联系人", "运维部", null, "13800138000", null, null, null, "新说明"), false, 0, false);
+                new ContactValues("联系人", "运维部", null, "13800138000", null, null, "新说明"), false, 0, false);
     }
 
     @Test void deniedCustomerCannotReadOrMutateContacts() {

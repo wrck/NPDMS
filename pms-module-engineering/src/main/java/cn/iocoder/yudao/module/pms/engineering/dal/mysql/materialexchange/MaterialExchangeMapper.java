@@ -18,7 +18,7 @@ public interface MaterialExchangeMapper extends BaseMapperX<MaterialExchangeDO> 
                 .likeIfPresent(MaterialExchangeDO::getCode, reqVO.getCode())
                 .likeIfPresent(MaterialExchangeDO::getName, reqVO.getName())
                 .eqIfPresent(MaterialExchangeDO::getExchangeType, reqVO.getExchangeType())
-                .eqIfPresent(MaterialExchangeDO::getEquipmentId, reqVO.getEquipmentId())
+                .eqIfPresent(MaterialExchangeDO::getDeviceId, reqVO.getDeviceId())
                 .eqIfPresent(MaterialExchangeDO::getCrmPushStatus, reqVO.getCrmPushStatus())
                 .eqIfPresent(MaterialExchangeDO::getStatus, reqVO.getStatus())
                 .eqIfPresent(MaterialExchangeDO::getApplicantUserId, reqVO.getApplicantUserId())

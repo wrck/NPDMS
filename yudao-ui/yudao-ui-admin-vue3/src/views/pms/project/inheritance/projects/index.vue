@@ -280,8 +280,10 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="合同号" prop="contractNo">
-                <el-input v-model="createForm.contractNo" placeholder="HT-2026-001（手工登记）" />
+              <el-form-item label="合同主档" prop="contractNo">
+                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
+                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
+                  query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -940,6 +942,7 @@ import TemplateMatchDiagnostics from '@/views/pms/project/project-templates/Temp
 import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
 import { matchCustomerSelectedTemplates, createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
+import { getSelectableContracts, type SelectedContract } from '@/views/pms/project/projects/contractSelection'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
 import { closedProjectStatuses } from '@/views/pms/project/projects/projectStatus'
 
@@ -1105,6 +1108,14 @@ const createForm = reactive({
 const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
   createForm.customerCode = customer && customer.code === code ? customer.code : ''
   createForm.customerName = customer && customer.code === code ? customer.name : ''
+}
+
+/** 选择合同主档后跟随合同带入客户主档信息；合同号即选择值本身。 */
+const selectContract = (no: unknown, contract?: SelectedContract) => {
+  if (!contract || contract.contractNo !== no) return
+  if (!contract.customerCode) return
+  createForm.customerCode = contract.customerCode
+  createForm.customerName = contract.customerName ?? contract.customerCode
 }
 
 const createRules = {

@@ -112,11 +112,12 @@ public class DeliveryScopeController {
     private DeliveryScopeRespVO toResponse(DeliveryScopeView view) {
         var scope = view.scope();
         var details = view.details().stream().map(detail -> new DeliveryScopeRespVO.Detail(detail.getId(),
-                detail.getDetailSequence(), detail.getSerialNo(), detail.getProductCode(), detail.getDeviceTypeCode(),
-                detail.getAllocatedQty(), detail.getDetailStatus())).toList();
+                detail.getDetailSequence(), detail.getSerialNo(), detail.getProductName(), detail.getProductCode(),
+                detail.getDeviceTypeCode(), detail.getDeviceTypeName(), detail.getAllocatedQty(),
+                detail.getDetailStatus())).toList();
         return new DeliveryScopeRespVO(scope.getId(), scope.getProjectId(), scope.getProjectCode(),
                 scope.getOrderLineId(), scope.getOrderNo(), scope.getLineNo(), scope.getItemCode(),
-                scope.getAllocatedQty(), scope.getScopeStatus(), scope.getAllocationVersion(),
+                scope.getItemDesc(), scope.getAllocatedQty(), scope.getScopeStatus(), scope.getAllocationVersion(),
                 scope.getAllocationSource(), scope.getChangeReason(), scope.getDepartmentId(),
                 scope.getDepartmentCode(), scope.getDepartmentName(), scope.getDepartmentVersion(),
                 scope.getEffectiveFrom(), scope.getEffectiveTo(), scope.getVersion(), details);

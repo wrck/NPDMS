@@ -5,13 +5,15 @@ import SurveyPage from './index.vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
 
 const api = vi.hoisted(() => Object.fromEntries(['getSiteSurveyPage', 'getSiteSurvey', 'getDefaultFormSchema', 'deleteSiteSurvey', 'updateSiteSurvey', 'createSiteSurvey', 'confirmSiteSurvey', 'rejectSiteSurvey', 'archiveSiteSurvey'].map(key => [key, vi.fn()])))
+const projects = vi.hoisted(() => ({ getProjectPage: vi.fn(), getProject: vi.fn() }))
 const message = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn(), error: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }))
 const push = vi.hoisted(() => vi.fn())
 vi.mock('@/api/pms/engineering/site-survey/entity', () => api)
-vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, ...projects }))
 vi.mock('@/api/pms/project/task-business', () => ({ getTaskBusinessContext: vi.fn() }))
 vi.mock('@/api/pms/project/stage-business', () => ({ getStageBusinessContext: vi.fn() }))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: async () => [] }))
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 8 } }) }))
 vi.mock('@/api/pms/platform/dynamic-form', () => ({}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getIntDictOptions: () => [] }))
@@ -38,6 +40,7 @@ beforeEach(() => {
   api.getSiteSurveyPage.mockResolvedValue({ list: [], total: 0 })
   api.getSiteSurvey.mockResolvedValue(record())
   api.getDefaultFormSchema.mockResolvedValue({ revisionId: 9, revisionVersion: 1, formRulesJson: [], fieldBindings: {}, fieldCatalog: [] })
+  projects.getProject.mockResolvedValue({ id: 7, projectCode: 'P-7', projectName: '宿主项目' })
   message.confirm.mockResolvedValue(undefined)
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
@@ -65,6 +68,8 @@ describe('SOL site-survey shared project and standalone context', () => {
     const { state, input } = render({ projectId: 7, stageExecution: execution, allowedActions: ['QUERY', 'CREATE', 'CONFIRM'] })
     await flush()
     await state.openForm()
+    expect(state.form.name).toBe('宿主项目')
+    expect(state.form.surveyorUserId).toBe(8)
     Object.assign(state.form, { code: 'NEW', name: '阶段工勘', location: 'onsite', formRevisionId: undefined })
     state.formRef = { validate: vi.fn() }
     await state.save()
@@ -86,6 +91,8 @@ describe('SOL site-survey shared project and standalone context', () => {
     expect(api.getSiteSurveyPage).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: '2099999999999999999' }))
     await state.openForm()
     expect(state.form.projectId).toBe('2099999999999999999')
+    expect(state.form.name).toBe('宿主项目')
+    expect(state.form.surveyorUserId).toBe(8)
     expect(state.form.formRevisionId).toBe(9)
     state.form.projectId = 8
     expect(await state.save()).toBe(false)

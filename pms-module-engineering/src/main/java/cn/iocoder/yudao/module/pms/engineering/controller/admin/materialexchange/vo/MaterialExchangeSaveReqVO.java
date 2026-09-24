@@ -41,21 +41,20 @@ public class MaterialExchangeSaveReqVO {
     @Size(max = 32, message = "换货类型长度不能超过 32 个字符")
     private String exchangeType;
 
-    @Schema(description = "原设备编号", example = "1024")
-    private Long equipmentId;
+    @Schema(description = "原设备编号（设备表引用）", example = "1024")
+    private Long deviceId;
 
-    @Schema(description = "物料名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机")
-    @NotBlank(message = "物料名称不能为空")
-    @Size(max = 200, message = "物料名称长度不能超过 200 个字符")
-    private String materialName;
+    @Schema(description = "产品名称；清单行分流保存，申报退出写入", example = "核心交换机")
+    @Size(max = 200, message = "产品名称长度不能超过 200 个字符")
+    private String productName;
 
-    @Schema(description = "物料编码", example = "MAT-S9300")
-    @Size(max = 64, message = "物料编码长度不能超过 64 个字符")
-    private String materialCode;
+    @Schema(description = "产品编码；服务端按订单行去重拼接写入", example = "ITEM-SEC-DEPLOY")
+    @Size(max = 500, message = "产品编码长度不能超过 500 个字符")
+    private String productCode;
 
-    @Schema(description = "规格型号描述", example = "48口千兆光交换")
-    @Size(max = 200, message = "规格长度不能超过 200 个字符")
-    private String specification;
+    @Schema(description = "产品型号；清单行分流保存，申报退出写入", example = "48口千兆光交换")
+    @Size(max = 200, message = "产品型号长度不能超过 200 个字符")
+    private String productModel;
 
     @Schema(description = "数量", requiredMode = Schema.RequiredMode.REQUIRED, example = "1.00")
     @NotNull(message = "数量不能为空")
