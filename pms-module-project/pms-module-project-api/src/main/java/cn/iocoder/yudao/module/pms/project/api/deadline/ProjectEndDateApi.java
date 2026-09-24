@@ -4,6 +4,10 @@ package cn.iocoder.yudao.module.pms.project.api.deadline;
 public interface ProjectEndDateApi {
     void updateFromSurvey(ProjectEndDateCommand command);
 
-    /** Validate the proposed duration against the survey-owned deadline; never writes a plan back to Project. */
+    /**
+     * Validate a duration-entry actor and project state (manage scope, ACTIVE project, expected
+     * version); the duration window itself may diverge from the survey deadline. Never writes a
+     * plan back to Project.
+     */
     void validatePlanningEndDate(ProjectEndDateCommand command);
 }

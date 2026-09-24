@@ -9,25 +9,53 @@
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" :disabled="!canWrite">
       <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
-        title="按工勘登记的项目结束日期倒排。自然日包含首尾两天；此处不会回写项目结束日期。" />
-      <el-form-item v-if="!project.projectEndDate" label="计算口径" prop="calculationBasis">
-        <el-radio-group v-model="form.calculationBasis" @change="resetDerivedField">
-          <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
-          <el-radio-button value="DURATION_FROM_START">起点 + 天数</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-      <div v-if="project.projectEndDate" class="date-grid">
-        <el-form-item label="工勘结束日期">
-          <el-input :model-value="project.projectEndDate" readonly />
+        title="可按工勘登记的项目结束日期倒排天数，也可切换为起止日期直接录入。自然日包含首尾两天；此处不会回写项目结束日期。" />
+      <template v-if="project.projectEndDate">
+        <el-form-item label="录入方式">
+          <el-radio-group v-model="entryMode">
+            <el-radio-button value="BACKWARD">按工勘日期倒排天数</el-radio-button>
+            <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
+          </el-radio-group>
         </el-form-item>
-        <el-form-item label="自然日天数" prop="durationDays">
-          <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
-        </el-form-item>
-        <el-form-item label="倒排开始日期" prop="startDate">
-          <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
-        </el-form-item>
-      </div>
+        <div class="date-grid">
+          <el-form-item label="工勘结束日期">
+            <el-input :model-value="project.projectEndDate" readonly />
+          </el-form-item>
+          <template v-if="entryMode === 'BACKWARD'">
+            <el-form-item label="自然日天数" prop="durationDays">
+              <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="倒排开始日期" prop="startDate">
+              <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
+            </el-form-item>
+          </template>
+          <template v-else>
+            <el-form-item label="开始日期" prop="startDate">
+              <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
+            </el-form-item>
+            <el-form-item label="结束日期" prop="endDate">
+              <el-date-picker v-model="form.endDate" type="date" value-format="YYYY-MM-DD" />
+            </el-form-item>
+            <el-form-item label="自然日天数">
+              <el-input :model-value="computedDaysText" readonly />
+            </el-form-item>
+            <el-alert
+              v-if="form.endDate && form.endDate !== project.projectEndDate"
+              title="结束日期与工勘要求的项目结束日期不同；请确认客户已认可新的结束时间。"
+              type="warning"
+              :closable="false"
+              class="form-alert"
+            />
+          </template>
+        </div>
+      </template>
       <div v-else class="date-grid">
+        <el-form-item label="计算口径" prop="calculationBasis">
+          <el-radio-group v-model="form.calculationBasis" @change="resetDerivedField">
+            <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
+            <el-radio-button value="DURATION_FROM_START">起点 + 天数</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="开始日期" prop="startDate">
           <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
@@ -112,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import dayjs from 'dayjs'
 import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -172,10 +201,24 @@ const emptyForm = (): FormModel => ({
   customerEvidenceReferenceKey: undefined
 })
 const form = reactive<FormModel>(emptyForm())
+// 有工勘结束日期时的录入方式：BACKWARD=按工勘日期倒排天数（默认，兼容既有流程），
+// DATE_RANGE=直接录入起止日期；两者提交时统一为 DATE_RANGE 口径。
+type SurveyEntryMode = 'BACKWARD' | 'DATE_RANGE'
+const entryMode = ref<SurveyEntryMode>('BACKWARD')
+const computedDays = computed(() => {
+  if (!form.startDate || !form.endDate || !dayjs(form.startDate).isValid() || !dayjs(form.endDate).isValid())
+    return undefined
+  const days = dayjs(form.endDate).diff(dayjs(form.startDate), 'day') + 1
+  return days > 0 ? days : undefined
+})
+const computedDaysText = computed(() =>
+  computedDays.value ? `${computedDays.value} 天（按起止日期自动计算）` : '由起止日期自动计算'
+)
 watch(
   () => [visible.value, props.project.projectEndDate, form.durationDays] as const,
   () => {
     if (!visible.value || !props.project.projectEndDate) return
+    if (entryMode.value !== 'BACKWARD') return
     // Reuse the existing date-range revision and approval workflow after calculating its interval.
     form.calculationBasis = 'DATE_RANGE'
     form.endDate = props.project.projectEndDate
@@ -183,19 +226,62 @@ watch(
   },
   { flush: 'sync' }
 )
+watch(
+  () => [form.startDate, form.endDate] as const,
+  () => {
+    if (!visible.value || !props.project.projectEndDate) return
+    if (entryMode.value !== 'DATE_RANGE') return
+    form.durationDays = computedDays.value
+  },
+  { flush: 'sync' }
+)
+watch(entryMode, (mode) => {
+  if (!visible.value || !props.project.projectEndDate) return
+  form.calculationBasis = 'DATE_RANGE'
+  if (mode === 'BACKWARD') {
+    form.endDate = props.project.projectEndDate
+    if (!form.durationDays) form.durationDays = computedDays.value
+    form.startDate = backwardDuration(props.project.projectEndDate, form.durationDays)
+  } else if (!form.endDate) {
+    form.endDate = props.project.projectEndDate
+  }
+})
 const evidenceReferenceKey = 'customer-delay'
 const evidenceListRef = ref<InstanceType<typeof PmsFileReferenceList>>()
 const evidenceSlot = useFileSlotState()
 const activeEvidenceReferenceKey = computed(
   () => evidenceSlot.state.referenceKey || evidenceReferenceKey
 )
-const rules: FormRules<FormModel> = {
-  calculationBasis: [{ required: true, message: '请选择计算口径' }],
-  startDate: [{ required: true, message: '请选择开始日期' }],
-  endDate: [{ required: true, message: '请选择结束日期' }],
-  durationDays: [{ required: true, message: '请输入自然日天数' }],
-  reasonDetail: [{ required: true, message: '请填写变更原因' }]
-}
+const rules = computed<FormRules<FormModel>>(() => {
+  const base: FormRules<FormModel> = {
+    reasonDetail: [{ required: true, message: '请填写变更原因' }]
+  }
+  if (props.project.projectEndDate) {
+    if (entryMode.value === 'BACKWARD') {
+      base.durationDays = [{ required: true, message: '请输入自然日天数' }]
+      return base
+    }
+    base.startDate = [{ required: true, message: '请选择开始日期' }]
+    base.endDate = [
+      { required: true, message: '请选择结束日期' },
+      {
+        validator: (_rule, value: string, callback) =>
+          !value || !form.startDate || value >= form.startDate
+            ? callback()
+            : callback(new Error('结束日期不得早于开始日期')),
+        trigger: 'change'
+      }
+    ]
+    return base
+  }
+  return {
+    ...base,
+    calculationBasis: [{ required: true, message: '请选择计算口径' }],
+    startDate: [{ required: true, message: '请选择开始日期' }],
+    endDate: [{ required: true, message: '请选择结束日期' }],
+    durationDays: [{ required: true, message: '请输入自然日天数' }]
+  }
+})
 
 const assign = (value: Partial<FormModel>) => Object.assign(form, emptyForm(), value)
 const resetDerivedField = () => {
@@ -210,6 +296,15 @@ const durationPayload = () => ({
     : { durationDays: form.durationDays })
 })
 
+// 草稿/生效值与“按工勘日期倒排”完全一致时沿用倒排视图，否则保留为起止日期视图。
+const pickSurveyEntryMode = (state: Pick<FormModel, 'startDate' | 'endDate' | 'durationDays'>): SurveyEntryMode => {
+  const surveyEnd = props.project.projectEndDate
+  if (!surveyEnd) return 'BACKWARD'
+  return state.endDate === surveyEnd && state.startDate === backwardDuration(surveyEnd, state.durationDays)
+    ? 'BACKWARD'
+    : 'DATE_RANGE'
+}
+
 const openInitial = () => {
   if (!canWrite.value || saving.value) return
   const hint = initialDurationHint(props.project)
@@ -219,6 +314,7 @@ const openInitial = () => {
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
+  entryMode.value = 'BACKWARD'
   assign({})
   visible.value = true
 }
@@ -229,7 +325,10 @@ const openCreate = (value: ConstructionPlanVO) => {
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
-  assign({ ...value.currentRevision, reasonType: 'OTHER', reasonDetail: '' })
+  const snapshot = { ...value.currentRevision, reasonType: 'OTHER', reasonDetail: '' }
+  if (props.project.projectEndDate) snapshot.calculationBasis = 'DATE_RANGE'
+  entryMode.value = pickSurveyEntryMode(snapshot)
+  assign(snapshot)
   visible.value = true
 }
 const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) => {
@@ -238,6 +337,8 @@ const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) =
   plan.value = value
   draft.value = change
   const snapshot = formStateFromChange(change)
+  if (props.project.projectEndDate) snapshot.calculationBasis = 'DATE_RANGE'
+  entryMode.value = pickSurveyEntryMode(snapshot)
   assign(snapshot)
   original.value = structuredClone(snapshot)
   evidenceSlot.reset(change.customerEvidenceFileId, change.customerEvidenceReferenceKey)
