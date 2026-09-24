@@ -17,6 +17,7 @@ import java.util.Set;
 public class ProjectResultSubscriptionDelivery {
     private final ProjectResultSubscriptionWorker worker;
     private final ProjectResultSubscriptionFanout fanout;
+    private final org.springframework.context.ApplicationEventPublisher publisher;
     @jakarta.annotation.Resource
     private org.springframework.beans.factory.ObjectProvider<ProjectResultEvidenceScanner> evidence;
     @jakarta.annotation.Resource
@@ -56,6 +57,8 @@ public class ProjectResultSubscriptionDelivery {
             var event = read(message.payload(), BusinessResultChange.class);
             if (!Objects.equals(message.tenantId(), event.channel().tenantId())) throw new IllegalArgumentException("SUBSCRIPTION_ENVELOPE_INVALID");
             fanout.accept(event, 0);
+            // 交付件自动归集与订阅扇出共享本次投递的持久重试；发布必须在此处而非 Owner 日志事务内。
+            publisher.publishEvent(event);
         } else {
             requireNumbers(json, "afterSubscriptionId"); requireNumbers(json.path("source"), "sequence", "eventVersion");
             requireNumbers(json.path("source").path("channel"), "id", "tenantId", "projectId");

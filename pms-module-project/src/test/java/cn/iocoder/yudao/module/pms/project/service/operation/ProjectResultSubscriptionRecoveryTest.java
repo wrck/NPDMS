@@ -157,4 +157,15 @@ class ProjectResultSubscriptionRecoveryTest {
         assertEquals("CHANGES",f.row().getPhase());
         verify(f.sources).inventory(any());
     }
+
+    @Test void committedResultDeliveryFansOutThenPublishesTheChangeForDeliverableCollection() {
+        var change = f.change(8, f.result("object-1", "result-1", Validity.CURRENT), true);
+        f.changes.add(change);
+        var before = f.jdbc.queryForObject("SELECT COUNT(*) FROM recovery_test_outbox", Integer.class);
+        var message = new PlatformOutboxMessageDTO(change.eventId(), BusinessResultChange.EVENT_TYPE,
+                JsonUtils.toJsonString(change), 0, 1L, LocalDateTime.now());
+        assertTrue(f.delivery.deliver(message));
+        assertEquals(List.of(change.eventId()), f.published.stream().map(BusinessResultChange::eventId).toList());
+        assertEquals(before + 1, f.jdbc.queryForObject("SELECT COUNT(*) FROM recovery_test_outbox", Integer.class));
+    }
 }

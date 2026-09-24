@@ -1111,7 +1111,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-TPL-FLOW-20260922-006 — RA 有效版是否应自动满足 D_REQUIREMENT 交付件
 
-- Status: OPEN（运行链路已实证为设计内可用路径，非缺陷；模板语义是否调整待需求方裁决）
+- Status: RESOLVED（2026-09-24 裁决选 B；引擎能力、模板 rev10 发布与真实浏览器验收均已完成）
 - Requirement IDs: PM-03 / F-PROJ-009（模板完成条件与交付件配置）；ACC-04（交付件满足链）
 - Area: rev9 模板 S1「需求分析」任务（PRE_REQUIREMENT）完成条件中 DELIVERABLE(D_REQUIREMENT) 的自动满足来源
 - Question: 需求方 2026-09-24 报告"需求分析已 FROZEN effective=true，但任务 PRE_REQUIREMENT 仍 IN_PROGRESS、交付件 D_REQUIREMENT 仍 PENDING，有效版未自动关联交付件/任务结果"。rev9（revision 993009900014，项目 992203060035）冻结契约：PRE_REQUIREMENT 完成条件 = `BUSINESS_FACT(REQUIREMENT_ANALYSIS_COMPLETED, ALL)` **AND** `DELIVERABLE(D_REQUIREMENT)`；D_REQUIREMENT 的 automaticSources 仅 `SOL.REQUIREMENT_DOCUMENT`（RA 表单附件文档），RA 冻结产生的 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果不在自动归集范围内。是否应把"RA 有效版成立"配置为 D_REQUIREMENT 的自动满足来源，或调整任务完成条件？
@@ -1123,13 +1123,18 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
   - B. 修订模板：把 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果加入 D_REQUIREMENT 的 automaticSources（需模板配置能力支持业务成果类型自动归集，当前 automaticSources 仅支持文档类来源）。
   - C. 修订模板：PRE_REQUIREMENT 完成条件去掉 `DELIVERABLE(D_REQUIREMENT)` 项，任务完成仅依赖业务事实。
 - Recommended technical default: 待需求方裁决。A 不动模板且路径可用；B/C 均为模板冻结语义变更，需新修订发布，且 rev9 已有项目（035）不换绑。
-- Business decision required: 是（模板语义是否调整）
+- Resolution（2026-09-24 需求方裁决）: 采用 B。将 RA 冻结产生的 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果配置为 D_REQUIREMENT 的自动满足来源（rev9 现值 automaticSources 仅 `SOL.REQUIREMENT_DOCUMENT`，allowedSources 已含 BUSINESS_RESULT）。当前自动归集仅支持文档类来源，需先扩展业务成果类型的自动归集能力，再随模板新修订发布；rev9 存量项目（035）不换绑，维持手动关联路径。
+- 2026-09-24 落实回执：引擎能力已扩展——`ProjectResultSubscriptionDelivery` BusinessResultChange 分支在同一持久投递内 `publisher.publishEvent(event)`；新增 `ProjectBusinessResultCollectionService`（formation 事件监听，Type 三点串 `ownerContext.entityType.resultType` 匹配 `rules.documentTargets` 后逐交付件归集）；`ProjectDeliverableSubmissionService.collectBusinessResult`（MANDATORY 传播、幂等键 `result-change:{eventId}`、sourceType=BUSINESS_RESULT、supersede 旧来源、revalidate 后冻结 decisionEvidence 并唤醒门禁/任务重评）。测试：`ProjectResultSubscriptionRecoveryTest` 24/24（新增已提交成果投递扇出用例）、`ProjectDeliverableSubmissionServiceTest` 19/19（新增 3 用例）、`ProjectBusinessResultCollectionServiceTest` 2/2。模板 rev10 已发布（revision 993009900037）：D_REQUIREMENT `automaticSources` 追加 `SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED`，与 rev9 全量叶子差异仅此配置及 PRE_CONTACT routePath（见 Q-007）。
+- 2026-09-24 真实浏览器验收回执（验证项目 992203060038，rev10 实例化）：RA 冻结首轮被 `REQUIREMENT_ANALYSIS_CONTENT_INVALID` 拒绝，根因为 RA 表单必填字段项目目标/网络拓扑未填（`RequirementAnalysisEntityProvider.validateComplete` 去标签非空白校验），浏览器补填后冻结成功（非本次引擎改动引入）。浏览器「从查看版本创建草稿 → 保存 → 完成并冻结」触发 V3 冻结后：`PMS.BusinessResultChangeCommitted.v1`（formation=true）由载有新代码的后端投递，D_REQUIREMENT `PENDING→ACCEPTED`（version=2，submission `source_type=BUSINESS_RESULT`，request_key=`result-change:1c197af0-…`），PRE_REQUIREMENT「需求分析」同刻自动 `IN_PROGRESS→DONE`；交付件面板显示「已满足」，弹窗提交历史含「业务成果关联」条目。截图与回执：`browser-closure/rev10-25~32-*`、`rev10-step5~7-receipt.json`。
+- 部署注意事项：验证环境中首轮冻结（V1/V2）由未含 `publishEvent` 的旧 jar 实例处理，事件被标记 DELIVERED 但归集未触发；重建部署后由新冻结周期验证全链。生产/测试环境发布本引擎改动时，存量未归集成果需按重放或新业务动作补齐，不影响引擎设计。
+- rev10 模板杂项披露：相对 rev9 第三处叶子差异为 S0 `schedulePercentage` 0.01→None（rev4 孤立值，发布草稿中被清空；后端无运行时消费方，仅模板设计器展示），无业务影响，rev10 保持现值。
+- Business decision required: 是；已裁决（选 B）。
 - Decision owner: 需求方；PROJ 模板 Owner、ACC 交付件 Owner 参与影响分析
-- Decision date: 2026-09-24 登记
+- Decision date: 2026-09-24 登记；2026-09-24 裁决
 
 ### Q-TPL-FLOW-20260922-007 — PRE_CONTACT 页面路由指向项目列表页，无法承接任务业务办理
 
-- Status: OPEN（模板配置错误，rev9 冻结值；修正需模板修订发布）
+- Status: RESOLVED（2026-09-24 裁决选 A；模板 rev10 路由更正与任务抽屉嵌入映射均已落实并完成真实浏览器验收）
 - Requirement IDs: F-PROJ-009（模板任务定义）；PM-01（任务工作区 PAGE 绑定）
 - Area: rev9 模板 S1「客户需求沟通」任务（PRE_CONTACT）的 PAGE 绑定 routePath
 - Question: rev9 冻结的 PRE_CONTACT routePath 指向项目列表页而非工前业务页面（business_custom_create_path 同样指向项目列表），任务抽屉内嵌区无法落到实际业务界面，只能展示兜底提示。PAGE 路由应指向哪个工前业务工作台？
@@ -1138,13 +1143,15 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
   - PRE_CONTACT 任务最终按 TASK_NATIVE 状态操作提交完成（模板完成条件未依赖该页面业务事实），闭环未受阻；但"业务在工作区直接办理"的产品规则在该任务上不可满足。
 - Options: A. 模板修订将 routePath 指向实际工前业务页面（需明确目标页面）；B. 改为 TASK_NATIVE 绑定（与当前实际完成方式一致）；C. 维持现状并在文档披露。
 - Recommended technical default: 待需求方裁决（A 需先明确工前业务目标页面；B 语义最简）。
-- Business decision required: 是（模板冻结语义变更）
+- Resolution（2026-09-24 需求方裁决）: 采用 A，需求方明确"用户联系人就是客户联系人界面"——PRE_CONTACT（客户需求沟通）的 PAGE routePath 应指向客户联系人工作台：菜单 18010（component `pms/customer/contacts/index`，父级 path `/customer-asset`），完整路由 `/customer-asset/customer-contact`。rev9 冻结现值 `routePath=/pms/project-management/projects`（项目列表页，已从 rev9 execution_snapshot 实证）确认为模板配置错误，随模板新修订发布更正；任务抽屉 pageEmbedComponents 需同步接入该路径的嵌入组件。
+- 2026-09-24 落实回执：模板 rev10（revision 993009900037）已发布，`tasks[PRE_CONTACT].workBinding.parameters.routePath=/customer-asset/customer-contact`；前端 `ProjectFlowPanel.vue` pageEmbedComponents 接入该路径映射 `CustomerContactsWorkbench`（`pms/customer/contacts/index` 原生支持 `projectId` prop，零改动复用）。真实浏览器验收（项目 992203060038）：打开 S1「用户联系人获取」（PRE_CONTACT）任务抽屉，内嵌工作区渲染客户联系人工作台本体（客户/姓名/状态筛选与查询、重置、新增联系人、载入客户联系人、关联项目客户、变更历史），不再是项目列表页或兜底提示。截图与回执：`browser-closure/rev10-33/34-*`、`rev10-step8-receipt.json`。
+- Business decision required: 是；已裁决（选 A，目标页面=客户联系人工作台 `/customer-asset/customer-contact`）。
 - Decision owner: 需求方；PROJ 模板 Owner 参与影响分析
-- Decision date: 2026-09-24 登记
+- Decision date: 2026-09-24 登记；2026-09-24 裁决
 
 ### Q-TPL-FLOW-20260922-008 — 验收报告嵌入视图缺 FILE_WRITE 动作，任务内附件上传永久禁用
 
-- Status: OPEN（前后端动作集契约不一致；嵌入路径无法完成附件上传，独立页面路径可用）
+- Status: OPEN（2026-09-24 需求方裁决选 A；动作集与前端契约改动已落地，嵌入上传的真实浏览器验收待有进行中验收活动的项目验证）
 - Requirement IDs: ACC-02（验收报告版本与附件）；PM-01（任务工作区业务内嵌）
 - Area: ACC_ACCEPTANCE_REPORT BusinessView 嵌入任务抽屉时的 allowedActions 与前端 canUpload 的契约
 - Question: `AcceptanceTaskBusinessObjectProvider` 明确注释 FILE_WRITE 不是 ACC 动作集成员（附件走 PLT 独立权限），而前端 `ReportDraftEditor.canUpload` 要求 allowedActions 含 FILE_WRITE——嵌入视图内「上传并绑定」按钮永久 disabled；报告发布条件又要求附件非空，导致任务内嵌路径只能改稿、无法补附件，必须跳到「初验&终验」独立面板（非嵌入 allowedActions 限制路径）完成。这是缺陷还是"嵌入视图只读、办理走独立入口"的设计意图？
@@ -1154,6 +1161,8 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
   - 后端 `AcceptanceTaskBusinessObjectProvider.java:217` 注释："FILE_WRITE is not an existing ACC action; PLT retains its separate upload/reference policy."
 - Options: A. 嵌入动作集补 FILE_WRITE（前端契约对齐，服务端仍按 PLT 权限校验）；B. 维持嵌入只读+独立入口办理（补文档与 UI 提示）；C. 前端嵌入视图隐藏上传区并提示"从独立入口上传"。
 - Recommended technical default: 待需求方裁决（A 体验最顺；B/C 均为披露现状）。
-- Business decision required: 是（嵌入视图能力边界）
+- Resolution（2026-09-24 需求方裁决）: 采用 A。验收报告 BusinessView 嵌入任务抽屉的 allowedActions 补充 FILE_WRITE，使前端 `canUpload` 契约成立、任务内可直接「上传并绑定」；服务端附件上传仍按 PLT 独立权限校验，不降低授权边界。`AcceptanceTaskBusinessObjectProvider` 中 "FILE_WRITE is not an existing ACC action" 的契约注释同步更新为新裁决口径（嵌入动作集含 FILE_WRITE，文件操作授权仍归 PLT）。
+- 2026-09-24 落实回执：`AcceptanceTaskBusinessObjectProvider` 任务绑定草稿命令分支随 `UPDATE` 同条件授予 `FILE_WRITE`，前端 `operationHost` 既有透传逻辑与 `ReportDraftEditor.canUpload`（`allowed('FILE_WRITE') && checkPermi(['pms:file:upload'])`）零改动即成立——文件操作仍由 PLT 端点按 `pms:file:upload` 鉴权。后端 `AcceptanceTaskBusinessObjectProviderTest` 25/25 通过（动作集断言按新契约更新，PUBLISH 仍仅限直接发起）；前端 `AcceptanceReportEmbedding.runtime.spec.ts` 14/14 通过（新增 Owner 授 FILE_WRITE 且 PLT 上传权限有效方可嵌入上传用例；既有 fail-closed 与"UPDATE 不隐含 upload"断言保持）。全量 `pnpm ts:check` 仅 3 个既有无关文件报错（`delivery-business/site-survey`、`engineering/installation`、`engineering/site-survey` 的 maintenance 可空告警），本次涉及文件无类型错误。
+- Business decision required: 是；已裁决（选 A，嵌入补 FILE_WRITE）。
 - Decision owner: 需求方；ACC Owner、前端 Owner 参与影响分析
-- Decision date: 2026-09-24 登记
+- Decision date: 2026-09-24 登记；2026-09-24 裁决

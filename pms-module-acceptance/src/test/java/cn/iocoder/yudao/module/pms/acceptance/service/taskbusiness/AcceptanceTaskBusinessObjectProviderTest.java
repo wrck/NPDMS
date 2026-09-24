@@ -283,16 +283,15 @@ class AcceptanceTaskBusinessObjectProviderTest {
                 () -> "permissions=" + mockingDetails(permissions).getInvocations()
                         + "; scope=" + mockingDetails(scope).getInvocations());
         verifyNoInteractions(activities, reports, attachments, sources, files);
-        assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE"), provider.inspect(context, "42").allowedActions());
+        assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE", "FILE_WRITE"), provider.inspect(context, "42").allowedActions());
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
-        assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE", "LINK", "UNLINK"), provider.inspect(context, "42").allowedActions());
+        assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE", "LINK", "UNLINK", "FILE_WRITE"), provider.inspect(context, "42").allowedActions());
         activity.setActivityStatus("COMPLETED");
         assertEquals(Set.of("QUERY", "MANAGE", "LINK", "UNLINK"), provider.inspect(context, "42").allowedActions());
         activity.setActivityStatus("PENDING"); activity.setCurrentReportVersionId(null);
-        assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "LINK", "UNLINK"), provider.inspect(context, "42").allowedActions());
+        assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "LINK", "UNLINK", "FILE_WRITE"), provider.inspect(context, "42").allowedActions());
         assertFalse(provider.inspect(context, "42").allowedActions().contains("PUBLISH"));
-        assertFalse(provider.inspect(context, "42").allowedActions().contains("FILE_WRITE"));
         when(permissions.hasAnyPermissions(9L, "pms:acceptance:report:write")).thenReturn(false);
         assertEquals(Set.of("QUERY"), provider.inspect(context, "42").allowedActions());
     }

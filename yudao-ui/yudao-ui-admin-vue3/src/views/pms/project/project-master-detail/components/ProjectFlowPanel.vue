@@ -315,6 +315,7 @@ import InstallationWorkbench from '@/views/pms/engineering/installation/index.vu
 import ConfigurationWorkbench from '@/views/pms/engineering/configuration/index.vue'
 import JointTestWorkbench from '@/views/pms/engineering/joint-test/index.vue'
 import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
+import CustomerContactsWorkbench from '@/views/pms/customer/contacts/index.vue'
 
 defineOptions({ name: 'ProjectFlowPanel' })
 
@@ -423,7 +424,8 @@ const pageEmbedComponents: Record<string, Component> = {
   '/pms/engineering/execution/imp-installation': InstallationWorkbench,
   '/pms/engineering/execution/imp-configuration': ConfigurationWorkbench,
   '/pms/engineering/execution/imp-joint-test': JointTestWorkbench,
-  '/pms/imp-training': TrainingWorkbench
+  '/pms/imp-training': TrainingWorkbench,
+  '/customer-asset/customer-contact': CustomerContactsWorkbench
 }
 const pageEmbed = computed(() =>
   workbench.value?.bindingType === 'PAGE'

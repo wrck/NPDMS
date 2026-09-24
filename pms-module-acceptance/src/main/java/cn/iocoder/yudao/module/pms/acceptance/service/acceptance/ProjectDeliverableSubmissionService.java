@@ -305,6 +305,52 @@ public class ProjectDeliverableSubmissionService {
         wakeup(row, null, key);
     }
 
+    /** Called by the committed business-result delivery; automaticSources is the grant, allowedSources still gates revalidation. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void collectBusinessResult(AccProjectDeliverableDO observed, String sourceCode, BusinessResultChange change) {
+        var context = rules.read(observed.getProjectId(), observed.getDeliverableCode());
+        if (!"ACTIVE".equals(context.lifecycleStatus()) || !ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)) return;
+        context = rules.lock(observed.getProjectId(), observed.getDeliverableCode());
+        if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(observed.getProjectId(), context.projectId())
+                || !ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)) return;
+        var row = require(deliverables.selectByIdForUpdate(new ProjectDeliverableIdLockQuery(observed.getTenantId(), observed.getId())), observed.getProjectId());
+        String key = "result-change:" + change.eventId();
+        if (submissions.selectRequest(row.getTenantId(), row.getId(), key) != null) return;
+        var previous = sources.selectCurrentForUpdate(new DeliverableCurrentSourceLockQuery(row.getTenantId(), row.getId()));
+        // Existing native ACC report/result projections keep their own immutable lineage.
+        if (previous != null && !"ProjectDeliverableSubmission".equals(previous.getSourceObjectType())) return;
+        // A formed result is the deliverable's single current evidence slot; collected documents are superseded, not merged.
+        var evidence = new SourceEvidence(List.of(), change.observation().result());
+        Long submissionId = IdWorker.getId(), sourceId = IdWorker.getId();
+        if (previous != null) {
+            previous.setRelationStatus("SUPERSEDED"); previous.setUpdater("result-collection");
+            if (sources.updateById(previous) != 1) throw failure("归集来源版本冲突");
+        }
+        var source = new ProjectDeliverableSourceVersionDO();
+        source.setId(sourceId); source.setTenantId(row.getTenantId()); source.setDeliverableId(row.getId());
+        source.setSourceRequirementId("PM-03"); source.setSourceObjectType("ProjectDeliverableSubmission");
+        source.setSourceObjectId(submissionId); source.setSourceVersion(1); source.setRelationStatus("CURRENT");
+        source.setArchiveStatus("NOT_REQUIRED"); source.setArchiveRetryCount(0);
+        source.setCreator("result-collection"); source.setUpdater("result-collection");
+        if (sources.insert(source) != 1) throw failure("归集来源保存失败");
+        var submission = new ProjectDeliverableSubmissionDO();
+        submission.setId(submissionId); submission.setTenantId(row.getTenantId()); submission.setProjectId(row.getProjectId());
+        submission.setDeliverableId(row.getId()); submission.setPlanVersionId(context.planVersionId()); submission.setSourceVersionId(sourceId);
+        submission.setRequestKey(key); submission.setRequestPayload(JsonUtils.toJsonString(change));
+        submission.setConfigurationSnapshot(JsonUtils.toJsonString(context.configuration())); submission.setSourceType("BUSINESS_RESULT");
+        submission.setSourceEvidence(JsonUtils.toJsonString(evidence));
+        submission.setDecisionEvidence("{}"); submission.setCreator("result-collection");
+        if (submissions.insert(submission) != 1) throw failure("归集历史保存失败");
+        row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED"); row.setVersion(row.getVersion() + 1);
+        row.setUpdater("result-collection");
+        if (deliverables.updateById(row) != 1) throw failure("归集交付件冲突");
+        var decision = revalidate(row);
+        // This row is still uncommitted. Freeze the actual decision before its original insertion commits.
+        submission.setDecisionEvidence(JsonUtils.toJsonString(decision));
+        if (submissions.updateById(submission) != 1) throw failure("归集判定保存失败");
+        wakeup(row, null, key);
+    }
+
     private BusinessResultSource.Result inspectResult(Long tenant, Long project, BusinessResultSource.Type type, String object, String result) {
         var descriptor = results.types().stream().filter(value -> value.type().equals(type)).findFirst().orElseThrow(() -> failure("不支持的业务成果类型"));
         var observation = results.lockAndInspect(new BusinessResultSource.Query(tenant, project, type, object, descriptor.exactLookup() ? result : null));

@@ -1,0 +1,168 @@
+{
+  "sections": [
+    {
+      "i": 0,
+      "title": "1、项目背景",
+      "editors": 1
+    },
+    {
+      "i": 1,
+      "title": "项目背景附件",
+      "editors": 0
+    },
+    {
+      "i": 2,
+      "title": "2、项目目标",
+      "editors": 1
+    },
+    {
+      "i": 3,
+      "title": "项目目标附件",
+      "editors": 0
+    },
+    {
+      "i": 4,
+      "title": "3、网络拓扑",
+      "editors": 1
+    },
+    {
+      "i": 5,
+      "title": "网络拓扑附件",
+      "editors": 0
+    },
+    {
+      "i": 6,
+      "title": "4、传输现状（多选）",
+      "editors": 0
+    },
+    {
+      "i": 7,
+      "title": "传输需求说明",
+      "editors": 1
+    },
+    {
+      "i": 8,
+      "title": "传输需求附件",
+      "editors": 0
+    },
+    {
+      "i": 9,
+      "title": "5、流量现状 · 新建",
+      "editors": 0
+    },
+    {
+      "i": 10,
+      "title": "流量现状 · 并发",
+      "editors": 0
+    },
+    {
+      "i": 11,
+      "title": "流量现状 · 吞吐",
+      "editors": 0
+    },
+    {
+      "i": 12,
+      "title": "流量需求说明",
+      "editors": 1
+    },
+    {
+      "i": 13,
+      "title": "流量需求附件",
+      "editors": 0
+    },
+    {
+      "i": 14,
+      "title": "6、运行业务情况",
+      "editors": 0
+    },
+    {
+      "i": 15,
+      "title": "业务需求说明",
+      "editors": 1
+    },
+    {
+      "i": 16,
+      "title": "业务需求附件",
+      "editors": 0
+    },
+    {
+      "i": 17,
+      "title": "7、IP资源情况 · 管理IP",
+      "editors": 0
+    },
+    {
+      "i": 18,
+      "title": "IP资源情况 · 公网IP资源",
+      "editors": 0
+    },
+    {
+      "i": 19,
+      "title": "IP规划说明",
+      "editors": 1
+    },
+    {
+      "i": 20,
+      "title": "IP规划附件",
+      "editors": 0
+    },
+    {
+      "i": 21,
+      "title": "8、冗余备份要求",
+      "editors": 1
+    },
+    {
+      "i": 22,
+      "title": "冗余需求附件",
+      "editors": 0
+    },
+    {
+      "i": 23,
+      "title": "9、本机防护要求",
+      "editors": 1
+    },
+    {
+      "i": 24,
+      "title": "安全防护附件",
+      "editors": 0
+    },
+    {
+      "i": 25,
+      "title": "10、运维管理要求（多选）",
+      "editors": 0
+    },
+    {
+      "i": 26,
+      "title": "运维需求说明",
+      "editors": 1
+    },
+    {
+      "i": 27,
+      "title": "运维需求附件",
+      "editors": 0
+    },
+    {
+      "i": 28,
+      "title": "11、日志需求",
+      "editors": 1
+    },
+    {
+      "i": 29,
+      "title": "日志需求附件",
+      "editors": 0
+    }
+  ],
+  "filled": [
+    "项目目标",
+    "网络拓扑"
+  ],
+  "errors": [],
+  "save_errors": [],
+  "freeze_success": true,
+  "freeze_errors": [],
+  "effective_marks": [
+    "查看有效完成版",
+    "当前有效 · V1",
+    "裁决验证Q-006：现网为双核心星型拓扑，验证冻结后交付件自动来源与PRE_REQUIREMENT任务闭环。",
+    "该完成版本正文和附件已冻结，只能查看或对比。"
+  ]
+}

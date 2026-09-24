@@ -209,12 +209,14 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                     && activity.projectTaskId() > 0 && activity.executionContractId() != null && activity.executionContractId() > 0) {
                 // Existing task-bound draft commands only. MANAGE is not itself a report write action.
                 actions.add("UPDATE");
+                // Q-TPL-FLOW-20260922-008 ruling: the embedded task view may upload report attachments;
+                // the file operation itself stays under PLT's separate upload authorization (pms:file:upload).
+                actions.add("FILE_WRITE");
                 if (direct) actions.add("PUBLISH");
                 if (report != null && "EFFECTIVE".equals(report.getReportStatus()) && report.getEffectiveTo() == null) {
                     actions.add("REVOKE");
                 }
                 // Legacy publication retains its original preliminary acceptance prerequisite.
-                // FILE_WRITE is not an existing ACC action; PLT retains its separate upload/reference policy.
             }
         }
         // These typed report facts cannot satisfy the other acceptance type. PROJ applies additional template conditions.

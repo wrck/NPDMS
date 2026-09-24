@@ -115,6 +115,71 @@ class ProjectDeliverableSubmissionServiceTest {
         assertTrue(saved.isEmpty());
     }
 
+    private BusinessResultSource.Result formedResult() {
+        return new BusinessResultSource.Result(7L, 9L, new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS",
+                "REQUIREMENT_ANALYSIS_COMPLETED"), "55", "56", "1", "1", BusinessResultSource.Validity.CURRENT,
+                java.time.LocalDateTime.parse("2026-09-20T12:00:00"));
+    }
+    private BusinessResultChange resultChange(UUID eventId, BusinessResultSource.Result result, boolean formation) {
+        var source = new cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent(
+                UUID.randomUUID().toString(), 1, 7L, 9L, "SOL", "REQUIREMENT_ANALYSIS", "55", null, 1, "1",
+                "REQUIREMENT_ANALYSIS_COMPLETED", "REQUIREMENT_ANALYSIS_COMPLETE", "owner-command", 11L,
+                java.time.LocalDateTime.parse("2026-09-20T12:00:00"), "test");
+        return new BusinessResultChange(eventId.toString(), 1, new BusinessResultChange.Channel(1L, 7L, 9L, result.type()), 8, source,
+                BusinessResultSource.Observation.available(result), formation);
+    }
+    private void configureResultCollection(String status, String source, String allowed) {
+        context = new ProjectDeliverableRuleApi.Context(9L, 15L, status, null, "S1", "T1",
+                JsonUtils.parseTree("{\"minimumQuantity\":1,\"allowedSources\":[\"" + allowed + "\"],\"automaticSources\":[\"" + source
+                        + "\"],\"confirmationRule\":{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}}"));
+        when(rules.read(9L, "D1")).thenReturn(context); when(rules.lock(9L, "D1")).thenReturn(context);
+    }
+    @Test void formedResultCollectsAutomaticallyReplaysByEventIdAndRevocationBlocksLaterGates() {
+        var type = new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED");
+        var result = formedResult();
+        configureResultCollection("ACTIVE", "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", "BUSINESS_RESULT");
+        when(results.types()).thenReturn(List.of(new BusinessResultSource.Descriptor(type, true, true, true)));
+        when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(result));
+        var change = resultChange(UUID.randomUUID(), result, true);
+        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        assertEquals("ACCEPTED", root.getStatus());
+        assertEquals(1, saved.size());
+        var original = saved.get("result-change:" + change.eventId());
+        assertEquals("BUSINESS_RESULT", original.getSourceType());
+        String evidence = original.getSourceEvidence(), decision = original.getDecisionEvidence();
+        assertTrue(decision.contains("DELIVERABLE_RULE_SATISFIED"));
+        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        assertEquals(1, saved.size());
+        assertEquals(evidence, original.getSourceEvidence());
+        when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(new BusinessResultSource.Result(
+                7L, 9L, type, "55", "56", "1", "2", BusinessResultSource.Validity.REVOKED, result.formedAt())));
+        assertFalse(service.revalidate(root).satisfied());
+        assertEquals("PENDING", root.getStatus());
+        assertEquals(evidence, original.getSourceEvidence());
+        assertEquals(decision, original.getDecisionEvidence());
+        verifyNoInteractions(access, files);
+    }
+    @Test void automaticGrantStillGatesOnAllowedSourcesBeforeAcceptance() {
+        configureResultCollection("ACTIVE", "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", "UPLOAD");
+        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED",
+                resultChange(UUID.randomUUID(), formedResult(), true));
+        assertEquals("PENDING", root.getStatus());
+        assertEquals(1, saved.size());
+    }
+    @Test void unconfiguredClosedOrForeignScopesCannotCollectBusinessResults() {
+        var change = resultChange(UUID.randomUUID(), formedResult(), true);
+        configureResultCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT", "BUSINESS_RESULT");
+        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        configureResultCollection("NORMAL_CLOSED", "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", "BUSINESS_RESULT");
+        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        var foreign = new AccProjectDeliverableDO();
+        foreign.setId(32L); foreign.setTenantId(7L); foreign.setProjectId(10L); foreign.setDeliverableCode("D1");
+        when(rules.read(10L, "D1")).thenReturn(context); when(rules.lock(10L, "D1")).thenReturn(context);
+        service.collectBusinessResult(foreign, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        assertTrue(saved.isEmpty());
+        verifyNoInteractions(outbox);
+    }
+
     private ProjectDeliverableSubmissionService.Submission upload(int version) {
         return new ProjectDeliverableSubmissionService.Submission(15L, version, "UPLOAD",
                 List.of(new ProjectDeliverableSubmissionService.FileSelection(40L, 1, "slot1")), null);

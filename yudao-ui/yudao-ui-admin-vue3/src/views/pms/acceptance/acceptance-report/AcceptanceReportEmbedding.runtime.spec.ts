@@ -100,6 +100,16 @@ describe('ACC-03 / PM-03 existing report embedding', () => {
     expect(await state.saveDraft()).toBe(false)
     expect(api.updateDraft).not.toHaveBeenCalled()
   })
+  it('enables embedded upload only when the Owner grants FILE_WRITE and the PLT upload permission holds', async () => {
+    permissions.denied = ['pms:file:upload']
+    const deniedView = render(Editor, { allowedActions: ['QUERY', 'UPDATE', 'FILE_WRITE'] })
+    await deniedView.state.open(activity(), draft())
+    expect(deniedView.state.canUpload).toBe(false)
+    permissions.denied = []
+    const { state } = render(Editor, { allowedActions: ['QUERY', 'UPDATE', 'FILE_WRITE'] })
+    await state.open(activity(), draft())
+    expect(state.canUpload).toBe(true)
+  })
   it('uses real dirty state, forwards events, preserves form on permission refresh and cancelled close/leave', async () => {
     const dirty = vi.fn(), changed = vi.fn()
     const { state, input, exposed } = render(Page, { projectId: 7, objectId: 12, allowedActions: ['QUERY', 'UPDATE'], onDirtyChange: dirty, onChanged: changed })

@@ -45,6 +45,7 @@ final class ResultSubscriptionRecoveryFixture implements AutoCloseable {
     final ProjectNodeExecutionDO round = new ProjectNodeExecutionDO();
     final Channel channel = new Channel(1L,1L,3L,TYPE);
     final List<BusinessResultChange> changes = new ArrayList<>();
+    final List<BusinessResultChange> published = new ArrayList<>();
     final JdbcTemplate jdbc;
     final DataSourceTransactionManager transactions;
     final ResultSubscriptionMapper subscriptions;
@@ -103,7 +104,7 @@ final class ResultSubscriptionRecoveryFixture implements AutoCloseable {
         contexts = new ProjectResultSubscriptionContext(projects,plans,rounds,subscriptions);
         worker = proxy(new ProjectResultSubscriptionWorker(contexts,sources,journal,new ProjectResultSubscriptionCandidates(candidates,sources),subscriptions,outbox));
         fanout = proxy(new ProjectResultSubscriptionFanout(journal,subscriptions,outbox));
-        delivery = new ProjectResultSubscriptionDelivery(worker,fanout);
+        delivery = new ProjectResultSubscriptionDelivery(worker,fanout,event -> published.add((BusinessResultChange) event));
         subscriptions.insert(subscription(501,20));
     }
     ResultSubscriptionDO subscription(long id,long execution) {
