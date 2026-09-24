@@ -1061,8 +1061,12 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { prop: 'surveyDate', label: '工勘日期', width: 120, type: 'time' },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
-    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待确认', tone: 'yellow' }, 2: { label: '已确认', tone: 'blue' }, 3: { label: '已归档', tone: 'green' } },
-    actions: []
+    // 状态口径对齐字典 pms_site_survey_status（0草稿→1已确认/2已驳回→3已归档）；归档动作不在工勘界面承接，Owner API 保留
+    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '已确认', tone: 'green' }, 2: { label: '已驳回', tone: 'red' }, 3: { label: '已归档', tone: 'gray' } },
+    actions: [
+      { label: '确认', type: 'success', show: (r) => r.status === 0, run: (r) => SiteSurveyApi.confirmSiteSurvey(r.id), confirm: '确认该工勘？' },
+      { label: '驳回', type: 'danger', show: (r) => r.status === 0, run: (r) => SiteSurveyApi.rejectSiteSurvey(r.id), confirm: '驳回该工勘？' }
+    ]
   },
   // 物料换货（Demo 2.2.1 物料选择，提交后审批，通过后推送CRM）
   'material-exch': {

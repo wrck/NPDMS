@@ -80,14 +80,6 @@
           >
           <el-button
             link
-            type="info"
-            v-if="row.status === 1 && can('ARCHIVE')"
-            @click="handleAction(row, 'archive')"
-            v-hasPermi="['pms:sol-site-survey:update']"
-            >归档</el-button
-          >
-          <el-button
-            link
             type="danger"
             v-if="row.status === 0 && can('DELETE')"
             @click="remove(row)"
