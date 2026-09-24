@@ -206,16 +206,20 @@
       "package_no",
       "contract_no",
       "shipment_record_id",
+      "source_updated_at",
       "source_system",
       "source_key"
     ],
     "updateColumns": [
+      "product_code",
+      "internal_serial_no",
       "shipment_time",
       "package_no",
       "contract_no",
       "shipment_record_id",
       "secondary_sn",
-      "secondary_item"
+      "secondary_item",
+      "source_updated_at"
     ],
     "keys": [
       [
@@ -273,6 +277,39 @@
     "immutableIgnoreColumns": [
       "source_payload",
       "source_updated_at",
+      "source_version"
+    ]
+  },
+  {
+    "table": "ast_device_relationship",
+    "label": "设备附加SN关系",
+    "context": "AST",
+    "writable": true,
+    "immutable": true,
+    "columns": [
+      "source_device_sn",
+      "target_device_sn",
+      "relationship_type",
+      "contract_no",
+      "effective_from",
+      "effective_to",
+      "source_system",
+      "source_key",
+      "source_version"
+    ],
+    "updateColumns": [],
+    "keys": [
+      [
+        "source_system",
+        "source_key"
+      ]
+    ],
+    "insertDefaults": {},
+    "ownerColumn": "source_system",
+    "tenantColumn": "tenant_id",
+    "deletedColumn": "deleted",
+    "versioned": true,
+    "immutableIgnoreColumns": [
       "source_version"
     ]
   },
