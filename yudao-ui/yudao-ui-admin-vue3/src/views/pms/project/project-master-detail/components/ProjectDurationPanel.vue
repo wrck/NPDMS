@@ -12,7 +12,7 @@
   </ContentWrap>
   <ContentWrap>
     <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
-      :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期时据此倒排开始日期。`" />
+      :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期默认据此倒排开始日期，也可切换计算口径手工填写起止。`" />
     <el-alert v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
       type="warning" :closable="false" class="status-alert"
       title="工勘结束日期与当前生效工期不同，请新建工期变更重新倒排；原生效版本及审批记录保留。" />

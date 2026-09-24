@@ -9,7 +9,14 @@
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" :disabled="!canWrite">
       <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
-        title="按工勘登记的项目结束日期倒排。自然日包含首尾两天；此处不会回写项目结束日期。" />
+        title="默认按工勘登记的项目结束日期锁定结束并倒排开始；可切换计算口径手工填写起止。自然日包含首尾两天；此处不会回写项目结束日期。" />
+      <el-form-item v-if="project.projectEndDate" label="计算口径">
+        <el-radio-group v-model="surveyEntryMode" @change="onSurveyEntryModeChange">
+          <el-radio-button value="SURVEY_BACKWARD">按工勘倒排</el-radio-button>
+          <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
+          <el-radio-button value="DURATION_FROM_START">起点 + 天数</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
       <el-form-item v-if="!project.projectEndDate" label="计算口径" prop="calculationBasis">
         <el-radio-group v-model="form.calculationBasis" @change="resetDerivedField">
           <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
@@ -17,15 +24,33 @@
         </el-radio-group>
       </el-form-item>
       <div v-if="project.projectEndDate" class="date-grid">
-        <el-form-item label="工勘结束日期">
+        <el-form-item v-if="surveyEntryMode === 'SURVEY_BACKWARD'" label="工勘结束日期">
           <el-input :model-value="project.projectEndDate" readonly />
         </el-form-item>
-        <el-form-item label="自然日天数" prop="durationDays">
-          <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
-        </el-form-item>
-        <el-form-item label="倒排开始日期" prop="startDate">
-          <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
-        </el-form-item>
+        <template v-if="surveyEntryMode === 'SURVEY_BACKWARD'">
+          <el-form-item label="自然日天数" prop="durationDays">
+            <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="倒排开始日期" prop="startDate">
+            <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
+          </el-form-item>
+        </template>
+        <template v-else-if="surveyEntryMode === 'DATE_RANGE'">
+          <el-form-item label="开始日期" prop="startDate">
+            <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
+          </el-form-item>
+          <el-form-item label="结束日期" prop="endDate">
+            <el-date-picker v-model="form.endDate" type="date" value-format="YYYY-MM-DD" />
+          </el-form-item>
+        </template>
+        <template v-else>
+          <el-form-item label="开始日期" prop="startDate">
+            <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
+          </el-form-item>
+          <el-form-item label="自然日天数" prop="durationDays">
+            <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
+          </el-form-item>
+        </template>
       </div>
       <div v-else class="date-grid">
         <el-form-item label="开始日期" prop="startDate">
@@ -151,6 +176,9 @@ const mode = ref<'INITIAL' | 'CREATE' | 'EDIT'>('INITIAL')
 const plan = ref<ConstructionPlanVO>()
 const draft = ref<ConstructionPlanChangeVO>()
 const original = ref<FormModel>()
+type SurveyEntryMode = 'SURVEY_BACKWARD' | 'DATE_RANGE' | 'DURATION_FROM_START'
+// 登记工勘结束日期时的录入口径：默认保留结束锁定+天数倒排，另放开两种已批准口径手工填写
+const surveyEntryMode = ref<SurveyEntryMode>('SURVEY_BACKWARD')
 const title = computed(() =>
   mode.value === 'INITIAL'
     ? '录入项目工期'
@@ -173,9 +201,11 @@ const emptyForm = (): FormModel => ({
 })
 const form = reactive<FormModel>(emptyForm())
 watch(
-  () => [visible.value, props.project.projectEndDate, form.durationDays] as const,
+  () =>
+    [visible.value, props.project.projectEndDate, form.durationDays, surveyEntryMode.value] as const,
   () => {
     if (!visible.value || !props.project.projectEndDate) return
+    if (surveyEntryMode.value !== 'SURVEY_BACKWARD') return
     // Reuse the existing date-range revision and approval workflow after calculating its interval.
     form.calculationBasis = 'DATE_RANGE'
     form.endDate = props.project.projectEndDate
@@ -183,6 +213,16 @@ watch(
   },
   { flush: 'sync' }
 )
+const onSurveyEntryModeChange = () => {
+  if (surveyEntryMode.value === 'SURVEY_BACKWARD') return
+  form.calculationBasis = surveyEntryMode.value
+  if (surveyEntryMode.value === 'DATE_RANGE') {
+    form.durationDays = undefined
+    form.endDate = form.endDate || props.project.projectEndDate || undefined
+  } else {
+    form.endDate = undefined
+  }
+}
 const evidenceReferenceKey = 'customer-delay'
 const evidenceListRef = ref<InstanceType<typeof PmsFileReferenceList>>()
 const evidenceSlot = useFileSlotState()
@@ -220,6 +260,7 @@ const openInitial = () => {
   original.value = undefined
   evidenceSlot.reset()
   assign({})
+  surveyEntryMode.value = 'SURVEY_BACKWARD'
   visible.value = true
 }
 const openCreate = (value: ConstructionPlanVO) => {
@@ -230,6 +271,7 @@ const openCreate = (value: ConstructionPlanVO) => {
   original.value = undefined
   evidenceSlot.reset()
   assign({ ...value.currentRevision, reasonType: 'OTHER', reasonDetail: '' })
+  surveyEntryMode.value = 'SURVEY_BACKWARD'
   visible.value = true
 }
 const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) => {
@@ -241,6 +283,7 @@ const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) =
   assign(snapshot)
   original.value = structuredClone(snapshot)
   evidenceSlot.reset(change.customerEvidenceFileId, change.customerEvidenceReferenceKey)
+  surveyEntryMode.value = 'SURVEY_BACKWARD'
   visible.value = true
 }
 

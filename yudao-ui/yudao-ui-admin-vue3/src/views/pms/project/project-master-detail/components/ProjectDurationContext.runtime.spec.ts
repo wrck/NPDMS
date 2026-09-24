@@ -131,6 +131,40 @@ it('uses the survey project deadline to derive the submitted initial date range'
   expect(view.state().durationPayload()).toEqual({ calculationBasis: 'DATE_RANGE', startDate: '2026-12-01', endDate: '2026-12-31' })
   expect(view.props.project.projectEndDate).toBe('2026-12-31')
 })
+
+it('allows direct start/end entry for a survey project after switching off the backward basis', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().surveyEntryMode = 'DATE_RANGE'
+  view.state().onSurveyEntryModeChange()
+  await flush()
+  Object.assign(view.state().form, { startDate: '2026-11-02', endDate: '2026-11-15' })
+  expect(view.state().durationPayload()).toEqual({
+    calculationBasis: 'DATE_RANGE',
+    startDate: '2026-11-02',
+    endDate: '2026-11-15'
+  })
+})
+
+it('submits start plus duration without a derived end date for a survey project', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().surveyEntryMode = 'DURATION_FROM_START'
+  view.state().onSurveyEntryModeChange()
+  Object.assign(view.state().form, { startDate: '2026-11-02', durationDays: 14 })
+  await flush()
+  expect(view.state().durationPayload()).toEqual({
+    calculationBasis: 'DURATION_FROM_START',
+    startDate: '2026-11-02',
+    durationDays: 14
+  })
+})
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
 it('explains missing project-manager assignment and prevents initial entry without a write request', async () => {

@@ -9,7 +9,7 @@ const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/construction-plan/index.ts')
 const oldBackwardApi = read('../../../../../api/pms/engineering/schedule-backward/index.ts')
 const oldChangeApi = read('../../../../../api/pms/project/plan-change/index.ts')
-const oldBackwardPage = read('../../schedule-backward/index.vue')
+const oldBackwardPage = read('../../../engineering/schedule-backward/index.vue')
 const oldChangePage = read('../../plan-change/index.vue')
 
 describe('F-SOL-001 project duration panel', () => {
