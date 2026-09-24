@@ -229,16 +229,30 @@ class DurationChangeSubmitServiceTest {
     }
 
     @Test
-    void rejectsApplicantAsTheFrozenServiceManager() {
+    void acceptsApplicantAsTheFrozenServiceManagerForSelfApproval() {
         stubCommandExecution();
         stubAuthorizedFacts(9L);
-        when(changeMapper.selectById(any())).thenReturn(change("INTERNAL_ADJUSTMENT"));
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
         stubReasonConfiguration();
+        TenantContextHolder.setTenantId(0L);
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("bpm-901");
+        when(revisionMapper.freezeForSubmitIfMatch(any())).thenReturn(1);
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
 
-        assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
+        DurationChangeSubmitRespVO response = service.submit(command(), actor());
 
-        verify(planMapper, never()).selectForUpdate(any());
-        verify(processInstanceApi, never()).createProcessInstance(any(), any());
+        assertEquals("bpm-901", response.getProcessInstanceId());
+        ArgumentCaptor<BpmProcessInstanceCreateReqDTO> bpm = ArgumentCaptor.forClass(
+                BpmProcessInstanceCreateReqDTO.class);
+        verify(processInstanceApi).createProcessInstance(org.mockito.ArgumentMatchers.eq(9L), bpm.capture());
+        // 服务经理本人提交的变更由其自审：审批人即申请人
+        assertEquals(List.of(9L), bpm.getValue().getStartUserSelectAssignees()
+                .get("serviceManagerApprove"));
+        ArgumentCaptor<ConstructionPlanChangeVersionUpdate> update = ArgumentCaptor.forClass(
+                ConstructionPlanChangeVersionUpdate.class);
+        verify(changeMapper).updateVersionIfMatch(update.capture());
+        assertEquals(9L, update.getValue().approverUserId());
     }
 
     @Test

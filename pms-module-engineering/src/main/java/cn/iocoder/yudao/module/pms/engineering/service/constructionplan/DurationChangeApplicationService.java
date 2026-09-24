@@ -71,7 +71,6 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.D
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_PENDING_CONFLICT;
-import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_SELF_APPROVAL;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_SERVICE_MANAGER_MISSING;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_REASON_CONFIG_INVALID;
 
@@ -458,9 +457,7 @@ public class DurationChangeApplicationService {
         if (selected == null || selected.userId() == null) {
             throw exception(DURATION_CHANGE_SERVICE_MANAGER_MISSING);
         }
-        if (Objects.equals(selected.userId(), actor.actorId())) {
-            throw exception(DURATION_CHANGE_SELF_APPROVAL);
-        }
+        // 服务经理本人提交的变更由其自审；审批人只要求具备服务经理身份
         ProjectParticipantFact revalidated = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
                 projectId, selected.userId(), projectVersion, "ACTIVE", null, SERVICE_MANAGER_ROLES));

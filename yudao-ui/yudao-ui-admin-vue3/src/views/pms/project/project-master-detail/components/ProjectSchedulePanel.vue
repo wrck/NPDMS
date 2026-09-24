@@ -125,37 +125,6 @@
           taskIssues.length ? `${taskIssues.length} 项待处理` : '任务日期已就绪'
         }}</span></div
       >
-      <el-collapse class="calculation-details">
-        <el-collapse-item title="推算依据与任务安排检查" name="basis">
-          <dl class="calculation-grid">
-            <div
-              ><dt>工期输入</dt
-              ><dd
-                >{{ calculationInput.durationStart || '—' }} 至
-                {{ calculationInput.durationEnd || '—' }}</dd
-              ></div
-            >
-            <div
-              ><dt>倒排截止日期</dt><dd>{{ calculationInput.anchorEnd || '—' }}</dd></div
-            >
-            <div
-              ><dt>计划路径版本</dt><dd>{{ calculationInput.sourcePlanVersionId || '—' }}</dd></div
-            >
-          </dl>
-          <p
-            >阶段按项目冻结路径及占比推算；任务由项目经理在所属阶段内安排，计划验收日期来自回款节点。</p
-          >
-          <div class="calculation-allocations"
-            ><span v-for="stage in calculationInput.stages || []" :key="stage.stageCode"
-              >{{
-                batch.items.find((item) => item.phaseCode === stage.stageCode)?.phaseName ||
-                stage.stageCode
-              }}
-              <strong>{{ stage.percentage }}%</strong></span
-            ></div
-          >
-        </el-collapse-item>
-      </el-collapse>
       <el-alert
         v-if="overdueError"
         title="超期状态加载失败，请刷新重试；此处不代表没有超期。"
@@ -786,35 +755,6 @@ defineExpose({
 
 .planning-progress :deep(.el-progress) {
   width: 160px;
-}
-
-.calculation-details {
-  margin: 16px 0;
-}
-
-.calculation-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.calculation-grid dt {
-  color: var(--el-text-color-secondary);
-}
-
-.calculation-grid dd {
-  margin: 6px 0 0;
-}
-
-.calculation-allocations {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  color: var(--el-text-color-secondary);
-}
-
-.calculation-allocations strong {
-  margin-left: 8px;
 }
 
 .adjustment-form {
