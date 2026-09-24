@@ -599,21 +599,13 @@ const save = async () => {
   const value = batch.value
   if (!value || !editable.value) return
   if (!value.remark?.trim()) return message.warning('请填写调整原因')
-  let previous: string | undefined
+  // 2026-09-24 按业务指示停用阶段起止日期逆序/重叠前端校验；超出版本工期与任务日期检查保留
   for (const item of value.items) {
-    if (
-      !item.planStart ||
-      !item.planEnd ||
-      item.planEnd < item.planStart ||
-      (previous && item.planStart <= previous)
-    )
-      return message.warning('请检查全部阶段起止日期，阶段不能逆序或重叠')
     if (
       (value.baselineStart && item.planStart < value.baselineStart) ||
       (value.baselineEnd && item.planEnd > value.baselineEnd)
     )
       return message.warning('阶段日期不能超出本版本工期')
-    previous = item.planEnd
   }
   const invalidTask = taskIssues.value.find((item) => item.issue !== '待安排日期')
   if (invalidTask) return message.warning(`${invalidTask.task.name}：${invalidTask.issue}`)
