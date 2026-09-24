@@ -21,6 +21,8 @@ import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionT
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
+import cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectCompanyDepartmentRelationMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectDeliverableInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
@@ -160,6 +162,8 @@ class ProjectManualCreationServiceImplTest {
     private ProjectGateReferenceInstanceMapper gateReferenceInstanceMapper;
     @Mock
     private ProjectMemberAssignmentMapper memberAssignmentMapper;
+    @Mock
+    private DeviceQueryApi deviceQueryApi;
     @Mock
     private ProjectCompanyDepartmentRelationMapper companyDepartmentRelationMapper;
     @Mock
@@ -780,20 +784,17 @@ class ProjectManualCreationServiceImplTest {
                 .thenReturn(Set.of());
         when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
                 .thenReturn(PageResult.empty());
-        PageParam page = new PageParam();
-        page.setPageNo(1);
-        page.setPageSize(20);
 
         PageResult<ProjectMasterDO> result = service.getProjectPage(
-                page, "名称", "PJT", "ACTIVE", null, null, null, null, actor);
+                pageReqVO("名称", "PJT", "ACTIVE", null, null, null, null), actor);
 
         assertEquals(0L, result.getTotal());
         ArgumentCaptor<VisibleProjectPageQuery> query =
                 ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
         verify(projectMasterMapper).selectPage(query.capture());
-        assertEquals(Set.of(), query.getValue().visibleProjectIds());
-        assertEquals("名称", query.getValue().projectNameKeyword());
-        assertEquals("PJT", query.getValue().projectCodePrefix());
+        assertEquals(Set.of(), query.getValue().getVisibleProjectIds());
+        assertEquals("名称", query.getValue().getProjectNameKeyword());
+        assertEquals("PJT", query.getValue().getProjectCodePrefix());
     }
 
     @Test
@@ -815,16 +816,14 @@ class ProjectManualCreationServiceImplTest {
                 .thenReturn(List.of(primary, collaborator, ordinary));
         when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
                 .thenReturn(PageResult.empty());
-        PageParam page = new PageParam();
-        page.setPageNo(1);
-        page.setPageSize(20);
 
-        service.getProjectPage(page, null, null, null, null, null, null, 9001L, actor);
+        ProjectPageReqVO pageReqVO = pageReqVO(null, null, null, null, null, null, 9001L);
+        service.getProjectPage(pageReqVO, actor);
 
         ArgumentCaptor<VisibleProjectPageQuery> query =
                 ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
         verify(projectMasterMapper).selectPage(query.capture());
-        assertEquals(Set.of(100L, 200L), query.getValue().visibleProjectIds());
+        assertEquals(Set.of(100L, 200L), query.getValue().getVisibleProjectIds());
     }
 
     @Test
@@ -846,6 +845,22 @@ class ProjectManualCreationServiceImplTest {
     }
 
     // ========== 辅助 ==========
+
+    private static ProjectPageReqVO pageReqVO(String projectName, String projectCode, String status,
+                                              String signingMethod, String projectCategory,
+                                              String implementationMode, Long managerId) {
+        ProjectPageReqVO reqVO = new ProjectPageReqVO();
+        reqVO.setPageNo(1);
+        reqVO.setPageSize(20);
+        reqVO.setProjectName(projectName);
+        reqVO.setProjectCode(projectCode);
+        reqVO.setStatus(status);
+        reqVO.setSigningMethod(signingMethod);
+        reqVO.setProjectCategory(projectCategory);
+        reqVO.setImplementationMode(implementationMode);
+        reqVO.setManagerId(managerId);
+        return reqVO;
+    }
 
     private ProjectMasterDO validDraft() {
         ProjectMasterDO draft = new ProjectMasterDO();

@@ -62,6 +62,20 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .in(DeviceDO::getSn, sns));
     }
 
+    /** 按设备条件解析当前归属项目ID集合（project_id 非空，去重）；无命中返回空集合。 */
+    default List<Long> selectListProjectIdsByMatch(
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery query) {
+        LambdaQueryWrapperX<DeviceDO> wrapper = new LambdaQueryWrapperX<DeviceDO>()
+                .likeIfPresent(DeviceDO::getSn, query.deviceSnKeyword())
+                .likeIfPresent(DeviceDO::getProductModel, query.deviceProductModelKeyword())
+                .eqIfPresent(DeviceDO::getWarrantyStatus, query.deviceWarrantyStatus());
+        return selectList(wrapper
+                .select(DeviceDO::getProjectId)
+                .eq(DeviceDO::getTenantId, query.tenantId())
+                .isNotNull(DeviceDO::getProjectId))
+                .stream().map(DeviceDO::getProjectId).distinct().toList();
+    }
+
     /** 与设备工作台共用当前用户的项目数据范围。 */
     default PageResult<DeviceDO> selectArchivePage(VisibleDevicePageQuery query) {
         if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())

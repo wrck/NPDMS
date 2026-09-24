@@ -51,44 +51,223 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="签约方式" prop="signingMethod">
-          <el-select v-model="query.signingMethod" placeholder="全部" clearable class="!w-140px">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_SIGNING_METHOD)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="项目类别" prop="projectCategory">
-          <el-select v-model="query.projectCategory" placeholder="全部" clearable class="!w-140px">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="实施方式" prop="implementationMode">
+        <el-form-item label="项目经理" prop="managerId">
           <el-select
-            v-model="query.implementationMode"
+            v-model="query.managerId"
             placeholder="全部"
             clearable
-            class="!w-150px"
+            filterable
+            class="!w-130px"
           >
             <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_IMPLEMENTATION_METHOD)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
+              v-for="user in userOptions"
+              :key="user.id"
+              :label="user.nickname || user.username"
+              :value="user.id"
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="创建时间" prop="createTimeRange">
+          <el-date-picker
+            v-model="query.createTimeRange"
+            type="daterange"
+            value-format="YYYY-MM-DD"
+            range-separator="-"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            clearable
+            class="!w-230px"
+          />
+        </el-form-item>
+
+        <!-- 折叠区：归属/成员/时间/设备/当事方等高级筛选 -->
+        <template v-if="showMoreFilters">
+          <el-form-item label="签约方式" prop="signingMethod">
+            <el-select v-model="query.signingMethod" placeholder="全部" clearable class="!w-130px">
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_SIGNING_METHOD)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="项目类别" prop="projectCategory">
+            <el-select v-model="query.projectCategory" placeholder="全部" clearable class="!w-130px">
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="实施方式" prop="implementationMode">
+            <el-select
+              v-model="query.implementationMode"
+              placeholder="全部"
+              clearable
+              class="!w-140px"
+            >
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_IMPLEMENTATION_METHOD)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="重点项目级别" prop="majorProjectLevel">
+            <el-select
+              v-model="query.majorProjectLevel"
+              placeholder="全部"
+              clearable
+              class="!w-140px"
+            >
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="合同号" prop="contractNo">
+            <el-input
+              v-model="query.contractNo"
+              placeholder="包含匹配"
+              clearable
+              class="!w-160px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="所属公司" prop="companyId">
+            <el-select
+              v-model="query.companyId"
+              placeholder="全部"
+              clearable
+              filterable
+              class="!w-160px"
+            >
+              <el-option
+                v-for="item in companies"
+                :key="item.id"
+                :label="`${item.code} ${item.name}`"
+                :value="item.id ?? 0"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="办事处" prop="departmentId">
+            <el-select
+              v-model="query.departmentId"
+              placeholder="全部"
+              clearable
+              filterable
+              class="!w-160px"
+            >
+              <el-option
+                v-for="item in departments"
+                :key="item.id"
+                :label="`${item.code} ${item.name}`"
+                :value="item.id ?? 0"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="服务经理" prop="serviceManagerId">
+            <el-select
+              v-model="query.serviceManagerId"
+              placeholder="全部"
+              clearable
+              filterable
+              class="!w-130px"
+            >
+              <el-option
+                v-for="user in userOptions"
+                :key="user.id"
+                :label="user.nickname || user.username"
+                :value="user.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="销售人员" prop="salesId">
+            <el-select v-model="query.salesId" placeholder="全部" clearable filterable class="!w-130px">
+              <el-option
+                v-for="user in userOptions"
+                :key="user.id"
+                :label="user.nickname || user.username"
+                :value="user.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="闭环时间" prop="closeTimeRange">
+            <el-date-picker
+              v-model="query.closeTimeRange"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              range-separator="-"
+              start-placeholder="开始"
+              end-placeholder="结束"
+              clearable
+              class="!w-230px"
+            />
+          </el-form-item>
+          <el-form-item label="刷新时间" prop="refreshTimeRange">
+            <el-date-picker
+              v-model="query.refreshTimeRange"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              range-separator="-"
+              start-placeholder="开始"
+              end-placeholder="结束"
+              clearable
+              class="!w-230px"
+            />
+          </el-form-item>
+          <el-form-item label="序列号" prop="deviceSn">
+            <el-input
+              v-model="query.deviceSn"
+              placeholder="包含匹配"
+              clearable
+              class="!w-160px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="产品型号" prop="deviceProductModel">
+            <el-input
+              v-model="query.deviceProductModel"
+              placeholder="包含匹配"
+              clearable
+              class="!w-160px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="维保状态" prop="deviceWarrantyStatus">
+            <el-input
+              v-model="query.deviceWarrantyStatus"
+              placeholder="CRM同步原文（等值）"
+              clearable
+              class="!w-170px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="代理商/服务商" prop="agentServiceProviderKeyword">
+            <el-input
+              v-model="query.agentServiceProviderKeyword"
+              placeholder="名称或编码，包含匹配"
+              clearable
+              class="!w-180px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+        </template>
+
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="handleReset"><Icon icon="ep:refresh-left" />重置</el-button>
+          <el-button link type="primary" @click="showMoreFilters = !showMoreFilters">
+            <Icon :icon="showMoreFilters ? 'ep:arrow-up' : 'ep:arrow-down'" />
+            {{ showMoreFilters ? '收起筛选' : `更多筛选${moreFilterCount ? `(${moreFilterCount})` : ''}` }}
+          </el-button>
           <el-button type="primary" @click="openWizard" v-hasPermi="['pms:project:create']">
             <Icon icon="ep:plus" />创建项目
           </el-button>
@@ -920,6 +1099,7 @@ import type {
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
 import * as UserApi from '@/api/system/user'
+import type { UserVO } from '@/api/system/user'
 import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
@@ -951,10 +1131,68 @@ const query = reactive({
   projectCode: '',
   projectName: '',
   status: '',
+  managerId: undefined as number | undefined,
+  createTimeRange: null as string[] | null,
   signingMethod: '',
   projectCategory: '',
-  implementationMode: ''
+  implementationMode: '',
+  majorProjectLevel: '',
+  contractNo: '',
+  companyId: undefined as number | undefined,
+  departmentId: undefined as number | undefined,
+  serviceManagerId: undefined as number | undefined,
+  salesId: undefined as number | undefined,
+  closeTimeRange: null as string[] | null,
+  refreshTimeRange: null as string[] | null,
+  deviceSn: '',
+  deviceProductModel: '',
+  deviceWarrantyStatus: '',
+  agentServiceProviderKeyword: ''
 })
+
+// ============ 筛选折叠 ============
+const showMoreFilters = ref(false)
+
+/** 折叠区已填写的筛选项数量（收起时提示仍有生效条件） */
+const moreFilterCount = computed(() => {
+  const filled = (value: unknown) =>
+    !!value && value !== '' && !(Array.isArray(value) && value.length !== 2)
+  return [
+    query.signingMethod,
+    query.projectCategory,
+    query.implementationMode,
+    query.majorProjectLevel,
+    query.contractNo,
+    query.companyId,
+    query.departmentId,
+    query.serviceManagerId,
+    query.salesId,
+    query.closeTimeRange,
+    query.refreshTimeRange,
+    query.deviceSn,
+    query.deviceProductModel,
+    query.deviceWarrantyStatus,
+    query.agentServiceProviderKeyword
+  ].filter(filled).length
+})
+
+// ============ 成员下拉（项目经理/服务经理/销售人员共用） ============
+const userOptions = ref<UserVO[]>([])
+
+/** daterange 选取值按左闭右开换算：start=起始日 00:00:00，endExclusive=结束日次日 00:00:00（含结束日整天） */
+const rangeToParams = (range: string[] | null | undefined, prefix: string) => {
+  const params: Record<string, string> = {}
+  if (!range || range.length !== 2 || !range[0] || !range[1]) return params
+  const midnight = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} 00:00:00`
+  }
+  const start = new Date(`${range[0]}T00:00:00`)
+  const end = new Date(`${range[1]}T00:00:00`)
+  params[`${prefix}Start`] = midnight(start)
+  params[`${prefix}End`] = midnight(new Date(end.getTime() + 24 * 60 * 60 * 1000))
+  return params
+}
 
 // ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
 const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
@@ -1022,7 +1260,19 @@ const toggleStatusFilter = (value: string) => {
 const load = async () => {
   loading.value = true
   try {
-    const data = await ProjectsApi.getProjectPage(query)
+    const {
+      createTimeRange,
+      closeTimeRange,
+      refreshTimeRange,
+      ...filters
+    } = query
+    const params: ProjectsApi.ProjectPageParams = {
+      ...filters,
+      ...rangeToParams(createTimeRange, 'createTime'),
+      ...rangeToParams(closeTimeRange, 'closeTime'),
+      ...rangeToParams(refreshTimeRange, 'refreshTime')
+    }
+    const data = await ProjectsApi.getProjectPage(params)
     rows.value = data.list
     total.value = data.total
   } finally {
@@ -1039,9 +1289,23 @@ const handleReset = () => {
   query.projectCode = ''
   query.projectName = ''
   query.status = ''
+  query.managerId = undefined
+  query.createTimeRange = null
   query.signingMethod = ''
   query.projectCategory = ''
   query.implementationMode = ''
+  query.majorProjectLevel = ''
+  query.contractNo = ''
+  query.companyId = undefined
+  query.departmentId = undefined
+  query.serviceManagerId = undefined
+  query.salesId = undefined
+  query.closeTimeRange = null
+  query.refreshTimeRange = null
+  query.deviceSn = ''
+  query.deviceProductModel = ''
+  query.deviceWarrantyStatus = ''
+  query.agentServiceProviderKeyword = ''
   activeStatus.value = ''
   handleSearch()
 }
@@ -1416,6 +1680,11 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizationAndSites()
+  UserApi.getSimpleUserList()
+    .then((list) => (userOptions.value = list || []))
+    .catch(() => {
+      // 人员下拉加载失败不阻断列表（成员筛选仍可手动保留空选项）
+    })
 })
 </script>
 

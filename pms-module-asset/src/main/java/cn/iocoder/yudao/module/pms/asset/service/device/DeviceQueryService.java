@@ -46,6 +46,19 @@ public class DeviceQueryService {
         return device;
     }
 
+    /** 按设备条件解析当前归属项目ID集合；租户不一致按无命中返回空集合。 */
+    public java.util.Set<Long> resolveProjectIds(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceProjectMatchQuery query) {
+        Long tenantId = currentTenantId();
+        if (tenantId == null || query.tenantId() == null || !tenantId.equals(query.tenantId())) {
+            return java.util.Set.of();
+        }
+        return new java.util.HashSet<>(deviceMapper.selectListProjectIdsByMatch(
+                new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery(
+                        query.tenantId(), query.deviceSnKeyword(),
+                        query.deviceProductModelKeyword(), query.deviceWarrantyStatus())));
+    }
+
     private Long currentTenantId() {
         Long tenantId = TenantContextHolder.getTenantId();
         if (tenantId != null) {

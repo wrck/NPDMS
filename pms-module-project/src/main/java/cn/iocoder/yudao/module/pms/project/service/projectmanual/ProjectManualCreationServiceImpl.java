@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
-import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceProjectMatchQuery;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
 import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
@@ -136,6 +136,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private ProjectGateReferenceInstanceMapper gateReferenceInstanceMapper;
     @Resource
     private ProjectMemberAssignmentMapper memberAssignmentMapper;
+    @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceQueryApi;
     @Resource
     private ProjectCompanyDepartmentRelationMapper companyDepartmentRelationMapper;
     @Resource
@@ -419,30 +421,92 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
-    public PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
-                                                      String status, String signingMethod, String projectCategory,
-                                                      String implementationMode, Long managerId,
-                                                      ProjectAccessActor actor) {
+    public PageResult<ProjectMasterDO> getProjectPage(
+            cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO pageReqVO,
+            ProjectAccessActor actor) {
         validateActor(actor);
         Set<Long> visibleProjectIds = projectTreeScopeService.resolveAllFullProjectIds(
                 actor.tenantId(), actor.actorId(), ACTION_VIEW);
-        if (managerId != null) {
-            Set<Long> managerProjectIds = new HashSet<>();
-            List<ProjectMemberAssignmentDO> assignments = memberAssignmentMapper.selectActiveByUser(
-                    new ActiveProjectMemberQuery(actor.tenantId(), managerId, LocalDateTime.now()));
-            for (ProjectMemberAssignmentDO assignment : assignments) {
-                if (cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES
-                        .contains(assignment.getMemberRole())) {
-                    managerProjectIds.add(assignment.getProjectId());
-                }
-            }
-            Set<Long> scoped = new HashSet<>(visibleProjectIds);
-            scoped.retainAll(managerProjectIds);
-            visibleProjectIds = scoped;
+        LocalDateTime effectiveAt = LocalDateTime.now();
+        visibleProjectIds = intersectMemberProjects(visibleProjectIds, actor.tenantId(),
+                pageReqVO.getManagerId(),
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES,
+                effectiveAt);
+        visibleProjectIds = intersectMemberProjects(visibleProjectIds, actor.tenantId(),
+                pageReqVO.getServiceManagerId(),
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES,
+                effectiveAt);
+        visibleProjectIds = intersectMemberProjects(visibleProjectIds, actor.tenantId(),
+                pageReqVO.getSalesId(),
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SALES_CODES,
+                effectiveAt);
+        visibleProjectIds = intersectDeviceProjects(visibleProjectIds, actor.tenantId(), pageReqVO);
+        return projectMasterMapper.selectPage(VisibleProjectPageQuery.builder()
+                .tenantId(actor.tenantId())
+                .visibleProjectIds(visibleProjectIds)
+                .pageParam(pageReqVO)
+                .projectNameKeyword(pageReqVO.getProjectName())
+                .projectCodePrefix(pageReqVO.getProjectCode())
+                .status(pageReqVO.getStatus())
+                .signingMethod(pageReqVO.getSigningMethod())
+                .projectCategory(pageReqVO.getProjectCategory())
+                .implementationMode(pageReqVO.getImplementationMode())
+                .majorProjectLevel(pageReqVO.getMajorProjectLevel())
+                .contractNoKeyword(pageReqVO.getContractNo())
+                .departmentId(pageReqVO.getDepartmentId())
+                .companyId(pageReqVO.getCompanyId())
+                .agentServiceProviderKeyword(pageReqVO.getAgentServiceProviderKeyword())
+                .effectiveAt(effectiveAt)
+                .createTimeStart(pageReqVO.getCreateTimeStart())
+                .createTimeEnd(pageReqVO.getCreateTimeEnd())
+                .closeTimeStart(pageReqVO.getCloseTimeStart())
+                .closeTimeEnd(pageReqVO.getCloseTimeEnd())
+                .refreshTimeStart(pageReqVO.getRefreshTimeStart())
+                .refreshTimeEnd(pageReqVO.getRefreshTimeEnd())
+                .build());
+    }
+
+    /** 成员类筛选解析：按有效时点取该用户的成员项目并按角色过滤，无筛选或无命中返回原范围（命中空集则交集为空）。 */
+    private Set<Long> intersectMemberProjects(Set<Long> visibleProjectIds, Long tenantId, Long userId,
+                                              Set<String> roleCodes, LocalDateTime effectiveAt) {
+        if (userId == null) {
+            return visibleProjectIds;
         }
-        return projectMasterMapper.selectPage(new VisibleProjectPageQuery(
-                actor.tenantId(), visibleProjectIds, pageParam, projectName, projectCode, status,
-                signingMethod, projectCategory, implementationMode));
+        Set<Long> memberProjectIds = new HashSet<>();
+        List<ProjectMemberAssignmentDO> assignments = memberAssignmentMapper.selectActiveByUser(
+                new ActiveProjectMemberQuery(tenantId, userId, effectiveAt));
+        for (ProjectMemberAssignmentDO assignment : assignments) {
+            if (roleCodes.contains(assignment.getMemberRole())) {
+                memberProjectIds.add(assignment.getProjectId());
+            }
+        }
+        Set<Long> scoped = new HashSet<>(visibleProjectIds);
+        scoped.retainAll(memberProjectIds);
+        return scoped;
+    }
+
+    /** 设备类筛选解析：仅存在任一设备条件时经 AST Business API 解析归属项目并取交集；无命中交集为空。 */
+    private Set<Long> intersectDeviceProjects(Set<Long> visibleProjectIds, Long tenantId,
+                                              cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO pageReqVO) {
+        boolean hasDeviceFilter = isNotBlank(pageReqVO.getDeviceSn()) || isNotBlank(pageReqVO.getDeviceProductModel())
+                || isNotBlank(pageReqVO.getDeviceWarrantyStatus());
+        if (!hasDeviceFilter) {
+            return visibleProjectIds;
+        }
+        Set<Long> matched = deviceQueryApi.resolveProjectIds(
+                new DeviceProjectMatchQuery(tenantId, blankToNull(pageReqVO.getDeviceSn()),
+                        blankToNull(pageReqVO.getDeviceProductModel()), blankToNull(pageReqVO.getDeviceWarrantyStatus())));
+        Set<Long> scoped = new HashSet<>(visibleProjectIds);
+        scoped.retainAll(matched);
+        return scoped;
+    }
+
+    private static boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static String blankToNull(String value) {
+        return isNotBlank(value) ? value : null;
     }
 
     @Override
