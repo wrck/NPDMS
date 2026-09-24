@@ -124,20 +124,33 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="培训名称" prop="name"><el-input v-model="form.name" /></el-form-item>
+          <el-form-item label="培训名称" prop="name"
+            ><el-input v-model="form.name" placeholder="留空时自动带入工程名称，可修改"
+          /></el-form-item>
         </el-col>
         <el-col :xs="24" :sm="12">
           <el-form-item label="客户联系人" prop="contactName">
-            <el-input v-model="form.contactName" placeholder="可从项目联系人带入">
-              <template #append>
-                <el-button :disabled="!form.projectId" @click="pickContact">带入</el-button>
-              </template>
-            </el-input>
+            <el-select
+              v-model="form.contactName"
+              filterable
+              clearable
+              class="!w-full"
+              placeholder="从项目客户联系人中选择"
+              :disabled="!form.projectId"
+              @change="onContactSelect"
+            >
+              <el-option
+                v-for="item in contactOptions"
+                :key="item.id"
+                :label="item.primaryFlag ? `${item.name}（主联系人）` : item.name"
+                :value="item.name"
+              />
+            </el-select>
           </el-form-item>
         </el-col>
         <el-col :xs="24" :sm="12">
           <el-form-item label="联系电话" prop="contactPhone">
-            <el-input v-model="form.contactPhone" />
+            <el-input v-model="form.contactPhone" placeholder="随客户联系人带入，可修改" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -173,11 +186,6 @@
               query-field="nickname"
               placeholder="默认当前登录人"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :xs="24" :sm="12">
-          <el-form-item label="参训人数" prop="traineeCount">
-            <el-input-number v-model="form.traineeCount" :min="1" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -258,7 +266,6 @@
         <div><dt>培训类型</dt><dd>{{ (detail.trainingTypes || '').split(',').filter(Boolean).map(typeLabel).join('、') || '—' }}</dd></div>
         <div><dt>培训时间</dt><dd>{{ detail.trainingTime || '—' }}</dd></div>
         <div><dt>培训工程师</dt><dd>{{ detail.trainerName || '—' }}</dd></div>
-        <div><dt>参训人数</dt><dd>{{ detail.traineeCount ?? '—' }}</dd></div>
         <div><dt>客户联系人</dt><dd>{{ detail.contactName || '—' }}</dd></div>
         <div><dt>联系电话</dt><dd>{{ detail.contactPhone || '—' }}</dd></div>
       </dl>
@@ -435,7 +442,6 @@ const openForm = (row?: TrainingVO) => {
       trainingTypeList: [],
       trainingTime: '',
       trainerUserId: userStore.getUser.id || undefined,
-      traineeCount: undefined,
       content: '',
       remark: '',
       confirmationTemplateId: 992209200001,
@@ -456,16 +462,38 @@ const openForm = (row?: TrainingVO) => {
     if (formVisible.value && !form.id && !form.printTemplateId) form.printTemplateId = printTemplates.value[0]?.templateId
   })
 }
-const pickContact = async () => {
-  const data = await ContactApi.getProjectPage(form.projectId!, { pageNo: 1, pageSize: 50 })
-  if (!data.list?.length) {
-    message.warning('该项目暂无客户联系人，请手动填写')
-    return
-  }
-  const primary = data.list.find((item: any) => item.primaryFlag) ?? data.list[0]
-  form.contactName = primary.name
-  form.contactPhone = primary.mobile || primary.phone || ''
+// 培训表单按项目关联信息自动带入：培训名称与工程同名（留空时）、客户联系人取启用的主联系人、联系电话随之；联系人候选=项目当前启用客户联系人，提交保存姓名与联系方式快照
+const contactOptions = ref<ContactApi.ContactVO[]>([])
+const onContactSelect = (name: string) => {
+  const hit = contactOptions.value.find((item: ContactApi.ContactVO) => item.name === name)
+  if (hit) form.contactPhone = hit.mobile || hit.phone || ''
 }
+let bringInRequest = 0
+const bringInProjectInfo = async () => {
+  if (!formVisible.value || !form.projectId) return
+  const request = ++bringInRequest
+  try {
+    const [project, contacts] = await Promise.all([
+      ProjectApi.getProject(form.projectId as number),
+      ContactApi.getProjectPage(form.projectId as number, { pageNo: 1, pageSize: 50 })
+    ])
+    if (request !== bringInRequest) return
+    contactOptions.value = (contacts.list || []).filter((item: ContactApi.ContactVO) => item.status === 0)
+    // 编辑态仅刷新联系人候选，不覆盖既有快照填写
+    if (form.id) return
+    if (!form.name && project.projectName) form.name = project.projectName
+    const primary = contactOptions.value.find((item: ContactApi.ContactVO) => item.primaryFlag) ?? contactOptions.value[0]
+    if (primary) {
+      form.contactName = primary.name
+      form.contactPhone = primary.mobile || primary.phone || ''
+    }
+  } catch {
+    // 项目信息读取失败时保持手动填写
+  }
+}
+watch(() => [form.projectId, formVisible.value], () => {
+  void bringInProjectInfo()
+})
 const save = async () => {
   await formRef.value.validate()
   saving.value = true
