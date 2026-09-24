@@ -2,10 +2,23 @@ import request from '@/config/axios'
 import { withRequestTimestamp } from '../requestTime'
 
 export interface MaterialExchangeSerialVO {
-  equipmentId: number
-  sn: string
+  /** 设备清单行引用：交付范围明细拆分行（=合同对应销售订单行的分配明细） */
+  scopeDetailId?: number
+  /** 设备清单行引用：无明细拆分的交付范围行 */
+  scopeId?: number
+  /** 换货数量，按清单行填写；缺省按 1 台处理 */
+  quantity?: number
+  orderNo?: string
+  lineNo?: string
+  itemCode?: string
   name?: string
   productCode?: string
+  deviceTypeCode?: string
+  deviceTypeName?: string
+  /** 兼容旧序列号快照：原设备ID */
+  equipmentId?: number
+  /** 兼容旧序列号快照 */
+  sn?: string
   productModel?: string
   contractNo?: string
 }

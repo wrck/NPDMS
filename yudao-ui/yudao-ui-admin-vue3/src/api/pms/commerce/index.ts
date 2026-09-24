@@ -109,8 +109,10 @@ export interface DeliveryScopeDetailRespVO {
   id: number
   sequence: number
   serialNo?: string
+  productName?: string
   productCode?: string
   deviceTypeCode?: string
+  deviceTypeName?: string
   allocatedQuantity: number
   status: string
 }
@@ -123,6 +125,7 @@ export interface DeliveryScopeRespVO {
   orderNo: string
   lineNo: string
   itemCode: string
+  itemDesc?: string
   allocatedQuantity: number
   scopeStatus: string
   allocationVersion: number

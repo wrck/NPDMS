@@ -3,6 +3,9 @@ package cn.iocoder.yudao.module.pms.engineering.service.materialexchange;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeLineFactApi;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineFact;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineRef;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSerialVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange.MaterialExchangeDO;
@@ -22,11 +25,13 @@ class MaterialExchangeSerialServiceTest {
     private final MaterialExchangeMapper mapper = mock(MaterialExchangeMapper.class);
     private final MaterialExchangeSerialMapper serialMapper = mock(MaterialExchangeSerialMapper.class);
     private final ProjectDeviceSelectionApi devices = mock(ProjectDeviceSelectionApi.class);
+    private final DeliveryScopeLineFactApi scopeLines = mock(DeliveryScopeLineFactApi.class);
     private final MaterialExchangeServiceImpl service = new MaterialExchangeServiceImpl();
     @BeforeEach void setup() {
         ReflectionTestUtils.setField(service, "materialExchangeMapper", mapper);
         ReflectionTestUtils.setField(service, "serialMapper", serialMapper);
         ReflectionTestUtils.setField(service, "deviceSelectionApi", devices);
+        ReflectionTestUtils.setField(service, "scopeLineFactApi", scopeLines);
         when(devices.validateSelection(10L, List.of(1L, 2L))).thenReturn(List.of(
                 new SelectedProjectDevice(1L, "REAL-1", "设备一", "P1", "M1", "C1"),
                 new SelectedProjectDevice(2L, "REAL-2", "设备二", "P2", "M2", "C1")));
@@ -83,10 +88,24 @@ class MaterialExchangeSerialServiceTest {
         verifyNoInteractions(serialMapper, devices);
     }
 
-    @Test void quantityMustMatchSerialCount() {
+    @Test void quantityMustMatchSerialQuantityTotal() {
         var request = request(); request.setQuantity(BigDecimal.ONE);
         assertThrows(ServiceException.class, () -> service.createMaterialExchange(request));
         verifyNoInteractions(mapper, serialMapper);
+    }
+
+    @Test void persistsPerRowExchangeQuantity() {
+        var first = new MaterialExchangeSerialVO(); first.setEquipmentId(1L);
+        first.setQuantity(BigDecimal.valueOf(1));
+        var second = new MaterialExchangeSerialVO(); second.setEquipmentId(2L);
+        second.setQuantity(BigDecimal.valueOf(2));
+        var request = request(); request.setSerials(List.of(first, second));
+        request.setQuantity(BigDecimal.valueOf(3));
+        assertEquals(100L, service.createMaterialExchange(request));
+        var capture = ArgumentCaptor.forClass(MaterialExchangeSerialDO.class);
+        verify(serialMapper, times(2)).insert(capture.capture());
+        assertEquals(List.of(BigDecimal.valueOf(1), BigDecimal.valueOf(2)),
+                capture.getAllValues().stream().map(MaterialExchangeSerialDO::getQuantity).toList());
     }
 
     @Test void legacyClientOmittingChildrenPreservesExistingSnapshot() {
@@ -98,6 +117,51 @@ class MaterialExchangeSerialServiceTest {
         service.updateMaterialExchange(request);
         verify(serialMapper, never()).deleteByExchange(any());
         verify(serialMapper, never()).insert(any(MaterialExchangeSerialDO.class));
+    }
+
+    @Test void savesScopeLineUsingServerOrderFacts() {
+        when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
+                .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
+                        "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN)));
+        var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
+        first.setQuantity(BigDecimal.valueOf(2)); first.setItemCode("FORGED-ITEM");
+        var request = request(); request.setSerials(List.of(first)); request.setQuantity(BigDecimal.valueOf(2));
+        assertEquals(100L, service.createMaterialExchange(request));
+        var capture = ArgumentCaptor.forClass(MaterialExchangeSerialDO.class);
+        verify(serialMapper).insert(capture.capture());
+        var row = capture.getValue();
+        assertEquals(7L, row.getScopeDetailId());
+        assertEquals("SO-1", row.getOrderNo());
+        // 服务器事实覆盖客户端伪造的物料编码
+        assertEquals("ITEM-1", row.getItemCode());
+        assertEquals("交换机", row.getDeviceTypeName());
+        assertEquals(BigDecimal.valueOf(2), row.getQuantity());
+        assertNull(row.getEquipmentId());
+        verifyNoInteractions(devices);
+    }
+
+    @Test void mixedScopeAndLegacyRowsValidateBothProviders() {
+        when(devices.validateSelection(10L, List.of(1L))).thenReturn(List.of(
+                new SelectedProjectDevice(1L, "REAL-1", "设备一", "P1", "M1", "C1")));
+        when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
+                .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
+                        "设备一", "P-ITEM-1", null, null, BigDecimal.TEN)));
+        var legacy = new MaterialExchangeSerialVO(); legacy.setEquipmentId(1L);
+        var scope = new MaterialExchangeSerialVO(); scope.setScopeDetailId(7L);
+        var request = request(); request.setSerials(List.of(scope, legacy));
+        assertEquals(100L, service.createMaterialExchange(request));
+        verify(devices).validateSelection(10L, List.of(1L));
+        var capture = ArgumentCaptor.forClass(MaterialExchangeSerialDO.class);
+        verify(serialMapper, times(2)).insert(capture.capture());
+        assertEquals(List.of(7L, 1L), capture.getAllValues().stream()
+                .map(row -> row.getScopeDetailId() != null ? row.getScopeDetailId() : row.getEquipmentId()).toList());
+    }
+
+    @Test void rowWithoutAnyReferenceIsRejected() {
+        var orphan = new MaterialExchangeSerialVO(); orphan.setSn("FORGED-SN");
+        var request = request(); request.setSerials(List.of(orphan));
+        assertThrows(ServiceException.class, () -> service.createMaterialExchange(request));
+        verifyNoInteractions(mapper, serialMapper);
     }
 
     private MaterialExchangeSaveReqVO request() {

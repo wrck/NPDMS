@@ -154,7 +154,8 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_EXCH_PROJECT_NOT_EXISTS = new ErrorCode(1_011_014_004, "所属项目不存在");
     ErrorCode MATERIAL_EXCH_CRM_ALREADY_PUSHED = new ErrorCode(1_011_014_005, "换货协同单已推送CRM，无法重复推送");
     ErrorCode MATERIAL_EXCH_CRM_NOT_CONNECTED = new ErrorCode(1_011_014_006, "CRM外部接口未接入，当前仅保留扩展入口，不执行推送");
-    ErrorCode MATERIAL_EXCH_SERIAL_QUANTITY_INVALID = new ErrorCode(1_011_014_007, "换货数量必须与所选设备序列号数量一致");
+    ErrorCode MATERIAL_EXCH_SERIAL_QUANTITY_INVALID = new ErrorCode(1_011_014_007, "换货数量必须与各勾选清单行换货数量之和一致");
+    ErrorCode MATERIAL_EXCH_SCOPE_LINE_INVALID = new ErrorCode(1_011_014_008, "设备清单行无效或不属于当前项目");
 
     // ========== 工程交底书 briefing 1-011-015-000 ==========
     ErrorCode BRIEFING_NOT_EXISTS = new ErrorCode(1_011_015_000, "工程交底书不存在");

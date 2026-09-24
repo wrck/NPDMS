@@ -14,11 +14,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeLineFactApi;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineFact;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineRef;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSerialVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange.MaterialExchangeSerialDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialexchange.MaterialExchangeSerialMapper;
@@ -109,11 +117,13 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     private MaterialExchangeSerialMapper serialMapper;
     @Resource
     private ProjectDeviceSelectionApi deviceSelectionApi;
+    @Resource
+    private DeliveryScopeLineFactApi scopeLineFactApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createMaterialExchange(MaterialExchangeSaveReqVO createReqVO) {
-        List<SelectedProjectDevice> serials = validateSelection(createReqVO, null);
+        List<ExchangeLine> lines = resolveAndValidateLines(createReqVO, null);
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
         // 3. 转换并写入，初始单据状态为草稿、CRM 推送状态为待推送
@@ -124,7 +134,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
             entity.setVersion(0);
         }
         materialExchangeMapper.insert(entity);
-        saveSerials(entity.getId(), serials);
+        saveSerials(entity.getId(), lines, serialQuantities(createReqVO));
         return entity.getId();
     }
 
@@ -144,7 +154,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) {
             throw exception(MATERIAL_EXCH_PROJECT_NOT_EXISTS);
         }
-        List<SelectedProjectDevice> serials = validateSelection(updateReqVO, existing);
+        List<ExchangeLine> lines = resolveAndValidateLines(updateReqVO, existing);
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
         MaterialExchangeDO update = BeanUtils.toBean(updateReqVO, MaterialExchangeDO.class);
         update.setVersion(existing.getVersion());
@@ -155,7 +165,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (updateReqVO.getSerials() != null || serialMapper.selectByExchange(
                 new MaterialExchangeSerialQuery(existing.getId())).isEmpty()) {
             serialMapper.deleteByExchange(new MaterialExchangeSerialQuery(existing.getId()));
-            saveSerials(existing.getId(), serials);
+            saveSerials(existing.getId(), lines, serialQuantities(updateReqVO));
         }
     }
 
@@ -183,39 +193,156 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 MaterialExchangeSerialVO.class);
     }
 
-    private List<SelectedProjectDevice> validateSelection(MaterialExchangeSaveReqVO request,
-                                                           MaterialExchangeDO existing) {
-        List<Long> ids;
+    /**
+     * 设备行解析与校验：设备清单行 = 合同对应销售订单行的交付范围分配（范围明细拆分行或未拆分范围行），
+     * 通过 commerce 只读事实 API 校验归属；旧序列号行（仅 equipmentId）继续走设备选择校验，不重写旧快照。
+     * 主表数量保持与各设备行换货数量之和一致。
+     */
+    private List<ExchangeLine> resolveAndValidateLines(MaterialExchangeSaveReqVO request,
+                                                       MaterialExchangeDO existing) {
+        List<ExchangeLine> lines;
         if (request.getSerials() != null) {
-            ids = request.getSerials().stream().map(MaterialExchangeSerialVO::getEquipmentId).toList();
+            lines = resolveExplicitLines(request.getSerials());
         } else if (existing != null) {
-            ids = serialMapper.selectByExchange(new MaterialExchangeSerialQuery(existing.getId())).stream()
-                    .map(MaterialExchangeSerialDO::getEquipmentId).toList();
-            if (ids.isEmpty() && request.getEquipmentId() != null) ids = List.of(request.getEquipmentId());
+            lines = resolveSavedLines(existing);
         } else {
-            ids = request.getEquipmentId() == null ? List.of() : List.of(request.getEquipmentId());
+            lines = request.getEquipmentId() == null ? List.of()
+                    : List.of(new ExchangeLine(null, request.getEquipmentId()));
         }
-        var devices = deviceSelectionApi.validateSelection(request.getProjectId(), ids);
-        if (request.getSerials() != null && !ids.isEmpty()
-                && (request.getQuantity() == null || request.getQuantity().compareTo(
-                        java.math.BigDecimal.valueOf(ids.size())) != 0)) {
+        // 1. 清单行与旧设备行分流校验归属；空集合筛选返回空结果
+        var scopeRefs = lines.stream().map(line -> line.scopeRef).filter(Objects::nonNull).toList();
+        Map<String, DeliveryScopeLineFact> factByRef = scopeLineFactApi
+                .validateSelection(request.getProjectId(), scopeRefs).stream()
+                .collect(Collectors.toMap(MaterialExchangeServiceImpl::factRefKey, Function.identity()));
+        var legacyIds = lines.stream().map(line -> line.legacyEquipmentId).filter(Objects::nonNull).toList();
+        Map<Long, SelectedProjectDevice> deviceById = legacyIds.isEmpty() ? Map.of()
+                : deviceSelectionApi.validateSelection(request.getProjectId(), legacyIds).stream()
+                .collect(Collectors.toMap(SelectedProjectDevice::equipmentId, Function.identity()));
+        for (ExchangeLine line : lines) {
+            line.scopeFact = line.scopeRef == null ? null : factByRef.get(refKey(line.scopeRef));
+            line.device = line.legacyEquipmentId == null ? null : deviceById.get(line.legacyEquipmentId);
+        }
+        // 2. 主表数量 = 各设备行换货数量之和；旧客户端未传明细时数量仍按设备台数
+        if (request.getSerials() != null && !lines.isEmpty()
+                && (request.getQuantity() == null
+                || request.getQuantity().compareTo(serialQuantityTotal(request)) != 0)) {
             throw exception(MATERIAL_EXCH_SERIAL_QUANTITY_INVALID);
         }
-        // 兼容旧单设备入口；新界面以序列号子表为准。
-        request.setEquipmentId(devices.isEmpty() ? null : devices.getFirst().equipmentId());
-        return devices;
+        // 3. 主表原设备编号：清单行无单设备语义，仅旧行保留设备编号
+        request.setEquipmentId(lines.stream().map(line -> line.legacyEquipmentId)
+                .filter(Objects::nonNull).findFirst().orElse(null));
+        return lines;
     }
 
-    private void saveSerials(Long exchangeId, List<SelectedProjectDevice> devices) {
-        for (SelectedProjectDevice device : devices) {
+    /** 显式编辑行：清单行引用与旧设备行分流；两者都缺失的行视为无效清单行。 */
+    private List<ExchangeLine> resolveExplicitLines(List<MaterialExchangeSerialVO> serials) {
+        List<ExchangeLine> lines = new ArrayList<>();
+        for (MaterialExchangeSerialVO row : serials) {
+            if (row.getScopeDetailId() != null) {
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null));
+            } else if (row.getScopeId() != null) {
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null));
+            } else if (row.getEquipmentId() != null) {
+                lines.add(new ExchangeLine(null, row.getEquipmentId()));
+            } else {
+                throw exception(MATERIAL_EXCH_SCOPE_LINE_INVALID);
+            }
+        }
+        return lines;
+    }
+
+    /** 已保存快照行：旧客户端未发送明细时按已保存行校验；无行时回退主表单设备入口。 */
+    private List<ExchangeLine> resolveSavedLines(MaterialExchangeDO existing) {
+        List<ExchangeLine> lines = new ArrayList<>();
+        for (MaterialExchangeSerialDO row : serialMapper.selectByExchange(
+                new MaterialExchangeSerialQuery(existing.getId()))) {
+            if (row.getScopeDetailId() != null) {
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null));
+            } else if (row.getScopeId() != null) {
+                lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null));
+            } else if (row.getEquipmentId() != null) {
+                lines.add(new ExchangeLine(null, row.getEquipmentId()));
+            }
+        }
+        if (lines.isEmpty() && existing.getEquipmentId() != null) {
+            lines.add(new ExchangeLine(null, existing.getEquipmentId()));
+        }
+        return lines;
+    }
+
+    /** 行解析结果：清单行（范围事实）与旧序列号行（设备事实）分流；显式行与已保存快照共用。 */
+    private static final class ExchangeLine {
+        private DeliveryScopeLineRef scopeRef;
+        private Long legacyEquipmentId;
+        private DeliveryScopeLineFact scopeFact;
+        private SelectedProjectDevice device;
+
+        private ExchangeLine(DeliveryScopeLineRef scopeRef, Long legacyEquipmentId) {
+            this.scopeRef = scopeRef;
+            this.legacyEquipmentId = legacyEquipmentId;
+        }
+
+        private String refKey() {
+            return scopeRef != null ? MaterialExchangeServiceImpl.refKey(scopeRef) : "V" + legacyEquipmentId;
+        }
+    }
+
+    private static String refKey(DeliveryScopeLineRef scopeRef) {
+        return scopeRef.scopeDetailId() != null ? "D" + scopeRef.scopeDetailId() : "S" + scopeRef.scopeId();
+    }
+
+    /** 范围行事实的引用键，与行解析键同口径。 */
+    private static String factRefKey(DeliveryScopeLineFact fact) {
+        return fact.scopeDetailId() != null ? "D" + fact.scopeDetailId() : "S" + fact.scopeId();
+    }
+
+    /** 明细行换货数量按行引用汇总；缺省按 1 台处理。 */
+    private Map<String, BigDecimal> serialQuantities(MaterialExchangeSaveReqVO request) {
+        if (request.getSerials() == null) {
+            return Map.of();
+        }
+        return request.getSerials().stream().collect(Collectors.toMap(this::lineRefKey,
+                serial -> serial.getQuantity() == null ? BigDecimal.ONE : serial.getQuantity(),
+                (first, second) -> first));
+    }
+
+    private String lineRefKey(MaterialExchangeSerialVO serial) {
+        if (serial.getScopeDetailId() != null) {
+            return "D" + serial.getScopeDetailId();
+        }
+        return serial.getScopeId() != null ? "S" + serial.getScopeId() : "V" + serial.getEquipmentId();
+    }
+
+    private BigDecimal serialQuantityTotal(MaterialExchangeSaveReqVO request) {
+        return serialQuantities(request).values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** 持久化设备行服务器快照；显式行顺序与客户端一致，数量按行引用回填。 */
+    private void saveSerials(Long exchangeId, List<ExchangeLine> lines, Map<String, BigDecimal> quantities) {
+        for (ExchangeLine line : lines) {
             MaterialExchangeSerialDO row = new MaterialExchangeSerialDO();
             row.setExchangeId(exchangeId);
-            row.setEquipmentId(device.equipmentId());
-            row.setSn(device.sn());
-            row.setName(device.name());
-            row.setProductCode(device.productCode());
-            row.setProductModel(device.productModel());
-            row.setContractNo(device.contractNo());
+            row.setQuantity(quantities.getOrDefault(line.refKey(), BigDecimal.ONE));
+            if (line.scopeRef != null) {
+                DeliveryScopeLineFact fact = line.scopeFact;
+                row.setScopeDetailId(fact.scopeDetailId());
+                row.setScopeId(fact.scopeId());
+                row.setOrderNo(fact.orderNo());
+                row.setLineNo(fact.lineNo());
+                row.setItemCode(fact.itemCode());
+                row.setName(fact.productName());
+                row.setProductCode(fact.productCode());
+                row.setDeviceTypeCode(fact.deviceTypeCode());
+                row.setDeviceTypeName(fact.deviceTypeName());
+            } else {
+                SelectedProjectDevice device = line.device;
+                row.setEquipmentId(device.equipmentId());
+                row.setSn(device.sn());
+                row.setName(device.name());
+                row.setProductCode(device.productCode());
+                row.setProductModel(device.productModel());
+                row.setContractNo(device.contractNo());
+            }
             serialMapper.insert(row);
         }
     }
@@ -241,11 +368,26 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         MaterialExchangeDO entity = lockMaterialExchange(id);
         // 2. 状态校验：0 草稿 / 4 已驳回 → 1 已提交
         validateStatus(entity, STATUS_DRAFT, STATUS_REJECTED);
-        var ids = serialMapper.selectByExchange(new MaterialExchangeSerialQuery(id)).stream()
-                .map(MaterialExchangeSerialDO::getEquipmentId).toList();
-        if (ids.isEmpty() && entity.getEquipmentId() != null) ids = List.of(entity.getEquipmentId());
-        deviceSelectionApi.validateSelection(entity.getProjectId(), ids);
-        // 3. 更新状态
+        // 3. 提交前重校验设备行归属：清单行走范围事实，旧行走设备选择
+        var scopeRefs = new ArrayList<DeliveryScopeLineRef>();
+        var legacyIds = new ArrayList<Long>();
+        for (MaterialExchangeSerialDO row : serialMapper.selectByExchange(new MaterialExchangeSerialQuery(id))) {
+            if (row.getScopeDetailId() != null) {
+                scopeRefs.add(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()));
+            } else if (row.getScopeId() != null) {
+                scopeRefs.add(DeliveryScopeLineRef.ofScope(row.getScopeId()));
+            } else if (row.getEquipmentId() != null) {
+                legacyIds.add(row.getEquipmentId());
+            }
+        }
+        if (scopeRefs.isEmpty() && legacyIds.isEmpty() && entity.getEquipmentId() != null) {
+            legacyIds.add(entity.getEquipmentId());
+        }
+        scopeLineFactApi.validateSelection(entity.getProjectId(), scopeRefs);
+        if (!legacyIds.isEmpty()) {
+            deviceSelectionApi.validateSelection(entity.getProjectId(), legacyIds);
+        }
+        // 4. 更新状态
         updateStatus(entity, STATUS_SUBMITTED, null, null, null);
     }
 

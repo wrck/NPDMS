@@ -161,7 +161,7 @@
   <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
     <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <el-form-item label="物料选择">
+      <el-form-item label="设备清单">
         <MaterialDevicePicker v-if="formVisible" :key="pickerKey" :project-id="form.projectId"
           :model-value="form.serials || []" @update:model-value="updateSerials" />
       </el-form-item>
@@ -240,18 +240,7 @@
               label-field="nickname"
               value-field="id"
               query-field="nickname"
-              placeholder="请选择申请人"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="申请时间" prop="applyTime">
-            <el-date-picker
-              v-model="form.applyTime"
-              type="datetime"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              placeholder="选择申请时间"
-              class="!w-full"
+              placeholder="申请人默认当前用户"
             />
           </el-form-item>
         </el-col>
@@ -287,7 +276,10 @@
       <el-descriptions-item label="换货类型">
         <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType ?? ''" />
       </el-descriptions-item>
-      <el-descriptions-item label="关联设备"><EquipmentTag :equipment-id="current.equipmentId" /></el-descriptions-item>
+      <el-descriptions-item label="关联设备">
+        <EquipmentTag v-if="current.equipmentId" :equipment-id="current.equipmentId" />
+        <span v-else>-</span>
+      </el-descriptions-item>
       <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
       <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
       <el-descriptions-item label="规格型号">{{ current.specification }}</el-descriptions-item>
@@ -312,10 +304,16 @@
       </el-descriptions-item>
     </el-descriptions>
     <el-table v-if="current.serials?.length" :data="current.serials" border max-height="360" class="mt-4">
-      <el-table-column prop="sn" label="申请序列号" min-width="160" />
-      <el-table-column prop="name" label="设备名称" min-width="140" />
-      <el-table-column prop="productModel" label="产品型号" min-width="120" />
-      <el-table-column prop="contractNo" label="合同号" min-width="140" />
+      <el-table-column prop="orderNo" label="订单号" min-width="140" />
+      <el-table-column prop="lineNo" label="行号" width="80" />
+      <el-table-column prop="itemCode" label="物料编码" min-width="130" show-overflow-tooltip />
+      <el-table-column prop="name" label="名称" min-width="130" show-overflow-tooltip />
+      <el-table-column label="设备类型" width="110">
+        <template #default="{ row }">{{ row.deviceTypeName || row.deviceTypeCode }}</template>
+      </el-table-column>
+      <el-table-column label="换货数量" width="100">
+        <template #default="{ row }">{{ row.quantity ?? 1 }}</template>
+      </el-table-column>
     </el-table>
   </Dialog>
 
@@ -358,7 +356,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { positiveShortcutId, surveyPath } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
 import { loadSurveyActionContext } from '@/views/pms/delivery-business/site-survey/surveyActionContext'
-import { dateFormatter } from '@/utils/formatTime'
+import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as MaterialExchApi from '@/api/pms/engineering/material-exch'
@@ -394,19 +392,28 @@ const query = reactive({
 
 const projectLabel = ref('')
 const pickerKey = ref(0)
-const changeProject = () => {
+/** 换货数量 = 各勾选设备行换货数量之和 */
+const serialQuantityTotal = (serials: MaterialExchangeSerialVO[]) =>
+  serials.reduce((sum, row) => sum + (row.quantity ?? 1), 0)
+/** 项目编码、名称按当前项目自动填充；用户已录入时不覆盖 */
+const prefillProjectFields = (project?: { projectCode?: string; projectName?: string }) => {
+  if (project?.projectName) form.name ||= project.projectName
+  if (project?.projectCode) form.code ||= `ME-${project.projectCode}-${Date.now()}`
+}
+const changeProject = (_val: number, selected?: { projectCode?: string; projectName?: string }) => {
   form.serials = []
   form.equipmentId = undefined
   form.quantity = undefined!
+  prefillProjectFields(selected)
 }
 const updateSerials = (serials: MaterialExchangeSerialVO[]) => {
   form.serials = serials
-  form.equipmentId = serials[0]?.equipmentId
+  form.equipmentId = serials.find(row => row.equipmentId)?.equipmentId
   if (serials.length) {
-    form.quantity = serials.length
+    form.quantity = serialQuantityTotal(serials)
     form.materialName ||= serials[0].name || ''
-    form.materialCode ||= serials[0].productCode || ''
-    form.specification ||= serials[0].productModel || ''
+    form.materialCode ||= serials[0].itemCode || serials[0].productCode || ''
+    form.specification ||= serials[0].deviceTypeName || serials[0].deviceTypeCode || serials[0].productModel || ''
     form.unit = '台'
   }
 }
@@ -414,7 +421,10 @@ const loadProjectLabel = async () => {
   if (!props.projectId || projectLabel.value) return
   try {
     const detail = await ProjectApi.getProject(props.projectId)
-    projectLabel.value = detail?.projectName ? `${detail.projectName}（#${props.projectId}）` : `#${props.projectId}`
+    projectLabel.value = detail?.projectName
+      ? `${detail.projectName}（${detail.projectCode || `#${props.projectId}`}）`
+      : `#${props.projectId}`
+    prefillProjectFields(detail)
   } catch {
     projectLabel.value = `#${props.projectId}`
   }
@@ -461,8 +471,7 @@ const rules = {
   materialName: [{ required: true, message: '请输入物料名称' }],
   quantity: [{ required: true, message: '请输入数量' }],
   reason: [{ required: true, message: '请输入换货原因' }],
-  applicantUserId: [{ required: true, message: '请选择申请人' }],
-  applyTime: [{ required: true, message: '请选择申请时间' }]
+  applicantUserId: [{ required: true, message: '请选择申请人' }]
 }
 
 const openCreate = () => {
@@ -484,7 +493,7 @@ const openCreate = () => {
     originalOrderNo: '',
     reason: '',
     reasonFiles: '',
-    applicantUserId: undefined,
+    applicantUserId: userStore.getUser.id,
     applyTime: '',
     remark: ''
   })
@@ -501,7 +510,7 @@ const openEdit = async (row: MaterialExchangeVO) => {
   // 旧申请没有子表时保留原设备；下一次显式保存才生成快照。
   if (!form.serials?.length && detail.equipmentId) {
     const device = await DeviceArchiveApi.getDeviceArchiveRecord(detail.equipmentId)
-    form.serials = [{ equipmentId: detail.equipmentId, sn: device.sn, name: device.name,
+    form.serials = [{ equipmentId: detail.equipmentId, quantity: 1, sn: device.sn, name: device.name,
       productCode: device.productCode, productModel: device.productModel, contractNo: device.contractNo }]
   }
   pickerKey.value++
@@ -510,7 +519,9 @@ const openEdit = async (row: MaterialExchangeVO) => {
 const save = async () => {
   if (saving.value) return
   await formRef.value.validate()
-  if (form.serials?.length) form.quantity = form.serials.length
+  // 数量自动取各设备行换货数量之和；申请时间创建时自动取当前时间，不再手工录入。
+  if (form.serials?.length) form.quantity = serialQuantityTotal(form.serials)
+  if (!form.id) form.applyTime = formatDate(new Date())
   saving.value = true
   try {
     if (form.id) {
@@ -606,7 +617,7 @@ watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) =>
     const context = await loadSurveyActionContext(surveyId, 'exchange', typeof sn === 'string' ? sn : undefined)
     openCreate()
     sourceSurveyId.value = surveyId
-    Object.assign(form, context, { applicantUserId: userStore.getUser.id, applyTime: Date.now() })
+    Object.assign(form, context, { applicantUserId: userStore.getUser.id })
   } catch(error) { message.warning(error instanceof Error ? error.message : '工勘来源读取失败') }
 }, { immediate: true })
 </script>
