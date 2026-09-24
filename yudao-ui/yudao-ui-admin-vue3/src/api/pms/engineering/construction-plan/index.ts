@@ -129,6 +129,9 @@ export const getChanges = (planId: number, params: { cursor?: string; pageSize?:
 export const getChange = (planId: number, changeId: number) =>
   request.get<ConstructionPlanChangeVO>({ url: `${baseUrl}/${planId}/changes/${changeId}` })
 
+export const getChangeById = (changeId: number | string) =>
+  request.get<ConstructionPlanChangeVO>({ url: `${baseUrl}/changes/${changeId}` })
+
 export const createInitial = (data: CreateConstructionPlanReqVO, idempotencyKey: string) =>
   request.post<ConstructionPlanVO>({
     url: baseUrl,
