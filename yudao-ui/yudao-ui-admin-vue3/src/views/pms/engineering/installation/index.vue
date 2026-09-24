@@ -131,44 +131,41 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="安装人员" prop="installerUserId"
-            ><el-input v-model="form.installerUserId"
-          /></el-form-item>
+          <el-form-item label="安装人员" prop="installerUserId">
+            <el-select
+              v-model="form.installerUserId"
+              filterable
+              clearable
+              class="!w-full"
+              placeholder="默认当前用户，可下拉选择"
+            >
+              <el-option
+                v-for="user in users"
+                :key="user.id"
+                :value="user.id"
+                :label="user.nickname"
+              />
+            </el-select>
+          </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="安装时间" prop="installTime">
-            <el-date-picker
-              v-model="form.installTime"
-              type="datetime"
-              value-format="x"
-              class="!w-full"
+            <span v-if="form.installTime">{{ formatDate(new Date(Number(form.installTime))) }}</span>
+            <span v-else class="text-13px text-gray-500">保存后自动取提交时间</span>
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="安装位置" prop="installLocation">
+            <el-input
+              v-model="form.installLocation"
+              placeholder="站点未维护时手动填写站点"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-      <el-form-item label="安装位置" prop="locationMaintenance">
-        <PmsLocationSelector v-model="form.locationMaintenance" :project-id="form.projectId" />
-      </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="环境检查" prop="environmentCheck">
-            <Editor v-model="form.environmentCheck" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="规格检查" prop="specCheck">
-            <Editor v-model="form.specCheck" height="200px" :readonly="readOnly" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="现场照片" prop="photoUrl"
             ><UploadImg v-model="form.photoUrl" :disabled="readOnly"
           /></el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="安装结果" prop="result">
-            <Editor v-model="form.result" height="200px" :readonly="readOnly" />
-          </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="备注" prop="remark">
@@ -188,22 +185,25 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
+import { formatDate, dateFormatter } from '@/utils/formatTime'
 import * as InstallationApi from '@/api/pms/engineering/installation'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import type { InstallationVO } from '@/api/pms/engineering/installation'
-import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
+import * as UserApi from '@/api/system/user'
+import { useUserStore } from '@/store/modules/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import { checkPermi } from '@/utils/permission'
-import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngInstallation' })
 const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
+const userStore = useUserStore()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<InstallationVO[]>([])
 const total = ref(0)
+const users = ref<UserApi.UserVO[]>([])
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
@@ -213,6 +213,7 @@ const editableRecord = (row: Pick<InstallationVO, 'status'>) => [0, 1, 3].includ
 const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-installation:create']))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
+  installLocation: [{ required: true, message: '请填写安装位置（站点）' }],
 }
 
 const load = async () => {
@@ -231,89 +232,21 @@ const openForm = (row?: InstallationVO) => {
       projectId: props.projectId ?? 0,
       equipmentId: undefined,
       installLocation: '',
-      locationMaintenance: undefined,
       installTime: undefined,
-      installerUserId: undefined,
-      environmentCheck: '',
-      specCheck: '',
+      installerUserId: userStore.getUser.id,
       photoUrl: '',
-      result: '',
       remark: '',
       version: undefined,
       status: 0,
       ...row
   }
-  form.value.locationMaintenance = toLocationMaintenance(row)
   formVisible.value = true
-}
-
-const toLocationMaintenance = (row?: InstallationVO): LocationMaintainRequest | undefined => {
-  if (!row) return { projectId: form.value.projectId }
-  if (row.locationResolutionStatus !== 'RESOLVED') {
-    return { projectId: row.projectId, fallbackLocation: row.installLocation }
-  }
-  return {
-    projectId: row.projectId,
-    address: row.addressId ? { id: row.addressId, expectedVersion: row.addressVersion } : undefined,
-    site: row.siteId ? { id: row.siteId, expectedVersion: row.siteVersion } : undefined,
-    siteLocation: row.siteLocationId
-      ? {
-          id: row.siteLocationId,
-          expectedVersion: row.siteLocationVersion
-        }
-      : undefined
-  }
 }
 
 const savePayload = () => {
   const payload: InstallationVO = { ...form.value, installTime: form.value.installTime == null || form.value.installTime === '' ? undefined : Number(form.value.installTime) }
-  const maintenance = payload.locationMaintenance
-  if (maintenance && !maintenance.address && !maintenance.site && !maintenance.siteLocation) {
-    if (!maintenance.fallbackLocation?.trim()) {
-      message.error('请选择地点或填写兼容地点')
-      return
-    }
-    payload.installLocation = maintenance.fallbackLocation
-    payload.locationMaintenance = undefined
-    return payload
-  }
-  if (!maintenance?.site?.id && !maintenance?.address?.id && !maintenance.address?.detailAddress) {
-    message.error('新地点必须填写详细地址')
-    return
-  }
-  if (!maintenance?.site?.id && !maintenance?.address?.id && !maintenance.address?.provinceCode) {
-    message.error('新地点请选择省市区')
-    return
-  }
-  if (!maintenance.site?.id && !maintenance.site?.name) {
-    message.error('新地点必须填写站点名称')
-    return
-  }
-  if (maintenance.siteLocation && !maintenance.siteLocation.id && !maintenance.siteLocation.name) {
-    maintenance.siteLocation = undefined
-  }
-  if (maintenance.address && !maintenance.address.id) {
-    maintenance.address.fullAddress = [
-      maintenance.address.countryName,
-      maintenance.address.provinceName,
-      maintenance.address.cityName,
-      maintenance.address.districtName,
-      maintenance.address.detailAddress
-    ]
-      .filter(Boolean)
-      .join('')
-  }
-  const siteLabel = maintenance?.site?.name
-    ? `${maintenance?.site?.name}（${maintenance?.address?.fullAddress ?? maintenance?.addressText ?? ''}）`
-    : (maintenance?.address?.fullAddress ?? maintenance?.addressText)
-  const chainNames = [
-    maintenance?.siteLocation?.name,
-    ...(maintenance?.extraSiteLocations ?? []).map((item) => item?.name)
-  ].filter(Boolean)
-  payload.installLocation =
-    maintenance?.fallbackLocation ||
-    [siteLabel, ...chainNames].filter(Boolean).join(' / ') ||
-    payload.installLocation
+  payload.installLocation = form.value.installLocation?.trim() || undefined
+  payload.locationMaintenance = undefined
   return payload
 }
 const save = async () => {
@@ -322,7 +255,6 @@ const save = async () => {
   saving.value = true
   try {
     const payload = savePayload()
-    if (!payload) return
     form.value.id
       ? await InstallationApi.updateInstallation(payload)
       : await InstallationApi.createInstallation(payload)
@@ -357,5 +289,10 @@ const handleAction = async (row: InstallationVO, action: 'start' | 'complete' | 
   message.success(`${actionText}成功`)
   await load()
 }
-onMounted(load)
+onMounted(() => {
+  load()
+  UserApi.getSimpleUserList()
+    .then((result) => (users.value = result))
+    .catch(() => (users.value = []))
+})
 </script>
