@@ -6,6 +6,10 @@ import type { MaterialExchangeSerialVO } from '@/api/pms/engineering/material-ex
 
 const api = vi.hoisted(() => ({ getDeliveryScopePage: vi.fn() }))
 vi.mock('@/api/pms/commerce', () => api)
+// 换货产品下拉的 axios 导入链会在导入期访问 window，统一按 API 模块边界 mock
+vi.mock('@/api/pms/asset/product-official', () => ({
+  AssetProductOfficialApi: { page: vi.fn(async () => ({ total: 0, list: [] })) }
+}))
 const table = defineComponent({
   inheritAttrs: false,
   setup(_, { attrs, slots, expose }) {
@@ -69,7 +73,10 @@ describe('换货设备清单选择', () => {
     const { root, serials, app } = setup(10)
     await flush()
     const candidates = () => findByTestId(root, 'device-candidates')!.props!
-    ;(candidates().onSelect as Function)([rows(root)[0], rows(root)[2]], rows(root)[0])
+    // el-table 逐行勾选触发 select：先勾明细拆分行 D7，再勾未拆分范围基行 S61
+    ;(candidates().onSelect as Function)([rows(root)[0]], rows(root)[0])
+    await flush()
+    ;(candidates().onSelect as Function)([rows(root)[0], rows(root)[2]], rows(root)[2])
     await flush()
     expect(serials.value.map(row => row.scopeDetailId ?? row.scopeId)).toEqual([7, 61])
     expect(serials.value[0].quantity).toBe(1)
@@ -77,7 +84,7 @@ describe('换货设备清单选择', () => {
     ;(pagination['onUpdate:limit'] as Function)(2)
     await (pagination.onPagination as Function)()
     await flush()
-    // 翻页后第二页候选行为 D7/D8；取消全选只移除本页，S61 翻页保留
+    // pageSize=2 后本页候选行为 D7/D8；取消全选只移除本页，S61 翻页保留
     ;(candidates().onSelectAll as Function)([])
     await flush()
     expect(serials.value.map(row => row.scopeDetailId ?? row.scopeId)).toEqual([61])
@@ -101,12 +108,13 @@ describe('换货设备清单选择', () => {
 
   it('加载失败保留已选清单行，候选列表为空', async () => {
     api.getDeliveryScopePage.mockResolvedValueOnce({ list: [scope(60, [detail(7)])], total: 1 })
-    const { root, serials, app } = setup(10)
+    const { root, serials, projectId, app } = setup(10)
     await flush()
     ;(findByTestId(root, 'device-candidates')!.props!.onSelect as Function)([rows(root)[0]], rows(root)[0])
     await flush()
     api.getDeliveryScopePage.mockRejectedValueOnce(new Error('offline'))
-    await (findByTestId(root, 'device-pagination')!.props!.onPagination as Function)()
+    // 换货项目变更是唯一重载入口；重载失败保留已选草稿，候选清空
+    projectId.value = 11
     await flush()
     expect(serials.value[0].scopeDetailId).toBe(7)
     expect(rows(root)).toEqual([])

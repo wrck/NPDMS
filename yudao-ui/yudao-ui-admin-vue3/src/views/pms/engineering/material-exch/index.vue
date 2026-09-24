@@ -65,19 +65,25 @@
           <ProjectTag :project-id="row.projectId" />
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="exchangeType" label="换货类型" width="110">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="row.exchangeType" />
         </template>
       </el-table-column>
-      <el-table-column prop="materialName" label="物料名称" min-width="140" />
+      <el-table-column label="物料编码" min-width="160">
+        <template #default="{ row }">
+          <template v-if="row.productCode">
+            <el-tag v-for="code in row.productCode.split(',').filter(Boolean)" :key="code" size="small"
+              class="mr-4px">{{ code }}</el-tag>
+          </template>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="数量" width="100">
         <template #default="{ row }">
           {{ row.quantity ?? '-' }} {{ row.unit || '' }}
         </template>
       </el-table-column>
-      <el-table-column prop="originalOrderNo" label="原订单号" width="140" />
       <el-table-column prop="crmPushStatus" label="CRM状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="row.crmPushStatus" />
@@ -184,10 +190,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="单号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 ME-2026-001" />
+            <el-input v-model="form.code" disabled placeholder="保存时自动生成" />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col v-if="!props.projectId" :span="12">
           <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -202,19 +208,12 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="物料名称" prop="materialName">
-            <el-input v-model="form.materialName" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="物料编码" prop="materialCode">
-            <el-input v-model="form.materialCode" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="规格型号" prop="specification">
-            <el-input v-model="form.specification" />
+        <el-col :span="24">
+          <el-form-item label="物料编码">
+            <template v-if="derivedItemCodes.length">
+              <el-tag v-for="code in derivedItemCodes" :key="code" size="small" class="mr-4px">{{ code }}</el-tag>
+            </template>
+            <span v-else class="el-form-item__info">勾选清单行后按物料编码去重拼接</span>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -225,11 +224,6 @@
         <el-col :span="12">
           <el-form-item label="单位" prop="unit">
             <el-input v-model="form.unit" placeholder="如 个/台/套" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="原订单号" prop="originalOrderNo">
-            <el-input v-model="form.originalOrderNo" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -276,15 +270,15 @@
       <el-descriptions-item label="换货类型">
         <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType ?? ''" />
       </el-descriptions-item>
-      <el-descriptions-item label="关联设备">
-        <EquipmentTag v-if="current.equipmentId" :equipment-id="current.equipmentId" />
+      <el-descriptions-item label="物料编码">
+        <template v-if="current.productCode">
+          <el-tag v-for="code in current.productCode.split(',').filter(Boolean)" :key="code" size="small"
+            class="mr-4px">{{ code }}</el-tag>
+        </template>
         <span v-else>-</span>
       </el-descriptions-item>
-      <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
-      <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
-      <el-descriptions-item label="规格型号">{{ current.specification }}</el-descriptions-item>
+      <el-descriptions-item label="产品型号">{{ current.productModel }}</el-descriptions-item>
       <el-descriptions-item label="数量">{{ current.quantity }} {{ current.unit }}</el-descriptions-item>
-      <el-descriptions-item label="原订单号">{{ current.originalOrderNo }}</el-descriptions-item>
       <el-descriptions-item label="申请人">{{ current.applicantUserId }}</el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="状态">
@@ -307,7 +301,9 @@
       <el-table-column prop="orderNo" label="订单号" min-width="140" />
       <el-table-column prop="lineNo" label="行号" width="80" />
       <el-table-column prop="itemCode" label="物料编码" min-width="130" show-overflow-tooltip />
-      <el-table-column prop="name" label="名称" min-width="130" show-overflow-tooltip />
+      <el-table-column label="换货产品" min-width="150" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.productName || '-' }}</template>
+      </el-table-column>
       <el-table-column label="设备类型" width="110">
         <template #default="{ row }">{{ row.deviceTypeName || row.deviceTypeCode }}</template>
       </el-table-column>
@@ -366,7 +362,6 @@ import * as UserApi from '@/api/system/user'
 import MaterialDevicePicker from './MaterialDevicePicker.vue'
 import type { MaterialExchangeVO, MaterialExchangeSerialVO } from '@/api/pms/engineering/material-exch'
 import ProjectTag from '@/components/ProjectTag/index.vue'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialExch' })
 const props = defineProps<{ projectId?: number }>()
@@ -395,6 +390,9 @@ const pickerKey = ref(0)
 /** 换货数量 = 各勾选设备行换货数量之和 */
 const serialQuantityTotal = (serials: MaterialExchangeSerialVO[]) =>
   serials.reduce((sum, row) => sum + (row.quantity ?? 1), 0)
+/** 主表物料编码 = 勾选清单行物料编码去重（服务端拼接持久化，此处只读派生展示） */
+const derivedItemCodes = computed(() =>
+  [...new Set((form.serials || []).map(row => row.itemCode).filter(Boolean))] as string[])
 /** 项目编码、名称按当前项目自动填充；用户已录入时不覆盖 */
 const prefillProjectFields = (project?: { projectCode?: string; projectName?: string }) => {
   if (project?.projectName) form.name ||= project.projectName
@@ -402,18 +400,15 @@ const prefillProjectFields = (project?: { projectCode?: string; projectName?: st
 }
 const changeProject = (_val: number, selected?: { projectCode?: string; projectName?: string }) => {
   form.serials = []
-  form.equipmentId = undefined
+  form.deviceId = undefined
   form.quantity = undefined!
   prefillProjectFields(selected)
 }
 const updateSerials = (serials: MaterialExchangeSerialVO[]) => {
   form.serials = serials
-  form.equipmentId = serials.find(row => row.equipmentId)?.equipmentId
+  form.deviceId = serials.find(row => row.deviceId)?.deviceId
   if (serials.length) {
     form.quantity = serialQuantityTotal(serials)
-    form.materialName ||= serials[0].name || ''
-    form.materialCode ||= serials[0].itemCode || serials[0].productCode || ''
-    form.specification ||= serials[0].deviceTypeName || serials[0].deviceTypeCode || serials[0].productModel || ''
     form.unit = '台'
   }
 }
@@ -449,14 +444,10 @@ const form = reactive<MaterialExchangeVO>({
   code: '',
   name: '',
   exchangeType: 'INCOMPATIBLE',
-  equipmentId: undefined,
+  deviceId: undefined,
   serials: [],
-  materialName: '',
-  materialCode: '',
-  specification: '',
   quantity: undefined!,
   unit: '个',
-  originalOrderNo: '',
   reason: '',
   reasonFiles: '',
   applicantUserId: undefined!,
@@ -465,10 +456,8 @@ const form = reactive<MaterialExchangeVO>({
 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入单号' }],
   name: [{ required: true, message: '请输入名称' }],
   exchangeType: [{ required: true, message: '请选择换货类型' }],
-  materialName: [{ required: true, message: '请输入物料名称' }],
   quantity: [{ required: true, message: '请输入数量' }],
   reason: [{ required: true, message: '请输入换货原因' }],
   applicantUserId: [{ required: true, message: '请选择申请人' }]
@@ -483,14 +472,10 @@ const openCreate = () => {
     code: '',
     name: '',
     exchangeType: 'INCOMPATIBLE',
-    equipmentId: undefined,
+    deviceId: undefined,
   serials: [],
-    materialName: '',
-    materialCode: '',
-    specification: '',
     quantity: undefined,
     unit: '个',
-    originalOrderNo: '',
     reason: '',
     reasonFiles: '',
     applicantUserId: userStore.getUser.id,
@@ -508,9 +493,9 @@ const openEdit = async (row: MaterialExchangeVO) => {
   const detail = await MaterialExchApi.getMaterialExchange(row.id!)
   Object.assign(form, detail, { serials: detail.serials || [] })
   // 旧申请没有子表时保留原设备；下一次显式保存才生成快照。
-  if (!form.serials?.length && detail.equipmentId) {
-    const device = await DeviceArchiveApi.getDeviceArchiveRecord(detail.equipmentId)
-    form.serials = [{ equipmentId: detail.equipmentId, quantity: 1, sn: device.sn, name: device.name,
+  if (!form.serials?.length && detail.deviceId) {
+    const device = await DeviceArchiveApi.getDeviceArchiveRecord(detail.deviceId)
+    form.serials = [{ deviceId: detail.deviceId, quantity: 1, sn: device.sn, productName: device.name,
       productCode: device.productCode, productModel: device.productModel, contractNo: device.contractNo }]
   }
   pickerKey.value++
@@ -518,6 +503,8 @@ const openEdit = async (row: MaterialExchangeVO) => {
 }
 const save = async () => {
   if (saving.value) return
+  // 单号自动生成：编号只读展示，创建时无项目前缀也按规则生成
+  if (!form.id && !form.code) form.code = `ME-${Date.now()}`
   await formRef.value.validate()
   // 数量自动取各设备行换货数量之和；申请时间创建时自动取当前时间，不再手工录入。
   if (form.serials?.length) form.quantity = serialQuantityTotal(form.serials)
