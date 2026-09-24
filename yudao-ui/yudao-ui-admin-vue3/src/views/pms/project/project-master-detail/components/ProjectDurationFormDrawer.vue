@@ -86,7 +86,7 @@
           <div class="evidence-heading">
             <div>
               <strong>附件</strong>
-              <span>可上传变更依据等支持文件（可选）；服务端执行适用校验，审批冻结具体版本。</span>
+              <span>可上传变更依据等支持文件（可选）；上传后点击“保存草稿”随表单一并保存。</span>
             </div>
           </div>
           <el-alert
@@ -106,7 +106,7 @@
               :artifact-id="form.customerEvidenceFileId"
               :version-no="form.customerEvidenceFileVersion"
               :editable="canWrite"
-              @loaded="evidenceSlot.loaded"
+              @loaded="onEvidenceLoaded"
               @detached="clearEvidence"
             />
             <PmsFileUploader
@@ -151,6 +151,7 @@ import { initialDurationHint } from './durationEntry'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
+import type { FileArtifactVO } from '@/api/pms/platform/file'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
@@ -160,7 +161,6 @@ import type {
 } from '@/api/pms/engineering/construction-plan'
 import {
   formStateFromChange,
-  reconcilePatchResponseLoss,
   type DurationChangeFormState
 } from './durationChangeFormState'
 
@@ -175,6 +175,8 @@ const narrow = useMediaQuery('(max-width: 767px)')
 const drawerSize = computed(() => (narrow.value ? '100%' : '560px'))
 const visible = ref(false)
 const saving = ref(false)
+// 附件已选/已上传但尚未随“保存草稿”落库：置脏提醒外层守卫，避免关抽屉后丢失指向
+const stagedEvidence = ref(false)
 const formRef = ref<FormInstance>()
 const mode = ref<'INITIAL' | 'CREATE' | 'EDIT'>('INITIAL')
 const plan = ref<ConstructionPlanVO>()
@@ -314,6 +316,7 @@ const openInitial = () => {
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
+  stagedEvidence.value = false
   entryMode.value = 'BACKWARD'
   assign({})
   visible.value = true
@@ -325,6 +328,7 @@ const openCreate = (value: ConstructionPlanVO) => {
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
+  stagedEvidence.value = false
   const snapshot = { ...value.currentRevision, reasonType: 'OTHER', reasonDetail: '' }
   if (props.project.projectEndDate) snapshot.calculationBasis = 'DATE_RANGE'
   entryMode.value = pickSurveyEntryMode(snapshot)
@@ -342,6 +346,7 @@ const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) =
   assign(snapshot)
   original.value = structuredClone(snapshot)
   evidenceSlot.reset(change.customerEvidenceFileId, change.customerEvidenceReferenceKey)
+  stagedEvidence.value = false
   visible.value = true
 }
 
@@ -368,106 +373,44 @@ const patchPayload = (): PatchDurationChangeReqVO => {
   return patch
 }
 
-const saveEvidence = async (selection: FileSelection) => {
-  if (!canWrite.value || !plan.value || !draft.value) return
-  const version = contextVersion
-  evidenceSlot.uploaded(selection)
-  Object.assign(form, {
-    customerEvidenceFileId: selection.artifactId,
-    customerEvidenceFileVersion: selection.versionNo,
-    customerEvidenceReferenceKey: selection.referenceKey
-  })
-  try {
-    const updated = await DurationApi.patchChange(
-      plan.value.planId,
-      draft.value.changeId,
-      {
-        expectedProjectVersion: props.project.version || 0,
-        customerEvidenceFileId: selection.artifactId,
-        customerEvidenceFileVersion: selection.versionNo,
-        customerEvidenceReferenceKey: selection.referenceKey
-      },
-      draft.value.version
-    )
-    if (version !== contextVersion) return
-    draft.value = updated
-    if (original.value)
-      Object.assign(original.value, {
-        customerEvidenceFileId: selection.artifactId,
-        customerEvidenceFileVersion: selection.versionNo,
-        customerEvidenceReferenceKey: selection.referenceKey
-      })
-    emit('saved')
-  } catch {
-    if (version !== contextVersion) return
-    const recovered = await recoverDraftAfterPatchLoss()
-    if (version !== contextVersion) return
-    message.warning(
-      recovered
-        ? '文件已完成校验，已读取最新草稿；请点击“保存草稿”完成剩余变化'
-        : '文件已完成校验，草稿状态读取失败，请刷新后重试'
-    )
-  } finally {
-    if (version === contextVersion) await evidenceListRef.value?.refresh()
-  }
-}
-const clearEvidence = async (result: DetachedFileSlot) => {
-  if (!canWrite.value || !plan.value || !draft.value) return
-  const version = contextVersion
-  evidenceSlot.detached(result)
-  Object.assign(form, {
-    customerEvidenceFileId: undefined,
-    customerEvidenceFileVersion: undefined,
-    customerEvidenceReferenceKey: undefined
-  })
-  try {
-    const updated = await DurationApi.patchChange(
-      plan.value.planId,
-      draft.value.changeId,
-      {
-        expectedProjectVersion: props.project.version || 0,
-        customerEvidenceFileId: null,
-        customerEvidenceFileVersion: null,
-        customerEvidenceReferenceKey: null
-      },
-      draft.value.version
-    )
-    if (version !== contextVersion) return
-    draft.value = updated
+const onEvidenceLoaded = (artifact: FileArtifactVO) => {
+  evidenceSlot.loaded(artifact)
+  // 草稿尚未指向附件但引用上已有生效版本（如上传后未保存即关闭）：采纳为待保存状态
+  if (!form.customerEvidenceFileId && artifact.artifactId && artifact.reference?.versionNo) {
+    form.customerEvidenceFileId = artifact.artifactId
+    form.customerEvidenceFileVersion = artifact.reference.versionNo
+    form.customerEvidenceReferenceKey = artifact.reference.referenceKey
     if (original.value)
       Object.assign(original.value, {
         customerEvidenceFileId: undefined,
         customerEvidenceFileVersion: undefined,
         customerEvidenceReferenceKey: undefined
       })
-    emit('saved')
-  } catch {
-    if (version !== contextVersion) return
-    const recovered = await recoverDraftAfterPatchLoss()
-    if (version !== contextVersion) return
-    message.warning(
-      recovered
-        ? '文件引用已解除，已读取最新草稿；请点击“保存草稿”完成剩余变化'
-        : '文件引用已解除，草稿状态读取失败，请刷新后重试'
-    )
+    stagedEvidence.value = true
   }
 }
 
-const recoverDraftAfterPatchLoss = async () => {
-  if (!plan.value || !draft.value) return false
-  const version = contextVersion
-  const local = structuredClone(toRaw(form))
-  try {
-    const current = await DurationApi.getChange(plan.value.planId, draft.value.changeId)
-    if (version !== contextVersion) return false
-    const recovered = reconcilePatchResponseLoss(local, current)
-    draft.value = recovered.current
-    assign(recovered.form)
-    original.value = recovered.baseline
-    return true
-  } catch {
-    return false
-  }
+// 附件不单独保存：上传/解除只更新表单状态并置脏，随“保存草稿”一并提交
+const saveEvidence = async (selection: FileSelection) => {
+  if (!canWrite.value || !plan.value || !draft.value) return
+  evidenceSlot.uploaded(selection)
+  Object.assign(form, {
+    customerEvidenceFileId: selection.artifactId,
+    customerEvidenceFileVersion: selection.versionNo,
+    customerEvidenceReferenceKey: selection.referenceKey
+  })
+  stagedEvidence.value = true
+  await evidenceListRef.value?.refresh()
+}
+const clearEvidence = async (result: DetachedFileSlot) => {
+  if (!canWrite.value || !plan.value || !draft.value) return
+  evidenceSlot.detached(result)
+  Object.assign(form, {
+    customerEvidenceFileId: undefined,
+    customerEvidenceFileVersion: undefined,
+    customerEvidenceReferenceKey: undefined
+  })
+  stagedEvidence.value = true
 }
 
 const save = async () => {
@@ -513,18 +456,22 @@ const save = async () => {
       assign(snapshot)
       original.value = structuredClone(snapshot)
       evidenceSlot.reset(created.customerEvidenceFileId, created.customerEvidenceReferenceKey)
+      stagedEvidence.value = false
       emit('saved')
       return
     } else {
       const patch = patchPayload()
       if (Object.keys(patch).length === 1) return message.warning('没有需要保存的变化')
-      await DurationApi.patchChange(
+      const updated = await DurationApi.patchChange(
         plan.value!.planId,
         draft.value!.changeId,
         patch,
         draft.value!.version
       )
       if (version !== contextVersion) return
+      draft.value = updated
+      original.value = structuredClone(toRaw(form))
+      stagedEvidence.value = false
       message.success('工期变更草稿已更新')
     }
     visible.value = false
@@ -535,7 +482,7 @@ const save = async () => {
 }
 
 watch(
-  () => visible.value || saving.value,
+  () => visible.value || saving.value || stagedEvidence.value,
   (value) => emit('dirty-change', value),
   { immediate: true }
 )
@@ -548,6 +495,7 @@ watch(
     draft.value = undefined
     original.value = undefined
     evidenceSlot.reset()
+    stagedEvidence.value = false
   },
   { flush: 'sync' }
 )
@@ -565,11 +513,12 @@ defineExpose({
   openInitial,
   openCreate,
   openEdit,
-  isDirty: () => visible.value || saving.value,
+  isDirty: () => visible.value || saving.value || stagedEvidence.value,
   discardChanges: () => {
     if (saving.value) return false
     contextVersion++
     visible.value = false
+    stagedEvidence.value = false
     return true
   }
 })
