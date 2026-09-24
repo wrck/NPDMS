@@ -69,6 +69,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.C
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_BPM_CONFIG_INVALID;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_PENDING_CONFLICT;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_REASON_CONFIG_INVALID;
 
@@ -191,7 +192,8 @@ public class DurationChangeApplicationService {
         projectEndDateApi.validatePlanningEndDate(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(
                 actor.tenantId(), actor.actorId(), plan.getProjectId(), command.expectedProjectVersion(), candidate.getEndDate()));
         boolean evidenceRequired = resolveEvidenceRequired(change.getReasonTypeCode());
-        Evidence frozenEvidence = evidenceRequired
+        // 可选附件：未命中必填原因时，草稿已传附件仍冻结具体版本；未传则落空
+        Evidence frozenEvidence = evidenceRequired || change.getCustomerEvidenceFileId() != null
                 ? requireFileArtifact(change, inspectedEvidence)
                 : Evidence.empty();
         String processKey = normalizeProcessKey();
@@ -501,7 +503,13 @@ public class DurationChangeApplicationService {
         ConstructionPlanChangeDO change = changeMapper.selectById(new ConstructionPlanChangeLockQuery(
                 actor.tenantId(), plan.getId(), command.changeId()));
         if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
-        if (!resolveEvidenceRequired(change.getReasonTypeCode())) return null;
+        // 客户依据改可选附件：草稿已传附件时无论原因规则都需冻结版本
+        if (!resolveEvidenceRequired(change.getReasonTypeCode())
+                && change.getCustomerEvidenceFileId() == null) return null;
+        // 保留原因规则要求必传时，草稿未传附件给出明确提交前置错误
+        if (change.getCustomerEvidenceFileId() == null) {
+            throw exception(DURATION_CHANGE_EVIDENCE_REQUIRED);
+        }
         Evidence evidence = evidence(change.getCustomerEvidenceFileId(),
                 change.getCustomerEvidenceFileVersion(), change.getCustomerEvidenceReferenceKey());
         try {

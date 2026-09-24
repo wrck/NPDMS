@@ -48,6 +48,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -99,7 +100,7 @@ class DurationChangeSubmitServiceTest {
     void submitsNonEvidenceChangeWithFrozenApproverAndStandardVariables() {
         stubCommandExecution();
         stubAuthorizedFacts(10L);
-        stubRows(change("INTERNAL_ADJUSTMENT"), plan());
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
         stubReasonConfiguration();
         TenantContextHolder.setTenantId(0L);
         when(processInstanceApi.createProcessInstance(any(), any())).thenAnswer(invocation -> {
@@ -129,6 +130,7 @@ class DurationChangeSubmitServiceTest {
         verify(changeMapper).updateVersionIfMatch(update.capture());
         assertEquals(false, update.getValue().customerEvidenceRequired());
         assertEquals(null, update.getValue().customerEvidenceFileId());
+        verify(fileArtifactApi, never()).inspect(any());
         assertEquals(10L, update.getValue().approverUserId());
         String audit = recordedSuccessFacts.detailSnapshot();
         assertEquals("DURATION_CHANGE_SUBMIT", recordedSuccessFacts.operationCode());
@@ -171,6 +173,27 @@ class DurationChangeSubmitServiceTest {
         assertEquals(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE.getCode(), failure.getCode());
         verify(processInstanceApi, never()).createProcessInstance(any(), any());
         verify(changeMapper, never()).updateVersionIfMatch(any());
+    }
+
+    @Test
+    void requiredReasonWithoutAttachmentFailsWithClearEvidenceError() {
+        stubCommandExecution();
+        ConstructionPlanChangeDO change = change("CUSTOMER_DELAY");
+        change.setCustomerEvidenceFileId(null);
+        change.setCustomerEvidenceFileVersion(null);
+        change.setCustomerEvidenceReferenceKey(null);
+        when(changeMapper.selectById(any())).thenReturn(change);
+        when(planMapper.selectById(any())).thenReturn(plan());
+        stubReasonConfiguration();
+
+        ServiceException failure = assertThrows(ServiceException.class,
+                () -> service.submit(command(), actor()));
+
+        assertEquals(DURATION_CHANGE_EVIDENCE_REQUIRED.getCode(), failure.getCode());
+        verify(fileArtifactApi, never()).inspect(any());
+        verify(processInstanceApi, never()).createProcessInstance(any(), any());
+        verify(changeMapper, never()).updateVersionIfMatch(any());
+        verify(planMapper, never()).selectForUpdate(any());
     }
 
     @Test
@@ -219,10 +242,39 @@ class DurationChangeSubmitServiceTest {
     }
 
     @Test
-    void rollsBackBusinessWritesWhenBpmReturnsBlankInstanceId() {
+    void freezesOptionalAttachmentFactsWhenReasonRuleDoesNotRequireEvidence() {
         stubCommandExecution();
         stubAuthorizedFacts(10L);
         stubRows(change("INTERNAL_ADJUSTMENT"), plan());
+        stubReasonConfiguration();
+        FileArtifactVersionFact fileFact = fileFact();
+        when(fileArtifactApi.inspect(any())).thenReturn(fileFact);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact);
+        TenantContextHolder.setTenantId(0L);
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("bpm-801");
+        when(revisionMapper.freezeForSubmitIfMatch(any())).thenReturn(1);
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
+
+        service.submit(command(), actor());
+
+        ArgumentCaptor<ConstructionPlanChangeVersionUpdate> update = ArgumentCaptor.forClass(
+                ConstructionPlanChangeVersionUpdate.class);
+        verify(changeMapper).updateVersionIfMatch(update.capture());
+        // 可选附件：未命中必填原因，草稿已传附件仍冻结具体版本
+        assertEquals(false, update.getValue().customerEvidenceRequired());
+        assertEquals(901L, update.getValue().customerEvidenceFileId());
+        assertEquals(2, update.getValue().customerEvidenceFileVersion());
+        assertEquals(4, update.getValue().customerEvidenceArtifactVersion());
+        verify(fileArtifactApi).inspect(any());
+        verify(fileArtifactApi).lockAndRevalidate(any());
+    }
+
+    @Test
+    void rollsBackBusinessWritesWhenBpmReturnsBlankInstanceId() {
+        stubCommandExecution();
+        stubAuthorizedFacts(10L);
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
         stubReasonConfiguration();
         when(processInstanceApi.createProcessInstance(any(), any())).thenReturn(" ");
 
@@ -240,7 +292,7 @@ class DurationChangeSubmitServiceTest {
         ConstructionPlanDO plan = plan();
         plan.setPendingChangeId(800L);
         when(planMapper.selectForUpdate(any())).thenReturn(plan);
-        ConstructionPlanChangeDO change = change("INTERNAL_ADJUSTMENT");
+        ConstructionPlanChangeDO change = notRequiredReasonWithoutEvidence();
         when(changeMapper.selectById(any())).thenReturn(change);
         when(changeMapper.selectForUpdate(any())).thenReturn(change);
         stubReasonConfiguration();
@@ -248,6 +300,14 @@ class DurationChangeSubmitServiceTest {
         assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
 
         verify(processInstanceApi, never()).createProcessInstance(any(), any());
+    }
+
+    private ConstructionPlanChangeDO notRequiredReasonWithoutEvidence() {
+        ConstructionPlanChangeDO row = change("INTERNAL_ADJUSTMENT");
+        row.setCustomerEvidenceFileId(null);
+        row.setCustomerEvidenceFileVersion(null);
+        row.setCustomerEvidenceReferenceKey(null);
+        return row;
     }
 
     private void stubCommandExecution() {
