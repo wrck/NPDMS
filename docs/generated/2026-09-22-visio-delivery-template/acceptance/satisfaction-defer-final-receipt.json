@@ -1,0 +1,37 @@
+{
+  "capturedAt": "2026-09-24",
+  "title": "满意度结果来源投影让位修复终态回执（Q-TPL-FLOW-20260922-005）",
+  "fix": "SatisfactionResultSourceProjectionService.mayBecomeCurrent 遇非 SatisfactionResult 类型 CURRENT 不再抛 SATISFACTION_SOURCE_TYPE_CONFLICT，按既有 SUPERSEDED 语义落库留痕并归档，不抢占 CURRENT；与收集侧 ProjectDeliverableSubmissionService 的让位行为对齐。部署生效时间约 02:39:00，outbox 事件随即投递成功。",
+  "deliverable": {
+    "id": "2101716952857628907",
+    "code": "D_SATISFACTION",
+    "projectId": 992203060032,
+    "status": "ACCEPTED"
+  },
+  "sourceRows": [
+    {
+      "sourceObjectType": "ProjectDeliverableSubmission",
+      "sourceObjectId": "2102823437560672257",
+      "relationStatus": "CURRENT",
+      "archiveStatus": "NOT_REQUIRED",
+      "sourceVersion": 1,
+      "creator": "file-collection"
+    },
+    {
+      "sourceObjectType": "SatisfactionResult",
+      "sourceObjectId": "2102823061784588290",
+      "relationStatus": "SUPERSEDED",
+      "archiveStatus": "ARCHIVED",
+      "sourceVersion": 1,
+      "creator": "1"
+    }
+  ],
+  "outboxEvent": {
+    "eventId": "sat-result:2102823061784588290:result-recorded",
+    "eventType": "SatisfactionResultVersionChanged",
+    "status": "DELIVERED",
+    "retryCount": 8
+  },
+  "interpretation": "满意度结构化来源行以 SUPERSEDED+ARCHIVED 留痕（不再阻塞投递）；CURRENT 归 PDF 收集提交行（修复前冲突态消除）。「结构化结果与收集文档谁应拥有 CURRENT」的归属语义仍按 Q-005 保持 OPEN，待规格裁决。",
+  "test": "SatisfactionResultSourceProjectionServiceTest#foreignCurrentSourceDefersAndRecordsHistoryOnly"
+}

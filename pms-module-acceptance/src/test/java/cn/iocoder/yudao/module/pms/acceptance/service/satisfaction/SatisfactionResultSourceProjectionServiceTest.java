@@ -69,6 +69,24 @@ class SatisfactionResultSourceProjectionServiceTest {
         verify(deliverableMapper, never()).updateById(any(AccProjectDeliverableDO.class));
     }
 
+    @Test
+    void foreignCurrentSourceDefersAndRecordsHistoryOnly() {
+        stubRootAndWrites();
+        ProjectDeliverableSourceVersionDO foreign = new ProjectDeliverableSourceVersionDO();
+        foreign.setId(88L); foreign.setSourceObjectType("ProjectDeliverableSubmission");
+        foreign.setSourceVersion(1); foreign.setRelationStatus("CURRENT");
+        when(sourceMapper.selectCurrentForUpdate(any())).thenReturn(foreign);
+        when(resultFactApi.lockAndRevalidate(any())).thenReturn(resultFact("FOUND", "EFFECTIVE", true));
+
+        service.project(event());
+
+        ArgumentCaptor<ProjectDeliverableSourceVersionDO> source =
+                ArgumentCaptor.forClass(ProjectDeliverableSourceVersionDO.class);
+        verify(sourceMapper).insert(source.capture());
+        assertEquals("SUPERSEDED", source.getValue().getRelationStatus());
+        verify(deliverableMapper, never()).updateById(any(AccProjectDeliverableDO.class));
+    }
+
     private AccProjectDeliverableDO root() {
         AccProjectDeliverableDO row = new AccProjectDeliverableDO();
         row.setId(40L); row.setProjectId(20L); row.setTaskCode("CUSTOM-RENAMED");

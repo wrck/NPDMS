@@ -32,7 +32,6 @@ public class TrainingPublicConfirmReqVO {
     private String signOpinion;
 
     @Schema(description = "签字人姓名", example = "张三")
-    @NotBlank(message = "请填写签字人姓名")
     @Size(max = 64, message = "签字人姓名不能超过 64 个字符")
     private String signConfirmerName;
     @NotBlank(message = "请手写签字")

@@ -130,19 +130,19 @@ const submit = async () => {
   try {
     await formApi.value.validate()
   } catch {
-    message.warning('请完成评价、姓名和手写签字')
+    message.warning('请完成确认表单并手写签字')
     return
   }
   const { signatureImageDataUrl, ...answers } = values.value
-  if (!signatureImageDataUrl || !String(answers.signConfirmerName || '').trim()) {
-    message.warning('请填写姓名并手写签字')
+  if (!signatureImageDataUrl) {
+    message.warning('请手写签字')
     return
   }
   submitting.value = true
   try {
     await confirmPublicTraining(token, tenantId, {
       ...answers,
-      signConfirmerName: String(answers.signConfirmerName).trim(),
+      signConfirmerName: String(answers.signConfirmerName || '').trim(),
       signatureImageDataUrl,
       confirmationValues: JSON.stringify(answers)
     })

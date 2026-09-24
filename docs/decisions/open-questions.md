@@ -1048,6 +1048,8 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 2026-09-22 后续裁决及落实：需求方确认忽略“配置工具自动检查”；工程管理部承担重大复审；项目经理填写并留痕的工前确认表提供三个物料判断；重大项目按 CRM 级别“办事处级重大项目”“市场部级重大项目”“公司级重大项目”命中。级别缺失继续遵守 SCH-05 的依据缺失阻断，不推定普通、不伪造 CRM 值。工前条件与复审路径已接入，独立支线仅配置判断和办理提示，不代表已启动外部流程。模板保持 DRAFT，源图 S0～S5 范围内配置预检通过；实际验证范围及当前版本见 [剩余内容交付记录](../generated/2026-09-22-visio-delivery-template/remaining/README.md)。以上续记替代前述“仍待来源/工具接入”的当前结论，保留原阶段记录作为历史。
 
+2026-09-22 更正（审核分级对 NULL 手工项目的语义）：需求方当日在 S3 验收推进中明确改判——`SOLUTION_ORDINARY_REVIEW_ALLOWED` 不得以 `notNull` 叶子排除 NULL：手工项目按 PM-01 永久保存 `majorProjectLevel=NULL`（界面“不适用”），其审核分级按普通审核（服务经理一级审核）处理；模板规则改为 `OR(field=null, AND(field!='', NOT(field in 三类重大值)))`，空字符串仍保持阻断。原续记“级别缺失继续遵守 SCH-05 的依据缺失阻断，不推定普通”自本更正起废止；SCH-05“命中依据不完整→阻止”继续适用于规则冲突、字段不可用（UNKNOWN）与空字符串，不适用于 PM-01 定义的 NULL“不适用”语义。已发布修订（rev1～rev3）冻结快照不回改，修正随新修订发布；已冻结旧修订的项目不换绑（存量项目重建承接，历史项目 992203060021 停在 S3 保留为 S0～S2 证据）。
+
 ### Q-TPL-FLOW-20260922-002
 
 - Status: BLOCKED_BY_SPEC（仅限可选 S6 扩展）
@@ -1065,3 +1067,44 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - 落实：工勘表单新修订通过配置维护条件，不新增输入字段、不硬编码字段名；S1 复用原四任务，三个独立支线不设统一回流。验证见 [工勘来源更正回执](../generated/2026-09-22-visio-delivery-template/survey-source/README.md)。
 
 2026-09-22 Q-TPL-FLOW-20260922-003 后续明确：需求方要求“历史工前确认记录从代码中剔除”。删除该功能页面、专用接口及全部服务/数据访问/表单策略/规则兼容代码；此前的应用只读保留口径由本次要求替代，数据库历史与已执行迁移仅作归档。工勘原字段与支线配置继续沿用。
+
+### Q-TPL-FLOW-20260922-004 — S4 割接任务完成依据运行时不可达
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: PM-03 / F-PROJ-009（模板规则已配置）；F-CUT-002（taskv2 入口未注册生产 Bean）
+- Area: 交付模板 S4「割接上线」（DEPLOY_CUTOVER）完成事实的产生入口
+- Question: rev6 模板（revision 993009900031）已把 `DEPLOY_CUTOVER_DONE` 冻结为 `BUSINESS_FACT(CUTOVER_COMPLETED)`，但当前运行系统没有任何合法入口能产生该事实——rev6 项目（含手工 NULL 项目）全部卡死在 S4，无法推进 S5。这是配置与运行时能力不匹配的接入边界缺口，如何处置？
+- Evidence（2026-09-22 验收实测，项目 992203060026）:
+  - 完成事实判定：`CutoverCompletionProvider.load` 要求 `cut_task.task_status=ARCHIVED` 且 `current_stage=P6`，并存在 `cut_closure` 行 `status_code=ARCHIVED`、`final_result_code=SUCCESS`、`submitted_at/archived_at/result_ref` 齐全。
+  - 新域 `cut_task` 唯一写入点是 taskv2 `CutoverTaskApplicationService.create`；其 REST 入口 `CutoverTaskController`/`CutoverClosureController` 等无 `@RestController/@Component`，注释明确“正式Owner齐备前不注册生产Bean”，契约测试断言非组件。实测 `GET/POST /admin-api/api/v1/pms/cutover-tasks*` 全部 404。
+  - 旧版 `POST /admin-api/pms/cut-task/create` 已 `@Deprecated` 退役（写退役表，不产生新域事实），按废弃路径约束不得承接新 Feature 业务。
+  - 同任务模板描述文案仍是“【待接入完成依据】……当前保留空完成规则”，与 rev6 已配置的完成规则相互矛盾（文案未随规则接入更新）。
+- Why it blocks: S5_ENTRY gate 引用 `S4_COMPLETED`；割接完成事实不可达则所有按模板创建的项目无法进入验收交维阶段，“根据流程图配置一个完整的项目模板”目标在 S4→S5 边界被阻塞。直接写库产生事实违反“不得绕过状态机”约束，验收中未采用。
+- Options:
+  - A. 授权注册 taskv2 REST 生产入口（代码变更，需按 Feature/Task 流程走）后走完整 P1～P6 割接闭环。
+  - B. 修订模板规则，在割接 Owner 正式接入前为 DEPLOY_CUTOVER 配置可替代的合法完成依据（需需求方裁决语义）。
+  - C. 维持现状，接受 S4→S5 为当前模板已知阻塞点并明确披露。
+- Recommended technical default: A（与新平台演进方向一致）；短期验收按 C 披露。
+- Business decision required: 是
+- Decision owner: 需求方；CUT Owner（入口注册）、模板配置负责人（规则修订）参与
+- Decision date: 2026-09-22 登记
+
+2026-09-24 验收续记（不改变本问题状态）：rev7 起模板为 DEPLOY_CUTOVER 配置门禁 BPM 引用，部署过渡流程定义 `PMS_DELIVERY_CUTOVER_APPROVAL`（描述明示"割接完成外接接入前，审批通过即视为割接完成；后续替换为割接系统业务事实"）。验收项目 992203060028（直签）与 992203060032（渠道）均按"BPM 审批通过 → 事实 APPROVED → 任务完成 → S5 激活"走通，未绕过状态机或直写业务事实；正式处置（taskv2 生产入口注册或规则语义裁决）仍待需求方，过渡定义替换为真实割接业务事实前本问题保持 BLOCKED_BY_SPEC。证据见 [发布与全链验收记录](../generated/2026-09-22-visio-delivery-template/acceptance/README.md)。
+
+### Q-TPL-FLOW-20260922-005 — 满意度结果来源投影与业务文档收集的 CURRENT 归属竞态
+
+- Status: OPEN（技术让位已按需求方 2026-09-24 会话确认实施；证据归属语义待规格裁决）
+- Requirement IDs: ACC-04；交叉 ACC-02、PM-03（交付件证据归档）
+- Area: D_SATISFACTION 交付件 CURRENT 来源版本的双自动投影归属
+- Question: 满意度结构化结果（ACC-04 SatisfactionResult 来源）与结果 PDF 业务文档自动收集（PM-03 ProjectDeliverableSubmission 来源）都会写 D_SATISFACTION 的 CURRENT 来源版本；两者调度无固定先后，最终 CURRENT 应归谁、落败方以什么关系状态留痕？
+- Evidence（2026-09-24 验收实测，项目 992203060032 与 992203060028 对照）:
+  - 028：结果投影先到（00:06:00 占 CURRENT），PDF 收集后到被收集侧让位跳过（`ProjectDeliverableSubmissionService.java:268` 对非本类型 CURRENT 直接 return），终态 CURRENT=SatisfactionResult 且 ARCHIVED。
+  - 032：PDF 收集先到（02:12:30 占 CURRENT，交付件转 ACCEPTED），结果投影后到命中 `SATISFACTION_SOURCE_TYPE_CONFLICT`（修复前 `SatisfactionResultSourceProjectionService.java:123` 抛异常），outbox 事件 `sat-result:2102823061784588290:result-recorded` 每分钟无限重试，ACC-04 来源行不落库、结果归档停留在 PENDING_COMPENSATION。
+  - 已知同类历史噪音：outbox 事件 `05afac02`（SatisfactionTaskCreated，09-21）重试 1300+ 次常驻。
+- 已实施的技术修复（2026-09-24，需求方确认"修复为让位落库"）：`mayBecomeCurrent` 遇非 SatisfactionResult 类型 CURRENT 不再抛异常，按既有 SUPERSEDED 语义落库留痕并归档，不抢占 CURRENT；与收集侧让位行为对齐。单测 `foreignCurrentSourceDefersAndRecordsHistoryOnly` 覆盖。
+- Why it remains open: 让位落库消除了互斥冲突和重试噪音，但"结构化结果与收集文档并存时谁应拥有 CURRENT"仍是业务语义问题——032 终态 CURRENT=PDF 提交行（NOT_REQUIRED 归档），028 终态 CURRENT=结构化结果（ARCHIVED 归档），两项目同类业务最终证据形态不一致。
+- Options: A. 结构化结果优先（收集侧已让位，结果侧恢复抢占语义需处理已在途的收集行）；B. 先到先得+落败方 SUPERSEDED 留痕（当前实现）；C. 双来源并存、CURRENT 指向结构化结果并把 PDF 作为其附件。
+- Recommended technical default: 待需求方裁决；当前实现为 B（最小对齐、不改既有归属）。
+- Business decision required: 是（归属语义）；技术让位行为已按需求方本轮确认完成。
+- Decision owner: 需求方；ACC Owner、PM 交付件 Owner 参与影响分析
+- Decision date: 2026-09-24 登记

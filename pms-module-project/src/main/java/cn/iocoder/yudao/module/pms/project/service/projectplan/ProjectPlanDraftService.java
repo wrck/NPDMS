@@ -24,6 +24,7 @@ import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationVa
 import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
@@ -32,6 +33,7 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectPlanDraftService {
@@ -143,6 +145,7 @@ public class ProjectPlanDraftService {
         try {
             before = TemplateExecutionSnapshotReader.read(effective.getExecutionSnapshot());
         } catch (RuntimeException invalidSnapshot) {
+            log.warn("[planPreview] effective snapshot read failed: {}", invalidSnapshot.toString(), invalidSnapshot);
             throw exception(PROJECT_PLAN_CHANGE_INVALID);
         }
         var designer = definition(draft).designer();

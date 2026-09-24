@@ -1,0 +1,41 @@
+{
+  "capturedAt": "2026-09-24",
+  "title": "本轮修复的定向测试回执（mvn surefire:test，JDK 25，离线）",
+  "runs": [
+    {
+      "module": "pms-module-acceptance",
+      "classes": [
+        {
+          "name": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultSourceProjectionServiceTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "covers": "满意度结果来源投影让位落库（Q-005 技术修复），含 foreignCurrentSourceDefersAndRecordsHistoryOnly"
+        },
+        {
+          "name": "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableOwnerSourcesTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "covers": "交付件证据复核的文件身份多候选匹配（满意度签字图引用 response 而非 result；验收报告/满意度/归档身份依次复验）"
+        }
+      ],
+      "total": 11,
+      "failures": 0
+    },
+    {
+      "module": "pms-module-project",
+      "classes": [
+        {
+          "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleEvaluationServiceTest",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "covers": "LiteFlow 链内嵌套评估重入修复（链外预解析叶子、链内回放结果）"
+        }
+      ],
+      "total": 10,
+      "failures": 0
+    }
+  ]
+}

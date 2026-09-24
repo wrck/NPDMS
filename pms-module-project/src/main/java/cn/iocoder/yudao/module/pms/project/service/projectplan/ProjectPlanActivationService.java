@@ -65,8 +65,11 @@ public class ProjectPlanActivationService {
                             scope.projectId(),actorId,prepared.deliverables().writes()));
                     milestones.install(scope,prepared.milestones(),actorId);
                     gates.install(scope,prepared.gates(),actorId,correlationId);
+                    // 快照落库必须用NON_NULL冻结口径：全局mapper会写出显式null，回读后JsonNode字段成NullNode，
+                    // 冻结校验的"未配置"判断（如连线条件）随之失真。
                     activation.activate(new ProjectPlanVersionMapper.Activation(scope.tenantId(),scope.projectId(),prepared.effective().getId(),command.draftId(),
-                            prepared.draft().getVersion(),prepared.project().getVersion(),JsonUtils.toJsonString(prepared.after()),now,actorId.toString()),
+                            prepared.draft().getVersion(),prepared.project().getVersion(),
+                            cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.freezeJson(prepared.after()),now,actorId.toString()),
                             installed.continuing(),installed.removed());
                     if (cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionContract.present(prepared.after()))
                         resultSubscriptions.synchronize(scope.projectId(), command.draftId(), prepared.after());

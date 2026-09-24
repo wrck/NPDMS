@@ -1,0 +1,15 @@
+{
+  "project": 992203060032,
+  "collectionTaskId": 2102823061109305345,
+  "responseId": 2102823061784588290,
+  "taskDone": false,
+  "submit": {
+    "responseId": "2102823061784588290",
+    "resultId": "2102823061784588290",
+    "score": 100.0,
+    "threshold": 80.0,
+    "passed": true,
+    "responseReplayed": false,
+    "resultReplayed": false
+  }
+}

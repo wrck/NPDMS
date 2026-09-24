@@ -147,6 +147,17 @@ class ProjectRuleEvaluationServiceTest {
         assertFalse(evaluator.evaluate("version:2", after, leaf -> RuleFact.known("old")).matched());
     }
 
+    @Test
+    void factResolutionMayEvaluateAnotherRuleWithoutBreakingTheOuterChain() {
+        RuleProgram outer = compile("{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_X\"}}");
+        RuleProgram inner = compile("{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"t\"}}");
+        var result = evaluator.evaluate("plan:1:task:9:completion", outer, leaf -> {
+            var confirmation = evaluator.evaluate("plan:1:deliverable:D_X", inner, fact -> RuleFact.known(true));
+            return RuleFact.known(confirmation.matched());
+        });
+        assertEquals(RuleEvaluation.Outcome.MATCHED, result.outcome());
+    }
+
     private RuleEvaluation field(String type, String operator, String value, Object fact) {
         var program = compile("""
                 {"predicate":"FIELD","parameters":{"fieldCode":"project.field","valueType":"%s","operator":"%s","value":%s}}

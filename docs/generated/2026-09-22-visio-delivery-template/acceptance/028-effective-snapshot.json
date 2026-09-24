@@ -1,0 +1,3998 @@
+{
+ "gates": [
+  {
+   "code": "S1_ENTRY",
+   "name": "工前准备准入",
+   "nodeKey": "gate:S1_ENTRY",
+   "gateType": "ENTRY",
+   "stageCode": "S1",
+   "references": [
+    {
+     "refCode": "S0_COMPLETED",
+     "refType": "STATE"
+    }
+   ],
+   "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+   "conditionRuleKey": "$gate:gate:S1_ENTRY"
+  },
+  {
+   "code": "S2_ENTRY",
+   "name": "施工计划制定与审批准入",
+   "nodeKey": "gate:S2_ENTRY",
+   "gateType": "ENTRY",
+   "stageCode": "S2",
+   "references": [
+    {
+     "refCode": "S1_COMPLETED",
+     "refType": "STATE"
+    }
+   ],
+   "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+   "conditionRuleKey": "$gate:gate:S2_ENTRY"
+  },
+  {
+   "code": "S3_ENTRY",
+   "name": "实施方案编制与审核准入",
+   "nodeKey": "gate:S3_ENTRY",
+   "gateType": "ENTRY",
+   "stageCode": "S3",
+   "references": [
+    {
+     "refCode": "S1_COMPLETED",
+     "refType": "STATE"
+    }
+   ],
+   "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+   "conditionRuleKey": "$gate:gate:S3_ENTRY"
+  },
+  {
+   "code": "S4_ENTRY",
+   "name": "实施部署准入",
+   "nodeKey": "gate:S4_ENTRY",
+   "gateType": "ENTRY",
+   "stageCode": "S4",
+   "references": [
+    {
+     "refCode": "S2_COMPLETED",
+     "refType": "STATE"
+    },
+    {
+     "refCode": "S3_COMPLETED",
+     "refType": "STATE"
+    }
+   ],
+   "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+   "conditionRuleKey": "$gate:gate:S4_ENTRY"
+  },
+  {
+   "code": "S5_ENTRY",
+   "name": "验收交维准入",
+   "nodeKey": "gate:S5_ENTRY",
+   "gateType": "ENTRY",
+   "stageCode": "S5",
+   "references": [
+    {
+     "refCode": "S4_COMPLETED",
+     "refType": "STATE"
+    }
+   ],
+   "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+   "conditionRuleKey": "$gate:gate:S5_ENTRY"
+  }
+ ],
+ "match": {},
+ "rules": [
+  {
+   "key": "PRE_SURVEY_DONE",
+   "kind": "CONDITION",
+   "name": "现场工勘与环境适配核对·完成",
+   "shared": false,
+   "expression": {
+    "predicate": "BUSINESS_FACT",
+    "parameters": {
+     "factCode": "SURVEY_CONFIRMED",
+     "quantifier": "ALL"
+    }
+   }
+  },
+  {
+   "key": "PRE_REQUIREMENT_DONE",
+   "kind": "CONDITION",
+   "name": "需求分析·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "REQUIREMENT_ANALYSIS_COMPLETED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_REQUIREMENT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "PRE_DURATION_DONE",
+   "kind": "CONDITION",
+   "name": "工期与分工界面确认·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "DURATION_EFFECTIVE",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_INTERFACE"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "PRE_CONTACT_DONE",
+   "kind": "CONDITION",
+   "name": "用户联系人获取·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_END_USER"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_COORDINATE_DONE",
+   "kind": "CONDITION",
+   "name": "客户到货及实施协调·完成",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK_NATIVE_STATUS",
+    "parameters": {
+     "requiredStatus": "DONE"
+    }
+   }
+  },
+  {
+   "key": "DEPLOY_ARRIVAL_ENTER",
+   "kind": "CONDITION",
+   "name": "到货验收与签收·准入",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_COORDINATE"
+      }
+     },
+     {
+      "predicate": "FIELD",
+      "parameters": {
+       "value": "DIRECT_SIGN",
+       "operator": "=",
+       "fieldCode": "project.signingMethod",
+       "valueType": "TEXT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_ARRIVAL_DONE",
+   "kind": "CONDITION",
+   "name": "到货验收与签收·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_ARRIVAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_HARDWARE_ENTER",
+   "kind": "CONDITION",
+   "name": "硬件实施·准入",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_COORDINATE"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "DEPLOY_ARRIVAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_HARDWARE_DONE",
+   "kind": "CONDITION",
+   "name": "硬件实施·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_INSTALL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_CONFIG_ENTER",
+   "kind": "CONDITION",
+   "name": "配置调试·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "DEPLOY_HARDWARE"
+    }
+   }
+  },
+  {
+   "key": "DEPLOY_CONFIG_DONE",
+   "kind": "CONDITION",
+   "name": "配置调试·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_CONFIGURATION"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_JOINT_ENTER",
+   "kind": "CONDITION",
+   "name": "业务联调·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "DEPLOY_CONFIG"
+    }
+   }
+  },
+  {
+   "key": "DEPLOY_JOINT_DONE",
+   "kind": "CONDITION",
+   "name": "业务联调·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_JOINT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_CUTOVER_ENTER",
+   "kind": "CONDITION",
+   "name": "割接上线·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "DEPLOY_JOINT"
+    }
+   }
+  },
+  {
+   "key": "ACCEPT_COORDINATE_DONE",
+   "kind": "CONDITION",
+   "name": "客户验收交维协调·完成",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK_NATIVE_STATUS",
+    "parameters": {
+     "requiredStatus": "DONE"
+    }
+   }
+  },
+  {
+   "key": "ACCEPT_INITIAL_ENTER",
+   "kind": "CONDITION",
+   "name": "项目初验·准入",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_COORDINATE"
+      }
+     },
+     {
+      "predicate": "FIELD",
+      "parameters": {
+       "value": "DIRECT_SIGN",
+       "operator": "=",
+       "fieldCode": "project.signingMethod",
+       "valueType": "TEXT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "ACCEPT_INITIAL_DONE",
+   "kind": "CONDITION",
+   "name": "项目初验·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "PRELIMINARY_ACCEPTANCE_PASSED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_INITIAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "ACCEPT_FINAL_ENTER",
+   "kind": "CONDITION",
+   "name": "项目终验·准入",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_COORDINATE"
+      }
+     },
+     {
+      "predicate": "FIELD",
+      "parameters": {
+       "value": "DIRECT_SIGN",
+       "operator": "=",
+       "fieldCode": "project.signingMethod",
+       "valueType": "TEXT"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_INITIAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "ACCEPT_FINAL_DONE",
+   "kind": "CONDITION",
+   "name": "项目终验·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "FINAL_ACCEPTANCE_PASSED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_FINAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "ACCEPT_TRAINING_ENTER",
+   "kind": "CONDITION",
+   "name": "现场培训·准入",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_COORDINATE"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "ACCEPT_FINAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "ACCEPT_TRAINING_DONE",
+   "kind": "CONDITION",
+   "name": "现场培训·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_TRAINING"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "ACCEPT_SATISFACTION_ENTER",
+   "kind": "CONDITION",
+   "name": "满意度调查·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "ACCEPT_TRAINING"
+    }
+   }
+  },
+  {
+   "key": "ACCEPT_SATISFACTION_DONE",
+   "kind": "CONDITION",
+   "name": "满意度调查·完成",
+   "shared": false,
+   "expression": {
+    "predicate": "DELIVERABLE",
+    "parameters": {
+     "refCode": "D_SATISFACTION"
+    }
+   }
+  },
+  {
+   "key": "S1_ENTER",
+   "kind": "CONDITION",
+   "name": "工前准备·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "STATE",
+    "parameters": {
+     "refCode": "S0_COMPLETED"
+    }
+   }
+  },
+  {
+   "key": "S2_ENTER",
+   "kind": "CONDITION",
+   "name": "施工计划制定与审批·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "STATE",
+    "parameters": {
+     "refCode": "S1_COMPLETED"
+    }
+   }
+  },
+  {
+   "key": "S2_DONE",
+   "kind": "CONDITION",
+   "name": "施工计划制定与审批·完成",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "PLAN_CONSTRUCTION"
+    }
+   }
+  },
+  {
+   "key": "S3_ENTER",
+   "kind": "CONDITION",
+   "name": "实施方案编制与审核·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "STATE",
+    "parameters": {
+     "refCode": "S1_COMPLETED"
+    }
+   }
+  },
+  {
+   "key": "S3_DONE",
+   "kind": "CONDITION",
+   "name": "实施方案编制与审核·完成",
+   "shared": false,
+   "expression": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "PLAN_SOLUTION"
+    }
+   }
+  },
+  {
+   "key": "S4_ENTER",
+   "kind": "CONDITION",
+   "name": "实施部署·准入",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "STATE",
+      "parameters": {
+       "refCode": "S2_COMPLETED"
+      }
+     },
+     {
+      "predicate": "STATE",
+      "parameters": {
+       "refCode": "S3_COMPLETED"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "S4_DONE",
+   "kind": "CONDITION",
+   "name": "实施部署·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_COORDINATE"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "DEPLOY_ARRIVAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_HARDWARE"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_CONFIG"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_JOINT"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_CUTOVER"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "S5_ENTER",
+   "kind": "CONDITION",
+   "name": "验收交维·准入",
+   "shared": false,
+   "expression": {
+    "predicate": "STATE",
+    "parameters": {
+     "refCode": "S4_COMPLETED"
+    }
+   }
+  },
+  {
+   "key": "S5_DONE",
+   "kind": "CONDITION",
+   "name": "验收交维·完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_COORDINATE"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "ACCEPT_INITIAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "ACCEPT_FINAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_TRAINING"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_SATISFACTION"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "FLOW_ASSIGNMENT_DONE",
+   "kind": "CONDITION",
+   "name": "人员指派完成",
+   "shared": false,
+   "expression": {
+    "predicate": "BUSINESS_FACT",
+    "parameters": {
+     "factCode": "PROJECT_ASSIGNMENT_COMPLETED",
+     "quantifier": "ALL"
+    }
+   }
+  },
+  {
+   "key": "PLAN_CONSTRUCTION_DONE",
+   "kind": "CONDITION",
+   "name": "施工计划审批完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "CONSTRUCTION_PLAN_APPROVED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_CONSTRUCTION_PLAN"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "PLAN_SOLUTION_APPROVAL_DONE",
+   "kind": "CONDITION",
+   "name": "方案审核及适用工程管理部复审完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "IMPLEMENTATION_SOLUTION_APPROVED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_SOLUTION"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "DEPLOY_CUTOVER_DONE",
+   "kind": "CONDITION",
+   "name": "割接审批通过即完成",
+   "shared": false,
+   "expression": {
+    "predicate": "CONSTANT",
+    "parameters": {
+     "value": true
+    }
+   }
+  },
+  {
+   "key": "S1_DONE",
+   "kind": "CONDITION",
+   "name": "工勘及其他工前任务完成",
+   "shared": false,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_SURVEY"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_REQUIREMENT"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_DURATION"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_CONTACT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   }
+  },
+  {
+   "key": "SOLUTION_MAJOR_REVIEW_REQUIRED",
+   "kind": "CONDITION",
+   "name": "CRM重大项目适用工程管理部复审",
+   "shared": true,
+   "expression": {
+    "predicate": "FIELD",
+    "parameters": {
+     "value": [
+      "办事处级重大项目",
+      "市场部级重大项目",
+      "公司级重大项目"
+     ],
+     "operator": "in",
+     "fieldCode": "project.majorProjectLevel",
+     "valueType": "TEXT"
+    }
+   }
+  },
+  {
+   "key": "SOLUTION_ORDINARY_REVIEW_ALLOWED",
+   "kind": "CONDITION",
+   "name": "非重大项目适用普通审核（含无CRM来源手工项目）",
+   "shared": true,
+   "expression": {
+    "rules": [
+     {
+      "predicate": "FIELD",
+      "parameters": {
+       "operator": "null",
+       "fieldCode": "project.majorProjectLevel",
+       "valueType": "TEXT"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "",
+         "operator": "!=",
+         "fieldCode": "project.majorProjectLevel",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": [
+            "办事处级重大项目",
+            "市场部级重大项目",
+            "公司级重大项目"
+           ],
+           "operator": "in",
+           "fieldCode": "project.majorProjectLevel",
+           "valueType": "TEXT"
+          }
+         }
+        ],
+        "operator": "NOT"
+       }
+      ],
+      "operator": "ALL"
+     }
+    ],
+    "operator": "ANY"
+   }
+  }
+ ],
+ "tasks": [
+  {
+   "code": "PRE_SURVEY",
+   "name": "现场工勘与环境适配核对",
+   "binding": {
+    "type": "BUSINESS_COMPONENT",
+    "parameters": {
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2101604731582791681",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "SOL_SITE_SURVEY",
+    "targetObjectKey": "PROJECT_SITE_SURVEY",
+    "targetObjectType": "SITE_SURVEY",
+    "targetContextCode": "SOL",
+    "businessViewSnapshot": {
+     "id": "2101604731582791681",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "FPROJ009_E2E_S1S6_20260920_SITE_SURVEY",
+     "disabledAt": null,
+     "entityType": "SITE_SURVEY",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1789896961332,
+     "componentKey": "SOL_SITE_SURVEY",
+     "ownerContext": "SOL",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "DISABLE",
+      "QUERY",
+      "COPY"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "SOL_SITE_SURVEY_QUERY",
+     "supportedActions": [
+      "QUERY",
+      "CREATE",
+      "UPDATE",
+      "CONFIRM",
+      "REJECT",
+      "ARCHIVE",
+      "LINK",
+      "UNLINK"
+     ],
+     "commandProviderKey": "SOL_SITE_SURVEY_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "SOL_SITE_SURVEY_PERMISSION"
+    }
+   },
+   "nodeKey": "task:PRE_SURVEY",
+   "priority": 2,
+   "sortOrder": 0,
+   "stageCode": "S1",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：工前准备页294、390、418。项目经理开展工勘；物料不适配时进入独立CRM改单流程，不设置统一回流。工勘确认事实只证明工勘完成，不替代环境适配判断。",
+   "completionRule": {
+    "predicate": "BUSINESS_FACT",
+    "parameters": {
+     "factCode": "SURVEY_CONFIRMED",
+     "quantifier": "ALL"
+    }
+   },
+   "completionRuleKey": "PRE_SURVEY_DONE"
+  },
+  {
+   "code": "PRE_REQUIREMENT",
+   "name": "需求分析",
+   "binding": {
+    "type": "BUSINESS_OBJECT",
+    "parameters": {
+     "schemaVersion": 2,
+     "contextMapping": {
+      "project": "project"
+     },
+     "dynamicFormRevisionNo": 1,
+     "dynamicFormTemplateId": 992203010001,
+     "businessViewRevisionId": "2101606301384949762",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING",
+     "dynamicFormTemplateRevisionId": 992203020001,
+     "dynamicFormRevisionFactVersion": 1
+    },
+    "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+    "targetObjectKey": "PRE_04_REQUIREMENT_ANALYSIS",
+    "targetObjectType": "REQUIREMENT_ANALYSIS",
+    "targetContextCode": "SOL",
+    "businessViewSnapshot": {
+     "id": "2101606301384949762",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "FPROJ009_E2E_S1S6_20260920_REQUIREMENT_ANALYSIS",
+     "disabledAt": null,
+     "entityType": "REQUIREMENT_ANALYSIS",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1789896963469,
+     "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+     "ownerContext": "SOL",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "project"
+      ],
+      "properties": {
+       "project": {
+        "type": "object",
+        "required": [
+         "id",
+         "version"
+        ],
+        "properties": {
+         "id": {
+          "oneOf": [
+           {
+            "type": "integer",
+            "minimum": 1
+           },
+           {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+           }
+          ]
+         },
+         "version": {
+          "type": "integer",
+          "minimum": 0
+         }
+        }
+       }
+      }
+     },
+     "allowedActions": [
+      "DISABLE",
+      "QUERY",
+      "COPY"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "SOL_REQUIREMENT_ANALYSIS_QUERY",
+     "supportedActions": [
+      "CREATE_INITIAL_DRAFT",
+      "PATCH_FORM",
+      "COMPLETE",
+      "CREATE_DRAFT"
+     ],
+     "commandProviderKey": "SOL_REQUIREMENT_ANALYSIS_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "SOL_REQUIREMENT_ANALYSIS_PERMISSION"
+    }
+   },
+   "nodeKey": "task:PRE_REQUIREMENT",
+   "priority": 2,
+   "sortOrder": 10,
+   "stageCode": "S1",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：工前准备页317、536。引用已完成需求分析版本及对应需求分析文档。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "REQUIREMENT_ANALYSIS_COMPLETED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_REQUIREMENT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "completionRuleKey": "PRE_REQUIREMENT_DONE"
+  },
+  {
+   "code": "PRE_DURATION",
+   "name": "工期与分工界面确认",
+   "binding": {
+    "type": "BUSINESS_COMPONENT",
+    "parameters": {
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2101606310708887554",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "PLN_CONSTRUCTION_PLAN",
+    "targetObjectKey": "PROJECT_CONSTRUCTION_PLAN",
+    "targetObjectType": "CONSTRUCTION_PLAN",
+    "targetContextCode": "PLN",
+    "businessViewSnapshot": {
+     "id": "2101606310708887554",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "FPROJ009_E2E_S1S6_20260920_CONSTRUCTION_PLAN",
+     "disabledAt": null,
+     "entityType": "CONSTRUCTION_PLAN",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1789896965816,
+     "componentKey": "PLN_CONSTRUCTION_PLAN",
+     "ownerContext": "PLN",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "DISABLE",
+      "QUERY",
+      "COPY"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "PLN_CONSTRUCTION_PLAN_QUERY",
+     "supportedActions": [
+      "QUERY",
+      "CREATE",
+      "UPDATE",
+      "LINK",
+      "UNLINK"
+     ],
+     "commandProviderKey": "PLN_CONSTRUCTION_PLAN_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "PLN_CONSTRUCTION_PLAN_PERMISSION"
+    }
+   },
+   "nodeKey": "task:PRE_DURATION",
+   "priority": 2,
+   "sortOrder": 20,
+   "stageCode": "S1",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：工前准备页340、543、549。确认项目有效工期及含辅料的分工界面；工期生效不等同施工计划审批。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "DURATION_EFFECTIVE",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_INTERFACE"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "completionRuleKey": "PRE_DURATION_DONE"
+  },
+  {
+   "code": "PRE_CONTACT",
+   "name": "用户联系人获取",
+   "binding": {
+    "type": "PAGE",
+    "parameters": {
+     "routePath": "/pms/project-management/projects"
+    }
+   },
+   "nodeKey": "task:PRE_CONTACT",
+   "priority": 2,
+   "sortOrder": 30,
+   "stageCode": "S1",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：工前准备页363、546。在项目原有客户联系人功能维护最终用户信息，并保留对应记录。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_END_USER"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "completionRuleKey": "PRE_CONTACT_DONE"
+  },
+  {
+   "code": "PLAN_CONSTRUCTION",
+   "name": "施工计划制定与审批",
+   "binding": {
+    "type": "BUSINESS_OBJECT",
+    "parameters": {
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2102312815597113345",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "PLN_STAGE_PLAN_APPROVAL",
+    "targetObjectKey": "STAGE_PLAN",
+    "targetObjectType": "STAGE_PLAN",
+    "targetContextCode": "PLN",
+    "businessViewSnapshot": {
+     "id": "2102312815597113345",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "VISIO_DELIVERY_20260922_STAGE_PLAN",
+     "disabledAt": null,
+     "entityType": "STAGE_PLAN",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1790065409111,
+     "componentKey": "PLN_STAGE_PLAN_APPROVAL",
+     "ownerContext": "PLN",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "PLN_STAGE_PLAN_APPROVAL_QUERY",
+     "supportedActions": [
+      "QUERY"
+     ],
+     "commandProviderKey": "PLN_STAGE_PLAN_APPROVAL_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "PLN_STAGE_PLAN_APPROVAL_PERMISSION"
+    }
+   },
+   "nodeKey": "task:PLAN_CONSTRUCTION",
+   "priority": 2,
+   "sortOrder": 0,
+   "stageCode": "S2",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：制定施工计划页72、149、299、110、188、173。直签引用合同验收时间，其他项目引用工前准备有效工期；项目经理制定、服务经理审核，驳回在原计划修改重提。需求方确认188按“审核施工计划”配置。与S3并行，DURATION_EFFECTIVE仅为输入，不能替代计划审批。【待接入完成依据】已部署阶段施工计划审批流程pms-sol-stage-plan，但模板目录未提供该计划精确版本审批通过的完成事实；当前保留空完成规则，发布预检应阻止投用。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "CONSTRUCTION_PLAN_APPROVED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_CONSTRUCTION_PLAN"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "completionRuleKey": "PLAN_CONSTRUCTION_DONE"
+  },
+  {
+   "code": "PLAN_SOLUTION",
+   "name": "实施方案编制与分级审核",
+   "binding": {
+    "type": "BUSINESS_OBJECT",
+    "parameters": {
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2102312816972845058",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "SOL_IMPLEMENTATION_SOLUTION",
+    "targetObjectKey": "IMPLEMENTATION_SOLUTION",
+    "targetObjectType": "IMPLEMENTATION_SOLUTION",
+    "targetContextCode": "SOL",
+    "businessViewSnapshot": {
+     "id": "2102312816972845058",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "VISIO_DELIVERY_20260922_IMPLEMENTATION_SOLUTION",
+     "disabledAt": null,
+     "entityType": "IMPLEMENTATION_SOLUTION",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1790065409458,
+     "componentKey": "SOL_IMPLEMENTATION_SOLUTION",
+     "ownerContext": "SOL",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "SOL_IMPLEMENTATION_SOLUTION_QUERY",
+     "supportedActions": [
+      "QUERY"
+     ],
+     "commandProviderKey": "SOL_IMPLEMENTATION_SOLUTION_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "SOL_IMPLEMENTATION_SOLUTION_PERMISSION"
+    }
+   },
+   "nodeKey": "task:PLAN_SOLUTION",
+   "priority": 2,
+   "sortOrder": 0,
+   "stageCode": "S3",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "编制实施方案并保留客户方案及编制成果；按CRM重大项目级别和模板规则由服务端判定审核路径，三类重大项目经服务经理审核后由工程管理部复审，最终批准后形成基线与交付件。忽略配置工具自动检查。无CRM来源（重大项目级别为空）的手工项目按普通审核处理。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "IMPLEMENTATION_SOLUTION_APPROVED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_SOLUTION"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "completionRuleKey": "PLAN_SOLUTION_APPROVAL_DONE"
+  },
+  {
+   "code": "DEPLOY_COORDINATE",
+   "name": "客户到货及实施协调",
+   "binding": {
+    "type": "TASK_NATIVE",
+    "parameters": {}
+   },
+   "nodeKey": "task:DEPLOY_COORDINATE",
+   "priority": 2,
+   "sortOrder": 0,
+   "stageCode": "S4",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：实施部署页408、571。项目发货后由项目经理联系客户确认到货和实施安排，实际发货信息从商务业务读取。",
+   "completionRule": {
+    "predicate": "TASK_NATIVE_STATUS",
+    "parameters": {
+     "requiredStatus": "DONE"
+    }
+   },
+   "completionRuleKey": "DEPLOY_COORDINATE_DONE"
+  },
+  {
+   "code": "DEPLOY_ARRIVAL",
+   "name": "到货验收与签收",
+   "binding": {
+    "type": "PAGE",
+    "parameters": {
+     "routePath": "/pms/engineering/execution/imp-arrival"
+    }
+   },
+   "nodeKey": "task:DEPLOY_ARRIVAL",
+   "priority": 2,
+   "sortOrder": 10,
+   "stageCode": "S4",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：实施部署页358、372、424。仅直签分支要求到货验收及签收单；纸质单据交销售与秘书，回款和归档作为独立下游办理。签收单材料有效且人工办理提交才算本任务完成。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_ARRIVAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "DEPLOY_ARRIVAL_ENTER",
+   "completionRuleKey": "DEPLOY_ARRIVAL_DONE"
+  },
+  {
+   "code": "DEPLOY_HARDWARE",
+   "name": "硬件实施",
+   "binding": {
+    "type": "PAGE",
+    "parameters": {
+     "routePath": "/pms/engineering/execution/imp-installation"
+    }
+   },
+   "nodeKey": "task:DEPLOY_HARDWARE",
+   "priority": 2,
+   "sortOrder": 20,
+   "stageCode": "S4",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：实施部署页425、499。登记安装位置；直签到货验收后办理，非直签经客户协调后办理。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_INSTALL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "DEPLOY_HARDWARE_ENTER",
+   "completionRuleKey": "DEPLOY_HARDWARE_DONE"
+  },
+  {
+   "code": "DEPLOY_CONFIG",
+   "name": "配置调试",
+   "binding": {
+    "type": "PAGE",
+    "parameters": {
+     "routePath": "/pms/engineering/execution/imp-configuration"
+    }
+   },
+   "nodeKey": "task:DEPLOY_CONFIG",
+   "priority": 2,
+   "sortOrder": 30,
+   "stageCode": "S4",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：实施部署页451、499。硬件实施后开展配置调试，保留启用功能和配置Log；沿用文件与敏感数据保护。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_CONFIGURATION"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "DEPLOY_CONFIG_ENTER",
+   "completionRuleKey": "DEPLOY_CONFIG_DONE"
+  },
+  {
+   "code": "DEPLOY_JOINT",
+   "name": "业务联调",
+   "binding": {
+    "type": "PAGE",
+    "parameters": {
+     "routePath": "/pms/engineering/execution/imp-joint-test"
+    }
+   },
+   "nodeKey": "task:DEPLOY_JOINT",
+   "priority": 2,
+   "sortOrder": 40,
+   "stageCode": "S4",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：实施部署页474、499。配置调试完成后办理业务联调，记录运行业务和联调结果。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_JOINT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "DEPLOY_JOINT_ENTER",
+   "completionRuleKey": "DEPLOY_JOINT_DONE"
+  },
+  {
+   "code": "DEPLOY_CUTOVER",
+   "name": "割接上线",
+   "binding": {
+    "type": "APPROVAL",
+    "parameters": {
+     "processDefinitionId": "0e48d1a2-b761-11f1-bd7e-00ff0b78abd7"
+    },
+    "approvalDefinitionKey": "PMS_DELIVERY_CUTOVER_APPROVAL"
+   },
+   "nodeKey": "task:DEPLOY_CUTOVER",
+   "priority": 2,
+   "sortOrder": 50,
+   "stageCode": "S4",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "割接完成审批：发起割接审批并由服务经理审批，审批通过即视为割接完成。过渡方案说明：当前为割接完成外接接入前的临时依据，后续将替换为割接系统业务事实（CUTOVER_COMPLETED）。",
+   "completionRule": {
+    "predicate": "CONSTANT",
+    "parameters": {
+     "value": true
+    }
+   },
+   "admissionRuleKey": "DEPLOY_CUTOVER_ENTER",
+   "completionRuleKey": "DEPLOY_CUTOVER_DONE"
+  },
+  {
+   "code": "ACCEPT_COORDINATE",
+   "name": "客户验收交维协调",
+   "binding": {
+    "type": "TASK_NATIVE",
+    "parameters": {}
+   },
+   "nodeKey": "task:ACCEPT_COORDINATE",
+   "priority": 2,
+   "sortOrder": 0,
+   "stageCode": "S5",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：验收交维页67、230。联系客户安排验收、培训与资料交接；原图触发事件仍标“项目发货事件”，来源原文保留，阶段准入按交付全链依赖办理。",
+   "completionRule": {
+    "predicate": "TASK_NATIVE_STATUS",
+    "parameters": {
+     "requiredStatus": "DONE"
+    }
+   },
+   "completionRuleKey": "ACCEPT_COORDINATE_DONE"
+  },
+  {
+   "code": "ACCEPT_INITIAL",
+   "name": "项目初验",
+   "binding": {
+    "type": "BUSINESS_COMPONENT",
+    "parameters": {
+     "acceptanceType": "PRELIMINARY",
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2101606320578084865",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "ACC_ACCEPTANCE_REPORT",
+    "targetObjectKey": "PROJECT_ACCEPTANCE",
+    "targetObjectType": "ACCEPTANCE",
+    "targetContextCode": "ACC",
+    "businessViewSnapshot": {
+     "id": "2101606320578084865",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "FPROJ009_E2E_S1S6_20260920_ACCEPTANCE_REPORT",
+     "disabledAt": null,
+     "entityType": "ACCEPTANCE",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1789896968189,
+     "componentKey": "ACC_ACCEPTANCE_REPORT",
+     "ownerContext": "ACC",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "ACC_ACCEPTANCE_REPORT_QUERY",
+     "supportedActions": [
+      "QUERY",
+      "MANAGE",
+      "UPDATE",
+      "REVOKE",
+      "LINK",
+      "UNLINK"
+     ],
+     "commandProviderKey": "ACC_ACCEPTANCE_REPORT_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "ACC_ACCEPTANCE_REPORT_PERMISSION"
+    }
+   },
+   "nodeKey": "task:ACCEPT_INITIAL",
+   "priority": 2,
+   "sortOrder": 10,
+   "stageCode": "S5",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：验收交维页16、31、83、107；结合现行直签场景分为初验与终验。初验报告必须有效且结论通过，文件上传本身不算验收完成。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "PRELIMINARY_ACCEPTANCE_PASSED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_INITIAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "ACCEPT_INITIAL_ENTER",
+   "completionRuleKey": "ACCEPT_INITIAL_DONE"
+  },
+  {
+   "code": "ACCEPT_FINAL",
+   "name": "项目终验",
+   "binding": {
+    "type": "BUSINESS_COMPONENT",
+    "parameters": {
+     "acceptanceType": "FINAL",
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2101606320578084865",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "ACC_ACCEPTANCE_REPORT",
+    "targetObjectKey": "PROJECT_ACCEPTANCE",
+    "targetObjectType": "ACCEPTANCE",
+    "targetContextCode": "ACC",
+    "businessViewSnapshot": {
+     "id": "2101606320578084865",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "FPROJ009_E2E_S1S6_20260920_ACCEPTANCE_REPORT",
+     "disabledAt": null,
+     "entityType": "ACCEPTANCE",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1789896968189,
+     "componentKey": "ACC_ACCEPTANCE_REPORT",
+     "ownerContext": "ACC",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "ACC_ACCEPTANCE_REPORT_QUERY",
+     "supportedActions": [
+      "QUERY",
+      "MANAGE",
+      "UPDATE",
+      "REVOKE",
+      "LINK",
+      "UNLINK"
+     ],
+     "commandProviderKey": "ACC_ACCEPTANCE_REPORT_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "ACC_ACCEPTANCE_REPORT_PERMISSION"
+    }
+   },
+   "nodeKey": "task:ACCEPT_FINAL",
+   "priority": 2,
+   "sortOrder": 20,
+   "stageCode": "S5",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：验收交维页31、83、107。终验报告必须有效且结论通过；直签初验后进入终验。2026-09-22需求方确认本模板严格按图：非直签跳过初验和终验；该例外仅适用于本模板，不改变其他模板。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "BUSINESS_FACT",
+      "parameters": {
+       "factCode": "FINAL_ACCEPTANCE_PASSED",
+       "quantifier": "ALL"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_FINAL"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "ACCEPT_FINAL_ENTER",
+   "completionRuleKey": "ACCEPT_FINAL_DONE"
+  },
+  {
+   "code": "ACCEPT_TRAINING",
+   "name": "现场培训",
+   "binding": {
+    "type": "PAGE",
+    "parameters": {
+     "routePath": "/pms/imp-training"
+    }
+   },
+   "nodeKey": "task:ACCEPT_TRAINING",
+   "priority": 2,
+   "sortOrder": 30,
+   "stageCode": "S5",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：验收交维页84、158。登记培训内容、参训与签署记录。直签在适用验收办理后进入，非直签按原图由客户协调后进入；满意度单独关联真实业务结果。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK_NATIVE_STATUS",
+      "parameters": {
+       "requiredStatus": "DONE"
+      }
+     },
+     {
+      "predicate": "DELIVERABLE",
+      "parameters": {
+       "refCode": "D_TRAINING"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "admissionRuleKey": "ACCEPT_TRAINING_ENTER",
+   "completionRuleKey": "ACCEPT_TRAINING_DONE"
+  },
+  {
+   "code": "ACCEPT_SATISFACTION",
+   "name": "满意度调查",
+   "binding": {
+    "type": "TASK_NATIVE",
+    "parameters": {}
+   },
+   "nodeKey": "task:ACCEPT_SATISFACTION",
+   "priority": 2,
+   "sortOrder": 40,
+   "stageCode": "S5",
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "description": "来源：验收交维页158。引用ACC当前有效的满意度业务结果，不将普通上传文件冒充达标事实。调查采用业务原有问卷、评分、签署、权限和整改规则。",
+   "completionRule": {
+    "predicate": "DELIVERABLE",
+    "parameters": {
+     "refCode": "D_SATISFACTION"
+    }
+   },
+   "admissionRuleKey": "ACCEPT_SATISFACTION_ENTER",
+   "completionRuleKey": "ACCEPT_SATISFACTION_DONE"
+  }
+ ],
+ "stages": [
+  {
+   "code": "S0",
+   "name": "项目立项与指派",
+   "start": true,
+   "binding": {
+    "type": "BUSINESS_OBJECT",
+    "parameters": {
+     "contextMapping": {
+      "projectId": "projectId"
+     },
+     "businessViewRevisionId": "2102312813843894274",
+     "instanceResolutionStrategy": "REFERENCE_EXISTING"
+    },
+    "componentKey": "PROJ_PROJECT_ASSIGNMENT",
+    "targetObjectKey": "PROJECT_ASSIGNMENT",
+    "targetObjectType": "PROJECT_ASSIGNMENT",
+    "targetContextCode": "PROJ",
+    "businessViewSnapshot": {
+     "id": "2102312813843894274",
+     "status": "PUBLISHED",
+     "version": 1,
+     "viewKey": "VISIO_DELIVERY_20260922_PROJECT_ASSIGNMENT",
+     "disabledAt": null,
+     "entityType": "PROJECT_ASSIGNMENT",
+     "revisionNo": 1,
+     "viewSource": "PAGE",
+     "publishedAt": 1790065408779,
+     "componentKey": "PROJ_PROJECT_ASSIGNMENT",
+     "ownerContext": "PROJ",
+     "contextSchema": {
+      "type": "object",
+      "required": [
+       "projectId"
+      ],
+      "properties": {
+       "projectId": {
+        "oneOf": [
+         {
+          "type": "integer",
+          "minimum": 1
+         },
+         {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+         }
+        ]
+       }
+      }
+     },
+     "allowedActions": [
+      "QUERY",
+      "COPY",
+      "DISABLE"
+     ],
+     "componentVersion": "1",
+     "queryProviderKey": "PROJ_PROJECT_ASSIGNMENT_QUERY",
+     "supportedActions": [
+      "QUERY"
+     ],
+     "commandProviderKey": "PROJ_PROJECT_ASSIGNMENT_COMMAND",
+     "dynamicFormRevisionId": null,
+     "permissionProviderKey": "PROJ_PROJECT_ASSIGNMENT_PERMISSION"
+    }
+   },
+   "nodeKey": "stage:S0",
+   "terminal": false,
+   "sortOrder": 0,
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "exitCriteria": "按同办事处、单省异地、多省异地分支完成指派；异常回退总部，不复制指派审批任务。",
+   "entryCriteria": "CRM生成订单；由项目管理入口办理服务经理与项目经理指派。",
+   "completionRule": {
+    "predicate": "BUSINESS_FACT",
+    "parameters": {
+     "factCode": "PROJECT_ASSIGNMENT_COMPLETED",
+     "quantifier": "ALL"
+    }
+   },
+   "lifecycleStage": "S0",
+   "completionRuleKey": "FLOW_ASSIGNMENT_DONE"
+  },
+  {
+   "code": "S1",
+   "name": "工前准备",
+   "start": false,
+   "nodeKey": "stage:S1",
+   "terminal": false,
+   "sortOrder": 10,
+   "permission": {
+    "policySnapshot": {
+     "requiredActions": [
+      "VIEW"
+     ]
+    }
+   },
+   "exitCriteria": "工勘记录已确认、需求分析、有效工期/分工界面与用户联系人完成。工前判断复用同份工勘第8、第9及物料环境项，不单独填写确认表。三个支线独立办理，不设统一回流和等待支线完成的汇合条件。",
+   "entryCriteria": "S0指派完成。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_SURVEY"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_REQUIREMENT"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_DURATION"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "PRE_CONTACT"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "lifecycleStage": "S1",
+   "admissionRuleKey": "S1_ENTER",
+   "completionRuleKey": "S1_DONE",
+   "schedulePercentage": 25
+  },
+  {
+   "code": "S2",
+   "name": "施工计划制定与审批",
+   "start": false,
+   "nodeKey": "stage:S2",
+   "terminal": false,
+   "sortOrder": 20,
+   "exitCriteria": "施工计划经服务经理审核通过并生效；驳回回到原计划修改，不新增审批ProjectTask。",
+   "entryCriteria": "工前准备完成；与实施方案并行。",
+   "completionRule": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "PLAN_CONSTRUCTION"
+    }
+   },
+   "lifecycleStage": "S2",
+   "admissionRuleKey": "S2_ENTER",
+   "completionRuleKey": "S2_DONE",
+   "schedulePercentage": 25
+  },
+  {
+   "code": "S3",
+   "name": "实施方案编制与审核",
+   "start": false,
+   "nodeKey": "stage:S3",
+   "terminal": false,
+   "sortOrder": 30,
+   "exitCriteria": "实施方案审核及适用的工程管理部复审通过，并保留实施方案交付件。按需求方确认忽略配置工具自动检查。",
+   "entryCriteria": "工前准备完成；与施工计划并行。",
+   "completionRule": {
+    "predicate": "TASK",
+    "parameters": {
+     "refCode": "PLAN_SOLUTION"
+    }
+   },
+   "lifecycleStage": "S3",
+   "admissionRuleKey": "S3_ENTER",
+   "completionRuleKey": "S3_DONE",
+   "schedulePercentage": 25
+  },
+  {
+   "code": "S4",
+   "name": "实施部署",
+   "start": false,
+   "nodeKey": "stage:S4",
+   "terminal": false,
+   "sortOrder": 40,
+   "exitCriteria": "完成适用到货验收、硬件实施、配置调试、业务联调与割接上线。",
+   "entryCriteria": "施工计划与实施方案均完成；发货事实仍由原业务入口核验。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_COORDINATE"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "DEPLOY_ARRIVAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_HARDWARE"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_CONFIG"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_JOINT"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "DEPLOY_CUTOVER"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "lifecycleStage": "S4",
+   "admissionRuleKey": "S4_ENTER",
+   "completionRuleKey": "S4_DONE",
+   "schedulePercentage": 25
+  },
+  {
+   "code": "S5",
+   "name": "验收交维",
+   "start": false,
+   "nodeKey": "stage:S5",
+   "terminal": true,
+   "sortOrder": 50,
+   "exitCriteria": "完成适用初验/终验、培训、满意度及纸质单据交接；归档、回款支线保持独立事实。",
+   "entryCriteria": "实施部署完成；客户验收安排与验收领域状态仍由业务模块核验。",
+   "completionRule": {
+    "rules": [
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_COORDINATE"
+      }
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "ACCEPT_INITIAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     },
+     {
+      "rules": [
+       {
+        "predicate": "FIELD",
+        "parameters": {
+         "value": "CHANNEL_SIGN",
+         "operator": "=",
+         "fieldCode": "project.signingMethod",
+         "valueType": "TEXT"
+        }
+       },
+       {
+        "rules": [
+         {
+          "predicate": "FIELD",
+          "parameters": {
+           "value": "DIRECT_SIGN",
+           "operator": "=",
+           "fieldCode": "project.signingMethod",
+           "valueType": "TEXT"
+          }
+         },
+         {
+          "predicate": "TASK",
+          "parameters": {
+           "refCode": "ACCEPT_FINAL"
+          }
+         }
+        ],
+        "operator": "ALL"
+       }
+      ],
+      "operator": "ANY"
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_TRAINING"
+      }
+     },
+     {
+      "predicate": "TASK",
+      "parameters": {
+       "refCode": "ACCEPT_SATISFACTION"
+      }
+     }
+    ],
+    "operator": "ALL"
+   },
+   "lifecycleStage": "S5",
+   "admissionRuleKey": "S5_ENTER",
+   "completionRuleKey": "S5_DONE",
+   "schedulePercentage": 25
+  }
+ ],
+ "milestones": [],
+ "transitions": [
+  {
+   "code": "TR_S0_S1",
+   "edgeKey": "edge:S0:S1",
+   "priority": 0,
+   "toStageCode": "S1",
+   "defaultBranch": false,
+   "fromStageCode": "S0"
+  },
+  {
+   "code": "TR_S1_S2",
+   "edgeKey": "edge:S1:S2",
+   "priority": 1,
+   "toStageCode": "S2",
+   "defaultBranch": false,
+   "fromStageCode": "S1"
+  },
+  {
+   "code": "TR_S1_S3",
+   "edgeKey": "edge:S1:S3",
+   "priority": 2,
+   "toStageCode": "S3",
+   "defaultBranch": false,
+   "fromStageCode": "S1"
+  },
+  {
+   "code": "TR_S2_S4",
+   "edgeKey": "edge:S2:S4",
+   "priority": 3,
+   "toStageCode": "S4",
+   "defaultBranch": false,
+   "fromStageCode": "S2"
+  },
+  {
+   "code": "TR_S3_S4",
+   "edgeKey": "edge:S3:S4",
+   "priority": 4,
+   "toStageCode": "S4",
+   "defaultBranch": false,
+   "fromStageCode": "S3"
+  },
+  {
+   "code": "TR_S4_S5",
+   "edgeKey": "edge:S4:S5",
+   "priority": 5,
+   "toStageCode": "S5",
+   "defaultBranch": false,
+   "fromStageCode": "S4"
+  }
+ ],
+ "deliverables": [
+  {
+   "code": "D_ENGINEERING_BRIEF",
+   "name": "工程交底书（已有输入）",
+   "nodeKey": "deliverable:D_ENGINEERING_BRIEF",
+   "required": false,
+   "stageCode": "S1",
+   "configuration": {
+    "scope": "STAGE",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_REQUIREMENT",
+   "name": "需求分析表",
+   "nodeKey": "deliverable:D_REQUIREMENT",
+   "required": true,
+   "taskCode": "PRE_REQUIREMENT",
+   "stageCode": "S1",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "automaticSources": [
+     "SOL.REQUIREMENT_DOCUMENT"
+    ],
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_DURATION",
+   "name": "有效工期记录",
+   "nodeKey": "deliverable:D_DURATION",
+   "required": false,
+   "taskCode": "PRE_DURATION",
+   "stageCode": "S1",
+   "configuration": {
+    "scope": "TASK",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_INTERFACE",
+   "name": "分工界面（含辅料）",
+   "nodeKey": "deliverable:D_INTERFACE",
+   "required": true,
+   "taskCode": "PRE_DURATION",
+   "stageCode": "S1",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_END_USER",
+   "name": "最终用户及联系人信息",
+   "nodeKey": "deliverable:D_END_USER",
+   "required": true,
+   "taskCode": "PRE_CONTACT",
+   "stageCode": "S1",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_MATERIAL",
+   "name": "独立物料申领或外采流程参考材料（可选）",
+   "nodeKey": "deliverable:D_MATERIAL",
+   "required": false,
+   "taskCode": "PRE_DURATION",
+   "stageCode": "S1",
+   "configuration": {
+    "scope": "TASK",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_CONSTRUCTION_PLAN",
+   "name": "经审批施工计划",
+   "nodeKey": "deliverable:D_CONSTRUCTION_PLAN",
+   "required": true,
+   "taskCode": "PLAN_CONSTRUCTION",
+   "stageCode": "S2",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_SOLUTION",
+   "name": "审核通过的实施方案",
+   "nodeKey": "deliverable:D_SOLUTION",
+   "required": true,
+   "taskCode": "PLAN_SOLUTION",
+   "stageCode": "S3",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_SOLUTION_CHECK",
+   "name": "配置检查与审核/复审记录",
+   "nodeKey": "deliverable:D_SOLUTION_CHECK",
+   "required": false,
+   "taskCode": "PLAN_SOLUTION",
+   "stageCode": "S3",
+   "configuration": {
+    "scope": "TASK",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_ARRIVAL",
+   "name": "到货签收单（直签）",
+   "nodeKey": "deliverable:D_ARRIVAL",
+   "required": false,
+   "taskCode": "DEPLOY_ARRIVAL",
+   "stageCode": "S4",
+   "configuration": {
+    "scope": "TASK",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_INSTALL",
+   "name": "硬件安装位置及实施记录",
+   "nodeKey": "deliverable:D_INSTALL",
+   "required": true,
+   "taskCode": "DEPLOY_HARDWARE",
+   "stageCode": "S4",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_CONFIGURATION",
+   "name": "启用功能与配置Log",
+   "nodeKey": "deliverable:D_CONFIGURATION",
+   "required": true,
+   "taskCode": "DEPLOY_CONFIG",
+   "stageCode": "S4",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_JOINT",
+   "name": "运行业务及联调记录",
+   "nodeKey": "deliverable:D_JOINT",
+   "required": true,
+   "taskCode": "DEPLOY_JOINT",
+   "stageCode": "S4",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_INITIAL",
+   "name": "初验报告及验收单（直签）",
+   "nodeKey": "deliverable:D_INITIAL",
+   "required": false,
+   "taskCode": "ACCEPT_INITIAL",
+   "stageCode": "S5",
+   "configuration": {
+    "scope": "TASK",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "automaticSources": [
+     "ACC.PRELIMINARY_REPORT"
+    ],
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_FINAL",
+   "name": "终验报告及验收单",
+   "nodeKey": "deliverable:D_FINAL",
+   "required": false,
+   "taskCode": "ACCEPT_FINAL",
+   "stageCode": "S5",
+   "configuration": {
+    "scope": "TASK",
+    "required": false,
+    "outputType": "FILE",
+    "allowedSources": [
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "automaticSources": [
+     "ACC.FINAL_REPORT"
+    ],
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_TRAINING",
+   "name": "现场培训记录",
+   "nodeKey": "deliverable:D_TRAINING",
+   "required": true,
+   "taskCode": "ACCEPT_TRAINING",
+   "stageCode": "S5",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "UPLOAD",
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  },
+  {
+   "code": "D_SATISFACTION",
+   "name": "满意度调查有效结果",
+   "nodeKey": "deliverable:D_SATISFACTION",
+   "required": true,
+   "taskCode": "ACCEPT_SATISFACTION",
+   "stageCode": "S5",
+   "configuration": {
+    "scope": "TASK",
+    "required": true,
+    "outputType": "FILE",
+    "allowedSources": [
+     "BUSINESS_RESULT"
+    ],
+    "deliverableType": "DOCUMENT",
+    "minimumQuantity": 1,
+    "automaticSources": [
+     "ACC.SATISFACTION_DOCUMENT"
+    ],
+    "confirmationRule": {
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   }
+  }
+ ],
+ "rulePrograms": {
+  "S1_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\"),pmsRulePredicate.tag(\"condition2\"),pmsRulePredicate.tag(\"condition3\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "PRE_SURVEY"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "PRE_REQUIREMENT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[2]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "PRE_DURATION"
+     }
+    },
+    {
+     "key": "condition3",
+     "path": "rule.rules[3]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "PRE_CONTACT"
+     }
+    }
+   ]
+  },
+  "S2_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "PLAN_CONSTRUCTION"
+     }
+    }
+   ]
+  },
+  "S3_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "PLAN_SOLUTION"
+     }
+    }
+   ]
+  },
+  "S4_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),OR(pmsRuleField.tag(\"condition1\"),AND(pmsRuleField.tag(\"condition2\"),pmsRulePredicate.tag(\"condition3\"))),pmsRulePredicate.tag(\"condition4\"),pmsRulePredicate.tag(\"condition5\"),pmsRulePredicate.tag(\"condition6\"),pmsRulePredicate.tag(\"condition7\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "CHANNEL_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[1].rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition3",
+     "path": "rule.rules[1].rules[1].rules[1]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_ARRIVAL"
+     }
+    },
+    {
+     "key": "condition4",
+     "path": "rule.rules[2]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_HARDWARE"
+     }
+    },
+    {
+     "key": "condition5",
+     "path": "rule.rules[3]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_CONFIG"
+     }
+    },
+    {
+     "key": "condition6",
+     "path": "rule.rules[4]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_JOINT"
+     }
+    },
+    {
+     "key": "condition7",
+     "path": "rule.rules[5]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_CUTOVER"
+     }
+    }
+   ]
+  },
+  "S5_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),OR(pmsRuleField.tag(\"condition1\"),AND(pmsRuleField.tag(\"condition2\"),pmsRulePredicate.tag(\"condition3\"))),OR(pmsRuleField.tag(\"condition4\"),AND(pmsRuleField.tag(\"condition5\"),pmsRulePredicate.tag(\"condition6\"))),pmsRulePredicate.tag(\"condition7\"),pmsRulePredicate.tag(\"condition8\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "CHANNEL_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[1].rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition3",
+     "path": "rule.rules[1].rules[1].rules[1]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_INITIAL"
+     }
+    },
+    {
+     "key": "condition4",
+     "path": "rule.rules[2].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "CHANNEL_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition5",
+     "path": "rule.rules[2].rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition6",
+     "path": "rule.rules[2].rules[1].rules[1]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_FINAL"
+     }
+    },
+    {
+     "key": "condition7",
+     "path": "rule.rules[3]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_TRAINING"
+     }
+    },
+    {
+     "key": "condition8",
+     "path": "rule.rules[4]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_SATISFACTION"
+     }
+    }
+   ]
+  },
+  "S1_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S0_COMPLETED"
+     }
+    }
+   ]
+  },
+  "S2_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S1_COMPLETED"
+     }
+    }
+   ]
+  },
+  "S3_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S1_COMPLETED"
+     }
+    }
+   ]
+  },
+  "S4_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S2_COMPLETED"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S3_COMPLETED"
+     }
+    }
+   ]
+  },
+  "S5_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S4_COMPLETED"
+     }
+    }
+   ]
+  },
+  "PRE_SURVEY_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "SURVEY_CONFIRMED",
+      "quantifier": "ALL"
+     }
+    }
+   ]
+  },
+  "PRE_CONTACT_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_END_USER"
+     }
+    }
+   ]
+  },
+  "ACCEPT_FINAL_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "FINAL_ACCEPTANCE_PASSED",
+      "quantifier": "ALL"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_FINAL"
+     }
+    }
+   ]
+  },
+  "DEPLOY_JOINT_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_JOINT"
+     }
+    }
+   ]
+  },
+  "PRE_DURATION_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "DURATION_EFFECTIVE",
+      "quantifier": "ALL"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_INTERFACE"
+     }
+    }
+   ]
+  },
+  "ACCEPT_FINAL_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRuleField.tag(\"condition1\"),pmsRulePredicate.tag(\"condition2\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[2]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_INITIAL"
+     }
+    }
+   ]
+  },
+  "DEPLOY_CONFIG_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_CONFIGURATION"
+     }
+    }
+   ]
+  },
+  "DEPLOY_JOINT_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_CONFIG"
+     }
+    }
+   ]
+  },
+  "$gate:gate:S1_ENTRY": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S0_COMPLETED"
+     }
+    }
+   ]
+  },
+  "$gate:gate:S2_ENTRY": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S1_COMPLETED"
+     }
+    }
+   ]
+  },
+  "$gate:gate:S3_ENTRY": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S1_COMPLETED"
+     }
+    }
+   ]
+  },
+  "$gate:gate:S4_ENTRY": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S2_COMPLETED"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S3_COMPLETED"
+     }
+    }
+   ]
+  },
+  "$gate:gate:S5_ENTRY": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "STATE",
+     "parameters": {
+      "refCode": "S4_COMPLETED"
+     }
+    }
+   ]
+  },
+  "ACCEPT_INITIAL_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "PRELIMINARY_ACCEPTANCE_PASSED",
+      "quantifier": "ALL"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_INITIAL"
+     }
+    }
+   ]
+  },
+  "DEPLOY_ARRIVAL_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_ARRIVAL"
+     }
+    }
+   ]
+  },
+  "DEPLOY_CONFIG_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_HARDWARE"
+     }
+    }
+   ]
+  },
+  "DEPLOY_CUTOVER_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "CONSTANT",
+     "parameters": {
+      "value": true
+     }
+    }
+   ]
+  },
+  "ACCEPT_INITIAL_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRuleField.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    }
+   ]
+  },
+  "ACCEPT_TRAINING_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_TRAINING"
+     }
+    }
+   ]
+  },
+  "DEPLOY_ARRIVAL_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRuleField.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    }
+   ]
+  },
+  "DEPLOY_CUTOVER_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_JOINT"
+     }
+    }
+   ]
+  },
+  "DEPLOY_HARDWARE_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_INSTALL"
+     }
+    }
+   ]
+  },
+  "FLOW_ASSIGNMENT_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "PROJECT_ASSIGNMENT_COMPLETED",
+      "quantifier": "ALL"
+     }
+    }
+   ]
+  },
+  "PRE_REQUIREMENT_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "REQUIREMENT_ANALYSIS_COMPLETED",
+      "quantifier": "ALL"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_REQUIREMENT"
+     }
+    }
+   ]
+  },
+  "ACCEPT_TRAINING_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),OR(pmsRuleField.tag(\"condition1\"),AND(pmsRuleField.tag(\"condition2\"),pmsRulePredicate.tag(\"condition3\")))),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "CHANNEL_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[1].rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition3",
+     "path": "rule.rules[1].rules[1].rules[1]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_FINAL"
+     }
+    }
+   ]
+  },
+  "DEPLOY_HARDWARE_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),OR(pmsRuleField.tag(\"condition1\"),AND(pmsRuleField.tag(\"condition2\"),pmsRulePredicate.tag(\"condition3\")))),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_COORDINATE"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "CHANNEL_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[1].rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "DIRECT_SIGN",
+      "operator": "=",
+      "fieldCode": "project.signingMethod",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition3",
+     "path": "rule.rules[1].rules[1].rules[1]",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "DEPLOY_ARRIVAL"
+     }
+    }
+   ]
+  },
+  "ACCEPT_COORDINATE_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    }
+   ]
+  },
+  "DEPLOY_COORDINATE_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK_NATIVE_STATUS",
+     "parameters": {
+      "requiredStatus": "DONE"
+     }
+    }
+   ]
+  },
+  "PLAN_CONSTRUCTION_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "CONSTRUCTION_PLAN_APPROVED",
+      "quantifier": "ALL"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_CONSTRUCTION_PLAN"
+     }
+    }
+   ]
+  },
+  "ACCEPT_SATISFACTION_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_SATISFACTION"
+     }
+    }
+   ]
+  },
+  "ACCEPT_SATISFACTION_ENTER": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRulePredicate.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "TASK",
+     "parameters": {
+      "refCode": "ACCEPT_TRAINING"
+     }
+    }
+   ]
+  },
+  "PLAN_SOLUTION_APPROVAL_DONE": {
+   "el": "THEN(pmsRulePrepare,IF(AND(pmsRulePredicate.tag(\"condition0\"),pmsRulePredicate.tag(\"condition1\")),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "BUSINESS_FACT",
+     "parameters": {
+      "factCode": "IMPLEMENTATION_SOLUTION_APPROVED",
+      "quantifier": "ALL"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1]",
+     "predicate": "DELIVERABLE",
+     "parameters": {
+      "refCode": "D_SOLUTION"
+     }
+    }
+   ]
+  },
+  "SOLUTION_MAJOR_REVIEW_REQUIRED": {
+   "el": "THEN(pmsRulePrepare,IF(pmsRuleField.tag(\"condition0\"),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": [
+       "办事处级重大项目",
+       "市场部级重大项目",
+       "公司级重大项目"
+      ],
+      "operator": "in",
+      "fieldCode": "project.majorProjectLevel",
+      "valueType": "TEXT"
+     }
+    }
+   ]
+  },
+  "SOLUTION_ORDINARY_REVIEW_ALLOWED": {
+   "el": "THEN(pmsRulePrepare,IF(OR(pmsRuleField.tag(\"condition0\"),AND(pmsRuleField.tag(\"condition1\"),NOT(pmsRuleField.tag(\"condition2\")))),pmsRuleMatched,pmsRuleNotMatched));",
+   "kind": "CONDITION",
+   "leaves": [
+    {
+     "key": "condition0",
+     "path": "rule.rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "operator": "null",
+      "fieldCode": "project.majorProjectLevel",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition1",
+     "path": "rule.rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": "",
+      "operator": "!=",
+      "fieldCode": "project.majorProjectLevel",
+      "valueType": "TEXT"
+     }
+    },
+    {
+     "key": "condition2",
+     "path": "rule.rules[1].rules[1].rules[0]",
+     "predicate": "FIELD",
+     "parameters": {
+      "value": [
+       "办事处级重大项目",
+       "市场部级重大项目",
+       "公司级重大项目"
+      ],
+      "operator": "in",
+      "fieldCode": "project.majorProjectLevel",
+      "valueType": "TEXT"
+     }
+    }
+   ]
+  }
+ },
+ "compilerVersion": "template-version-3",
+ "executionSchemaVersion": 3
+}

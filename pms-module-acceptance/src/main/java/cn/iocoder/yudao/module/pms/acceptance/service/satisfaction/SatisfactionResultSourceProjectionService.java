@@ -120,7 +120,9 @@ public class SatisfactionResultSourceProjectionService {
                                      ProjectDeliverableSourceVersionDO current) {
         if (current == null) return true;
         if (!"SatisfactionResult".equals(current.getSourceObjectType())) {
-            throw new IllegalStateException("SATISFACTION_SOURCE_TYPE_CONFLICT");
+            // 与文档收集侧语义对齐：其他证据来源已占据 CURRENT 时让位，仅落库为历史版本，
+            // 避免两个自动投影因调度先后不同而互抛冲突、outbox 无限重试。
+            return false;
         }
         if (current.getSourceVersion() > event.resultVersion()) return false;
         if (Objects.equals(current.getSourceVersion(), event.resultVersion())) {

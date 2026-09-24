@@ -9,7 +9,7 @@ import java.util.Set;
 public class TrainingConfirmationFormPolicy implements DynamicFormBusinessObjectPolicyProvider {
     public static final DynamicFormProviderKey KEY = new DynamicFormProviderKey("IMP", "TRAINING_CONFIRMATION");
     public static final String USAGE = "TRAINING_CUSTOMER_CONFIRMATION";
-    private static final Set<String> REQUIRED = Set.of("skillRating", "effectRating", "satisfactionRating", "signConfirmerName", "signatureImageDataUrl");
+    private static final Set<String> REQUIRED = Set.of("skillRating", "effectRating", "satisfactionRating", "signatureImageDataUrl");
     @Override public DynamicFormProviderKey providerKey() { return KEY; }
     @Override public DynamicFormPolicyFact inspectRevisionCompatibility(DynamicFormRevisionPolicyQuery query) {
         boolean allowed = query != null && USAGE.equals(query.requiredUsage()) && REQUIRED.stream().allMatch(

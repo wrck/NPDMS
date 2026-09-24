@@ -1,0 +1,27 @@
+﻿{
+    "capturedAt":  "2026-09-24",
+    "title":  "满意度答卷行证据（回应 README 答卷细节的证据支撑）",
+    "responseRow":  [
+                        {
+                            "id":  "2102823061784588290",
+                            "submit_channel":  "ASSISTED",
+                            "customer_contact_ref":  "客户机房管理员-李雷",
+                            "assisted_by_user_id":  "1",
+                            "submitted_at":  "2026-09-24 02:11:01.660",
+                            "creator":  "1"
+                        }
+                    ],
+    "sourceAttachments":  [
+                              {
+                                  "file_artifact_id":  "2102823064183730178",
+                                  "file_version_no":  "1",
+                                  "reference_key":  "satisfaction-result-2102823061784588290"
+                              },
+                              {
+                                  "file_artifact_id":  "2102823062271127554",
+                                  "file_version_no":  "1",
+                                  "reference_key":  "af:2102823061784588290:1:rev7-s5sat-op-3-1790187061"
+                              }
+                          ],
+    "note":  "submit_channel=ASSISTED（项目侧代客户录入，assisted_by_user_id=1），customer_contact_ref 为客户联系人引用。来源版本共两个附件文件（结果文档与代答留痕文件），引用键见 sourceAttachments；签字图与结果文档的文件身份复核口径见 README「S5 满意度链与两处修复」。"
+}

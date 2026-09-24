@@ -68,4 +68,36 @@ class ProjectDeliverableOwnerSourcesTest {
         result.setPassed(false); assertFalse(service.revalidate(root, source).valid());
         result.setPassed(true); result.setResultStatus("INVALIDATED"); assertFalse(service.revalidate(root, source).valid());
     }
+
+    @Test void satisfactionSignatureFileValidatesUnderItsOriginalResponseReference() {
+        source.setSourceObjectType("SatisfactionResult");
+        var result = new SatisfactionResultDO(); result.setId(55L); result.setTenantId(7L); result.setCollectionTaskId(60L);
+        result.setResultVersion(1); result.setResultStatus("EFFECTIVE"); result.setPassed(true); result.setResponseId(90L);
+        var task = new SatisfactionCollectionTaskDO(); task.setId(60L); task.setTenantId(7L); task.setProjectId(9L); task.setDeliverableId(31L); task.setResultId(55L);
+        when(results.selectById(55L)).thenReturn(result); when(results.selectByIdForUpdate(7L, 55L)).thenReturn(result);
+        when(tasks.selectByIdForUpdate(7L, 60L)).thenReturn(task);
+        var signature = new ProjectDeliverableSourceAttachmentDO(); signature.setFileArtifactId(41L); signature.setFileVersionNo(1);
+        signature.setReferenceKey("sig-slot"); signature.setFileHash("b".repeat(64));
+        when(attachments.selectBySourceVersion(88L)).thenReturn(List.of(signature));
+        // The signature never lives under the result document purpose; its active reference is the response signature set.
+        when(files.lockAndRevalidate(new FileEvidenceApi.Query(7L, 41L, 1, "ACC", "SATISFACTION_RESULT", "55",
+                "SATISFACTION_RESULT_DOCUMENT", "sig-slot", "b".repeat(64))))
+                .thenReturn(new FileEvidenceApi.Fact(false, "FILE_EVIDENCE_UNAVAILABLE", 1, 0, null));
+        when(files.lockAndRevalidate(new FileEvidenceApi.Query(7L, 41L, 1, "ACC", "SATISFACTION_RESPONSE", "90",
+                "SATISFACTION_SIGNATURE", "sig-slot", "b".repeat(64))))
+                .thenReturn(new FileEvidenceApi.Fact(true, "FILE_EVIDENCE_VALID", 1, 0, 0));
+        assertTrue(service.revalidate(root, source).valid());
+    }
+
+    @Test void satisfactionResultDocumentStillValidatesUnderTheResultReference() {
+        source.setSourceObjectType("SatisfactionResult");
+        var result = new SatisfactionResultDO(); result.setId(55L); result.setTenantId(7L); result.setCollectionTaskId(60L);
+        result.setResultVersion(1); result.setResultStatus("EFFECTIVE"); result.setPassed(true); result.setResponseId(90L);
+        var task = new SatisfactionCollectionTaskDO(); task.setId(60L); task.setTenantId(7L); task.setProjectId(9L); task.setDeliverableId(31L); task.setResultId(55L);
+        when(results.selectById(55L)).thenReturn(result); when(results.selectByIdForUpdate(7L, 55L)).thenReturn(result);
+        when(tasks.selectByIdForUpdate(7L, 60L)).thenReturn(task);
+        assertTrue(service.revalidate(root, source).valid());
+        verify(files).lockAndRevalidate(new FileEvidenceApi.Query(7L, 40L, 1, "ACC", "SATISFACTION_RESULT", "55",
+                "SATISFACTION_RESULT_DOCUMENT", "report-slot", "a".repeat(64)));
+    }
 }
