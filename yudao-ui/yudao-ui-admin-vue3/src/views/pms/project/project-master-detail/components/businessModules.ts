@@ -6,7 +6,6 @@
 // 满意度导航项 key 'satisfaction' 直接接既有满意度工作台页签（模板/任务/结果一体），不另设结果面板。
 import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
 import * as BriefingApi from '@/api/pms/engineering/briefing'
-import * as ResourceApi from '@/api/pms/engineering/resource'
 import * as ScheduleBackwardApi from '@/api/pms/engineering/schedule-backward'
 import * as AcceptanceReportApi from '@/api/pms/acceptance/acceptance-report'
 import * as DeliverableCheckApi from '@/api/pms/acceptance/deliverable-checklist'
@@ -46,9 +45,9 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
     title: '制定施工计划',
     items: [
       // 项目工期(3.1)/阶段施工计划(3.2)/工期倒排(3.4)为同一完整功能（基于项目阶段和任务），
-      // 由 index.vue 的 ProjectSchedulePanel 整合承接；资源就绪(3.3)独立
-      { key: 'schedule', label: '施工计划', icon: 'ep:calendar', code: '3.1-3.4' },
-      { key: 'resource', label: '资源就绪', icon: 'ep:box', code: '3.3' }
+      // 由 index.vue 的 ProjectSchedulePanel 整合承接；资源就绪(3.3)按界面整治决策隐藏
+      // （3.3 独立菜单 19012 同步 visible=0 隐藏，模块面板配置与 API 保留，随决策恢复）
+      { key: 'schedule', label: '施工计划', icon: 'ep:calendar', code: '3.1-3.4' }
     ]
   },
   {
@@ -130,27 +129,8 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     ]
   },
   // --- 方案计划 ---
-  resource: {
-    label: '资源就绪',
-    icon: 'ep:box',
-    load: (pid, pageNo, pageSize) => ResourceApi.getResourceReadyPage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => ResourceApi.createResourceReady(data),
-    update: (data) => ResourceApi.updateResourceReady(data),
-    delete: (id) => ResourceApi.deleteResourceReady(id),
-    columns: [
-      { prop: 'name', label: '资源名称', minWidth: 180 },
-      { prop: 'resourceType', label: '类型', width: 100 },
-      { prop: 'quantity', label: '数量', width: 80 },
-      { prop: 'readyStatus', label: '就绪状态', width: 100, type: 'status' }
-    ],
-    statusField: 'readyStatus',
-    statusMap: { 0: { label: '未就绪', tone: 'gray' }, 1: { label: '已就绪', tone: 'green' }, 2: { label: '异常', tone: 'red' } },
-    actions: [
-      { label: '标记就绪', type: 'success', show: (r) => r.readyStatus === 0, run: (r) => ResourceApi.markReady(r.id), confirm: '标记该资源为已就绪？' },
-      { label: '标记异常', type: 'danger', show: (r) => r.readyStatus === 0 || r.readyStatus === 1, run: (r) => ResourceApi.markAbnormal(r.id), confirm: '标记该资源为异常？' },
-      { label: '重置', type: 'info', show: (r) => r.readyStatus === 2, run: (r) => ResourceApi.resetToNotReady(r.id), confirm: '重置为未就绪？' }
-    ]
-  },
+  // 资源就绪(3.3)模块面板随界面整治决策隐藏：导航项已移除，本配置暂无消费方；
+  // ResourceApi（getResourceReadyPage/markReady/markAbnormal/resetToNotReady）保留，恢复时回填本配置。
   'schedule-backward': {
     label: '历史工期倒排',
     icon: 'ep:timer',
