@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
-import EquipmentTag from './index.vue'
+import DeviceTag from './index.vue'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
@@ -11,7 +11,7 @@ beforeEach(() => vi.clearAllMocks())
 it('preserves a long string identifier when querying and displaying the device', async () => {
   const id = '970000000000090104'
   vi.mocked(DeviceArchiveApi.getDeviceArchiveRecord).mockResolvedValue({ name: '测试设备' })
-  const mounted = mount(EquipmentTag, { equipmentId: id })
+  const mounted = mount(DeviceTag, { deviceId: id })
   try {
     await flush()
     expect(DeviceArchiveApi.getDeviceArchiveRecord).toHaveBeenCalledWith(id)
@@ -24,7 +24,7 @@ it('does not let an old row response replace the newly selected device name', as
   vi.mocked(DeviceArchiveApi.getDeviceArchiveRecord).mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
     .mockResolvedValueOnce({ name: '当前设备' })
   const selected = ref<number | string>('970000000000090104')
-  const wrapper = defineComponent({ setup: () => () => h(EquipmentTag, { equipmentId: selected.value }) })
+  const wrapper = defineComponent({ setup: () => () => h(DeviceTag, { deviceId: selected.value }) })
   const mounted = mount(wrapper)
   try {
     selected.value = 1001

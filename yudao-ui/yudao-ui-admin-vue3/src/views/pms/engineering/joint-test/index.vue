@@ -36,7 +36,7 @@
       <el-table-column prop="testCase" label="联调用例" min-width="200" show-overflow-tooltip><template #default="{ row }"><div v-dompurify-html="row.testCase" class="max-h-60px overflow-hidden"></div></template></el-table-column>
       <el-table-column prop="equipmentId" label="设备编号" width="100">
         <template #default="{ row }">
-          <EquipmentTag :equipment-id="row.equipmentId" />
+          <DeviceTag :device-id="row.equipmentId" />
         </template>
       </el-table-column>
       <el-table-column prop="testTime" label="联调时间" width="160" :formatter="dateFormatter" />
@@ -229,7 +229,7 @@ import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import CollectionDialog from '@/components/DeviceCollection/CollectionDialog.vue'
 import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
+import DeviceTag from '@/components/DeviceTag/index.vue'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 

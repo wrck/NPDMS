@@ -19,7 +19,7 @@ const imageStub = defineComponent({ setup(_, { attrs }) { return () => h('photo'
 const nodes = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap(child => nodes(child, type))]
 const flush = async () => { for (let i = 0; i < 5; i++) await nextTick() }
 const render = () => {
-  const mounted = mount(Installation, {}, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElInput: passthrough, ElDatePicker: passthrough, ElSelect: passthrough, ElOption: passthrough, PmsEntitySelect: passthrough, PmsLocationSelector: passthrough, EquipmentTag: passthrough, Editor: editorStub, UploadImg: imageStub })
+  const mounted = mount(Installation, {}, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElInput: passthrough, ElDatePicker: passthrough, ElSelect: passthrough, ElOption: passthrough, PmsEntitySelect: passthrough, PmsLocationSelector: passthrough, DeviceTag: passthrough, Editor: editorStub, UploadImg: imageStub })
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
 const completed = { id: 8, projectId: 1, code: 'INS-COMPLETE', status: 2, version: 3, siteId: 20, siteVersion: 1, siteLocationId: 30, siteLocationVersion: 2, locationResolutionStatus: 'RESOLVED', photoUrl: 'historical-photo' }

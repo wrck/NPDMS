@@ -42,7 +42,7 @@
     <el-table v-loading="loading" :data="rows" empty-text="暂无设备配置日志数据">
       <el-table-column prop="deviceId" label="设备编号" width="110">
         <template #default="{ row }">
-          <EquipmentTag :equipment-id="row.deviceId" />
+          <DeviceTag :device-id="row.deviceId" />
         </template>
       </el-table-column>
       <el-table-column prop="configType" label="配置类型" min-width="140" />
@@ -82,7 +82,7 @@ import type { DeviceConfigLogVO } from '@/api/pms/asset/device/archive'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import * as DeviceApi from '@/api/pms/asset/device'
 import * as ProjectApi from '@/api/pms/project/projects'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
+import DeviceTag from '@/components/DeviceTag/index.vue'
 
 defineOptions({ name: 'PmsAssetDeviceConfigLog' })
 const props = defineProps<{ projectId?: number; /** 外部跳入时预置的设备过滤（如 1.1.1 序列号详情行 → 配置Log） */ initialDeviceId?: number }>()

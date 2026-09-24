@@ -7,7 +7,9 @@ import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/plat
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
-vi.mock('@/components/EquipmentTag/index.vue', () => ({ default: { render: () => null } }))
+// BusinessCollectionLogs 的设备采集 API 导入链会在导入期访问 window，按 API 模块边界 mock
+vi.mock('@/api/pms/platform/deviceCollection', () => ({ context: vi.fn(), page: vi.fn(), findByRequestKey: vi.fn() }))
+vi.mock('@/components/DeviceTag/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: vi.fn(), createConfiguration: vi.fn(), updateConfiguration: vi.fn(), deleteConfiguration: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_ENG_STATUS: 'configuration' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), delConfirm: vi.fn() }) }))

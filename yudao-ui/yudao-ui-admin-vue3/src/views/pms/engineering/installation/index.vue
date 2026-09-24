@@ -34,7 +34,7 @@
     <el-table v-loading="loading" :data="rows">
       <el-table-column prop="equipmentId" label="设备编号" width="100">
         <template #default="{ row }">
-          <EquipmentTag :equipment-id="row.equipmentId" />
+          <DeviceTag :device-id="row.equipmentId" />
         </template>
       </el-table-column>
       <el-table-column
