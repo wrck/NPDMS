@@ -79,6 +79,9 @@ public class ProjectRuleOutboxDeliveryJob implements JobHandler {
         try {
             if (completed) outbox.markDelivered(message.eventId(), message.retryCount());
             else {
+                // Silent UNKNOWN retries are unobservable without this line; keep event id for cross-instance diagnosis.
+                log.warn("Outbox delivery returned not-completed: tenant={}, event={}, type={}, retryCount={}",
+                        message.tenantId(), message.eventId(), message.eventType(), message.retryCount());
                 long delay = Math.min(60, 1L << Math.min(Math.max(message.retryCount(), 0), 6));
                 outbox.scheduleRetry(message.eventId(), message.retryCount(), now.plusMinutes(delay));
             }

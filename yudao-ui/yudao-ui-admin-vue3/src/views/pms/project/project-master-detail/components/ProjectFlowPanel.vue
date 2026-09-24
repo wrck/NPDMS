@@ -254,16 +254,25 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           </p>
         </div>
       </el-alert>
-      <el-alert
-        v-else-if="workbench?.bindingType === 'PAGE'"
-        type="info"
-        :closable="false"
-        show-icon
-        title="本任务通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，完成仍按任务状态机与冻结规则判定。"
-      >
-        <el-button type="primary" size="small" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
-        <span v-if="workbench?.trustedTargetRef" class="page-route">{{ workbench.trustedTargetRef }}</span>
-      </el-alert>
+      <template v-else-if="workbench?.bindingType === 'PAGE'">
+        <template v-if="pageEmbed">
+          <div class="page-embed-head">
+            <span class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</span>
+            <el-button size="small" :disabled="!pageEmbed" @click="reload">刷新工作区</el-button>
+          </div>
+          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" />
+        </template>
+        <el-alert
+          v-else
+          type="info"
+          :closable="false"
+          show-icon
+          title="本任务通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，完成仍按任务状态机与冻结规则判定。"
+        >
+          <el-button type="primary" size="small" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
+          <span v-if="workbench?.trustedTargetRef" class="page-route">{{ workbench.trustedTargetRef }}</span>
+        </el-alert>
+      </template>
       <el-alert
         v-else
         type="info"
@@ -278,6 +287,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import type { Component } from 'vue'
 import { onBeforeRouteUpdate, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { DICT_TYPE } from '@/utils/dict'
@@ -300,6 +310,11 @@ import TaskMaintenancePanel from '@/views/pms/project/inheritance/wbs/TaskMainte
 import ProjectTaskDetailsEditor from './ProjectTaskDetailsEditor.vue'
 import ProjectDeliverableDialog from './ProjectDeliverableDialog.vue'
 import UserTag from '@/components/UserTag/index.vue'
+import ProjectArrivalReceiptPanel from './ProjectArrivalReceiptPanel.vue'
+import InstallationWorkbench from '@/views/pms/engineering/installation/index.vue'
+import ConfigurationWorkbench from '@/views/pms/engineering/configuration/index.vue'
+import JointTestWorkbench from '@/views/pms/engineering/joint-test/index.vue'
+import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
 
 defineOptions({ name: 'ProjectFlowPanel' })
 
@@ -400,6 +415,21 @@ const businessBound = computed(() =>
 )
 const router = useRouter()
 const openTaskPage = () => { const route = workbench.value?.trustedTargetRef; if (route) void router.push(route) }
+
+// PAGE 绑定任务的内嵌业务组件：key 为模板冻结的 routePath（trustedTargetRef）。
+// 业务操作直接在任务工作区完成，不再跳离当前界面；未映射的 routePath 保留「打开页面」跳转兜底。
+const pageEmbedComponents: Record<string, Component> = {
+  '/pms/engineering/execution/imp-arrival': ProjectArrivalReceiptPanel,
+  '/pms/engineering/execution/imp-installation': InstallationWorkbench,
+  '/pms/engineering/execution/imp-configuration': ConfigurationWorkbench,
+  '/pms/engineering/execution/imp-joint-test': JointTestWorkbench,
+  '/pms/imp-training': TrainingWorkbench
+}
+const pageEmbed = computed(() =>
+  workbench.value?.bindingType === 'PAGE'
+    ? pageEmbedComponents[workbench.value.trustedTargetRef || '']
+    : undefined
+)
 
 const loadWorkspace = async (token: number) => {
   const result = await TaskWorkbenchApi.getProjectWorkspace(props.projectId)
@@ -626,6 +656,20 @@ onBeforeUnmount(() => {
   margin-left: 12px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* PAGE 绑定内嵌工作区：提示行 + 刷新按钮，业务组件占满面板宽度 */
+.page-embed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+
+.page-embed-hint {
+  font-size: 12.5px;
   color: var(--el-text-color-secondary);
 }
 .subscription-type {

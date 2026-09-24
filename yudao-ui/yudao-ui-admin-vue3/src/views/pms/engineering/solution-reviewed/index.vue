@@ -283,7 +283,8 @@ watch(formVisible, visible => { if (!visible) ++detailSequence })
 onBeforeUnmount(() => { ++detailSequence })
 const save = async () => {
   if (readOnly.value) return
-  await formRef.value.validate()
+  // 校验拒绝留在表单内提示；逃逸会进入业务视图错误边界，整块组件被替换成不可用回退。
+  try { await formRef.value.validate() } catch { return }
   saving.value = true
   try {
     form.value.id ? await SolutionApi.updateSolution(form.value) : await SolutionApi.createSolution(form.value)
@@ -297,7 +298,7 @@ const save = async () => {
 // Demo 4.1 提交审核：保存后提交，服务经理进行审核，重大项目自动推送总部复审
 const submitReview = async () => {
   if (readOnly.value) return
-  await formRef.value.validate()
+  try { await formRef.value.validate() } catch { return }
   saving.value = true
   try {
     if (!form.value.id) form.value.id = (await SolutionApi.createSolution(form.value)) as unknown as number

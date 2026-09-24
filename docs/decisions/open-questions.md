@@ -1108,3 +1108,52 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Business decision required: 是（归属语义）；技术让位行为已按需求方本轮确认完成。
 - Decision owner: 需求方；ACC Owner、PM 交付件 Owner 参与影响分析
 - Decision date: 2026-09-24 登记
+
+### Q-TPL-FLOW-20260922-006 — RA 有效版是否应自动满足 D_REQUIREMENT 交付件
+
+- Status: OPEN（运行链路已实证为设计内可用路径，非缺陷；模板语义是否调整待需求方裁决）
+- Requirement IDs: PM-03 / F-PROJ-009（模板完成条件与交付件配置）；ACC-04（交付件满足链）
+- Area: rev9 模板 S1「需求分析」任务（PRE_REQUIREMENT）完成条件中 DELIVERABLE(D_REQUIREMENT) 的自动满足来源
+- Question: 需求方 2026-09-24 报告"需求分析已 FROZEN effective=true，但任务 PRE_REQUIREMENT 仍 IN_PROGRESS、交付件 D_REQUIREMENT 仍 PENDING，有效版未自动关联交付件/任务结果"。rev9（revision 993009900014，项目 992203060035）冻结契约：PRE_REQUIREMENT 完成条件 = `BUSINESS_FACT(REQUIREMENT_ANALYSIS_COMPLETED, ALL)` **AND** `DELIVERABLE(D_REQUIREMENT)`；D_REQUIREMENT 的 automaticSources 仅 `SOL.REQUIREMENT_DOCUMENT`（RA 表单附件文档），RA 冻结产生的 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果不在自动归集范围内。是否应把"RA 有效版成立"配置为 D_REQUIREMENT 的自动满足来源，或调整任务完成条件？
+- Evidence（2026-09-24 浏览器实测，项目 992203060035）:
+  - 设计内路径已走通：任务抽屉「提交与查看」→ 材料来源「关联业务成果」→ 业务成果类型「需求分析成果」→ 有效成果唯一候选（业务对象 2102942473917259777 · 成果 2102942473917259778 · V1，即 RA 当前有效版）→ 提交材料。响应 `satisfied=true, reason=DELIVERABLE_RULE_SATISFIED`，D_REQUIREMENT `PENDING→ACCEPTED`（version 1），PRE_REQUIREMENT 经 reevaluate 异步自动 `IN_PROGRESS→DONE`，UI 复核任务节点"完成 100%"、交付件"已验收"。截图与回执见 `docs/generated/2026-09-22-visio-delivery-template/browser-closure/t177-*`。
+  - 后端 journal（通道 76 formation seq1 + 变更 seq2）、BusinessResultChannel outbox、交付件评估、任务重评链路均按设计工作，无投影缺陷。RA revision `execution_snapshot.execution=null`（创建时未带任务绑定）不影响 journal 按 projectId 路由的投影链路。
+- Options:
+  - A. 维持现状：RA 冻结不自动满足 D_REQUIREMENT，用户在任务抽屉关联业务成果或上传文件（当前 rev9 行为，已验证可用）。
+  - B. 修订模板：把 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果加入 D_REQUIREMENT 的 automaticSources（需模板配置能力支持业务成果类型自动归集，当前 automaticSources 仅支持文档类来源）。
+  - C. 修订模板：PRE_REQUIREMENT 完成条件去掉 `DELIVERABLE(D_REQUIREMENT)` 项，任务完成仅依赖业务事实。
+- Recommended technical default: 待需求方裁决。A 不动模板且路径可用；B/C 均为模板冻结语义变更，需新修订发布，且 rev9 已有项目（035）不换绑。
+- Business decision required: 是（模板语义是否调整）
+- Decision owner: 需求方；PROJ 模板 Owner、ACC 交付件 Owner 参与影响分析
+- Decision date: 2026-09-24 登记
+
+### Q-TPL-FLOW-20260922-007 — PRE_CONTACT 页面路由指向项目列表页，无法承接任务业务办理
+
+- Status: OPEN（模板配置错误，rev9 冻结值；修正需模板修订发布）
+- Requirement IDs: F-PROJ-009（模板任务定义）；PM-01（任务工作区 PAGE 绑定）
+- Area: rev9 模板 S1「客户需求沟通」任务（PRE_CONTACT）的 PAGE 绑定 routePath
+- Question: rev9 冻结的 PRE_CONTACT routePath 指向项目列表页而非工前业务页面（business_custom_create_path 同样指向项目列表），任务抽屉内嵌区无法落到实际业务界面，只能展示兜底提示。PAGE 路由应指向哪个工前业务工作台？
+- Evidence（2026-09-24 浏览器实测，项目 992203060035）:
+  - 任务抽屉渲染 PAGE 绑定兜底 alert（"本任务通过专用页面办理业务…"），显示 routePath 为项目列表页路径；内嵌映射表中无该路径对应组件。
+  - PRE_CONTACT 任务最终按 TASK_NATIVE 状态操作提交完成（模板完成条件未依赖该页面业务事实），闭环未受阻；但"业务在工作区直接办理"的产品规则在该任务上不可满足。
+- Options: A. 模板修订将 routePath 指向实际工前业务页面（需明确目标页面）；B. 改为 TASK_NATIVE 绑定（与当前实际完成方式一致）；C. 维持现状并在文档披露。
+- Recommended technical default: 待需求方裁决（A 需先明确工前业务目标页面；B 语义最简）。
+- Business decision required: 是（模板冻结语义变更）
+- Decision owner: 需求方；PROJ 模板 Owner 参与影响分析
+- Decision date: 2026-09-24 登记
+
+### Q-TPL-FLOW-20260922-008 — 验收报告嵌入视图缺 FILE_WRITE 动作，任务内附件上传永久禁用
+
+- Status: OPEN（前后端动作集契约不一致；嵌入路径无法完成附件上传，独立页面路径可用）
+- Requirement IDs: ACC-02（验收报告版本与附件）；PM-01（任务工作区业务内嵌）
+- Area: ACC_ACCEPTANCE_REPORT BusinessView 嵌入任务抽屉时的 allowedActions 与前端 canUpload 的契约
+- Question: `AcceptanceTaskBusinessObjectProvider` 明确注释 FILE_WRITE 不是 ACC 动作集成员（附件走 PLT 独立权限），而前端 `ReportDraftEditor.canUpload` 要求 allowedActions 含 FILE_WRITE——嵌入视图内「上传并绑定」按钮永久 disabled；报告发布条件又要求附件非空，导致任务内嵌路径只能改稿、无法补附件，必须跳到「初验&终验」独立面板（非嵌入 allowedActions 限制路径）完成。这是缺陷还是"嵌入视图只读、办理走独立入口"的设计意图？
+- Evidence（2026-09-24 浏览器实测，项目 992203060035）:
+  - 任务抽屉内嵌报告编辑器：创建草稿成功（UPDATE/PUBLISH 在动作集）、附件「上传并绑定」disabled（`canUpload=false`，FILE_WRITE 不在 ownerActions）。
+  - 同一活动在项目详情「初验&终验」独立面板：上传并绑定成功、发布成功（code=0），活动转 COMPLETED，D_INITIAL 自动归集 ACCEPTED。
+  - 后端 `AcceptanceTaskBusinessObjectProvider.java:217` 注释："FILE_WRITE is not an existing ACC action; PLT retains its separate upload/reference policy."
+- Options: A. 嵌入动作集补 FILE_WRITE（前端契约对齐，服务端仍按 PLT 权限校验）；B. 维持嵌入只读+独立入口办理（补文档与 UI 提示）；C. 前端嵌入视图隐藏上传区并提示"从独立入口上传"。
+- Recommended technical default: 待需求方裁决（A 体验最顺；B/C 均为披露现状）。
+- Business decision required: 是（嵌入视图能力边界）
+- Decision owner: 需求方；ACC Owner、前端 Owner 参与影响分析
+- Decision date: 2026-09-24 登记
