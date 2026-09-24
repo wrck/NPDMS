@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("cus_customer_contact")
 public class CustomerContactMasterDO extends TenantBaseDO {
-    @TableId private Long id;
+    @TableId(type = IdType.ASSIGN_ID) private Long id;
     private Long customerId;
     @TableField(exist=false) private String customerName;
     private String name;

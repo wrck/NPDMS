@@ -30,7 +30,6 @@ public class ProjectCustomerContactService {
     private final PlatformCommandExecutionApi commands;
     private final cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService customerQuery;
     private final cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService customerScopes;
-    private final ContactDictionaryPolicy dictionaryPolicy;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
@@ -92,7 +91,9 @@ public class ProjectCustomerContactService {
     }
 
     private ProjectCustomerContactDO createOnce(CustomerContactMasterService.Actor actor, ProjectContactContextApi.Context context, ProjectContactWrite command) {
-        requirePrimary(actor, command.projectId(), null, command.primary(), command.status());
+        var current = contacts.selectPrimaryForUpdate(new ProjectContactRowQuery(actor.tenantId(), command.projectId(), null));
+        boolean primary = command.primary() || (current == null && command.status() == 0);
+        if (primary) requireProjectPrimaryEnabled(command.status());
         CustomerContactMasterDO source;
         ContactValues values;
         if (command.sourceContactId() != null) {
@@ -101,10 +102,8 @@ public class ProjectCustomerContactService {
                 throw exception(CONTACT_VALUES_INVALID, "该来源已被项目引用，含停用或已删除记录；请维护原记录");
             }
             values = command.values() == null ? values(source) : normalize(command.values(), command.status());
-            dictionaryPolicy.validateChanges(values, values(source));
         } else {
             values = normalize(command.values(), command.status());
-            dictionaryPolicy.validateChanges(values, null);
             source = new CustomerContactMasterDO();
             source.setCustomerId(context.customerId()); source.setTenantId(actor.tenantId()); source.setVersion(0);
             source.setName(values.name()); source.setDepartment(values.department()); source.setTitle(values.title());
@@ -115,7 +114,8 @@ public class ProjectCustomerContactService {
             sources.insert(source);
             appendHistory(actor, source.getId(), null, null, "CREATE", null, source);
         }
-        return insertRelation(actor, command.projectId(), source, values, command.primary(), command.status());
+        if (primary) demotePrimary(actor, command.projectId(), current, null);
+        return insertRelation(actor, command.projectId(), source, values, primary, command.status());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -124,10 +124,12 @@ public class ProjectCustomerContactService {
         var existing = requireRow(actor, command.projectId(), command.contactId(), command.expectedVersion());
         if (!Objects.equals(existing.getCustomerId(), context.customerId())) throw exception(CONTACT_VALUES_INVALID, "联系人不属于项目当前客户");
         ContactValues values = normalize(command.values(), command.status());
-        dictionaryPolicy.validateChanges(values, new ContactValues(existing.getName(), existing.getDepartment(), existing.getTitle(),
-                existing.getMobile(), existing.getPhone(), existing.getEmail(), existing.getRoleCode(), existing.getRemark()));
         if (command.status() == 0 || command.primary()) requireSource(actor, context.customerId(), existing.getCustomerContactId());
-        requirePrimary(actor, command.projectId(), existing.getId(), command.primary(), command.status());
+        if (command.primary()) {
+            requireProjectPrimaryEnabled(command.status());
+            demotePrimary(actor, command.projectId(), contacts.selectPrimaryForUpdate(
+                    new ProjectContactRowQuery(actor.tenantId(), command.projectId(), null)), existing.getId());
+        }
         if (Boolean.TRUE.equals(existing.getPrimaryFlag()) && command.status() != 0) {
             try { ContactRules.requireRemovalAllowed(true, command.confirmNoPrimary()); }
             catch (IllegalArgumentException invalid) { throw exception(CONTACT_VALUES_INVALID, invalid.getMessage()); }
@@ -159,7 +161,7 @@ public class ProjectCustomerContactService {
         if (!Objects.equals(existing.getCustomerId(), context.customerId())) throw exception(CONTACT_VALUES_INVALID, "联系人不属于项目当前客户");
         if (status == 0) requireSource(actor, context.customerId(), existing.getCustomerContactId());
         normalize(new ContactValues(existing.getName(), existing.getDepartment(), existing.getTitle(), existing.getMobile(),
-                existing.getPhone(), existing.getEmail(), existing.getRoleCode(), existing.getRemark()), status);
+                existing.getPhone(), existing.getEmail(), existing.getRemark()), status);
         if (contacts.restoreByVersion(new ProjectContactRestoreCommand(actor.tenantId(), projectId, id, expectedVersion, actor.userId(), status)) != 1) throw exception(CONTACT_VERSION_CONFLICT);
         var restored = BeanUtils.toBean(existing, ProjectCustomerContactDO.class);
         restored.setDeleted(false); restored.setStatus(status); restored.setPrimaryFlag(false); restored.setPrimarySetTime(null);
@@ -192,11 +194,17 @@ public class ProjectCustomerContactService {
         return row;
     }
 
-    private void requirePrimary(CustomerContactMasterService.Actor actor, Long projectId, Long id, boolean primary, int status) {
-        if (!primary) return;
-        var current = contacts.selectPrimaryForUpdate(new ProjectContactRowQuery(actor.tenantId(), projectId, null));
-        try { ContactRules.requirePrimaryAllowed(status, primary, current == null ? null : current.getId(), id); }
+    private void requireProjectPrimaryEnabled(int status) {
+        try { ContactRules.requirePrimaryAllowed(status, true, null, null); }
         catch (IllegalArgumentException invalid) { throw exception(CONTACT_VALUES_INVALID, invalid.getMessage()); }
+    }
+
+    private void demotePrimary(CustomerContactMasterService.Actor actor, Long projectId, ProjectCustomerContactDO current, Long keepId) {
+        if (current == null || Objects.equals(current.getId(), keepId)) return;
+        var before = BeanUtils.toBean(current, ProjectCustomerContactDO.class);
+        current.setPrimaryFlag(false); current.setPrimarySetTime(null);
+        if (contacts.updateById(current) != 1) throw exception(CONTACT_VERSION_CONFLICT);
+        appendHistory(actor, current.getCustomerContactId(), projectId, current.getId(), "UPDATE", before, current);
     }
 
     private ProjectCustomerContactDO insertRelation(CustomerContactMasterService.Actor actor, Long projectId,
@@ -216,11 +224,11 @@ public class ProjectCustomerContactService {
         catch (IllegalArgumentException invalid) { throw exception(CONTACT_VALUES_INVALID, invalid.getMessage()); }
     }
     private ContactValues values(CustomerContactMasterDO source) {
-        return new ContactValues(source.getName(), source.getDepartment(), source.getTitle(), source.getMobile(), source.getPhone(), source.getEmail(), null, null);
+        return new ContactValues(source.getName(), source.getDepartment(), source.getTitle(), source.getMobile(), source.getPhone(), source.getEmail(), null);
     }
     private void apply(ProjectCustomerContactDO row, ContactValues values) {
         row.setName(values.name()); row.setDepartment(values.department()); row.setTitle(values.title()); row.setMobile(values.mobile());
-        row.setPhone(values.phone()); row.setEmail(values.email()); row.setRoleCode(values.roleCode()); row.setRemark(values.remark());
+        row.setPhone(values.phone()); row.setEmail(values.email()); row.setRemark(values.remark());
     }
     private void appendHistory(CustomerContactMasterService.Actor actor, Long sourceId, Long projectId, Long relationId, String action, Object before, Object after) {
         ContactHistoryDO entry = new ContactHistoryDO(); entry.setTenantId(actor.tenantId()); entry.setActorUserId(actor.userId());

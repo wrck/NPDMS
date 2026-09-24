@@ -21,7 +21,7 @@ public class ContactMasterSaveReqVO {
 
     public ContactMasterWrite command(Long contactId) {
         return new ContactMasterWrite(customerId, contactId, version,
-                new ContactValues(name, department, title, mobile, phone, email, null, remark),
+                new ContactValues(name, department, title, mobile, phone, email, remark),
                 Boolean.TRUE.equals(primaryFlag), status, false);
     }
 }

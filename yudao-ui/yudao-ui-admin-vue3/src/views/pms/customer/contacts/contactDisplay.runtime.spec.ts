@@ -10,7 +10,7 @@ vi.mock('@/api/pms/customer', () => ({ __v_isRef: false, getCustomer: vi.fn(), g
 vi.mock('@/utils/permission', () => ({ checkPermi: () => false }))
 vi.mock('@/utils/dict', () => ({
   getIntDictOptions: () => [],
-  getDictLabel: (type: string, value: string) => type === 'pms_customer_contact_role' && value === 'TEST_CUSTOMER_ROLE' ? '验收用客户联络角色' : ''
+  getDictLabel: (type: string, value: string) => type === 'pms_contact_title' && value === 'TEST_TITLE' ? '验收职务' : ''
 }))
 vi.mock('./ContactFields.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ContactHistoryDialog.vue', () => ({ default: { render: () => null } }))
@@ -31,11 +31,11 @@ const column = defineComponent({
 const components = { ElTable: table, ElTableColumn: column, ElInput: passthrough, ElSelect: passthrough, ElOption: passthrough, ElRadio: passthrough, ElRadioGroup: passthrough, PmsEntitySelect: passthrough, DictTag: passthrough }
 const flush = async () => { for (let i = 0; i < 16; i++) await nextTick() }
 const page = { list: [
-  { id: 1, customerId: 1001, customerName: '验收客户', name: '联系人甲', roleCode: 'TEST_CUSTOMER_ROLE', status: 0 },
-  { id: 2, customerId: 1001, customerName: '验收客户', name: '联系人乙', roleCode: '历史角色', status: 0 }
+  { id: 1, customerId: 1001, customerName: '验收客户', name: '联系人甲', title: 'TEST_TITLE', status: 0 },
+  { id: 2, customerId: 1001, customerName: '验收客户', name: '联系人乙', title: '历史职务', status: 0 }
 ], total: 2 }
 
-describe('contact customer identity and platform role display', () => {
+describe('contact customer identity and title display', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(ContactsApi.getMasterPage).mockResolvedValue(page as any)
@@ -65,11 +65,12 @@ describe('contact customer identity and platform role display', () => {
     } finally { mounted.app.unmount() }
   })
 
-  it('uses the platform customer-contact dictionary and preserves an unmapped historical value', async () => {
+  it('renders project-local contacts with raw title text and no separate role column', async () => {
     const mounted = mount(Contacts, { projectId: 7 }, components)
     try {
       await flush()
-      expect(textOf(mounted.root)).toContain('客户联系人角色验收用客户联络角色历史角色')
+      expect(textOf(mounted.root)).toContain('职务TEST_TITLE历史职务')
+      expect(textOf(mounted.root)).not.toContain('客户联系人角色')
     } finally { mounted.app.unmount() }
   })
 })
