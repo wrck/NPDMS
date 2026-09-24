@@ -156,6 +156,7 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_EXCH_CRM_NOT_CONNECTED = new ErrorCode(1_011_014_006, "CRM外部接口未接入，当前仅保留扩展入口，不执行推送");
     ErrorCode MATERIAL_EXCH_SERIAL_QUANTITY_INVALID = new ErrorCode(1_011_014_007, "换货数量必须与各勾选清单行换货数量之和一致");
     ErrorCode MATERIAL_EXCH_SCOPE_LINE_INVALID = new ErrorCode(1_011_014_008, "设备清单行无效或不属于当前项目");
+    ErrorCode MATERIAL_EXCH_PRODUCT_INVALID = new ErrorCode(1_011_014_009, "换货产品无效或已停用，请重新选择");
 
     // ========== 工程交底书 briefing 1-011-015-000 ==========
     ErrorCode BRIEFING_NOT_EXISTS = new ErrorCode(1_011_015_000, "工程交底书不存在");
@@ -232,6 +233,7 @@ public interface ErrorCodeConstants {
     ErrorCode DURATION_CHANGE_REASON_CONFIG_INVALID = new ErrorCode(1_011_023_009, "工期变更原因或客户依据配置无效");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE = new ErrorCode(1_011_023_010, "客户依据文件事实暂不可用");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_FORBIDDEN = new ErrorCode(1_011_023_011, "无权使用客户依据文件");
+    ErrorCode DURATION_CHANGE_EVIDENCE_REQUIRED = new ErrorCode(1_011_023_012, "该变更原因按规则仍需客户依据，请先上传附件后再提交");
 
     // ========== 工勘准备 preparation 1-011-024-000 ==========
     ErrorCode PREPARATION_NOT_EXISTS = new ErrorCode(1_011_024_000, "工勘准备不存在");

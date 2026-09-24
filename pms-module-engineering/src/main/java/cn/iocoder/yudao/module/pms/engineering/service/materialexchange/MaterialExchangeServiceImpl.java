@@ -206,21 +206,21 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         } else if (existing != null) {
             lines = resolveSavedLines(existing);
         } else {
-            lines = request.getEquipmentId() == null ? List.of()
-                    : List.of(new ExchangeLine(null, request.getEquipmentId()));
+            lines = request.getDeviceId() == null ? List.of()
+                    : List.of(new ExchangeLine(null, request.getDeviceId()));
         }
         // 1. 清单行与旧设备行分流校验归属；空集合筛选返回空结果
         var scopeRefs = lines.stream().map(line -> line.scopeRef).filter(Objects::nonNull).toList();
         Map<String, DeliveryScopeLineFact> factByRef = scopeLineFactApi
                 .validateSelection(request.getProjectId(), scopeRefs).stream()
                 .collect(Collectors.toMap(MaterialExchangeServiceImpl::factRefKey, Function.identity()));
-        var legacyIds = lines.stream().map(line -> line.legacyEquipmentId).filter(Objects::nonNull).toList();
+        var legacyIds = lines.stream().map(line -> line.legacyDeviceId).filter(Objects::nonNull).toList();
         Map<Long, SelectedProjectDevice> deviceById = legacyIds.isEmpty() ? Map.of()
                 : deviceSelectionApi.validateSelection(request.getProjectId(), legacyIds).stream()
                 .collect(Collectors.toMap(SelectedProjectDevice::equipmentId, Function.identity()));
         for (ExchangeLine line : lines) {
             line.scopeFact = line.scopeRef == null ? null : factByRef.get(refKey(line.scopeRef));
-            line.device = line.legacyEquipmentId == null ? null : deviceById.get(line.legacyEquipmentId);
+            line.device = line.legacyDeviceId == null ? null : deviceById.get(line.legacyDeviceId);
         }
         // 2. 主表数量 = 各设备行换货数量之和；旧客户端未传明细时数量仍按设备台数
         if (request.getSerials() != null && !lines.isEmpty()
@@ -229,7 +229,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
             throw exception(MATERIAL_EXCH_SERIAL_QUANTITY_INVALID);
         }
         // 3. 主表原设备编号：清单行无单设备语义，仅旧行保留设备编号
-        request.setEquipmentId(lines.stream().map(line -> line.legacyEquipmentId)
+        request.setDeviceId(lines.stream().map(line -> line.legacyDeviceId)
                 .filter(Objects::nonNull).findFirst().orElse(null));
         return lines;
     }
@@ -242,8 +242,8 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null));
             } else if (row.getScopeId() != null) {
                 lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null));
-            } else if (row.getEquipmentId() != null) {
-                lines.add(new ExchangeLine(null, row.getEquipmentId()));
+            } else if (row.getDeviceId() != null) {
+                lines.add(new ExchangeLine(null, row.getDeviceId()));
             } else {
                 throw exception(MATERIAL_EXCH_SCOPE_LINE_INVALID);
             }
@@ -260,12 +260,12 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 lines.add(new ExchangeLine(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()), null));
             } else if (row.getScopeId() != null) {
                 lines.add(new ExchangeLine(DeliveryScopeLineRef.ofScope(row.getScopeId()), null));
-            } else if (row.getEquipmentId() != null) {
-                lines.add(new ExchangeLine(null, row.getEquipmentId()));
+            } else if (row.getDeviceId() != null) {
+                lines.add(new ExchangeLine(null, row.getDeviceId()));
             }
         }
-        if (lines.isEmpty() && existing.getEquipmentId() != null) {
-            lines.add(new ExchangeLine(null, existing.getEquipmentId()));
+        if (lines.isEmpty() && existing.getDeviceId() != null) {
+            lines.add(new ExchangeLine(null, existing.getDeviceId()));
         }
         return lines;
     }
@@ -273,17 +273,17 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     /** 行解析结果：清单行（范围事实）与旧序列号行（设备事实）分流；显式行与已保存快照共用。 */
     private static final class ExchangeLine {
         private DeliveryScopeLineRef scopeRef;
-        private Long legacyEquipmentId;
+        private Long legacyDeviceId;
         private DeliveryScopeLineFact scopeFact;
         private SelectedProjectDevice device;
 
-        private ExchangeLine(DeliveryScopeLineRef scopeRef, Long legacyEquipmentId) {
+        private ExchangeLine(DeliveryScopeLineRef scopeRef, Long legacyDeviceId) {
             this.scopeRef = scopeRef;
-            this.legacyEquipmentId = legacyEquipmentId;
+            this.legacyDeviceId = legacyDeviceId;
         }
 
         private String refKey() {
-            return scopeRef != null ? MaterialExchangeServiceImpl.refKey(scopeRef) : "V" + legacyEquipmentId;
+            return scopeRef != null ? MaterialExchangeServiceImpl.refKey(scopeRef) : "V" + legacyDeviceId;
         }
     }
 
@@ -310,7 +310,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (serial.getScopeDetailId() != null) {
             return "D" + serial.getScopeDetailId();
         }
-        return serial.getScopeId() != null ? "S" + serial.getScopeId() : "V" + serial.getEquipmentId();
+        return serial.getScopeId() != null ? "S" + serial.getScopeId() : "V" + serial.getDeviceId();
     }
 
     private BigDecimal serialQuantityTotal(MaterialExchangeSaveReqVO request) {
@@ -330,15 +330,15 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 row.setOrderNo(fact.orderNo());
                 row.setLineNo(fact.lineNo());
                 row.setItemCode(fact.itemCode());
-                row.setName(fact.productName());
+                row.setProductName(fact.productName());
                 row.setProductCode(fact.productCode());
                 row.setDeviceTypeCode(fact.deviceTypeCode());
                 row.setDeviceTypeName(fact.deviceTypeName());
             } else {
                 SelectedProjectDevice device = line.device;
-                row.setEquipmentId(device.equipmentId());
+                row.setDeviceId(device.equipmentId());
                 row.setSn(device.sn());
-                row.setName(device.name());
+                row.setProductName(device.name());
                 row.setProductCode(device.productCode());
                 row.setProductModel(device.productModel());
                 row.setContractNo(device.contractNo());
@@ -376,12 +376,12 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 scopeRefs.add(DeliveryScopeLineRef.ofDetail(row.getScopeDetailId()));
             } else if (row.getScopeId() != null) {
                 scopeRefs.add(DeliveryScopeLineRef.ofScope(row.getScopeId()));
-            } else if (row.getEquipmentId() != null) {
-                legacyIds.add(row.getEquipmentId());
+            } else if (row.getDeviceId() != null) {
+                legacyIds.add(row.getDeviceId());
             }
         }
-        if (scopeRefs.isEmpty() && legacyIds.isEmpty() && entity.getEquipmentId() != null) {
-            legacyIds.add(entity.getEquipmentId());
+        if (scopeRefs.isEmpty() && legacyIds.isEmpty() && entity.getDeviceId() != null) {
+            legacyIds.add(entity.getDeviceId());
         }
         scopeLineFactApi.validateSelection(entity.getProjectId(), scopeRefs);
         if (!legacyIds.isEmpty()) {

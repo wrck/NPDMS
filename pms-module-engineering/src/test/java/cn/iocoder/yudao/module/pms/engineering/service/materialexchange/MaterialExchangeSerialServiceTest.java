@@ -95,9 +95,9 @@ class MaterialExchangeSerialServiceTest {
     }
 
     @Test void persistsPerRowExchangeQuantity() {
-        var first = new MaterialExchangeSerialVO(); first.setEquipmentId(1L);
+        var first = new MaterialExchangeSerialVO(); first.setDeviceId(1L);
         first.setQuantity(BigDecimal.valueOf(1));
-        var second = new MaterialExchangeSerialVO(); second.setEquipmentId(2L);
+        var second = new MaterialExchangeSerialVO(); second.setDeviceId(2L);
         second.setQuantity(BigDecimal.valueOf(2));
         var request = request(); request.setSerials(List.of(first, second));
         request.setQuantity(BigDecimal.valueOf(3));
@@ -109,7 +109,7 @@ class MaterialExchangeSerialServiceTest {
     }
 
     @Test void legacyClientOmittingChildrenPreservesExistingSnapshot() {
-        var row = new MaterialExchangeSerialDO(); row.setEquipmentId(1L); row.setSn("ORIGINAL-SNAPSHOT");
+        var row = new MaterialExchangeSerialDO(); row.setDeviceId(1L); row.setSn("ORIGINAL-SNAPSHOT");
         when(serialMapper.selectByExchange(any())).thenReturn(List.of(row));
         when(devices.validateSelection(10L, List.of(1L))).thenReturn(List.of(
                 new SelectedProjectDevice(1L, "CURRENT-SN", null, null, null, null)));
@@ -136,7 +136,7 @@ class MaterialExchangeSerialServiceTest {
         assertEquals("ITEM-1", row.getItemCode());
         assertEquals("交换机", row.getDeviceTypeName());
         assertEquals(BigDecimal.valueOf(2), row.getQuantity());
-        assertNull(row.getEquipmentId());
+        assertNull(row.getDeviceId());
         verifyNoInteractions(devices);
     }
 
@@ -146,7 +146,7 @@ class MaterialExchangeSerialServiceTest {
         when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
                 .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
                         "设备一", "P-ITEM-1", null, null, BigDecimal.TEN)));
-        var legacy = new MaterialExchangeSerialVO(); legacy.setEquipmentId(1L);
+        var legacy = new MaterialExchangeSerialVO(); legacy.setDeviceId(1L);
         var scope = new MaterialExchangeSerialVO(); scope.setScopeDetailId(7L);
         var request = request(); request.setSerials(List.of(scope, legacy));
         assertEquals(100L, service.createMaterialExchange(request));
@@ -154,7 +154,7 @@ class MaterialExchangeSerialServiceTest {
         var capture = ArgumentCaptor.forClass(MaterialExchangeSerialDO.class);
         verify(serialMapper, times(2)).insert(capture.capture());
         assertEquals(List.of(7L, 1L), capture.getAllValues().stream()
-                .map(row -> row.getScopeDetailId() != null ? row.getScopeDetailId() : row.getEquipmentId()).toList());
+                .map(row -> row.getScopeDetailId() != null ? row.getScopeDetailId() : row.getDeviceId()).toList());
     }
 
     @Test void rowWithoutAnyReferenceIsRejected() {
@@ -167,8 +167,8 @@ class MaterialExchangeSerialServiceTest {
     private MaterialExchangeSaveReqVO request() {
         var request = new MaterialExchangeSaveReqVO(); request.setProjectId(10L); request.setCode("EX-1");
         request.setQuantity(BigDecimal.valueOf(2));
-        var first = new MaterialExchangeSerialVO(); first.setEquipmentId(1L); first.setSn("FORGED-SN");
-        var second = new MaterialExchangeSerialVO(); second.setEquipmentId(2L);
+        var first = new MaterialExchangeSerialVO(); first.setDeviceId(1L); first.setSn("FORGED-SN");
+        var second = new MaterialExchangeSerialVO(); second.setDeviceId(2L);
         request.setSerials(List.of(first, second)); return request;
     }
 }
