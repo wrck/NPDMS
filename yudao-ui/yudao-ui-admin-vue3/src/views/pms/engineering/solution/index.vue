@@ -32,7 +32,7 @@
         >
       </el-form-item>
     </el-form>
-    <el-alert title="编辑界面按项目交付 Demo 4.1 九章结构组织，前序阶段数据在表内引用预填；重大方案复审未接入，本地状态不等同于新项目方案门禁事实。" type="info" :closable="false" />
+    <el-alert title="编辑界面按项目交付 Demo 4.1 组织：第 1~8 章为方案内容，底部为页面功能按钮（保存草稿/生成方案/下载方案/提交审核）；重大方案复审未接入，本地状态不等同于新项目方案门禁事实。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
@@ -142,7 +142,7 @@
           :disabled="!!form.id"
         />
       </el-form-item>
-      <SolutionChapterForm v-model="form" :read-only="readOnly" :saving="saving" @save="save" />
+      <SolutionChapterForm v-model="form" :read-only="readOnly" :saving="saving" @save="save" @submit-review="submitReview" />
     </el-form>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
@@ -269,6 +269,22 @@ const save = async () => {
   try {
     form.value.id ? await SolutionApi.updateSolution(form.value) : await SolutionApi.createSolution(form.value)
     message.success('保存成功')
+    formVisible.value = false
+    await load()
+  } finally {
+    saving.value = false
+  }
+}
+// Demo 4.1 提交审核：保存后提交，服务经理进行审核，重大项目自动推送总部复审
+const submitReview = async () => {
+  if (readOnly.value) return
+  await formRef.value.validate()
+  saving.value = true
+  try {
+    if (!form.value.id) form.value.id = (await SolutionApi.createSolution(form.value)) as unknown as number
+    else await SolutionApi.updateSolution(form.value)
+    await SolutionApi.submitSolution(form.value.id!)
+    message.success('已提交审核；等待服务经理进行审核')
     formVisible.value = false
     await load()
   } finally {
