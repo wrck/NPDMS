@@ -71,6 +71,8 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.D
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_PENDING_CONFLICT;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_SELF_APPROVAL;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_SERVICE_MANAGER_MISSING;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_REASON_CONFIG_INVALID;
 
 @Service
@@ -453,9 +455,11 @@ public class DurationChangeApplicationService {
             Long projectId, Integer projectVersion, ConstructionPlanApplicationService.Actor actor) {
         ProjectParticipantFact selected = participantFactApi.inspect(new ProjectParticipantFactQuery(
                 projectId, null, SERVICE_MANAGER_ROLES, LocalDateTime.now()));
-        if (selected == null || selected.userId() == null
-                || Objects.equals(selected.userId(), actor.actorId())) {
-            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        if (selected == null || selected.userId() == null) {
+            throw exception(DURATION_CHANGE_SERVICE_MANAGER_MISSING);
+        }
+        if (Objects.equals(selected.userId(), actor.actorId())) {
+            throw exception(DURATION_CHANGE_SELF_APPROVAL);
         }
         ProjectParticipantFact revalidated = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(

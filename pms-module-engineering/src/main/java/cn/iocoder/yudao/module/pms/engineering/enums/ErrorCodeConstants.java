@@ -225,7 +225,7 @@ public interface ErrorCodeConstants {
     ErrorCode CONSTRUCTION_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_023_001, "项目工期参数无效");
     ErrorCode CONSTRUCTION_PLAN_STATUS_INVALID = new ErrorCode(1_011_023_002, "项目工期当前状态不允许该操作");
     ErrorCode CONSTRUCTION_PLAN_VERSION_NOT_MATCH = new ErrorCode(1_011_023_003, "项目工期版本号已变更，请刷新后重试");
-    ErrorCode CONSTRUCTION_PLAN_PROJECT_FACT_INVALID = new ErrorCode(1_011_023_004, "项目资格或当前参与人事实无效");
+    ErrorCode CONSTRUCTION_PLAN_PROJECT_FACT_INVALID = new ErrorCode(1_011_023_004, "您在本项目的管理身份已发生变化或项目成员配置不完整，请刷新页面重试");
     ErrorCode DURATION_CHANGE_NOT_EXISTS = new ErrorCode(1_011_023_005, "工期变更不存在");
     ErrorCode DURATION_CHANGE_PENDING_CONFLICT = new ErrorCode(1_011_023_006, "项目已存在待审批的工期变更");
     ErrorCode DURATION_CHANGE_BPM_CONFIG_INVALID = new ErrorCode(1_011_023_007, "工期变更审批流程配置无效");
@@ -234,6 +234,8 @@ public interface ErrorCodeConstants {
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE = new ErrorCode(1_011_023_010, "客户依据文件事实暂不可用");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_FORBIDDEN = new ErrorCode(1_011_023_011, "无权使用客户依据文件");
     ErrorCode DURATION_CHANGE_EVIDENCE_REQUIRED = new ErrorCode(1_011_023_012, "该变更原因按规则仍需客户依据，请先上传附件后再提交");
+    ErrorCode DURATION_CHANGE_SERVICE_MANAGER_MISSING = new ErrorCode(1_011_023_013, "项目还没有指派服务经理，无法提交审批；请先在项目成员中指派服务经理");
+    ErrorCode DURATION_CHANGE_SELF_APPROVAL = new ErrorCode(1_011_023_014, "您是本项目的服务经理，不能审批自己提交的变更；请先把服务经理调整为其他成员");
 
     // ========== 工勘准备 preparation 1-011-024-000 ==========
     ErrorCode PREPARATION_NOT_EXISTS = new ErrorCode(1_011_024_000, "工勘准备不存在");
