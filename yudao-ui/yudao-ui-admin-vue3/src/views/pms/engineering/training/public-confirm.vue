@@ -4,7 +4,7 @@
       <header>
         <span class="service-label">现场培训 · 客户确认</span>
         <h1 id="training-title">{{ record?.status === 2 ? '感谢您的确认' : '请评价本次培训' }}</h1>
-        <p>核对培训内容，填写评价并手写签字。确认记录将归档至项目交付件。</p>
+        <p>感谢您参与本次现场培训。欢迎核对培训内容、填写评价并反馈意见，手写签字确认后将归档至项目交付件。</p>
       </header>
       <el-skeleton v-if="loading" :rows="7" animated />
       <el-result
@@ -34,7 +34,7 @@
           v-if="record.status === 2"
           type="success"
           :closable="false"
-          :title="`已确认 · ${record.signConfirmerName} · ${formatDate(record.signTime)}`"
+          :title="confirmedTitle"
         />
         <div class="customer-confirmation-form">
           <form-create
@@ -46,13 +46,6 @@
         </div>
         <p v-if="record.status === 2 && !record.signatureImageDataUrl" class="record-code"
           >此历史记录确认时未采集手写签字图片。</p
-        >
-        <a
-          v-if="record.signatureImageDataUrl"
-          :href="record.signatureImageDataUrl"
-          download="客户手写签字.png"
-          class="signature-download"
-          >保存签字图片</a
         >
         <footer v-if="record.status !== 2">
           <p
@@ -90,6 +83,11 @@ const formOption = computed(() => ({
   ...customerFormOption,
   form: { ...customerFormOption.form, disabled: record.value?.status === 2 }
 }))
+// 历史外发链接的冻结规则仍采集签字人姓名，新外发不再有该输入
+const confirmedTitle = computed(() => {
+  const parts = [record.value?.signConfirmerName, record.value?.signTime ? formatDate(record.value.signTime) : ''].filter(Boolean)
+  return `已确认 · ${parts.join(' · ')}`
+})
 const token = String(route.params.token || '')
 const tenantId = String(route.query.tenantId || '')
 const load = async () => {
@@ -100,7 +98,10 @@ const load = async () => {
   }
   try {
     record.value = await inspectPublicTraining(token, tenantId)
-    formRules.value = JSON.parse(record.value.confirmationFormRules || '[]')
+    // 确认表单按冻结规则渲染；签字人姓名不再展示，确认时自动填充"手签"
+    formRules.value = (JSON.parse(record.value.confirmationFormRules || '[]') as Rule[]).filter(
+      (rule) => rule.field !== 'signConfirmerName'
+    )
     values.value = {
       ...JSON.parse(record.value.confirmationValues || '{}'),
       skillRating: record.value.skillRating,
@@ -127,22 +128,26 @@ const load = async () => {
 }
 const submit = async () => {
   if (submitting.value || !formApi.value) return
+  // 历史外发规则仍采集签字人姓名；已有手签时默认填充"手签"，客户无需再填姓名
+  if (values.value.signatureImageDataUrl && !String(values.value.signConfirmerName ?? '').trim()) {
+    values.value.signConfirmerName = '手签'
+  }
   try {
     await formApi.value.validate()
   } catch {
-    message.warning('请完成评价、姓名和手写签字')
+    message.warning('请完成评价和手写签字')
     return
   }
   const { signatureImageDataUrl, ...answers } = values.value
-  if (!signatureImageDataUrl || !String(answers.signConfirmerName || '').trim()) {
-    message.warning('请填写姓名并手写签字')
+  if (!signatureImageDataUrl) {
+    message.warning('请手写签字')
     return
   }
   submitting.value = true
   try {
     await confirmPublicTraining(token, tenantId, {
       ...answers,
-      signConfirmerName: String(answers.signConfirmerName).trim(),
+      signConfirmerName: String(answers.signConfirmerName ?? '').trim(),
       signatureImageDataUrl,
       confirmationValues: JSON.stringify(answers)
     })
@@ -234,11 +239,6 @@ footer .el-button {
   width: 100%;
   min-height: 48px;
   margin-top: 8px;
-}
-.signature-download {
-  display: inline-block;
-  padding: 12px 0;
-  color: var(--el-color-primary);
 }
 @media (max-width: 600px) {
   .public-page {
