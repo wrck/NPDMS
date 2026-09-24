@@ -11,12 +11,14 @@ export interface MaterialExchangeSerialVO {
   orderNo?: string
   lineNo?: string
   itemCode?: string
-  name?: string
+  productName?: string
   productCode?: string
   deviceTypeCode?: string
   deviceTypeName?: string
+  /** 换货产品：产品信息引用；可留空草稿后补 */
+  productId?: number
   /** 兼容旧序列号快照：原设备ID */
-  equipmentId?: number
+  deviceId?: number
   /** 兼容旧序列号快照 */
   sn?: string
   productModel?: string
@@ -29,11 +31,11 @@ export interface MaterialExchangeVO {
   code: string
   name: string
   exchangeType?: string
-  equipmentId?: number
+  deviceId?: number
   serials?: MaterialExchangeSerialVO[]
-  materialName: string
-  materialCode?: string
-  specification?: string
+  productName?: string
+  productCode?: string
+  productModel?: string
   quantity: number
   unit?: string
   originalOrderNo?: string
@@ -42,7 +44,7 @@ export interface MaterialExchangeVO {
   crmPushStatus?: string
   crmPushTime?: string
   crmOrderNo?: string
-  newEquipmentId?: number
+  newDeviceId?: number
   exchangeProgress?: string
   applicantUserId: number
   applyTime: string | number
