@@ -1,0 +1,39 @@
+{
+  "task_id": 2101613039156846593,
+  "project": 992203060035,
+  "contract_no": "VISIO-FLOW-035-20260924",
+  "source_id": 990103,
+  "seed": "990103\tVISIO-FLOW-035-20260924\tFinal\t2026-11-20 00:00:00\tvisio-flow-035",
+  "final_dict_count": "1",
+  "ui_put_status": 200,
+  "contract_after_edit": "992203060035\tVISIO-FLOW-035-20260924",
+  "run_id": 2102958773804687362,
+  "run_status": "SUCCESS",
+  "changes": [
+    {"object": "ACCEPTANCE", "sourceKey": "990001", "targetId": "2101613046773702658", "action": "UNCHANGED", "message": "计划验收时间未变化"},
+    {"object": "ACCEPTANCE", "sourceKey": "990002", "targetId": "2101613046815645697", "action": "UNCHANGED", "message": "计划验收时间未变化"},
+    {"object": "ACCEPTANCE", "sourceKey": "990003", "targetId": null, "action": "ISSUE", "message": "来源字段或显式节点映射缺失"},
+    {"object": "ACCEPTANCE", "sourceKey": "990004", "targetId": null, "action": "ISSUE", "message": "来源字段或显式节点映射缺失"},
+    {"object": "ACCEPTANCE", "sourceKey": "990005", "targetId": null, "action": "ISSUE", "message": "合同及节点编码未命中当前有效项目"},
+    {"object": "ACCEPTANCE", "sourceKey": "990006", "targetId": null, "action": "ISSUE", "message": "多个回款节点映射到同一目标，未更新"},
+    {"object": "ACCEPTANCE", "sourceKey": "990007", "targetId": null, "action": "ISSUE", "message": "多个回款节点映射到同一目标，未更新"},
+    {"object": "ACCEPTANCE", "sourceKey": "990100", "targetId": "2102745569510010882", "action": "UNCHANGED", "message": "计划验收时间未变化"},
+    {"object": "ACCEPTANCE", "sourceKey": "990101", "targetId": "2102767408563027969", "action": "UNCHANGED", "message": "计划验收时间未变化"},
+    {"object": "ACCEPTANCE", "sourceKey": "990102", "targetId": "2102779261930373121", "action": "UNCHANGED", "message": "计划验收时间未变化"},
+    {"object": "ACCEPTANCE", "sourceKey": "990103", "targetId": "2102958776598093826", "action": "UPDATED", "before": {"acceptanceTime": null}, "after": {"nodeCode": "S5", "nodeType": "STAGE", "contractNo": "VISIO-FLOW-035-20260924", "acceptanceTime": "2026-11-20T00:00", "referenceEvent": "Final"}, "message": "刷新计划验收时间；生效施工计划快照保持不变"}
+  ],
+  "hit_990103": {
+    "object": "ACCEPTANCE",
+    "sourceKey": "990103",
+    "targetId": "2102958776598093826",
+    "action": "UPDATED",
+    "note": "targetId 为绑定行主键；node_id 指向 S5 stage，见 s5_stage/binding"
+  },
+  "s5_stage": "994009100784\tS5\tPENDING\t2026-11-20 00:00:00.000",
+  "binding": "STAGE\t994009100784\tintegration:1:2101613039156846593\t990103",
+  "screenshots": [
+    "t179-anchor-01-list.png",
+    "t179-anchor-02-edit-dialog.png",
+    "t179-anchor-03-after-save.png"
+  ]
+}

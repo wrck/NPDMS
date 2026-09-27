@@ -1,0 +1,27 @@
+{
+  "row_text": "现场工勘与环境适配核对\n\t\n北京市海淀区浏览器闭环机房A\n\t\nUNRESOLVED\n\t\n2026-09-24\n\t\n草稿\n\t\n详情\n编辑\n确认\n驳回\n删除",
+  "messagebox": "系统提示\n\n是否确认工勘【现场工勘与环境适配核对】？\n\n取消\n确定",
+  "confirm": {
+    "code": 0,
+    "msg": ""
+  },
+  "task_status": {
+    "PRE_SURVEY": "DONE",
+    "PLAN_CONSTRUCTION": "PENDING_ASSIGN",
+    "PLAN_SOLUTION": "PENDING_ASSIGN",
+    "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+    "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+    "PRE_REQUIREMENT": "IN_PROGRESS",
+    "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+    "ACCEPT_INITIAL": "PENDING_ASSIGN",
+    "PRE_DURATION": "IN_PROGRESS",
+    "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+    "ACCEPT_FINAL": "PENDING_ASSIGN",
+    "PRE_CONTACT": "IN_PROGRESS",
+    "DEPLOY_CONFIG": "PENDING_ASSIGN",
+    "ACCEPT_TRAINING": "PENDING_ASSIGN",
+    "DEPLOY_JOINT": "PENDING_ASSIGN",
+    "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+    "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+  }
+}

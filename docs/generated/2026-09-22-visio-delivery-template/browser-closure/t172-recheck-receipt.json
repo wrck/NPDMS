@@ -1,0 +1,30 @@
+{
+  "tasks": {
+    "PRE_SURVEY": "DONE",
+    "PLAN_CONSTRUCTION": "IN_PROGRESS",
+    "PLAN_SOLUTION": "IN_PROGRESS",
+    "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+    "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+    "PRE_REQUIREMENT": "DONE",
+    "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+    "ACCEPT_INITIAL": "PENDING_ASSIGN",
+    "PRE_DURATION": "DONE",
+    "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+    "ACCEPT_FINAL": "PENDING_ASSIGN",
+    "PRE_CONTACT": "DONE",
+    "DEPLOY_CONFIG": "PENDING_ASSIGN",
+    "ACCEPT_TRAINING": "PENDING_ASSIGN",
+    "DEPLOY_JOINT": "PENDING_ASSIGN",
+    "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+    "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+  },
+  "stage_status_text": "阶段状态\n\n阶段按各自准入条件激活，可以同时进行；刷新只读取状态。\n\n项目计划\n执行历史与规则结果\n选择性返工\n刷新阶段状态\n阶段编码\n\t\n阶段名称\n\t\n阶段办理\n\t\n状态\n\t\n本轮办理\nS0\n\t\n项目立项与指派\n\t\n查看／办理\n\t\n已完成\n\t\n第 1 轮\n\n\nS1\n\t\n工前准备\n\t\n查看／办理\n\t\n已完成\n\t\n第 1 轮\n\n\nS2\n\t\n施工计划制定与审批\n\t\n查看／办理\n\t\n进行中\n\t\n第 1 轮\n\n\nS3\n\t\n实施方案编制与审核\n\t\n查看／办理\n\t\n进行中\n\t\n第 1 轮\n\n\nS4\n\t\n实施部署\n\t\n查看／办理\n\t\n等待准入\n\t\n第 1 轮\n\n\nS5\n\t\n验收交维\n\t\n查看／办理\n\t\n等待准入\n\t\n第 1 轮",
+  "stage_rail": [
+    "S0\n项目立项与指派\n0",
+    "S1\n工前准备\n4",
+    "S2\n施工计划制定与审批\n1",
+    "S3\n实施方案编制与审核\n1",
+    "S4\n实施部署\n6",
+    "S5\n验收交维\n5"
+  ]
+}

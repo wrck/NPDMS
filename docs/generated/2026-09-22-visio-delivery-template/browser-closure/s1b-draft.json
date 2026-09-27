@@ -1,0 +1,444 @@
+{
+  "after_create_text": "需求分析\n2.3\n物料换货\n2.2.1\n工程交底\n2.4\n制定施工计划\n施工计划\n3.1-3.4\n资源就绪\n3.3\n实施方案\n实施方案\n4.1\n实施部署\n到货签收\n5.1\n硬件安装\n5.2\n配置调试\n5.3\n业务联调\n5.4\n割接上线\n5.5\n验收交维\n现场培训\n6.1\n满意度调查\n6.2\n初验&终验\n6.3\n验收记录\n6.3\n完工证明\n6.4\n交付件汇总\n6.5\n交付件检查\n6.6\n归档文档\n6.7\n闭环记录\n6.8\n项目闭环\n6.9\n阶段和任务\n阶段状态\nS0 项目立项与指派\n—\nS1 工前准备\n25%\nS2 施工计划制定与审批\n0%\nS3 实施方案编制与审核\n0%\nS4 实施部署\n0%\nS5 验收交维\n0%\n项目拆分\n拆分方案\n进度汇总\n进度汇总\n异常治理\n异常治理\n项目权限\n项目授权\n服务经理\n责任分布\n需求分析\n\n维护项目需求与附件，按版本保存和确认。\n\n刷新\n修订记录\n编辑当前草稿\nV1 · 草稿\n项目需求分析\n\n记录客户目标、网络现状和实施要求，作为实施方案与工程交底的输入。\n\n当前草稿 · V1\n展示模板\n需求分析标准模板 · V2\n1、项目背景\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n项目背景附件\n附件 · 添加文件\n2、项目目标\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n项目目标附件\n附件 · 添加文件\n3、网络拓扑\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n网络拓扑附件\n附件 · 添加文件\n4、传输现状（多选）\nIPv6\n分片\nMTU\nJumbo\n隧道\n传输需求说明\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n传输需求附件\n附件 · 添加文件\n5、流量现状 · 新建\n流量现状 · 并发\n流量现状 · 吞吐\n流量需求说明\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n流量需求附件\n附件 · 添加文件\n6、运行业务情况\n业务需求说明\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n业务需求附件\n附件 · 添加文件\n7、IP资源情况 · 管理IP\nIP资源情况 · 公网IP资源\nIP规划说明\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\nIP规划附件\n附件 · 添加文件\n8、冗余备份要求\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n冗余需求附件\n附件 · 添加文件\n9、本机防护要求\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n安全防护附件\n附件 · 添加文件\n10、运维管理要求（多选）\n带内管理\n带外管理\nSNMP\nUMC\n第三平台\n堡垒机\n运维需求说明\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n运维需求附件\n附件 · 添加文件\n11、日志需求\n正文\n默认字号\n默认字体\n默认行高\n\n﻿\n\n\n请输入内容...\n日志需求附件\n附件 · 添加文件\n保存需求分析\n工程交底书\n刷新\n生成与维护\n\n查看本项目已生成的交底书。生成、审核和发布沿用工程交底流程。\n\n本项目尚无工程交底书\n\n完成并冻结当前草稿\nCopyright ©2026 项目实施交付管理平台\n\n需求分析草稿已创建",
+  "fields": [
+    {
+      "label": "1、项目背景",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "项目背景附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "2、项目目标",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "项目目标附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "3、网络拓扑",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "网络拓扑附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "4、传输现状（多选）",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        }
+      ],
+      "radios": [],
+      "checkboxes": [
+        "IPv6",
+        "分片",
+        "MTU",
+        "Jumbo",
+        "隧道"
+      ]
+    },
+    {
+      "label": "传输需求说明",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "传输需求附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "5、流量现状 · 新建",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "填写现状及单位",
+          "type": "text"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "流量现状 · 并发",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "填写现状及单位",
+          "type": "text"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "流量现状 · 吞吐",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "填写现状及单位",
+          "type": "text"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "流量需求说明",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "流量需求附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "6、运行业务情况",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "业务需求说明",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "业务需求附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "7、IP资源情况 · 管理IP",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "IP资源情况 · 公网IP资源",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "IP规划说明",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "IP规划附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "8、冗余备份要求",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "冗余需求附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "9、本机防护要求",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "安全防护附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "10、运维管理要求（多选）",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        },
+        {
+          "ph": "",
+          "type": "checkbox"
+        }
+      ],
+      "radios": [],
+      "checkboxes": [
+        "带内管理",
+        "带外管理",
+        "SNMP",
+        "UMC",
+        "第三平台",
+        "堡垒机"
+      ]
+    },
+    {
+      "label": "运维需求说明",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "运维需求附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "11、日志需求",
+      "required": false,
+      "inputs": [],
+      "radios": [],
+      "checkboxes": []
+    },
+    {
+      "label": "日志需求附件",
+      "required": false,
+      "inputs": [
+        {
+          "ph": "",
+          "type": "file"
+        }
+      ],
+      "radios": [],
+      "checkboxes": []
+    }
+  ],
+  "buttons": [
+    "返回列表",
+    "S0项目立项与指派",
+    "S1工前准备",
+    "S2施工计划制定与审批",
+    "S3实施方案编制与审核",
+    "S4实施部署",
+    "S5验收交维",
+    "基本信息",
+    "客户信息",
+    "项目树",
+    "项目成员",
+    "项目任务",
+    "设备清单",
+    "序列号详情",
+    "配置Log",
+    "实施范围待确认",
+    "属性判定",
+    "匹配历史",
+    "生命周期实例",
+    "工勘分工2.2",
+    "需求分析2.3",
+    "物料换货2.2.1",
+    "工程交底2.4",
+    "施工计划3.1-3.4",
+    "资源就绪3.3",
+    "实施方案4.1",
+    "到货签收5.1",
+    "硬件安装5.2",
+    "配置调试5.3",
+    "业务联调5.4",
+    "割接上线5.5",
+    "现场培训6.1",
+    "满意度调查6.2",
+    "初验&终验6.3",
+    "验收记录6.3",
+    "完工证明6.4",
+    "交付件汇总6.5",
+    "交付件检查6.6",
+    "归档文档6.7",
+    "闭环记录6.8",
+    "项目闭环6.9",
+    "阶段状态",
+    "S0 项目立项与指派—",
+    "S1 工前准备25%",
+    "S2 施工计划制定与审批0%",
+    "S3 实施方案编制与审核0%",
+    "S4 实施部署0%",
+    "S5 验收交维0%",
+    "拆分方案",
+    "进度汇总",
+    "异常治理",
+    "项目授权",
+    "责任分布",
+    "提交与查看",
+    "新建／调整任务",
+    "刷新",
+    "S0项目立项与指派0",
+    "S1工前准备4",
+    "S2施工计划制定与审批1",
+    "S3实施方案编制与审核1",
+    "S4实施部署6",
+    "S5验收交维5",
+    "修订记录",
+    "编辑当前草稿V1 · 草稿",
+    "正文",
+    "删除线",
+    "行内代码",
+    "上标",
+    "下标",
+    "清除格式",
+    "默认字号",
+    "默认字体",
+    "默认行高",
+    "左对齐",
+    "右对齐",
+    "居中对齐",
+    "两端对齐",
+    "增加缩进",
+    "减少缩进",
+    "网络图片",
+    "上传图片",
+    "插入视频",
+    "上传视频",
+    "上传并绑定",
+    "保存需求分析",
+    "生成与维护",
+    "完成并冻结当前草稿",
+    "查看全部"
+  ]
+}
