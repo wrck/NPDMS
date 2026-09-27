@@ -1091,6 +1091,8 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 2026-09-24 验收续记（不改变本问题状态）：rev7 起模板为 DEPLOY_CUTOVER 配置门禁 BPM 引用，部署过渡流程定义 `PMS_DELIVERY_CUTOVER_APPROVAL`（描述明示"割接完成外接接入前，审批通过即视为割接完成；后续替换为割接系统业务事实"）。验收项目 992203060028（直签）与 992203060032（渠道）均按"BPM 审批通过 → 事实 APPROVED → 任务完成 → S5 激活"走通，未绕过状态机或直写业务事实；正式处置（taskv2 生产入口注册或规则语义裁决）仍待需求方，过渡定义替换为真实割接业务事实前本问题保持 BLOCKED_BY_SPEC。证据见 [发布与全链验收记录](../generated/2026-09-22-visio-delivery-template/acceptance/README.md)。
 
+2026-09-26 纯界面驱动复核（不改变本问题状态）：fresh 库（npdms_domain_test）rev10 模板项目 PJT2026000001 在"全部操作限于项目详情界面、不用脚本推进"的约束下复核本边界。S4 前五任务（DEPLOY_COORDINATE/ARRIVAL/HARDWARE/CONFIG/JOINT）全部经任务办理抽屉界面完成；DEPLOY_CUTOVER 确认无任何合法界面发起入口：①任务办理抽屉审批面板对 formType=20（业务表单）定义按设计拒绝渲染发起表单（`TaskApprovalForm.load` 拦截，提示"该审批使用原模块业务表单，请通过业务页面绑定办理"；自 9141716e2 起存在）；②rev10 模板 DEPLOY_CUTOVER 绑定仅 APPROVAL、无业务视图快照（工作台 businessView=null），项目详情内"割接上线 5.5"视图渲染 taskv2 界面但其 REST 生产 Bean 按契约测试刻意未注册，实测 `GET/POST /admin-api/api/v1/pms/cutover-tasks*` 仍全部 404；③旧版 `POST /admin-api/pms/cut-task/create` 维持退役，不承接新流程；④BPM 手工发起 `PMS_DELIVERY_CUTOVER_APPROVAL`（BPMN 无启动表单、节点 candidateStrategy=35 发起人自选）无法携带 `pmsTaskProjectId/pmsTaskId/pmsTaskExecutionId/pmsTaskContractId` 等身份变量，实例与任务作用域必然 IDENTITY_MISMATCH→UNKNOWN，不能作为完成依据。结论：在界面约束下 S4→S5 为当前模板已知阻塞点（选项 C 形态），项目停于 S4（5/6 任务 DONE）；不采用脚本/API 直推审批，正式处置仍待需求方。证据见 [2026-09-26 复制模板闭环验证记录](../generated/2026-09-26-visio-copy-closure/README.md)。
+
 ### Q-TPL-FLOW-20260922-005 — 满意度结果来源投影与业务文档收集的 CURRENT 归属竞态
 
 - Status: OPEN（技术让位已按需求方 2026-09-24 会话确认实施；证据归属语义待规格裁决）

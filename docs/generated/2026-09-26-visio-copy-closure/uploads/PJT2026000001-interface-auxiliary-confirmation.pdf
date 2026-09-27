@@ -1,0 +1,42 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 665 >>
+stream
+BT /F1 11 Tf 54 780 Td 14 TL
+(PJT2026000001 - Interface and Auxiliary Materials Confirmation) Tj T*
+(Project: Flow Template Closure Verification  Code: PJT2026000001) Tj T*
+(Duration: 2026-10-01 ~ 2026-10-30 (30 natural days, V1 effective)) Tj T*
+(Scope split: hardware install and commissioning by vendor crew;) Tj T*
+(customer side: machine-room access, power and uplink by customer contact.) Tj T*
+(Auxiliary materials: 12 fiber patch cords, 300m CAT6 cable,) Tj T*
+(6 cable managers, 2 label rolls, 4 rack screw kits.) Tj T*
+(Confirmed by service manager and project manager.) Tj T*
+(Note: effective duration does not equal construction plan approval.) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1027
+%%EOF
