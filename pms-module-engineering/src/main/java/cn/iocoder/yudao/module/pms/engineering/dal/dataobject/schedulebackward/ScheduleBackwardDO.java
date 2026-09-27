@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDate;
 
@@ -18,10 +16,8 @@ import java.time.LocalDate;
 @TableName("sol_schedule_backward")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ScheduleBackwardDO extends TenantBaseDO {
+public class ScheduleBackwardDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 项目编号
      */
@@ -46,10 +42,5 @@ public class ScheduleBackwardDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 
 }

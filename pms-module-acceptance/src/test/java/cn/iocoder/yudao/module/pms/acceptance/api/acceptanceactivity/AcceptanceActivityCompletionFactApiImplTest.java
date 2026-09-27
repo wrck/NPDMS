@@ -60,7 +60,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
                 satisfactionTaskInitializationApi, projectWorkBindingFactApi);
 
-        var result = api.lockAndComplete(command(0, 2));
+        var result = api.lockAndComplete(command(0L, 2));
 
         assertEquals("COMPLETED", result.outcome());
         assertEquals(1, result.activityVersion());
@@ -78,7 +78,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
                 satisfactionTaskInitializationApi, projectWorkBindingFactApi);
 
-        var result = api.lockAndComplete(command(0, 2));
+        var result = api.lockAndComplete(command(0L, 2));
 
         assertEquals("REPORT_INCOMPLETE", result.outcome());
         verify(activityMapper, never()).completeIfPending(any());
@@ -98,11 +98,11 @@ class AcceptanceActivityCompletionFactApiImplTest {
                         "AFTER_INITIAL_ACCEPTANCE", 81L, 82L, 1, "SUM_V1",
                         java.math.BigDecimal.valueOf(80), 91L));
         when(satisfactionTaskInitializationApi.initialize(any())).thenReturn(
-                new SatisfactionTaskInitializationResult("CREATED", 61L, 62L, "SAT-61", 1, 0));
+                new SatisfactionTaskInitializationResult("CREATED", 61L, 62L, "SAT-61", 1, 0L));
         var api = new AcceptanceActivityCompletionFactApiImpl(activityMapper, reportMapper, attachmentMapper,
                 satisfactionTaskInitializationApi, projectWorkBindingFactApi);
 
-        assertEquals("COMPLETED", api.lockAndComplete(command(0, 2)).outcome());
+        assertEquals("COMPLETED", api.lockAndComplete(command(0L, 2)).outcome());
         ArgumentCaptor<SatisfactionTaskInitializationCommand> commandCaptor =
                 ArgumentCaptor.forClass(SatisfactionTaskInitializationCommand.class);
         verify(satisfactionTaskInitializationApi).initialize(commandCaptor.capture());
@@ -111,7 +111,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         assertEquals("AcceptanceActivityCompletionFact", commandCaptor.getValue().triggerObjectType());
     }
 
-    private AcceptanceActivityCompletionCommand command(int activityVersion, int reportVersion) {
+    private AcceptanceActivityCompletionCommand command(Long activityVersion, int reportVersion) {
         return new AcceptanceActivityCompletionCommand(7L, 11L, 21L, 3, 31L, 51L,
                 activityVersion, reportVersion, "operation-1");
     }
@@ -126,7 +126,7 @@ class AcceptanceActivityCompletionFactApiImplTest {
         row.setAcceptanceType("FINAL");
         row.setActivityStatus("PENDING");
         row.setCurrentReportVersionId(41L);
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 

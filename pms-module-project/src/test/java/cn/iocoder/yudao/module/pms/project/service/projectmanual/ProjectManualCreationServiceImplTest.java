@@ -542,7 +542,7 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void assignServiceManagerRejectsStaleProjectVersion() {
         when(projectMasterMapper.selectById(1L)).thenReturn(persistedProject());
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(0);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0L)).thenReturn(0);
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assignServiceManager(assignCommand()));
@@ -556,7 +556,7 @@ class ProjectManualCreationServiceImplTest {
         ProjectMasterDO project = persistedProject();
         project.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
         when(projectMasterMapper.selectById(1L)).thenReturn(project);
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0L)).thenReturn(1);
         ProjectMemberAssignmentDO previous = new ProjectMemberAssignmentDO();
         previous.setId(7L);
         previous.setUserId(55L);
@@ -610,7 +610,7 @@ class ProjectManualCreationServiceImplTest {
         ProjectMasterDO project = persistedProject();
         project.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_ASSIGNED);
         when(projectMasterMapper.selectById(1L)).thenReturn(project);
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0L)).thenReturn(1);
         ProjectMemberAssignmentDO primary = assignment(
                 55L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, ProjectRules.ASSIGNMENT_TYPE_PRIMARY);
         ProjectMemberAssignmentDO projectManager = assignment(
@@ -628,7 +628,7 @@ class ProjectManualCreationServiceImplTest {
         }).when(memberAssignmentMapper).insert(any(ProjectMemberAssignmentDO.class));
 
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(
-                1L, 0, "L1", 66L, 30L, "COLLABORATOR", 20L, "DEP-01",
+                1L, 0L, "L1", 66L, 30L, "COLLABORATOR", 20L, "DEP-01",
                 "协同支持", "collaborator-key", "c".repeat(64));
         AssignServiceManagerResult result = service.assignServiceManager(command);
 
@@ -916,7 +916,7 @@ class ProjectManualCreationServiceImplTest {
     }
 
     private AssignServiceManagerCommand assignCommand() {
-        return new AssignServiceManagerCommand(1L, 0, "L1", 66L, 30L,
+        return new AssignServiceManagerCommand(1L, 0L, "L1", 66L, 30L,
                 "PRIMARY", 20L, "DEP-01", "人工指派", "assign-key", "b".repeat(64));
     }
 

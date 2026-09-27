@@ -236,7 +236,7 @@ class SatisfactionTaskInitializationApiImplTest {
         row.setQuestionnaireId(201L);
         row.setCollectionKey("SAT-200");
         row.setTaskRevisionNo(1);
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 }

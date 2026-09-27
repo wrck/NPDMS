@@ -137,18 +137,18 @@ class Facc001ApplicationMySqlIntegrationTest {
     @Test
     void publishReplaceReplayAndRevokePreserveImmutableHistory() {
         var first = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
-                activityId, 0, completeContent("初验V1")), actor);
+                activityId, 0L, completeContent("初验V1")), actor);
         stubAttachment(first.reportVersionId());
-        var published = service.publish(publish(first, null, 0, "-publish-v1", "a"), actor);
-        var replayed = service.publish(publish(first, null, 0, "-publish-v1", "a"), actor);
+        var published = service.publish(publish(first, null, 0L, "-publish-v1", "a"), actor);
+        var replayed = service.publish(publish(first, null, 0L, "-publish-v1", "a"), actor);
         assertTrue(replayed.replayed());
         assertEquals(published.reportVersionId(), replayed.reportVersionId());
 
         var second = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
-                activityId, 1, completeContent("初验V2")), actor);
+                activityId, 1L, completeContent("初验V2")), actor);
         stubAttachment(second.reportVersionId());
-        service.publish(publish(second, first.reportVersionId(), 1, "-publish-v2", "b"), actor);
-        service.revoke(new AcceptanceReportCommands.RevokeCommand(activityId, 2,
+        service.publish(publish(second, first.reportVersionId(), 1L, "-publish-v2", "b"), actor);
+        service.revoke(new AcceptanceReportCommands.RevokeCommand(activityId, 2L,
                 second.reportVersionId(), second.reportVersionNo(), key("-revoke-v2"), "c".repeat(64)), actor);
 
         List<Map<String, Object>> history = jdbcTemplate.queryForList(
@@ -173,9 +173,9 @@ class Facc001ApplicationMySqlIntegrationTest {
     @Test
     void incompletePublishRollsBackIdempotencyAndOutbox() {
         var draft = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
-                activityId, 0, new AcceptanceReportCommands.DraftContent(null, null, null, null)), actor);
+                activityId, 0L, new AcceptanceReportCommands.DraftContent(null, null, null, null)), actor);
         assertThrows(RuntimeException.class, () -> service.publish(
-                publish(draft, null, 0, "-incomplete", "d"), actor));
+                publish(draft, null, 0L, "-incomplete", "d"), actor));
         assertEquals("DRAFT", jdbcTemplate.queryForObject(
                 "SELECT report_status FROM acc_acceptance_report_version WHERE id=?", String.class,
                 draft.reportVersionId()));
@@ -190,15 +190,15 @@ class Facc001ApplicationMySqlIntegrationTest {
     @Test
     void supersededPendingSourceRemainsArchivableWithoutOverwritingCurrentRootSummary() {
         var first = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
-                activityId, 0, completeContent("初验V1")), actor);
+                activityId, 0L, completeContent("初验V1")), actor);
         FileArtifactVersionFact firstFile = stubAttachment(first.reportVersionId());
-        service.publish(publish(first, null, 0, "-archive-v1", "f"), actor);
+        service.publish(publish(first, null, 0L, "-archive-v1", "f"), actor);
         projectionService.project(versionEvent("EFFECTIVE", first.reportVersionId(), null, 1, firstFile));
 
         var second = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
-                activityId, 1, completeContent("初验V2")), actor);
+                activityId, 1L, completeContent("初验V2")), actor);
         FileArtifactVersionFact secondFile = stubAttachment(second.reportVersionId());
-        service.publish(publish(second, first.reportVersionId(), 1, "-archive-v2", "a"), actor);
+        service.publish(publish(second, first.reportVersionId(), 1L, "-archive-v2", "a"), actor);
         projectionService.project(versionEvent("REPLACED", second.reportVersionId(),
                 first.reportVersionId(), 2, secondFile));
 
@@ -229,9 +229,9 @@ class Facc001ApplicationMySqlIntegrationTest {
     @Test
     void archiveProviderFailureKeepsSourcePendingAndNextJobRunRetriesSuccessfully() {
         var report = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
-                activityId, 0, completeContent("初验重试")), actor);
+                activityId, 0L, completeContent("初验重试")), actor);
         FileArtifactVersionFact file = stubAttachment(report.reportVersionId());
-        service.publish(publish(report, null, 0, "-archive-retry", "b"), actor);
+        service.publish(publish(report, null, 0L, "-archive-retry", "b"), actor);
         projectionService.project(versionEvent("EFFECTIVE", report.reportVersionId(), null, 1, file));
         Long sourceId = jdbcTemplate.queryForObject(
                 "SELECT id FROM acc_project_deliverable_source_version WHERE source_object_id=?",
@@ -254,7 +254,7 @@ class Facc001ApplicationMySqlIntegrationTest {
     }
 
     private AcceptanceReportCommands.PublishCommand publish(AcceptanceReportCommands.ReportResult report,
-                                                              Long currentId, int activityVersion,
+                                                              Long currentId, Long activityVersion,
                                                               String keySuffix, String digestSeed) {
         return new AcceptanceReportCommands.PublishCommand(activityId, report.reportVersionId(), activityVersion,
                 report.reportVersionNo(), currentId, key(keySuffix), digestSeed.repeat(64));

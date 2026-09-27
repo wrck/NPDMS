@@ -78,7 +78,7 @@ class ProjectDeliveryScopeQualificationFactApiContractTest {
         ProjectDeliveryScopeQualificationFactException lockFailure = assertThrows(
                 ProjectDeliveryScopeQualificationFactException.class,
                 () -> new ProjectDeliveryScopeQualificationRevalidationQuery(
-                        1L, 2L, 2L, 3L, null, "S5", 1, 1L, 1L));
+                        1L, 2L, 2L, 3L, null, "S5", 1L, 1L, 1L));
         assertEquals(ProjectDeliveryScopeQualificationFactException.Code.INVALID_REQUEST,
                 lockFailure.getCode());
     }
@@ -88,7 +88,7 @@ class ProjectDeliveryScopeQualificationFactApiContractTest {
         ProjectDeliveryScopeQualificationFactException failure = assertThrows(
                 ProjectDeliveryScopeQualificationFactException.class,
                 () -> new ProjectDeliveryScopeQualificationFact(
-                        1L, 2L, 2L, 3L, "ACTIVE", "S7", 1, 1L, 1L));
+                        1L, 2L, 2L, 3L, "ACTIVE", "S7", 1L, 1L, 1L));
         assertEquals(ProjectDeliveryScopeQualificationFactException.Code.OWNER_DATA_CORRUPTED,
                 failure.getCode());
     }
@@ -98,25 +98,25 @@ class ProjectDeliveryScopeQualificationFactApiContractTest {
         ProjectDeliveryScopeQualificationFactException invalidInput = assertThrows(
                 ProjectDeliveryScopeQualificationFactException.class,
                 () -> new ProjectDeliveryScopeQualificationRevalidationQuery(
-                        1L, 2L, 2L, 3L, "NORMAL_CLOSED", "S0", 1, 1L, 1L));
+                        1L, 2L, 2L, 3L, "NORMAL_CLOSED", "S0", 1L, 1L, 1L));
         assertEquals(ProjectDeliveryScopeQualificationFactException.Code.INVALID_REQUEST,
                 invalidInput.getCode());
         ProjectDeliveryScopeQualificationFactException invalidExpectedTree = assertThrows(
                 ProjectDeliveryScopeQualificationFactException.class,
                 () -> new ProjectDeliveryScopeQualificationRevalidationQuery(
-                        1L, 2L, 2L, 3L, "ACTIVE", "S4", 1, 1L, 0L));
+                        1L, 2L, 2L, 3L, "ACTIVE", "S4", 1L, 1L, 0L));
         assertEquals(ProjectDeliveryScopeQualificationFactException.Code.INVALID_REQUEST,
                 invalidExpectedTree.getCode());
         ProjectDeliveryScopeQualificationFactException brokenOutput = assertThrows(
                 ProjectDeliveryScopeQualificationFactException.class,
                 () -> new ProjectDeliveryScopeQualificationFact(
-                        1L, 2L, 2L, 3L, "NORMAL_CLOSED", "S0", 1, 1L, 1L));
+                        1L, 2L, 2L, 3L, "NORMAL_CLOSED", "S0", 1L, 1L, 1L));
         assertEquals(ProjectDeliveryScopeQualificationFactException.Code.OWNER_DATA_CORRUPTED,
                 brokenOutput.getCode());
         ProjectDeliveryScopeQualificationFactException brokenTree = assertThrows(
                 ProjectDeliveryScopeQualificationFactException.class,
                 () -> new ProjectDeliveryScopeQualificationFact(
-                        1L, 2L, 2L, 3L, "ACTIVE", "S4", 1, 1L, 0L));
+                        1L, 2L, 2L, 3L, "ACTIVE", "S4", 1L, 1L, 0L));
         assertEquals(ProjectDeliveryScopeQualificationFactException.Code.OWNER_DATA_CORRUPTED,
                 brokenTree.getCode());
     }

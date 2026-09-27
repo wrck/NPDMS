@@ -251,5 +251,5 @@ public class CutoverApprovalQueryService {
     }
 
     public record ReassignmentCommandContext(CutoverApprovalViews.ApprovalReassignmentView view,
-                                             Integer taskVersion) { }
+                                             Long taskVersion) { }
 }

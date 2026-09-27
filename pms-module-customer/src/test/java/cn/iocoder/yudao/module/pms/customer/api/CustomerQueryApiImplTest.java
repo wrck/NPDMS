@@ -68,7 +68,7 @@ class CustomerQueryApiImplTest {
         when(customerQueryService.getByCode(1L, "C-001", scope)).thenReturn(visible);
         when(customerMasterMapper.selectIncludingDeletedForUpdate(1L, 1L)).thenReturn(locked);
         assertEquals("C-001", api.lockCustomerByCode(new CustomerCodeQuery("C-001", 7L)).code());
-        locked.setVersion(1);
+        locked.setVersion(1L);
         locked.setLifecycleStatus("DISABLED");
         assertNull(api.lockCustomerByCode(new CustomerCodeQuery("C-001", 7L)));
     }
@@ -118,7 +118,7 @@ class CustomerQueryApiImplTest {
         customer.setShortName(name);
         customer.setLifecycleStatus("ENABLED");
         customer.setSourceType("PLATFORM_TEMPORARY");
-        customer.setVersion(0);
+        customer.setVersion(0L);
         customer.setDataAsOf(LocalDateTime.of(2026, 8, 25, 12, 0));
         return customer;
     }

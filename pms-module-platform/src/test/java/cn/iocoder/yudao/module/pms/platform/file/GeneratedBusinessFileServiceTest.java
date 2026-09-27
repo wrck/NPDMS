@@ -114,7 +114,7 @@ class GeneratedBusinessFileServiceTest {
         assertEquals(10L, policyQuery.getValue().collectionTaskId());
         assertEquals(11L, policyQuery.getValue().questionnaireId());
         assertEquals(12L, policyQuery.getValue().responseId());
-        assertEquals(4, policyQuery.getValue().expectedTaskVersion());
+        assertEquals(4L, policyQuery.getValue().expectedTaskVersion());
         ArgumentCaptor<cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent>
                 eventCaptor = ArgumentCaptor.forClass(
                 cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent.class);
@@ -261,7 +261,7 @@ class GeneratedBusinessFileServiceTest {
     }
 
     private GeneratedBusinessFileCommand command() {
-        return new GeneratedBusinessFileCommand(7L, 30L, "result-op-1", 40L, 10L, 11L, 12L, 4,
+        return new GeneratedBusinessFileCommand(7L, 30L, "result-op-1", 40L, 10L, 11L, 12L, 4L,
                 "ACC", "SATISFACTION_RESULT", "SATISFACTION_RESULT_DOCUMENT", 9L,
                 "result.pdf", "application/pdf", new byte[]{1, 2, 3});
     }

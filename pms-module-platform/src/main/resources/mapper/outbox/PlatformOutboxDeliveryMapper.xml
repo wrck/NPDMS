@@ -21,6 +21,19 @@
         FOR UPDATE SKIP LOCKED
     </select>
 
+    <select id="selectPendingByEventType"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOutboxEventDO">
+        SELECT id, event_id, event_type, aggregate_type, aggregate_key, payload, status,
+               occurred_at, next_retry_time, retry_count, tenant_id,
+               creator, create_time, updater, update_time
+        FROM plt_outbox_event
+        WHERE event_type = #{eventType}
+          AND status = 'PENDING'
+          AND id &gt; #{afterId}
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
     <update id="markDeliveredIfPending">
         UPDATE plt_outbox_event
         SET status = 'DELIVERED', next_retry_time = NULL, update_time = CURRENT_TIMESTAMP

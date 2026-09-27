@@ -19,8 +19,8 @@ class ProjectOperationOwnerProofGuardTest {
             ObjectProvider<ProjectBusinessExecutionService> legacy = mock(ObjectProvider.class);
             var executions = mock(ProjectNodeExecutionApi.class);
             var guard = new ProjectOperationAwareExecutionGuard(legacy,executions,mock(ProjectIndependentOperationAdmission.class));
-            var selection = stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,true))
-                    : new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
+            var selection = stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(3L,1L,4L,1,5L,1,6L,7L,1,1,true))
+                    : new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1L,4L,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
             try (var tenants = mockStatic(TenantContextHolder.class); var actors = mockStatic(SecurityFrameworkUtils.class)) {
                 tenants.when(TenantContextHolder::getRequiredTenantId).thenReturn(1L);
                 actors.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(2L);

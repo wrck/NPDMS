@@ -235,7 +235,7 @@ public class ProjectMasterController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectAttributeClassifyReqVO reqVO) {
-        Integer expectedVersion = parseIfMatch(ifMatch);
+        Long expectedVersion = parseIfMatch(ifMatch);
         String requestDigest = sha256Digest(id + ":" + expectedVersion + ":" + JsonUtils.toJsonString(reqVO));
         var result = projectAttributeClassificationApplicationService.adjust(
                 new ManualProjectAttributeAdjustmentCommand(id, expectedVersion,
@@ -312,7 +312,7 @@ public class ProjectMasterController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectAssignManagerReqVO assignReqVO) {
-        Integer expectedVersion = parseIfMatch(ifMatch);
+        Long expectedVersion = parseIfMatch(ifMatch);
         String requestDigest = sha256Digest(id + ":" + expectedVersion + ":"
                 + JsonUtils.toJsonString(assignReqVO));
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(
@@ -444,7 +444,7 @@ public class ProjectMasterController {
         return new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId());
     }
 
-    private Integer parseIfMatch(String value) {
+    private Long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) {
             normalized = normalized.substring(2).trim();
@@ -453,7 +453,7 @@ public class ProjectMasterController {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) {
                 throw new NumberFormatException("negative version");
             }

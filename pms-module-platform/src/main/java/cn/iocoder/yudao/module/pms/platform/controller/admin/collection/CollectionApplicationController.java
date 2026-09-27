@@ -24,8 +24,8 @@ public class CollectionApplicationController {
     @PostMapping("/sources/{entry}/{objectId}/executions/{id}/download") public CommonResult<String> download(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.download(entry,objectId,actor(),id));}
     @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@RequestParam(required=false) String purpose,@RequestParam(required=false) String protocol,@RequestParam(defaultValue="false") boolean publishedOnly){return success(templates.list(actor(),purpose,protocol,publishedOnly));}
     @PostMapping("/templates") public CommonResult<CollectionTemplateService.View> saveTemplate(@RequestBody CollectionTemplateService.Draft request){return success(templates.save(actor(),request));}
-    @PostMapping("/templates/{id}/publish") public CommonResult<CollectionTemplateService.View> publish(@PathVariable Long id,@RequestParam Integer version){return success(templates.publish(actor(),id,version));}
-    @PostMapping("/templates/{id}/retire") public CommonResult<CollectionTemplateService.View> retire(@PathVariable Long id,@RequestParam Integer version){return success(templates.retire(actor(),id,version));}
+    @PostMapping("/templates/{id}/publish") public CommonResult<CollectionTemplateService.View> publish(@PathVariable Long id,@RequestParam Long version){return success(templates.publish(actor(),id,version));}
+    @PostMapping("/templates/{id}/retire") public CommonResult<CollectionTemplateService.View> retire(@PathVariable Long id,@RequestParam Long version){return success(templates.retire(actor(),id,version));}
     @GetMapping("/connections") public CommonResult<List<CollectionConnectionService.View>> connections(@RequestParam Long projectId){return success(connections.owned(actor(),projectId));}
     @PostMapping("/connections") @ApiAccessLog(requestEnable=false)
     public CommonResult<CollectionConnectionService.View> saveConnection(@RequestBody CollectionConnectionService.Save request){return success(connections.save(actor(),request));}

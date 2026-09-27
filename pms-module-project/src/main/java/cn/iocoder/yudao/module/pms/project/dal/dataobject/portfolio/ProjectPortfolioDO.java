@@ -1,13 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * PMS 项目组合 DO
@@ -15,13 +13,11 @@ import java.time.LocalDate;
 @TableName("proj_project_portfolio")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectPortfolioDO extends TenantBaseDO {
+public class ProjectPortfolioDO extends BaseBusinessEntity {
 
     /**
      * 组合编号
      */
-    @TableId
-    private Long id;
     /**
      * 组合编码，全局唯一
      */
@@ -61,7 +57,4 @@ public class ProjectPortfolioDO extends TenantBaseDO {
     /**
      * 乐观锁版本
      */
-    @Version
-    private Integer version;
-
 }

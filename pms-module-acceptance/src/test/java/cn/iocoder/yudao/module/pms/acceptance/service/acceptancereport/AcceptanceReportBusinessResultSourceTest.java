@@ -26,7 +26,7 @@ class AcceptanceReportBusinessResultSourceTest {
 
     @BeforeEach void setUp() {
         TenantContextHolder.setTenantId(1L);
-        activity.setId(100L); activity.setTenantId(1L); activity.setProjectId(3L); activity.setVersion(2);
+        activity.setId(100L); activity.setTenantId(1L); activity.setProjectId(3L); activity.setVersion(2L);
         activity.setActivityStatus("PENDING"); activity.setCurrentReportVersionId(40L);
         report.setId(40L); report.setTenantId(1L); report.setAcceptanceId(100L); report.setReportVersionNo(2);
         report.setReportStatus("EFFECTIVE"); report.setEffectiveFrom(LocalDateTime.of(2026,9,18,1,0));
@@ -64,7 +64,7 @@ class AcceptanceReportBusinessResultSourceTest {
     void replacementAndRevocationRetainTheHistoricalResultIdentity(String status) {
         var first = source.inspect(exact).result();
         report.setReportStatus(status); report.setEffectiveTo(first.formedAt().plusDays(1));
-        activity.setCurrentReportVersionId(null); activity.setVersion(3);
+        activity.setCurrentReportVersionId(null); activity.setVersion(3L);
         var history = source.inspect(exact).result();
         assertEquals(first.resultId(),history.resultId()); assertEquals(first.businessRevision(),history.businessRevision());
         assertEquals(first.formedAt(),history.formedAt());
@@ -114,7 +114,7 @@ class AcceptanceReportBusinessResultSourceTest {
     @Test void originalOwnerEventMapsToNativeLookupWithoutCreatingAResult() {
         var type=AcceptanceReportBusinessResultSource.TYPE;
         var event=new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,type.ownerContext(),type.entityType(),
-                "100","40",2,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
+                "100","40",2L,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
         var query=source.changeQuery(event);
         assertEquals(type,query.type());assertEquals(3L,query.projectId());
         assertEquals("100",query.objectId());assertEquals("40",query.resultId());

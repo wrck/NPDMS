@@ -25,13 +25,13 @@ class ProjectAssignmentCompletionProviderTest {
 
     private final ProjectAssignmentCompletionProvider provider = new ProjectAssignmentCompletionProvider(mapper, scope, permissions, executions);
     private final ProjectMasterDO row = new ProjectMasterDO();
-    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
+    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1L,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
     private final TaskBusinessObjectProvider.Context context = new TaskBusinessObjectProvider.Context(1L,7L,9L,91L,"test");
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
 
-        row.setId(9L); row.setTenantId(1L); row.setVersion(1); row.setManagerId(7L);
+        row.setId(9L); row.setTenantId(1L); row.setVersion(1L); row.setManagerId(7L);
         when(mapper.project(any())).thenReturn(row);
         var service = member(1L, "SERVICE_MANAGER", 8L);
         var manager = member(2L, "PROJECT_MANAGER", 7L);

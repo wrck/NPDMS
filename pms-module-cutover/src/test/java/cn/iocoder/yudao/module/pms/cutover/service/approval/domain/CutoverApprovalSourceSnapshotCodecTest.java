@@ -89,15 +89,15 @@ class CutoverApprovalSourceSnapshotCodecTest {
                 checklist(101L, "risk-1", "DUAL_MACHINE_CHECK"));
         List<ChecklistResultSnapshot> surveys = "D".equals(grade) ? List.of()
                 : List.of(checklist(201L, "survey-1", "BUSINESS_SURVEY"));
-        return new ApprovalSourceSnapshot(1, 1001L, 5,
-                "D".equals(grade) ? null : 2001L, "D".equals(grade) ? null : 3,
+        return new ApprovalSourceSnapshot(1, 1001L, 5L,
+                "D".equals(grade) ? null : 2001L, "D".equals(grade) ? null : 3L,
                 new ProjectApprovalSnapshot(3001L, 4, "P-001", "Project One", 4001L,
                         "C-001", "Customer One", 5001L, "OFF-01", "Office One", 12L),
                 new CollectionAnalysisSnapshot("VERSION_UPGRADE", networkMode, 1_788_000_000_000L),
                 riskItems, surveys,
-                new AssessmentApprovalSnapshot(6001L, 2, 7001L, "HIGH", "MEDIUM", "LOW",
+                new AssessmentApprovalSnapshot(6001L, 2L, 7001L, "HIGH", "MEDIUM", "LOW",
                         false, "GOLD", grade, 8001L, 1_787_000_000_000L),
-                new PlanApprovalSnapshot(9001L, 1, 2,
+                new PlanApprovalSnapshot(9001L, 1, 2L,
                         JsonUtils.parseTree(planSource(grade)), JsonUtils.parseTree(uploadedPlan())));
     }
 

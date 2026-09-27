@@ -47,8 +47,8 @@ class ProjectDeliverablePlanInspectionMySqlTest {
                 assertEquals(List.of(1L,2L,3L,4L,7L),mapper.selectPlanDefinitionsForUpdate(scope).stream().map(row -> row.getId()).toList());
                 assertEquals(List.of(1L),mapper.selectRetirablePlanDefinitionIds(scope));
                 for (long id:List.of(2L,3L,4L,5L,6L,7L,8L))
-                    assertEquals(0,mapper.retireUnhandledForPlan(new AccProjectDeliverableMapper.PlanDefinitionChange(7L,80L,id,3,null,"9")));
-                assertEquals(1,mapper.retireUnhandledForPlan(new AccProjectDeliverableMapper.PlanDefinitionChange(7L,80L,1L,3,null,"9")));
+                    assertEquals(0,mapper.retireUnhandledForPlan(new AccProjectDeliverableMapper.PlanDefinitionChange(7L,80L,id,3L,null,"9")));
+                assertEquals(1,mapper.retireUnhandledForPlan(new AccProjectDeliverableMapper.PlanDefinitionChange(7L,80L,1L,3L,null,"9")));
                 assertTrue(mapper.selectRetirablePlanDefinitionIds(scope).isEmpty());
                 status.setRollbackOnly();
             });

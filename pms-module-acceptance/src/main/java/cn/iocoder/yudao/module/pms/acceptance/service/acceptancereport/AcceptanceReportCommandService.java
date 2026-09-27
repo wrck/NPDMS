@@ -158,7 +158,6 @@ public class AcceptanceReportCommandService {
         if (reportMapper.updateById(draft) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         persistAttachments(actor, draft.getId(), files);
         activity.setCurrentReportVersionId(draft.getId());
-        activity.setVersion(activity.getVersion() + 1);
         activity.setUpdater(String.valueOf(actor.userId()));
         if (activityMapper.updateById(activity) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         return new ReportResult(activity.getId(), draft.getId(), draft.getReportVersionNo(),
@@ -179,7 +178,6 @@ public class AcceptanceReportCommandService {
         if (reportMapper.updateById(current) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         activity.setCurrentReportVersionId(null);
         if (IndependentAcceptancePolicy.direct(activity)) IndependentAcceptancePolicy.reportRevoked(activity);
-        activity.setVersion(activity.getVersion() + 1);
         activity.setUpdater(String.valueOf(actor.userId()));
         if (activityMapper.updateById(activity) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         return new ReportResult(activity.getId(), current.getId(), current.getReportVersionNo(),
@@ -245,7 +243,7 @@ public class AcceptanceReportCommandService {
         requireCompleteContent(report);
     }
 
-    private AcceptanceActivityDO lockActivity(Long acceptanceId, Actor actor, Integer expectedVersion) {
+    private AcceptanceActivityDO lockActivity(Long acceptanceId, Actor actor, Long expectedVersion) {
         // Project/tree locks precede native ACC/file locks, matching delivery and rule evaluation.
         var observed = activityMapper.selectById(acceptanceId);
         boolean direct = observed != null && IndependentAcceptancePolicy.direct(observed);

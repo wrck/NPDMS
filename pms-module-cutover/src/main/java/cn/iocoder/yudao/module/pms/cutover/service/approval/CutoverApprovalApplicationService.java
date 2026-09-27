@@ -223,7 +223,7 @@ public class CutoverApprovalApplicationService {
                 .eq(CutoverApprovalNodeDO::getApprovalInstanceId, root.getId())
                 .in(CutoverApprovalNodeDO::getStatusCode, List.of("WAITING", "PENDING"))
                 .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
-        int oldRootVersion = root.getVersion();
+        Long oldRootVersion = root.getVersion();
         boolean allOpenNodesAssigned = openNodes.stream().allMatch(value -> value.getCurrentApproverUserId() != null);
         if (allOpenNodesAssigned && ("ROUTE_CANDIDATE_NOT_UNIQUE".equals(root.getHoldReasonCode())
                 || ("APPROVER_UNAVAILABLE".equals(root.getHoldReasonCode())
@@ -238,8 +238,8 @@ public class CutoverApprovalApplicationService {
         return reassignmentView(root, task, openNodes);
     }
 
-    private CutoverApprovalDecisionResult decide(long tenantId, long taskId, int expectedTaskVersion,
-            int expectedApprovalVersion, List<ReviewItemInput> reviewItems,
+    private CutoverApprovalDecisionResult decide(long tenantId, long taskId, Long expectedTaskVersion,
+            Long expectedApprovalVersion, List<ReviewItemInput> reviewItems,
             AssessmentReviewInput assessmentReview, String feedback, String idempotencyKey,
             String correlationId, boolean approve) {
         long actorId = currentUserId.getAsLong();
@@ -263,8 +263,8 @@ public class CutoverApprovalApplicationService {
         return execution.response();
     }
 
-    private CutoverApprovalDecisionResult decideNew(long tenantId, long taskId, int expectedTaskVersion,
-            int expectedApprovalVersion, List<ReviewItemInput> reviewItems,
+    private CutoverApprovalDecisionResult decideNew(long tenantId, long taskId, Long expectedTaskVersion,
+            Long expectedApprovalVersion, List<ReviewItemInput> reviewItems,
             AssessmentReviewInput assessmentReview, String feedback, String correlationId,
             long actorId, boolean approve) {
         require(reviewItemMapper != null && taskMapper != null && historyMapper != null,
@@ -397,7 +397,7 @@ public class CutoverApprovalApplicationService {
         freezeLeadTime(instance, source, command.grade(), command.planSubmittedAt());
         instance.setStatusCode("PENDING");
         instance.setHoldReasonCode(hold); instance.setCurrentNodeNo(1);
-        instance.setPreviousApprovalInstanceId(command.previousApprovalInstanceId()); instance.setVersion(0);
+        instance.setPreviousApprovalInstanceId(command.previousApprovalInstanceId()); instance.setVersion(0L);
         instance.setCreator(String.valueOf(actorId)); instance.setUpdater(String.valueOf(actorId));
         instance.setCreateTime(now); instance.setUpdateTime(now);
         require(instanceMapper.insert(instance) == 1, STATE_CONFLICT, "审批实例创建失败");
@@ -726,7 +726,7 @@ public class CutoverApprovalApplicationService {
     }
 
     private void updateInstance(CutoverApprovalInstanceDO instance) {
-        int expectedVersion = instance.getVersion();
+        Long expectedVersion = instance.getVersion();
         require(instanceMapper.updateStateIfMatch(new ApprovalInstanceStateUpdate(instance.getTenantId(),
                 instance.getId(), expectedVersion, instance.getStatusCode(), instance.getCurrentNodeNo(),
                 instance.getDecisionAt(), instance.getRejectionReason(), instance.getReplacementApprovalInstanceId(),
@@ -781,7 +781,7 @@ public class CutoverApprovalApplicationService {
     }
 
     private static CutoverApprovalDecisionResult decisionResult(CutoverApprovalInstanceDO instance, CutoverTaskDO task,
-            int decidedNodeNo, String status, int taskVersion, String stage, String taskStatus) {
+            int decidedNodeNo, String status, Long taskVersion, String stage, String taskStatus) {
         return new CutoverApprovalDecisionResult(instance.getTenantId(), instance.getId(), instance.getVersion(),
                 task.getId(), taskVersion, instance.getPlanRevisionId(), instance.getSourceSnapshotVersion(), status,
                 instance.getHoldReasonCode(), decidedNodeNo, instance.getCurrentNodeNo(), stage, taskStatus,
@@ -789,8 +789,8 @@ public class CutoverApprovalApplicationService {
                 : instance.getDecisionAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
     }
 
-    private static void validateDecisionCommand(Long tenantId, Long taskId, Integer expectedTaskVersion,
-            Integer expectedApprovalVersion, List<ReviewItemInput> items,
+    private static void validateDecisionCommand(Long tenantId, Long taskId, Long expectedTaskVersion,
+            Long expectedApprovalVersion, List<ReviewItemInput> items,
             String feedback, String idempotencyKey, String correlationId) {
         require(tenantId != null && tenantId > 0 && taskId != null && taskId > 0
                 && expectedTaskVersion != null && expectedTaskVersion >= 0
@@ -882,7 +882,7 @@ public class CutoverApprovalApplicationService {
         return new CutoverApprovalApplicationException(code, reasonCode, null, null, null, message);
     }
     private static CutoverApprovalApplicationException failure(CutoverApprovalApplicationException.Code code,
-            String reasonCode, String ownerContext, Integer currentApprovalVersion, Integer currentTaskVersion,
+            String reasonCode, String ownerContext, Long currentApprovalVersion, Long currentTaskVersion,
             String message) {
         return new CutoverApprovalApplicationException(code, reasonCode, ownerContext,
                 currentApprovalVersion, currentTaskVersion, message);
@@ -892,18 +892,18 @@ public class CutoverApprovalApplicationService {
     private record RouteSnapshot(String grade, List<RouteNodeSnapshot> nodes) { }
     private record RouteNodeSnapshot(int nodeNo, String nodeCode, Long selectedUserId, long projectScopeVersion,
                                      tools.jackson.databind.JsonNode candidateFact, String unresolvedReason) { }
-    private record StartBusinessInput(long tenantId, long taskId, int expectedTaskVersion, long planRevisionId,
-                                      int planRevisionNo, String grade, long assessmentId, int assessmentVersion,
-                                      Long checklistId, Integer checklistVersion, int sourceSnapshotVersion,
+    private record StartBusinessInput(long tenantId, long taskId, Long expectedTaskVersion, long planRevisionId,
+                                      int planRevisionNo, String grade, long assessmentId, Long assessmentVersion,
+                                      Long checklistId, Long checklistVersion, int sourceSnapshotVersion,
                                       LocalDateTime planSubmittedAt, Long previousApprovalInstanceId) { }
-    private record PauseBusinessInput(long tenantId, long approvalInstanceId, int expectedApprovalVersion,
+    private record PauseBusinessInput(long tenantId, long approvalInstanceId, Long expectedApprovalVersion,
                                       long planRevisionId, int expectedSourceSnapshotVersion, String reasonCode) { }
-    private record DecisionBusinessInput(long tenantId, long taskId, int expectedTaskVersion,
-                                         int expectedApprovalVersion, String action,
+    private record DecisionBusinessInput(long tenantId, long taskId, Long expectedTaskVersion,
+                                         Long expectedApprovalVersion, String action,
                                          List<ReviewItemInput> reviewItems,
                                          AssessmentReviewInput assessmentReview, String feedback) { }
-    private record ReassignmentBusinessInput(long tenantId, long taskId, int expectedTaskVersion,
-                                             long approvalInstanceId, int expectedApprovalVersion,
+    private record ReassignmentBusinessInput(long tenantId, long taskId, Long expectedTaskVersion,
+                                             long approvalInstanceId, Long expectedApprovalVersion,
                                              int nodeNo, long newApproverUserId, String reason) { }
     private record ReassignmentCandidate(String snapshot, long projectScopeVersion) { }
     private record FrozenRoleSnapshot(String roleGroupCode,

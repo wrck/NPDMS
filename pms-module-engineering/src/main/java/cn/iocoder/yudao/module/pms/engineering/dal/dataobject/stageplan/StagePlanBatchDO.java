@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -19,18 +18,13 @@ import java.time.LocalDateTime;
 @TableName("sol_stage_plan_batch")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class StagePlanBatchDO extends TenantBaseDO {
+public class StagePlanBatchDO extends BaseBusinessEntity {
 
     public static final int STATUS_DRAFT = 0;
     public static final int STATUS_PENDING_APPROVAL = 1;
     public static final int STATUS_EFFECTIVE = 2;
     public static final int STATUS_REJECTED = 3;
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * PROJ 项目 ID
      */
@@ -80,10 +74,5 @@ public class StagePlanBatchDO extends TenantBaseDO {
      * 驳回原因
      */
     private String rejectReason;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 
 }

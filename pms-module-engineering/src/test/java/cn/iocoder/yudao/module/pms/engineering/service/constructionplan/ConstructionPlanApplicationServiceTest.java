@@ -86,7 +86,7 @@ class ConstructionPlanApplicationServiceTest {
         assertEquals(701L, update.getValue().currentDurationRevisionId());
         assertEquals(701L, update.getValue().planRecalculationSourceRevisionId());
         verify(participantFactApi).lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+                100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
     }
 
     @Test
@@ -107,7 +107,7 @@ class ConstructionPlanApplicationServiceTest {
         assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
 
-        verify(planMapper, never()).insert(any());
+        verify(planMapper, never()).insertRow(any());
         verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
         verify(operationAuditApi).record(eq(0L), eq(9L), eq("corr-1"),
                 eq("CONSTRUCTION_PLAN_INITIAL_DURATION_CREATE"), eq("ConstructionPlan"),
@@ -140,7 +140,7 @@ class ConstructionPlanApplicationServiceTest {
         assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
 
-        verify(planMapper, never()).insert(any());
+        verify(planMapper, never()).insertRow(any());
     }
 
     @Test
@@ -150,18 +150,18 @@ class ConstructionPlanApplicationServiceTest {
                 0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
+                100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
                 .thenThrow(new ServiceException(403, "Current project participant unavailable"));
         assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
-        verify(planMapper, never()).insert(any());
+        verify(planMapper, never()).insertRow(any());
         verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
     }
 
     private void stubAuthorizedCommandExecution() {
         stubScopeAndParticipant();
         when(planMapper.selectByProjectId(0L, 100L)).thenReturn(null);
-        when(planMapper.insert(any())).thenAnswer(invocation -> {
+        when(planMapper.insertRow(any())).thenAnswer(invocation -> {
             ((ConstructionPlanDO) invocation.getArgument(0)).setId(501L);
             return 1;
         });
@@ -198,15 +198,15 @@ class ConstructionPlanApplicationServiceTest {
                 0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
+                100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
                 .thenReturn(new ProjectParticipantFact(100L, 9L,
                         Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
-                        "ACTIVE", "S2", 3, 3L));
+                        "ACTIVE", "S2", 3L, 3L));
     }
 
     private CreateInitialDurationCommand command(String basis, LocalDate start,
                                                   LocalDate end, Integer days) {
-        return new CreateInitialDurationCommand(100L, basis, start, end, days, 3,
+        return new CreateInitialDurationCommand(100L, basis, start, end, days, 3L,
                 "idem-1", "a".repeat(64));
     }
 

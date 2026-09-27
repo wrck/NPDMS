@@ -47,7 +47,7 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
         return new Context(project, scope.treeVersion());
     }
 
-    public Context lock(Long projectId, Integer expectedVersion, Long expectedTreeVersion, Actor actor) {
+    public Context lock(Long projectId, Long expectedVersion, Long expectedTreeVersion, Actor actor) {
         var project = lockProject(projectId, actor.tenantId());
         if (!Objects.equals(project.getVersion(), expectedVersion)) throw failure("CLOSURE_PROJECT_VERSION_CONFLICT");
         var scope = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(), projectId,
@@ -92,7 +92,7 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
     }
 
     @Override
-    public ClosureContext lock(Long tenantId, Long projectId, Integer expectedProjectVersion,
+    public ClosureContext lock(Long tenantId, Long projectId, Long expectedProjectVersion,
                                 Long expectedTreeVersion, Long actorId) {
         var context = lock(projectId, expectedProjectVersion, expectedTreeVersion, new Actor(tenantId, actorId, null));
         return toClosureContext(context);

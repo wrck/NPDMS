@@ -74,7 +74,7 @@ class CutoverPlanSubmissionTest {
                 Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
 
         DownloadCutoverPlanDraftResult result = service.downloadDraft(
-                new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3, "download-1", "corr-download-1"));
+                new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-1", "corr-download-1"));
 
         assertThat(result.planRevisionId()).isEqualTo(80L);
         assertThat(result.planVersion()).isEqualTo(3);
@@ -126,7 +126,7 @@ class CutoverPlanSubmissionTest {
                 Clock.fixed(Instant.parse("2026-09-01T02:00:00Z"), ZoneOffset.UTC));
 
         SubmitCutoverPlanResult result = service.submit(
-                new SubmitCutoverPlanCommand(1L, 8L, 50L, 4, 3, "submit-1", "corr-submit-1"));
+                new SubmitCutoverPlanCommand(1L, 8L, 50L, 4L, 3L, "submit-1", "corr-submit-1"));
 
         assertThat(result.taskStage()).isEqualTo("P5");
         assertThat(result.taskVersion()).isEqualTo(5);
@@ -155,11 +155,11 @@ class CutoverPlanSubmissionTest {
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverTaskStageHistoryMapper historyMapper = mock(CutoverTaskStageHistoryMapper.class);
         CutoverTaskDO task = task();
-        task.setCurrentStage("P5"); task.setTaskStatus("APPROVING"); task.setVersion(5);
+        task.setCurrentStage("P5"); task.setTaskStatus("APPROVING"); task.setVersion(5L);
         CutoverPlanRevisionDO plan = simplePlan();
         plan.setStatusCode("SUBMITTED"); plan.setSubmittedBy(8L);
         plan.setSubmittedAt(java.time.LocalDateTime.parse("2026-09-01T02:00:00"));
-        plan.setApprovalInstanceId(70001L); plan.setApprovalVersion(0); plan.setVersion(4);
+        plan.setApprovalInstanceId(70001L); plan.setApprovalVersion(0L); plan.setVersion(4L);
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
         when(planMapper.selectCurrentForUpdate(any())).thenReturn(plan);
         when(planMapper.invalidateSubmittedIfMatch(any())).thenReturn(1);
@@ -176,7 +176,7 @@ class CutoverPlanSubmissionTest {
                 Clock.fixed(Instant.parse("2026-09-01T03:00:00Z"), ZoneOffset.UTC));
 
         InvalidateCutoverPlanSourceResult result = service.invalidateSource(
-                new InvalidateCutoverPlanSourceCommand(1L, 9L, 50L, 5, 4,
+                new InvalidateCutoverPlanSourceCommand(1L, 9L, 50L, 5L, 4L,
                         "invalidate-1", "corr-invalidate-1"));
 
         assertThat(result.taskStage()).isEqualTo("P4");
@@ -189,9 +189,9 @@ class CutoverPlanSubmissionTest {
         assertThat(planUpdate.getValue()).extracting(CutoverPlanInvalidationUpdate::expectedApprovalVersion,
                         CutoverPlanInvalidationUpdate::newApprovalVersion,
                         CutoverPlanInvalidationUpdate::reasonCode)
-                .containsExactly(0, 1, "SOURCE_FACT_INVALIDATED");
+                .containsExactly(0L, 1L, "SOURCE_FACT_INVALIDATED");
         verify(taskMapper).returnToPlanForSourceInvalidation(
-                new CutoverTaskSourceInvalidationUpdate(1L, 50L, 5));
+                new CutoverTaskSourceInvalidationUpdate(1L, 50L, 5L));
         var history = org.mockito.ArgumentCaptor.forClass(CutoverTaskStageHistoryDO.class);
         verify(historyMapper).insert(history.capture());
         assertThat(history.getValue()).extracting(CutoverTaskStageHistoryDO::getFromStage,
@@ -204,12 +204,12 @@ class CutoverPlanSubmissionTest {
         CutoverTaskDO row = new CutoverTaskDO();
         row.setId(50L); row.setTenantId(1L); row.setProjectId(70L); row.setTaskOrigin("NEW_PLATFORM");
         row.setOwnerUserId(8L); row.setCurrentStage("P4"); row.setTaskStatus("PLAN_DRAFTING");
-        row.setVersion(4); return row;
+        row.setVersion(4L); return row;
     }
 
     private static CutoverPlanRevisionDO simplePlan() {
-        CutoverPlanSourcePort.SourceSnapshot source = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4,
-                60L, 2, "D", null, null, 70L, 5, 30L,
+        CutoverPlanSourcePort.SourceSnapshot source = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4L,
+                60L, 2L, "D", null, null, 70L, 5, 30L,
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(90L, "SN-90", 3L, "SWITCH", "TYPE-V1")),
                 100L, "CFG-D", 1,
                 List.of(new CutoverPlanSourcePort.TemplateSectionSnapshot("OPERATION", "操作", 1,
@@ -221,7 +221,7 @@ class CutoverPlanSubmissionTest {
         row.setOriginCode("NEW_PLATFORM"); row.setEditModeCode("ONLINE_TEMPLATE_SIMPLE_D");
         row.setGradeCode("D"); row.setSourceSnapshot(JsonUtils.toJsonString(source));
         row.setContentSnapshot("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}");
-        row.setStatusCode("DRAFT"); row.setCurrentMarker(1); row.setVersion(3); return row;
+        row.setStatusCode("DRAFT"); row.setCurrentMarker(1); row.setVersion(3L); return row;
     }
 
     private static CutoverPlanStepDO step(String section, int no, String content) {
@@ -241,7 +241,7 @@ class CutoverPlanSubmissionTest {
         @Override
         public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
             this.command = command;
-            fact = new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
+            fact = new CutoverApprovalFact(70001L, 0L, command.taskId(), command.planRevisionId(),
                     command.planRevisionNo(), ApprovalStatus.PENDING,
                     command.sourceSnapshotVersion(), null, null, null);
             return new CutoverApprovalStartResult(StartOutcome.STARTED, fact);

@@ -113,7 +113,7 @@ class CutoverPlanApplicationMySqlTest {
         row.setImplementationReadinessSnapshotVersion(1L); row.setProjectScopeVersion(30L);
         row.setProjectContextSnapshot("{}"); row.setDeviceScopeWatermark("{}"); row.setCustomerContextSnapshot("{}");
         row.setReadinessContextSnapshot("{}"); row.setManualGrade("A"); row.setConfigurationRevisionId(401L);
-        row.setConfigurationCode("CFG-1"); row.setConfigurationRevisionNo(1); row.setVersion(4);
+        row.setConfigurationCode("CFG-1"); row.setConfigurationRevisionNo(1); row.setVersion(4L);
         row.setCreator("8"); row.setUpdater("8"); assertEquals(1, taskMapper.insert(row));
     }
 
@@ -131,7 +131,7 @@ class CutoverPlanApplicationMySqlTest {
 
     @Test
     void createSaveReplayKeepsRootChildrenAndPlatformFactsAtomic() {
-        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(tenantId, 8L, taskId, 4, 30L,
+        CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(tenantId, 8L, taskId, 4L, 30L,
                 "ONLINE_TEMPLATE_STANDARD", null, null, "create-1", "corr-create-1"));
         assertEquals(created.planVersion(), count("SELECT version FROM cut_plan_revision WHERE tenant_id=?", tenantId));
         tools.jackson.databind.node.ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
@@ -151,7 +151,7 @@ class CutoverPlanApplicationMySqlTest {
         support.putNull("arrangementId"); support.put("roleCode", "CUSTOMER"); support.put("personName", "客户经理");
         support.put("dutyDescription", "现场确认"); support.put("phone", "13800000000");
         support.put("arrivalTime", 1_788_192_000_000L);
-        SaveCutoverPlanDraftCommand save = new SaveCutoverPlanDraftCommand(tenantId, 8L, taskId, 4, created.planVersion(),
+        SaveCutoverPlanDraftCommand save = new SaveCutoverPlanDraftCommand(tenantId, 8L, taskId, 4L, created.planVersion(),
                 30L, content, "save-1", "corr-save-1");
         service.saveDraft(save); service.saveDraft(save);
 
@@ -173,7 +173,7 @@ class CutoverPlanApplicationMySqlTest {
         assertEquals(owners.fileFact(), downloaded.fileArtifactFact());
 
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), "submit-1", "corr-submit-1"));
+                tenantId, 8L, taskId, 4L, created.planVersion(), "submit-1", "corr-submit-1"));
 
         assertEquals("P5", submitted.taskStage());
         assertEquals("PENDING", submitted.approvalStatus());
@@ -186,7 +186,7 @@ class CutoverPlanApplicationMySqlTest {
                 "AND cutover_task_id=? AND trigger_type='P4_PLAN_SUBMITTED'", tenantId, taskId));
 
         InvalidateCutoverPlanSourceResult invalidated = service.invalidateSource(
-                new InvalidateCutoverPlanSourceCommand(tenantId, 9L, taskId, 5, submitted.planVersion(),
+                new InvalidateCutoverPlanSourceCommand(tenantId, 9L, taskId, 5L, submitted.planVersion(),
                         "invalidate-1", "corr-invalidate-1"));
 
         assertEquals("P4", invalidated.taskStage());
@@ -202,9 +202,9 @@ class CutoverPlanApplicationMySqlTest {
         assertEquals(5, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND status='COMPLETED'", tenantId));
         assertEquals(5, count("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=?", tenantId));
 
-        owners.replaceDeviceAndTaskVersion(6);
+        owners.replaceDeviceAndTaskVersion(6L);
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, submitted.planRevisionId(), "SOURCE_REPLACED",
+                tenantId, 8L, taskId, 6L, submitted.planRevisionId(), "SOURCE_REPLACED",
                 "revise-source-1", "corr-revise-source-1"));
         CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
                 owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
@@ -215,10 +215,10 @@ class CutoverPlanApplicationMySqlTest {
         assertEquals("SN-2", detail.content().path("overview").path("deviceSummary").get(0)
                 .path("serialNumber").asText());
         CutoverPlanCommandResult savedReplacement = service.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 6, replacement.planVersion(), 30L, detail.content(),
+                tenantId, 8L, taskId, 6L, replacement.planVersion(), 30L, detail.content(),
                 "save-source-2", "corr-save-source-2"));
         SubmitCutoverPlanResult resubmitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, savedReplacement.planVersion(),
+                tenantId, 8L, taskId, 6L, savedReplacement.planVersion(),
                 "submit-source-2", "corr-submit-source-2"));
 
         assertEquals(2, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND cutover_task_id=?",
@@ -240,7 +240,7 @@ class CutoverPlanApplicationMySqlTest {
         owners.useGrade("D");
         jdbc.update("UPDATE cut_task SET manual_grade='D' WHERE tenant_id=? AND id=?", tenantId, taskId);
         CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "ONLINE_TEMPLATE_SIMPLE_D", null, null,
+                tenantId, 8L, taskId, 4L, 30L, "ONLINE_TEMPLATE_SIMPLE_D", null, null,
                 "create-simple-d", "corr-create-simple-d"));
         tools.jackson.databind.node.ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
         content.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D");
@@ -249,11 +249,11 @@ class CutoverPlanApplicationMySqlTest {
         content.withArray("steps").addObject().put("sectionCode", "ROLLBACK").put("stepNo", 1)
                 .put("content", "D级回退操作");
         CutoverPlanCommandResult saved = service.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), 30L, content,
+                tenantId, 8L, taskId, 4L, created.planVersion(), 30L, content,
                 "save-simple-d", "corr-save-simple-d"));
 
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, saved.planVersion(), "submit-simple-d", "corr-submit-simple-d"));
+                tenantId, 8L, taskId, 4L, saved.planVersion(), "submit-simple-d", "corr-submit-simple-d"));
 
         assertEquals("P5", submitted.taskStage());
         assertEquals("PENDING", submitted.approvalStatus());
@@ -272,12 +272,12 @@ class CutoverPlanApplicationMySqlTest {
     void fullFilePositiveLoopFreezesFileFactWithoutOnlineChildren() {
         CutoverPlanFilePort.FileFact file = owners.fileFact();
         CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
+                tenantId, 8L, taskId, 4L, 30L, "FULL_FILE_UPLOAD", file, true,
                 "create-full-file", "corr-create-full-file"));
         var downloaded = service.downloadDraft(new DownloadCutoverPlanDraftCommand(
                 tenantId, 8L, taskId, created.planVersion(), "download-full-file", "corr-download-full-file"));
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), "submit-full-file", "corr-submit-full-file"));
+                tenantId, 8L, taskId, 4L, created.planVersion(), "submit-full-file", "corr-submit-full-file"));
 
         assertEquals(file, downloaded.fileArtifactFact());
         assertEquals("P5", submitted.taskStage());
@@ -295,10 +295,10 @@ class CutoverPlanApplicationMySqlTest {
     void rejectedApprovalCreatesSavedReplacementAndNewPendingApprovalAtomically() {
         CutoverPlanCommandResult saved = createSavedStandardPlan("approval-rejected");
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, saved.planVersion(),
+                tenantId, 8L, taskId, 4L, saved.planVersion(),
                 "submit-approval-rejected", "corr-submit-approval-rejected"));
         approval.reject(submitted.approvalInstanceId(), 1_788_192_000_000L, "补充回退步骤");
-        owners.advanceTaskVersion(6);
+        owners.advanceTaskVersion(6L);
         assertEquals(1, jdbc.update("UPDATE cut_task SET current_stage='P4', task_status='PLAN_DRAFTING', " +
                 "version=6, updater='0' WHERE tenant_id=? AND id=? AND current_stage='P5' AND version=5",
                 tenantId, taskId));
@@ -312,16 +312,16 @@ class CutoverPlanApplicationMySqlTest {
                 LocalDateTime.of(2026, 9, 1, 8, 5)));
 
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, submitted.planRevisionId(), "APPROVAL_REJECTED",
+                tenantId, 8L, taskId, 6L, submitted.planRevisionId(), "APPROVAL_REJECTED",
                 "revise-approval-rejected", "corr-revise-approval-rejected"));
         CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
                 owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
                 new CutoverPlanQueryService.PlanAccess(true, true, true, true));
         CutoverPlanCommandResult savedReplacement = service.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 6, replacement.planVersion(), 30L, detail.content(),
+                tenantId, 8L, taskId, 6L, replacement.planVersion(), 30L, detail.content(),
                 "save-approval-rejected-r2", "corr-save-approval-rejected-r2"));
         SubmitCutoverPlanResult resubmitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, savedReplacement.planVersion(),
+                tenantId, 8L, taskId, 6L, savedReplacement.planVersion(),
                 "resubmit-approval-rejected", "corr-resubmit-approval-rejected"));
 
         assertEquals(1, count("SELECT COUNT(*) FROM cut_plan_revision WHERE tenant_id=? AND id=? " +
@@ -351,7 +351,7 @@ class CutoverPlanApplicationMySqlTest {
     void approvedContactPatchKeepsApprovedBodyAndPersistsAuditFacts() {
         CutoverPlanCommandResult saved = createSavedStandardPlan("approved-contact");
         SubmitCutoverPlanResult submitted = service.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, saved.planVersion(),
+                tenantId, 8L, taskId, 4L, saved.planVersion(),
                 "submit-approved-contact", "corr-submit-approved-contact"));
         approval.approve(submitted.approvalInstanceId(), 1_788_192_000_000L);
         jdbc.update("UPDATE cut_task SET current_stage='P6', task_status='CLOSURE_IN_PROGRESS', version=6 " +
@@ -383,7 +383,7 @@ class CutoverPlanApplicationMySqlTest {
 
     private CutoverPlanCommandResult createSavedStandardPlan(String key) {
         CutoverPlanCommandResult created = service.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "ONLINE_TEMPLATE_STANDARD", null, null,
+                tenantId, 8L, taskId, 4L, 30L, "ONLINE_TEMPLATE_STANDARD", null, null,
                 "create-" + key, "corr-create-" + key));
         tools.jackson.databind.node.ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
         content.put("editMode", "ONLINE_TEMPLATE_STANDARD");
@@ -410,7 +410,7 @@ class CutoverPlanApplicationMySqlTest {
             support.put("dutyDescription", "CUSTOMER".equals(role) ? "现场确认" : role + "保障");
             support.put("phone", "13800000000"); support.put("arrivalTime", 1_788_192_000_000L);
         }
-        return service.saveDraft(new SaveCutoverPlanDraftCommand(tenantId, 8L, taskId, 4,
+        return service.saveDraft(new SaveCutoverPlanDraftCommand(tenantId, 8L, taskId, 4L,
                 created.planVersion(), 30L, content, "save-" + key, "corr-save-" + key));
     }
 
@@ -427,7 +427,7 @@ class CutoverPlanApplicationMySqlTest {
             List<TemplateSectionSnapshot> sections = CutoverPlanRules.STANDARD_SECTIONS.stream().map(key ->
                     new TemplateSectionSnapshot(key, key, CutoverPlanRules.STANDARD_SECTIONS.indexOf(key) + 1,
                             List.of("NETWORK_CUTOVER"), List.of("A"), true)).toList();
-            SourceSnapshot snapshot = new SourceSnapshot(1, taskId, 4, 100L, 2, "A", 200L, 3,
+            SourceSnapshot snapshot = new SourceSnapshot(1, taskId, 4L, 100L, 2L, "A", 200L, 3L,
                     projectId, 6, 30L, List.of(new DeviceSnapshot(301L, "SN-1", 9L, "ROUTER", "type-v1")),
                     401L, "CFG-1", 1, sections, List.of());
             facts = new SourceFacts(snapshot, List.of());
@@ -437,7 +437,7 @@ class CutoverPlanApplicationMySqlTest {
         @Override public java.util.Set<Long> resolveAllCurrent(Long actorId, String action) { return java.util.Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
-        void replaceDeviceAndTaskVersion(int taskVersion) {
+        void replaceDeviceAndTaskVersion(Long taskVersion) {
             SourceSnapshot source = facts.snapshot();
             facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion() + 1, source.taskId(), taskVersion,
                     source.assessmentId(), source.assessmentVersion(), source.grade(), source.checklistId(),
@@ -447,7 +447,7 @@ class CutoverPlanApplicationMySqlTest {
                     source.configurationRevisionNo(), source.templateSections(), source.failedRiskFacts()),
                     facts.failedRiskFacts());
         }
-        void advanceTaskVersion(int taskVersion) {
+        void advanceTaskVersion(Long taskVersion) {
             SourceSnapshot source = facts.snapshot();
             facts = new SourceFacts(new SourceSnapshot(source.snapshotVersion(), source.taskId(), taskVersion,
                     source.assessmentId(), source.assessmentVersion(), source.grade(), source.checklistId(),

@@ -63,7 +63,7 @@ class ConstructionPlanQueryServiceTest {
     void detailReturnsCurrentRevisionAndServerActions() {
         stubViewScope();
         ConstructionPlanDO plan = plan();
-        when(planMapper.selectById(any())).thenReturn(plan);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan);
         when(revisionMapper.selectById(any())).thenReturn(revision(701L, 1));
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(false);
@@ -81,7 +81,7 @@ class ConstructionPlanQueryServiceTest {
         stubViewScope();
         ConstructionPlanDO plan = plan();
         plan.setPendingChangeId(801L);
-        when(planMapper.selectById(any())).thenReturn(plan);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan);
         when(revisionMapper.selectById(any())).thenReturn(
                 revision(701L, 1), revision(702L, 2));
         when(changeMapper.selectById(any())).thenReturn(change(801L,
@@ -97,7 +97,7 @@ class ConstructionPlanQueryServiceTest {
     @Test
     void revisionPageUsesStableCursorAndOneExtraRow() {
         stubViewScope();
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(revisionMapper.selectPage(new ConstructionPlanRevisionPageQuery(
                 0L, 501L, 3, 703L, 3)))
                 .thenReturn(List.of(revision(702L, 2), revision(701L, 1), revision(700L, 0)));
@@ -117,7 +117,7 @@ class ConstructionPlanQueryServiceTest {
     @Test
     void changePageUsesStableTimestampAndIdCursor() {
         stubViewScope();
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         LocalDateTime cursorTime = LocalDateTime.of(2026, 8, 26, 13, 0);
         when(changeMapper.selectPage(new ConstructionPlanChangePageQuery(
                 0L, 501L, cursorTime, 703L, 3)))
@@ -141,7 +141,7 @@ class ConstructionPlanQueryServiceTest {
     @Test
     void changeDetailIncludesItsCandidateRevision() {
         stubViewScope();
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(changeMapper.selectById(any())).thenReturn(change(801L,
                 LocalDateTime.of(2026, 8, 26, 13, 0)));
         when(revisionMapper.selectById(any())).thenReturn(revision(702L, 2));
@@ -170,7 +170,7 @@ class ConstructionPlanQueryServiceTest {
         plan.setCurrentDurationRevisionId(701L);
         plan.setPlanRecalculationStatusCode("PENDING_RECALCULATION");
         plan.setPlanRecalculationSourceRevisionId(701L);
-        plan.setVersion(1);
+        plan.setVersion(1L);
         plan.setTenantId(0L);
         return plan;
     }

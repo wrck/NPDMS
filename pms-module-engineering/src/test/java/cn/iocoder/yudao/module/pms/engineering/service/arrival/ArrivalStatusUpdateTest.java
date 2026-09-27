@@ -24,7 +24,7 @@ class ArrivalStatusUpdateTest {
         ReflectionTestUtils.setField(service, "arrivalMapper", mapper);
         doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
-        row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6);
+        row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);
     }
 
@@ -106,7 +106,7 @@ class ArrivalStatusUpdateTest {
     }
 
     @Test void deleteUsesAnEditableVersionPredicateAndReportsAConcurrentChange() {
-        ArrivalEditableDeleteQuery query = new ArrivalEditableDeleteQuery(1L, 6);
+        ArrivalEditableDeleteQuery query = new ArrivalEditableDeleteQuery(1L, 6L);
         when(mapper.deleteEditable(query)).thenReturn(0);
         assertEquals(ARRIVAL_VERSION_NOT_MATCH.getCode(), assertThrows(ServiceException.class, () -> service.deleteArrival(1L)).getCode());
         verify(mapper, never()).deleteById(anyLong());

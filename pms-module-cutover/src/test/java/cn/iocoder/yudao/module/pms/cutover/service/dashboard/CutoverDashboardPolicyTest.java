@@ -71,8 +71,8 @@ class CutoverDashboardPolicyTest {
                 new ControlledCutoverDashboardActionFactPort(List.of(first, second));
 
         List<CutoverDashboardActionFacts> result = port.inspectBatch(new BatchQuery(1L, 9L, List.of(
-                new CandidateNeed(10L, 100L, 1, "P2", 1000L, 1),
-                new CandidateNeed(20L, 200L, 2, "P6", 2000L, 3))));
+                new CandidateNeed(10L, 100L, 1L, "P2", 1000L, 1),
+                new CandidateNeed(20L, 200L, 2L, "P6", 2000L, 3))));
 
         assertThat(result).containsExactly(first, second);
     }

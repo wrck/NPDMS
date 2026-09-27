@@ -39,7 +39,7 @@ class ProjectPlanActivationServiceTest {
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         var currentStages = mock(ProjectCurrentStageService.class);
-        when(currentStages.synchronize(9L)).thenReturn(5);
+        when(currentStages.synchronize(9L)).thenReturn(5L);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", currentStages);
         preview = preview(4,List.of(),List.of());
         when(drafts.authorize(9L,1L)).thenReturn(scope);
@@ -54,11 +54,11 @@ class ProjectPlanActivationServiceTest {
 
     @Test void appliesExactlyThePreviewedVersionAndEmitsSafeAuditAndDedicatedReevaluation() {
         var result = apply(preview);
-        assertEquals(new ProjectPlanActivationService.Applied(9L,52L,2,5),result);
+        assertEquals(new ProjectPlanActivationService.Applied(9L,52L,2,5L),result);
         verify(timers).schedule(9L,52L,prepared.after(),null);
         var order = inOrder(drafts,nodes,deliverables,milestones,gates,persistence);
         order.verify(drafts).authorize(9L,1L);
-        order.verify(drafts).prepare(9L,52L,3,1L,true);
+        order.verify(drafts).prepare(9L,52L,3L,1L,true);
         order.verify(nodes).install(argThat(request -> request.newPlanId()==52L && request.newTaskStateMachineRevisionId()==null));
         order.verify(deliverables).applyPlanChanges(any());
         order.verify(milestones).install(scope,prepared.milestones(),1L);
@@ -130,7 +130,7 @@ class ProjectPlanActivationServiceTest {
     }
 
     @Test void completedReplayReturnsOriginalResultWithoutInstallingAgain() {
-        var saved = new ProjectPlanActivationService.Applied(9L,52L,2,5);
+        var saved = new ProjectPlanActivationService.Applied(9L,52L,2,5L);
         when(commands.execute(any(),anyString(),eq(ProjectPlanActivationService.Applied.class),any(),any()))
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED,saved));
         assertEquals(saved,apply(preview));
@@ -149,23 +149,23 @@ class ProjectPlanActivationServiceTest {
     private ProjectPlanActivationService.Applied apply(ProjectPlanDraftService.Preview observed) {
         return service.apply(new ProjectPlanActivationService.Apply(9L,52L,observed),1L,"apply-key");
     }
-    private ProjectPlanDraftService.Preview preview(int projectVersion,List<ProjectPlanExecutionPlanner.Change> changes,List<Issue> issues) {
-        return new ProjectPlanDraftService.Preview(51L,52L,3,projectVersion,List.of(),List.of(),changes,List.of(),List.of(),List.of(),issues);
+    private ProjectPlanDraftService.Preview preview(long projectVersion,List<ProjectPlanExecutionPlanner.Change> changes,List<Issue> issues) {
+        return new ProjectPlanDraftService.Preview(51L,52L,3L,projectVersion,List.of(),List.of(),changes,List.of(),List.of(),List.of(),issues);
     }
     private ProjectPlanExecutionPlanner.Change nodeChange(int version) {
         return new ProjectPlanExecutionPlanner.Change("task:one","TASK","现场工勘",ProjectPlanExecutionPlanner.Action.REBASE_CURRENT,
                 20L,70L,version,4,2,51L,"SURVEY","SURVEY");
     }
     private void prepare(ProjectPlanDraftService.Preview current) {
-        var project = new ProjectMasterDO(); project.setTenantId(7L); project.setId(9L); project.setVersion(4);
+        var project = new ProjectMasterDO(); project.setTenantId(7L); project.setId(9L); project.setVersion(4L);
         project.setActivePlanVersionId(51L); project.setTaskProgressVersion(8L);
         var effective = new ProjectPlanVersionDO(); effective.setId(51L);
-        var draft = new ProjectPlanVersionDO(); draft.setId(52L); draft.setVersion(3); draft.setRevisionNo(2);
+        var draft = new ProjectPlanVersionDO(); draft.setId(52L); draft.setVersion(3L); draft.setRevisionNo(2);
         var after = new TemplateExecutionSnapshot(); after.setClosureRuleKey("private-rule-value");
         prepared = new ProjectPlanDraftService.Prepared(current,project,effective,draft,new TemplateExecutionSnapshot(),after,
                 List.of(),List.of(),List.of(),new ProjectPlanExecutionPlanner.Plan(current.executionChanges(),List.of()),
                 new ProjectPlanDeliverablePlanner.Plan(List.of(),List.of(),List.of()),
                 new ProjectPlanMilestoneInstaller.Plan(List.of(),List.of(),List.of()),new ProjectPlanGateInstaller.Plan(List.of(),List.of(),List.of()));
-        when(drafts.prepare(9L,52L,3,1L,true)).thenReturn(prepared);
+        when(drafts.prepare(9L,52L,3L,1L,true)).thenReturn(prepared);
     }
 }

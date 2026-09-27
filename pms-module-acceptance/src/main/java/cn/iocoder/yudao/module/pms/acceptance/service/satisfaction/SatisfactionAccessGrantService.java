@@ -138,6 +138,6 @@ public class SatisfactionAccessGrantService {
     }
 
     public record CreatedGrant(Long grantId, Integer grantVersion, String token, LocalDateTime expiresAt) {}
-    public record PublicQuestionnaire(Long questionnaireId, Integer version, String frozenQuestions,
+    public record PublicQuestionnaire(Long questionnaireId, Long version, String frozenQuestions,
                                       LocalDateTime expiresAt) {}
 }

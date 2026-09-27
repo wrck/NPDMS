@@ -14,7 +14,7 @@ public class ProjectAssignManagerRespVO {
     @Schema(description = "当前服务经理关系ID")
     private Long assignmentId;
     @Schema(description = "更新后的Project版本")
-    private Integer version;
+    private Long version;
     @Schema(description = "节点指派状态；主责服务经理与项目经理均有效时为ASSIGNED")
     private String assignmentStatus;
     @Schema(description = "服务端事务生效时间")

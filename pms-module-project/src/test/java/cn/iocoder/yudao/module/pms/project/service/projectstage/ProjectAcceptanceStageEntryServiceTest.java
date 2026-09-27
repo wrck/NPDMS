@@ -112,7 +112,7 @@ class ProjectAcceptanceStageEntryServiceTest {
         verify(stageMapper).updateStatusIfMatch(argThat(update -> update.stageId().equals(101L)
                 && update.expectedStatus().equals("PENDING") && update.targetStatus().equals("ACTIVE")));
         verify(projectMapper).updateGovernanceStateIfMatch(argThat(update ->
-                update.currentStage().equals("S5") && update.expectedVersion().equals(3)));
+                update.currentStage().equals("S5") && update.expectedVersion().equals(3L)));
         InOrder writeOrder = inOrder(snapshotRepository, bindingApi, stageMapper, projectMapper);
         writeOrder.verify(snapshotRepository).append(any());
         writeOrder.verify(bindingApi).bindForStageEntry(any());
@@ -205,7 +205,7 @@ class ProjectAcceptanceStageEntryServiceTest {
     }
 
     private ProjectAcceptanceStageEntryCommand command() {
-        return new ProjectAcceptanceStageEntryCommand(PROJECT_ID, 3, 12L, "idem-1", "a".repeat(64));
+        return new ProjectAcceptanceStageEntryCommand(PROJECT_ID, 3L, 12L, "idem-1", "a".repeat(64));
     }
 
     private ProjectAcceptanceStageEntryService.Actor actor() {
@@ -216,7 +216,7 @@ class ProjectAcceptanceStageEntryServiceTest {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(PROJECT_ID);
         project.setTenantId(TENANT_ID);
-        project.setVersion(3);
+        project.setVersion(3L);
         project.setLifecycleStatus("ACTIVE");
         project.setCurrentStage("S4");
         project.setAssignmentStatus("ASSIGNED");

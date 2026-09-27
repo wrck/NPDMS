@@ -72,7 +72,7 @@ public class ProjectMemberUpdateApplicationService {
 
     private ProjectMemberUpdateResult updateOnce(ProjectMemberUpdateCommand command,
             ProjectManagerMemberApplicationService.Actor actor, String digest) {
-        int version = command.expectedVersion();
+        long version = command.expectedVersion();
         AssignServiceManagerResult serviceResult = null;
         var selection = command.serviceManager();
         // 子键只在外层首次执行回调内产生；外层同键重放不会再次进入此处。

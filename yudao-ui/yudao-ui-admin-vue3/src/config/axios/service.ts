@@ -231,7 +231,10 @@ service.interceptors.response.use(
     } else if (message.includes('Request failed with status code')) {
       message = t('sys.api.apiRequestFailed') + message.substr(message.length - 3)
     }
-    ElMessage.error(message)
+    // silentError：调用方自行按契约结果呈现（如办理页的并发冲突提示），不再弹全局错误。
+    if (!(error as any)?.config?.silentError) {
+      ElMessage.error(message)
+    }
     return Promise.reject(error)
   }
 )

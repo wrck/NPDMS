@@ -42,8 +42,8 @@ class ProjectBusinessExecutionServiceTest {
     final ProjectPlanVersionDO plan = new ProjectPlanVersionDO();
     final TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
     final ProjectNodeExecutionDO node = new ProjectNodeExecutionDO();
-    final ProjectTaskExecutionContext task = new ProjectTaskExecutionContext(9L, 1, 11L, 1, 12L, 1, 21L, 31L, 1, 2, 32L, 1, true, null);
-    final ProjectStageExecutionContext stage = new ProjectStageExecutionContext(9L, 1, 11L, 1, 12L, 1, 21L, 31L, 1, 2, true);
+    final ProjectTaskExecutionContext task = new ProjectTaskExecutionContext(9L, 1L, 11L, 1, 12L, 1, 21L, 31L, 1, 2, 32L, 1, true, null);
+    final ProjectStageExecutionContext stage = new ProjectStageExecutionContext(9L, 1L, 11L, 1, 12L, 1, 21L, 31L, 1, 2, true);
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
@@ -94,7 +94,7 @@ class ProjectBusinessExecutionServiceTest {
     }
     BusinessViewRevision view(String status) {
         return new BusinessViewRevision(40L,"SITE_SURVEY","survey",1L,"SOL",BusinessViewComponentProvider.ViewSource.PAGE,
-                "SOL_SITE_SURVEY","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1,status,Set.of());
+                "SOL_SITE_SURVEY","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1L,status,Set.of());
     }
     TemplateExecutionSnapshot.BindingContract binding() {
         var b = new TemplateExecutionSnapshot.BindingContract(); b.setType("BUSINESS_COMPONENT"); b.setTargetContextCode("SOL");
@@ -116,7 +116,7 @@ class ProjectBusinessExecutionServiceTest {
         verify(access).read(11L,7L,8L);
     }
     @Test void explicitStaleContextNeverFallsBackToCurrentRound() {
-        var stale = new ProjectTaskExecutionContext(9L,1,11L,0,12L,1,21L,31L,0,2,32L,1,true,null);
+        var stale = new ProjectTaskExecutionContext(9L,1L,11L,0,12L,1,21L,31L,0,2,32L,1,true,null);
         when(executions.lockAndRevalidate(stale)).thenThrow(new IllegalStateException("stale"));
         assertThrows(IllegalStateException.class, () -> service.lockForWrite(request(new ProjectBusinessExecutionSelection(stale,null))));
         verify(executions,never()).inspect(any()); verify(executions).lockAndRevalidate(stale);
@@ -141,7 +141,7 @@ class ProjectBusinessExecutionServiceTest {
                 """));
         var registered = new BusinessViewRevision(40L,"REQUIREMENT_ANALYSIS","requirement",1L,"SOL",
                 BusinessViewComponentProvider.ViewSource.PAGE,"PROJ_REQUIREMENT_ANALYSIS","1",801L,
-                JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1,"PUBLISHED",Set.of());
+                JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1L,"PUBLISHED",Set.of());
         definition.setBusinessViewSnapshot(JsonUtils.parseTree(JsonUtils.toJsonString(registered)));
         freeze();
         when(views.getRevision(any())).thenReturn(registered);

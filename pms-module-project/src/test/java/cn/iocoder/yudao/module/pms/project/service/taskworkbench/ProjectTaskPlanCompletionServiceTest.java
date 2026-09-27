@@ -193,7 +193,7 @@ class ProjectTaskPlanCompletionServiceTest {
     @Test void automaticCompletionRequiresRealHandlingEvenWithConstantTrue() {
         binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
         var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                9L, 1, 21L, 1, 91L, 1, 52L, 61L, 1, 1, 62L, 1, true, LocalDateTime.of(2026,9,14,9,0));
+                9L, 1L, 21L, 1, 91L, 1, 52L, 61L, 1, 1, 62L, 1, true, LocalDateTime.of(2026,9,14,9,0));
         when(executionApi.inspect(any())).thenReturn(context);
         var links = new TaskBusinessLinkedFacts("a".repeat(64), List.of(
                 new TaskBusinessLinkFact(71L, "owner:1", "", "draft-v1", Map.of("OWNER_COMPLETED", false), List.of(), Set.of())));

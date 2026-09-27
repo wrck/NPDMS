@@ -121,7 +121,7 @@ final class ResultSubscriptionRecoveryFixture implements AutoCloseable {
     }
     BusinessResultChange change(long sequence, Observation observation, boolean formation) {
         var source = new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,"TEST","RESULT", "native-object",
-                null,1,"v1","OBSERVED","TEST.RESULT.CHANGED","owner-command",0L,LocalDateTime.of(2026,9,18,0,0),"test");
+                null,1L,"v1","OBSERVED","TEST.RESULT.CHANGED","owner-command",0L,LocalDateTime.of(2026,9,18,0,0),"test");
         return new BusinessResultChange(UUID.randomUUID().toString(),1,channel,sequence,source,observation,formation);
     }
     <T> T proxy(T target) {

@@ -20,7 +20,7 @@ public class CutoverConfigurationRespVO {
     private LocalDateTime publishedAt;
     private Long disabledBy;
     private LocalDateTime disabledAt;
-    private Integer version;
+    private Long version;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private Map<String, Object> dictionarySnapshot;

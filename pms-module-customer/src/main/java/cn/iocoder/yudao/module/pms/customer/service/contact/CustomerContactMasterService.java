@@ -69,7 +69,7 @@ public class CustomerContactMasterService {
         CustomerContactMasterDO row = new CustomerContactMasterDO();
         apply(row, values, command);
         row.setTenantId(actor.tenantId());
-        row.setVersion(0);
+        row.setVersion(0L);
         contacts.insert(row);
         appendHistory(actor, row.getId(), "CREATE", null, row);
         return row;
@@ -90,7 +90,7 @@ public class CustomerContactMasterService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void delete(Actor actor, Long customerId, Long contactId, Integer expectedVersion) {
+    public void delete(Actor actor, Long customerId, Long contactId, Long expectedVersion) {
         requireCustomer(actor, customerId, true, false);
         CustomerContactMasterDO existing = requireRow(actor, customerId, contactId);
         requireVersion(existing, expectedVersion);
@@ -120,7 +120,7 @@ public class CustomerContactMasterService {
         return row;
     }
 
-    private void requireVersion(CustomerContactMasterDO row, Integer expected) {
+    private void requireVersion(CustomerContactMasterDO row, Long expected) {
         if (expected == null || !Objects.equals(row.getVersion(), expected)) throw exception(CONTACT_VERSION_CONFLICT);
     }
 

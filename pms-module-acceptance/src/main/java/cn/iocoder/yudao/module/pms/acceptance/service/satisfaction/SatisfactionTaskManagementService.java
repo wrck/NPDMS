@@ -57,7 +57,7 @@ public class SatisfactionTaskManagementService {
     }
 
     public AssignmentResult assign(Long tenantId, Long actorUserId, Long taskId, Long targetUserId,
-                                   Integer expectedVersion, String operationId) {
+                                   Long expectedVersion, String operationId) {
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(tenantId,
                         "ACC_SATISFACTION_TASK_ASSIGN", actorUserId, operationId),
                 digest(List.of(taskId, targetUserId, expectedVersion)), AssignmentResult.class,
@@ -70,7 +70,7 @@ public class SatisfactionTaskManagementService {
 
     @Transactional(rollbackFor = Exception.class)
     protected AssignmentResult assignOnce(Long tenantId, Long actorUserId, Long taskId, Long targetUserId,
-                                          Integer expectedVersion) {
+                                          Long expectedVersion) {
         var observed = taskMapper.selectById(taskId);
         if (IndependentSatisfactionService.direct(observed)) independent.lockIfDirect(tenantId, actorUserId, observed);
         SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(tenantId, taskId);
@@ -154,7 +154,7 @@ public class SatisfactionTaskManagementService {
         next.setTriggerFactId(String.valueOf(remediation.getId())); next.setTriggerFactVersion(1L);
         next.setCollectionKey(prior.getCollectionKey()); next.setTaskRevisionNo(revision); next.setPriorTaskId(prior.getId());
         next.setAssignedToUserId(prior.getAssignedToUserId()); next.setAssignedByUserId(actorUserId);
-        next.setTaskStatus("PENDING_COLLECTION"); next.setQuestionnaireId(questionnaireId); next.setVersion(0);
+        next.setTaskStatus("PENDING_COLLECTION"); next.setQuestionnaireId(questionnaireId); next.setVersion(0L);
         next.setCreator(String.valueOf(actorUserId)); next.setUpdater(String.valueOf(actorUserId));
 
         SatisfactionQuestionnaireDO questionnaire = new SatisfactionQuestionnaireDO();
@@ -165,7 +165,7 @@ public class SatisfactionTaskManagementService {
         questionnaire.setFrozenQuestionJson(previousQuestionnaire.getFrozenQuestionJson());
         questionnaire.setFrozenThreshold(previousQuestionnaire.getFrozenThreshold());
         questionnaire.setRuleVersion(previousQuestionnaire.getRuleVersion()); questionnaire.setQuestionnaireStatus("ACTIVE");
-        questionnaire.setAccessScopeVersion(previousQuestionnaire.getAccessScopeVersion()); questionnaire.setVersion(0);
+        questionnaire.setAccessScopeVersion(previousQuestionnaire.getAccessScopeVersion()); questionnaire.setVersion(0L);
         questionnaire.setCreator(String.valueOf(actorUserId)); questionnaire.setUpdater(String.valueOf(actorUserId));
         if (taskMapper.insert(next) != 1 || questionnaireMapper.insert(questionnaire) != 1) {
             throw new IllegalStateException("SATISFACTION_RECOLLECT_WRITE_CONFLICT");
@@ -256,9 +256,9 @@ public class SatisfactionTaskManagementService {
 
     public record TaskView(Long id, Long projectId, Long projectTaskId, String collectionKey, Integer revisionNo,
                            Long priorTaskId, Long assignedToUserId, Long assignedByUserId, String status,
-                           Long questionnaireId, Long resultId, Integer version, String questionnaireStatus,
+                           Long questionnaireId, Long resultId, Long version, String questionnaireStatus,
                            Long templateRevisionId, String frozenQuestions) {}
-    public record AssignmentResult(Long taskId, Long assignedToUserId, Integer version, boolean replayed) {}
+    public record AssignmentResult(Long taskId, Long assignedToUserId, Long version, boolean replayed) {}
     public record Recollect(Long priorResultId, String remediationRequestId, String evidenceSummary,
                             String evidenceFileFactVersion) {}
     public record RecollectResult(Long taskId, Long questionnaireId, String collectionKey, Integer revisionNo,

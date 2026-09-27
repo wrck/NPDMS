@@ -59,12 +59,12 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
         survey.setId(null);
         survey.setTenantId(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId());
         survey.setStatus(0);
-        survey.setVersion(0);
+        survey.setVersion(0L);
         survey.setOutsourceRequired(Boolean.TRUE.equals(createReqVO.getOutsourceRequired()));
         formService.prepare(survey, createReqVO);
         updateProjectEndDate(createReqVO, null);
         siteSurveyEntityMapper.insert(survey);
-        applyLocation(survey, createReqVO.getLocation(), createReqVO.getLocationMaintenance(), 0);
+        applyLocation(survey, createReqVO.getLocation(), createReqVO.getLocationMaintenance(), 0L);
         updateChecked(survey);
         formService.persist(survey, createReqVO);
         return survey.getId();
@@ -167,7 +167,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
         return survey;
     }
 
-    private void validateVersion(SiteSurveyEntityDO survey, Integer version) {
+    private void validateVersion(SiteSurveyEntityDO survey, Long version) {
         if (version == null || !Objects.equals(survey.getVersion(), version)) {
             throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
         }
@@ -248,7 +248,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
 
     private void applyLocation(SiteSurveyEntityDO survey, String fallbackLocation,
                                LocationMaintenanceCommand command,
-                               Integer sourceVersion) {
+                               Long sourceVersion) {
         if (command == null) {
             if (fallbackLocation == null || fallbackLocation.isBlank()) {
                 throw exception(SITE_SURVEY_LOCATION_REQUIRED);
@@ -257,7 +257,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
             return;
         }
         EngineeringLocationFactService.LocationFact fact = locationFactService.maintain(survey.getProjectId(),
-                "SITE_SURVEY", survey.getId(), sourceVersion, fallbackLocation, command);
+                "SITE_SURVEY", survey.getId(), sourceVersion == null ? null : sourceVersion.longValue(), fallbackLocation, command);
         if (!"RESOLVED".equals(fact.resolutionStatus())) {
             throw exception(SITE_SURVEY_LOCATION_INVALID);
         }

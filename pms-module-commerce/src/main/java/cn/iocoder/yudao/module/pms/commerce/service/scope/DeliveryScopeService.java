@@ -306,7 +306,7 @@ public class DeliveryScopeService {
         scope.setAllocationVersion(scopeVersion);
         scope.setSourceEvidence(evidencePrefix(idempotencyKey) + evidenceKey);
         scope.setEffectiveFrom(now);
-        scope.setVersion(0);
+        scope.setVersion(0L);
         deliveryScopeMapper.insert(scope);
         return scope;
     }

@@ -1,5 +1,5 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query;
 
 public record AcceptanceActivityCompleteUpdate(Long tenantId, Long acceptanceId,
-                                               Integer expectedVersion, String updater) {
+                                               Long expectedVersion, String updater) {
 }

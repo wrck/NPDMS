@@ -92,7 +92,7 @@ public class ProjectGovernanceCommandController {
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectRollbackReqVO request) {
         return withTrustedTenant(() -> {
-            Integer expectedVersion = parseIfMatch(ifMatch);
+            Long expectedVersion = parseIfMatch(ifMatch);
             String digest = digest(projectId, expectedVersion, request);
             return success(applicationService.rollback(new RollbackProjectCommand(
                     projectId, expectedVersion, request.getGuardToken(), request.getReasonCode(),
@@ -109,7 +109,7 @@ public class ProjectGovernanceCommandController {
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectExceptionCloseReqVO request) {
         return withTrustedTenant(() -> {
-            Integer expectedVersion = parseIfMatch(ifMatch);
+            Long expectedVersion = parseIfMatch(ifMatch);
             String digest = digest(projectId, expectedVersion, request);
             List<ExceptionCloseProjectCommand.LegacyItem> legacyItems = request.getLegacyItems().stream()
                     .map(item -> new ExceptionCloseProjectCommand.LegacyItem(
@@ -131,7 +131,7 @@ public class ProjectGovernanceCommandController {
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectReopenReqVO request) {
         return withTrustedTenant(() -> {
-            Integer expectedVersion = parseIfMatch(ifMatch);
+            Long expectedVersion = parseIfMatch(ifMatch);
             String digest = digest(projectId, expectedVersion, request);
             return success(applicationService.reopen(new ReopenProjectCommand(
                     projectId, expectedVersion, request.getReasonCode(), request.getReasonDetail(),
@@ -204,11 +204,11 @@ public class ProjectGovernanceCommandController {
         return result.get();
     }
 
-    private String digest(Long projectId, Integer expectedVersion, Object request) {
+    private String digest(Long projectId, Long expectedVersion, Object request) {
         return sha256(projectId + ":" + expectedVersion + ":" + JsonUtils.toJsonString(request));
     }
 
-    private Integer parseIfMatch(String value) {
+    private Long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) {
             normalized = normalized.substring(2).trim();
@@ -217,7 +217,7 @@ public class ProjectGovernanceCommandController {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) {
                 throw new NumberFormatException("negative version");
             }

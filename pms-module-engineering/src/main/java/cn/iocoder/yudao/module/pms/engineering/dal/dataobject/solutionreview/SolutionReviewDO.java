@@ -12,8 +12,8 @@ public class SolutionReviewDO extends TenantBaseDO {
     @TableId private Long id;
     private Long projectId;
     private Long solutionId;
-    private Integer sourceVersion;
-    private Integer requestVersion;
+    private Long sourceVersion;
+    private Long requestVersion;
     private String processDefinitionId;
     private String processInstanceId;
     private String businessKey;
@@ -23,6 +23,6 @@ public class SolutionReviewDO extends TenantBaseDO {
     private Long submittedBy;
     private LocalDateTime submittedAt;
     private LocalDateTime completedAt;
-    private Integer approvedVersion;
+    private Long approvedVersion;
     @Version private Integer version;
 }

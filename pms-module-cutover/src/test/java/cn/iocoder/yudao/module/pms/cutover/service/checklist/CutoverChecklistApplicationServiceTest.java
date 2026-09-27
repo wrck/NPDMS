@@ -58,42 +58,42 @@ class CutoverChecklistApplicationServiceTest {
         Fixture fixture = fixture();
 
         ChecklistCommandResult generated = fixture.service.generate(new GenerateChecklistCommand(
-                1L, 8L, 1000L, 2, 1, 7L, Map.of(), "generate-1", "corr-generate-1"));
+                1L, 8L, 1000L, 2L, 1L, 7L, Map.of(), "generate-1", "corr-generate-1"));
         ChecklistItemCommandResult transientCustom = fixture.service.addCustomItem(new AddCustomItemCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), 0, 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), 0L, 7L,
                 "TEXT", "临时核查项", null, "TEXT", "{\"type\":\"string\"}", false, null));
         ChecklistItemCommandResult removed = fixture.service.removeCustomItem(new RemoveCustomItemCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), transientCustom.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), transientCustom.checklistVersion(), 7L,
                 transientCustom.stableItemKey()));
         ChecklistCommandResult saved = fixture.service.save(new SaveChecklistCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), removed.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), removed.checklistVersion(), 7L,
                 List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}"))));
         ChecklistItemCommandResult custom = fixture.service.addCustomItem(new AddCustomItemCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), saved.checklistFactVersion(), 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), saved.checklistFactVersion(), 7L,
                 "TEXT", "现场补充项", null, "TEXT", "{\"type\":\"string\"}", true,
                 "{\"value\":\"已核对\"}"));
         CutoverChecklistFilePort.FileFactVersion fileVersion =
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
         ChecklistItemCommandResult manual = fixture.service.selectManual(new SelectManualResultCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), custom.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), custom.checklistVersion(), 7L,
                 "SYS-IP", new CutoverChecklistFilePort.FileHandle(90L, 2, "ref-90", fileVersion, 7L),
                 "现场截图"));
         CutoverChecklistView beforeRematch = fixture.service.getView(1L, 8L, 1000L);
         ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(
-                1L, 8L, 1000L, 2, 1, generated.checklistId(), manual.checklistVersion(),
+                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), manual.checklistVersion(),
                 beforeRematch.inputSnapshotHash(), 7L, Map.of(), "rematch-1", "corr-rematch-1"));
         var accepted = fixture.service.requestCollection(new RequestCollectionCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), rematched.checklistFactVersion(), 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), rematched.checklistFactVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-1", "corr-collect-1"));
         var collection = fixture.service.requestCollection(new RequestCollectionCommand(
-                1L, 8L, 1000L, 2, generated.checklistId(), accepted.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, generated.checklistId(), accepted.checklistVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-refresh-1", "corr-collect-refresh-1"));
         CutoverChecklistView view = fixture.service.getView(1L, 8L, 1000L);
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
-                1L, 8L, 1000L, 2, 1, generated.checklistId(), collection.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), collection.checklistVersion(), 7L,
                 "submit-1", "corr-submit-1"));
         ChecklistCommandResult replayed = fixture.service.submit(new SubmitChecklistCommand(
-                1L, 8L, 1000L, 2, 1, generated.checklistId(), collection.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), collection.checklistVersion(), 7L,
                 "submit-1", "corr-submit-1"));
 
         assertEquals("DRAFT", generated.checklistStatus());
@@ -168,11 +168,11 @@ class CutoverChecklistApplicationServiceTest {
         assessment.setId(2000L);
         assessment.setTenantId(1L);
         assessment.setCutoverTaskId(1000L);
-        assessment.setAssessmentVersion(1);
+        assessment.setAssessmentVersion(1L);
         assessment.setAssessmentStatus("SUBMITTED");
         assessment.setManualGrade("A");
         assessment.setSimpleFlow(false);
-        assessment.setVersion(1);
+        assessment.setVersion(1L);
         CutoverFrozenConfiguration configuration = new CutoverFrozenConfiguration(3000L, "CUT-CONFIG", 1,
                 "PUBLISHED", "{}", "{}", List.of(
                 new CutoverFrozenConfiguration.ItemDefinition(4000L, "SYS-IP", 1, "TEXT", "管理地址", null,
@@ -290,7 +290,7 @@ class CutoverChecklistApplicationServiceTest {
         when(taskMapper.submitChecklistIfMatch(any())).thenAnswer(ignored -> {
             task.get().setCurrentStage("P4");
             task.get().setTaskStatus("PLAN_DRAFTING");
-            task.get().setVersion(3);
+            task.get().setVersion(3L);
             return 1;
         });
         when(historyMapper.insert(any(CutoverTaskStageHistoryDO.class))).thenAnswer(invocation -> {
@@ -336,7 +336,7 @@ class CutoverChecklistApplicationServiceTest {
         task.setConfigurationRevisionNo(1);
         task.setCutoverType("配置变更");
         task.setNetworkMode("普通双机");
-        task.setVersion(2);
+        task.setVersion(2L);
         return task;
     }
 

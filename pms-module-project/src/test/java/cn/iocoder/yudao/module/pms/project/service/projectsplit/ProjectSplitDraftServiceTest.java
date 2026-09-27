@@ -60,7 +60,7 @@ class ProjectSplitDraftServiceTest {
     @Test
     void shouldReplaceEditableDetailsWhenUpdatingSameStableItemKey() {
         ProjectMasterDO parent = new ProjectMasterDO();
-        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3);
+        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3L);
         when(projectMapper.selectById(100L)).thenReturn(parent);
         ProjectCompanyDepartmentRelationDO relation = new ProjectCompanyDepartmentRelationDO();
         relation.setCompanyId(1L); relation.setDepartmentId(2L);
@@ -74,7 +74,7 @@ class ProjectSplitDraftServiceTest {
         existing.setId(20L); existing.setTenantId(1L); existing.setParentProjectId(100L);
         existing.setStatus("DRAFT"); existing.setDraftVersion(2);
         when(requestMapper.selectById(20L)).thenReturn(existing);
-        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3, 5L, 7L)).thenReturn(1);
+        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3L, 5L, 7L)).thenReturn(1);
         doAnswer(invocation -> { ((ProjectSplitItemDO) invocation.getArgument(0)).setId(30L); return 1; })
                 .when(itemMapper).insert(any(ProjectSplitItemDO.class));
 
@@ -94,7 +94,7 @@ class ProjectSplitDraftServiceTest {
     @Test
     void shouldKeepPreviousScopeVersionWhenCommerceAuthorityIsUnavailable() {
         ProjectMasterDO parent = new ProjectMasterDO();
-        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3);
+        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3L);
         when(projectMapper.selectById(100L)).thenReturn(parent);
         ProjectCompanyDepartmentRelationDO relation = new ProjectCompanyDepartmentRelationDO();
         relation.setCompanyId(1L); relation.setDepartmentId(2L);
@@ -107,7 +107,7 @@ class ProjectSplitDraftServiceTest {
         existing.setId(20L); existing.setTenantId(1L); existing.setParentProjectId(100L);
         existing.setStatus("DRAFT"); existing.setDraftVersion(2); existing.setScopeVersion(5L);
         when(requestMapper.selectById(20L)).thenReturn(existing);
-        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3, 5L, 7L)).thenReturn(1);
+        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3L, 5L, 7L)).thenReturn(1);
         doAnswer(invocation -> { ((ProjectSplitItemDO) invocation.getArgument(0)).setId(30L); return 1; })
                 .when(itemMapper).insert(any(ProjectSplitItemDO.class));
 
@@ -115,7 +115,7 @@ class ProjectSplitDraftServiceTest {
                 new ProjectSplitDraftService.Actor(1L, 9L, "corr-2"));
 
         assertEquals(5L, result.request().getScopeVersion());
-        verify(requestMapper).updateDraftIfMatch(20L, 2, null, 3, 5L, 7L);
+        verify(requestMapper).updateDraftIfMatch(20L, 2, null, 3L, 5L, 7L);
     }
 
     @Test

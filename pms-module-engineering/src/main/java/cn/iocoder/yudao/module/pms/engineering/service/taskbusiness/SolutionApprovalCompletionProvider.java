@@ -128,7 +128,7 @@ public class SolutionApprovalCompletionProvider implements TaskBusinessObjectPro
                 || !Objects.equals(row.getId(), id) || !"IMPLEMENTATION".equals(row.getSolutionType())) throw unavailable();
         boolean completed = Integer.valueOf(3).equals(row.getStatus())
                 && row.getApprovedBy() != null && row.getApprovedTime() != null && row.getBaselineVersion() != null
-                && row.getBaselineVersion() > 0 && Objects.equals(row.getBaselineVersion(), row.getVersion())
+                && row.getBaselineVersion() > 0 && Objects.equals(row.getBaselineVersion().longValue(), row.getVersion())
                 && (Integer.valueOf(0).equals(row.getReviewLevel()) || Integer.valueOf(1).equals(row.getReviewLevel())
                     && tieredReviews.approved(row, lock));
         return new Snapshot(id, row.getName(), row.getVersion() + ":" + row.getBaselineVersion(), completed);

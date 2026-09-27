@@ -33,7 +33,7 @@ class ProjectStageGateProcessContextResolverTest {
     TemplateExecutionSnapshot snapshot;
 
     @BeforeEach void setup() {
-        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(4);
+        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(4L);
         project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(51L); project.setCurrentStage("OTHER");
         selectedStage = stage(11L, "PREP");
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage(12L, "OTHER"), selectedStage));
@@ -110,7 +110,7 @@ class ProjectStageGateProcessContextResolverTest {
     }
 
     private ProjectStageExecutionRecord context(String stageStatus, String executionStatus) {
-        return new ProjectStageExecutionRecord(9L, 4, "ACTIVE", 11L, 0, stageStatus, 71L, 1, 51L, 61L, 0, 2, executionStatus);
+        return new ProjectStageExecutionRecord(9L, 4L, "ACTIVE", 11L, 0, stageStatus, 71L, 1, 51L, 61L, 0, 2, executionStatus);
     }
 
     @Test void successfulProcessStartRecordsFirstHandlingAndRejectsAStaleWrite() {

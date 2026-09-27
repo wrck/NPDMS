@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * PMS 团队批量变更批次 DO（FR-PROJ-014）。
@@ -16,10 +14,8 @@ import lombok.EqualsAndHashCode;
 @TableName("proj_team_batch_change")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TeamBatchChangeDO extends TenantBaseDO {
+public class TeamBatchChangeDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 批次编号，全局唯一
      */
@@ -63,7 +59,4 @@ public class TeamBatchChangeDO extends TenantBaseDO {
     /**
      * 乐观锁版本号
      */
-    @Version
-    private Integer version;
-
 }

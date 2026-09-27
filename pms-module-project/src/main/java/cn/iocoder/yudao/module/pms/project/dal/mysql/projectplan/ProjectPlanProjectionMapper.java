@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Mapper
 public interface ProjectPlanProjectionMapper {
     int updateCurrentStage(@Param("query") CurrentStageUpdate query);
-    record CurrentStageUpdate(Long tenantId, Long projectId, Long planVersionId, Integer expectedVersion,
+    record CurrentStageUpdate(Long tenantId, Long projectId, Long planVersionId, Long expectedVersion,
                               String currentStage, String updater) { }
     int gateCodeForRename(@Param("query") NodeProjectionChange query);
     int updateGateDefinition(@Param("query") GateDefinitionUpdate query);

@@ -87,7 +87,7 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         AuthorizationDO entity = BeanUtils.toBean(createReqVO, AuthorizationDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         if (entity.getUsedCount() == null) {
             entity.setUsedCount(0);

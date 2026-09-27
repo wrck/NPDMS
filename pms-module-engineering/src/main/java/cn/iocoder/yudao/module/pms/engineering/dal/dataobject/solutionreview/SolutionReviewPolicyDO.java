@@ -11,7 +11,7 @@ public class SolutionReviewPolicyDO extends TenantBaseDO {
     @TableId private Long id;
     private Long projectId;
     private Long solutionId;
-    private Integer sourceVersion;
+    private Long sourceVersion;
     private Integer reviewLevel;
     private String evidenceJson;
 }

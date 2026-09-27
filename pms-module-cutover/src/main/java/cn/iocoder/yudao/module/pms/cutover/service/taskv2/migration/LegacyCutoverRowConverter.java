@@ -46,7 +46,7 @@ public final class LegacyCutoverRowConverter {
         target.setLegacyStatusValue(source.getStatus());
         target.setLegacySourceVersion(source.getVersion());
         target.setLegacyMappingVersion(MAPPING_VERSION);
-        target.setVersion(0);
+        target.setVersion(0L);
         target.setCreator(source.getCreator());
         target.setCreateTime(source.getCreateTime());
         target.setUpdater(source.getUpdater());

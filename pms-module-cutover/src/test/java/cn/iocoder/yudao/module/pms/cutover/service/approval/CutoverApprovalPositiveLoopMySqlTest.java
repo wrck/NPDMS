@@ -222,21 +222,21 @@ class CutoverApprovalPositiveLoopMySqlTest {
     void rejectedRevisionIsImmutableAndReplacementStartsNewApproval() {
         SubmittedRoute first = submit("D", "reject");
         actor.use(8L);
-        approvalService.reject(new RejectCutoverApprovalCommand(tenantId, taskId, 5, 0,
+        approvalService.reject(new RejectCutoverApprovalCommand(tenantId, taskId, 5L, 0L,
                 noItems(), null, "回退步骤需修订", "reject-d", "corr-reject-d"));
         String frozen = jdbc.queryForObject("SELECT source_snapshot FROM cut_approval_instance WHERE tenant_id=? AND id=?",
                 String.class, tenantId, first.approvalInstanceId());
 
         owners.advanceTaskVersion(6);
         CutoverPlanCommandResult replacement = planService.revise(new ReviseCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, first.planRevisionId(), "APPROVAL_REJECTED",
+                tenantId, 8L, taskId, 6L, first.planRevisionId(), "APPROVAL_REJECTED",
                 "revise-d", "corr-revise-d"));
         var content = simpleContent();
         CutoverPlanCommandResult saved = planService.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 6, replacement.planVersion(), 30L, content,
+                tenantId, 8L, taskId, 6L, replacement.planVersion(), 30L, content,
                 "save-d-r2", "corr-save-d-r2"));
         SubmitCutoverPlanResult second = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, saved.planVersion(), "submit-d-r2", "corr-submit-d-r2"));
+                tenantId, 8L, taskId, 6L, saved.planVersion(), "submit-d-r2", "corr-submit-d-r2"));
 
         assertNotEquals(first.approvalInstanceId(), second.approvalInstanceId());
         assertEquals(frozen, jdbc.queryForObject("SELECT source_snapshot FROM cut_approval_instance " +
@@ -257,10 +257,10 @@ class CutoverApprovalPositiveLoopMySqlTest {
         owners.reset(taskId, projectId(), assessmentId(), checklistId("A"), "A");
         CutoverPlanFilePort.FileFact file = owners.fileFact();
         CutoverPlanCommandResult created = planService.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
+                tenantId, 8L, taskId, 4L, 30L, "FULL_FILE_UPLOAD", file, true,
                 "create-upload", "corr-create-upload"));
         SubmitCutoverPlanResult submitted = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), "submit-upload", "corr-submit-upload"));
+                tenantId, 8L, taskId, 4L, created.planVersion(), "submit-upload", "corr-submit-upload"));
         SubmittedRoute route = new SubmittedRoute(submitted.planRevisionId(), submitted.approvalInstanceId());
         approveAll(route, 4);
 
@@ -284,17 +284,17 @@ class CutoverApprovalPositiveLoopMySqlTest {
         insertP4Facts(grade, scheduledTime);
         owners.reset(taskId, projectId(), assessmentId(), checklistId(grade), grade);
         CutoverPlanCommandResult created = planService.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "D".equals(grade)
+                tenantId, 8L, taskId, 4L, 30L, "D".equals(grade)
                 ? "ONLINE_TEMPLATE_SIMPLE_D" : "ONLINE_TEMPLATE_STANDARD", null, null,
                 "create-" + key, "corr-create-" + key));
         CutoverPlanCommandResult saved = planService.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), 30L,
+                tenantId, 8L, taskId, 4L, created.planVersion(), 30L,
                 "D".equals(grade) ? simpleContent() : standardContent(),
                 "save-" + key, "corr-save-" + key));
         String submitCorrelationId = "positive-A".equals(key) ? "A".repeat(128)
                 : "positive-B".equals(key) ? "B" : "corr-submit-" + key;
         SubmitCutoverPlanResult result = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, saved.planVersion(), "submit-" + key, submitCorrelationId));
+                tenantId, 8L, taskId, 4L, saved.planVersion(), "submit-" + key, submitCorrelationId));
         assertEquals("P5", result.taskStage());
         if (List.of("A", "B").contains(grade)) {
             LocalDateTime submittedAt = jdbc.queryForObject("SELECT submitted_at FROM cut_plan_revision " +
@@ -316,7 +316,7 @@ class CutoverApprovalPositiveLoopMySqlTest {
             Map<String, Object> node = nodes.get(index);
             actor.use(((Number) node.get("current_approver_user_id")).longValue());
             String code = String.valueOf(node.get("node_code"));
-            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId, taskId, 5, index,
+            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId, taskId, 5L, (long) index,
                     yesItems(), "SERVICE_MANAGER".equals(code)
                     ? new AssessmentReviewInput("CONFIRMED", null) : null,
                     "节点审批通过", "approve-" + route.approvalInstanceId() + "-" + (index + 1),
@@ -343,31 +343,31 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 88L, "OFF-1", "交付部", 30L)));
         task.setDeviceScopeWatermark("{}"); task.setCustomerContextSnapshot("{}");
         task.setReadinessContextSnapshot("{}"); task.setManualGrade(grade); task.setConfigurationRevisionId(401L);
-        task.setConfigurationCode("CFG-1"); task.setConfigurationRevisionNo(1); task.setVersion(4);
+        task.setConfigurationCode("CFG-1"); task.setConfigurationRevisionNo(1); task.setVersion(4L);
         task.setCreator("8"); task.setUpdater("8"); task.setCreateTime(now); task.setUpdateTime(now);
         assertEquals(1, taskMapper.insert(task));
 
         CutoverAssessmentDO assessment = new CutoverAssessmentDO();
         assessment.setId(assessmentId()); assessment.setTenantId(tenantId); assessment.setCutoverTaskId(taskId);
-        assessment.setAssessmentVersion(2); assessment.setAssessmentStatus("SUBMITTED");
+        assessment.setAssessmentVersion(2L); assessment.setAssessmentStatus("SUBMITTED");
         assessment.setQuestionnaireTemplateCode("CUT_P2_MANUAL_ASSESSMENT");
         assessment.setQuestionnaireTemplateVersion(1L);
         assessment.setAnswerSnapshot(JsonUtils.toJsonString(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true)));
         assessment.setContextSnapshot("{\"implementationReadiness\":{\"decision\":\"READY\",\"unmetCodes\":[]},"
                 + "\"customerServiceLevel\":{\"status\":\"AVAILABLE\",\"serviceLevelCode\":\"GOLD\"}}");
         assessment.setManualGrade(grade); assessment.setSimpleFlow("D".equals(grade)); assessment.setSubmittedBy(8L);
-        assessment.setSubmittedAt(now); assessment.setCurrentMarker(1); assessment.setVersion(0);
+        assessment.setSubmittedAt(now); assessment.setCurrentMarker(1); assessment.setVersion(0L);
         assessment.setCreator("8"); assessment.setUpdater("8"); assessment.setCreateTime(now); assessment.setUpdateTime(now);
         assertEquals(1, assessmentMapper.insert(assessment));
 
         if (!"D".equals(grade)) {
             CutoverChecklistDO checklist = new CutoverChecklistDO();
             checklist.setId(checklistId(grade)); checklist.setTenantId(tenantId); checklist.setCutoverTaskId(taskId);
-            checklist.setAssessmentId(assessmentId()); checklist.setAssessmentVersion(2); checklist.setChecklistVersion(3);
+            checklist.setAssessmentId(assessmentId()); checklist.setAssessmentVersion(2L); checklist.setChecklistVersion(3L);
             checklist.setStatusCode("SUBMITTED"); checklist.setInputSnapshot("{}");
             checklist.setInputSnapshotHash("a".repeat(64)); checklist.setConfigRevisionSnapshot("{}");
             checklist.setMatchTrace("{}"); checklist.setConfigGapSnapshot("{}"); checklist.setSubmittedBy(8L);
-            checklist.setSubmittedAt(now); checklist.setVersion(0);
+            checklist.setSubmittedAt(now); checklist.setVersion(0L);
             checklist.setCreator("8"); checklist.setUpdater("8"); checklist.setCreateTime(now); checklist.setUpdateTime(now);
             assertEquals(1, checklistMapper.insert(checklist));
         }
@@ -432,12 +432,12 @@ class CutoverApprovalPositiveLoopMySqlTest {
             List<String> sectionCodes = "D".equals(grade) ? CutoverPlanRules.SIMPLE_SECTIONS : CutoverPlanRules.STANDARD_SECTIONS;
             List<TemplateSectionSnapshot> sections = sectionCodes.stream().map(key -> new TemplateSectionSnapshot(
                     key, key, sectionCodes.indexOf(key) + 1, List.of("NETWORK_CUTOVER"), List.of(grade), true)).toList();
-            facts = new SourceFacts(new SourceSnapshot(1, taskId, 4, assessmentId, 2, grade, checklistId,
-                    checklistId == null ? null : 3, projectId, 6, 30L,
+            facts = new SourceFacts(new SourceSnapshot(1, taskId, 4L, assessmentId, 2L, grade, checklistId,
+                    checklistId == null ? null : 3L, projectId, 6, 30L,
                     List.of(new DeviceSnapshot(301L, "SN-1", 9L, "ROUTER", "type-v1")),
                     401L, "CFG-1", 1, sections, List.of()), List.of());
         }
-        void advanceTaskVersion(int version) {
+        void advanceTaskVersion(long version) {
             SourceSnapshot s = facts.snapshot(); facts = new SourceFacts(new SourceSnapshot(s.snapshotVersion(), s.taskId(),
                     version, s.assessmentId(), s.assessmentVersion(), s.grade(), s.checklistId(), s.checklistVersion(),
                     s.projectId(), s.projectVersion(), s.projectScopeVersion(), s.devices(), s.configurationRevisionId(),

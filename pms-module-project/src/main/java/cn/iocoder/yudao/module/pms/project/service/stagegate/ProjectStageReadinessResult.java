@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateFac
 import java.util.List;
 
 public record ProjectStageReadinessResult(
-        Long projectId, Integer projectVersion, Long treeVersion,
+        Long projectId, Long projectVersion, Long treeVersion,
         String currentStage, String nextStage, boolean advanceAllowed,
         String guidance, List<GateResult> gates) {
 

@@ -7,7 +7,7 @@ public record ProjectWorkBindingFactRevalidationQuery(
         Long executionContractId,
         Integer expectedProjectTaskVersion,
         Integer expectedContractVersion,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         ProjectWorkBindingTarget target) {
 
     /** 保持PRE-02既有调用兼容。 */
@@ -17,7 +17,7 @@ public record ProjectWorkBindingFactRevalidationQuery(
             Long executionContractId,
             Integer expectedProjectTaskVersion,
             Integer expectedContractVersion,
-            Integer expectedProjectVersion) {
+            Long expectedProjectVersion) {
         this(projectId, projectTaskId, executionContractId, expectedProjectTaskVersion,
                 expectedContractVersion, expectedProjectVersion,
                 ProjectWorkBindingTarget.SITE_SURVEY_PREPARATION);

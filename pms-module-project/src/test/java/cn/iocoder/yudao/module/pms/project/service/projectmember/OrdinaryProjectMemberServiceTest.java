@@ -48,7 +48,7 @@ class OrdinaryProjectMemberServiceTest {
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         TenantContextHolder.setTenantId(1L);
         project = new ProjectMasterDO(); project.setId(100L); project.setTenantId(1L);
-        project.setLifecycleStatus("ACTIVE"); project.setVersion(0); project.setManagerId(55L);
+        project.setLifecycleStatus("ACTIVE"); project.setVersion(0L); project.setManagerId(55L);
         project.setAssignmentStatus("ASSIGNED"); project.setCurrentStage("S2"); project.setCompanyId(8L);
         lenient().when(projectMapper.selectById(100L)).thenReturn(project);
         lenient().when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project);
@@ -61,7 +61,7 @@ class OrdinaryProjectMemberServiceTest {
             ((ProjectMemberAssignmentDO) call.getArgument(0)).setId(90L); return 1;
         });
         lenient().when(memberMapper.updateById(any(ProjectMemberAssignmentDO.class))).thenReturn(1);
-        lenient().when(projectMapper.incrementVersionIfMatch(eq(100L), anyInt())).thenReturn(1);
+        lenient().when(projectMapper.incrementVersionIfMatch(eq(100L), anyLong())).thenReturn(1);
         lenient().when(commands.execute(any(), any(), any(), any(), any())).thenAnswer(call -> {
             var result = ((Supplier<Object>) call.getArgument(3)).get();
             successFacts = ((java.util.function.Function<Object, PlatformCommandExecutionApi.SuccessFacts>) call.getArgument(4)).apply(result);
@@ -115,7 +115,7 @@ class OrdinaryProjectMemberServiceTest {
         assertThrows(ServiceException.class, () -> service.mutate(command(Action.UPDATE, 10L, "TEAM_MEMBER", "新职责", "", 0), actor()));
         verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
         verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
-        verify(projectMapper, never()).incrementVersionIfMatch(anyLong(), anyInt());
+        verify(projectMapper, never()).incrementVersionIfMatch(anyLong(), anyLong());
     }
 
     @Test void duplicateUserAndRoleIsRejectedButDifferentRoleIsAllowed() {
@@ -161,14 +161,14 @@ class OrdinaryProjectMemberServiceTest {
     @Test void closedProjectAndStaleVersionCannotWrite() {
         project.setLifecycleStatus("CLOSED");
         assertThrows(ServiceException.class, () -> service.mutate(command(Action.ADD, null, "TEAM_MEMBER", "", "", 0), actor()));
-        project.setLifecycleStatus("ACTIVE"); project.setVersion(2);
+        project.setLifecycleStatus("ACTIVE"); project.setVersion(2L);
         assertEquals(PROJECT_VERSION_CONFLICT.getCode(), assertThrows(ServiceException.class,
                 () -> service.mutate(command(Action.ADD, null, "TEAM_MEMBER", "", "", 0), actor())).getCode());
         verifyNoInteractions(users); verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
     }
 
     @Test void replayReturnsSavedResultWithoutRevalidatingUserOrWriting() {
-        var saved = new Result(100L, 1, 90L, 40L, "TEAM_MEMBER", LocalDateTime.now(), null, true);
+        var saved = new Result(100L, 1L, 90L, 40L, "TEAM_MEMBER", LocalDateTime.now(), null, true);
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))
                 .when(commands).execute(any(), any(), any(), any(), any());
         assertSame(saved, service.mutate(command(Action.ADD, null, "TEAM_MEMBER", "", "", 0), actor()));
@@ -213,7 +213,7 @@ class OrdinaryProjectMemberServiceTest {
         var added = member("PROJECT_MANAGER"); added.setId(77L);
         when(memberMapper.selectById(77L)).thenReturn(added);
         when(projectManagers.update(any(), any())).thenReturn(new ProjectManagerMemberResult(
-                100L, 1, 55L, "ASSIGNED", true, List.of(new ProjectManagerMemberResult.Member(77L, 40L, "人员", LocalDateTime.now()))));
+                100L, 1L, 55L, "ASSIGNED", true, List.of(new ProjectManagerMemberResult.Member(77L, 40L, "人员", LocalDateTime.now()))));
         var result = service.mutate(command(Action.ADD, null, "PROJECT_MANAGER", "职责", "备注", 0), actor());
         assertEquals(77L, result.assignmentId()); assertEquals(1, result.version());
         var captured = ArgumentCaptor.forClass(ProjectManagerMemberCommand.class);
@@ -268,7 +268,7 @@ class OrdinaryProjectMemberServiceTest {
         var old = member("SERVICE_MANAGER_L2"); old.setUserId(41L); old.setAssignmentType("PRIMARY");
         when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(old));
         var values = new MemberValues(40L, "SERVICE_MANAGER", "", "", true, null);
-        service.mutate(new Command(100L, 0, Action.ADD, null, values, "切换主责", "service-primary"), actor());
+        service.mutate(new Command(100L, 0L, Action.ADD, null, values, "切换主责", "service-primary"), actor());
         var saved = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberMapper, org.mockito.Mockito.times(2)).insert(saved.capture());
         assertEquals(41L, saved.getAllValues().get(0).getUserId());
@@ -285,7 +285,7 @@ class OrdinaryProjectMemberServiceTest {
         member.setResponsibility("原职责"); member.setRemark("原备注"); member.setChangeReason("原加入原因");
         return member;
     }
-    private Command command(Action action, Long id, String role, String duty, String remark, int version) {
+    private Command command(Action action, Long id, String role, String duty, String remark, long version) {
         return new Command(100L, version, action, id, action == Action.REMOVE ? null : new MemberValues(40L, role, duty, remark),
                 "本次调整", "ordinary-member-test");
     }

@@ -56,7 +56,7 @@ class RequirementAnalysisIndependentCreationTest {
         when(permissions.hasAnyPermissions(eq(19L), any(String[].class))).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
-        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(80L,19L,Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S6",2,2L));
+        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(80L,19L,Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S6",2L,2L));
         when(mapper.selectRevision(any())).thenAnswer(call -> rows.get(call.getArgument(0, RequirementRevisionQuery.class).revisionId()));
         when(mapper.lockRevision(any())).thenAnswer(call -> rows.get(call.getArgument(0, RequirementRevisionQuery.class).revisionId()));
         when(mapper.selectLatest(any())).thenAnswer(call -> rows.values().stream().findFirst().orElse(null));
@@ -81,10 +81,10 @@ class RequirementAnalysisIndependentCreationTest {
             provider.lockForWrite(command.target(), command.actor(), command.expectedEntityVersion());
             return new EntityFormApi.Binding(command.formRevisionId(), null, command.fieldBindings(), 1);
         });
-        doAnswer(call -> { provider.lockForWrite(call.getArgument(1), call.getArgument(3), call.getArgument(2)); return null; })
-                .when(forms).copy(any(), any(), anyInt(), any());
-        doAnswer(call -> { provider.lockForWrite(call.getArgument(1), call.getArgument(3), call.getArgument(2)); return null; })
-                .when(extensions).copy(any(), any(), anyInt(), any());
+        doAnswer(call -> { provider.lockForWrite(call.getArgument(1), call.getArgument(3), ((Number) call.getArgument(2)).longValue()); return null; })
+                .when(forms).copy(any(), any(), anyLong(), any());
+        doAnswer(call -> { provider.lockForWrite(call.getArgument(1), call.getArgument(3), ((Number) call.getArgument(2)).longValue()); return null; })
+                .when(extensions).copy(any(), any(), anyLong(), any());
     }
 
     @Test void initialDraftNeedsNoTemplateOrFormCallback() {
@@ -243,10 +243,10 @@ class RequirementAnalysisIndependentCreationTest {
         return new ProjectBusinessConfigurationApi.Configuration(7L,80L,90L,91L,3,null,parameters);
     }
     private ProjectBusinessExecutionSelection selection() {
-        return new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(80L,1,30L,1,40L,1,50L,60L,1,1,70L,1,true,null),null);
+        return new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(80L,1L,30L,1,40L,1,50L,60L,1,1,70L,1,true,null),null);
     }
     private ProjectWorkBindingFact binding(String parameters) {
-        return new ProjectWorkBindingFact(80L,1,30L,1,40L,1,90L,1,"BUSINESS_OBJECT","SOL","REQUIREMENT_ANALYSIS",
+        return new ProjectWorkBindingFact(80L,1L,30L,1,40L,1,90L,1,"BUSINESS_OBJECT","SOL","REQUIREMENT_ANALYSIS",
                 "PRE_04_REQUIREMENT_ANALYSIS",null,null,null,null,91L,3,parameters,41L,42L,3,4);
     }
     private RequirementAnalysisExecutionAccess.Frozen frozenConfig(ProjectBusinessConfigurationApi.Configuration value) {

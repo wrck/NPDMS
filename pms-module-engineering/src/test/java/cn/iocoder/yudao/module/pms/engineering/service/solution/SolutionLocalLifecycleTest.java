@@ -34,7 +34,7 @@ class SolutionLocalLifecycleTest {
         doReturn("PROJ-JF-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.DELIVERABLE), any(), any(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         when(deliverableMapper.selectByProjectAndSource(anyLong(), anyString(), anyLong())).thenReturn(null);
-        row = new SolutionDO(); row.setId(1L); row.setProjectId(7L); row.setCode("SOL-TEST"); row.setStatus(0); row.setReviewLevel(0); row.setVersion(6);
+        row = new SolutionDO(); row.setId(1L); row.setProjectId(7L); row.setCode("SOL-TEST"); row.setStatus(0); row.setReviewLevel(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);
     }
 
@@ -43,7 +43,7 @@ class SolutionLocalLifecycleTest {
         when(mapper.updateById(any(SolutionDO.class))).thenAnswer(call -> {
             SolutionDO update = call.getArgument(0);
             assertEquals(storedVersion[0], update.getVersion());
-            update.setVersion(++storedVersion[0]);
+            update.setVersion((long) ++storedVersion[0]);
             return 1;
         });
         service.submitSolution(1L);

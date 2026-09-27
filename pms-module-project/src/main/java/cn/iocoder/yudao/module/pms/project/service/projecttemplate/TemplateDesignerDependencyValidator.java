@@ -197,8 +197,8 @@ public class TemplateDesignerDependencyValidator {
             refs.add(new BindingRef(path, -1L, null, binding, snapshot));
             return;
         }
-        Integer expectedVersion = snapshot.path("version").canConvertToInt()
-                ? snapshot.path("version").intValue() : null;
+        Long expectedVersion = snapshot.path("version").canConvertToLong()
+                ? snapshot.path("version").longValue() : null;
         refs.add(new BindingRef(path, revisionId,
                 new BusinessViewQueryApi.Query(revisionId,
                         BusinessViewQueryApi.Purpose.NEW_REFERENCE, expectedVersion), binding, snapshot));

@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual.command;
 /** V1人工确认服务经理命令。 */
 public record AssignServiceManagerCommand(
         Long projectId,
-        Integer expectedVersion,
+        Long expectedVersion,
         String levelCode,
         Long managerId,
         Long siteId,

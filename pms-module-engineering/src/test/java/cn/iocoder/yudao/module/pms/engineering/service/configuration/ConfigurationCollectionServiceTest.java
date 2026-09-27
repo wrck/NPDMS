@@ -37,7 +37,7 @@ class ConfigurationCollectionServiceTest {
         when(tx.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         service = new ConfigurationCollectionService(configurations, links, devices, scopes, permissions, tasks, callbacks, logs, provider, tx);
         configuration = new ConfigurationDO(); configuration.setId(11L); configuration.setTenantId(1L);
-        configuration.setProjectId(21L); configuration.setEquipmentId(31L); configuration.setVersion(0); configuration.setStatus(1);
+        configuration.setProjectId(21L); configuration.setEquipmentId(31L); configuration.setVersion(0L); configuration.setStatus(1);
         when(configurations.lockById(11L)).thenReturn(configuration); when(configurations.selectById(11L)).thenReturn(configuration);
         when(permissions.hasAnyPermissions(eq(7L), any(String.class))).thenReturn(true);
         var scope = new ProjectScopeResult(21L, 1L, Set.of(21L), Set.of());
@@ -95,9 +95,9 @@ class ConfigurationCollectionServiceTest {
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.submit(11L,7L,request())); verifyNoInteractions(dispatch,tasks);
     }
     @Test void staleVersionAndCompletedRecordCannotSend() {
-        configuration.setVersion(2);
+        configuration.setVersion(2L);
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.submit(11L,7L,request()));
-        configuration.setVersion(0); configuration.setStatus(2);
+        configuration.setVersion(0L); configuration.setStatus(2);
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.submit(11L,7L,request())); verifyNoInteractions(dispatch,tasks);
     }
     @Test void invalidRequestStillErasesPassword() {

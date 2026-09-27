@@ -11,7 +11,7 @@ public class ProjectSplitPreviewRespVO {
     private Boolean valid;
     private String previewHash;
     private LocalDateTime validatedAt;
-    private Integer parentVersion;
+    private Long parentVersion;
     private Long scopeVersion;
     private Long treeVersion;
     private List<String> errors;

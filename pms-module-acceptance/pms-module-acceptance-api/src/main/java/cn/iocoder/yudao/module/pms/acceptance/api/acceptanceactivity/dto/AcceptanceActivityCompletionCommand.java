@@ -7,7 +7,7 @@ public record AcceptanceActivityCompletionCommand(
         Integer expectedProjectTaskVersion,
         Long executionContractId,
         Long acceptanceId,
-        Integer expectedActivityVersion,
+        Long expectedActivityVersion,
         Integer expectedReportVersion,
         String operationId) {
 }

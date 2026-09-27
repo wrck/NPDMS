@@ -63,7 +63,7 @@ class SiteLocationTreeServiceImplTest {
         SiteLocationDO finalRoot = root;
         SiteLocationDO finalLeaf = parent;
         assertThrows(ServiceException.class, () -> service.maintain(9L,
-                new SiteLocationInput(finalRoot.getId(), 0, finalLeaf.getId(), finalRoot.getCode(),
+                new SiteLocationInput(finalRoot.getId(), 0L, finalLeaf.getId(), finalRoot.getCode(),
                         finalRoot.getName(), finalRoot.getLocationType(), finalRoot.getTreeSort())));
     }
 
@@ -78,7 +78,7 @@ class SiteLocationTreeServiceImplTest {
 
         assertThrows(ServiceException.class, () -> service.maintain(1L,
                 new SiteLocationInput(null, null, siteTwoRoot.getId(), "BAD", "错误", "SPACE", 0)));
-        assertThrows(ServiceException.class, () -> service.disable(siteOneRoot.getId(), 0));
+        assertThrows(ServiceException.class, () -> service.disable(siteOneRoot.getId(), 0L));
         assertEquals(1, child.getTreeDepth());
     }
 
@@ -88,10 +88,10 @@ class SiteLocationTreeServiceImplTest {
                 new SiteLocationInput(null, null, null, "ROOM-1", "机房1", "ROOM", 0));
 
         SiteLocationDO referenced = service.maintain(1L,
-                new SiteLocationInput(location.getId(), 0, null, null, null, null, null));
+                new SiteLocationInput(location.getId(), 0L, null, null, null, null, null));
 
         assertSame(location, referenced);
-        verify(mapper, never()).updateByIdAndVersion(any(), anyInt());
+        verify(mapper, never()).updateByIdAndVersion(any(), anyLong());
     }
 
 }

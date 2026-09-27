@@ -4,7 +4,7 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query
 public record ConstructionPlanVersionUpdate(
         Long tenantId,
         Long planId,
-        Integer expectedVersion,
+        Long expectedVersion,
         Long currentDurationRevisionId,
         Long pendingChangeId,
         String planRecalculationStatusCode,

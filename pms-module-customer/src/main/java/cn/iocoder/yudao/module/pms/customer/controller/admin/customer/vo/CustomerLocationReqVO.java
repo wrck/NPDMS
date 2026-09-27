@@ -16,5 +16,5 @@ public class CustomerLocationReqVO {
 
     @NotNull
     @Min(0)
-    private Integer sourceVersion;
+    private Long sourceVersion;
 }

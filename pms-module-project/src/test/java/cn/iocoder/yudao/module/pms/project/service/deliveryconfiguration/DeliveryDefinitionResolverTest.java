@@ -197,7 +197,7 @@ class DeliveryDefinitionResolverTest {
         }).when(revisions).lockRevision(any());
         var view = mock(cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewRevision.class);
         when(view.id()).thenReturn(20L); when(view.ownerContext()).thenReturn(owner); when(view.entityType()).thenReturn(type);
-        when(view.publishedAt()).thenReturn(LocalDateTime.now()); when(view.version()).thenReturn(0);
+        when(view.publishedAt()).thenReturn(LocalDateTime.now()); when(view.version()).thenReturn(0L);
         when(view.contextSchema()).thenReturn(JsonUtils.parseTree("{\"properties\":{}}"));
         when(views.getRevision(any())).thenReturn(view);
         when(views.lockAndRevalidateAll(any())).thenReturn(List.of(view));

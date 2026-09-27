@@ -48,10 +48,10 @@ class CutoverChecklistControllerContractTest {
                 new CutoverChecklistRequestContext.TrustedContext(9L, 12L, "corr-1");
         CutoverChecklistController controller = new CutoverChecklistController(service, exportService, context);
         when(service.generate(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new ChecklistCommandResult(31L, 41L, 1, 0, "DRAFT", "P3", 7, false));
+                new ChecklistCommandResult(31L, 41L, 1L, 0L, "DRAFT", "P3", 7L, false));
 
         controller.generate(31L, "intent-1", new CutoverChecklistReqVO.Generate(
-                7, 2, 19L, Map.of("risk-1", new CutoverChecklistReqVO.SelectedDefinition(71L, 3))));
+                7L, 2L, 19L, Map.of("risk-1", new CutoverChecklistReqVO.SelectedDefinition(71L, 3))));
         ArgumentCaptor<GenerateChecklistCommand> generate = ArgumentCaptor.forClass(GenerateChecklistCommand.class);
         verify(service).generate(generate.capture());
         assertThat(generate.getValue()).satisfies(command -> {
@@ -65,7 +65,7 @@ class CutoverChecklistControllerContractTest {
             assertThat(command.correlationId()).isEqualTo("corr-1");
         });
 
-        controller.save(31L, new CutoverChecklistReqVO.Save(7, 19L, 41L, 1,
+        controller.save(31L, new CutoverChecklistReqVO.Save(7L, 19L, 41L, 1L,
                 List.of(new CutoverChecklistReqVO.DirectAnswer("risk-1", "checked"))));
         ArgumentCaptor<SaveChecklistCommand> save = ArgumentCaptor.forClass(SaveChecklistCommand.class);
         verify(service).save(save.capture());
@@ -73,11 +73,11 @@ class CutoverChecklistControllerContractTest {
                 new SaveChecklistCommand.DirectAnswer("risk-1", "checked"));
 
         when(service.requestCollection(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new CollectionRequestCommandResult(31L, 4, 41L, 1, 2,
+                new CollectionRequestCommandResult(31L, 4L, 41L, 1L, 2L,
                         51L, 0, "risk-1", 1, 61L, 71L, 1L,
                         "COMPLETED", null, true, false));
         controller.requestCollection(31L, "risk-1", "collect-intent", new CutoverChecklistReqVO.CollectionRequest(
-                7, 19L, 41L, 1, 9007199254740991L, 9007199254740992L));
+                7L, 19L, 41L, 1L, 9007199254740991L, 9007199254740992L));
         ArgumentCaptor<RequestCollectionCommand> collection =
                 ArgumentCaptor.forClass(RequestCollectionCommand.class);
         verify(service).requestCollection(collection.capture());
@@ -90,10 +90,10 @@ class CutoverChecklistControllerContractTest {
             assertThat(command.correlationId()).isEqualTo("corr-1");
         });
 
-        when(exportService.export(9L, 12L, 31L, 3, "corr-1"))
+        when(exportService.export(9L, 12L, 31L, 3L, "corr-1"))
                 .thenReturn(new CutoverChecklistExportResult(new byte[]{1, 2},
                         "cutover-checklist-31-v3.xlsx", 1, 0));
-        var response = controller.export(31L, new CutoverChecklistReqVO.Export(3));
+        var response = controller.export(31L, new CutoverChecklistReqVO.Export(3L));
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE))
                 .isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))

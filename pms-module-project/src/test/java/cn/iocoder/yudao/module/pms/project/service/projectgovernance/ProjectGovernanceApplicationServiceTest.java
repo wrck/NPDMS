@@ -63,7 +63,7 @@ class ProjectGovernanceApplicationServiceTest {
     private static final Long PROJECT_ID = 11L;
     private static final Long ROOT_ID = 10L;
     private static final Long ACTOR_ID = 9L;
-    private static final Integer VERSION = 5;
+    private static final Long VERSION = 5L;
 
     private PlatformCommandExecutionApi commandExecutionApi;
     private PermissionApi permissionApi;
@@ -358,7 +358,7 @@ class ProjectGovernanceApplicationServiceTest {
     void shouldReplayOriginalResultWithoutDuplicatingBusinessWrites() {
         GovernanceActionResult original = new GovernanceActionResult(PROJECT_ID, "ROLLBACK",
                 "ACTIVE", "S3", "ASSIGNED", "ACTIVE", "S0", "UNASSIGNED",
-                6, 91L, "operation-1", LocalDateTime.now(), false);
+                6L, 91L, "operation-1", LocalDateTime.now(), false);
         when(commandExecutionApi.execute(any(), anyString(), eq(GovernanceActionResult.class), any(), any()))
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, original));

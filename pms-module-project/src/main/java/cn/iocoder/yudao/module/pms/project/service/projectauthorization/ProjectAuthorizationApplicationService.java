@@ -185,7 +185,7 @@ public class ProjectAuthorizationApplicationService {
                             Integer pageNo, Integer pageSize) {
     }
 
-    public record RevokeCommand(Long grantId, Integer expectedVersion, String reason,
+    public record RevokeCommand(Long grantId, Long expectedVersion, String reason,
                                 String idempotencyKey, String requestDigest) {
     }
 }

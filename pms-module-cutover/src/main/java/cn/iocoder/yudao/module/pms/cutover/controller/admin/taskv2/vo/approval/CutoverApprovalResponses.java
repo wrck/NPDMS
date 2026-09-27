@@ -18,8 +18,8 @@ public final class CutoverApprovalResponses {
     public record Node(Long nodeId, Integer nodeNo, String nodeCode, String status,
                        Long originalApproverUserId, Long currentApproverUserId, Long decisionAt,
                        String feedback, List<ReviewItem> reviewItems, AssessmentReview assessmentReview) { }
-    public record Detail(String viewMode, Long approvalInstanceId, Integer approvalVersion, Long taskId,
-                         Integer taskVersion, Long planRevisionId, Integer planRevisionNo, String grade,
+    public record Detail(String viewMode, Long approvalInstanceId, Long approvalVersion, Long taskId,
+                         Long taskVersion, Long planRevisionId, Integer planRevisionNo, String grade,
                          String status, String holdReason, Integer currentNodeNo, List<Node> nodes,
                          CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot sourceSnapshot,
                          CutoverLeadTimeCompliance leadTimeCompliance, Long decisionAt, String rejectionReason,
@@ -37,15 +37,15 @@ public final class CutoverApprovalResponses {
                               List<String> allowedActions) implements View { }
     public record ReassignmentNode(Long nodeId, Integer nodeNo, String nodeCode, String nodeStatus,
                                    Long currentApproverUserId, Integer nodeVersion) { }
-    public record Reassignment(String viewMode, Long approvalInstanceId, Integer approvalVersion, Long taskId,
+    public record Reassignment(String viewMode, Long approvalInstanceId, Long approvalVersion, Long taskId,
                                Long projectId, String taskCode, String taskName, String grade, String status,
                                String holdReason, List<ReassignmentNode> nodes,
                                List<String> allowedActions) implements View { }
-    public record TodoItem(Long approvalInstanceId, Integer approvalVersion, Long taskId, Long projectId,
+    public record TodoItem(Long approvalInstanceId, Long approvalVersion, Long taskId, Long projectId,
                            String taskCode, String taskName, String grade, Integer nodeNo, String nodeCode,
                            Long createdAt) { }
     public record TodoPage(List<TodoItem> list, Long total, Integer pageNo, Integer pageSize) { }
-    public record ReassignmentCandidate(Long approvalInstanceId, Integer approvalVersion, Long taskId,
+    public record ReassignmentCandidate(Long approvalInstanceId, Long approvalVersion, Long taskId,
                                         Long projectId, String taskCode, String taskName, String grade,
                                         String status, String holdReason, Long nodeId, Integer nodeNo,
                                         String nodeCode, String nodeStatus, Long currentApproverUserId,

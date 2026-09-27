@@ -84,7 +84,7 @@ class DppmsExecutionOrderSyncAdapterTest {
 
     @Test void batchesUpdatesWithTheirExistingIdentityAndVersion() {
         var old = new CrmExecutionOrderDO();
-        old.setId(42L); old.setVersion(7); old.setSourceSystem("CRM"); old.setExecutionNo("EX-1");
+        old.setId(42L); old.setVersion(7L); old.setSourceSystem("CRM"); old.setExecutionNo("EX-1");
         old.setProjectName("旧名称");
         when(mapper.selectIncoming(any())).thenReturn(List.of(old));
         doAnswer(invocation -> {

@@ -22,7 +22,7 @@ public class EngineeringLocationFactService {
 
     private final AssetLocationApi assetLocationApi;
 
-    public LocationFact maintain(Long projectId, String businessType, Long businessId, Integer sourceVersion,
+    public LocationFact maintain(Long projectId, String businessType, Long businessId, Long sourceVersion,
                                  String fallbackLocation, LocationMaintenanceCommand input) {
         LocationMaintenanceCommand command = new LocationMaintenanceCommand(projectId, input.address(), input.site(),
                 input.siteLocation(), fallbackLocation, businessType, businessId.toString(),
@@ -47,11 +47,11 @@ public class EngineeringLocationFactService {
 
     public record LocationFact(
             Long addressId,
-            Integer addressVersion,
+            Long addressVersion,
             Long siteId,
-            Integer siteVersion,
+            Long siteVersion,
             Long siteLocationId,
-            Integer siteLocationVersion,
+            Long siteLocationVersion,
             String resolutionStatus,
             String addressSnapshot,
             String locationSnapshot) {

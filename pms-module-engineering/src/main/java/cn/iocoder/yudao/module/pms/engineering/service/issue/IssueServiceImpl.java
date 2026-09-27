@@ -159,7 +159,7 @@ public class IssueServiceImpl implements IssueService {
         }
     }
 
-    private void updateStatus(Long id, IssueStatusRules.Action action, Integer version) {
+    private void updateStatus(Long id, IssueStatusRules.Action action, Long version) {
         IssueDO update = new IssueDO();
         update.setId(id);
         update.setStatus(IssueStatusRules.targetStatus(action));

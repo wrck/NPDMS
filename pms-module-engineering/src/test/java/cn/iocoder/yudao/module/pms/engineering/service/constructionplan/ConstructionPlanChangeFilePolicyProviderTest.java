@@ -60,17 +60,17 @@ class ConstructionPlanChangeFilePolicyProviderTest {
     @Test
     void locksProjectFactsAndReturnsSameScopeForReference() {
         when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+                "PRIMARY", "ACTIVE", "S1", 3L, 3L));
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
         when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+                "PRIMARY", "ACTIVE", "S1", 3L, 3L));
 
         var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 0L, 9L, "SOL", "CONSTRUCTION_PLAN_CHANGE", "801",
@@ -83,17 +83,17 @@ class ConstructionPlanChangeFilePolicyProviderTest {
     @Test
     void uploadCompletionAndArchiveCanLockTheChangeNamespace() {
         when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+                "PRIMARY", "ACTIVE", "S1", 3L, 3L));
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
         when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+                "PRIMARY", "ACTIVE", "S1", 3L, 3L));
 
         for (String action : java.util.List.of(FileActionCodes.UPLOAD, FileActionCodes.ARCHIVE)) {
             var fact = provider.lockAndRevalidateReferenceSet(
@@ -119,11 +119,11 @@ class ConstructionPlanChangeFilePolicyProviderTest {
 
     private void stubCurrent(String status, String role) {
         when(changeMapper.selectByObjectId(any())).thenReturn(change(status));
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         ProjectParticipantFact participant = new ProjectParticipantFact(
-                100L, 9L, Set.of(role), "PRIMARY", "ACTIVE", "S1", 3, 3L);
+                100L, 9L, Set.of(role), "PRIMARY", "ACTIVE", "S1", 3L, 3L);
         when(participantFactApi.inspect(any())).thenReturn(participant);
     }
 

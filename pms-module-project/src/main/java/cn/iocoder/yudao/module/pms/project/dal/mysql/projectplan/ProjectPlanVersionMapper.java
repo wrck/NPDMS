@@ -20,11 +20,11 @@ public interface ProjectPlanVersionMapper extends BaseMapperX<ProjectPlanVersion
     int supersedeEffectiveIfCurrent(@Param("query") Activation query);
     int attachActivatedPlan(@Param("query") Activation query);
     record Activation(Long tenantId, Long projectId, Long oldPlanVersionId, Long draftId,
-                      Integer expectedDraftVersion, Integer expectedProjectVersion,
+                      Long expectedDraftVersion, Long expectedProjectVersion,
                       String executionSnapshot, java.time.LocalDateTime effectiveAt, String updater) { }
     record InitialPlanBinding(Long tenantId, Long projectId, Long planVersionId) { }
-    record DraftUpdate(Long tenantId, Long projectId, Long draftId, Integer expectedVersion,
+    record DraftUpdate(Long tenantId, Long projectId, Long draftId, Long expectedVersion,
                        Long basePlanVersionId, String designer, String updater) { }
-    record RuleClosure(Long tenantId, Long projectId, Long planVersionId, Integer expectedProjectVersion,
+    record RuleClosure(Long tenantId, Long projectId, Long planVersionId, Long expectedProjectVersion,
                        java.time.LocalDateTime closedAt, String evidence, String updater) { }
 }

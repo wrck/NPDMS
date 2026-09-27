@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectschedule;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * 3.1 工期建议计划时间规则（Demo 页面9 / Excel 3.1）。
@@ -17,10 +15,8 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("proj_stage_suggestion_rule")
-public class StageSuggestionRuleDO extends TenantBaseDO {
+public class StageSuggestionRuleDO extends BaseBusinessEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
     /** 参与计划的阶段编码。 */
     private String stageCode;
     /** 签约方式（字典 pms_signing_method）；空=全部签约方式。 */

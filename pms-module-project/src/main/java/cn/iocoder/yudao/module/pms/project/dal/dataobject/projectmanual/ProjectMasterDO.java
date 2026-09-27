@@ -1,13 +1,12 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * 项目主档 DO（F-PM01 / V57 `proj_project`）
@@ -21,13 +20,11 @@ import java.time.LocalDateTime;
 @TableName("proj_project")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectMasterDO extends TenantBaseDO {
+public class ProjectMasterDO extends BaseBusinessEntity {
 
     /**
      * 项目ID
      */
-    @TableId
-    private Long id;
     /**
      * 项目编码（租户内唯一，创建后不可变）
      */
@@ -300,5 +297,4 @@ public class ProjectMasterDO extends TenantBaseDO {
     /**
      * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
      */
-    private Integer version;
 }

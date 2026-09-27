@@ -11,7 +11,7 @@ public class ProjectSplitRequestRespVO {
     private Long parentProjectId;
     private String status;
     private Integer draftVersion;
-    private Integer parentVersion;
+    private Long parentVersion;
     private Long scopeVersion;
     private Long treeVersion;
     private Long templateRevisionId;

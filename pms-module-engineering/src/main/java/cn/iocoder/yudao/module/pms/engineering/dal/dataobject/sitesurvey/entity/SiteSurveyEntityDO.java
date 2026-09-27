@@ -54,15 +54,15 @@ public class SiteSurveyEntityDO extends TenantBaseDO {
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private Long addressId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    @JsonIgnore private Integer addressVersion;
+    @JsonIgnore private Long addressVersion;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private Long siteId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    @JsonIgnore private Integer siteVersion;
+    @JsonIgnore private Long siteVersion;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private Long siteLocationId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    @JsonIgnore private Integer siteLocationVersion;
+    @JsonIgnore private Long siteLocationVersion;
     @JsonIgnore private String locationResolutionStatus;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private String addressSnapshot;
@@ -129,7 +129,7 @@ public class SiteSurveyEntityDO extends TenantBaseDO {
      * 乐观锁版本号
      */
     @Version
-    @JsonIgnore private Integer version;
+    @JsonIgnore private Long version;
 
     @JsonIgnore private Boolean outsourceRequired;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)

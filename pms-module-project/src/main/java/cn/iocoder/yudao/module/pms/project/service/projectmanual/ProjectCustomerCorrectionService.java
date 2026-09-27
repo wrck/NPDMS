@@ -130,11 +130,11 @@ public class ProjectCustomerCorrectionService {
                 project.getCustomerCode(), project.getCustomerName(), customerId, code, name, changed, reason);
     }
     public record Actor(Long tenantId, Long userId, String correlationId) { }
-    public record Command(Long projectId, Integer expectedVersion, String customerCode, String reason, String key) { }
+    public record Command(Long projectId, Long expectedVersion, String customerCode, String reason, String key) { }
     public record Reference(String source, String label, long count) { }
-    public record Inspection(Long projectId, Integer version, String customerCode, String customerName,
+    public record Inspection(Long projectId, Long version, String customerCode, String customerName,
                              boolean canCorrect, List<Reference> references) { }
-    public record Result(Long projectId, Integer version, Long previousCustomerId, String previousCustomerCode,
+    public record Result(Long projectId, Long version, Long previousCustomerId, String previousCustomerCode,
                          String previousCustomerName, Long customerId, String customerCode, String customerName,
                          boolean changed, String reason) { }
 }

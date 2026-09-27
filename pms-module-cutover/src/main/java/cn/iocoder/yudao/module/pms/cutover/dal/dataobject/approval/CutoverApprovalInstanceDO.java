@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
@@ -12,17 +11,15 @@ import java.time.LocalDateTime;
 @TableName("cut_approval_instance")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CutoverApprovalInstanceDO extends TenantBaseDO {
-    @TableId
-    private Long id;
+public class CutoverApprovalInstanceDO extends BaseBusinessEntity {
     private Long taskId;
     private Long projectId;
     private Long planRevisionId;
     private Integer planRevisionNo;
     private Long assessmentId;
-    private Integer assessmentVersion;
+    private Long assessmentVersion;
     private Long checklistId;
-    private Integer checklistVersion;
+    private Long checklistVersion;
     private String gradeCode;
     private Long initiatorUserId;
     private Long initiatorProjectScopeVersion;
@@ -38,6 +35,4 @@ public class CutoverApprovalInstanceDO extends TenantBaseDO {
     private Long replacementApprovalInstanceId;
     private LocalDateTime decisionAt;
     private String rejectionReason;
-    @Version
-    private Integer version;
 }

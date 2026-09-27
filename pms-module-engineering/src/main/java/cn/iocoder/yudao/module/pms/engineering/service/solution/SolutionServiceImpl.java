@@ -59,7 +59,7 @@ public class SolutionServiceImpl implements SolutionService {
     public Long createSolution(SolutionSaveReqVO createReqVO) {
         SolutionDO solution = BeanUtils.toBean(createReqVO, SolutionDO.class);
         solution.setStatus(0);
-        solution.setVersion(0);
+        solution.setVersion(0L);
         solution.setBaselineVersion(null);
         solution.setApprovedBy(null);
         solution.setApprovedTime(null);
@@ -91,7 +91,7 @@ public class SolutionServiceImpl implements SolutionService {
     public void updateSolution(SolutionSaveReqVO updateReqVO) {
         SolutionDO existing = validateSolutionExists(updateReqVO.getId());
         validateStatus(existing, 0);
-        validateVersion(existing, updateReqVO.getVersion());
+        validateVersion(existing, updateReqVO.getVersion() == null ? null : updateReqVO.getVersion().longValue());
         SolutionDO update = BeanUtils.toBean(updateReqVO, SolutionDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
@@ -142,7 +142,7 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional(rollbackFor = Exception.class)
     public void approveSolution(SolutionApproveReqVO reqVO) {
         SolutionDO solution = validateSolutionExists(reqVO.getId());
-        validateVersion(solution, reqVO.getVersion());
+        validateVersion(solution, reqVO.getVersion() == null ? null : reqVO.getVersion().longValue());
         validateStatus(solution, 2); // 审批中 → 已通过
         if ("IMPLEMENTATION".equals(solution.getSolutionType())) reviewPolicies.requireOrdinaryApproval(solution);
         if (!Objects.equals(solution.getReviewLevel(), 0)) {
@@ -153,7 +153,7 @@ public class SolutionServiceImpl implements SolutionService {
         Long approverId = SecurityFrameworkUtils.getLoginUserId();
         solution.setApprovedBy(approverId);
         solution.setApprovedTime(LocalDateTime.now());
-        solution.setBaselineVersion(solution.getVersion() + 1); // 冻结基线版本
+        solution.setBaselineVersion(Math.toIntExact(solution.getVersion() + 1)); // 冻结基线版本
         updateRecord(solution);
         archiveApprovedSolution(solution, approverId);
     }
@@ -162,7 +162,7 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional(rollbackFor = Exception.class)
     public void rejectSolution(SolutionApproveReqVO reqVO) {
         SolutionDO solution = validateSolutionExists(reqVO.getId());
-        validateVersion(solution, reqVO.getVersion());
+        validateVersion(solution, reqVO.getVersion() == null ? null : reqVO.getVersion().longValue());
         validateStatus(solution, 2); // 审批中 → 已驳回
         solution.setStatus(4);
         solution.setApprovalOpinion(reqVO.getApprovalOpinion());
@@ -200,7 +200,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setSolutionType("IMPLEMENTATION");
         solution.setReviewLevel(0);
         solution.setStatus(0); // 草稿
-        solution.setVersion(0);
+        solution.setVersion(0L);
         solutionMapper.insert(solution);
         completionChanged(solution);
         return solution.getId();
@@ -230,7 +230,7 @@ public class SolutionServiceImpl implements SolutionService {
         deliverable.setArchivedBy(approverId);
         deliverable.setArchivedTime(LocalDateTime.now());
         deliverable.setRemark("实施方案审批通过自动归档");
-        deliverable.setVersion(0);
+        deliverable.setVersion(0L);
         deliverableMapper.insert(deliverable);
     }
 
@@ -252,7 +252,7 @@ public class SolutionServiceImpl implements SolutionService {
         return solution;
     }
 
-    private void validateVersion(SolutionDO solution, Integer version) {
+    private void validateVersion(SolutionDO solution, Long version) {
         if (version != null && !Objects.equals(solution.getVersion(), version)) {
             throw exception(SOLUTION_VERSION_NOT_MATCH);
         }

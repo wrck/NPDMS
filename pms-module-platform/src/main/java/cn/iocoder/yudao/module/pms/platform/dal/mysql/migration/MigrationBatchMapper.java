@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.platform.dal.mysql.migration;
 
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO;
@@ -9,6 +10,16 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface MigrationBatchMapper extends BaseMapperX<MigrationBatchDO> {
+
+    default PageResult<MigrationBatchDO> selectPageByFilter(MigrationBatchPageQuery query) {
+        return selectPage(query, new LambdaQueryWrapperX<MigrationBatchDO>()
+                .eq(MigrationBatchDO::getTenantId, query.getTenantId())
+                .eqIfPresent(MigrationBatchDO::getOwnerContextCode, query.getOwnerContextCode())
+                .eqIfPresent(MigrationBatchDO::getPurposeCode, query.getPurposeCode())
+                .eqIfPresent(MigrationBatchDO::getSourceSystem, query.getSourceSystem())
+                .eqIfPresent(MigrationBatchDO::getBatchStatus, query.getBatchStatus())
+                .orderByDesc(MigrationBatchDO::getId));
+    }
 
     default MigrationBatchDO selectByIdentity(MigrationBatchIdentityQuery query) {
         return selectOne(new LambdaQueryWrapperX<MigrationBatchDO>()

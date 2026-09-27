@@ -61,5 +61,5 @@ public interface ProjectRiskService {
     /**
      * 切换风险状态。校验状态迁移合法性；迁入已关闭时写入 closed_at。
      */
-    void transitionStatusRetired(Long riskId, int targetStatus, Integer version);
+    void transitionStatusRetired(Long riskId, int targetStatus, Long version);
 }

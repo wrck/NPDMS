@@ -73,7 +73,7 @@ public class ProjectSiteApplicationService {
             relation.setSiteCodeSnapshot(site.code());
             relation.setSiteNameSnapshot(site.name());
             relation.setAddressSnapshot(address == null ? null : JsonUtils.toJsonString(address));
-            relation.setVersion(0);
+            relation.setVersion(0L);
             projectSiteMapper.insert(relation);
         }
     }

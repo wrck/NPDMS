@@ -43,7 +43,7 @@ public class RequirementServiceImpl implements RequirementService {
             requirement.setStatus(0); // 草稿
         }
         if (requirement.getVersion() == null) {
-            requirement.setVersion(0);
+            requirement.setVersion(0L);
         }
         requirementMapper.insert(requirement);
         return requirement.getId();
@@ -120,7 +120,7 @@ public class RequirementServiceImpl implements RequirementService {
     }
 
     private void validateVersion(RequirementDO requirement, Integer version) {
-        if (version != null && !Objects.equals(requirement.getVersion(), version)) {
+        if (version != null && !Objects.equals(requirement.getVersion(), version.longValue())) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
     }

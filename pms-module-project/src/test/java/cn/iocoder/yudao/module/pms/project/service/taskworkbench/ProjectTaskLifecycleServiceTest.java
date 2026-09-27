@@ -393,7 +393,7 @@ class ProjectTaskLifecycleServiceTest {
         when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
         when(permissionApi.hasAnyPermissions(9L, "pms:acceptance:report:complete")).thenReturn(true);
         when(acceptanceActivityCompletionFactApi.lockAndComplete(any())).thenReturn(
-                new AcceptanceActivityCompletionFact("COMPLETED", 51L, 1, 61L, 1));
+                new AcceptanceActivityCompletionFact("COMPLETED", 51L, 1L, 61L, 1));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
 
@@ -438,7 +438,7 @@ class ProjectTaskLifecycleServiceTest {
         when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
         when(permissionApi.hasAnyPermissions(9L, "pms:acceptance:report:complete")).thenReturn(true);
         when(acceptanceActivityCompletionFactApi.lockAndComplete(any())).thenReturn(
-                new AcceptanceActivityCompletionFact("COMPLETED", 51L, 1, 61L, 1));
+                new AcceptanceActivityCompletionFact("COMPLETED", 51L, 1L, 61L, 1));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
 

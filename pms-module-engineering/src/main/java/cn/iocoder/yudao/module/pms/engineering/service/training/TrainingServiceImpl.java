@@ -432,7 +432,7 @@ public class TrainingServiceImpl implements TrainingService {
         deliverable.setArchivedTime(entity.getSignTime());
         deliverable.setArchivedBy(entity.getTrainerUserId());
         deliverable.setRemark("ACC-01 现场培训客户确认后自动归档，签字人：" + entity.getSignConfirmerName());
-        deliverable.setVersion(0);
+        deliverable.setVersion(0L);
         deliverableMapper.insert(deliverable);
     }
 

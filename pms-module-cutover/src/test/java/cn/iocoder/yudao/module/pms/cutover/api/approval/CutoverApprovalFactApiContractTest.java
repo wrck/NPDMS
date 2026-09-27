@@ -74,7 +74,7 @@ class CutoverApprovalFactApiContractTest {
     @Test
     void requiresTheTrustedPlanSubmissionTime() {
         assertThatThrownBy(() -> new CutoverApprovalStartCommand(
-                9L, 101L, 3, 201L, 1, "A", 301L, 2, 401L, 4,
+                9L, 101L, 3L, 201L, 1, "A", 301L, 2L, 401L, 4L,
                 5, null, null, "start-1", "corr-1"))
                 .isInstanceOfSatisfying(CutoverApprovalFactException.class,
                         error -> assertThat(error.code()).isEqualTo(CutoverApprovalFactException.Code.INVALID_REQUEST));
@@ -105,7 +105,7 @@ class CutoverApprovalFactApiContractTest {
     void controlledOwnerCompletesStartInspectRevalidateAndPauseLoop() {
         ControlledCutoverApprovalFactApi api = new ControlledCutoverApprovalFactApi();
         CutoverApprovalStartCommand start = new CutoverApprovalStartCommand(
-                9L, 101L, 3, 201L, 1, "A", 301L, 2, 401L, 4,
+                9L, 101L, 3L, 201L, 1, "A", 301L, 2L, 401L, 4L,
                 5, java.time.LocalDateTime.of(2026, 9, 3, 18, 0), null, "start-1", "corr-1");
 
         CutoverApprovalStartResult started = api.start(start);
@@ -131,12 +131,12 @@ class CutoverApprovalFactApiContractTest {
     void controlledOwnerCompletesDecisionAndReplacementLoop() {
         ControlledCutoverApprovalFactApi api = new ControlledCutoverApprovalFactApi();
         CutoverApprovalFact first = api.start(new CutoverApprovalStartCommand(
-                9L, 101L, 3, 201L, 1, "D", 301L, 2, null, null,
+                9L, 101L, 3L, 201L, 1, "D", 301L, 2L, null, null,
                 5, java.time.LocalDateTime.of(2026, 9, 3, 18, 0), null, "start-1", "corr-1")).fact();
         CutoverApprovalFact rejected = api.reject(first.approvalInstanceId(), 1000L, "revise plan");
 
         CutoverApprovalFact replacement = api.start(new CutoverApprovalStartCommand(
-                9L, 101L, 4, 202L, 2, "D", 301L, 2, null, null,
+                9L, 101L, 4L, 202L, 2, "D", 301L, 2L, null, null,
                 6, java.time.LocalDateTime.of(2026, 9, 4, 18, 0), rejected.approvalInstanceId(),
                 "start-2", "corr-2")).fact();
         CutoverApprovalFact approved = api.approve(replacement.approvalInstanceId(), 2000L);

@@ -133,7 +133,7 @@ public class ArrivalAcceptanceController {
         ArrivalAcceptanceReqVO.Patch request = ArrivalAcceptanceRequestCodec.patch(body);
         requireId(id);
         requirePatch(request);
-        int expectedVersion = parseIfMatch(ifMatch);
+        long expectedVersion = parseIfMatch(ifMatch);
         var trusted = requestContext.current();
         var result = commandService.patchDraft(new ArrivalAcceptanceCommands.PatchDraftCommand(
                 trusted.tenantId(), id, trusted.actorUserId(), expectedVersion,
@@ -155,7 +155,7 @@ public class ArrivalAcceptanceController {
         ArrivalAcceptanceRequestCodec.empty(body);
         requireId(id);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
-        int expectedVersion = parseIfMatch(ifMatch);
+        long expectedVersion = parseIfMatch(ifMatch);
         var trusted = requestContext.current();
         applicationService.submit(new ArrivalAcceptanceApplicationService.SubmitCommand(
                 trusted.tenantId(), id, trusted.actorUserId(), expectedVersion,
@@ -174,7 +174,7 @@ public class ArrivalAcceptanceController {
         ArrivalAcceptanceRequestCodec.empty(body);
         requireId(id);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
-        int expectedVersion = parseIfMatch(ifMatch);
+        long expectedVersion = parseIfMatch(ifMatch);
         var trusted = requestContext.current();
         var result = applicationService.confirm(new ArrivalAcceptanceApplicationService.ConfirmCommand(
                 trusted.tenantId(), id, trusted.actorUserId(), expectedVersion,
@@ -194,7 +194,7 @@ public class ArrivalAcceptanceController {
         requireId(id);
         requireRaise(request);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
-        int expectedVersion = parseIfMatch(ifMatch);
+        long expectedVersion = parseIfMatch(ifMatch);
         var trusted = requestContext.current();
         var result = commandService.raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
                 trusted.tenantId(), id, trusted.actorUserId(), expectedVersion,
@@ -215,7 +215,7 @@ public class ArrivalAcceptanceController {
         ArrivalAcceptanceReqVO.Resolution request = ArrivalAcceptanceRequestCodec.resolution(body);
         requireId(id);
         String key = normalizedHeader(idempotencyKey, "Idempotency-Key");
-        int expectedVersion = parseIfMatch(ifMatch);
+        long expectedVersion = parseIfMatch(ifMatch);
         var trusted = requestContext.current();
         var result = commandService.resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
                 trusted.tenantId(), id, trusted.actorUserId(), expectedVersion,
@@ -559,7 +559,7 @@ public class ArrivalAcceptanceController {
 
     private static ResponseEntity<CommonResult<ArrivalAcceptanceRespVO.ErrorData>> recoverable(
             int status, int code, String message, String category, String reason, String recovery,
-            Integer aggregateVersion, Integer lineVersion, Integer differenceRevision,
+            Long aggregateVersion, Integer lineVersion, Integer differenceRevision,
             Integer differenceVersion, String ownerContext) {
         return error(status, code, message, new ArrivalAcceptanceRespVO.ErrorData(
                 category, reason, recovery, aggregateVersion, lineVersion,

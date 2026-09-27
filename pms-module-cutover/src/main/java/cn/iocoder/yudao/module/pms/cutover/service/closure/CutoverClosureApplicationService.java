@@ -333,7 +333,7 @@ public class CutoverClosureApplicationService {
         if (activeDevices.isEmpty()) throw failure(BUSINESS_INCOMPLETE, CLOSURE_RESULT_INCOMPLETE,
                 "闭环任务没有活动设备范围");
 
-        int submittedVersion = closure.getVersion() + 1;
+        Long submittedVersion = closure.getVersion() + 1;
         String resultRef = "SUCCESS".equals(command.finalResult())
                 ? "CUTOVER_CLOSURE:" + closure.getId() + ":" + submittedVersion : null;
         if (closureMapper.submitIfMatch(new CutoverClosureSubmitUpdate(command.tenantId(), closure.getId(),
@@ -366,13 +366,13 @@ public class CutoverClosureApplicationService {
         row.setApprovalVersion(approval.getVersion()); row.setPlanRevisionId(plan.getId());
         row.setPlanRevisionNo(plan.getRevisionNo()); row.setPlanVersion(plan.getVersion());
         row.setTaskVersionAtP6(task.getVersion()); row.setDeviceScopeWatermark(task.getDeviceScopeWatermark());
-        row.setStatusCode("DRAFT"); setContent(row, command.content()); row.setVersion(0);
+        row.setStatusCode("DRAFT"); setContent(row, command.content()); row.setVersion(0L);
         row.setCreator(String.valueOf(command.actorId())); row.setUpdater(String.valueOf(command.actorId()));
         row.setCreateTime(now); row.setUpdateTime(now); row.setDeleted(false);
         if (closureMapper.insert(row) != 1) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
                 "闭环草稿创建失败");
         insertAttachments(command, closureId, files, now);
-        return result(task, closureId, 0);
+        return result(task, closureId, 0L);
     }
 
     private CutoverClosureCommandResult updateClosure(SaveCutoverClosureCommand command, CutoverTaskDO task,
@@ -520,7 +520,7 @@ public class CutoverClosureApplicationService {
     }
 
     private CutoverClosureDO requireDraftClosure(Long tenantId, Long taskId, Long closureId,
-                                                  Integer expectedVersion) {
+                                                  Long expectedVersion) {
         CutoverClosureDO closure = closureMapper.selectByTaskForUpdate(new CutoverClosureRowQuery(tenantId, taskId));
         if (closure == null || !Objects.equals(closure.getId(), closureId)) throw failure(
                 NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "闭环不存在");
@@ -534,7 +534,7 @@ public class CutoverClosureApplicationService {
         return closure;
     }
 
-    private CutoverTaskDO requireP6Task(CutoverTaskDO task, Long tenantId, Long actorId, Integer expectedVersion) {
+    private CutoverTaskDO requireP6Task(CutoverTaskDO task, Long tenantId, Long actorId, Long expectedVersion) {
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw failure(
                 NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "任务不存在");
         if (!"NEW_PLATFORM".equals(task.getTaskOrigin()) || !"P6".equals(task.getCurrentStage())
@@ -919,7 +919,7 @@ public class CutoverClosureApplicationService {
                 String.valueOf(result.closureId()), correlationId, JsonUtils.toJsonString(result), List.of());
     }
 
-    private static CutoverClosureCommandResult result(CutoverTaskDO task, long closureId, int closureVersion) {
+    private static CutoverClosureCommandResult result(CutoverTaskDO task, long closureId, Long closureVersion) {
         return new CutoverClosureCommandResult(task.getId(), task.getVersion(), closureId,
                 closureVersion, "DRAFT", false);
     }
@@ -973,8 +973,8 @@ public class CutoverClosureApplicationService {
 
     private static CutoverClosureApplicationException failure(CutoverClosureApplicationException.Code code,
                                                                CutoverClosureApplicationException.Reason reason,
-                                                               String ownerContext, Integer currentTaskVersion,
-                                                               Integer currentClosureVersion, String message) {
+                                                               String ownerContext, Long currentTaskVersion,
+                                                               Long currentClosureVersion, String message) {
         return new CutoverClosureApplicationException(code, reason, ownerContext,
                 currentTaskVersion, currentClosureVersion, message);
     }

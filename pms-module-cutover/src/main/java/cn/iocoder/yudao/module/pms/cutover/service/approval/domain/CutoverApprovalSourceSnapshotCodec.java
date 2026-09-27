@@ -69,10 +69,10 @@ public final class CutoverApprovalSourceSnapshotCodec {
     public ApprovalSourceSnapshot decode(JsonNode root) {
         exact(root, ROOT, "sourceSnapshot");
         Long checklistId = nullablePositiveLong(root.get("checklistId"), "checklistId");
-        Integer checklistVersion = nullablePositiveInt(root.get("checklistVersion"), "checklistVersion");
+        Long checklistVersion = nullablePositiveVersion(root.get("checklistVersion"), "checklistVersion");
         return new ApprovalSourceSnapshot(
                 positiveInt(root, "snapshotVersion"), positiveLong(root, "taskId"),
-                nonNegativeInt(root, "taskVersion"), checklistId, checklistVersion,
+                nonNegativeVersion(root, "taskVersion"), checklistId, checklistVersion,
                 project(root.get("project")), collection(root.get("collectionAnalysis")),
                 checklistItems(root.get("riskItems"), Set.of("RISK", "DUAL_MACHINE_CHECK")),
                 checklistItems(root.get("businessSurveyItems"), Set.of("BUSINESS_SURVEY")),
@@ -86,7 +86,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
         putWireLong(root, "taskId", snapshot.taskId());
         root.put("taskVersion", snapshot.taskVersion());
         putNullableWireLong(root, "checklistId", snapshot.checklistId());
-        putNullableInt(root, "checklistVersion", snapshot.checklistVersion());
+        putNullableWireLong(root, "checklistVersion", snapshot.checklistVersion());
         root.set("project", projectJson(snapshot.project()));
         root.set("collectionAnalysis", collectionJson(snapshot.collectionAnalysis()));
         root.set("riskItems", checklistJson(snapshot.riskItems()));
@@ -178,7 +178,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
         require("CUT_P2_MANUAL_ASSESSMENT".equals(text(node, "questionnaireTemplateCode", 64)),
                 "questionnaireTemplateCode");
         return new AssessmentApprovalSnapshot(positiveLong(node, "assessmentId"),
-                positiveInt(node, "assessmentVersion"), positiveLong(node, "questionnaireTemplateVersion"),
+                positiveVersion(node, "assessmentVersion"), positiveLong(node, "questionnaireTemplateVersion"),
                 text(node, "businessImportanceLevel", 64), text(node, "operationComplexityLevel", 64),
                 text(node, "hiddenRiskLevel", 64), booleanValue(node, "sparePartApplied"),
                 text(node, "customerServiceLevelCode", 64), text(node, "manualGrade", 1),
@@ -203,7 +203,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
         CutoverPlanContentCodec.DecodedContent content = contentCodec.decodeWritable(node.get("content"), sourceFacts);
         contentCodec.validateComplete(content, sourceFacts);
         return new PlanApprovalSnapshot(positiveLong(node, "planRevisionId"), positiveInt(node, "planRevisionNo"),
-                nonNegativeInt(node, "planVersion"), canonical(node.get("sourceSnapshot")), canonical(node.get("content")));
+                nonNegativeVersion(node, "planVersion"), canonical(node.get("sourceSnapshot")), canonical(node.get("content")));
     }
 
     private static CutoverPlanSourcePort.SourceFacts validatedPlanSource(JsonNode node) {
@@ -236,10 +236,10 @@ public final class CutoverApprovalSourceSnapshotCodec {
         });
         String grade = text(node, "grade", 1);
         CutoverPlanSourcePort.SourceSnapshot snapshot = new CutoverPlanSourcePort.SourceSnapshot(
-                positiveInt(node, "snapshotVersion"), positiveLong(node, "taskId"), nonNegativeInt(node, "taskVersion"),
-                positiveLong(node, "assessmentId"), positiveInt(node, "assessmentVersion"), grade,
+                positiveInt(node, "snapshotVersion"), positiveLong(node, "taskId"), nonNegativeVersion(node, "taskVersion"),
+                positiveLong(node, "assessmentId"), positiveVersion(node, "assessmentVersion"), grade,
                 nullablePositiveLong(node.get("checklistId"), "checklistId"),
-                nullablePositiveInt(node.get("checklistVersion"), "checklistVersion"),
+                nullablePositiveVersion(node.get("checklistVersion"), "checklistVersion"),
                 positiveLong(node, "projectId"), nonNegativeInt(node, "projectVersion"),
                 nonNegativeLong(node, "projectScopeVersion"), devices,
                 positiveLong(node, "configurationRevisionId"), text(node, "configurationCode", 64),
@@ -290,6 +290,9 @@ public final class CutoverApprovalSourceSnapshotCodec {
     private static boolean booleanValue(JsonNode node,String field){require(node.path(field).isBoolean(),field);return node.path(field).asBoolean();}
     private static int positiveInt(JsonNode node,String field){int value=node.path(field).isInt()?node.path(field).asInt():0;require(value>0,field);return value;}
     private static int nonNegativeInt(JsonNode node,String field){int value=node.path(field).isInt()?node.path(field).asInt():-1;require(value>=0,field);return value;}
+    private static long nonNegativeVersion(JsonNode node,String field){long value=node.path(field).isNumber()?node.path(field).asLong():-1;require(value>=0,field);return value;}
+    private static long positiveVersion(JsonNode node,String field){long value=node.path(field).isNumber()?node.path(field).asLong():0;require(value>0,field);return value;}
+    private static Long nullablePositiveVersion(JsonNode node,String field){if(node==null||node.isNull())return null;require(node.isNumber()&&node.asLong()>0,field);return node.asLong();}
     private static Integer nullablePositiveInt(JsonNode node,String field){if(node==null||node.isNull())return null;require(node.isInt()&&node.asInt()>0,field);return node.asInt();}
     private static long positiveLong(JsonNode node,String field){long value=wireLong(node.path(field),field);require(value>0,field);return value;}
     private static long nonNegativeLong(JsonNode node,String field){long value=wireLong(node.path(field),field);require(value>=0,field);return value;}
@@ -305,8 +308,8 @@ public final class CutoverApprovalSourceSnapshotCodec {
     private static void putNullableInt(ObjectNode node,String field,Integer value){if(value==null)node.putNull(field);else node.put(field,value);}
     private static void putNullableText(ObjectNode node,String field,String value){if(value==null)node.putNull(field);else node.put(field,value);}
 
-    public record ApprovalSourceSnapshot(int snapshotVersion, long taskId, int taskVersion, Long checklistId,
-                                         Integer checklistVersion, ProjectApprovalSnapshot project,
+    public record ApprovalSourceSnapshot(int snapshotVersion, long taskId, Long taskVersion, Long checklistId,
+                                         Long checklistVersion, ProjectApprovalSnapshot project,
                                          CollectionAnalysisSnapshot collectionAnalysis,
                                          List<ChecklistResultSnapshot> riskItems,
                                          List<ChecklistResultSnapshot> businessSurveyItems,
@@ -348,6 +351,6 @@ public final class CutoverApprovalSourceSnapshotCodec {
                                             String departmentCode,String departmentName,long projectScopeVersion){public ProjectApprovalSnapshot{require(projectId>0&&projectVersion>=0&&customerId>0&&departmentId>0&&projectScopeVersion>=0,"project");requireText(projectCode,64,"projectCode");requireText(projectName,255,"projectName");requireText(customerCode,64,"customerCode");requireText(customerName,255,"customerName");requireText(departmentCode,64,"departmentCode");requireText(departmentName,255,"departmentName");}}
     public record CollectionAnalysisSnapshot(String cutoverType,String networkMode,long scheduledTime){public CollectionAnalysisSnapshot{requireText(cutoverType,64,"cutoverType");if(networkMode!=null)requireText(networkMode,64,"networkMode");require(scheduledTime>0,"scheduledTime");}}
     public record ChecklistResultSnapshot(long checklistItemId,String stableItemKey,Long itemDefinitionId,Integer itemDefinitionVersion,String itemTypeCode,String itemName,boolean required,int itemResultVersion,String resultSourceCode,String answerSnapshot,String factDescription,Long collectionTaskId,Long collectionResultReferenceId,Long collectionResultVersion,String externalSourceCode,String manualEvidenceFileReference){public ChecklistResultSnapshot{require(checklistItemId>0&&itemResultVersion>0,"checklistItem");requireText(stableItemKey,128,"stableItemKey");require(ITEM_TYPES.contains(itemTypeCode),"itemTypeCode");requireText(itemName,255,"itemName");require(RESULT_SOURCES.contains(resultSourceCode),"resultSourceCode");require(answerSnapshot!=null&&!answerSnapshot.isBlank(),"answerSnapshot");if(factDescription!=null)requireText(factDescription,4000,"factDescription");require((itemDefinitionId==null)==(itemDefinitionVersion==null),"itemDefinition");require(itemDefinitionId==null||itemDefinitionId>0,"itemDefinitionId");require(itemDefinitionVersion==null||itemDefinitionVersion>0,"itemDefinitionVersion");require(("COLLECTION".equals(resultSourceCode)&&collectionTaskId!=null&&collectionTaskId>0)||(!"COLLECTION".equals(resultSourceCode)&&collectionTaskId==null&&collectionResultReferenceId==null&&collectionResultVersion==null),"collectionIdentity");require(collectionResultReferenceId==null||collectionResultReferenceId>0,"collectionResultReferenceId");require(collectionResultVersion==null||collectionResultVersion>0,"collectionResultVersion");require(("EXTERNAL".equals(resultSourceCode))==(externalSourceCode!=null),"externalSourceCode");if(externalSourceCode!=null)requireText(externalSourceCode,64,"externalSourceCode");if(manualEvidenceFileReference!=null)require("MANUAL".equals(resultSourceCode)&&manualEvidenceFileReference.length()<=128&&!manualEvidenceFileReference.isBlank(),"manualEvidenceFileReference");}}
-    public record AssessmentApprovalSnapshot(long assessmentId,int assessmentVersion,long questionnaireTemplateVersion,String businessImportanceLevel,String operationComplexityLevel,String hiddenRiskLevel,boolean sparePartApplied,String customerServiceLevelCode,String manualGrade,long submittedBy,long submittedAt){public AssessmentApprovalSnapshot{require(assessmentId>0&&assessmentVersion>0&&questionnaireTemplateVersion>0&&submittedBy>0&&submittedAt>0,"assessment");requireText(businessImportanceLevel,64,"businessImportanceLevel");requireText(operationComplexityLevel,64,"operationComplexityLevel");requireText(hiddenRiskLevel,64,"hiddenRiskLevel");requireText(customerServiceLevelCode,64,"customerServiceLevelCode");require(GRADES.contains(manualGrade),"manualGrade");}}
-    public record PlanApprovalSnapshot(long planRevisionId,int planRevisionNo,int planVersion,JsonNode sourceSnapshot,JsonNode content){public PlanApprovalSnapshot{require(planRevisionId>0&&planRevisionNo>0&&planVersion>=0,"plan");require(sourceSnapshot!=null&&sourceSnapshot.isObject()&&content!=null&&content.isObject(),"planContent");sourceSnapshot=canonical(sourceSnapshot);content=canonical(content);}}
+    public record AssessmentApprovalSnapshot(long assessmentId,Long assessmentVersion,long questionnaireTemplateVersion,String businessImportanceLevel,String operationComplexityLevel,String hiddenRiskLevel,boolean sparePartApplied,String customerServiceLevelCode,String manualGrade,long submittedBy,long submittedAt){public AssessmentApprovalSnapshot{require(assessmentId>0&&assessmentVersion>0&&questionnaireTemplateVersion>0&&submittedBy>0&&submittedAt>0,"assessment");requireText(businessImportanceLevel,64,"businessImportanceLevel");requireText(operationComplexityLevel,64,"operationComplexityLevel");requireText(hiddenRiskLevel,64,"hiddenRiskLevel");requireText(customerServiceLevelCode,64,"customerServiceLevelCode");require(GRADES.contains(manualGrade),"manualGrade");}}
+    public record PlanApprovalSnapshot(long planRevisionId,int planRevisionNo,Long planVersion,JsonNode sourceSnapshot,JsonNode content){public PlanApprovalSnapshot{require(planRevisionId>0&&planRevisionNo>0&&planVersion>=0,"plan");require(sourceSnapshot!=null&&sourceSnapshot.isObject()&&content!=null&&content.isObject(),"planContent");sourceSnapshot=canonical(sourceSnapshot);content=canonical(content);}}
 }

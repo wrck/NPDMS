@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
@@ -12,12 +11,9 @@ import java.time.LocalDateTime;
 @TableName("cut_assessment")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CutoverAssessmentDO extends TenantBaseDO {
-
-    @TableId
-    private Long id;
+public class CutoverAssessmentDO extends BaseBusinessEntity {
     private Long cutoverTaskId;
-    private Integer assessmentVersion;
+    private Long assessmentVersion;
     private String assessmentStatus;
     private String questionnaireTemplateCode;
     private Long questionnaireTemplateVersion;
@@ -31,6 +27,4 @@ public class CutoverAssessmentDO extends TenantBaseDO {
     private LocalDateTime invalidatedAt;
     private String invalidationReason;
     private Integer currentMarker;
-    @Version
-    private Integer version;
 }

@@ -107,7 +107,7 @@ public class ProjectStageAdvanceApplicationService {
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectStageGateProcessStartFact startProcess(
-            Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
+            Long projectId, Long gateReferenceId, Long expectedProjectVersion,
             String selectedProcessDefinitionId, Map<String, Object> variables, Map<String, List<Long>> selectedApprovers,
             String idempotencyKey, String requestDigest, Actor actor) {
         requireUpdatePermission(actor);
@@ -131,7 +131,7 @@ public class ProjectStageAdvanceApplicationService {
     }
 
     private ProjectStageGateProcessStartFact startProcessOnce(
-            Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
+            Long projectId, Long gateReferenceId, Long expectedProjectVersion,
             String selectedProcessDefinitionId, Map<String, Object> variables, Map<String, List<Long>> selectedApprovers,
             String idempotencyKey, String requestDigest, Actor actor) {
         var context = lockManagedProject(projectId, expectedProjectVersion, null, actor);
@@ -257,7 +257,7 @@ public class ProjectStageAdvanceApplicationService {
 
     private record ManagedProject(ProjectMasterDO project, long treeVersion) { }
 
-    private ManagedProject lockManagedProject(Long projectId, Integer expectedProjectVersion,
+    private ManagedProject lockManagedProject(Long projectId, Long expectedProjectVersion,
                                                Long expectedTreeVersion, Actor actor) {
         ProjectMasterDO project = projectMapper.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) throw exception(PROJECT_NOT_EXISTS);
@@ -274,7 +274,7 @@ public class ProjectStageAdvanceApplicationService {
         return new ManagedProject(project, treeVersion);
     }
 
-    private LockedContext lockContext(Long projectId, Integer expectedProjectVersion,
+    private LockedContext lockContext(Long projectId, Long expectedProjectVersion,
                                       Long expectedTreeVersion, Actor actor) {
         var managed = lockManagedProject(projectId, expectedProjectVersion, expectedTreeVersion, actor);
         var project = managed.project();

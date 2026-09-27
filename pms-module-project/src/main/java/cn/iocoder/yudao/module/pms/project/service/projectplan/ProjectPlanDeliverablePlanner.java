@@ -11,7 +11,7 @@ import static cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeli
 /** Maps version-local node identities to current Owner instances; no business-table access or state transitions. */
 @Component
 public class ProjectPlanDeliverablePlanner {
-    public record Change(String nodeKey, String action, Long instanceId, Integer expectedVersion,
+    public record Change(String nodeKey, String action, Long instanceId, Long expectedVersion,
                          String fromCode, String toCode) { }
     public record Plan(List<Change> changes, List<DeliverablePlanChange> writes, List<Issue> issues) { }
 

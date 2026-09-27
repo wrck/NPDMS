@@ -58,7 +58,7 @@ class CutoverPlanRevisionLifecycleTest {
         Fixture fixture = fixture("SUBMITTED", 1, ApprovalStatus.REJECTED, "APPROVAL_REJECTED");
 
         CutoverPlanCommandResult result = fixture.service.revise(new ReviseCutoverPlanCommand(
-                1L, 8L, 50L, 6, 601L, "APPROVAL_REJECTED", "revise-rejected", "corr-rejected"));
+                1L, 8L, 50L, 6L, 601L, "APPROVAL_REJECTED", "revise-rejected", "corr-rejected"));
 
         assertThat(result.revisionNo()).isEqualTo(2);
         assertThat(result.status()).isEqualTo("DRAFT");
@@ -88,7 +88,7 @@ class CutoverPlanRevisionLifecycleTest {
         when(fixture.supportMapper.selectListByPlanForUpdate(any())).thenReturn(fixture.copiedSupport);
 
         SubmitCutoverPlanResult submitted = fixture.service.submit(new SubmitCutoverPlanCommand(
-                1L, 8L, 50L, 6, 0, "submit-replacement", "corr-replacement"));
+                1L, 8L, 50L, 6L, 0L, "submit-replacement", "corr-replacement"));
 
         assertThat(submitted.approvalStatus()).isEqualTo("PENDING");
         CutoverApprovalFact oldApproval = fixture.approval.inspect(new CutoverApprovalFactQuery(
@@ -103,7 +103,7 @@ class CutoverPlanRevisionLifecycleTest {
                 "SOURCE_REPLACED");
 
         CutoverPlanCommandResult result = fixture.service.revise(new ReviseCutoverPlanCommand(
-                1L, 8L, 50L, 6, 601L, "SOURCE_REPLACED", "revise-source", "corr-source"));
+                1L, 8L, 50L, 6L, 601L, "SOURCE_REPLACED", "revise-source", "corr-source"));
 
         assertThat(result.revisionNo()).isEqualTo(2);
         assertThat(fixture.derived.get().getRevisionReasonCode()).isEqualTo("SOURCE_REPLACED");
@@ -119,7 +119,7 @@ class CutoverPlanRevisionLifecycleTest {
         LocalDateTime arrival = LocalDateTime.of(2026, 9, 2, 9, 0);
 
         PatchApprovedContactResult result = fixture.service.patchApprovedContact(new PatchApprovedContactCommand(
-                1L, 8L, 50L, 801L, 2, "李工", "13800000000", arrival,
+                1L, 8L, 50L, 801L, 2L, "李工", "13800000000", arrival,
                 "patch-contact", "corr-contact"));
 
         assertThat(result.planVersion()).isEqualTo(3);
@@ -156,15 +156,15 @@ class CutoverPlanRevisionLifecycleTest {
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         when(project.lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        CutoverPlanSourcePort.SourceFacts currentFacts = sourceFacts(6);
+        CutoverPlanSourcePort.SourceFacts currentFacts = sourceFacts(6L);
         when(sourcePort.inspect(1L, 8L, 50L)).thenReturn(currentFacts);
         when(sourcePort.lockAndRevalidate(eq(1L), eq(8L), any())).thenReturn(currentFacts);
 
         ControlledCutoverApprovalFactApi approval = new ControlledCutoverApprovalFactApi();
-        CutoverPlanSourcePort.SourceFacts frozenFacts = sourceFacts(4);
+        CutoverPlanSourcePort.SourceFacts frozenFacts = sourceFacts(4L);
         CutoverPlanRevisionDO source = sourcePlan(status, currentMarker, frozenFacts.snapshot());
-        CutoverApprovalFact started = approval.start(new CutoverApprovalStartCommand(1L, 50L, 4,
-                601L, 1, "D", 100L, 2, null, null, 1,
+        CutoverApprovalFact started = approval.start(new CutoverApprovalStartCommand(1L, 50L, 4L,
+                601L, 1, "D", 100L, 2L, null, null, 1,
                 java.time.LocalDateTime.of(2026, 9, 3, 18, 0), null, "approval-start", "approval-corr")).fact();
         CutoverApprovalFact decided = switch (approvalStatus) {
             case REJECTED -> approval.reject(started.approvalInstanceId(), 1000L, "补充回退步骤");
@@ -226,7 +226,7 @@ class CutoverPlanRevisionLifecycleTest {
         CutoverTaskDO task = new CutoverTaskDO();
         task.setId(50L); task.setTenantId(1L); task.setProjectId(70L); task.setOwnerUserId(8L);
         task.setTaskOrigin(CutoverTaskRules.ORIGIN_NEW_PLATFORM); task.setCurrentStage("P4");
-        task.setTaskStatus("PLAN_DRAFTING"); task.setVersion(6);
+        task.setTaskStatus("PLAN_DRAFTING"); task.setVersion(6L);
         return task;
     }
 
@@ -235,23 +235,23 @@ class CutoverPlanRevisionLifecycleTest {
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
         plan.setId(601L); plan.setTenantId(1L); plan.setCutoverTaskId(50L); plan.setRevisionNo(1);
         plan.setOriginCode("NEW_PLATFORM"); plan.setEditModeCode("ONLINE_TEMPLATE_SIMPLE_D");
-        plan.setGradeCode("D"); plan.setAssessmentId(100L); plan.setAssessmentVersion(2);
+        plan.setGradeCode("D"); plan.setAssessmentId(100L); plan.setAssessmentVersion(2L);
         plan.setConfigurationRevisionId(401L); plan.setConfigurationCode("CFG-1"); plan.setConfigurationRevisionNo(1);
         plan.setTemplateSectionSnapshot(JsonUtils.toJsonString(snapshot.templateSections()));
         plan.setSourceSnapshot(JsonUtils.toJsonString(snapshot));
         plan.setContentSnapshot("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}");
-        plan.setStatusCode(status); plan.setCurrentMarker(currentMarker); plan.setVersion(2);
+        plan.setStatusCode(status); plan.setCurrentMarker(currentMarker); plan.setVersion(2L);
         return plan;
     }
 
-    private static CutoverPlanSourcePort.SourceFacts sourceFacts(int taskVersion) {
+    private static CutoverPlanSourcePort.SourceFacts sourceFacts(Long taskVersion) {
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> templates = List.of(
                 new CutoverPlanSourcePort.TemplateSectionSnapshot("OPERATION", "操作", 1,
                         List.of("NETWORK_CUTOVER"), List.of("D"), true),
                 new CutoverPlanSourcePort.TemplateSectionSnapshot("ROLLBACK", "回退", 2,
                         List.of("NETWORK_CUTOVER"), List.of("D"), true));
         CutoverPlanSourcePort.SourceSnapshot snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 50L,
-                taskVersion, 100L, 2, "D", null, null, 70L, 6, 30L,
+                taskVersion, 100L, 2L, "D", null, null, 70L, 6, 30L,
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(301L, "SN-1", 9L, "ROUTER", "type-v1")),
                 401L, "CFG-1", 1, templates, List.of());
         return new CutoverPlanSourcePort.SourceFacts(snapshot, List.of());

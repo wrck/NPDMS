@@ -143,7 +143,7 @@ class ProjectSplitPreviewServiceTest {
     private ProjectSplitDraftService.DraftResult draft() {
         ProjectSplitRequestDO request = new ProjectSplitRequestDO();
         request.setId(20L); request.setTenantId(1L); request.setParentProjectId(100L);
-        request.setStatus("DRAFT"); request.setDraftVersion(2); request.setParentVersion(3);
+        request.setStatus("DRAFT"); request.setDraftVersion(2); request.setParentVersion(3L);
         request.setScopeVersion(5L); request.setTreeVersion(7L);
         ProjectSplitItemDO item = new ProjectSplitItemDO();
         item.setId(30L); item.setClientItemKey("A"); item.setProjectName("子项目A");
@@ -155,7 +155,7 @@ class ProjectSplitPreviewServiceTest {
 
     private ProjectMasterDO parent() {
         ProjectMasterDO parent = new ProjectMasterDO();
-        parent.setId(100L); parent.setRootId(100L); parent.setVersion(3);
+        parent.setId(100L); parent.setRootId(100L); parent.setVersion(3L);
         return parent;
     }
 

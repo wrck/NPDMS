@@ -101,12 +101,12 @@ class ProjectPlanActivationPersistenceTest {
         assertEquals("DRAFT",value("proj_project_plan_version",51,"status"));
         assertEquals("EFFECTIVE",value("proj_project_plan_version",50,"status"));
     }
-    void activate(int projectVersion,int draftVersion) {
+    void activate(int projectVersion,long draftVersion) {
         persistence.activate(activation(projectVersion,draftVersion),
                 List.of(new ProjectNodeExecutionMapper.PlanRebase(1L,9L,20L,4,50L,51L,30L,30L,"1")),
                 List.of(new ProjectNodeExecutionMapper.PlanRetirement(1L,9L,22L,0,50L,"1")));
     }
-    ProjectPlanVersionMapper.Activation activation(int projectVersion,int draftVersion) {
+    ProjectPlanVersionMapper.Activation activation(long projectVersion,long draftVersion) {
         return new ProjectPlanVersionMapper.Activation(1L,9L,50L,51L,draftVersion,projectVersion,"new frozen rules",activatedAt,"1");
     }
     void assertUnchanged(Object original) {

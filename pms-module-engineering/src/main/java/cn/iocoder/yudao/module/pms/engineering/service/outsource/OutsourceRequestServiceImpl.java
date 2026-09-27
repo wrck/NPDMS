@@ -99,7 +99,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         OutsourceRequestDO entity = BeanUtils.toBean(createReqVO, OutsourceRequestDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         outsourceRequestMapper.insert(entity);
         if ("SITE_SURVEY".equals(entity.getTriggerSource())) {

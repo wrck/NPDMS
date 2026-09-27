@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProjectPlanDeliverablePlannerTest {
     final ProjectPlanDeliverablePlanner planner = new ProjectPlanDeliverablePlanner();
     final TemplateExecutionSnapshot before = new TemplateExecutionSnapshot();
-    final DeliverableView actual = new DeliverableView(10L,9L,"D1","Owner current name","PREP","T1",true,500L,"SUBMITTED",7);
+    final DeliverableView actual = new DeliverableView(10L,9L,"D1","Owner current name","PREP","T1",true,500L,"SUBMITTED",7L);
 
     ProjectPlanDeliverablePlannerTest() {
         var node = new TemplateExecutionSnapshot.DeliverableContract(); node.setNodeKey("deliverable:one");
@@ -25,7 +25,7 @@ class ProjectPlanDeliverablePlannerTest {
         var after = copy(); after.getDeliverables().getFirst().setCode("RENAMED");
         var result = plan(after,Set.of());
         assertTrue(result.issues().isEmpty());
-        var write = result.writes().getFirst(); assertEquals(10L,write.id()); assertEquals(7,write.expectedVersion());
+        var write = result.writes().getFirst(); assertEquals(10L,write.id()); assertEquals(7L,write.expectedVersion());
         assertEquals("RENAMED",write.definition().deliverableCode()); assertEquals("Owner current name",write.definition().name());
         assertEquals(500L,write.definition().sourceDefinitionId()); assertEquals("SUBMITTED",actual.status());
     }
@@ -37,12 +37,12 @@ class ProjectPlanDeliverablePlannerTest {
     }
     @Test void removalUsesOwnerHistoryEligibilityNotJustPendingStatus() {
         var after = copy(); after.setDeliverables(List.of());
-        var pending = new DeliverableView(10L,9L,"D1","name","PREP","T1",true,500L,"PENDING",8);
+        var pending = new DeliverableView(10L,9L,"D1","name","PREP","T1",true,500L,"PENDING",8L);
         var blocked = planner.plan(9L,before,after,new DeliverablePlanState(List.of(pending),Set.of()));
         assertEquals("DELIVERABLE_HANDLING_HISTORY_PROTECTED",blocked.issues().getFirst().code());
         var allowed = planner.plan(9L,before,after,new DeliverablePlanState(List.of(pending),Set.of(10L)));
         assertTrue(allowed.issues().isEmpty()); assertNull(allowed.writes().getFirst().definition());
-        assertEquals(8,allowed.changes().getFirst().expectedVersion());
+        assertEquals(8L,allowed.changes().getFirst().expectedVersion());
     }
     @Test void replacingAnUnhandledNodeCreatesAnIndependentInstanceEvenWhenCodeIsReused() {
         var after = copy(); after.getDeliverables().getFirst().setNodeKey("deliverable:replacement");
@@ -58,7 +58,7 @@ class ProjectPlanDeliverablePlannerTest {
         assertEquals("DELIVERABLE_RUNTIME_IDENTITY_CONFLICT",foreign.issues().getFirst().code()); assertTrue(foreign.writes().isEmpty());
     }
     @Test void independentOwnerDeliverablesRemainUntouchedButCannotHaveTheirCodeOverwritten() {
-        var outside = new DeliverableView(11L,9L,"OUTSIDE","independent","PREP",null,false,null,"PENDING",0);
+        var outside = new DeliverableView(11L,9L,"OUTSIDE","independent","PREP",null,false,null,"PENDING",0L);
         var state = new DeliverablePlanState(List.of(actual,outside),Set.of(11L));
         assertTrue(planner.plan(9L,before,copy(),state).issues().isEmpty());
         var after = copy(); after.getDeliverables().getFirst().setCode("OUTSIDE");

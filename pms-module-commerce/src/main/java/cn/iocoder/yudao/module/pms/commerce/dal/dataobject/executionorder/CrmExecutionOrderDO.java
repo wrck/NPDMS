@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,8 +12,7 @@ import java.time.LocalDateTime;
 @TableName("com_crm_execution_order")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CrmExecutionOrderDO extends TenantBaseDO {
-    @TableId(type = IdType.ASSIGN_ID) private Long id;
+public class CrmExecutionOrderDO extends BaseBusinessEntity {
     private String sourceSystem; private String executionNo; private String projectCode; private String projectName;
     private Long primaryProjectId; private String salesRepCode; private String salesRepName; private String salesRepPhone;
     private String marketCode; private String marketName; private String systemSourceKey; private String systemCode;
@@ -26,5 +26,4 @@ public class CrmExecutionOrderDO extends TenantBaseDO {
     private String loanReason; private String projectType; private String majorProjectLevel; private BigDecimal projectAmount;
     private BigDecimal afProjectAmount; private LocalDateTime submitTime; private LocalDateTime predictedBidTime;
     private String contactName; private String contactPhone; private String afEvidenceStatus; private LocalDateTime sourceSyncTime;
-    private String status; @Version private Integer version;
-}
+    private String status;}

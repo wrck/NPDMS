@@ -42,7 +42,7 @@ class TemplateVersionedPublicationTest {
         ReflectionTestUtils.setField(service, "dependencyValidator", dependencies);
         ReflectionTestUtils.setField(service, "rulePublicationValidator", rules);
         var template = new ProjectTemplateDO();
-        template.setId(10L); template.setTenantId(7L); template.setStatus("ACTIVE"); template.setVersion(7);
+        template.setId(10L); template.setTenantId(7L); template.setStatus("ACTIVE"); template.setVersion(7L);
         when(templates.lockTemplate(any())).thenReturn(template);
         when(templates.incrementVersion(any())).thenReturn(1);
         when(templates.updateById(any(ProjectTemplateDO.class))).thenReturn(1);
@@ -192,7 +192,7 @@ class TemplateVersionedPublicationTest {
         ReflectionTestUtils.setField(service, "projectTemplateMapper", templates);
         ReflectionTestUtils.setField(service, "revisionMapper", revisions);
         var copy = new ProjectTemplateDO();
-        copy.setId(20L); copy.setTenantId(7L); copy.setStatus("DRAFT"); copy.setVersion(0);
+        copy.setId(20L); copy.setTenantId(7L); copy.setStatus("DRAFT"); copy.setVersion(0L);
         doReturn(copy).when(templates).lockTemplate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.TemplateIdentityQuery(7L,20L));
         when(templates.insert(any(ProjectTemplateDO.class))).thenAnswer(call -> {
             ProjectTemplateDO inserted = call.getArgument(0);
@@ -210,7 +210,7 @@ class TemplateVersionedPublicationTest {
         var body = new cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO();
         body.setCode("COPY"); body.setName("副本"); body.setSourceRevisionNo(1);
         clearInvocations(compiler, revisions);
-        assertEquals(20L, service.copyProjectTemplate(10L, 7, body, "copy-versioned"));
+        assertEquals(20L, service.copyProjectTemplate(10L, 7L, body, "copy-versioned"));
         var saved = org.mockito.ArgumentCaptor.forClass(ProjectTemplateRevisionDO.class);
         verify(revisions).updateById(saved.capture());
         assertEquals(21L, saved.getValue().getId());

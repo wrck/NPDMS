@@ -55,7 +55,7 @@ class RequirementAnalysisOwnerOperationContextTest {
             assertEquals("100", copied.getTrafficConcurrency());
             verify(f.extensions).save(argThat(command -> command.fields().equals(Map.of("CUSTOM_FLAG", false))
                     && command.definitionRevisionId().equals(91L)));
-            verify(f.extensions, never()).copy(any(), any(), anyInt(), any());
+            verify(f.extensions, never()).copy(any(), any(), anyLong(), any());
             assertEquals(3, historical.size());
         }
     }
@@ -92,7 +92,7 @@ class RequirementAnalysisOwnerOperationContextTest {
         }
         var other = new RequirementAnalysisRevisionDO();
         other.setId(41L); other.setEntityId(100L); other.setProjectId(3L); other.setTenantId(1L);
-        other.setRevisionState("DRAFT"); other.setRevisionNo(2); other.setVersion(1);
+        other.setRevisionState("DRAFT"); other.setRevisionNo(2); other.setVersion(1L);
         f.rows.put(41L, other);
         try (var verified = ProjectVerifiedOperationScope.open(f.frame("SAVE"))) {
             assertThrows(IllegalStateException.class, () -> f.commands.save(other.revisionRef(), 1,
@@ -117,7 +117,7 @@ class RequirementAnalysisOwnerOperationContextTest {
 
     @Test void failingCallbackReleasesDerivedTargetsAndDeclaration() {
         var f = new Fixture(false, "COPY");
-        doThrow(new IllegalStateException("form copy failed")).when(f.forms).copy(any(), any(), anyInt(), any());
+        doThrow(new IllegalStateException("form copy failed")).when(f.forms).copy(any(), any(), anyLong(), any());
         try (var verified = ProjectVerifiedOperationScope.open(f.frame("COPY"))) {
             assertThrows(IllegalStateException.class, () -> f.invoke("COPY"));
             assertThrows(IllegalStateException.class, () -> f.request("40"));
@@ -161,7 +161,7 @@ class RequirementAnalysisOwnerOperationContextTest {
                             ? "{\"values\":{},\"expectedExtensionVersion\":0}" : "{}");
                     String originalInput = input.toString();
                     var request = new ProjectOperationCommand(3L, kind, 4L, f.selection,
-                            action.equals("CREATE") ? null : "40", 1, "v1", input, "retry-key");
+                            action.equals("CREATE") ? null : "40", 1L, "v1", input, "retry-key");
                     try (var verified = ProjectVerifiedOperationScope.open(f.frame(action))) {
                         var result = adapter.invoke(code, request);
                         assertNotNull(result);
@@ -264,7 +264,7 @@ class RequirementAnalysisOwnerOperationContextTest {
             when(mapper.updateCurrent(any())).thenAnswer(i -> { current.set(i.getArgument(0)); return 1; });
             source = new RequirementAnalysisRevisionDO();
             source.setId(40L); source.setEntityId(100L); source.setProjectId(3L); source.setTenantId(1L);
-            source.setRevisionState("COPY".equals(action) ? "FROZEN" : "DRAFT"); source.setVersion(1); source.setRevisionNo(1);
+            source.setRevisionState("COPY".equals(action) ? "FROZEN" : "DRAFT"); source.setVersion(1L); source.setRevisionNo(1);
             source.setExecutionSnapshot(JsonUtils.toJsonString(new RequirementAnalysisExecutionAccess.Frozen(binding, selection.task(), selection.stage())));
             Map<String, Object> values = new LinkedHashMap<>();
             RequirementAnalysisEntityProvider.FIELDS.fields().stream().filter(EntityField::required).forEach(field -> values.put(field.code(), "completed"));
@@ -283,7 +283,7 @@ class RequirementAnalysisOwnerOperationContextTest {
             when(versions.complete(any(), anyInt(), any())).thenAnswer(i -> {
                 RevisionRef ref = i.getArgument(0); int version = i.getArgument(1); EntityActor owner = i.getArgument(2);
                 // Same callback sequence as EntityVersionService; the platform itself is not under test here.
-                provider.lockForWrite(EntityDataRef.revision(ref), owner, version);
+                provider.lockForWrite(EntityDataRef.revision(ref), owner, (long) version);
                 var frozen = provider.freeze(ref, version, owner);
                 return provider.activate(ref, frozen.version(), owner);
             });
@@ -292,13 +292,13 @@ class RequirementAnalysisOwnerOperationContextTest {
                 provider.lockForWrite(command.target(), command.actor(), command.expectedEntityVersion());
                 return new EntityFormApi.Binding(command.formRevisionId(), null, command.fieldBindings(), 1);
             });
-            doAnswer(i -> { provider.lockForWrite(i.getArgument(1), i.getArgument(3), i.getArgument(2)); return null; })
-                    .when(forms).copy(any(), any(), anyInt(), any());
-            doAnswer(i -> { provider.lockForWrite(i.getArgument(1), i.getArgument(3), i.getArgument(2)); return null; })
-                    .when(extensions).copy(any(), any(), anyInt(), any());
+            doAnswer(i -> { provider.lockForWrite(i.getArgument(1), i.getArgument(3), ((Number) i.getArgument(2)).longValue()); return null; })
+                    .when(forms).copy(any(), any(), anyLong(), any());
+            doAnswer(i -> { provider.lockForWrite(i.getArgument(1), i.getArgument(3), ((Number) i.getArgument(2)).longValue()); return null; })
+                    .when(extensions).copy(any(), any(), anyLong(), any());
             doAnswer(i -> {
                 RevisionRef destination = i.getArgument(1);
-                access.lock(destination.revisionId(), rows.get(destination.revisionId()).getVersion(), actor, null, true);
+                access.lock(destination.revisionId(), Math.toIntExact(rows.get(destination.revisionId()).getVersion()), actor, null, true);
                 return null;
             }).when(files).copy(any(), any(), any());
         }
@@ -320,12 +320,12 @@ class RequirementAnalysisOwnerOperationContextTest {
         }
     }
     private static ProjectBusinessExecutionSelection selection(boolean stage, Long node) {
-        return stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(3L,1,node,1,5L,1,6L,7L,1,1,true))
-                : new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1,node,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
+        return stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(3L,1L,node,1,5L,1,6L,7L,1,1,true))
+                : new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1L,node,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
     }
     private static ProjectWorkBindingFact binding(boolean stage, Long node) {
         var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
-        return new ProjectWorkBindingFact(3L,1,stage?null:node,stage?null:1,5L,1,9L,1,
+        return new ProjectWorkBindingFact(3L,1L,stage?null:node,stage?null:1,5L,1,9L,1,
                 target.workBindingTypeCode(),target.targetContextCode(),target.targetObjectType(),target.targetObjectKey(),
                 null,null,null,null,10L,1,"{}",11L,12L,1,1,stage?node:null,stage?1:null);
     }

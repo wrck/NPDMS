@@ -45,29 +45,29 @@ class CutoverPlanMapperContractTest {
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectMaxRevisionNo",
                 new CutoverPlanHistoryQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceDraftVersionIfMatch",
-                new CutoverPlanVersionUpdate(1L, 3L, 0, 1));
+                new CutoverPlanVersionUpdate(1L, 3L, 0L, 1L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceApprovedVersionIfMatch",
-                new CutoverApprovedContactVersionUpdate(1L, 3L, 0, 1, "9",
+                new CutoverApprovedContactVersionUpdate(1L, 3L, 0L, 1L, "9",
                         LocalDateTime.parse("2026-09-01T09:00:00")));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceSubmittedIfMatch",
-                new CutoverPlanReplacementUpdate(1L, 3L, 0, 1, "9",
+                new CutoverPlanReplacementUpdate(1L, 3L, 0L, 1L, "9",
                         LocalDateTime.parse("2026-09-01T09:00:00")));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceDraftIfMatch",
-                new CutoverPlanDraftUpdate(1L, 3L, 0, 1, "ONLINE_TEMPLATE_STANDARD", "{}",
+                new CutoverPlanDraftUpdate(1L, 3L, 0L, 1L, "ONLINE_TEMPLATE_STANDARD", "{}",
                         null, null, null, null, null, null, null, "9",
                         LocalDateTime.parse("2026-09-01T09:00:00")));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "submitDraftIfMatch",
-                new CutoverPlanSubmitUpdate(1L, 3L, 0, 1, 9L,
-                        LocalDateTime.parse("2026-09-01T09:00:00"), 10L, 0));
+                new CutoverPlanSubmitUpdate(1L, 3L, 0L, 1L, 9L,
+                        LocalDateTime.parse("2026-09-01T09:00:00"), 10L, 0L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "invalidateSubmittedIfMatch",
-                new CutoverPlanInvalidationUpdate(1L, 3L, 1, 2, 0, 1, 9L,
+                new CutoverPlanInvalidationUpdate(1L, 3L, 1L, 2L, 0L, 1L, 9L,
                         LocalDateTime.parse("2026-09-01T10:00:00"), "SOURCE_FACT_INVALIDATED"));
         assertBindings(configuration, CutoverTaskMapper.class, "submitPlanIfMatch",
-                new CutoverTaskPlanSubmitUpdate(1L, 2L, 3));
+                new CutoverTaskPlanSubmitUpdate(1L, 2L, 3L));
         assertBindings(configuration, CutoverTaskMapper.class, "returnToPlanForSourceInvalidation",
-                new CutoverTaskSourceInvalidationUpdate(1L, 2L, 4));
+                new CutoverTaskSourceInvalidationUpdate(1L, 2L, 4L));
         assertBindings(configuration, CutoverTaskMapper.class, "transitionFromApprovalIfMatch",
-                new CutoverTaskApprovalTransitionUpdate(1L, 2L, 4, "P6", "CLOSURE_IN_PROGRESS"));
+                new CutoverTaskApprovalTransitionUpdate(1L, 2L, 4L, "P6", "CLOSURE_IN_PROGRESS"));
         assertBindings(configuration, CutoverTaskMapper.class, "selectMaxStageHistorySequence",
                 new CutoverTaskRowQuery(1L, 2L));
         assertBindings(configuration, CutoverPlanStepMapper.class, "selectListByPlanForUpdate",

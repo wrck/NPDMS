@@ -21,7 +21,7 @@ class SiteSurveyRuleEventsTest {
         ReflectionTestUtils.setField(service, "ruleEvents", events);
         ReflectionTestUtils.setField(service, "writeAccess", mock(SiteSurveyWriteAccess.class));
         var row = new SiteSurveyDO(); row.setId(11L); row.setTenantId(7L); row.setProjectId(9L);
-        row.setStatus(status); row.setVersion(3);
+        row.setStatus(status); row.setVersion(3L);
         when(mapper.selectById(11L)).thenReturn(row);
         return row;
     }
@@ -31,7 +31,7 @@ class SiteSurveyRuleEventsTest {
     void realOwnerTransitionAppendsWakeupOnlyAfterSuccessfulVersionedWrite(int before, String action, int after) {
         var row = prepare(before);
         when(mapper.updateById(any(SiteSurveyDO.class))).thenAnswer(call -> {
-            SiteSurveyDO updated = call.getArgument(0); updated.setVersion(4); return 1;
+            SiteSurveyDO updated = call.getArgument(0); updated.setVersion(4L); return 1;
         });
         switch (action) {
             case "CONFIRM" -> service.confirmSiteSurvey(11L, null);

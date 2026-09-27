@@ -160,7 +160,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     void advancesS0ToS4ByFrozenEdgeWithOneAtomicFactSet() {
         var created = applicationService.create(newCommand(), newActor());
         assignPrimaryManagers(created.id());
-        int version = projectVersion(created.id());
+        long version = projectVersion(created.id());
         long treeVersion = currentTreeVersion(created.id());
         assertEquals("S0", currentStage(created.id()));
 
@@ -224,7 +224,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     void ownerFailureAndVersionDriftWriteNothing() {
         var created = applicationService.create(newCommand(), newActor());
         assignPrimaryManagers(created.id());
-        int version = projectVersion(created.id());
+        long version = projectVersion(created.id());
         long treeVersion = currentTreeVersion(created.id());
         Map<String, Long> before = advanceFactCounts(created.id());
         doAnswer(invocation -> {
@@ -419,7 +419,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
         });
     }
 
-    private ProjectStageAdvanceCommand command(Long projectId, int version, String stage, long treeVersion,
+    private ProjectStageAdvanceCommand command(Long projectId, long version, String stage, long treeVersion,
                                                 String suffix) {
         return new ProjectStageAdvanceCommand(projectId, version, stage, treeVersion,
                 KEY_PREFIX + "stage-advance-" + suffix + "-" + UUID.randomUUID(), sha256(UUID.randomUUID().toString()));

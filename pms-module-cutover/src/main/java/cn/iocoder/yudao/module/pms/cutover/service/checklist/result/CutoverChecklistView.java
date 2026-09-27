@@ -2,8 +2,8 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist.result;
 
 import java.util.List;
 
-public record CutoverChecklistView(Long taskId, String taskStage, Integer taskVersion, Long projectScopeVersion,
-                                   Long checklistId, Integer checklistVersion, Integer checklistFactVersion,
+public record CutoverChecklistView(Long taskId, String taskStage, Long taskVersion, Long projectScopeVersion,
+                                   Long checklistId, Long checklistVersion, Long checklistFactVersion,
                                    String status, String inputSnapshotHash, String configRevisionSnapshot,
                                    String matchTrace, String configGapSnapshot, List<Item> items) {
 

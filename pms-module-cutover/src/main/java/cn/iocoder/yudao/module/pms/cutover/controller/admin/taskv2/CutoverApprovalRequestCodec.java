@@ -35,7 +35,7 @@ public final class CutoverApprovalRequestCodec {
                 text(body.get("reason"), "reason", 1000));
     }
 
-    public int version(String value, String name) {
+    public long version(String value, String name) {
         String text = header(value, name);
         try {
             int result = Integer.parseInt(text);

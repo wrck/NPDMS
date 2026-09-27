@@ -29,8 +29,8 @@ public class NormalClosureApplicationService {
     private final BpmNormalClosureApi bpm;
     private final ExplicitPermissionApi explicitPermissions;
     public record Actor(Long tenantId, Long userId, String correlationId) {}
-    public record CheckCommand(Long projectId, Integer expectedProjectVersion, Long expectedTreeVersion, String idempotencyKey) {}
-    public record SubmitCommand(Long projectId, Long snapshotId, Integer expectedProjectVersion, Long expectedTreeVersion, String idempotencyKey) {}
+    public record CheckCommand(Long projectId, Long expectedProjectVersion, Long expectedTreeVersion, String idempotencyKey) {}
+    public record SubmitCommand(Long projectId, Long snapshotId, Long expectedProjectVersion, Long expectedTreeVersion, String idempotencyKey) {}
     public record DecisionResult(Long applicationId, Long projectId, String status) {}
 
     @Transactional(rollbackFor = Exception.class)
@@ -90,7 +90,7 @@ public class NormalClosureApplicationService {
             row.setApplicantUserId(actor.userId()); row.setServiceManagerUserId(sm); row.setReviewerUserId(policy.reviewerUserId());
             row.setProcessDefinitionKey(policy.processDefinitionKey()); row.setProcessDefinitionId(started.actualDefinitionId());
             row.setProcessInstanceId(started.instanceId()); row.setBusinessKey(businessKey); row.setProcessEvidence(JsonUtils.toJsonString(started));
-            row.setSubmittedAt(LocalDateTime.now()); row.setVersion(0); row.setCreator(actor.userId().toString()); row.setUpdater(actor.userId().toString());
+            row.setSubmittedAt(LocalDateTime.now()); row.setVersion(0L); row.setCreator(actor.userId().toString()); row.setUpdater(actor.userId().toString());
             if (mapper.insertApplication(row) != 1) throw failure("CLOSURE_APPLICATION_WRITE_FAILED");
             return row;
         });
@@ -143,7 +143,7 @@ public class NormalClosureApplicationService {
     }
 
     private ProjectClosureCheckApi.ClosureEvaluation evaluate(Actor actor, Long projectId,
-            Integer expectedProjectVersion, Long expectedTreeVersion, Long treeVersion) {
+            Long expectedProjectVersion, Long expectedTreeVersion, Long treeVersion) {
         return checks.evaluateLocked(new ProjectClosureCheckApi.ClosureCheckCommand(actor.tenantId(), projectId,
                 expectedProjectVersion, treeVersion, actor.userId(), actor.correlationId()));
     }
@@ -173,7 +173,7 @@ public class NormalClosureApplicationService {
                 || !Objects.equals(snapshot.getTreeVersion(), command.expectedTreeVersion())
                 || !Objects.equals(snapshot.getFromStage(), stage)) throw failure("CLOSURE_LATEST_PASSED_SNAPSHOT_REQUIRED");
     }
-    private static void validate(Integer version, Long treeVersion, String key) {
+    private static void validate(Long version, Long treeVersion, String key) {
         if (version == null || version < 0 || treeVersion == null || treeVersion <= 0 || key == null || key.isBlank() || key.length() > 128)
             throw failure("CLOSURE_COMMAND_INVALID");
     }

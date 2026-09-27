@@ -167,7 +167,7 @@ class ProjectAttributeCorrectionMySqlIntegrationTest extends ProjectManualCreati
                 """, projectId, projectId, KEY_PREFIX + "tree-" + projectId);
     }
 
-    private ManualProjectAttributeAdjustmentCommand command(Long projectId, Integer version) {
+    private ManualProjectAttributeAdjustmentCommand command(Long projectId, Long version) {
         var values = jdbcTemplate.queryForMap(
                 "SELECT signing_method, project_category, implementation_mode FROM proj_project WHERE id = ?",
                 projectId);
@@ -177,7 +177,7 @@ class ProjectAttributeCorrectionMySqlIntegrationTest extends ProjectManualCreati
                 KEY_PREFIX + UUID.randomUUID(), sha256(UUID.randomUUID().toString()));
     }
 
-    private ProjectAttributeSourceCorrectionCommand sourceCommand(Long projectId, Integer version) {
+    private ProjectAttributeSourceCorrectionCommand sourceCommand(Long projectId, Long version) {
         var values = jdbcTemplate.queryForMap(
                 "SELECT signing_method, implementation_mode FROM proj_project WHERE id = ?", projectId);
         String eventId = KEY_PREFIX + "crm-event-" + UUID.randomUUID();
@@ -209,7 +209,7 @@ class ProjectAttributeCorrectionMySqlIntegrationTest extends ProjectManualCreati
                 rs.getString("signing_method"), rs.getString("project_category"),
                 rs.getString("implementation_mode"), rs.getString("major_project_level"),
                 rs.getLong("lifecycle_template_id"), rs.getInt("lifecycle_template_revision_no"),
-                rs.getInt("version"), rs.getLong("stage_count"), rs.getLong("task_count"),
+                rs.getLong("version"), rs.getLong("stage_count"), rs.getLong("task_count"),
                 rs.getLong("milestone_count"), rs.getLong("deliverable_count"),
                 rs.getLong("gate_count"), rs.getLong("gate_reference_count")), projectId);
     }
@@ -227,7 +227,7 @@ class ProjectAttributeCorrectionMySqlIntegrationTest extends ProjectManualCreati
     }
 
     private record ProjectFacts(String signingMethod, String projectCategory, String implementationMode,
-                                String majorProjectLevel, Long templateId, Integer revisionNo, Integer version,
+                                String majorProjectLevel, Long templateId, Integer revisionNo, Long version,
                                 Long stageCount, Long taskCount, Long milestoneCount, Long deliverableCount,
                                 Long gateCount, Long gateReferenceCount) {
     }

@@ -11,7 +11,7 @@ public class ProjectSiteRespVO {
     private Long id;
     private Long projectId;
     private Long siteId;
-    private Integer siteVersionSnapshot;
+    private Long siteVersionSnapshot;
     private Boolean primarySite;
     private String scopeStatus;
     private LocalDateTime effectiveFrom;
@@ -19,5 +19,5 @@ public class ProjectSiteRespVO {
     private String siteCodeSnapshot;
     private String siteNameSnapshot;
     private String addressSnapshot;
-    private Integer version;
+    private Long version;
 }

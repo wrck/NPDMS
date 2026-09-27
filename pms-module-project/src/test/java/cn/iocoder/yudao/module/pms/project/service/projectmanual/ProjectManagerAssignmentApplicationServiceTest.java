@@ -74,7 +74,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     void authorizedAssignmentRunsInsidePlatformFactBoundary() {
         LocalDateTime effectiveFrom = LocalDateTime.of(2026, 8, 25, 8, 30);
         AssignServiceManagerResult assigned = new AssignServiceManagerResult(
-                1L, 8L, 3, "UNASSIGNED", effectiveFrom, 65L, 66L);
+                1L, 8L, 3L, "UNASSIGNED", effectiveFrom, 65L, 66L);
         AtomicReference<PlatformCommandExecutionApi.SuccessFacts> capturedFacts = new AtomicReference<>();
         when(projectService.assignServiceManager(any())).thenReturn(assigned);
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
@@ -115,7 +115,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     void unresolvedProjectAllowsAuthorizedDepartmentAssignmentWithoutSite() {
         when(projectSiteService.getActiveSites(1L)).thenReturn(List.of());
         AssignServiceManagerResult assigned = new AssignServiceManagerResult(
-                1L, 9L, 3, "UNASSIGNED", LocalDateTime.now(), null, 66L);
+                1L, 9L, 3L, "UNASSIGNED", LocalDateTime.now(), null, 66L);
         when(projectService.assignServiceManager(any())).thenReturn(assigned);
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<Object> operation = invocation.getArgument(3);
@@ -123,7 +123,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, result);
         });
-        AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2,
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2L,
                 "L1", 66L, null, "PRIMARY", 20L, "DEP-01", "人工指派",
                 "fallback-assign-key", "c".repeat(64));
 
@@ -136,7 +136,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
 
     @Test
     void levelTwoAssignmentRequiresSiteWithinProjectScope() {
-        AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2,
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2L,
                 "L2", 66L, null, "PRIMARY", 20L, "DEP-01", "人工指派",
                 "missing-site-key", "d".repeat(64));
 
@@ -199,7 +199,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     }
 
     private AssignServiceManagerCommand command() {
-        return new AssignServiceManagerCommand(1L, 2, "L1", 66L, 30L,
+        return new AssignServiceManagerCommand(1L, 2L, "L1", 66L, 30L,
                 "PRIMARY", 20L, "DEP-01", "人工指派", "assign-key", "b".repeat(64));
     }
 

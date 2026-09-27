@@ -47,10 +47,10 @@ public class SatisfactionTemplateManagementService {
         }
         SatisfactionQuestionnaireTemplateDO row = new SatisfactionQuestionnaireTemplateDO();
         row.setId(IdWorker.getId()); row.setTenantId(tenantId); row.setTemplateCode(command.templateCode());
-        row.setName(command.name()); row.setStatus("DRAFT"); row.setVersion(0);
+        row.setName(command.name()); row.setStatus("DRAFT"); row.setVersion(0L);
         row.setCreator(String.valueOf(actorUserId)); row.setUpdater(String.valueOf(actorUserId));
         templateMapper.insert(row);
-        return new TemplateView(row.getId(), row.getTemplateCode(), row.getName(), row.getStatus(), null, 0,
+        return new TemplateView(row.getId(), row.getTemplateCode(), row.getName(), row.getStatus(), null, 0L,
                 List.of());
     }
 
@@ -181,12 +181,12 @@ public class SatisfactionTemplateManagementService {
                                  String businessPurposeCode, String applicableTimingCode, Integer priority,
                                  String questionnaireJson, java.math.BigDecimal threshold, String ruleVersion) {}
     public record TemplateView(Long id, String templateCode, String name, String status, Long currentRevisionId,
-                               Integer version, List<RevisionView> revisions) {}
+                               Long version, List<RevisionView> revisions) {}
     public record RevisionView(Long id, Integer revisionNo, String projectType, String signingMode,
                                String implementationMode, String businessPurposeCode, String applicableTimingCode,
                                Integer priority, String questionnaireJson, java.math.BigDecimal threshold,
                                String ruleVersion, String status, LocalDateTime effectiveFrom,
                                LocalDateTime effectiveTo, Integer version) {}
     public record PublishResult(Long templateId, Long revisionId, Integer revisionNo,
-                                Integer rootVersion, boolean replayed) {}
+                                Long rootVersion, boolean replayed) {}
 }

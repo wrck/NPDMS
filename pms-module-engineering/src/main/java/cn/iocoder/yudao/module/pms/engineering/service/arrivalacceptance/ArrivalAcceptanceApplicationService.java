@@ -143,7 +143,7 @@ public class ArrivalAcceptanceApplicationService {
         row.setScopeWatermark(JsonUtils.toJsonString(new ArrivalScopeWatermark(
                 deliveryScope.scopeVersion(), assignmentVersions(deviceScope.devices()))));
         row.setMigrationResolutionStatus("NOT_APPLICABLE");
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator(String.valueOf(command.actorUserId()));
         row.setUpdater(String.valueOf(command.actorUserId()));
         if (acceptanceMapper.insert(row) != 1 || row.getId() == null) {
@@ -689,23 +689,23 @@ public class ArrivalAcceptanceApplicationService {
     }
 
     public record SubmitCommand(Long tenantId, Long arrivalAcceptanceId,
-                                Long actorUserId, Integer expectedVersion, String idempotencyKey,
+                                Long actorUserId, Long expectedVersion, String idempotencyKey,
                                 String correlationId) {
     }
 
     public record ConfirmCommand(Long tenantId, Long arrivalAcceptanceId,
-                                 Long actorUserId, Integer expectedVersion,
+                                 Long actorUserId, Long expectedVersion,
                                  String idempotencyKey, String correlationId) {
     }
 
-    public record SubmissionResult(Long arrivalAcceptanceId, String status, Integer version,
+    public record SubmissionResult(Long arrivalAcceptanceId, String status, Long version,
                                    Long evidenceId, Integer evidenceRevision) {
     }
 
     public record ConfirmationResult(
             Long arrivalAcceptanceId,
             String status,
-            Integer version,
+            Long version,
             Long projectFactVersion,
             Long evidenceId,
             Integer evidenceRevision,

@@ -137,7 +137,7 @@ public class CommerceAuthorityIngestService {
             requireCreate(fact.expectedPreviousSourceVersion(), "contract", fact.sourceKey());
             ContractDO row = base(new ContractDO(), command.tenantId());
             copyContract(row, command, fact);
-            row.setVersion(0);
+            row.setVersion(0L);
             requireWrite(contractMapper.insert(row), "合同Owner创建失败");
             refreshDeviceOrganizations(command.tenantId(), row.getContractNo());
             changes.changed = true;
@@ -149,7 +149,7 @@ public class CommerceAuthorityIngestService {
                 "contract", fact.sourceKey())) {
             return;
         }
-        Integer expectedVersion = current.getVersion();
+        Long expectedVersion = current.getVersion();
         String previousContractNo = current.getContractNo();
         copyContract(current, command, fact);
         touch(current);
@@ -181,7 +181,7 @@ public class CommerceAuthorityIngestService {
                 SalesOrderDO row = base(new SalesOrderDO(), command.tenantId());
                 row.setId(IdWorker.getId());
                 copySalesOrder(row, command, fact);
-                row.setVersion(0);
+                row.setVersion(0L);
                 created.add(row);
                 continue;
             }
@@ -200,7 +200,7 @@ public class CommerceAuthorityIngestService {
                 canonicalizer.orderPayload(fact), "salesOrder", fact.sourceKey())) {
             return;
         }
-        Integer expectedVersion = current.getVersion();
+        Long expectedVersion = current.getVersion();
         copySalesOrder(current, command, fact);
         touch(current);
         requireWrite(salesOrderMapper.updateOwnerByVersion(
@@ -510,7 +510,7 @@ public class CommerceAuthorityIngestService {
             conflict.setEffectiveFrom(now);
             conflict.setEffectiveTo(null);
             conflict.setStatus(active.getStatus());
-            conflict.setVersion(0);
+            conflict.setVersion(0L);
             requireWrite(scopeImpactMapper.insert(conflict), "追加CONFLICT范围失败");
 
             for (DeliveryScopeDetailDO detail : detailsByScope.getOrDefault(active.getId(), List.of())) {

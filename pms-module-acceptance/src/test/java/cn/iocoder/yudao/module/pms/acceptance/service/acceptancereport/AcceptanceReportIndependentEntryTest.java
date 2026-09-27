@@ -58,7 +58,7 @@ class AcceptanceReportIndependentEntryTest {
         security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(19L);
         activity.setId(100L); activity.setTenantId(7L); activity.setProjectId(80L);
         activity.setProjectTaskId(90L); activity.setDeliverableId(50L);
-        activity.setVersion(2); activity.setActivityStatus("PENDING"); activity.setAcceptanceType("PRELIMINARY");
+        activity.setVersion(2L); activity.setActivityStatus("PENDING"); activity.setAcceptanceType("PRELIMINARY");
         report.setId(300L); report.setAcceptanceId(100L); report.setTenantId(7L);
         report.setReportVersionNo(1); report.setReportStatus("DRAFT"); report.setPublisherUserId(19L);
         report.setAcceptanceTime(LocalDateTime.of(2026, 9, 18, 1, 0));
@@ -104,14 +104,14 @@ class AcceptanceReportIndependentEntryTest {
         activity.setProjectTaskId(null); activity.setExecutionContractId(null); activity.setDeliverableId(null);
         activity.setAcceptanceType(type); activity.setRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
         report.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
-        var context = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "ACTIVE");
+        var context = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "ACTIVE");
         when(nativeProjects.inspect(any())).thenReturn(context);
-        when(nativeProjects.lock(any(), eq(4), eq(3L))).thenReturn(context);
+        when(nativeProjects.lock(any(), eq(4L), eq(3L))).thenReturn(context);
     }
 
     @Test void independentFinalPassHasNoImplicitPreliminaryDependencyAndKeepsNoFakeDeliveryTarget() {
         direct("FINAL");
-        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "native-publish", "digest"),
+        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "native-publish", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
         assertEquals("COMPLETED", activity.getActivityStatus());
         assertNull(activity.getProjectTaskId()); assertNull(activity.getExecutionContractId()); assertNull(activity.getDeliverableId());
@@ -119,20 +119,20 @@ class AcceptanceReportIndependentEntryTest {
         assertEquals(List.of("ACC.ProjectAcceptanceReportChanged.v1"), facts.getFirst().businessEvents().stream()
                 .map(PlatformCommandExecutionApi.BusinessEvent::eventType).toList());
         var order = inOrder(nativeProjects, activities, files);
-        order.verify(nativeProjects).lock(any(), eq(4), eq(3L));
+        order.verify(nativeProjects).lock(any(), eq(4L), eq(3L));
         order.verify(activities).selectByIdForUpdate(any());
         order.verify(files).lockAndRevalidateReferenceSets(any());
     }
 
     @Test void failedReportNeverCompletesIndependentAcceptanceAndMissingFilesCannotPublish() {
         direct("PRELIMINARY"); report.setConclusionCode("FAIL");
-        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "failed-publish", "digest"),
+        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "failed-publish", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
         assertEquals("PENDING", activity.getActivityStatus());
-        activity.setVersion(2); activity.setCurrentReportVersionId(null); report.setReportStatus("DRAFT");
+        activity.setVersion(2L); activity.setCurrentReportVersionId(null); report.setReportStatus("DRAFT");
         when(files.inspectReferenceSets(any())).thenReturn(List.of());
         assertThrows(RuntimeException.class, () -> owner.publish(
-                new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "no-file", "digest"),
+                new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "no-file", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry")));
         assertEquals("DRAFT", report.getReportStatus());
     }
@@ -140,7 +140,7 @@ class AcceptanceReportIndependentEntryTest {
     @Test void completedIndependentAcceptanceCanRevokeCurrentReportWithoutRestoringHistory() {
         direct("FINAL"); activity.setActivityStatus("COMPLETED"); prepare("REVOKE");
         report.setPreviousVersionId(200L);
-        owner.revoke(new AcceptanceReportCommands.RevokeCommand(100L, 2, 300L, 1, "revoke", "digest"),
+        owner.revoke(new AcceptanceReportCommands.RevokeCommand(100L, 2L, 300L, 1, "revoke", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
         assertEquals("PENDING", activity.getActivityStatus()); assertNull(activity.getCurrentReportVersionId());
         assertEquals("REVOKED", report.getReportStatus()); assertEquals(200L, report.getPreviousVersionId());
@@ -148,9 +148,9 @@ class AcceptanceReportIndependentEntryTest {
 
     @Test void closedProjectAndChangedFrozenReportPolicyBothPreventIndependentPublication() {
         direct("FINAL");
-        var closed = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "NORMAL_CLOSED");
-        when(nativeProjects.lock(any(), eq(4), eq(3L))).thenReturn(closed);
-        var command = new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "publish", "digest");
+        var closed = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "NORMAL_CLOSED");
+        when(nativeProjects.lock(any(), eq(4L), eq(3L))).thenReturn(closed);
+        var command = new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "publish", "digest");
         var actor = new AcceptanceReportCommands.Actor(7L, 19L, "native-entry");
         assertThrows(RuntimeException.class, () -> owner.publish(command, actor));
         verify(activities, never()).selectByIdForUpdate(any());
@@ -181,10 +181,10 @@ class AcceptanceReportIndependentEntryTest {
         prepare(action);
         var actor = new AcceptanceReportCommands.Actor(7L, 19L, "ordinary-request");
         var result = switch (action) {
-            case "CREATE_DRAFT" -> owner.createDraft(new AcceptanceReportCommands.CreateDraftCommand(100L, 2, content()), actor);
-            case "UPDATE_DRAFT" -> owner.updateDraft(new AcceptanceReportCommands.UpdateDraftCommand(100L, 300L, 2, 1, content()), actor);
-            case "PUBLISH" -> owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2, 1, null, "key", "original-digest"), actor);
-            case "REVOKE" -> owner.revoke(new AcceptanceReportCommands.RevokeCommand(100L, 2, 300L, 1, "key", "original-digest"), actor);
+            case "CREATE_DRAFT" -> owner.createDraft(new AcceptanceReportCommands.CreateDraftCommand(100L, 2L, content()), actor);
+            case "UPDATE_DRAFT" -> owner.updateDraft(new AcceptanceReportCommands.UpdateDraftCommand(100L, 300L, 2L, 1, content()), actor);
+            case "PUBLISH" -> owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "key", "original-digest"), actor);
+            case "REVOKE" -> owner.revoke(new AcceptanceReportCommands.RevokeCommand(100L, 2L, 300L, 1, "key", "original-digest"), actor);
             default -> throw new AssertionError(action);
         };
         assertEquals(100L, result.acceptanceId());
@@ -222,7 +222,7 @@ class AcceptanceReportIndependentEntryTest {
             case "REVOKE" -> "{\"expectedCurrentReportVersionId\":300,\"expectedCurrentReportVersionNo\":1}";
             default -> throw new AssertionError(action);
         };
-        return new ProjectOperationCommand(80L, "TASK", 90L, null, "100", 2, "ACC:ACCEPTANCE:100:2", JsonUtils.parseTree(input), "retry-key");
+        return new ProjectOperationCommand(80L, "TASK", 90L, null, "100", 2L, "ACC:ACCEPTANCE:100:2", JsonUtils.parseTree(input), "retry-key");
     }
     @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T value) {
         ObjectProvider<T> provider = mock(ObjectProvider.class); when(provider.getObject()).thenReturn(value); return provider;

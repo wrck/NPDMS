@@ -94,7 +94,7 @@ public class ProjectAuthorizationController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectAuthorizationRevokeReqVO request) {
-        Integer expectedVersion = parseIfMatch(ifMatch);
+        Long expectedVersion = parseIfMatch(ifMatch);
         String digest = digest(grantId + ":" + expectedVersion + ":" + JsonUtils.toJsonString(request));
         return success(toResponse(applicationService.revoke(new RevokeCommand(
                 grantId, expectedVersion, request.getReason(), idempotencyKey, digest), actor())));
@@ -124,14 +124,14 @@ public class ProjectAuthorizationController {
         return new Actor(tenantId == null ? 0L : tenantId, SecurityFrameworkUtils.getLoginUserId());
     }
 
-    private Integer parseIfMatch(String value) {
+    private Long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
         if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) throw new NumberFormatException("negative version");
             return version;
         } catch (NumberFormatException ex) {

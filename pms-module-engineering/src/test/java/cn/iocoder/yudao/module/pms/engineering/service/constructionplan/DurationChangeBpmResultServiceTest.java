@@ -168,7 +168,7 @@ class DurationChangeBpmResultServiceTest {
     private void stubAuthorization() {
         when(authorizationGuard.authorize(any(), any())).thenReturn(
                 new DurationChangeBpmAuthorizationGuard.AuthorizationContext(
-                        0L, 10L, 501L, 301L, 801L, 3));
+                        0L, 10L, 501L, 301L, 801L, 3L));
     }
 
     private ConstructionPlanDO plan() {
@@ -180,7 +180,7 @@ class DurationChangeBpmResultServiceTest {
         plan.setPendingChangeId(801L);
         plan.setPlanRecalculationStatusCode("RECALCULATED");
         plan.setPlanRecalculationSourceRevisionId(701L);
-        plan.setVersion(4);
+        plan.setVersion(4L);
         return plan;
     }
 

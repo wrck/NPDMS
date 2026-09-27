@@ -44,7 +44,7 @@ class BusinessViewMapperTest {
         assertTrue(sql.contains("ORDER BY entity_type, view_key, revision_no, id")); assertEquals(10L, query.getOffset());
     }
     @Test void lifecycleSqlPreservesBodyAndUsesExactRowVersion() {
-        var row = new BusinessViewRevisionDO(); row.setId(1L); row.setTenantId(1L); row.setVersion(0);
+        var row = new BusinessViewRevisionDO(); row.setId(1L); row.setTenantId(1L); row.setVersion(0L);
         row.setPublishedAt(LocalDateTime.now()); row.setDisabledAt(LocalDateTime.now()); row.setUpdater("7");
         for (String statement : Set.of("publishIfMatch", "disableIfMatch", "updateDraftIfMatch")) {
             String sql = sql(statement, Map.of("row", row));

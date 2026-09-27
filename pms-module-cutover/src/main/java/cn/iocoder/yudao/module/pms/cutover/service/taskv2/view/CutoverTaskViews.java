@@ -35,7 +35,7 @@ public final class CutoverTaskViews {
                           Long configurationRevisionId, String configurationCode, Integer configurationRevisionNo,
                           Long projectId, String projectName, String departmentCode, String departmentName,
                           Long ownerUserId, String currentStage, String taskStatus, String manualGrade,
-                          LocalDateTime scheduledTime, LocalDateTime generatedAt, int version) {
+                          LocalDateTime scheduledTime, LocalDateTime generatedAt, Long version) {
     }
 
     public record TaskCore(Long id, String taskNo, String taskName, String background, String taskOrigin,
@@ -43,7 +43,7 @@ public final class CutoverTaskViews {
                            Long configurationRevisionId, String configurationCode, Integer configurationRevisionNo,
                            Long projectId, String projectName,
                            Long ownerUserId, String currentStage, String taskStatus, String manualGrade,
-                           LocalDateTime scheduledTime, LocalDateTime createTime, int version) {
+                           LocalDateTime scheduledTime, LocalDateTime createTime, Long version) {
     }
 
     public record Source(String intakeSourceType, String sourceSystem, String sourceBusinessNo,
@@ -53,7 +53,7 @@ public final class CutoverTaskViews {
     public record Project(Long projectId, String projectCode, String projectName, Long projectScopeVersion) {
     }
 
-    public record Assessment(Long id, int assessmentVersion, int rowVersion, String status,
+    public record Assessment(Long id, Long assessmentVersion, Long rowVersion, String status,
                              String questionnaireTemplateCode, long questionnaireTemplateVersion,
                              CutoverAssessmentAnswers answers,
                              CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevel,

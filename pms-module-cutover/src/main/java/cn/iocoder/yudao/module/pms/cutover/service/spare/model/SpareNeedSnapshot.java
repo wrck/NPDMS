@@ -22,10 +22,10 @@ public record SpareNeedSnapshot(boolean required, List<NeedSource> sources) {
     public sealed interface NeedSource permits AssessmentNeedSource, ChecklistRiskNeedSource {
         String sourceType();
         Long sourceId();
-        Integer sourceVersion();
+        Long sourceVersion();
     }
 
-    public record AssessmentNeedSource(Long sourceId, Integer sourceVersion,
+    public record AssessmentNeedSource(Long sourceId, Long sourceVersion,
                                        Boolean sparePartApplied) implements NeedSource {
         public AssessmentNeedSource {
             positive(sourceId, "sourceId");
@@ -35,7 +35,7 @@ public record SpareNeedSnapshot(boolean required, List<NeedSource> sources) {
         @Override public String sourceType() { return "ASSESSMENT"; }
     }
 
-    public record ChecklistRiskNeedSource(Long sourceId, Integer sourceVersion,
+    public record ChecklistRiskNeedSource(Long sourceId, Long sourceVersion,
                                           String stableItemKey, Boolean applicable) implements NeedSource {
         public ChecklistRiskNeedSource {
             positive(sourceId, "sourceId");

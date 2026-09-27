@@ -21,7 +21,7 @@ public class ProjectPlanController {
     private final ProjectPlanDraftService service;
     private final cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService activation;
     public record Create(@NotNull Long expectedPlanVersionId) { }
-    public record Save(@NotNull @PositiveOrZero Integer expectedVersion, @NotNull TemplateDesignerDocument designer) { }
+    public record Save(@NotNull @PositiveOrZero Long expectedVersion, @NotNull TemplateDesignerDocument designer) { }
     public record Apply(@NotNull ProjectPlanDraftService.Preview expectedPreview) { }
 
     @PostMapping("/draft/{draftId}/apply")
@@ -61,7 +61,7 @@ public class ProjectPlanController {
     @GetMapping("/draft/{draftId}/preview")
     @ApiAccessLog(requestEnable = false, responseEnable = false)
     public CommonResult<ProjectPlanDraftService.Preview> preview(@PathVariable("projectId") Long projectId,
-            @PathVariable("draftId") Long draftId, @RequestParam("expectedVersion") Integer expectedVersion) {
+            @PathVariable("draftId") Long draftId, @RequestParam("expectedVersion") Long expectedVersion) {
         return success(service.preview(projectId, draftId, expectedVersion, SecurityFrameworkUtils.getLoginUserId()));
     }
 }

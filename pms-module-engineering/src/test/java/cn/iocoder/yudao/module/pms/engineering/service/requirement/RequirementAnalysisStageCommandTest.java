@@ -51,9 +51,9 @@ class RequirementAnalysisStageCommandTest {
             roots,scopes,participants,bindings,forms,policy,
             permissions,commands,audit,transaction,executionBinding,events);
     final RequirementAnalysisDynamicFormCommandService.Actor actor = new RequirementAnalysisDynamicFormCommandService.Actor(1L,9L,"stage-business");
-    final ProjectStageExecutionContext observed = new ProjectStageExecutionContext(100L,1,600L,1,300L,1,400L,500L,1,2,true);
-    final ProjectStageExecutionContext started = new ProjectStageExecutionContext(100L,1,600L,1,300L,1,400L,500L,2,2,true);
-    final ProjectWorkBindingFact binding = new ProjectWorkBindingFact(100L,1,null,null,300L,1,700L,null,
+    final ProjectStageExecutionContext observed = new ProjectStageExecutionContext(100L,1L,600L,1,300L,1,400L,500L,1,2,true);
+    final ProjectStageExecutionContext started = new ProjectStageExecutionContext(100L,1L,600L,1,300L,1,400L,500L,2,2,true);
+    final ProjectWorkBindingFact binding = new ProjectWorkBindingFact(100L,1L,null,null,300L,1,700L,null,
             "BUSINESS_OBJECT","SOL","REQUIREMENT_ANALYSIS","PRE_04_REQUIREMENT_ANALYSIS",null,null,null,null,701L,1,
             "{\"schemaVersion\":2,\"dynamicFormTemplateId\":800,\"dynamicFormTemplateRevisionId\":801}",800L,801L,1,3,600L,1);
     final DynamicFormProviderKey provider = new DynamicFormProviderKey("SOL","REQUIREMENT_ANALYSIS");
@@ -66,7 +66,7 @@ class RequirementAnalysisStageCommandTest {
         when(permissions.hasAnyPermissions(9L,RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
         var scope = new ProjectScopeResult(100L,1L,Set.of(100L),Set.of());
         when(scopes.resolveCurrent(any())).thenReturn(scope); when(scopes.lockAndRevalidate(any())).thenReturn(scope);
-        var manager = new ProjectParticipantFact(100L,9L,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,1,1L);
+        var manager = new ProjectParticipantFact(100L,9L,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,1L,1L);
         when(participants.inspect(any())).thenReturn(manager); when(participants.lockAndRevalidate(any())).thenReturn(manager);
         when(bindings.inspectStage(any())).thenReturn(binding); when(bindings.lockAndRevalidateStage(any())).thenReturn(binding);
         when(executions.inspectStage(any())).thenReturn(started);
@@ -125,7 +125,7 @@ class RequirementAnalysisStageCommandTest {
         json.put("projectTaskId",200L); json.put("projectTaskVersion",1);
         var taskBinding = JsonUtils.parseObject(json.toString(),ProjectWorkBindingFact.class);
         var task = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L,1,200L,1,300L,1,400L,500L,1,2,600L,1,true,null);
+                100L,1L,200L,1,300L,1,400L,500L,1,2,600L,1,true,null);
         when(bindings.inspectTask(any())).thenReturn(taskBinding);
         when(bindings.lockAndRevalidate(any())).thenReturn(taskBinding);
         when(executions.inspect(any())).thenReturn(task);
@@ -150,7 +150,7 @@ class RequirementAnalysisStageCommandTest {
         json.put("projectTaskId",201L); json.put("projectTaskVersion",1);
         var sharedBinding = JsonUtils.parseObject(json.toString(),ProjectWorkBindingFact.class);
         var task = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L,1,201L,1,300L,1,400L,501L,1,2,600L,1,true,null);
+                100L,1L,201L,1,300L,1,400L,501L,1,2,600L,1,true,null);
         var selected = new ProjectBusinessExecutionSelection(task,null);
         when(bindings.inspectTask(any())).thenReturn(sharedBinding);
         when(bindings.lockAndRevalidate(any())).thenReturn(sharedBinding);
@@ -175,7 +175,7 @@ class RequirementAnalysisStageCommandTest {
         service.complete(new RequirementAnalysisDynamicFormCommandService.CompleteCommand(initial.preparationId(),1,7,"first-complete"),actor);
         var source = created;
         String before = JsonUtils.toJsonString(source);
-        var latest = new ProjectStageExecutionContext(100L,2,600L,2,301L,1,400L,501L,1,3,true);
+        var latest = new ProjectStageExecutionContext(100L,2L,600L,2,301L,1,400L,501L,1,3,true);
         var json = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(JsonUtils.toJsonString(binding));
         json.put("executionContractId",301L); json.put("projectVersion",2); json.put("projectStageVersion",2);
         var newBinding = JsonUtils.parseObject(json.toString(),ProjectWorkBindingFact.class);

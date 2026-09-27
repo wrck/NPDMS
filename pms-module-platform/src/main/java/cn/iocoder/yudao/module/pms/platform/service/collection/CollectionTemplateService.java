@@ -34,11 +34,11 @@ public class CollectionTemplateService {
             row.setPurpose(draft.purpose());row.setProtocol(draft.protocol());row.setDeviceModel(blank(draft.deviceModel())?null:draft.deviceModel().trim());row.setRevision(draft.revision());
             row.setOwnerContext(switch(draft.purpose()) {case "configuration","joint-test" -> "IMP";case "cutover" -> "CUT";case "inspection" -> "SRV";default -> "PLT";});
             row.setCommandText(normalize(draft.commands()));row.setContentHash(hash(row.getCommandText()));row.setStatus("DRAFT");
-            if(draft.id()==null) {row.setCreator(actor.toString());row.setPublicationStarted(false);row.setVersion(0);templates.insert(row);} else if(templates.updateById(row)!=1) throw new CollectionOperationException("模板版本冲突");
+            if(draft.id()==null) {row.setCreator(actor.toString());row.setPublicationStarted(false);row.setVersion(0L);templates.insert(row);} else if(templates.updateById(row)!=1) throw new CollectionOperationException("模板版本冲突");
             return view(row);
         });
     }
-    public View publish(Long actor,Long id,Integer version) {
+    public View publish(Long actor,Long id,Long version) {
         auth.permission(actor,"pms:collection-template:publish");
         var provider=resources.getIfAvailable();if(provider==null) throw new CollectionOperationException("DAC 尚未启用");
         // Freeze content durably before external I/O. A lost registration response may already have created an immutable artifact.
@@ -62,7 +62,7 @@ public class CollectionTemplateService {
             if(templates.updateById(row)!=1) throw new CollectionOperationException("模板发布冲突");return view(row);
         });
     }
-    public View retire(Long actor,Long id,Integer version) {
+    public View retire(Long actor,Long id,Long version) {
         auth.permission(actor,"pms:collection-template:publish");
         return new TransactionTemplate(transactions).execute(tx -> {
             var row=locked(id);if("RETIRED".equals(row.getStatus())) return view(row);
@@ -82,6 +82,6 @@ public class CollectionTemplateService {
     public static String normalize(String commands){if(blank(commands)||commands.length()>65536||commands.indexOf('\0')>=0)throw new CollectionOperationException("请填写有效命令");return String.join("\n",commands.replace("\r\n","\n").replace('\r','\n').lines().filter(line->!line.isBlank()).toList());}
     public static String hash(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
     private static boolean blank(String s){return s==null||s.isBlank();}
-    public record Draft(Long id,Integer version,String code,String name,String purpose,String protocol,String deviceModel,Integer revision,String commands){}
-    public record View(Long id,String code,String name,String purpose,String ownerContext,String protocol,String deviceModel,Integer revision,String commands,String status,Integer version,boolean publicationStarted){}
+    public record Draft(Long id,Long version,String code,String name,String purpose,String protocol,String deviceModel,Integer revision,String commands){}
+    public record View(Long id,String code,String name,String purpose,String ownerContext,String protocol,String deviceModel,Integer revision,String commands,String status,Long version,boolean publicationStarted){}
 }

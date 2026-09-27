@@ -79,6 +79,6 @@ class ProjectOperationPresentationRouteTest {
     private BusinessViewRevision view(String status, String version) {
         return new BusinessViewRevision(7L, "ACCEPTANCE", "REPORT", 1L, "ACC", BusinessViewComponentProvider.ViewSource.PAGE,
                 "ACC_ACCEPTANCE_REPORT", version, null, JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"),
-                "QUERY", "COMMAND", "PERMISSION", null, null, 1, status, Set.of());
+                "QUERY", "COMMAND", "PERMISSION", null, null, 1L, status, Set.of());
     }
 }

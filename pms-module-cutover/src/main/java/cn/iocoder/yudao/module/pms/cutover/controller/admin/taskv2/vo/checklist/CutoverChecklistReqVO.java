@@ -16,38 +16,38 @@ public final class CutoverChecklistReqVO {
     public record SelectedDefinition(Long itemDefinitionId, Integer itemDefinitionVersion) {
     }
 
-    public record Generate(Integer expectedTaskVersion, Integer expectedAssessmentVersion,
+    public record Generate(Long expectedTaskVersion, Long expectedAssessmentVersion,
                            Long expectedProjectScopeVersion,
                            Map<String, SelectedDefinition> selectedConflictDefinitions) {
     }
 
-    public record Rematch(Integer expectedTaskVersion, Integer expectedAssessmentVersion,
+    public record Rematch(Long expectedTaskVersion, Long expectedAssessmentVersion,
                           Long expectedProjectScopeVersion, Long checklistId,
-                          Integer expectedChecklistVersion, String expectedInputSnapshotHash,
+                          Long expectedChecklistVersion, String expectedInputSnapshotHash,
                           Map<String, SelectedDefinition> selectedConflictDefinitions) {
     }
 
     public record DirectAnswer(String stableItemKey, String answerSnapshot) {
     }
 
-    public record Save(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
-                       Long checklistId, Integer expectedChecklistVersion,
+    public record Save(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                       Long checklistId, Long expectedChecklistVersion,
                        List<DirectAnswer> answers) {
     }
 
-    public record CustomItem(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
-                             Long checklistId, Integer expectedChecklistVersion,
+    public record CustomItem(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                             Long checklistId, Long expectedChecklistVersion,
                              String itemTypeCode, String itemName, String itemDescription,
                              String interfaceFormatCode, String interfaceSchema,
                              Boolean required, String answerSnapshot) {
     }
 
-    public record CustomItemRemove(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
-                                   Long checklistId, Integer expectedChecklistVersion) {
+    public record CustomItemRemove(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                                   Long checklistId, Long expectedChecklistVersion) {
     }
 
-    public record CollectionRequest(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
-                                    Long checklistId, Integer expectedChecklistVersion,
+    public record CollectionRequest(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                                    Long checklistId, Long expectedChecklistVersion,
                                     Long deviceId, Long commandTemplateId) {
     }
 
@@ -59,33 +59,33 @@ public final class CutoverChecklistReqVO {
                              FileFactVersion fileFactVersion, Long scopeVersion) {
     }
 
-    public record ManualResult(Integer expectedTaskVersion, Long expectedProjectScopeVersion,
-                               Long checklistId, Integer expectedChecklistVersion,
+    public record ManualResult(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                               Long checklistId, Long expectedChecklistVersion,
                                FileHandle file, String factDescription) {
     }
 
-    public record Submit(Integer expectedTaskVersion, Integer expectedAssessmentVersion,
+    public record Submit(Long expectedTaskVersion, Long expectedAssessmentVersion,
                          Long expectedProjectScopeVersion, Long checklistId,
-                         Integer expectedChecklistVersion) {
+                         Long expectedChecklistVersion) {
     }
 
     public static final class Export {
-        private Integer checklistVersion;
+        private Long checklistVersion;
         private boolean checklistVersionSpecified;
 
         public Export() {
         }
 
-        public Export(Integer checklistVersion) {
+        public Export(Long checklistVersion) {
             setChecklistVersion(checklistVersion);
         }
 
-        public Integer checklistVersion() {
+        public Long checklistVersion() {
             return checklistVersion;
         }
 
         @JsonSetter("checklistVersion")
-        public void setChecklistVersion(Integer checklistVersion) {
+        public void setChecklistVersion(Long checklistVersion) {
             this.checklistVersion = checklistVersion;
             this.checklistVersionSpecified = true;
         }

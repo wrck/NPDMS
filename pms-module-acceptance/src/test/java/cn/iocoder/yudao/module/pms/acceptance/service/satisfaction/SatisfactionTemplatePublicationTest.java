@@ -16,7 +16,7 @@ class SatisfactionTemplatePublicationTest {
 
     private SatisfactionQuestionnaireTemplateRevisionDO setup(Long otherTemplateId) {
         var root = new SatisfactionQuestionnaireTemplateDO();
-        root.setId(10L); root.setCurrentRevisionId(20L); root.setVersion(1);
+        root.setId(10L); root.setCurrentRevisionId(20L); root.setVersion(1L);
         when(roots.selectByIdForUpdate(1L, 10L)).thenReturn(root);
         var draft = new SatisfactionQuestionnaireTemplateRevisionDO();
         draft.setId(21L); draft.setTemplateId(10L); draft.setRevisionStatus("DRAFT"); draft.setVersion(0); draft.setRevisionNo(2);

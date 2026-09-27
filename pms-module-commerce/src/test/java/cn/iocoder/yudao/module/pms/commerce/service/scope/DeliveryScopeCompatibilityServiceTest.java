@@ -103,9 +103,9 @@ class DeliveryScopeCompatibilityServiceTest {
         assertEquals(5L, result.scopeVersion());
         InOrder ownerOrder = inOrder(projectOfficeFactApi);
         ownerOrder.verify(projectOfficeFactApi).lockAndRevalidate(argThat(query ->
-                query.projectId().equals(100L) && query.expectedProjectVersion().equals(3)));
+                query.projectId().equals(100L) && query.expectedProjectVersion().equals(3L)));
         ownerOrder.verify(projectOfficeFactApi).lockAndRevalidate(argThat(query ->
-                query.projectId().equals(101L) && query.expectedProjectVersion().equals(0)));
+                query.projectId().equals(101L) && query.expectedProjectVersion().equals(0L)));
 
         ArgumentCaptor<DeliveryScopeDO> scopeCaptor = ArgumentCaptor.forClass(DeliveryScopeDO.class);
         verify(scopeMapper, times(2)).insert(scopeCaptor.capture());
@@ -134,10 +134,10 @@ class DeliveryScopeCompatibilityServiceTest {
     @Test
     void shouldBindEachNewVersionReportedInAcceptanceStage() {
         stubProjectFacts();
-        var parentStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 100L, 3, 700L, true);
-        var childStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 101L, 0, 701L, true);
-        when(acceptanceBindingCoordinator.lockAndRead(1L, 100L, 3, "idem")).thenReturn(parentStage);
-        when(acceptanceBindingCoordinator.lockAndRead(1L, 101L, 0, "idem")).thenReturn(childStage);
+        var parentStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 100L, 3L, 700L, true);
+        var childStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 101L, 0L, 701L, true);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 100L, 3L, "idem")).thenReturn(parentStage);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 101L, 0L, "idem")).thenReturn(childStage);
         when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line("ERP-PRODUCT-1")));
         when(scopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(parentScope("5", 4L)));
         AtomicLong ids = new AtomicLong(500L);
@@ -214,7 +214,7 @@ class DeliveryScopeCompatibilityServiceTest {
     @Test
     void shouldRejectWrongOwnerIdentityBeforeLockingCommerceFacts() {
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(
-                fact(999L, 3, "WRONG"));
+                fact(999L, 3L, "WRONG"));
 
         SplitScopeApplyResult result = service.applySplit(command("2", List.of()));
 
@@ -231,19 +231,19 @@ class DeliveryScopeCompatibilityServiceTest {
             return fact(query.projectId(), query.expectedProjectVersion(),
                     query.projectId().equals(100L) ? "PARENT" : "CHILD");
         });
-        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), anyLong(), anyInt(), eq("idem")))
+        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), anyLong(), anyLong(), eq("idem")))
                 .thenAnswer(invocation -> new AcceptanceStageBindingCoordinator.StageContext(1L,
                         invocation.getArgument(1), invocation.getArgument(2), null, false));
     }
 
-    private ProjectOfficeFact fact(Long projectId, Integer version, String projectCode) {
+    private ProjectOfficeFact fact(Long projectId, Long version, String projectCode) {
         return new ProjectOfficeFact(ProjectFactOutcome.FOUND, projectId, version, projectCode,
                 projectId + 1000, "OFF-" + projectId, "办事处" + projectId, 7);
     }
 
     private SplitScopeApplyCommand command(String quantity, List<String> serials) {
-        return new SplitScopeApplyCommand(1L, 100L, 3, 4L, "idem",
-                Map.of("A", 101L), Map.of("A", 0), List.of(allocation("A", quantity, serials)));
+        return new SplitScopeApplyCommand(1L, 100L, 3L, 4L, "idem",
+                Map.of("A", 101L), Map.of("A", 0L), List.of(allocation("A", quantity, serials)));
     }
 
     private SplitScopeApplyCommand.Allocation allocation(String key, String quantity, List<String> serials) {

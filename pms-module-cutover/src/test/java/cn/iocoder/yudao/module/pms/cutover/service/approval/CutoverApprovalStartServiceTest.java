@@ -54,15 +54,15 @@ class CutoverApprovalStartServiceTest {
                 nodes, notifications, CutoverApprovalControlledPorts.serviceManager(301L),
                 CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
                 platform, () -> 202L, Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
-        CutoverApprovalStartCommand command = new CutoverApprovalStartCommand(1L, 100L, 5, 900L, 1,
-                "A", 600L, 2, 700L, 3, 1, planSubmittedAt, null, "start-1", "corr-1");
+        CutoverApprovalStartCommand command = new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
+                "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-1");
 
         CutoverApprovalStartResult started = service.start(command);
-        CutoverApprovalStartCommand sameBusinessNewCorrelation = new CutoverApprovalStartCommand(1L, 100L, 5,
-                900L, 1, "A", 600L, 2, 700L, 3, 1, planSubmittedAt, null, "start-1", "corr-2");
+        CutoverApprovalStartCommand sameBusinessNewCorrelation = new CutoverApprovalStartCommand(1L, 100L, 5L,
+                900L, 1, "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-2");
         CutoverApprovalStartResult replayed = service.start(sameBusinessNewCorrelation);
-        CutoverApprovalStartCommand changed = new CutoverApprovalStartCommand(1L, 100L, 6, 900L, 1,
-                "A", 600L, 2, 700L, 3, 1, planSubmittedAt, null, "start-1", "corr-1");
+        CutoverApprovalStartCommand changed = new CutoverApprovalStartCommand(1L, 100L, 6L, 900L, 1,
+                "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-1");
         CutoverApprovalApplicationException conflict = assertThrows(CutoverApprovalApplicationException.class,
                 () -> service.start(changed));
 
@@ -123,8 +123,8 @@ class CutoverApprovalStartServiceTest {
                 new DirectPlatform(), () -> 202L,
                 Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
 
-        service.start(new CutoverApprovalStartCommand(1L, 100L, 5, 900L, 1,
-                "D", 600L, 2, null, null, 1, LocalDateTime.of(2026, 9, 3, 18, 0), null,
+        service.start(new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
+                "D", 600L, 2L, null, null, 1, LocalDateTime.of(2026, 9, 3, 18, 0), null,
                 "start-d", "corr-d"));
 
         ArgumentCaptor<CutoverApprovalInstanceDO> root = ArgumentCaptor.forClass(CutoverApprovalInstanceDO.class);
@@ -140,7 +140,7 @@ class CutoverApprovalStartServiceTest {
         CutoverApprovalInstanceDO pending = new CutoverApprovalInstanceDO();
         pending.setId(500L); pending.setTenantId(1L); pending.setTaskId(100L); pending.setPlanRevisionId(900L);
         pending.setPlanRevisionNo(1); pending.setStatusCode("PENDING"); pending.setSourceSnapshotVersion(1);
-        pending.setVersion(3);
+        pending.setVersion(3L);
         when(instances.selectByIdForUpdate(any())).thenReturn(pending);
         when(instances.updateStateIfMatch(any())).thenReturn(1);
         when(nodes.selectList(any())).thenReturn(List.of());
@@ -152,7 +152,7 @@ class CutoverApprovalStartServiceTest {
                 Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
 
         CutoverApprovalCommandResult result = service.pause(new CutoverApprovalPauseCommand(
-                1L, 500L, 3, 900L, 1, "SOURCE_FACT_INVALIDATED", "pause-1", "corr-1"));
+                1L, 500L, 3L, 900L, 1, "SOURCE_FACT_INVALIDATED", "pause-1", "corr-1"));
 
         assertEquals(ApprovalStatus.PAUSED_SOURCE_INVALIDATED, result.fact().status());
         assertNull(result.fact().decisionAt());

@@ -404,6 +404,10 @@ export const copyProjectTemplate = (id: number, version: number, data: TemplateC
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
   request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
 
+/** Frozen Designer of the newest PUBLISHED revision, read-only (templates without a draft). */
+export const getProjectTemplatePublishedDesigner = (id: number) =>
+  request.get<TemplateDesignerDocument>({ url: `${baseUrl}/${id}/published-designer` })
+
 /** Reads an existing authoring draft, or the newest published projection when historical templates have no draft. */
 export const getProjectTemplateSummary = async (id: number): Promise<ProjectTemplateSummary | undefined> => {
   const template = await getProjectTemplate(id)

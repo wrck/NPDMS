@@ -11,7 +11,7 @@ public interface ProjectClosureCheckApi {
     /** 只读运行图与任务概览（供闭环查询视图展示：终态、阶段完成、任务齐完成）。 */
     GraphOverview inspectGraph(Long tenantId, Long projectId);
 
-    record ClosureCheckCommand(Long tenantId, Long projectId, Integer expectedProjectVersion,
+    record ClosureCheckCommand(Long tenantId, Long projectId, Long expectedProjectVersion,
                                 Long treeVersion, Long actorId, String correlationId) {
     }
 

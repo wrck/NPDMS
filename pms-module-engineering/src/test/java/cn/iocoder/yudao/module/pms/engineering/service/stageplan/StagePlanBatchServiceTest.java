@@ -64,7 +64,7 @@ class StagePlanBatchServiceTest {
         ReflectionTestUtils.setField(service, "projectScopeApi", projectScopeApi);
         ReflectionTestUtils.setField(service, "participants", participants);
         when(participants.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
-                7L, 99L, java.util.Set.of("SERVICE_MANAGER"), "DIRECT", "ACTIVE", "S2", 1, 1L));
+                7L, 99L, java.util.Set.of("SERVICE_MANAGER"), "DIRECT", "ACTIVE", "S2", 1L, 1L));
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(java.util.Set.of(7L));
         TenantContextHolder.setTenantId(1L);
         when(environment.getProperty("yudao.tenant.enable", Boolean.class, true)).thenReturn(true);
@@ -73,7 +73,7 @@ class StagePlanBatchServiceTest {
         batch.setProjectId(7L);
         batch.setStatus(StagePlanBatchDO.STATUS_DRAFT);
         batch.setBpmProcessInstanceId("PI-1");
-        batch.setVersion(1);
+        batch.setVersion(1L);
         when(batchMapper.selectById(100L)).thenReturn(batch);
         when(batchMapper.updateById(any(StagePlanBatchDO.class))).thenReturn(1);
         when(itemMapper.updateById(any(StagePlanItemDO.class))).thenReturn(1);
@@ -108,7 +108,7 @@ class StagePlanBatchServiceTest {
     @Test
     void approverMustBeAnEffectiveProjectServiceManager() {
         when(participants.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
-                7L, 99L, java.util.Set.of("PROJECT_MANAGER"), "DIRECT", "ACTIVE", "S2", 1, 1L));
+                7L, 99L, java.util.Set.of("PROJECT_MANAGER"), "DIRECT", "ACTIVE", "S2", 1L, 1L));
         assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
         verifyNoInteractions(processInstanceApi);
     }
@@ -227,7 +227,7 @@ class StagePlanBatchServiceTest {
     private void frozenInputs() {
         batch.setTenantId(1L); batch.setDurationRevisionId(11L); batch.setInputSnapshot("{}");
         ConstructionPlanDO plan = new ConstructionPlanDO(); plan.setId(10L); plan.setCurrentDurationRevisionId(11L);
-        plan.setVersion(4); plan.setPendingChangeId(12L);
+        plan.setVersion(4L); plan.setPendingChangeId(12L);
         when(constructionPlanMapper.updateVersionIfMatch(any())).thenReturn(1);
         when(constructionPlanMapper.selectByProjectId(any(), any())).thenReturn(plan);
         ConstructionPlanRevisionDO baseline = new ConstructionPlanRevisionDO(); baseline.setId(11L);

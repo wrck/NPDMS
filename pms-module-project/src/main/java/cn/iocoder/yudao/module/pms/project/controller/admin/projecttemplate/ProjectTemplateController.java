@@ -91,6 +91,13 @@ public class ProjectTemplateController {
         return success(projectTemplateService.getDraftDesigner(id));
     }
 
+    @GetMapping("/{id}/published-designer")
+    @Operation(summary = "读取最新已发布版本的冻结Designer（只读）")
+    @PreAuthorize("@ss.hasPermission('pms:project-template:query')")
+    public CommonResult<TemplateDesignerDocument> getPublishedDesigner(@PathVariable("id") Long id) {
+        return success(projectTemplateService.getPublishedDesigner(id));
+    }
+
     @PutMapping("/{id}/draft")
     @Operation(summary = "保存V2模板设计草稿")
     @PreAuthorize("@ss.hasPermission('pms:project-template:update')")
@@ -135,7 +142,7 @@ public class ProjectTemplateController {
             @org.springframework.web.bind.annotation.RequestHeader("If-Match") String version,
             @org.springframework.web.bind.annotation.RequestHeader("Idempotency-Key") String key) {
         return success(projectTemplateService.copyProjectTemplate(id,
-                cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands.version(version), body, key));
+                (long) cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryConfigurationCommands.version(version), body, key));
     }
 
     @PostMapping("/{id}/actions/publish")

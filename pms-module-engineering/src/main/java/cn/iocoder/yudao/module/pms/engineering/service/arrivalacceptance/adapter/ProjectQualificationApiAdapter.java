@@ -106,7 +106,7 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
     }
 
     private void requireEligibleArrivalProject(ProjectParticipantFact participant,
-                                                      Integer expectedProjectVersion,
+                                                      Long expectedProjectVersion,
                                                       Long expectedFactVersion) {
         if (!ACTIVE.equals(participant.lifecycleStatus())) throw ArrivalAcceptanceContractException.simple(
                 "BUSINESS_GATE_INVALID", "PROJECT_NOT_ACTIVE", "project is not active");

@@ -422,7 +422,7 @@ public class DurationChangeApplicationService {
 
     private ConstructionPlanDO lockPlan(Long planId, Integer expectedVersion, Long tenantId) {
         ConstructionPlanDO plan = lockPlan(planId, tenantId);
-        if (!plan.getVersion().equals(expectedVersion)) throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
+        if (!Objects.equals(plan.getVersion(), expectedVersion == null ? null : expectedVersion.longValue())) throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
         return plan;
     }
 
@@ -432,12 +432,12 @@ public class DurationChangeApplicationService {
         return plan;
     }
 
-    private ProjectParticipantFact requireManageAndProject(Long planId, Integer projectVersion,
+    private ProjectParticipantFact requireManageAndProject(Long planId, Long projectVersion,
                                                            ConstructionPlanApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), ConstructionPlanApplicationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ConstructionPlanDO plan = planMapper.selectById(new ConstructionPlanLockQuery(actor.tenantId(), planId));
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(new ConstructionPlanLockQuery(actor.tenantId(), planId));
         if (plan == null) throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
         var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 actor.tenantId(), actor.actorId(), plan.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
@@ -450,7 +450,7 @@ public class DurationChangeApplicationService {
     }
 
     private ProjectParticipantFact requireUniqueServiceManager(
-            Long projectId, Integer projectVersion, ConstructionPlanApplicationService.Actor actor) {
+            Long projectId, Long projectVersion, ConstructionPlanApplicationService.Actor actor) {
         ProjectParticipantFact selected = participantFactApi.inspect(new ProjectParticipantFactQuery(
                 projectId, null, SERVICE_MANAGER_ROLES, LocalDateTime.now()));
         if (selected == null || selected.userId() == null
@@ -497,7 +497,7 @@ public class DurationChangeApplicationService {
 
     private FileArtifactVersionFact inspectEvidenceBeforeLocks(
             SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
-        ConstructionPlanDO plan = planMapper.selectById(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(
                 new ConstructionPlanLockQuery(actor.tenantId(), command.planId()));
         if (plan == null) throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
         ConstructionPlanChangeDO change = changeMapper.selectById(new ConstructionPlanChangeLockQuery(
@@ -684,7 +684,7 @@ public class DurationChangeApplicationService {
         }
     }
 
-    private boolean invalidVersion(Integer value) { return value == null || value < 0; }
+    private boolean invalidVersion(Number value) { return value == null || value.longValue() < 0; }
 
     private ConstructionPlanChangeRespVO response(
             ConstructionPlanChangeDO change, ConstructionPlanRevisionDO candidate) {

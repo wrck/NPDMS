@@ -5,7 +5,7 @@ public record RequirementAnalysisFactRevalidationQuery(
         Long preparationId,
         Integer expectedBusinessVersion,
         Integer expectedContentVersion,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         Long expectedTemplateRevision,
         RequirementAnalysisFactVector expectedFactVector) {
 

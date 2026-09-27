@@ -87,7 +87,7 @@ public class EntityExtensionService implements EntityExtensionApi {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
-    public void copy(EntityDataRef source, EntityDataRef target, Integer expectedTargetVersion, EntityActor actor) {
+    public void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor) {
         if (!source.entity().equals(target.entity()) || source.equals(target)) throw exception(ENTITY_REVISION_MISMATCH);
         Values sourceValues = read(source, actor);
         // Even an empty source must not bypass the target's write protection.

@@ -6,6 +6,6 @@ public record CutoverTaskIntakeResult(
         String taskNo,
         String currentStage,
         String taskStatus,
-        Integer version,
+        Long version,
         boolean replayed) {
 }

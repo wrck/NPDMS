@@ -128,7 +128,7 @@ public class ProjectRespVO {
     private java.util.List<String> activeStageNames;
 
     @Schema(description = "Project乐观锁版本")
-    private Integer version;
+    private Long version;
 
     @Schema(description = "项目开始时间")
     private LocalDateTime projectStartTime;

@@ -141,6 +141,6 @@ class ProjectResultEvidenceCommitBarrierTest {
     @Test void evidenceBarrierMustJoinTheCallerTransaction() {
         assertThrows(IllegalTransactionStateException.class,()->consistency.lock(subscription));
     }
-    private BusinessOperationResultEvent event(){return new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,"TEST","NATIVE","100","40",2,"fact:40","STATUS_CHANGED","UPDATE","key",9L,LocalDateTime.of(2026,9,18,1,0),"trace");}
+    private BusinessOperationResultEvent event(){return new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,"TEST","NATIVE","100","40",2L,"fact:40","STATUS_CHANGED","UPDATE","key",9L,LocalDateTime.of(2026,9,18,1,0),"trace");}
     private static void await(CountDownLatch latch){try{if(!latch.await(3,TimeUnit.SECONDS))throw new IllegalStateException("TEST_LOCK_TIMEOUT");}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException(interrupted);}}
 }

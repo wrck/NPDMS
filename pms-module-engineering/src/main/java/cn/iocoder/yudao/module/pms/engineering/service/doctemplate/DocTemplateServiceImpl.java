@@ -93,7 +93,7 @@ public class DocTemplateServiceImpl implements DocTemplateService {
         DocTemplateDO entity = BeanUtils.toBean(createReqVO, DocTemplateDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         docTemplateMapper.insert(entity);
         return entity.getId();

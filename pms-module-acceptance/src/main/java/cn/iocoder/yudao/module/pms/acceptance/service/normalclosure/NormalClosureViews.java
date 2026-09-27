@@ -6,7 +6,7 @@ import java.util.List;
 public final class NormalClosureViews {
     private NormalClosureViews() {}
     public record Check(String code, boolean passed, String reason, Long subjectId) {}
-    public record Overview(Long projectId, Integer version, Long treeVersion, String currentStage,
+    public record Overview(Long projectId, Long version, Long treeVersion, String currentStage,
                            String lifecycleStatus, boolean policyAvailable, List<Check> checks,
                            NormalClosureSnapshotDO latestSnapshot, NormalClosureApplicationDO latestApplication,
                            List<String> allowedActions) {}

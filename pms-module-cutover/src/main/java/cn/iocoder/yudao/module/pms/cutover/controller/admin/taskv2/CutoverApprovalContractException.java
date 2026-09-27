@@ -17,5 +17,5 @@ public final class CutoverApprovalContractException extends RuntimeException {
     public ErrorData errorData() { return errorData; }
 
     public record ErrorData(String category, String reasonCode, String recoveryAction, String ownerContext,
-                            Integer currentApprovalVersion, Integer currentTaskVersion) { }
+                            Long currentApprovalVersion, Long currentTaskVersion) { }
 }

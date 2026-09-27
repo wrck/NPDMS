@@ -49,7 +49,7 @@ class ProjectPlanDraftServiceTest {
         when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(),Set.of()));
         when(permissions.hasAnyPermissions(1L,ProjectPlanDraftService.MANAGE_PERMISSION)).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
-        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(51L); project.setVersion(4); project.setLifecycleStatus("ACTIVE");
+        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setActivePlanVersionId(51L); project.setVersion(4L); project.setLifecycleStatus("ACTIVE");
         when(projectRows.selectById(9L)).thenReturn(project); when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
         effective = plan(51L,"EFFECTIVE",1); effective.setSourceTemplateRevisionId(888L);
         draft = plan(52L,"DRAFT",2); draft.setBasePlanVersionId(51L);
@@ -74,16 +74,16 @@ class ProjectPlanDraftServiceTest {
     @Test void savesDraftWithCasAndSafeAuditButDoesNotPublishOrEvaluateRules() {
         when(plans.saveDraftIfCurrent(any())).thenReturn(1);
         var designer = new TemplateDesignerDocument(); designer.setProcessDefinitionKey("private-draft-value");
-        var result = service.save(new ProjectPlanDraftService.Save(9L,52L,0,designer),1L,"save");
+        var result = service.save(new ProjectPlanDraftService.Save(9L,52L,0L,designer),1L,"save");
         assertEquals(1,result.version()); assertFalse(recorded.detailSnapshot().contains("private-draft-value")); assertTrue(recorded.businessEvents().isEmpty());
         verify(plans).saveDraftIfCurrent(argThat(q -> q.tenantId().equals(7L) && q.projectId().equals(9L) && q.expectedVersion()==0 && q.basePlanVersionId().equals(51L)));
         verifyNoInteractions(executions,graph,compiler,dependencies,ruleValidator);
         assertFalse(effective.getDesignerDocument().contains("private-draft-value"));
     }
     @Test void staleDraftOrChangedBaseCannotOverwriteParallelChanges() {
-        assertThrows(RuntimeException.class,() -> service.save(new ProjectPlanDraftService.Save(9L,52L,8,new TemplateDesignerDocument()),1L,"stale"));
+        assertThrows(RuntimeException.class,() -> service.save(new ProjectPlanDraftService.Save(9L,52L,8L,new TemplateDesignerDocument()),1L,"stale"));
         project.setActivePlanVersionId(99L);
-        assertThrows(RuntimeException.class,() -> service.save(new ProjectPlanDraftService.Save(9L,52L,0,new TemplateDesignerDocument()),1L,"base"));
+        assertThrows(RuntimeException.class,() -> service.save(new ProjectPlanDraftService.Save(9L,52L,0L,new TemplateDesignerDocument()),1L,"base"));
         verify(plans,never()).saveDraftIfCurrent(any());
     }
     @Test void deniedManagePermissionOrProjectScopePrecedesAnyDraftRead() {
@@ -95,7 +95,7 @@ class ProjectPlanDraftServiceTest {
     @Test void closedProjectDraftCannotBeSavedOrCreated() {
         project.setLifecycleStatus("NORMAL_CLOSED");
         assertFalse(service.get(9L,1L).editable());
-        assertThrows(RuntimeException.class,() -> service.save(new ProjectPlanDraftService.Save(9L,52L,0,new TemplateDesignerDocument()),1L,"save"));
+        assertThrows(RuntimeException.class,() -> service.save(new ProjectPlanDraftService.Save(9L,52L,0L,new TemplateDesignerDocument()),1L,"save"));
         verify(plans,never()).saveDraftIfCurrent(any());
     }
     @Test void previewUsesSavedVersionAndSharedValidatorsWithoutEmittingEventsOrAdvancingState() {
@@ -107,7 +107,7 @@ class ProjectPlanDraftServiceTest {
         when(graph.selectTasksForUpdate(any())).thenReturn(runtime.tasks);
         when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(ProjectPlanImpactAnalyzerTest.copy(snapshot),null,List.of()));
         when(dependencies.validateProjectChanges(any(),any(),eq(false))).thenReturn(List.of()); when(ruleValidator.validate(any())).thenReturn(List.of());
-        var result=service.preview(9L,52L,0,1L);
+        var result=service.preview(9L,52L,0L,1L);
         assertTrue(result.changes().isEmpty()); assertTrue(result.issues().isEmpty()); assertEquals(4,result.projectVersion());
         assertEquals(3,result.executionChanges().size());
         assertTrue(result.executionChanges().stream().allMatch(change -> change.action() == ProjectPlanExecutionPlanner.Action.REBASE_CURRENT));
@@ -118,7 +118,7 @@ class ProjectPlanDraftServiceTest {
     @Test void previewExposesMissingRuntimeInsteadOfPromisingSuccessfulActivation() {
         var snapshot = ProjectPlanImpactAnalyzerTest.snapshot(); effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
         when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
-        var result = service.preview(9L,52L,0,1L);
+        var result = service.preview(9L,52L,0L,1L);
         assertEquals(3,result.issues().stream().filter(issue -> issue.code().equals("CURRENT_EXECUTION_MISSING")).count());
         assertTrue(result.executionChanges().isEmpty());
         verifyNoInteractions(commands);
@@ -131,12 +131,12 @@ class ProjectPlanDraftServiceTest {
         var after = ProjectPlanImpactAnalyzerTest.copy(snapshot); after.setDeliverables(List.of());
         when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
         var row = new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
-                100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8);
+                100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8L);
         when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(row),Set.of()));
-        var result = service.preview(9L,52L,0,1L);
+        var result = service.preview(9L,52L,0L,1L);
         assertTrue(result.issues().stream().anyMatch(issue -> "DELIVERABLE_HANDLING_HISTORY_PROTECTED".equals(issue.code())));
         assertEquals(100L,result.deliverableChanges().getFirst().instanceId());
-        assertEquals(8,result.deliverableChanges().getFirst().expectedVersion());
+        assertEquals(8L,result.deliverableChanges().getFirst().expectedVersion());
         verify(deliverables,never()).applyPlanChanges(any()); verifyNoInteractions(commands);
     }
     @Test void previewProtectsAchievedMilestoneAndIncludesItsActualVersion() {
@@ -149,7 +149,7 @@ class ProjectPlanDraftServiceTest {
         var row = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMilestoneInstanceDO();
         row.setId(200L); row.setProjectId(9L); row.setTenantId(7L); row.setMilestoneCode("M1"); row.setStatus("ACHIEVED"); row.setVersion(6);
         when(milestoneProjections.selectMilestonesForUpdate(any())).thenReturn(List.of(row));
-        var result = service.preview(9L,52L,0,1L);
+        var result = service.preview(9L,52L,0L,1L);
         assertTrue(result.issues().stream().anyMatch(issue -> "ACHIEVED_MILESTONE_DELETE_FORBIDDEN".equals(issue.code())));
         assertEquals(200L,result.milestoneChanges().getFirst().instanceId()); assertEquals(6,result.milestoneChanges().getFirst().expectedVersion());
         verify(milestoneProjections,never()).retirePendingMilestone(any()); verifyNoInteractions(commands);
@@ -162,7 +162,7 @@ class ProjectPlanDraftServiceTest {
         var change = new ProjectPlanGateInstaller.Change("gate:one","UPDATE",300L,7,"G1","G1",true);
         when(gates.inspect(any(),any(),any())).thenReturn(new ProjectPlanGateInstaller.Plan(List.of(change),
                 List.of(new ProjectPlanGateInstaller.Write(change,null,"PASSED",List.of(),List.of())),List.of()));
-        var result = service.preview(9L,52L,0,1L);
+        var result = service.preview(9L,52L,0L,1L);
         assertEquals(300L,result.gateChanges().getFirst().instanceId()); assertTrue(result.gateChanges().getFirst().reevaluationRequired());
         var displayed = result.changes().stream().filter(row -> "gate:one".equals(row.nodeKey())).findFirst().orElseThrow();
         assertTrue(displayed.started()); assertTrue(displayed.effects().stream().anyMatch(effect -> effect.contains("不能沿用旧通过结果")));
@@ -180,7 +180,7 @@ class ProjectPlanDraftServiceTest {
         when(graph.selectTasksForUpdate(any())).thenReturn(runtime.tasks);
         when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(snapshot,null,List.of()));
         when(ruleValidator.validate(any())).thenReturn(List.of(failure));
-        var result = service.preview(9L,52L,0,1L);
+        var result = service.preview(9L,52L,0L,1L);
         assertTrue(result.issues().contains(failure));
         verifyNoInteractions(commands);
         verify(plans,never()).saveDraftIfCurrent(any());
@@ -188,7 +188,7 @@ class ProjectPlanDraftServiceTest {
     }
 
     private ProjectPlanVersionDO plan(Long id,String status,int revision) {
-        var plan=new ProjectPlanVersionDO(); plan.setId(id); plan.setProjectId(9L); plan.setTenantId(7L); plan.setStatus(status); plan.setRevisionNo(revision); plan.setVersion(0);
+        var plan=new ProjectPlanVersionDO(); plan.setId(id); plan.setProjectId(9L); plan.setTenantId(7L); plan.setStatus(status); plan.setRevisionNo(revision); plan.setVersion(0L);
         plan.setDesignerDocument(JsonUtils.toJsonString(new TemplateDesignerDocument())); return plan;
     }
 }

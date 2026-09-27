@@ -80,12 +80,13 @@ public class SolutionTieredReviewService {
         var existing = reviews.bySolution(query(selection, true));
         if (existing != null) {
             if (Objects.equals(existing.getSubmittedBy(), actor) && "RUNNING".equals(existing.getStatus())
-                    && Objects.equals(existing.getRequestVersion(), command.expectedVersion())
+                    && Objects.equals(existing.getRequestVersion(), command.expectedVersion() == null ? null : command.expectedVersion().longValue())
                     && Objects.equals(existing.getProcessDefinitionId(), command.processDefinitionId())
                     && Objects.equals(JsonUtils.parseTree(existing.getCandidatesJson()), JsonUtils.parseTree(JsonUtils.toJsonString(command.candidates())))) return existing;
             throw new IllegalArgumentException("此方案已提交分级审批；请查看结果或从终态创建新版本");
         }
-        if (!Objects.equals(solution.getVersion(), command.expectedVersion()) || !Set.of(0, 1, 2).contains(solution.getStatus()))
+        Long expectedVersion = command.expectedVersion() == null ? null : command.expectedVersion().longValue();
+        if (!Objects.equals(solution.getVersion(), expectedVersion) || !Set.of(0, 1, 2).contains(solution.getStatus()))
             throw new IllegalArgumentException("只能提交当前未批准的重大方案版本");
         Integer previousLevel = solution.getReviewLevel();
         policies.freeze(solution, 1);
@@ -106,7 +107,7 @@ public class SolutionTieredReviewService {
         var review = new SolutionReviewDO();
         review.setProjectId(solution.getProjectId()); review.setSolutionId(solution.getId());
         review.setSourceVersion(solution.getVersion()); review.setBusinessKey(businessKey);
-        review.setRequestVersion(command.expectedVersion());
+        review.setRequestVersion(command.expectedVersion() == null ? null : command.expectedVersion().longValue());
         review.setProcessDefinitionId(command.processDefinitionId());
         review.setCandidatesJson(JsonUtils.toJsonString(command.candidates()));
         review.setStatus("RUNNING"); review.setVersion(0); review.setSubmittedBy(actor); review.setSubmittedAt(LocalDateTime.now());
@@ -163,7 +164,7 @@ public class SolutionTieredReviewService {
         solution.setApprovedBy(last == null ? null : last.userId());
         solution.setApprovedTime(last == null ? null : last.time());
         solution.setApprovalOpinion(last == null ? "审批已撤回" : last.reason());
-        if (approved) solution.setBaselineVersion(solution.getVersion() + 1);
+        if (approved) solution.setBaselineVersion(Math.toIntExact(solution.getVersion() + 1));
         update(solution);
         review.setStatus(result.status()); review.setReviewsJson(JsonUtils.toJsonString(result.reviews()));
         review.setCompletedAt(LocalDateTime.now());
@@ -233,7 +234,7 @@ public class SolutionTieredReviewService {
         item.setName(solution.getName() + "（基线v" + solution.getBaselineVersion() + "）");
         item.setDeliverableType("IMPLEMENTATION"); item.setSourceType("SOLUTION"); item.setSourceId(solution.getId());
         item.setStatus(DELIVERABLE_ARCHIVED); item.setArchivedBy(solution.getApprovedBy()); item.setArchivedTime(solution.getApprovedTime());
-        item.setRemark("工程管理部复审通过自动归档"); item.setVersion(0);
+        item.setRemark("工程管理部复审通过自动归档"); item.setVersion(0L);
         deliverables.insert(item);
     }
 }

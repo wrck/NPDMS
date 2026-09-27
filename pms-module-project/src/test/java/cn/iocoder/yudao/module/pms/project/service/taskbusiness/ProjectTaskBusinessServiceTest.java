@@ -67,7 +67,7 @@ class ProjectTaskBusinessServiceTest {
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "SiteSurvey", "survey", 1L,
                 "PRE", BusinessViewComponentProvider.ViewSource.PAGE, "survey-list", "1", null,
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
-                1, "PUBLISHED", Set.of("UPDATE")));
+                1L, "PUBLISHED", Set.of("UPDATE")));
         executeOperations();
     }
     @Test void permissionDeclarationDoesNotReplaceOwnerActionAuthorization() {
@@ -89,7 +89,7 @@ class ProjectTaskBusinessServiceTest {
     }
     cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution(boolean writable) {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                20L,1,10L,3,30L,2,60L,61L,1,1,62L,1,writable,LocalDateTime.of(2026,9,14,10,0));
+                20L,1L,10L,3,30L,2,60L,61L,1,1,62L,1,writable,LocalDateTime.of(2026,9,14,10,0));
     }
     @SuppressWarnings({"rawtypes", "unchecked"})
     void executeOperations() {
@@ -137,7 +137,7 @@ class ProjectTaskBusinessServiceTest {
 
     cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext stageExecution() {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                20L, 1, 90L, 3, 30L, 2, 60L, 71L, 1, 2, true);
+                20L, 1L, 90L, 3, 30L, 2, 60L, 71L, 1, 2, true);
     }
     cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract stageBinding() {
         var binding = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract();
@@ -422,7 +422,7 @@ class ProjectTaskBusinessServiceTest {
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(largeId, "SiteSurvey", "survey", 1L,
                 "PRE", BusinessViewComponentProvider.ViewSource.PAGE, "survey-list", "1", null,
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
-                1, "PUBLISHED", Set.of()));
+                1L, "PUBLISHED", Set.of()));
         var context = service.getContext(10L, 1L, 5L, "c");
         assertNull(context.recoverableError());
         assertEquals(largeId, context.businessViewRevisionId());
@@ -440,7 +440,7 @@ class ProjectTaskBusinessServiceTest {
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(original.id(), original.entityType(), original.viewKey(),
                 original.revisionNo(), original.ownerContext(), original.viewSource(), original.componentKey(), original.componentVersion(),
                 null, original.contextSchema(), original.supportedActions(), "q", "c", "p", LocalDateTime.now().minusDays(2),
-                LocalDateTime.now(), 2, "DISABLED", Set.of("ENABLE")));
+                LocalDateTime.now(), 2L, "DISABLED", Set.of("ENABLE")));
         var result = service.getContext(10L, 1L, 5L, "c");
         assertNull(result.recoverableError()); assertEquals("DISABLED", result.businessView().status());
         assertTrue(result.businessView().allowedActions().isEmpty());

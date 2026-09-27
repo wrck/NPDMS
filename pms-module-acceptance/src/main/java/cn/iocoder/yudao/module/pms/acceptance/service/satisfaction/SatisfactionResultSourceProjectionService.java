@@ -71,7 +71,6 @@ public class SatisfactionResultSourceProjectionService {
         if (becomesCurrent) {
             root.setCurrentSourceVersionId(source.getId());
             root.setArchiveStatus("PENDING_COMPENSATION");
-            root.setVersion(root.getVersion() + 1);
             root.setUpdater(String.valueOf(event.archiveActorUserId()));
             if (deliverableMapper.updateById(root) != 1) {
                 throw new IllegalStateException("SATISFACTION_DELIVERABLE_UPDATE_CONFLICT");

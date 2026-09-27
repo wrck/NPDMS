@@ -69,7 +69,7 @@ class SatisfactionAccessGrantServiceTest {
 
     private SatisfactionQuestionnaireDO questionnaire() {
         SatisfactionQuestionnaireDO row = new SatisfactionQuestionnaireDO();
-        row.setId(11L); row.setTenantId(7L); row.setQuestionnaireStatus("ACTIVE"); row.setVersion(0);
+        row.setId(11L); row.setTenantId(7L); row.setQuestionnaireStatus("ACTIVE"); row.setVersion(0L);
         row.setFrozenQuestionJson("[]");
         return row;
     }

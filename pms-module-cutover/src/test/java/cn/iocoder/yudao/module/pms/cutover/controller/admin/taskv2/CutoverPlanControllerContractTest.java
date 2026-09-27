@@ -34,7 +34,7 @@ class CutoverPlanControllerContractTest {
         CutoverPlanController controller = new TestController(application, query, context,
                 new CutoverPlanRequestCodec());
         when(query.detail(any(), any(), any(), any())).thenReturn(new CutoverPlanView(
-                50L, "P4", 4, 60L, 1, 0, "NEW_PLATFORM", "DRAFT",
+                50L, "P4", 4L, 60L, 1, 0L, "NEW_PLATFORM", "DRAFT",
                 null, null, null, "INITIAL", null, null, null, List.of("SAVE_DRAFT")));
         mvc = standaloneSetup(controller).setControllerAdvice(controller).build();
     }
@@ -46,15 +46,15 @@ class CutoverPlanControllerContractTest {
         org.assertj.core.api.Assertions.assertThat(AnnotatedElementUtils.hasAnnotation(
                 CutoverPlanController.class, Component.class)).isFalse();
 
-        when(application.createDraft(any())).thenReturn(new CutoverPlanCommandResult(50L,4,60L,1,0,"DRAFT",false));
-        when(application.saveDraft(any())).thenReturn(new CutoverPlanCommandResult(50L,4,60L,1,1,"DRAFT",false));
-        when(application.downloadDraft(any())).thenReturn(new DownloadCutoverPlanDraftResult(60L,1,
+        when(application.createDraft(any())).thenReturn(new CutoverPlanCommandResult(50L,4L,60L,1,0L,"DRAFT",false));
+        when(application.saveDraft(any())).thenReturn(new CutoverPlanCommandResult(50L,4L,60L,1,1L,"DRAFT",false));
+        when(application.downloadDraft(any())).thenReturn(new DownloadCutoverPlanDraftResult(60L,1L,
                 new cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFact(
                         70L,1,"ref-1",new cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFactVersion(1,1,1),1L,
                         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),1788220800000L));
-        when(application.submit(any())).thenReturn(new SubmitCutoverPlanResult(50L,"P5",5,60L,1,2,80L,0,"PENDING"));
+        when(application.submit(any())).thenReturn(new SubmitCutoverPlanResult(50L,"P5",5L,60L,1,2L,80L,0L,"PENDING"));
         when(application.patchApprovedContact(any())).thenReturn(mock(PatchApprovedContactResult.class));
-        when(application.revise(any())).thenReturn(new CutoverPlanCommandResult(50L,6,61L,2,0,"DRAFT",false));
+        when(application.revise(any())).thenReturn(new CutoverPlanCommandResult(50L,6L,61L,2,0L,"DRAFT",false));
 
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan")).andExpect(status().isOk()).andExpect(jsonPath("$.data.taskId").value(50));
         verify(query).detail(1L, 8L, 50L, new CutoverPlanQueryService.PlanAccess(true, true, true, true));
@@ -99,7 +99,7 @@ class CutoverPlanControllerContractTest {
 
         when(application.createDraft(any())).thenThrow(new CutoverPlanApplicationException(
                 CutoverPlanApplicationException.Code.VERSION_CONFLICT, "TASK_VERSION_STALE", null,
-                7, null, null, "任务版本已变化"));
+                7L, null, null, "任务版本已变化"));
         mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
                 .header("X-Task-Version", "4").header("Idempotency-Key", "i1")
                 .contentType("application/json").content("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\"}"))
@@ -131,7 +131,7 @@ class CutoverPlanControllerContractTest {
 
         when(application.submit(any())).thenThrow(new CutoverPlanApplicationException(
                 CutoverPlanApplicationException.Code.FILE_FACT_STALE, "FILE_OWNERSHIP_NOT_CONFIRMED", "PLT",
-                null, 3, null, "完整文件未确认归属"));
+                null, 3L, null, "完整文件未确认归属"));
         mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/submit")
                 .header("If-Match", "3").header("X-Task-Version", "4").header("Idempotency-Key", "i4"))
                 .andExpect(status().isUnprocessableEntity())

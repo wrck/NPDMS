@@ -62,10 +62,10 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
     }
 
     @Override
-    public void lockForWrite(EntityDataRef target, EntityActor actor, Integer expectedVersion) {
+    public void lockForWrite(EntityDataRef target, EntityActor actor, Long expectedVersion) {
         requireType(target.entity(), actor);
         if (target.isRevision()) {
-            var locked = access.lock(target.revisionId(), expectedVersion, actor, null, true);
+            var locked = access.lock(target.revisionId(), expectedVersion == null ? null : Math.toIntExact(expectedVersion), actor, null, true);
             requireEntity(locked, target.entity());
         } else {
             var query = new RequirementEntityQuery(actor.tenantId(), target.entity().entityId());
@@ -143,7 +143,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         var current = mapper.lockCurrent(new RequirementEntityQuery(actor.tenantId(), entity.entityId()));
         var draft = newDraft(entity, source.getProjectId(),
                 mapper.maxRevisionNo(new RequirementEntityQuery(actor.tenantId(), entity.entityId())) + 1,
-                source.getId(), effective == null ? null : effective.getId(), current == null ? null : current.getVersion(), actor, execution);
+                source.getId(), effective == null ? null : effective.getId(), current == null ? null : Math.toIntExact(current.getVersion()), actor, execution);
         FIELDS.write(draft, FIELDS.read(source));
         draft.setChangeReason(reason);
         if (mapper.insertRevision(draft) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
@@ -192,6 +192,21 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void discard(RevisionRef ref, EntityActor actor) {
+        requireType(ref.entity(), actor);
+        var draft = access.read(ref.revisionId(), actor);
+        requireEntity(draft, ref.entity());
+        // 已冻结修订是不可变历史；只有未冻结的草稿工作区可以放弃。
+        if (!"DRAFT".equals(draft.getRevisionState())) throw exception(REQUIREMENT_STATUS_INVALID);
+        // 先把修订号改写为行内唯一负值占位释放 (tenant,entity,revision_no) 唯一键，再逻辑删除草稿行。
+        if (mapper.discardDraft(new RequirementRevisionQuery(actor.tenantId(), ref.revisionId())) != 1) {
+            throw exception(REQUIREMENT_VERSION_NOT_MATCH);
+        }
+        record("REQUIREMENT_ANALYSIS_DISCARD", draft, actor);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public Revision activate(RevisionRef ref, Integer expectedVersion, EntityActor actor) {
         requireType(ref.entity(), actor);
         var revision = access.lock(ref.revisionId(), expectedVersion, actor, null, false);
@@ -201,14 +216,14 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         var effective = mapper.selectEffective(project);
         var current = mapper.lockCurrent(new RequirementEntityQuery(actor.tenantId(), ref.entity().entityId()));
         if (!Objects.equals(revision.getBaseEffectiveRevisionId(), effective == null ? null : effective.getId())
-                || !Objects.equals(revision.getBaseEntityVersion(), current == null ? null : current.getVersion())) {
+                || !Objects.equals(revision.getBaseEntityVersion(), current == null ? null : Math.toIntExact(current.getVersion()))) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
         var replacement = BeanUtils.toBean(revision, RequirementAnalysisDO.class);
         replacement.setId(revision.getEntityId());
         replacement.setUpdater(actor.userId().toString());
         if (current == null) {
-            replacement.setVersion(1);
+            replacement.setVersion(1L);
             replacement.setCreator(actor.userId().toString());
             replacement.setCreateTime(LocalDateTime.now());
             replacement.setUpdateTime(replacement.getCreateTime());
@@ -249,7 +264,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         draft.setRevisionState("DRAFT");
         draft.setDraftMarker(1);
         draft.setStatusCode("DRAFT");
-        draft.setVersion(1);
+        draft.setVersion(1L);
         draft.setCreator(actor.userId().toString());
         draft.setUpdater(draft.getCreator());
         draft.setProjectTemplateId(execution.projectTemplateId());
@@ -258,7 +273,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         return draft;
     }
 
-    private void copyExtensions(EntityDataRef source, EntityDataRef target, int targetVersion, EntityActor actor) {
+    private void copyExtensions(EntityDataRef source, EntityDataRef target, Long targetVersion, EntityActor actor) {
         var original = extensions.read(source, actor);
         var actual = RequirementAnalysisFields.extensions(original.fields());
         if (actual.size() == original.fields().size()) {

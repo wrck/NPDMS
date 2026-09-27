@@ -34,6 +34,39 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    // 统一业务实体默认页面：目录驱动的独立入口，不进入生产菜单/字典，测试装配实体也由此承载。
+    path: '/pms/business-entity/:ownerModule?/:entityType?',
+    name: 'PmsBusinessEntityBrowser',
+    component: () => import('@/views/pms/platform/businessEntity/index.vue'),
+    meta: {
+      hidden: true,
+      canTo: true,
+      title: '统一业务实体'
+    }
+  },
+  {
+    // 中性过程定义与场景执行：P05 公共能力入口，定义创建/发布、同步运行与实例/结果查看。
+    path: '/pms/process-definition',
+    name: 'PmsProcessDefinition',
+    component: () => import('@/views/pms/platform/processDefinition/index.vue'),
+    meta: {
+      hidden: true,
+      canTo: true,
+      title: '过程定义与场景执行'
+    }
+  },
+  {
+    // 结果订阅与执行证据：P09 独立结果能力入口，订阅建立/存量补扫/判定查看。
+    path: '/pms/result-subscription',
+    name: 'PmsResultSubscription',
+    component: () => import('@/views/pms/platform/resultSubscription/index.vue'),
+    meta: {
+      hidden: true,
+      canTo: true,
+      title: '结果订阅与执行证据'
+    }
+  },
+  {
     path: '/satisfaction-questionnaires/:token',
     name: 'PmsSatisfactionQuestionnairePublic',
     component: () => import('@/views/pms/acceptance/satisfaction/questionnaire.vue'),

@@ -57,7 +57,7 @@ class CutoverApprovalReassignmentTest {
                 notifications, reviews, reassignments, tasks, histories, managers, candidates, scopes, platform,
                 () -> 99L, clock);
 
-        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 1, 44L, "转交当前项目负责人", "key-r1", "corr-r1"));
 
         assertThat(result.approvalVersion()).isEqualTo(1);
@@ -119,7 +119,7 @@ class CutoverApprovalReassignmentTest {
                 mock(CutoverApprovalRoleCandidatePort.class), scopes, platform, () -> 99L,
                 Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC));
 
-        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 2, 44L, "补齐后续服务经理", "key-r2", "corr-r2"));
 
         assertThat(result.holdReason()).isNull();
@@ -128,14 +128,14 @@ class CutoverApprovalReassignmentTest {
     }
 
     private static CutoverTaskDO task() {
-        CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setVersion(3);
+        CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setVersion(3L);
         row.setTaskNo("CUT-10"); row.setTaskName("割接任务"); row.setCurrentStage("P5"); row.setTaskStatus("APPROVING");
         return row;
     }
     private static CutoverApprovalInstanceDO root() {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO(); row.setId(100L); row.setTenantId(1L);
         row.setTaskId(10L); row.setProjectId(20L); row.setGradeCode("A"); row.setStatusCode("PENDING");
-        row.setHoldReasonCode("APPROVER_UNAVAILABLE"); row.setCurrentNodeNo(1); row.setVersion(0); return row;
+        row.setHoldReasonCode("APPROVER_UNAVAILABLE"); row.setCurrentNodeNo(1); row.setVersion(0L); return row;
     }
     private static CutoverApprovalNodeDO node() {
         CutoverApprovalNodeDO row = new CutoverApprovalNodeDO(); row.setId(101L); row.setTenantId(1L);

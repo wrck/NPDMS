@@ -23,9 +23,9 @@ public interface CutoverPlanSourcePort {
         }
     }
 
-    record SourceSnapshot(Integer snapshotVersion, Long taskId, Integer taskVersion,
-                          Long assessmentId, Integer assessmentVersion, String grade,
-                          Long checklistId, Integer checklistVersion, Long projectId,
+    record SourceSnapshot(Integer snapshotVersion, Long taskId, Long taskVersion,
+                          Long assessmentId, Long assessmentVersion, String grade,
+                          Long checklistId, Long checklistVersion, Long projectId,
                           Integer projectVersion, Long projectScopeVersion,
                           List<DeviceSnapshot> devices, Long configurationRevisionId,
                           String configurationCode, Integer configurationRevisionNo,

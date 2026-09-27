@@ -49,7 +49,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     private final Context context = new Context(3L, 9L, 100L, 200L, "survey-test");
     private final SiteSurveyEntityTaskObjectQuery objectQuery = new SiteSurveyEntityTaskObjectQuery(3L, 100L, 42L);
     private final ProjectStageExecutionContext stageExecution = new ProjectStageExecutionContext(
-            100L, 1, 300L, 2, 301L, 1, 302L, 303L, 1, 2, true);
+            100L, 1L, 300L, 2, 301L, 1, 302L, 303L, 1, 2, true);
     private final StageCompletionContext stageContext = new StageCompletionContext(3L, stageExecution);
 
     @BeforeEach
@@ -257,7 +257,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         row.setTenantId(3L);
         row.setProjectId(100L);
         row.setName("真实工勘");
-        row.setVersion(7);
+        row.setVersion(7L);
         row.setStatus(status);
         row.setDeleted(false);
         row.setConclusion("https://not-a-plt-artifact");
@@ -269,7 +269,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         SecurityContextHolder.clearContext();
         var started = java.time.LocalDateTime.of(2026, 9, 14, 12, 0);
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L, 1, 200L, 1, 201L, 1, 202L, 203L, 1, 2, 204L, 1, true, started);
+                100L, 1L, 200L, 1, 201L, 1, 202L, 203L, 1, 2, 204L, 1, true, started);
         var evaluation = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(3L, execution);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
         var survey = row(1); survey.setConfirmedAt(started.minusDays(1)); survey.setUpdateTime(started.plusMinutes(1));
@@ -290,7 +290,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     void missingTimestampsDoNotBlockCurrentBusinessResultButStaleTaskContextStillFails() {
         var started = java.time.LocalDateTime.of(2026, 9, 14, 12, 0);
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L, 1, 200L, 1, 201L, 1, 202L, 203L, 1, 2, 204L, 1, true, started);
+                100L, 1L, 200L, 1, 201L, 1, 202L, 203L, 1, 2, 204L, 1, true, started);
         var evaluation = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(3L, execution);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
         when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(row(1));
@@ -305,7 +305,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         SecurityContextHolder.clearContext();
         var started = java.time.LocalDateTime.of(2026,9,14,12,0);
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L,1,200L,1,201L,1,202L,203L,1,1,204L,1,true,started);
+                100L,1L,200L,1,201L,1,202L,203L,1,1,204L,1,true,started);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
         var survey = row(1); survey.setConfirmedAt(started.minusHours(1));
         when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(survey);
@@ -377,7 +377,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
             case "tenant" -> survey.setTenantId(4L);
             case "deleted" -> survey.setDeleted(true);
             case "version" -> survey.setVersion(null);
-            case "negativeVersion" -> survey.setVersion(-1);
+            case "negativeVersion" -> survey.setVersion(-1L);
             case "status" -> survey.setStatus(null);
             case "unknownStatus" -> survey.setStatus(4);
             default -> { }
@@ -391,7 +391,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     @Test
     void sameSurveyCanSupplyIndependentStageContextsWithoutOverwritingEarlierEvidence() {
         when(executions.lockAndRevalidateStage(stageExecution)).thenReturn(stageExecution);
-        var other = new ProjectStageExecutionContext(100L, 1, 400L, 2, 401L, 1, 302L, 403L, 1, 1, true);
+        var other = new ProjectStageExecutionContext(100L, 1L, 400L, 2, 401L, 1, 302L, 403L, 1, 1, true);
         when(executions.lockAndRevalidateStage(other)).thenReturn(other);
         when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(row(1));
         var first = provider.lockStageCompletionFact(stageContext, "42");

@@ -395,7 +395,7 @@ class CustomerApplicationServiceTest {
                 Set.of("classification"), expectedVersion, "key-update-classification");
     }
 
-    private CustomerMasterDO customer(Long id, int version) {
+    private CustomerMasterDO customer(Long id, long version) {
         CustomerMasterDO customer = new CustomerMasterDO();
         customer.setId(id);
         customer.setTenantId(1L);

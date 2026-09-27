@@ -33,7 +33,7 @@ class RequirementAnalysisEntityBusinessObjectProviderTest {
         var login = new LoginUser(); login.setId(7L); login.setTenantId(1L);
         SecurityFrameworkUtils.setLoginUser(login, new MockHttpServletRequest());
         row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setEntityId(40L); row.setProjectId(9L); row.setTenantId(1L);
-        row.setRevisionNo(1); row.setVersion(2); row.setRevisionState("DRAFT");
+        row.setRevisionNo(1); row.setVersion(2L); row.setRevisionState("DRAFT");
         view = mock(RequirementAnalysisEntityQueryService.View.class);
         when(view.projectId()).thenReturn(9L); when(view.revision()).thenAnswer(invocation -> row.revisionMetadata());
         when(view.allowedActions()).thenReturn(List.of("PATCH_FORM")); when(view.attachments()).thenReturn(List.of());
@@ -47,7 +47,7 @@ class RequirementAnalysisEntityBusinessObjectProviderTest {
         var initial = provider.inspectContextAndObjects(context,List.of("42"));
         assertEquals("42", initial.objects().getFirst().objectId());
         verify(queries,never()).revision(any(),any());
-        row.setVersion(3);
+        row.setVersion(3L);
         var changed = provider.inspectContextAndObjects(context,List.of("42"));
         assertNotEquals(initial.objects().getFirst().factVersion(),changed.objects().getFirst().factVersion());
         verify(queries,times(2)).workspace(eq(9L),any(),isNull(),eq(91L));
@@ -61,7 +61,7 @@ class RequirementAnalysisEntityBusinessObjectProviderTest {
     }
     @Test void unattendedCompletionUsesNewOwnerRowsAndRequiresFreezeEvidence() {
         SecurityContextHolder.clearContext();
-        var execution = new ProjectTaskExecutionContext(9L,1,91L,1,92L,1,93L,94L,1,1,95L,1,true,LocalDateTime.now());
+        var execution = new ProjectTaskExecutionContext(9L,1L,91L,1,92L,1,93L,94L,1,1,95L,1,true,LocalDateTime.now());
         var request = new TaskBusinessObjectProvider.CompletionContext(1L,execution);
         assertFalse(provider.lockCompletionFact(request,"42").handlingCompleted());
         row.setRevisionState("FROZEN");
@@ -84,7 +84,7 @@ class RequirementAnalysisEntityBusinessObjectProviderTest {
     }
     @Test void draftRevalidationRejectsStaleVersionAndForeignProject() {
         String version = provider.inspect(context,"42").factVersion();
-        row.setVersion(3);
+        row.setVersion(3L);
         assertThrows(RuntimeException.class, () -> provider.lockAndRevalidate(context,"42",version));
         row.setProjectId(10L);
         assertThrows(RuntimeException.class, () -> provider.lockAndRevalidate(context,"42",version));

@@ -45,7 +45,7 @@ public class RequirementAnalysisEntityCommands {
             if (request.extensionValues() != null) {
                 if (request.extensionValues().keySet().stream().anyMatch(code -> RequirementAnalysisFields.property(code) != null))
                     throw exception(cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_CONTENT_INVALID);
-                extensions.save(new EntityExtensionApi.Save(target, actor, expectedVersion, request.expectedExtensionVersion(),
+                extensions.save(new EntityExtensionApi.Save(target, actor, (long) expectedVersion, request.expectedExtensionVersion(),
                         request.extensionDefinitionRevisionId(), request.extensionValues()));
             }
             // Every business save advances the revision lock, even if only extensions changed.

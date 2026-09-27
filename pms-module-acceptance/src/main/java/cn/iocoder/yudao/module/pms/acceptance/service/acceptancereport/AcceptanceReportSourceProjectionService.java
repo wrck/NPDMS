@@ -84,7 +84,6 @@ public class AcceptanceReportSourceProjectionService {
         insertAttachments(event, source.getId());
         deliverable.setCurrentSourceVersionId(source.getId());
         deliverable.setArchiveStatus("PENDING_COMPENSATION");
-        deliverable.setVersion(deliverable.getVersion() + 1);
         deliverable.setUpdater(String.valueOf(event.publisherActorUserId()));
         if (deliverableMapper.updateById(deliverable) != 1) throw new IllegalStateException("deliverable update failed");
     }
@@ -105,7 +104,6 @@ public class AcceptanceReportSourceProjectionService {
         if (sourceMapper.updateById(current) != 1) throw new IllegalStateException("source revoke failed");
         deliverable.setCurrentSourceVersionId(null);
         deliverable.setArchiveStatus("INVALID");
-        deliverable.setVersion(deliverable.getVersion() + 1);
         deliverable.setUpdater(String.valueOf(event.publisherActorUserId()));
         if (deliverableMapper.updateById(deliverable) != 1) throw new IllegalStateException("deliverable revoke failed");
     }

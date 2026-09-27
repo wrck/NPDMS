@@ -100,7 +100,11 @@ class InspectionRuleRevisionServiceImplTest {
 
     @Test
     void shouldCreateMinimalDraftForNewStableIdentity() {
-        when(ruleMapper.insert(any(InspectionRuleDO.class))).thenReturn(1);
+        // InspectionRuleDO 主键已切换数据库自增（IdType.AUTO）：mock insert 需模拟 MyBatis-Plus 主键回填。
+        when(ruleMapper.insert(any(InspectionRuleDO.class))).thenAnswer(invocation -> {
+            invocation.getArgument(0, InspectionRuleDO.class).setId(99L);
+            return 1;
+        });
         when(revisionMapper.insert(any(InspectionRuleRevisionDO.class))).thenReturn(1);
 
         InspectionRuleRevisionService.DraftResult result = service.createDraft(
@@ -480,7 +484,7 @@ class InspectionRuleRevisionServiceImplTest {
         rule.setTenantId(TENANT_ID);
         rule.setDetectionId("DET-001");
         rule.setRuleName("核心状态检查");
-        rule.setVersion(2);
+        rule.setVersion(2L);
         return rule;
     }
 

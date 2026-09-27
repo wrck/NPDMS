@@ -130,7 +130,7 @@ class ProjectParticipantFactApiImplTest {
                 .thenReturn(List.of(assignment(100L, 300L, ROLE_SERVICE_MANAGER_L1, "PRIMARY", 0L)));
 
         var fact = api.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 300L, 11, "ACTIVE", null, Set.of(ROLE_SERVICE_MANAGER_L1)));
+                100L, 300L, 11L, "ACTIVE", null, Set.of(ROLE_SERVICE_MANAGER_L1)));
 
         assertEquals(300L, fact.userId());
         assertEquals(11L, fact.factVersion());
@@ -145,10 +145,10 @@ class ProjectParticipantFactApiImplTest {
 
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
-                        100L, 200L, 11, "ACTIVE", null, Set.of(ROLE_PROJECT_MANAGER))));
+                        100L, 200L, 11L, "ACTIVE", null, Set.of(ROLE_PROJECT_MANAGER))));
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
-                        100L, 200L, 12, "ACTIVE", "S1", Set.of(ROLE_PROJECT_MANAGER))));
+                        100L, 200L, 12L, "ACTIVE", "S1", Set.of(ROLE_PROJECT_MANAGER))));
         verify(memberMapper, never()).selectParticipantFactsForUpdate(any(ProjectParticipantFactLockQuery.class));
     }
 
@@ -188,11 +188,11 @@ class ProjectParticipantFactApiImplTest {
         assertEquals(Set.of(ROLE_PROJECT_MANAGER), fact.effectiveRoleCodes());
         assertEquals("COLLABORATOR", fact.assignmentType());
         assertEquals(300L, api.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 300L, 7, "ACTIVE", "S3", Set.of(ROLE_PROJECT_MANAGER))).userId());
+                100L, 300L, 7L, "ACTIVE", "S3", Set.of(ROLE_PROJECT_MANAGER))).userId());
     }
 
     private static ProjectMasterDO project(long id, Long managerId, String lifecycleStatus,
-                                           String currentStage, int version, long tenantId) {
+                                           String currentStage, long version, long tenantId) {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(id);
         project.setManagerId(managerId);

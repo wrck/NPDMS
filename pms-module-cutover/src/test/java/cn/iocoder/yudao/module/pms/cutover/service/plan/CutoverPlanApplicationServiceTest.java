@@ -109,7 +109,7 @@ class CutoverPlanApplicationServiceTest {
         rollback.put("sectionCode", "ROLLBACK"); rollback.put("stepNo", 1); rollback.put("content", "执行回退");
 
         CutoverPlanCommandResult result = fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(
-                1L, 8L, 50L, 4, 0, 30L, body, "save-key-1", "corr-save"));
+                1L, 8L, 50L, 4L, 0L, 30L, body, "save-key-1", "corr-save"));
 
         assertThat(result.planVersion()).isEqualTo(1);
         assertThat(savedSteps).extracting(CutoverPlanStepDO::getSectionCode)
@@ -133,7 +133,7 @@ class CutoverPlanApplicationServiceTest {
         when(fixture.planMapper.selectCurrentForUpdate(any())).thenReturn(plan);
         when(fixture.planMapper.replaceDraftIfMatch(any())).thenReturn(1);
 
-        fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(1L, 8L, 50L, 4, 0, 30L,
+        fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(1L, 8L, 50L, 4L, 0L, 30L,
                 uploadContent(file), "upload-save", "corr-upload-save"));
 
         InOrder order = inOrder(fixture.projectPort, fixture.sourcePort, fixture.filePort,
@@ -158,9 +158,9 @@ class CutoverPlanApplicationServiceTest {
         tools.jackson.databind.JsonNode reordered = simpleContent(true);
 
         CutoverPlanCommandResult saved = fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(
-                1L, 8L, 50L, 4, 0, 30L, first, "same-save", "corr-a"));
+                1L, 8L, 50L, 4L, 0L, 30L, first, "same-save", "corr-a"));
         CutoverPlanCommandResult replayed = fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(
-                1L, 8L, 50L, 4, 0, 30L, reordered, "same-save", "corr-b"));
+                1L, 8L, 50L, 4L, 0L, 30L, reordered, "same-save", "corr-b"));
 
         assertThat(replayed.replayed()).isTrue();
         assertThat(replayed.planVersion()).isEqualTo(saved.planVersion());
@@ -183,7 +183,7 @@ class CutoverPlanApplicationServiceTest {
         when(fixture.supportMapper.insert(any(CutoverSupportArrangementDO.class)))
                 .thenAnswer(invocation -> { saved.set(invocation.getArgument(0)); return 1; });
 
-        fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(1L, 8L, 50L, 4, 0, 30L,
+        fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(1L, 8L, 50L, 4L, 0L, 30L,
                 standardContent(null), "save-support", "corr-support"));
 
         assertThat(saved.get().getId()).isEqualTo(91L);
@@ -224,7 +224,7 @@ class CutoverPlanApplicationServiceTest {
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(50L); task.setTenantId(1L); task.setProjectId(70L);
         task.setOwnerUserId(8L); task.setTaskOrigin(CutoverTaskRules.ORIGIN_NEW_PLATFORM);
         task.setCurrentStage(CutoverTaskRules.STAGE_P4); task.setTaskStatus(CutoverTaskRules.STATUS_PLAN_DRAFTING);
-        task.setVersion(4); return task;
+        task.setVersion(4L); return task;
     }
 
     private static CutoverPlanSourcePort.SourceFacts facts(String grade) {
@@ -235,8 +235,8 @@ class CutoverPlanApplicationServiceTest {
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> templates = new ArrayList<>();
         for (int i = 0; i < sections.size(); i++) templates.add(new CutoverPlanSourcePort.TemplateSectionSnapshot(
                 sections.get(i), sections.get(i), i + 1, List.of("NETWORK_CUTOVER"), List.of(grade), true));
-        CutoverPlanSourcePort.SourceSnapshot snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4,
-                100L, 2, grade, "D".equals(grade) ? null : 200L, "D".equals(grade) ? null : 3,
+        CutoverPlanSourcePort.SourceSnapshot snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4L,
+                100L, 2L, grade, "D".equals(grade) ? null : 200L, "D".equals(grade) ? null : 3L,
                 70L, 6, 30L, List.of(new CutoverPlanSourcePort.DeviceSnapshot(301L, "SN-1", 9L,
                 "ROUTER", "type-v1")), 401L, "CFG-1", 1, templates, risks);
         return new CutoverPlanSourcePort.SourceFacts(snapshot, risks);
@@ -248,7 +248,7 @@ class CutoverPlanApplicationServiceTest {
     }
 
     private static CreateCutoverPlanDraftCommand command(String mode, CutoverPlanFilePort.FileFact file, Boolean ownership) {
-        return new CreateCutoverPlanDraftCommand(1L, 8L, 50L, 4, 30L, mode, file, ownership,
+        return new CreateCutoverPlanDraftCommand(1L, 8L, 50L, 4L, 30L, mode, file, ownership,
                 "create-key-1", "corr-create");
     }
 

@@ -18,7 +18,7 @@ class JointTestLocalLifecycleTest {
     private JointTestDO row;
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "jointTestMapper", mapper);
-        row = new JointTestDO(); row.setId(1L); row.setProjectId(7L); row.setCode("JT-TEST"); row.setStatus(1); row.setVersion(4);
+        row = new JointTestDO(); row.setId(1L); row.setProjectId(7L); row.setCode("JT-TEST"); row.setStatus(1); row.setVersion(4L);
         when(mapper.selectById(1L)).thenReturn(row);
     }
 

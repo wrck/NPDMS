@@ -11,12 +11,12 @@ public interface ProjectClosureExitApi {
      */
     ClosureExitResult executeApprovedExit(ClosureExitCommand command);
 
-    record ClosureExitCommand(Long tenantId, Long projectId, Integer expectedProjectVersion,
+    record ClosureExitCommand(Long tenantId, Long projectId, Long expectedProjectVersion,
                                Long expectedTreeVersion, Long actorId, String correlationId,
                                Long applicationId, Long snapshotId, Long expectedReviewerUserId,
                                String expectedFromStage, Long expectedServiceManagerUserId,
                                String expectedSourceDigest, String processInstanceId,
-                               Integer sourceRecordRevision) {
+                               Long sourceRecordRevision) {
     }
 
     record ClosureExitResult(Long exitRecordId, Long afterProjectVersion, Long stageInstanceId,

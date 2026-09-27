@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.asset.dal.dataobject.product;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,10 +10,8 @@ import lombok.EqualsAndHashCode;
 @TableName("ast_product_official_info")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AssetProductOfficialDO extends TenantBaseDO {
+public class AssetProductOfficialDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     private String productCode;
     private String productName;
     private String productModel;

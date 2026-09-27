@@ -166,8 +166,8 @@ public final class ProjectOwnerOperationScopeCases {
                 f.operationCode(),f.operationVersion(),f.objectId(),f.execution());
     }
     private static ProjectBusinessExecutionSelection selection(boolean stage) {
-        return stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,true))
-                : new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
+        return stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(3L,1L,4L,1,5L,1,6L,7L,1,1,true))
+                : new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1L,4L,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
     }
     @FunctionalInterface private interface Case { void run() throws Exception; }
     private static void scenario(String name, Case test) throws Exception {

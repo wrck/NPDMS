@@ -426,14 +426,14 @@ public class OrdinaryProjectMemberService {
             this(userId, memberRole, responsibility, remark, false, null);
         }
     }
-    public record Command(Long projectId, Integer expectedVersion, Action action, Long assignmentId,
+    public record Command(Long projectId, Long expectedVersion, Action action, Long assignmentId,
                           MemberValues member, String reason, String idempotencyKey, Long replacementPrimaryUserId) {
         public Command { reason = reason == null ? "" : reason.trim(); }
-        public Command(Long projectId, Integer version, Action action, Long assignmentId, MemberValues member, String reason, String key) {
+        public Command(Long projectId, Long version, Action action, Long assignmentId, MemberValues member, String reason, String key) {
             this(projectId, version, action, assignmentId, member, reason, key, null);
         }
     }
-    public record Result(Long projectId, Integer version, Long assignmentId, Long userId, String memberRole,
+    public record Result(Long projectId, Long version, Long assignmentId, Long userId, String memberRole,
                          LocalDateTime effectiveFrom, LocalDateTime effectiveTo, boolean changed) { }
     private record Audit(Long previousAssignmentId, MemberValues member, String reason, Result result) { }
 }

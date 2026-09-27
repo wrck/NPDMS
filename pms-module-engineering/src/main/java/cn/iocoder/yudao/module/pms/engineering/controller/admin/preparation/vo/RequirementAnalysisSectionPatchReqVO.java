@@ -18,5 +18,5 @@ public class RequirementAnalysisSectionPatchReqVO {
     @Valid private List<RequirementAnalysisAttachmentReqVO> attachments;
     @NotNull @PositiveOrZero private Integer expectedPreparationVersion;
     @NotNull @PositiveOrZero private Integer expectedContentVersion;
-    private Integer expectedProjectVersion;
+    private Long expectedProjectVersion;
 }

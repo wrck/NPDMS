@@ -63,11 +63,11 @@ class ProjectDeliverablePlanMapperTest {
             assertEquals(sources,jdbc.queryForList("SELECT * FROM acc_project_deliverable_source_version ORDER BY id"));
             // A withdrawn source is still handling history, even though the current pointer is empty.
             assertEquals(0,mapper.retireUnhandledForPlan(change(1L,9L,30L,null)));
-            assertEquals(0,mapper.retireUnhandledForPlan(new AccProjectDeliverableMapper.PlanDefinitionChange(1L,9L,10L,4,null,"7")));
+            assertEquals(0,mapper.retireUnhandledForPlan(new AccProjectDeliverableMapper.PlanDefinitionChange(1L,9L,10L,4L,null,"7")));
             assertEquals(0,mapper.updatePlanDefinition(change(2L,9L,10L,"FOREIGN")));
             assertEquals(0,mapper.updatePlanDefinition(change(1L,99L,30L,"FOREIGN")));
             assertEquals(0,mapper.updatePlanDefinition(change(1L,9L,10L,"STALE")));
-            var pending=new AccProjectDeliverableMapper.PlanDefinitionChange(1L,9L,20L,4,null,"7");
+            var pending=new AccProjectDeliverableMapper.PlanDefinitionChange(1L,9L,20L,4L,null,"7");
             transaction.executeWithoutResult(status -> {
                 jdbc.execute("INSERT INTO acc_acceptance VALUES (60,1,20)");
                 assertTrue(mapper.selectRetirablePlanDefinitionIds(planScope).isEmpty());
@@ -90,6 +90,6 @@ class ProjectDeliverablePlanMapperTest {
     private AccProjectDeliverableMapper.PlanDefinitionChange change(Long tenant,Long project,Long id,String code) {
         var definition=new AccProjectDeliverableDO(); definition.setDeliverableCode(code); definition.setName("new definition");
         definition.setStageCode("CUSTOM"); definition.setRequired(false);
-        return new AccProjectDeliverableMapper.PlanDefinitionChange(tenant,project,id,3,definition,"7");
+        return new AccProjectDeliverableMapper.PlanDefinitionChange(tenant,project,id,3L,definition,"7");
     }
 }

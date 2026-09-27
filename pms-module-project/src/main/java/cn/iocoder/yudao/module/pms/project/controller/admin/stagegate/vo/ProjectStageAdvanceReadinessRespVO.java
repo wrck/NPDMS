@@ -6,7 +6,7 @@ import cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageReadine
 import java.util.List;
 
 public record ProjectStageAdvanceReadinessRespVO(
-        Long projectId, Integer projectVersion, Long treeVersion,
+        Long projectId, Long projectVersion, Long treeVersion,
         String currentStage, String nextStage, boolean advanceAllowed,
         String guidance, List<Gate> gates) {
 

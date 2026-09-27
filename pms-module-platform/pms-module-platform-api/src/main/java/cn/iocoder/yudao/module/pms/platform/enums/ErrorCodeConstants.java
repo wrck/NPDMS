@@ -62,4 +62,12 @@ public interface ErrorCodeConstants {
     ErrorCode ENTITY_REVISION_MISMATCH = new ErrorCode(1_010_004_004, "业务修订不属于指定实体或状态不允许操作");
 
     ErrorCode COLLECTION_OPERATION_REJECTED = new ErrorCode(1_010_005_000, "采集操作未完成");
+
+    // 统一业务模型公共入口的契约诊断；并发与幂等冲突必须可被客户端识别，不表现为系统异常。
+    ErrorCode BUSINESS_MODEL_CONTRACT_REJECTED = new ErrorCode(1_010_006_000, "统一业务模型契约诊断未通过");
+    ErrorCode BUSINESS_MODEL_CONCURRENCY_CONFLICT = new ErrorCode(1_010_006_001, "并发依据过期，请重新读取后再保存");
+    ErrorCode BUSINESS_MODEL_IDEMPOTENCY_DIGEST_CONFLICT = new ErrorCode(1_010_006_002, "相同幂等键携带了不同请求内容");
+    ErrorCode BUSINESS_MODEL_IDEMPOTENCY_IN_PROGRESS = new ErrorCode(1_010_006_003, "相同幂等键的操作仍在处理中");
+    ErrorCode BUSINESS_MODEL_OPERATION_VERSION_CONFLICT = new ErrorCode(1_010_006_004, "操作版本与目录声明不一致");
+    ErrorCode BUSINESS_MODEL_ACCESS_DENIED = new ErrorCode(1_010_006_005, "没有该业务操作的执行权限");
 }

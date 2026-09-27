@@ -27,7 +27,7 @@ class ProjectCustomerContactServiceTest {
     private final CustomerContactMasterService.Actor actor = new CustomerContactMasterService.Actor(1L, 3L);
 
     @BeforeEach void context() {
-        when(projects.lockForWrite(any())).thenReturn(new ProjectContactContextApi.Context(7L, 8L, 2, "ACTIVE", true));
+        when(projects.lockForWrite(any())).thenReturn(new ProjectContactContextApi.Context(7L, 8L, 2L, "ACTIVE", true));
         var customer = new CustomerMasterDO(); customer.setId(8L); customer.setLifecycleStatus("ENABLED");
         when(sources.selectCustomerForUpdate(any())).thenReturn(customer);
     }
@@ -122,17 +122,17 @@ class ProjectCustomerContactServiceTest {
         var command = new ProjectContactWrite(7L,10L,null,2,2,
                 new ContactValues("客户联系人",null,null,"13800138000",null,null,null),false,0,false);
         service.update(actor,command);
-        verify(projects).lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2));
+        verify(projects).lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L));
         verifyNoMoreInteractions(projects);
         verify(sources,never()).updateById(any(CustomerContactMasterDO.class));
     }
 
     @Test void managerCanListAllStatusesWhileViewerOnlyListsEnabledContacts() {
-        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2,"ACTIVE",true));
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2L,"ACTIVE",true));
         when(contacts.selectPage(any())).thenReturn(PageResult.empty());
         service.page(actor, 7L, null, "查询姓名", new cn.iocoder.yudao.framework.common.pojo.PageParam());
         verify(contacts).selectPage(argThat(query -> query.status() == null && "查询姓名".equals(query.name())));
-        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2,"ACTIVE",false));
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2L,"ACTIVE",false));
         service.page(actor, 7L, 1, null, new cn.iocoder.yudao.framework.common.pojo.PageParam());
         verify(contacts).selectPage(argThat(query -> Integer.valueOf(0).equals(query.status())));
     }
@@ -185,7 +185,7 @@ class ProjectCustomerContactServiceTest {
     }
 
     @Test void historyUsesCurrentStateForRestoreAndRemainsReadableAfterProjectClosure() {
-        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2,"ACTIVE",true));
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2L,"ACTIVE",true));
         var entry = new ContactHistoryDO(); entry.setProjectRelationId(10L); entry.setActionCode("DELETE");
         entry.setBeforeValues("{\"id\":10,\"version\":2}");
         when(history.selectProjectPage(any())).thenReturn(new PageResult<>(List.of(entry),1L));
@@ -195,7 +195,7 @@ class ProjectCustomerContactServiceTest {
         assertTrue(service.history(actor,7L,page).getList().getFirst().getRestorable());
         state.setVersion(5);
         assertFalse(service.history(actor,7L,page).getList().getFirst().getRestorable());
-        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2,"NORMAL_CLOSED",false,true));
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2L,"NORMAL_CLOSED",false,true));
         assertEquals(1L, service.history(actor,7L,page).getTotal());
         assertFalse(entry.getRestorable());
     }

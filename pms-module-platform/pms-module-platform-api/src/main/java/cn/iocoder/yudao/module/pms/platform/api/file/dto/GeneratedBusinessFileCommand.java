@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.platform.api.file.dto;
 public record GeneratedBusinessFileCommand(
         Long tenantId, Long actorUserId, String operationId,
         Long resultId, Long collectionTaskId, Long questionnaireId,
-        Long responseId, Integer expectedTaskVersion,
+        Long responseId, Long expectedTaskVersion,
         String ownerContext, String objectType, String purposeCode,
         Long scopeVersion, String fileName, String contentType, byte[] content) {
 

@@ -22,7 +22,7 @@ class ConfigurationLocalLifecycleTest {
         ReflectionTestUtils.setField(service, "configurationMapper", mapper);
         doReturn("PROJ-CFG-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
-        row = new ConfigurationDO(); row.setId(1L); row.setProjectId(7L); row.setCode("CFG-TEST"); row.setStatus(0); row.setVersion(6);
+        row = new ConfigurationDO(); row.setId(1L); row.setProjectId(7L); row.setCode("CFG-TEST"); row.setStatus(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);
     }
 
@@ -31,7 +31,7 @@ class ConfigurationLocalLifecycleTest {
         when(mapper.updateById(any(ConfigurationDO.class))).thenAnswer(call -> {
             ConfigurationDO update = call.getArgument(0);
             assertEquals(storedVersion[0], update.getVersion());
-            update.setVersion(++storedVersion[0]);
+            update.setVersion((long) ++storedVersion[0]);
             return 1;
         });
         service.startConfiguration(1L);

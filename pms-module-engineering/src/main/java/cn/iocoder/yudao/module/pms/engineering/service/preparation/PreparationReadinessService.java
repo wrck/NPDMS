@@ -187,7 +187,7 @@ public class PreparationReadinessService {
         return response(preparation, latest, scope.treeVersion(), evaluation, true);
     }
 
-    private ProjectScopeResult authorizeAndLock(Long projectId, Integer projectVersion,
+    private ProjectScopeResult authorizeAndLock(Long projectId, Long projectVersion,
             PreparationItemApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);

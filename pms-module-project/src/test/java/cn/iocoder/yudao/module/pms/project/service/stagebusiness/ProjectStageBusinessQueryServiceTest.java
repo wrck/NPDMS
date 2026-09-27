@@ -25,7 +25,7 @@ class ProjectStageBusinessQueryServiceTest {
     private final BusinessViewQueryApi views = mock(BusinessViewQueryApi.class);
     private final StageBusinessViewProvider owner = mock(StageBusinessViewProvider.class);
     private final ProjectNodeExecutionApi executions = mock(ProjectNodeExecutionApi.class);
-    private final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L, 1, 90L, 1, 99L, 1, 100L, 101L, 1, 2, true);
+    private final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L, 1L, 90L, 1, 99L, 1, 100L, 101L, 1, 2, true);
     private final ProjectStageApprovalService approvals = mock(ProjectStageApprovalService.class);
     private final ProjectStageBusinessQueryService service = new ProjectStageBusinessQueryService(projects, graph, views, List.of(owner), executions, approvals);
     private final ProjectAccessActor actor = new ProjectAccessActor(1L, 7L);
@@ -69,7 +69,7 @@ class ProjectStageBusinessQueryServiceTest {
     private BusinessViewRevision view(String status) {
         return new BusinessViewRevision(88L, "REQUIREMENT_ANALYSIS", "REQ", 1L, "SOL", BusinessViewComponentProvider.ViewSource.PAGE,
                 "PROJ_REQUIREMENT_ANALYSIS", "1", null, JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"),
-                "QUERY", "COMMAND", "PERMISSION", null, null, 1, status, Set.of());
+                "QUERY", "COMMAND", "PERMISSION", null, null, 1L, status, Set.of());
     }
     @Test void readsStageNativeFromFrozenContractWithoutGuessingByStageCode() {
         var result = service.getContext(9L, "S4", actor);
@@ -142,7 +142,7 @@ class ProjectStageBusinessQueryServiceTest {
 
     @Test void activeStageProjectionDoesNotOverrideInactiveExecution() {
         binding("BUSINESS_OBJECT");
-        when(executions.inspectStage(any())).thenReturn(new ProjectStageExecutionContext(9L, 1, 90L, 1, 99L, 1, 100L, 101L, 1, 2, false));
+        when(executions.inspectStage(any())).thenReturn(new ProjectStageExecutionContext(9L, 1L, 90L, 1, 99L, 1, 100L, 101L, 1, 2, false));
         var result = service.getContext(9L, "S4", actor);
         assertTrue(result.readonly()); assertEquals(Set.of("QUERY"), result.ownerActions());
         assertNotNull(result.businessView());

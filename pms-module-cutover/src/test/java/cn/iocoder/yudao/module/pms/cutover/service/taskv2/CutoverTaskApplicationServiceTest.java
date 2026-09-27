@@ -217,13 +217,13 @@ class CutoverTaskApplicationServiceTest {
                                 List.of(400L), "watermark-1", List.of())));
     }
 
-    private static SaveCutoverAssessmentCommand saveCommand(Long taskId, Integer taskVersion, String grade) {
-        return new SaveCutoverAssessmentCommand(1L, 8L, taskId, taskVersion, 0,
+    private static SaveCutoverAssessmentCommand saveCommand(Long taskId, Long taskVersion, String grade) {
+        return new SaveCutoverAssessmentCommand(1L, 8L, taskId, taskVersion, 0L,
                 new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), grade, "corr-save-" + grade);
     }
 
-    private static SubmitCutoverAssessmentCommand submitCommand(Long taskId, Integer taskVersion,
-                                                                 Integer assessmentVersion, String key) {
+    private static SubmitCutoverAssessmentCommand submitCommand(Long taskId, Long taskVersion,
+                                                                 Long assessmentVersion, String key) {
         return new SubmitCutoverAssessmentCommand(1L, 8L, taskId, taskVersion, assessmentVersion,
                 key, "corr-" + key);
     }

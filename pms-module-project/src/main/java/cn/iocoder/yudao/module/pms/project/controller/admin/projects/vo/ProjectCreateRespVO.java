@@ -29,7 +29,7 @@ public class ProjectCreateRespVO {
     private String assignmentStatus;
 
     @Schema(description = "项目版本", example = "0")
-    private Integer version;
+    private Long version;
 
     @Schema(description = "冻结的生命周期模板ID", example = "910001")
     private Long lifecycleTemplateId;

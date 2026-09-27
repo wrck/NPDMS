@@ -125,6 +125,16 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     }
 
     @Override
+    public TemplateDesignerDocument getPublishedDesigner(Long templateId) {
+        ProjectTemplateRevisionDO latest = v2RevisionMapper.selectPublishedListByTemplateId(templateId)
+                .stream().findFirst().orElse(null);
+        if (latest == null) {
+            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
+        }
+        return designerForRevision(templateId, latest.getRevisionNo());
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content) {
         Objects.requireNonNull(content, "template content");
@@ -303,7 +313,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     }
 
     @Override
-    public Long copyProjectTemplate(Long id, Integer expectedVersion, ProjectTemplateCopyReqVO body, String idempotencyKey) {
+    public Long copyProjectTemplate(Long id, Long expectedVersion, ProjectTemplateCopyReqVO body, String idempotencyKey) {
         return v2ConfigurationCommands.execute("PROJECT_TEMPLATE_COPY_V2", idempotencyKey,
                 new CopyIntent(id, expectedVersion, body), Long.class, () -> {
                     ProjectTemplateDO source = lockV2Template(id);
@@ -523,5 +533,5 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
 
     private boolean hasText(String value) { return value != null && !value.isBlank(); }
 
-    private record CopyIntent(Long id, Integer expectedVersion, ProjectTemplateCopyReqVO body) { }
+    private record CopyIntent(Long id, Long expectedVersion, ProjectTemplateCopyReqVO body) { }
 }

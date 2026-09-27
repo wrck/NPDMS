@@ -139,7 +139,7 @@ class SatisfactionResultDecisionServiceTest {
         row.setId(10L); row.setTenantId(7L); row.setProjectId(20L); row.setProjectTaskId(21L);
         row.setDeliverableId(40L);
         row.setQuestionnaireId(11L); row.setAssignedToUserId(99L); row.setTaskStatus("PENDING_DECISION");
-        row.setCollectionKey("SAT-10"); row.setTaskRevisionNo(1); row.setVersion(1);
+        row.setCollectionKey("SAT-10"); row.setTaskRevisionNo(1); row.setVersion(1L);
         row.setSourceOwnerContext("ACC"); row.setSourceObjectType("AcceptanceActivity");
         row.setSourceObjectId("100"); row.setSourceObjectVersion(1L);
         return row;
@@ -149,7 +149,7 @@ class SatisfactionResultDecisionServiceTest {
         SatisfactionQuestionnaireDO row = new SatisfactionQuestionnaireDO();
         row.setId(11L); row.setTenantId(7L); row.setCollectionTaskId(10L); row.setTemplateRevisionId(30L);
         row.setFrozenQuestionJson(config()); row.setFrozenThreshold(new BigDecimal("4.00"));
-        row.setRuleVersion("RULE-1"); row.setAccessScopeVersion(3L); row.setVersion(0);
+        row.setRuleVersion("RULE-1"); row.setAccessScopeVersion(3L); row.setVersion(0L);
         return row;
     }
 

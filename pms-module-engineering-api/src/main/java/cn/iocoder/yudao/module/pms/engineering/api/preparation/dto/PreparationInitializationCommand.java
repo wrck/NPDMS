@@ -5,7 +5,7 @@ public record PreparationInitializationCommand(
         Long projectId,
         Long projectTaskId,
         Long executionContractId,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         Integer expectedProjectTaskVersion,
         Integer expectedContractVersion,
         String triggerType,

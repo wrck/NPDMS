@@ -12,7 +12,7 @@ public class PreparationWaiverReqVO {
     @NotNull private Integer expectedReadinessVersion;
     @NotNull private Integer expectedItemVersion;
     private Integer expectedWaiverVersion;
-    @NotNull private Integer expectedProjectVersion;
+    @NotNull private Long expectedProjectVersion;
     private List<String> blockerCodes;
     private String reason;
     private String risk;

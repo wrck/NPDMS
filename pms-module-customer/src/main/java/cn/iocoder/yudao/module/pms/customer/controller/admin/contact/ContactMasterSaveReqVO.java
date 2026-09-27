@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class ContactMasterSaveReqVO {
     @NotNull @Positive private Long customerId;
-    private Integer version;
+    private Long version;
     @NotBlank @Size(max=64) private String name;
     @Size(max=64) private String department;
     @Size(max=64) private String title;

@@ -263,7 +263,7 @@ public class ProjectSplitPreviewService {
     }
 
     public record PreviewResult(Long requestId, Integer draftVersion, boolean valid, String previewHash,
-                                LocalDateTime validatedAt, Integer parentVersion, Long scopeVersion,
+                                LocalDateTime validatedAt, Long parentVersion, Long scopeVersion,
                                 Long treeVersion, List<String> errors, List<ItemResult> items) {}
     public record ItemResult(String clientItemKey, boolean valid, List<String> errors) {}
 }

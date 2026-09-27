@@ -102,19 +102,20 @@ class AssetProductTypeSchemaContractTest {
 
     @Test
     void mapsTenantDataObjectsAndGeneratedMarker() throws Exception {
+        // P12-B4：id/version 上移 BaseBusinessEntity 基类，DO 自身仅声明业务字段。
         assertDataObject(AssetProductTypeDO.class, "ast_product_type", Set.of(
-                "id", "typeCode", "displayName", "enabled", "sourceSystem", "sourceKey",
+                "typeCode", "displayName", "enabled", "sourceSystem", "sourceKey",
                 "sourceVersion", "sourceUpdatedAt", "payloadHash", "syncStatus",
-                "lastSyncAttemptAt", "syncedAt", "version"));
+                "lastSyncAttemptAt", "syncedAt"), true);
         assertDataObject(AssetProductTypeSourceMappingDO.class, "ast_product_type_source_mapping", Set.of(
                 "id", "sourceSystem", "sourceKey", "sourceVersion", "sourceUpdatedAt",
                 "payloadHash", "productTypeId", "mappingStatus", "conflictProductTypeCode",
                 "conflictSourceVersion", "conflictSourceUpdatedAt", "conflictPayloadHash",
-                "syncedAt", "version"));
+                "syncedAt", "version"), false);
         assertDataObject(DeviceCurrentProductTypeDO.class, "ast_device_current_product_type", Set.of(
                 "id", "deviceId", "productTypeId", "productTypeCode", "sourceMappingId",
                 "resolutionStatus", "sourceVersion", "sourceUpdatedAt", "effectiveFrom",
-                "effectiveTo", "currentMarker", "version"));
+                "effectiveTo", "currentMarker", "version"), false);
         TableField currentMarker = DeviceCurrentProductTypeDO.class.getDeclaredField("currentMarker")
                 .getAnnotation(TableField.class);
         assertNotNull(currentMarker);
@@ -122,7 +123,8 @@ class AssetProductTypeSchemaContractTest {
         assertEquals(FieldStrategy.NEVER, currentMarker.updateStrategy());
     }
 
-    private static void assertDataObject(Class<?> type, String tableName, Set<String> expectedFields) throws Exception {
+    private static void assertDataObject(Class<?> type, String tableName, Set<String> expectedFields,
+                                         boolean inheritsBusinessIdentity) throws Exception {
         assertTrue(TenantBaseDO.class.isAssignableFrom(type));
         TableName table = type.getAnnotation(TableName.class);
         assertNotNull(table);
@@ -132,8 +134,12 @@ class AssetProductTypeSchemaContractTest {
                 .collect(java.util.stream.Collectors.toSet()));
         String tableSql = tableDefinition(tableName);
         expectedFields.forEach(field -> assertTrue(tableSql.contains("`" + toSnakeCase(field) + "`")));
-        assertNotNull(type.getDeclaredField("id").getAnnotation(TableId.class));
-        assertNotNull(type.getDeclaredField("version").getAnnotation(Version.class));
+        if (inheritsBusinessIdentity) {
+            assertTrue(cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity.class.isAssignableFrom(type));
+        } else {
+            assertNotNull(type.getDeclaredField("id").getAnnotation(TableId.class));
+            assertNotNull(type.getDeclaredField("version").getAnnotation(Version.class));
+        }
         assertFalse(hasDeclaredField(type, "tenantId"));
         assertFalse(hasDeclaredField(type, "deleted"));
     }

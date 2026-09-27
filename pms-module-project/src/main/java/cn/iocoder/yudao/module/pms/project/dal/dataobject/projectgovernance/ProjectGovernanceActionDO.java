@@ -1,13 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * PMS 项目治理动作 DO（FR-PROJ-022 / T-V2-PROJ-003）
@@ -20,10 +18,8 @@ import java.time.LocalDateTime;
 @TableName("proj_project_governance_action")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectGovernanceActionDO extends TenantBaseDO {
+public class ProjectGovernanceActionDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -95,7 +91,4 @@ public class ProjectGovernanceActionDO extends TenantBaseDO {
     /**
      * 乐观锁版本号
      */
-    @Version
-    private Integer version;
-
 }

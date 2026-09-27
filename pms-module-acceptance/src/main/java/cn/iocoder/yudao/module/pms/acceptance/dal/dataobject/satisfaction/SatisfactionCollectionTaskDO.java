@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,9 +8,7 @@ import lombok.EqualsAndHashCode;
 @TableName("acc_satisfaction_collection_task")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SatisfactionCollectionTaskDO extends TenantBaseDO {
-    @TableId
-    private Long id;
+public class SatisfactionCollectionTaskDO extends BaseBusinessEntity {
     private Long projectId;
     private Long projectTaskId;
     private Long deliverableId;
@@ -34,5 +31,4 @@ public class SatisfactionCollectionTaskDO extends TenantBaseDO {
     private String taskStatus;
     private Long questionnaireId;
     private Long resultId;
-    private Integer version;
 }

@@ -122,7 +122,7 @@ class SatisfactionResponseSubmissionServiceTest {
         questionnaire.setFrozenThreshold(new BigDecimal("4.00"));
         questionnaire.setRuleVersion("RULE-1");
         SatisfactionCollectionTaskDO task = new SatisfactionCollectionTaskDO();
-        task.setId(10L); task.setTenantId(7L); task.setTaskStatus("PENDING_COLLECTION"); task.setVersion(0);
+        task.setId(10L); task.setTenantId(7L); task.setTaskStatus("PENDING_COLLECTION"); task.setVersion(0L);
         when(grantMapper.selectByDigestForUpdate(any())).thenReturn(grant);
         when(questionnaireMapper.selectById(11L)).thenReturn(questionnaire);
         when(taskMapper.selectByIdForUpdate(7L, 10L)).thenReturn(task);

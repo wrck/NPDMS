@@ -247,7 +247,7 @@ class CommerceAuthorityIngestServiceTest {
         row.setCustomerCode(fact.customerCode()); row.setCustomerName(fact.customerName());
         row.setContractAmount(fact.amount()); row.setCurrencyCode(fact.currencyCode());
         row.setSourceLifecycleStatus(fact.lifecycleStatus().name()); row.setSourceUpdatedAt(fact.sourceUpdatedAt());
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 
@@ -259,7 +259,7 @@ class CommerceAuthorityIngestServiceTest {
         row.setOrderType(fact.orderType()); row.setCustomerCode(fact.customerCode());
         row.setCustomerName(fact.customerName()); row.setOrderAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode()); row.setSourceLifecycleStatus(fact.lifecycleStatus().name());
-        row.setSourceUpdatedAt(fact.sourceUpdatedAt()); row.setVersion(0);
+        row.setSourceUpdatedAt(fact.sourceUpdatedAt()); row.setVersion(0L);
         row.setAuthorityStatus("CONFIRMED");
         row.setStatus("ENABLED");
         return row;
@@ -278,7 +278,7 @@ class CommerceAuthorityIngestServiceTest {
         DeliveryScopeDO row = new DeliveryScopeDO();
         row.setId(id); row.setTenantId(1L); row.setOrderLineId(lineId); row.setProjectId(projectId);
         row.setAllocatedQty(new BigDecimal(quantity)); row.setScopeStatus("ACTIVE");
-        row.setAllocationVersion(1L); row.setSourceEvidence("SRC"); row.setEffectiveFrom(time()); row.setVersion(0);
+        row.setAllocationVersion(1L); row.setSourceEvidence("SRC"); row.setEffectiveFrom(time()); row.setVersion(0L);
         return row;
     }
 

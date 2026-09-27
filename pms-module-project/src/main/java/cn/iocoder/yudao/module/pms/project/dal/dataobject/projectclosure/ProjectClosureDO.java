@@ -1,13 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * 项目闭环审批 DO
@@ -20,13 +18,11 @@ import java.time.LocalDateTime;
 @TableName("acc_project_closure_record")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectClosureDO extends TenantBaseDO {
+public class ProjectClosureDO extends BaseBusinessEntity {
 
     /**
      * 主键编号
      */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -82,7 +78,4 @@ public class ProjectClosureDO extends TenantBaseDO {
     /**
      * 乐观锁版本号
      */
-    @Version
-    private Integer version;
-
 }

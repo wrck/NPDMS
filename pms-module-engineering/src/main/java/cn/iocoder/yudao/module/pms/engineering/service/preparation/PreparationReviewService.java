@@ -313,7 +313,7 @@ public class PreparationReviewService {
         }
     }
 
-    private void authorizeManager(Long projectId, Integer expectedProjectVersion,
+    private void authorizeManager(Long projectId, Long expectedProjectVersion,
             PreparationItemApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);

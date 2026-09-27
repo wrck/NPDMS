@@ -3,8 +3,9 @@
     <el-form v-if="row" label-position="top" :disabled="readonly">
       <el-form-item label="允许的材料来源">
         <el-checkbox-group v-model="allowedSources">
-          <el-checkbox value="UPLOAD">上传文件</el-checkbox>
-          <el-checkbox value="BUSINESS_RESULT">关联业务成果</el-checkbox>
+          <el-checkbox v-for="source in materialSourceOptions" :key="source.code" :value="source.code">
+            {{ source.label }}
+          </el-checkbox>
         </el-checkbox-group>
       </el-form-item>
       <el-form-item label="最少有效材料数量"><el-input-number v-model="minimumQuantity" :min="row.required ? 1 : 0" :max="100" :precision="0" /></el-form-item>
@@ -24,6 +25,7 @@ import { ref } from 'vue'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import { constantRule } from './versionRuleModel'
 import { getDocumentSources } from '@/api/pms/acceptance/project-deliverable'
+import { getMaterialSources } from '@/api/pms/platform/delivery'
 defineProps<{ document: TemplateDesignerDocument; readonly?: boolean }>()
 const visible = ref(false)
 const row = ref<TemplateDesignerDocument['deliverables'][number]>()
@@ -32,6 +34,7 @@ const allowedSources = ref<string[]>([])
 const minimumQuantity = ref(1)
 const automaticSources = ref<string[]>([]), sourceOptions = ref<{ code: string; name: string }[]>([])
 const sourcesLoading = ref(false), legacyRule = ref(false)
+const materialSourceOptions = ref<{ code: string; label: string }[]>([])
 const open = async (item: TemplateDesignerDocument['deliverables'][number]) => {
   row.value = item
   configuration = item.configuration ? JSON.parse(JSON.stringify(item.configuration)) : {
@@ -45,7 +48,11 @@ const open = async (item: TemplateDesignerDocument['deliverables'][number]) => {
   legacyRule.value = JSON.stringify(configuration.confirmationRule) !== JSON.stringify(constantRule(true))
   visible.value = true
   sourcesLoading.value = true
-  try { sourceOptions.value = await getDocumentSources() } finally { sourcesLoading.value = false }
+  try {
+    ;[sourceOptions.value, materialSourceOptions.value] = await Promise.all([getDocumentSources(), getMaterialSources()])
+  } finally {
+    sourcesLoading.value = false
+  }
 }
 const save = () => {
   if (!row.value) return

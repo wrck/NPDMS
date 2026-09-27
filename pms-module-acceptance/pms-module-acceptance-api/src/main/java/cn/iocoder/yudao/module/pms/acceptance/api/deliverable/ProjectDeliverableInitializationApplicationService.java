@@ -20,7 +20,7 @@ public interface ProjectDeliverableInitializationApplicationService {
     record ApplyDeliverablePlanChanges(Long projectId, Long actorId, List<DeliverablePlanChange> changes) { }
 
     /** Null id creates a new definition; null definition retires an unhandled instance. */
-    record DeliverablePlanChange(Long id, Integer expectedVersion, DeliverableDefinition definition) { }
+    record DeliverablePlanChange(Long id, Long expectedVersion, DeliverableDefinition definition) { }
 
     record InitializeProjectDeliverablesCommand(
             Long projectId,
@@ -50,6 +50,6 @@ public interface ProjectDeliverableInitializationApplicationService {
             Boolean required,
             Long sourceDefinitionId,
             String status,
-            Integer version) {
+            Long version) {
     }
 }

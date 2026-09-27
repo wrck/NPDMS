@@ -128,7 +128,7 @@ public class ProjectRiskServiceImpl implements ProjectRiskService {
     }
 
     @Override
-    public void transitionStatusRetired(Long riskId, int targetStatus, Integer version) {
+    public void transitionStatusRetired(Long riskId, int targetStatus, Long version) {
         // 1. 校验存在
         ProjectRiskDO existing = validateRiskExistsRetired(riskId);
         // 2. 校验状态迁移合法性

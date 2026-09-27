@@ -46,7 +46,7 @@ public class ArrivalServiceImpl implements ArrivalService {
                 EngineeringRecordCodeGenerator.ARRIVAL, arrivalMapper,
                 ArrivalDO::getProjectId, ArrivalDO::getCode));
         arrival.setStatus(0); // Only the sign command produces a signed record.
-        arrival.setVersion(0);
+        arrival.setVersion(0L);
         if (arrival.getQuantity() == null) {
             arrival.setQuantity(1);
         }

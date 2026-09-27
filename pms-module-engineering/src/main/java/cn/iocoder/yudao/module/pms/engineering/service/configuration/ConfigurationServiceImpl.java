@@ -52,7 +52,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
                 ConfigurationDO::getProjectId, ConfigurationDO::getCode));
         configuration.setStatus(0); // 状态只由现有动作接口推进
         if (configuration.getVersion() == null) {
-            configuration.setVersion(0);
+            configuration.setVersion(0L);
         }
         configurationMapper.insert(configuration);
         archiveConfigLog(configuration, null);
@@ -150,7 +150,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     }
 
     private void validateVersion(ConfigurationDO configuration, Integer version) {
-        if (version != null && !Objects.equals(configuration.getVersion(), version)) {
+        if (version != null && !Objects.equals(configuration.getVersion(), version.longValue())) {
             throw exception(CONFIGURATION_VERSION_NOT_MATCH);
         }
     }

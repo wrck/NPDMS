@@ -1,8 +1,6 @@
 package cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,10 +10,8 @@ import java.time.LocalDateTime;
 @TableName("plt_authorization_grant")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AuthorizationGrantDO extends TenantBaseDO {
+public class AuthorizationGrantDO extends BaseBusinessEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
     private String subjectTypeCode;
     private Long subjectId;
     private String resourceContextCode;
@@ -34,6 +30,5 @@ public class AuthorizationGrantDO extends TenantBaseDO {
     private Long revokedBy;
     private LocalDateTime revokedAt;
     private String revokeReason;
-    private Integer version;
     private Integer currentMarker;
 }

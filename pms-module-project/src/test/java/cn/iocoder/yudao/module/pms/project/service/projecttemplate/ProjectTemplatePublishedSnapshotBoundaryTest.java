@@ -48,7 +48,7 @@ class ProjectTemplatePublishedSnapshotBoundaryTest {
         ProjectTemplateDO template = new ProjectTemplateDO();
         template.setId(10L);
         template.setTenantId(1L);
-        template.setVersion(7);
+        template.setVersion(7L);
         when(templates.lockTemplate(any(TemplateIdentityQuery.class))).thenReturn(template);
         when(commands.execute(anyString(), anyString(), any(), eq(Long.class), any()))
                 .thenAnswer(call -> call.<Supplier<Long>>getArgument(4).get());
@@ -143,7 +143,7 @@ class ProjectTemplatePublishedSnapshotBoundaryTest {
         body.setSourceRevisionNo(4);
         body.setCode("COPY");
         body.setName("副本");
-        return service.copyProjectTemplate(10L, 7, body, "copy-frozen-publication");
+        return service.copyProjectTemplate(10L, 7L, body, "copy-frozen-publication");
     }
 
     private ProjectTemplateRevisionDO published() {

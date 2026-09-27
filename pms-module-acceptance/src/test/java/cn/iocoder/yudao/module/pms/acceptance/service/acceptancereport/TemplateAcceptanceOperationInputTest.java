@@ -38,7 +38,7 @@ class TemplateAcceptanceOperationInputTest {
         when(access.inspect(any())).thenReturn(new ProjectBusinessOperationAccessProvider.Access(
                 Set.of(PREFIX + "CREATE_DRAFT", PREFIX + "UPDATE_DRAFT", PREFIX + "PUBLISH", PREFIX + "REVOKE"), "v2"));
         when(queries.get(eq(11L), any())).thenReturn(new AcceptanceReportQueryService.ActivityView(11L, 9L, null, null,
-                "FINAL", "ACTIVE", 12L, 2, null));
+                "FINAL", "ACTIVE", 12L, 2L, null));
         var result = new AcceptanceReportCommands.ReportResult(11L, 12L, 1, "DRAFT", null, false);
         when(commands.createDraft(any(), any())).thenReturn(result); when(commands.updateDraft(any(), any())).thenReturn(result);
         when(commands.publish(any(), any())).thenReturn(result); when(commands.revoke(any(), any())).thenReturn(result);
@@ -92,7 +92,7 @@ class TemplateAcceptanceOperationInputTest {
     }
 
     private static ProjectOperationCommand command(String input) {
-        return new ProjectOperationCommand(9L, "TASK", 10L, null, "11", 2, "v2", JsonUtils.parseTree(input), "same-key");
+        return new ProjectOperationCommand(9L, "TASK", 10L, null, "11", 2L, "v2", JsonUtils.parseTree(input), "same-key");
     }
     @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T value) {
         ObjectProvider<T> provider = mock(ObjectProvider.class); when(provider.getObject()).thenReturn(value); return provider;

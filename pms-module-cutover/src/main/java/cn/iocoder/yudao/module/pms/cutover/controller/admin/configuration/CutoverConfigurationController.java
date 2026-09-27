@@ -62,7 +62,7 @@ public class CutoverConfigurationController {
     @Operation(summary = "保存完整配置草稿")
     @PreAuthorize("@ss.hasPermission('pms:cutover-config:manage')")
     public CommonResult<Boolean> update(@PathVariable Long revisionId,
-                                        @RequestHeader("If-Match") Integer expectedVersion,
+                                        @RequestHeader("If-Match") Long expectedVersion,
                                         @Valid @RequestBody CutoverConfigurationSaveReqVO request) {
         service.update(revisionId, expectedVersion, request);
         return success(true);
@@ -72,7 +72,7 @@ public class CutoverConfigurationController {
     @Operation(summary = "复制配置为新草稿修订")
     @PreAuthorize("@ss.hasPermission('pms:cutover-config:manage')")
     public CommonResult<Long> copy(@PathVariable Long revisionId,
-                                   @RequestHeader("If-Match") Integer expectedVersion) {
+                                   @RequestHeader("If-Match") Long expectedVersion) {
         return success(service.copyRevision(revisionId, expectedVersion));
     }
 
@@ -87,7 +87,7 @@ public class CutoverConfigurationController {
     @Operation(summary = "发布配置修订")
     @PreAuthorize("@ss.hasPermission('pms:cutover-config:publish')")
     public CommonResult<CutoverConfigurationRespVO> publish(@PathVariable Long revisionId,
-                                                            @RequestHeader("If-Match") Integer expectedVersion) {
+                                                            @RequestHeader("If-Match") Long expectedVersion) {
         return success(service.publish(revisionId, expectedVersion));
     }
 
@@ -95,7 +95,7 @@ public class CutoverConfigurationController {
     @Operation(summary = "停用已发布配置修订")
     @PreAuthorize("@ss.hasPermission('pms:cutover-config:disable')")
     public CommonResult<CutoverConfigurationRespVO> disable(@PathVariable Long revisionId,
-                                                            @RequestHeader("If-Match") Integer expectedVersion) {
+                                                            @RequestHeader("If-Match") Long expectedVersion) {
         return success(service.disable(revisionId, expectedVersion));
     }
 

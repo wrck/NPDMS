@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record DeliveryScopePreviewResult(
-        Long projectId, Integer projectVersion, String projectCode,
+        Long projectId, Long projectVersion, String projectCode,
         Long departmentId, String departmentCode, String departmentName,
         Integer departmentVersion, Long orderLineId, String orderLineSourceVersion,
         BigDecimal orderQuantity, BigDecimal allocatedQuantity, BigDecimal availableQuantity,

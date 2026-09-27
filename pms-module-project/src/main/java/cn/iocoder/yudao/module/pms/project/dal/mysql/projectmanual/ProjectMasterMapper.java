@@ -67,7 +67,7 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
     }
 
     int incrementVersionIfMatch(@Param("projectId") Long projectId,
-                                @Param("expectedVersion") Integer expectedVersion);
+                                @Param("expectedVersion") Long expectedVersion);
 
     int updateAssignmentStatusIfVersion(@Param("query") ProjectAssignmentStatusUpdate query);
 

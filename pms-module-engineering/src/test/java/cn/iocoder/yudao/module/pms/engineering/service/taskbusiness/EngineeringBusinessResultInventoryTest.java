@@ -23,7 +23,7 @@ class EngineeringBusinessResultInventoryTest {
         when(mapper.selectResultInventory(any())).thenReturn(List.of("40","41","42"));
         when(mapper.selectRevision(any())).thenAnswer(call->{var row=new RequirementAnalysisRevisionDO();
             row.setId(call.getArgument(0,RequirementRevisionQuery.class).revisionId());row.setTenantId(1L);row.setProjectId(3L);row.setEntityId(100L);
-            row.setRevisionNo(1);row.setVersion(2);row.setRevisionState("FROZEN");row.setStatusCode("COMPLETED");row.setFrozenAt(LocalDateTime.now());return row;});
+            row.setRevisionNo(1);row.setVersion(2L);row.setRevisionState("FROZEN");row.setStatusCode("COMPLETED");row.setFrozenAt(LocalDateTime.now());return row;});
         var page=source.inventory(new InventoryQuery(1L,3L,RequirementAnalysisBusinessResultSource.TYPE,true,List.of("100"),"10",2));
         assertEquals("41",page.nextCursor());assertFalse(page.complete());assertEquals(2,page.observations().size());
         verify(mapper).selectResultInventory(new RequirementResultInventoryQuery(1L,3L,List.of(100L),10L,3,true));

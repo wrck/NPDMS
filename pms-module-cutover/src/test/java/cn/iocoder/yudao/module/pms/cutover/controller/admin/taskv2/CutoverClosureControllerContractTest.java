@@ -46,7 +46,7 @@ class CutoverClosureControllerContractTest {
         when(application.save(any())).thenReturn(result(2));
         when(application.requestCollection(any())).thenReturn(result(3));
         when(application.linkManualResult(any())).thenReturn(result(4));
-        when(application.submit(any())).thenReturn(new CutoverClosureCommandResult(50L, 8, 70L, 5,
+        when(application.submit(any())).thenReturn(new CutoverClosureCommandResult(50L, 8L, 70L, 5L,
                 "SUBMITTED", false));
 
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/closure"))
@@ -79,14 +79,14 @@ class CutoverClosureControllerContractTest {
     }
 
     private static CutoverClosureView view() {
-        return new CutoverClosureView(50L, "P6", "CLOSURE_IN_PROGRESS", 7, 70L, 1, "DRAFT",
-                80L, 2, 90L, 1, 3, new ClosureContent(true, null, true, null, true, null,
+        return new CutoverClosureView(50L, "P6", "CLOSURE_IN_PROGRESS", 7L, 70L, 1L, "DRAFT",
+                80L, 2L, 90L, 1, 3L, new ClosureContent(true, null, true, null, true, null,
                 false, null, null, "无", null, List.of()), List.of(), null, null, null, null,
                 List.of("SAVE_CLOSURE", "REQUEST_COLLECTION", "SUBMIT_CLOSURE"));
     }
 
-    private static CutoverClosureCommandResult result(int version) {
-        return new CutoverClosureCommandResult(50L, 7, 70L, version, "DRAFT", false);
+    private static CutoverClosureCommandResult result(long version) {
+        return new CutoverClosureCommandResult(50L, 7L, 70L, version, "DRAFT", false);
     }
 
     private static String content() {

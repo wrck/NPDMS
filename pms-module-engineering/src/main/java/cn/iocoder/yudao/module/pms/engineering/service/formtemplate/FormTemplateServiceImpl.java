@@ -59,7 +59,7 @@ public class FormTemplateServiceImpl implements FormTemplateService {
         FormTemplateDO entity = BeanUtils.toBean(createReqVO, FormTemplateDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         formTemplateMapper.insert(entity);
         return entity.getId();

@@ -123,12 +123,12 @@ class SatisfactionResultFilePolicyProviderTest {
     private SatisfactionCollectionTaskDO task() {
         SatisfactionCollectionTaskDO task = new SatisfactionCollectionTaskDO();
         task.setId(10L); task.setTenantId(7L); task.setProjectId(20L); task.setQuestionnaireId(11L); task.setAssignedToUserId(30L);
-        task.setTaskStatus("PENDING_DECISION"); task.setVersion(4);
+        task.setTaskStatus("PENDING_DECISION"); task.setVersion(4L);
         return task;
     }
 
     private GeneratedBusinessFilePolicyRevalidationQuery query() {
-        return new GeneratedBusinessFilePolicyRevalidationQuery(7L, 30L, 40L, 10L, 11L, 12L, 4,
+        return new GeneratedBusinessFilePolicyRevalidationQuery(7L, 30L, 40L, 10L, 11L, 12L, 4L,
                 "ACC", "SATISFACTION_RESULT", "SATISFACTION_RESULT_DOCUMENT",
                 "satisfaction-result-40", FileActionCodes.UPLOAD, 9L);
     }

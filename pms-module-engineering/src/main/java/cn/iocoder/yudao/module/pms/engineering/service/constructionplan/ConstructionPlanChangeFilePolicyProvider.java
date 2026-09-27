@@ -176,7 +176,7 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
         ConstructionPlanChangeDO change = changeMapper.selectByObjectId(
                 new ConstructionPlanChangeObjectQuery(tenantId, changeId));
         if (change == null) return null;
-        ConstructionPlanDO plan = planMapper.selectById(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(
                 new ConstructionPlanLockQuery(tenantId, change.getPlanId()));
         if (plan == null) return null;
         return new Context(plan, change);

@@ -59,12 +59,12 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
         when(participantFactApi.inspect(any())).thenReturn(manager());
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
         var binding = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact(
-                100L, 5, 200L, 1, 300L, 1, 700L, 1, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
+                100L, 5L, 200L, 1, 300L, 1, 700L, 1, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
                 "PRE_04_REQUIREMENT_ANALYSIS", null, null, null, null);
         when(executionBinding.currentBinding(root)).thenReturn(binding);
         when(executionBinding.lockBinding(binding)).thenReturn(binding);
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L,5,200L,1,300L,1,400L,500L,1,1,600L,1,true,null);
+                100L,5L,200L,1,300L,1,400L,500L,1,1,600L,1,true,null);
         when(executionBinding.lockCurrent(binding)).thenReturn(new RequirementAnalysisExecutionBinding.Frozen(binding,execution,null));
         when(rootMapper.selectById(any())).thenReturn(root);
         when(rootMapper.selectForUpdate(any())).thenReturn(root);
@@ -125,7 +125,7 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
 
     private ProjectParticipantFact manager() {
         return new ProjectParticipantFact(100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", null, 5, 8L);
+                "PRIMARY", "ACTIVE", null, 5L, 8L);
     }
 
     private DynamicFormInstanceFact form(int version, Map<String, Object> values) {

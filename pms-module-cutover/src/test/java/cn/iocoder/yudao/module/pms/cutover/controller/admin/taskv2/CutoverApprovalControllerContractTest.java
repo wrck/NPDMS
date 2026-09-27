@@ -56,14 +56,14 @@ class CutoverApprovalControllerContractTest {
         when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail);
         when(query.decisionResponse(anyLong(), anyLong(), anyLong(), anyInt(), anyLong())).thenReturn(detail);
         var decisionResult = new cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult(
-                1L, 100L, 1, 10L, 5, 70L, 1, "PENDING", null, 1, 2, "P5", "APPROVING", null);
+                1L, 100L, 1L, 10L, 5L, 70L, 1, "PENDING", null, 1, 2, "P5", "APPROVING", null);
         when(application.approve(any())).thenReturn(decisionResult);
         when(application.reject(any())).thenReturn(decisionResult);
         when(query.myTodos(1L, 8L, 1, 20)).thenReturn(new CutoverApprovalViews.Page<>(List.of(
-                new CutoverApprovalViews.TodoItem(100L, 0, 10L, 20L, "CUT-10", "核心割接", "A", 1,
+                new CutoverApprovalViews.TodoItem(100L, 0L, 10L, 20L, "CUT-10", "核心割接", "A", 1,
                         "INITIATOR", LocalDateTime.of(2026, 9, 2, 10, 0))), 1, 1, 20));
         when(query.reassignmentCandidates(1L, 1, 20)).thenReturn(new CutoverApprovalViews.Page<>(List.of(
-                new CutoverApprovalViews.ReassignmentCandidate(100L, 0, 10L, 20L, "CUT-10", "核心割接", "A",
+                new CutoverApprovalViews.ReassignmentCandidate(100L, 0L, 10L, 20L, "CUT-10", "核心割接", "A",
                         "PENDING", null, 101L, 1, "INITIATOR", "PENDING", 8L, 0,
                         LocalDateTime.of(2026, 9, 2, 10, 0))), 1, 1, 20));
 
@@ -98,7 +98,7 @@ class CutoverApprovalControllerContractTest {
         var reassignment = reassignment();
         reset(query);
         when(query.reassignmentCommandContext(1L, 10L, 8L))
-                .thenReturn(new CutoverApprovalQueryService.ReassignmentCommandContext(reassignment, 4));
+                .thenReturn(new CutoverApprovalQueryService.ReassignmentCommandContext(reassignment, 4L));
         when(application.reassign(any())).thenReturn(reassignment);
         mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/reassign")
                 .header("If-Match", "0").header("Idempotency-Key", "reassign-1")
@@ -136,7 +136,7 @@ class CutoverApprovalControllerContractTest {
         when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail());
         when(application.approve(any())).thenThrow(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException(
                 cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.VERSION_CONFLICT,
-                "TASK_VERSION_STALE", null, 3, 7, "任务版本变化"));
+                "TASK_VERSION_STALE", null, 3L, 7L, "任务版本变化"));
         mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/approve")
                 .header("If-Match", "0").header("X-Task-Version", "4").header("Idempotency-Key", "approve-1")
                 .contentType("application/json").content(decision("APPROVE", "YES", null)))
@@ -147,7 +147,7 @@ class CutoverApprovalControllerContractTest {
     }
 
     private static CutoverApprovalViews.ApprovalDetail detail() {
-        return new CutoverApprovalViews.ApprovalDetail("FULL", 100L, 0, 10L, 4, 70L, 1, "A", "PENDING",
+        return new CutoverApprovalViews.ApprovalDetail("FULL", 100L, 0L, 10L, 4L, 70L, 1, "A", "PENDING",
                 null, 1, List.of(new CutoverApprovalViews.Node(101L, 1, "INITIATOR", "PENDING", 8L, 8L,
                 null, null, List.of(), null)), null, new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE",
                 LocalDateTime.of(2026, 9, 5, 8, 0), LocalDateTime.of(2026, 9, 3, 18, 0)),
@@ -155,7 +155,7 @@ class CutoverApprovalControllerContractTest {
     }
 
     private static CutoverApprovalViews.ApprovalReassignmentView reassignment() {
-        return new CutoverApprovalViews.ApprovalReassignmentView("REASSIGNMENT_ONLY", 100L, 0, 10L, 20L,
+        return new CutoverApprovalViews.ApprovalReassignmentView("REASSIGNMENT_ONLY", 100L, 0L, 10L, 20L,
                 "CUT-10", "核心割接", "A", "PENDING", null,
                 List.of(new CutoverApprovalViews.ReassignmentNode(101L, 1, "INITIATOR", "PENDING", 8L, 0)),
                 List.of("REASSIGN"));

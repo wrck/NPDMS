@@ -46,7 +46,7 @@ class RequirementAnalysisEntityFactApiTest {
         var scope = new ProjectScopeResult(100L, 8L, Set.of(100L), Set.of());
         when(scopes.resolveCurrent(any())).thenReturn(scope);
         when(scopes.lockAndRevalidate(any())).thenReturn(scope);
-        var project = new ProjectOrganizationFact(100L, 3, 10L, 20L, "D20");
+        var project = new ProjectOrganizationFact(100L, 3L, 10L, 20L, "D20");
         when(projects.inspect(any())).thenReturn(project);
         when(projects.lockAndRevalidate(any())).thenReturn(project);
         var binding = binding();
@@ -54,7 +54,7 @@ class RequirementAnalysisEntityFactApiTest {
         when(bindings.lockAndRevalidate(any())).thenReturn(binding);
         row = new RequirementAnalysisRevisionDO();
         row.setTenantId(1L); row.setId(501L); row.setEntityId(500L); row.setProjectId(100L);
-        row.setRevisionNo(1); row.setVersion(4); row.setRevisionState("FROZEN"); row.setEffectiveMarker(1);
+        row.setRevisionNo(1); row.setVersion(4L); row.setRevisionState("FROZEN"); row.setEffectiveMarker(1);
         row.setProjectTemplateId(401L); row.setProjectTemplateRevisionId(702L);
         row.setFrozenBy(9L); row.setFrozenAt(LocalDateTime.of(2026,9,16,0,0));
         row.setExecutionSnapshot(JsonUtils.toJsonString(new RequirementAnalysisExecutionAccess.Frozen(binding, null, null)));
@@ -169,12 +169,12 @@ class RequirementAnalysisEntityFactApiTest {
     private RequirementAnalysisEntityQueryService.View view(String content) {
         Map<String,Object> values = new LinkedHashMap<>();
         values.put("projectBackground", content); values.put("networkTopology", null);
-        return new RequirementAnalysisEntityQueryService.View(100L, row.revisionMetadata(), 1, null, null, 0,
+        return new RequirementAnalysisEntityQueryService.View(100L, row.revisionMetadata(), 1L, null, null, 0,
                 values, List.of(), List.of(), 401L, 702L, RequirementAnalysisEntityProvider.FIELDS.fields());
     }
     private ProjectWorkBindingFact binding() {
         var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
-        return new ProjectWorkBindingFact(100L, 3, 201L, 4, 301L, 5, 401L, 6,
+        return new ProjectWorkBindingFact(100L, 3L, 201L, 4, 301L, 5, 401L, 6,
                 target.workBindingTypeCode(), target.targetContextCode(), target.targetObjectType(), target.targetObjectKey(),
                 null, null, null, null, 702L, 2, "{}", 16L, 17L, 1, 2);
     }

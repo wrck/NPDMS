@@ -19,7 +19,7 @@ class SiteSurveyImportServiceTest {
         source.setTenantId(7L);
         source.setProjectId(19L);
         source.setStatus(3);
-        source.setVersion(8);
+        source.setVersion(8L);
         source.setArchivedAt(LocalDateTime.of(2025, 4, 1, 10, 0));
         source.setOutsourceRequestId(91L);
         source.setFormExtraValues(Map.of("extra_cabinetReady", true, "extra_requiredEndDate", "2027-02-03",
@@ -45,7 +45,7 @@ class SiteSurveyImportServiceTest {
     void reconciliationFindsExactBusinessAndAuditDifferences() {
         var source = new SiteSurveyImportSource();
         source.setPowerSupply("原值");
-        source.setVersion(3);
+        source.setVersion(3L);
         source.setCreator("11");
         var expected = SiteSurveyImportService.convert(source);
         var actual = BeanUtils.toBean(expected, SiteSurveyEntityDO.class);
@@ -69,7 +69,7 @@ class SiteSurveyImportServiceTest {
     void fieldPatchesCannotReplaceIdentityStatusOrConcurrency() {
         var row = new SiteSurveyEntityDO();
         row.setTenantId(7L);
-        row.setVersion(4);
+        row.setVersion(4L);
         for (String key : List.of("id", "tenantId", "projectId", "status", "version", "outsourceRequestId")) {
             assertThrows(IllegalArgumentException.class,
                     () -> SiteSurveyEntityProvider.FIELDS.write(row, Map.of(key, 99)));

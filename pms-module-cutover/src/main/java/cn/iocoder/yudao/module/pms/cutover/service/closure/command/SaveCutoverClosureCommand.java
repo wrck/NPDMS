@@ -6,7 +6,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFi
 import java.util.List;
 
 public record SaveCutoverClosureCommand(Long tenantId, Long actorId, Long taskId,
-                                        Integer expectedTaskVersion, Integer expectedClosureVersion,
+                                        Long expectedTaskVersion, Long expectedClosureVersion,
                                         ClosureContent content, String idempotencyKey, String correlationId) {
 
     public record ClosureContent(Boolean preCheckNormal, String preCheckDetail,

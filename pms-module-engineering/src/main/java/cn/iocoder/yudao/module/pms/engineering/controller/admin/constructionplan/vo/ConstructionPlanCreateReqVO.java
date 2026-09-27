@@ -21,5 +21,5 @@ public class ConstructionPlanCreateReqVO {
     private Integer durationDays;
     @NotNull
     @Min(0)
-    private Integer expectedProjectVersion;
+    private Long expectedProjectVersion;
 }

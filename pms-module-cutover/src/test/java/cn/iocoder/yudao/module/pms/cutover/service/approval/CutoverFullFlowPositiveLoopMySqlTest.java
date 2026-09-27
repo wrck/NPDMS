@@ -173,7 +173,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
     void completesOneTaskFromP1ThroughP6ArchiveWithControlledOwnerFacts() {
         CutoverTaskCommandResult created = taskService.create(createCommand());
         CutoverAssessmentCommandResult assessment = taskService.saveAssessment(new SaveCutoverAssessmentCommand(
-                tenantId, ACTOR_ID, created.taskId(), created.version(), 0,
+                tenantId, ACTOR_ID, created.taskId(), created.version(), 0L,
                 new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), "A", "corr-assessment-save"));
         CutoverTaskCommandResult p3 = taskService.submitAssessment(new SubmitCutoverAssessmentCommand(
                 tenantId, ACTOR_ID, created.taskId(), assessment.taskVersion(), assessment.assessmentRowVersion(),
@@ -203,7 +203,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 "plan-submit", "corr-plan-submit"));
 
         approveAll(created.taskId(), p5.taskVersion(), p5.approvalInstanceId());
-        int p6TaskVersion = number("SELECT version FROM cut_task WHERE tenant_id=? AND id=?", tenantId, created.taskId());
+        long p6TaskVersion = number("SELECT version FROM cut_task WHERE tenant_id=? AND id=?", tenantId, created.taskId());
         CutoverClosureCommandResult draft = closureService.save(new SaveCutoverClosureCommand(
                 tenantId, ACTOR_ID, created.taskId(), p6TaskVersion, null,
                 new SaveCutoverClosureCommand.ClosureContent(true, null, true, null, true, null,
@@ -264,7 +264,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 configurationId, "CFG-1", 1, sections, List.of()), List.of());
     }
 
-    private void approveAll(long taskId, int expectedTaskVersion, long approvalInstanceId) {
+    private void approveAll(long taskId, Long expectedTaskVersion, long approvalInstanceId) {
         List<Map<String, Object>> nodes = jdbc.queryForList("SELECT node_no,node_code,current_approver_user_id "
                 + "FROM cut_approval_node WHERE tenant_id=? AND approval_instance_id=? ORDER BY node_no",
                 tenantId, approvalInstanceId);
@@ -274,7 +274,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
             actor.use(((Number) node.get("current_approver_user_id")).longValue());
             String nodeCode = String.valueOf(node.get("node_code"));
             approvalService.approve(new ApproveCutoverApprovalCommand(tenantId, taskId, expectedTaskVersion,
-                    index, yesItems(), "SERVICE_MANAGER".equals(nodeCode)
+                    (long) index, yesItems(), "SERVICE_MANAGER".equals(nodeCode)
                     ? new AssessmentReviewInput("CONFIRMED", null) : null,
                     "节点审批通过", "approval-" + (index + 1), "corr-approval-" + (index + 1)));
         }
@@ -340,7 +340,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         configuration.setValidationResultSnapshot("[]");
         configuration.setPublishedBy(ACTOR_ID);
         configuration.setPublishedAt(LocalDateTime.of(2026, 8, 1, 0, 0));
-        configuration.setVersion(0);
+        configuration.setVersion(0L);
         configuration.setCreator(String.valueOf(ACTOR_ID));
         configuration.setUpdater(String.valueOf(ACTOR_ID));
         assertEquals(1, configurationMapper.insert(configuration));

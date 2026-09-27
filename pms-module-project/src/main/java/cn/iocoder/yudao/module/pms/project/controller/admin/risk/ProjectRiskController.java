@@ -103,7 +103,7 @@ public class ProjectRiskController {
     @PreAuthorize("@ss.hasPermission('pms:project-risk:create')")
     public CommonResult<Boolean> transitionStatus(@RequestParam("riskId") Long riskId,
                                                   @RequestParam("targetStatus") Integer targetStatus,
-                                                  @RequestParam(value = "version", required = false) Integer version) {
+                                                  @RequestParam(value = "version", required = false) Long version) {
         projectRiskService.transitionStatusRetired(riskId, targetStatus, version);
         return success(true);
     }

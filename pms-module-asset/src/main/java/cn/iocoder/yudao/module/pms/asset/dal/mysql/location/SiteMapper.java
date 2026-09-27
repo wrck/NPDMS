@@ -31,7 +31,7 @@ public interface SiteMapper extends BaseMapperX<SiteDO> {
         return selectByIds(ids);
     }
 
-    default int updateByIdAndVersion(SiteDO update, Integer expectedVersion) {
+    default int updateByIdAndVersion(SiteDO update, Long expectedVersion) {
         return update(update, new LambdaUpdateWrapper<SiteDO>()
                 .eq(SiteDO::getId, update.getId())
                 .eq(SiteDO::getVersion, expectedVersion));

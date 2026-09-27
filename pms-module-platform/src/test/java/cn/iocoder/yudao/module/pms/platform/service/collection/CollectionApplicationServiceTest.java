@@ -33,7 +33,7 @@ class CollectionApplicationServiceTest {
         TenantContextHolder.setTenantId(1L);var provider=mock(ObjectProvider.class);when(provider.getIfAvailable()).thenReturn(dispatch);
         when(tx.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         service=new CollectionApplicationService(List.of(source),requests,taskMapper,tasks,callbacks,logs,templates,connections,devices,provider,tx);
-        context=new CollectionSourceAdapter.Source("configuration",11L,"IMP","Configuration",21L,31L,"device",0,true,true,"BUSINESS_CONSUMPTION","配置调试");
+        context=new CollectionSourceAdapter.Source("configuration",11L,"IMP","Configuration",21L,31L,"device",0L,true,true,"BUSINESS_CONSUMPTION","配置调试");
         when(source.entry()).thenReturn("configuration");when(source.authorize(any(),any(),any(),any(),any(),any())).thenAnswer(call->context);
         when(devices.validateSelection(21L,List.of(31L))).thenReturn(List.of(new SelectedProjectDevice(31L,"sn","device",null,"model-a",null)));
         when(tasks.createBatch(any())).thenReturn(new CollectionBatchDTO(10L,"batch","IMP","Configuration","11","key","CREATED",1,List.of(task("CREATED"))));
@@ -72,7 +72,7 @@ class CollectionApplicationServiceTest {
         assertNull(saved().getTemplateRevisionId());verifyNoInteractions(templates);
     }
     @Test void registeredJointTestCanExecuteManualCommands() {
-        context=new CollectionSourceAdapter.Source("joint-test",11L,"IMP","JointTest",21L,31L,"device",0,true,true,"BUSINESS_CONSUMPTION","业务联调");
+        context=new CollectionSourceAdapter.Source("joint-test",11L,"IMP","JointTest",21L,31L,"device",0L,true,true,"BUSINESS_CONSUMPTION","业务联调");
         when(source.entry()).thenReturn("joint-test");
         service.submit("joint-test",11L,7L,request());verify(dispatch).dispatchManual(any());verifyNoInteractions(templates);
     }
@@ -85,7 +85,7 @@ class CollectionApplicationServiceTest {
         verify(dispatch,never()).dispatchManual(any());verify(tasks,never()).createBatch(any());
     }
     @Test void sourceRestrictionAndUnregisteredEntrypointsStillRejectManualCommands(){
-        context=new CollectionSourceAdapter.Source("joint-test",11L,"IMP","JointTest",21L,31L,"device",0,false,true,"BUSINESS_CONSUMPTION","业务联调");
+        context=new CollectionSourceAdapter.Source("joint-test",11L,"IMP","JointTest",21L,31L,"device",0L,false,true,"BUSINESS_CONSUMPTION","业务联调");
         when(source.entry()).thenReturn("joint-test");
         assertThrows(CollectionOperationException.class,()->service.submit("joint-test",11L,7L,request()));
         for(String entry:List.of("cutover","inspection"))assertThrows(CollectionOperationException.class,()->service.submit(entry,11L,7L,request()));
@@ -98,13 +98,13 @@ class CollectionApplicationServiceTest {
     }
     @Test void movedProjectCannotReplayReadCancelOrConsumeHistory(){
         service.submit("configuration",11L,7L,request());var row=saved();when(requests.findRequest(1L,request().getRequestKey())).thenReturn(row);when(requests.selectById(41L)).thenReturn(row);clearInvocations(dispatch);
-        context=new CollectionSourceAdapter.Source("configuration",11L,"IMP","Configuration",22L,31L,"device",0,true,true,"BUSINESS_CONSUMPTION","配置调试");
+        context=new CollectionSourceAdapter.Source("configuration",11L,"IMP","Configuration",22L,31L,"device",0L,true,true,"BUSINESS_CONSUMPTION","配置调试");
         assertThrows(IllegalStateException.class,()->service.submit("configuration",11L,7L,request()));
         assertThrows(IllegalStateException.class,()->service.findByRequestKey("configuration",11L,7L,request().getRequestKey()));
         assertThrows(IllegalStateException.class,()->service.cancel("configuration",11L,7L,41L));
         assertThrows(IllegalStateException.class,()->service.consume("configuration",11L,7L,41L));verifyNoInteractions(dispatch,callbacks);
     }
     private CollectionRequestDO saved(){var c=ArgumentCaptor.forClass(CollectionRequestDO.class);verify(requests).insert(c.capture());return c.getValue();}
-    private CollectionExecutionRequest request(){var r=new CollectionExecutionRequest();r.setRequestKey("01234567-0123-0123-0123-012345678901");r.setExpectedVersion(0);r.setHost("device.example");r.setPort(22);r.setProtocol("SSH");r.setUsername("operator");r.setPassword("secret".toCharArray());r.setCommands("show version");return r;}
+    private CollectionExecutionRequest request(){var r=new CollectionExecutionRequest();r.setRequestKey("01234567-0123-0123-0123-012345678901");r.setExpectedVersion(0L);r.setHost("device.example");r.setPort(22);r.setProtocol("SSH");r.setUsername("operator");r.setPassword("secret".toCharArray());r.setCommands("show version");return r;}
     private CollectionTaskDTO task(String status){return new CollectionTaskDTO(1L,10L,"task","IMP","Configuration","11","21","31","device","device.example",22,"SSH","manual-11","v1","hash","TEMPORARY_SECRET",null,null,"key","BUSINESS_CONSUMPTION",status,"ACCEPTED",1L,51L,"IMP","Configuration","11",null,null);}
 }

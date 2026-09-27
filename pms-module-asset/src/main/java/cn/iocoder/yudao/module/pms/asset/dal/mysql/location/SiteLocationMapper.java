@@ -21,7 +21,7 @@ public interface SiteLocationMapper extends BaseMapperX<SiteLocationDO> {
                 .orderByAsc(SiteLocationDO::getTreeDepth, SiteLocationDO::getTreeSort, SiteLocationDO::getId));
     }
 
-    default int updateByIdAndVersion(SiteLocationDO update, Integer expectedVersion) {
+    default int updateByIdAndVersion(SiteLocationDO update, Long expectedVersion) {
         return update(update, new LambdaUpdateWrapper<SiteLocationDO>()
                 .eq(SiteLocationDO::getId, update.getId())
                 .eq(SiteLocationDO::getVersion, expectedVersion));

@@ -44,7 +44,7 @@ class ProjectGovernanceGuardServiceTest {
     private static final Long TENANT_ID = 7L;
     private static final Long PROJECT_ID = 11L;
     private static final Long ROOT_ID = 10L;
-    private static final Integer PROJECT_VERSION = 3;
+    private static final Long PROJECT_VERSION = 3L;
 
     private ProjectMasterMapper projectMapper;
     private ProjectTreeVersionMapper treeVersionMapper;

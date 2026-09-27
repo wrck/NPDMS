@@ -140,7 +140,7 @@ class ProjectParticipantFactMapperTest {
                 LocalDateTime.now().minusDays(1), null);
 
         var first = participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                projectId, 8_100_001L, 3, "ACTIVE", "S1", Set.of(ROLE_SERVICE_MANAGER_L1)));
+                projectId, 8_100_001L, 3L, "ACTIVE", "S1", Set.of(ROLE_SERVICE_MANAGER_L1)));
         assertEquals(Set.of(ROLE_SERVICE_MANAGER_L1), first.effectiveRoleCodes());
 
         jdbcTemplate.update("UPDATE proj_project_member_assignment SET effective_to=NOW(3) "
@@ -152,9 +152,9 @@ class ProjectParticipantFactMapperTest {
 
         assertThrows(ServiceException.class, () -> participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
-                        projectId, 8_100_001L, 3, "ACTIVE", null, Set.of(ROLE_SERVICE_MANAGER_L1))));
+                        projectId, 8_100_001L, 3L, "ACTIVE", null, Set.of(ROLE_SERVICE_MANAGER_L1))));
         var latest = participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                projectId, 8_100_002L, 4, "ACTIVE", null, Set.of(ROLE_SERVICE_MANAGER_L2)));
+                projectId, 8_100_002L, 4L, "ACTIVE", null, Set.of(ROLE_SERVICE_MANAGER_L2)));
         assertEquals(Set.of(ROLE_SERVICE_MANAGER_L2), latest.effectiveRoleCodes());
         assertEquals(4L, latest.factVersion());
     }
@@ -184,7 +184,7 @@ class ProjectParticipantFactMapperTest {
                     return transactionTemplate.execute(status -> {
                         var fact = participantFactApi.lockAndRevalidate(
                                 new ProjectParticipantFactRevalidationQuery(
-                                        projectId, 8_100_001L, 3, "ACTIVE", null,
+                                        projectId, 8_100_001L, 3L, "ACTIVE", null,
                                         Set.of(ROLE_SERVICE_MANAGER_L1)));
                         factRead.countDown();
                         await(release);
@@ -222,14 +222,14 @@ class ProjectParticipantFactMapperTest {
                         projectId, null, Set.of(manager), LocalDateTime.now())).userId());
         jdbcTemplate.update("UPDATE proj_project SET current_stage='S2' WHERE id=?", projectId);
         assertEquals(8_100_001L, participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                projectId, 8_100_001L, 3, "ACTIVE", "S2", Set.of(manager))).userId());
+                projectId, 8_100_001L, 3L, "ACTIVE", "S2", Set.of(manager))).userId());
         assertThrows(ServiceException.class, () -> participantFactApi.inspect(
                 new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery(
                         projectId, 8_100_002L, Set.of(manager), LocalDateTime.now())));
         jdbcTemplate.update("UPDATE proj_project_member_assignment SET effective_to=NOW(3) "
                 + "WHERE project_id=? AND user_id=?", projectId, 8_100_001L);
         assertThrows(ServiceException.class, () -> participantFactApi.lockAndRevalidate(
-                new ProjectParticipantFactRevalidationQuery(projectId, 8_100_001L, 3,
+                new ProjectParticipantFactRevalidationQuery(projectId, 8_100_001L, 3L,
                         "ACTIVE", "S2", Set.of(manager))));
     }
 

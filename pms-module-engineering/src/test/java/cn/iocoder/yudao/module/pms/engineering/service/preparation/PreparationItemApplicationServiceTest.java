@@ -77,7 +77,7 @@ class PreparationItemApplicationServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
         when(organizationFactApi.lockAndRevalidate(any()))
-                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
+                .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         when(organizationScopeApi.hasScope(200L, 20L, 30L)).thenReturn(true);
         when(itemMapper.updateDraftIfMatch(any())).thenReturn(1);
         when(preparationMapper.invalidateReadinessIfMatch(any())).thenReturn(1);
@@ -101,7 +101,7 @@ class PreparationItemApplicationServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
         when(organizationFactApi.lockAndRevalidate(any()))
-                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
+                .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         doThrow(new IllegalArgumentException("disabled")).when(adminUserApi).validateUser(200L);
 
         assertThrows(RuntimeException.class,
@@ -150,7 +150,7 @@ class PreparationItemApplicationServiceTest {
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(participantFactApi.inspect(any())).thenReturn(manager());
         when(organizationFactApi.inspect(any()))
-                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
+                .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(), 0L));
 
         var page = service.getCandidates(1L, new PreparationCandidatePageReqVO(), actor(100L));
@@ -176,7 +176,7 @@ class PreparationItemApplicationServiceTest {
 
     private PatchPreparationItemCommand command(Set<String> fields, Long assigneeId,
             String formValue, List<PatchPreparationItemCommand.EvidenceReference> evidence) {
-        return new PatchPreparationItemCommand(1L, 2L, 1, 1, 1, 1, 1, 3,
+        return new PatchPreparationItemCommand(1L, 2L, 1, 1, 1, 1, 1, 3L,
                 fields, null, null, assigneeId, null, null, null, formValue, evidence);
     }
 
@@ -208,7 +208,7 @@ class PreparationItemApplicationServiceTest {
     private ProjectScopeResult scope() { return new ProjectScopeResult(10L, 9L, Set.of(10L), Set.of()); }
     private ProjectParticipantFact manager() {
         return new ProjectParticipantFact(10L, 100L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L);
+                "PRIMARY", "ACTIVE", "S1", 3L, 3L);
     }
     private PreparationItemApplicationService.Actor actor(Long id) {
         return new PreparationItemApplicationService.Actor(0L, id, "corr");

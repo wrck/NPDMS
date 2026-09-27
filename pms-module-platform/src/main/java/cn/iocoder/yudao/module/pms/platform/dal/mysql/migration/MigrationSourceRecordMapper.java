@@ -39,6 +39,16 @@ public interface MigrationSourceRecordMapper extends BaseMapperX<MigrationSource
                 .eq(MigrationSourceRecordDO::getSourceRecordKey, query.sourceRecordKey()));
     }
 
+    default List<MigrationSourceRecordDO> selectListByGlobalIdentity(MigrationSourceGlobalIdentityQuery query) {
+        if (query.sourceKeys() == null || query.sourceKeys().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<MigrationSourceRecordDO>()
+                .eq(MigrationSourceRecordDO::getTenantId, query.tenantId())
+                .eq(MigrationSourceRecordDO::getSourceSystem, query.sourceSystem())
+                .eq(MigrationSourceRecordDO::getSourceTable, query.sourceTable())
+                .in(MigrationSourceRecordDO::getSourceRecordKey, query.sourceKeys())
+                .orderByAsc(MigrationSourceRecordDO::getId));
+    }
+
     MigrationSourceRecordDO selectByBatchAndIdForUpdate(@Param("query") MigrationSourceIdQuery query);
 
     List<MigrationSourceRecordDO> selectCursorPage(@Param("query") MigrationSourceCursorQuery query);

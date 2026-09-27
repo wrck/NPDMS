@@ -142,7 +142,7 @@ public class ProjectTreeProjectionService {
         change.setActorId(actor.actorId());
         change.setReason(command.reason());
         change.setOccurredAt(LocalDateTime.now());
-        change.setVersion(0);
+        change.setVersion(0L);
         if (changeMapper.insert(change) != 1) {
             throw new IllegalStateException("PROJECT_TREE_CHANGE_WRITE_FAILED");
         }
@@ -324,7 +324,7 @@ public class ProjectTreeProjectionService {
         version.setChangeBatchId(changeBatchId);
         version.setNodeCount(0);
         version.setPathCount(0);
-        version.setVersion(0);
+        version.setVersion(0L);
         return version;
     }
 

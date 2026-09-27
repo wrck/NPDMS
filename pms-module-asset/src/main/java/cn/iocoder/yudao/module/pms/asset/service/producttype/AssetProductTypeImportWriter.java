@@ -149,7 +149,7 @@ public class AssetProductTypeImportWriter {
         productType.setTenantId(tenantId);
         productType.setTypeCode(command.productTypeCode());
         updateProductType(productType, command, now);
-        productType.setVersion(0);
+        productType.setVersion(0L);
         productType.setCreator(String.valueOf(actorId));
         productType.setUpdater(String.valueOf(actorId));
         return productType;

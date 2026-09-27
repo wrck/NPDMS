@@ -103,7 +103,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
         MaterialRequisitionDO entity = BeanUtils.toBean(createReqVO, MaterialRequisitionDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         materialRequisitionMapper.insert(entity);
         return entity.getId();

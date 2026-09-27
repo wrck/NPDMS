@@ -88,7 +88,7 @@ public class BriefingServiceImpl implements BriefingService {
                 BriefingDO::getProjectId, BriefingDO::getCode));
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         // 默认交底类型
         if (StringUtils.isBlank(entity.getBriefingType())) {
@@ -288,7 +288,7 @@ public class BriefingServiceImpl implements BriefingService {
     }
 
     private void validateVersion(BriefingDO entity, Integer version) {
-        if (version != null && !Objects.equals(entity.getVersion(), version)) {
+        if (version != null && !Objects.equals(entity.getVersion(), version.longValue())) {
             throw exception(BRIEFING_VERSION_NOT_MATCH);
         }
     }

@@ -102,7 +102,7 @@ public class AcceptanceReportController {
             @PathVariable("id") Long acceptanceId,
             @RequestHeader("If-Match") String ifMatch,
             @Valid @RequestBody AcceptanceReportDraftReqVO request) {
-        int expectedActivityVersion = parseIfMatch(ifMatch);
+        long expectedActivityVersion = parseIfMatch(ifMatch);
         return withTenant(() -> success(commandService.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
                 acceptanceId, expectedActivityVersion, content(request)), commandActor())));
     }
@@ -116,7 +116,7 @@ public class AcceptanceReportController {
             @RequestHeader("If-Match") String ifMatch,
             @Valid @RequestBody AcceptanceReportDraftReqVO request) {
         if (request.getExpectedReportVersionNo() == null) throw exception(BAD_REQUEST);
-        int expectedActivityVersion = parseIfMatch(ifMatch);
+        long expectedActivityVersion = parseIfMatch(ifMatch);
         return withTenant(() -> success(commandService.updateDraft(new AcceptanceReportCommands.UpdateDraftCommand(
                 acceptanceId, versionId, expectedActivityVersion, request.getExpectedReportVersionNo(),
                 content(request)), commandActor())));
@@ -131,7 +131,7 @@ public class AcceptanceReportController {
             @RequestHeader("If-Match") String ifMatch,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody AcceptanceReportPublishReqVO request) {
-        int expectedActivityVersion = parseIfMatch(ifMatch);
+        long expectedActivityVersion = parseIfMatch(ifMatch);
         String digest = digest(acceptanceId + ":" + versionId + ":" + expectedActivityVersion + ":"
                 + JsonUtils.toJsonString(request));
         return withTenant(() -> success(commandService.publish(new AcceptanceReportCommands.PublishCommand(
@@ -147,7 +147,7 @@ public class AcceptanceReportController {
             @RequestHeader("If-Match") String ifMatch,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody AcceptanceReportRevokeReqVO request) {
-        int expectedActivityVersion = parseIfMatch(ifMatch);
+        long expectedActivityVersion = parseIfMatch(ifMatch);
         String digest = digest(acceptanceId + ":" + expectedActivityVersion + ":" + JsonUtils.toJsonString(request));
         return withTenant(() -> success(commandService.revoke(new AcceptanceReportCommands.RevokeCommand(
                 acceptanceId, expectedActivityVersion, request.getExpectedCurrentReportVersionId(),
@@ -185,14 +185,14 @@ public class AcceptanceReportController {
         return userId;
     }
 
-    private int parseIfMatch(String value) {
+    private long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
         if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) throw new NumberFormatException();
             return version;
         } catch (NumberFormatException invalid) {

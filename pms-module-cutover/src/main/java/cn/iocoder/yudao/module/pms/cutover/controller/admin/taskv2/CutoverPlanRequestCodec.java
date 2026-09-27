@@ -68,7 +68,7 @@ public final class CutoverPlanRequestCodec {
         if (body != null && (!body.isObject() || !body.isEmpty())) throw invalid("body");
     }
 
-    public int version(String value, String name) {
+    public long version(String value, String name) {
         String text = header(value, name);
         try { int result = Integer.parseInt(text); if (result < 0) throw invalidHeader(name); return result; }
         catch (NumberFormatException ex) { throw invalidHeader(name); }

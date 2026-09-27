@@ -49,7 +49,7 @@ class ProjectTaskBusinessControllerTest {
         var view = new BusinessViewRevision(40L, "SITE_SURVEY", "survey", 1L, "SOL",
                 BusinessViewComponentProvider.ViewSource.PAGE, "survey-list", "1", null,
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission",
-                null, null, 1, "PUBLISHED", Set.of());
+                null, null, 1L, "PUBLISHED", Set.of());
         var context = new TaskBusinessContext(10L, 20L, 30L, 2, "SOL", "SITE_SURVEY", "survey-list", 40L,
                 "REFERENCE_EXISTING", List.of(), Set.of("LINK"), null, "a".repeat(64), Set.of("QUERY", "CREATE"), view, true, null);
         when(service.getContext(eq(10L), eq(0L), eq(9L), anyString())).thenReturn(context);

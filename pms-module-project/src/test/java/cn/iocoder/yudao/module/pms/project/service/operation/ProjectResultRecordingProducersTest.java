@@ -32,8 +32,8 @@ class ProjectResultRecordingProducersTest {
     @AfterEach void after(){TenantContextHolder.clear();}
 
     @Test void controlledResultRecordsExactlyTheLegacyEventAfterTheOwnerCommand() {
-        controlled.append("CONFIRM",1,new ProjectOperationCommand(3L,"TASK",4L,null,"100",1,"fact",JsonUtils.parseTree("{}"),"key"),
-                new ProjectOperationResult("ACC","ACCEPTANCE","100","40",2,"fact","REPORT_VERSION_PUBLISHED",null,false),1L,9L,"trace");
+        controlled.append("CONFIRM",1,new ProjectOperationCommand(3L,"TASK",4L,null,"100",1L,"fact",JsonUtils.parseTree("{}"),"key"),
+                new ProjectOperationResult("ACC","ACCEPTANCE","100","40",2L,"fact","REPORT_VERSION_PUBLISHED",null,false),1L,9L,"trace");
         var event=ArgumentCaptor.forClass(BusinessOperationResultEvent.class);var payload=ArgumentCaptor.forClass(BusinessEvent.class);
         var order=inOrder(recorder,outbox);order.verify(recorder).record(event.capture());order.verify(outbox).append(eq("ACCEPTANCE"),eq("100"),payload.capture());
         assertEquals(event.getValue().eventId(),payload.getValue().eventId());
@@ -43,13 +43,13 @@ class ProjectResultRecordingProducersTest {
     @Test void journalFailureDoesNotProduceALegacySuccessEvent() {
         doThrow(new IllegalStateException("journal unavailable")).when(recorder).record(any());
         assertThrows(IllegalStateException.class,()->controlled.append("CONFIRM",1,
-                new ProjectOperationCommand(3L,"TASK",4L,null,"100",1,"fact",JsonUtils.parseTree("{}"),"key"),
-                new ProjectOperationResult("ACC","ACCEPTANCE","100","40",2,"fact","REPORT_VERSION_PUBLISHED",null,false),1L,9L,"trace"));
+                new ProjectOperationCommand(3L,"TASK",4L,null,"100",1L,"fact",JsonUtils.parseTree("{}"),"key"),
+                new ProjectOperationResult("ACC","ACCEPTANCE","100","40",2L,"fact","REPORT_VERSION_PUBLISHED",null,false),1L,9L,"trace"));
         verifyNoInteractions(outbox);
     }
     @ParameterizedTest @ValueSource(strings={"PUBLISHED","REVOKED"})
     void ordinaryReportEventsKeepTheNativeVersionAndDoNotCompleteAcceptance(String action) {
-        var activity=new AcceptanceActivityDO();activity.setId(100L);activity.setTenantId(1L);activity.setProjectId(3L);activity.setVersion(2);activity.setActivityStatus("PENDING");
+        var activity=new AcceptanceActivityDO();activity.setId(100L);activity.setTenantId(1L);activity.setProjectId(3L);activity.setVersion(2L);activity.setActivityStatus("PENDING");
         when(activities.selectById(100L)).thenReturn(activity);
         var appended=appended(action);nativeBridge.onAppended(appended);
         var event=ArgumentCaptor.forClass(BusinessOperationResultEvent.class);verify(recorder).record(event.capture());
@@ -58,7 +58,7 @@ class ProjectResultRecordingProducersTest {
         verify(outbox).append(eq("ACCEPTANCE"),eq("100"),any());
     }
     @Test void controlledReportDoesNotAlsoRecordTheNativeBridgeEvent() {
-        var selection=new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
+        var selection=new ProjectBusinessExecutionSelection(new ProjectTaskExecutionContext(3L,1L,4L,1,5L,1,6L,7L,1,1,8L,1,true,null),null);
         try(var scope=ProjectVerifiedOperationScope.open(new ProjectVerifiedOperationScope.Frame(1L,9L,3L,"ACC","ACCEPTANCE","ACC.ACCEPTANCE_REPORT.PUBLISH",1,"100",selection))){
             nativeBridge.onAppended(appended("PUBLISHED"));verifyNoInteractions(recorder,outbox,activities);
         }

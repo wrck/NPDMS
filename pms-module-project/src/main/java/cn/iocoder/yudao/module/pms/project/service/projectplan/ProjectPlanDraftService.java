@@ -56,11 +56,11 @@ public class ProjectPlanDraftService {
     private final ProjectPlanMilestoneInstaller milestones;
     private final ProjectPlanGateInstaller gates;
 
-    public record Definition(Long id, Integer revisionNo, Integer version, Long basePlanVersionId, TemplateDesignerDocument designer) { }
-    public record State(Definition effective, Definition draft, boolean editable, Integer projectVersion) { }
+    public record Definition(Long id, Integer revisionNo, Long version, Long basePlanVersionId, TemplateDesignerDocument designer) { }
+    public record State(Definition effective, Definition draft, boolean editable, Long projectVersion) { }
     public record Create(Long projectId, Long expectedPlanVersionId) { }
-    public record Save(Long projectId, Long draftId, Integer expectedVersion, TemplateDesignerDocument designer) { }
-    public record Preview(Long basePlanVersionId, Long draftId, Integer draftVersion, Integer projectVersion,
+    public record Save(Long projectId, Long draftId, Long expectedVersion, TemplateDesignerDocument designer) { }
+    public record Preview(Long basePlanVersionId, Long draftId, Long draftVersion, Long projectVersion,
                           List<ProjectPlanImpactAnalyzer.Change> changes, List<String> changedRuleKeys,
                           List<ProjectPlanExecutionPlanner.Change> executionChanges,
                           List<ProjectPlanDeliverablePlanner.Change> deliverableChanges,
@@ -97,7 +97,7 @@ public class ProjectPlanDraftService {
             }
             draft = new ProjectPlanVersionDO();
             draft.setTenantId(scope.tenantId()); draft.setProjectId(scope.projectId()); draft.setStatus("DRAFT");
-            draft.setRevisionNo(plans.selectNextRevisionNo(scope)); draft.setVersion(0);
+            draft.setRevisionNo(plans.selectNextRevisionNo(scope)); draft.setVersion(0L);
             draft.setBasePlanVersionId(effective.getId()); draft.setSourceTemplateRevisionId(effective.getSourceTemplateRevisionId());
             draft.setDesignerDocument(effective.getDesignerDocument());
             if (plans.insert(draft) != 1) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
@@ -126,13 +126,13 @@ public class ProjectPlanDraftService {
 
     /** Locks provide one observation of the runtime. No audit, Outbox, workflow or rule evaluation is triggered. */
     @Transactional(rollbackFor = Exception.class)
-    public Preview preview(Long projectId, Long draftId, Integer expectedVersion, Long actorId) {
+    public Preview preview(Long projectId, Long draftId, Long expectedVersion, Long actorId) {
         return prepare(projectId,draftId,expectedVersion,actorId,false).preview();
     }
 
     /** Shared observation for preview and activation; activation's command transaction retains all locks. */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
-    Prepared prepare(Long projectId, Long draftId, Integer expectedVersion, Long actorId, boolean publishing) {
+    Prepared prepare(Long projectId, Long draftId, Long expectedVersion, Long actorId, boolean publishing) {
         var scope = authorize(projectId, actorId);
         var project = lockActive(scope);
         var draft = requireDraft(scope, draftId, expectedVersion, project.getActivePlanVersionId());
@@ -215,7 +215,7 @@ public class ProjectPlanDraftService {
             throw exception(PROJECT_PLAN_CHANGE_INVALID);
         return project;
     }
-    private ProjectPlanVersionDO requireDraft(ProjectPlanScopeQuery scope, Long id, Integer version, Long baseId) {
+    private ProjectPlanVersionDO requireDraft(ProjectPlanScopeQuery scope, Long id, Long version, Long baseId) {
         var draft = plans.selectDraft(scope);
         if (draft == null || !Objects.equals(id, draft.getId()) || !Objects.equals(version, draft.getVersion())
                 || !Objects.equals(baseId, draft.getBasePlanVersionId())) throw exception(PROJECT_PLAN_VERSION_CONFLICT);

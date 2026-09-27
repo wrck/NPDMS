@@ -39,7 +39,7 @@ class AcceptanceReportSourceProjectionServiceTest {
         deliverable.setProjectId(80L);
         deliverable.setTenantId(7L);
         deliverable.setDeliverableCode("RENAMED_CUSTOM_REPORT");
-        deliverable.setVersion(0);
+        deliverable.setVersion(0L);
         when(deliverableMapper.selectByIdForUpdate(any())).thenReturn(deliverable);
         when(sourceMapper.selectIdentityForUpdate(any())).thenReturn(null);
         when(sourceMapper.selectCurrentForUpdate(any())).thenReturn(null);
@@ -84,7 +84,7 @@ class AcceptanceReportSourceProjectionServiceTest {
 
     @Test void revocationAfterRenameUsesTheOriginalInstanceAndKeepsItsBinding() {
         var row=new AccProjectDeliverableDO(); row.setId(50L); row.setTenantId(7L); row.setProjectId(80L);
-        row.setDeliverableCode("RENAMED"); row.setVersion(3); row.setCurrentSourceVersionId(61L);
+        row.setDeliverableCode("RENAMED"); row.setVersion(3L); row.setCurrentSourceVersionId(61L);
         var source=new ProjectDeliverableSourceVersionDO(); source.setId(61L); source.setDeliverableId(50L); source.setSourceObjectId(300L);
         when(deliverableMapper.selectByIdForUpdate(any())).thenReturn(row);
         when(sourceMapper.selectCurrentForUpdate(any())).thenReturn(source);

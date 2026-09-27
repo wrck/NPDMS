@@ -46,14 +46,15 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
             Long id;
             try { id = Long.valueOf(command.objectId()); } catch (RuntimeException invalid) { throw exception(BAD_REQUEST, "BUSINESS_OBJECT_REQUIRED"); }
             var current = access.getObject().read(id, actor);
-            if (!Objects.equals(current.getProjectId(), command.projectId()) || !Objects.equals(current.getVersion(), command.expectedBusinessVersion()))
+            if (!Objects.equals(current.getProjectId(), command.projectId())
+                || !Objects.equals(current.getVersion(), command.expectedBusinessVersion() == null ? null : command.expectedBusinessVersion().longValue()))
                 throw exception(BAD_REQUEST, "BUSINESS_VERSION_CONFLICT");
             var ref = current.revisionRef();
             if (code.endsWith(".SAVE")) {
                 RequirementAnalysisEntityCommands.Patch input;
                 try { input = ProjectOperationInput.read(JsonUtils.getObjectMapper(), command.input(), RequirementAnalysisEntityCommands.Patch.class); }
                 catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
-                result = commands.getObject().save(ref, command.expectedBusinessVersion(),
+                result = commands.getObject().save(ref, command.expectedBusinessVersion().intValue(),
                         new RequirementAnalysisEntityCommands.Patch(input.values(), input.extensionDefinitionRevisionId(), input.expectedExtensionVersion(),
                                 input.extensionValues(), command.execution()), actor, key);
             } else {
@@ -63,14 +64,14 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
                     reason = ProjectOperationInput.optionalText(command.input(), "reason");
                 } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
                 var action = new RequirementAnalysisEntityCommands.Action(reason, command.execution());
-                result = code.endsWith(".COMPLETE") ? commands.getObject().complete(ref, command.expectedBusinessVersion(), action, actor, key)
-                        : commands.getObject().copy(ref, command.expectedBusinessVersion(), action, actor, key);
+                result = code.endsWith(".COMPLETE") ? commands.getObject().complete(ref, command.expectedBusinessVersion().intValue(), action, actor, key)
+                        : commands.getObject().copy(ref, command.expectedBusinessVersion().intValue(), action, actor, key);
             }
         }
         if (result == null || result.ref() == null || result.ref().revisionId() == null) throw new IllegalStateException("OWNER_RESULT_IDENTITY_INVALID");
         String id = result.ref().revisionId().toString();
         String fact = "SOL:REQUIREMENT_ANALYSIS_REVISION:" + id + ":" + result.version() + ":" + result.state().name();
-        return new ProjectOperationResult("SOL", "REQUIREMENT_ANALYSIS", id, id, result.version(), fact,
+        return new ProjectOperationResult("SOL", "REQUIREMENT_ANALYSIS", id, id, (long) result.version(), fact,
                 code.endsWith(".COMPLETE") ? "REQUIREMENT_ANALYSIS_COMPLETED" : "REQUIREMENT_ANALYSIS_DRAFT_SAVED",
                 JsonUtils.parseTree(JsonUtils.toJsonString(result)), false);
     }

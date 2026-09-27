@@ -112,7 +112,7 @@ class ProjectBusinessResultJournalTest {
         var input=event("40");tx.executeWithoutResult(status->journal.record(input));
         observation.set(Observation.absent(Status.UNAVAILABLE,"REPLACED_LATER"));
         tx.executeWithoutResult(status->journal.record(input));assertEquals(1,reads.get());assertEquals(1,capture().sequence());assertEquals(2,count("test_outbox"));
-        var conflict=new BusinessOperationResultEvent(input.eventId(),1,1L,3L,"TEST","NATIVE","100","41",2,"changed", "COMPLETED","CONFIRM","key",9L,input.occurredAt(),"trace");
+        var conflict=new BusinessOperationResultEvent(input.eventId(),1,1L,3L,"TEST","NATIVE","100","41",2L,"changed", "COMPLETED","CONFIRM","key",9L,input.occurredAt(),"trace");
         assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(status->journal.record(conflict)));assertEquals(1,reads.get());
     }
     @Test void freshEventIdsCannotMakeTheSameNativeResultNewAgain(){
@@ -136,7 +136,7 @@ class ProjectBusinessResultJournalTest {
     }
     @Test void unformedChangesAreObservationsNotSuccessfulResults(){
         observation.set(Observation.absent(Status.NOT_FORMED,"DRAFT"));
-        var original=event("40");var draft=new BusinessOperationResultEvent(original.eventId(),1,1L,3L,"TEST","NATIVE","100","40",1,"draft","DRAFT_SAVED","SAVE","key",9L,original.occurredAt(),"trace");
+        var original=event("40");var draft=new BusinessOperationResultEvent(original.eventId(),1,1L,3L,"TEST","NATIVE","100","40",1L,"draft","DRAFT_SAVED","SAVE","key",9L,original.occurredAt(),"trace");
         tx.executeWithoutResult(status->journal.record(draft));var change=journal.read(capture(),0,1).changes().getFirst();assertFalse(change.formation());assertNull(change.observation().result());
     }
     @Test void boundaryAndPageValidationCannotCrossTenantOrSilentlyTruncate(){
@@ -166,7 +166,7 @@ class ProjectBusinessResultJournalTest {
     }
     @Test void replayUsesThePersistedTimestampPrecision() {
         var before=event("40");
-        var event=new BusinessOperationResultEvent(before.eventId(),1,1L,3L,"TEST","NATIVE","100","40",2,
+        var event=new BusinessOperationResultEvent(before.eventId(),1,1L,3L,"TEST","NATIVE","100","40",2L,
                 "fact:40","COMPLETED","CONFIRM","key",9L,before.occurredAt().withNano(123456789),"trace");
         tx.executeWithoutResult(status->journal.record(event));tx.executeWithoutResult(status->journal.record(event));
         assertEquals(1,reads.get());assertEquals(2,count("test_outbox"));
@@ -190,6 +190,6 @@ class ProjectBusinessResultJournalTest {
     private ProjectBusinessResultJournal.Boundary capture(){return tx.execute(status->journal.capture(1L,3L,TYPE));}
     private int count(String table){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class);}
     private void formed(String id){observation.set(Observation.available(new Result(1L,3L,TYPE,"100",id,"1","2",Validity.CURRENT,LocalDateTime.of(2026,9,18,1,0))));}
-    private BusinessOperationResultEvent event(String id){return new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,"TEST","NATIVE","100",id,2,"fact:"+id,"COMPLETED","CONFIRM","key",9L,LocalDateTime.of(2026,9,18,1,0),"trace");}
+    private BusinessOperationResultEvent event(String id){return new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,"TEST","NATIVE","100",id,2L,"fact:"+id,"COMPLETED","CONFIRM","key",9L,LocalDateTime.of(2026,9,18,1,0),"trace");}
     private static void await(CountDownLatch latch){try{if(!latch.await(3,TimeUnit.SECONDS))throw new IllegalStateException("TEST_LOCK_TIMEOUT");}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException(interrupted);}}
 }

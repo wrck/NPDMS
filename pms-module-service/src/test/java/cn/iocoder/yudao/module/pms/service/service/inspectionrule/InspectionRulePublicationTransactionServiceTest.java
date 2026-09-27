@@ -331,7 +331,7 @@ class InspectionRulePublicationTransactionServiceTest {
         rule.setTenantId(TENANT_ID);
         rule.setDetectionId("DET-001");
         rule.setRuleName("核心状态检查");
-        rule.setVersion(0);
+        rule.setVersion(0L);
         return rule;
     }
 

@@ -253,8 +253,8 @@ public class CutoverTaskController {
 
     private static ResponseEntity<CommonResult<CutoverTaskErrorData>> error(
             int httpStatus, int code, String message, String category, String reasonCode,
-            String recoveryAction, String ownerContext, Integer currentTaskVersion,
-            Integer currentAssessmentVersion) {
+            String recoveryAction, String ownerContext, Long currentTaskVersion,
+            Long currentAssessmentVersion) {
         CommonResult<CutoverTaskErrorData> result = CommonResult.error(code, message);
         result.setData(new CutoverTaskErrorData(category, reasonCode, recoveryAction,
                 ownerContext, currentTaskVersion, currentAssessmentVersion, null));
@@ -284,7 +284,7 @@ public class CutoverTaskController {
                 value.configurationSelectionRequired());
     }
 
-    private static int version(String value) {
+    private static long version(String value) {
         String normalized = header(value, "version header");
         try {
             int version = Integer.parseInt(normalized);

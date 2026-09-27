@@ -132,12 +132,12 @@ public class CutoverTaskApplicationService {
         String answers = JsonUtils.toJsonString(command.answers());
         String contextJson = JsonUtils.toJsonString(contextSnapshot(context));
         if (lockedTask.getCurrentAssessmentId() == null) {
-            requireAssessmentVersion(command.expectedAssessmentVersion() == 0, 0);
+            requireAssessmentVersion(command.expectedAssessmentVersion() == 0, 0L);
             CutoverAssessmentDO row = new CutoverAssessmentDO();
             row.setId(nextId());
             row.setTenantId(command.tenantId());
             row.setCutoverTaskId(command.taskId());
-            row.setAssessmentVersion(1);
+            row.setAssessmentVersion(1L);
             row.setAssessmentStatus(CutoverTaskRules.ASSESSMENT_DRAFT);
             row.setQuestionnaireTemplateCode(CutoverTaskRules.TEMPLATE_CODE);
             row.setQuestionnaireTemplateVersion(CutoverTaskRules.TEMPLATE_VERSION);
@@ -146,14 +146,14 @@ public class CutoverTaskApplicationService {
             row.setManualGrade(normalizeOptionalGrade(command.manualGrade()));
             row.setSimpleFlow(false);
             row.setCurrentMarker(1);
-            row.setVersion(0);
+            row.setVersion(0L);
             row.setCreator(String.valueOf(command.actorId()));
             row.setUpdater(String.valueOf(command.actorId()));
             require(assessmentMapper.insert(row) == 1, STATE_CONFLICT, "评估草稿创建失败");
             requireTaskVersion(taskMapper.linkAssessmentIfMatch(new CutoverTaskAssessmentLinkUpdate(
                     command.tenantId(), command.taskId(), command.expectedTaskVersion(), row.getId())) == 1,
                     lockedTask.getVersion());
-            return new CutoverAssessmentCommandResult(command.taskId(), row.getId(), 1, 0,
+            return new CutoverAssessmentCommandResult(command.taskId(), row.getId(), 1L, 0L,
                     command.expectedTaskVersion() + 1, CutoverTaskRules.ASSESSMENT_DRAFT);
         }
         CutoverAssessmentDO row = assessmentMapper.selectForUpdate(new CutoverAssessmentRowQuery(
@@ -231,7 +231,7 @@ public class CutoverTaskApplicationService {
         row.setDeviceScopeWatermark(JsonUtils.toJsonString(locked.devices()));
         row.setCustomerContextSnapshot(JsonUtils.toJsonString(locked.customer()));
         row.setReadinessContextSnapshot(JsonUtils.toJsonString(locked.readiness()));
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator(String.valueOf(command.actorId()));
         row.setUpdater(String.valueOf(command.actorId()));
         row.setCreateTime(taskCreatedAt);
@@ -258,7 +258,7 @@ public class CutoverTaskApplicationService {
         insertHistory(command.tenantId(), taskId, 1, CutoverTaskRules.STAGE_P1, CutoverTaskRules.STAGE_P2,
                 null, CutoverTaskRules.STATUS_GRADE_CONFIRMING, "P1_ACCEPTED", null,
                 command.actorId(), command.correlationId());
-        return new CutoverTaskCommandResult(taskId, row.getTaskNo(), row.getCurrentStage(), row.getTaskStatus(), 0, false);
+        return new CutoverTaskCommandResult(taskId, row.getTaskNo(), row.getCurrentStage(), row.getTaskStatus(), 0L, false);
     }
 
     private CutoverTaskCommandResult submitOnce(SubmitCutoverAssessmentCommand command) {
@@ -466,7 +466,7 @@ public class CutoverTaskApplicationService {
         requireText(command.correlationId(), "correlationId", 128);
     }
 
-    private static void requireOwnedP2(CutoverTaskDO task, Long actorId, Integer expectedVersion) {
+    private static void requireOwnedP2(CutoverTaskDO task, Long actorId, Long expectedVersion) {
         require(CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                         && actorId.equals(task.getOwnerUserId()), NOT_FOUND, "割接任务不可见");
         require(CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
@@ -478,14 +478,14 @@ public class CutoverTaskApplicationService {
         }
     }
 
-    private static void requireAssessmentVersion(boolean condition, Integer currentAssessmentVersion) {
+    private static void requireAssessmentVersion(boolean condition, Long currentAssessmentVersion) {
         if (!condition) {
             throw new CutoverTaskApplicationException(ASSESSMENT_VERSION_CONFLICT, "评估版本已变化",
                     null, currentAssessmentVersion);
         }
     }
 
-    private static void requireTaskVersion(boolean condition, Integer currentTaskVersion) {
+    private static void requireTaskVersion(boolean condition, Long currentTaskVersion) {
         if (!condition) {
             throw new CutoverTaskApplicationException(TASK_VERSION_CONFLICT, "任务版本已变化",
                     currentTaskVersion, null);

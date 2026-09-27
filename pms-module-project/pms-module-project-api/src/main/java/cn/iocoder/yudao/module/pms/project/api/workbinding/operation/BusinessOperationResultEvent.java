@@ -6,7 +6,7 @@ import java.util.UUID;
 
 /** Committed Owner fact. It carries no task, stage, template or execution identity. */
 public record BusinessOperationResultEvent(String eventId, int eventVersion, Long tenantId, Long projectId,
-        String ownerContext, String objectType, String objectId, String revisionId, Integer objectVersion,
+        String ownerContext, String objectType, String objectId, String revisionId, Long objectVersion,
         String businessFactVersion, String resultCode, String operationCode, String commandId,
         Long actorId, LocalDateTime occurredAt, String correlationId) {
     public static final String EVENT_TYPE = "PMS.BusinessOperationResultCommitted.v1";

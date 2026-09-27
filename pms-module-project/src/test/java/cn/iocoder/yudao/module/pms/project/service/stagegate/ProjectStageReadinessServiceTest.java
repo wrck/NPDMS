@@ -75,7 +75,7 @@ class ProjectStageReadinessServiceTest {
         project = new ProjectMasterDO();
         project.setId(PROJECT_ID); project.setTenantId(TENANT_ID);
         project.setManagerId(ACTOR_ID); project.setAssignmentStatus("ASSIGNED");
-        project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("S0"); project.setVersion(4);
+        project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("S0"); project.setVersion(4L);
         when(projectMapper.selectById(PROJECT_ID)).thenReturn(project);
         stages = List.of(stage(21L, "S0", 0, true, false), stage(22L, "S4", 99, false, false),
                 stage(23L, "S6", 1, false, true));
@@ -98,7 +98,7 @@ class ProjectStageReadinessServiceTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(scope);
         when(permissionApi.hasAnyPermissions(anyLong(), any())).thenReturn(true);
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(PROJECT_ID, ACTOR_ID,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY", "ACTIVE", "S0", 4, 4L));
+                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY", "ACTIVE", "S0", 4L, 4L));
     }
 
     @AfterEach

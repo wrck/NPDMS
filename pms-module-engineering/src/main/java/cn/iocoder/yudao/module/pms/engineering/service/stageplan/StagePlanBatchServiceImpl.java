@@ -219,7 +219,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     @Transactional(rollbackFor = Exception.class)
     public StagePlanBatchRespVO updateItems(StagePlanItemUpdateReqVO updateReqVO) {
         StagePlanBatchDO batch = validateBatchEditable(updateReqVO.getId());
-        if (!Objects.equals(batch.getVersion(), updateReqVO.getVersion())) {
+        if (!Objects.equals(batch.getVersion(), updateReqVO.getVersion() == null ? null : updateReqVO.getVersion().longValue())) {
             throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
         }
         List<StagePlanItemDO> items = itemMapper.selectListByBatchId(batch.getId());

@@ -24,7 +24,7 @@ public class ProjectAcceptanceContextService implements ProjectAcceptanceContext
         return context(query, project, scope);
     }
     @Override @Transactional(propagation = Propagation.MANDATORY)
-    public Context lock(Query query, Integer expectedProjectVersion, Long expectedTreeVersion) {
+    public Context lock(Query query, Long expectedProjectVersion, Long expectedTreeVersion) {
         if (query == null || expectedProjectVersion == null || expectedTreeVersion == null) throw new IllegalArgumentException("ACCEPTANCE_PROJECT_CONTEXT_REQUIRED");
         var scope = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(), query.actorId(), query.projectId(), ProjectScopeApi.ACTION_EDIT, expectedTreeVersion));
         var project = require(query, projects.selectByIdForUpdate(query.projectId()));

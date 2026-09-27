@@ -28,15 +28,15 @@ public final class CutoverTaskApplicationException extends RuntimeException {
     }
 
     private final Code code;
-    private final Integer currentTaskVersion;
-    private final Integer currentAssessmentVersion;
+    private final Long currentTaskVersion;
+    private final Long currentAssessmentVersion;
 
     public CutoverTaskApplicationException(Code code, String message) {
         this(code, message, null, null);
     }
 
     public CutoverTaskApplicationException(Code code, String message,
-                                           Integer currentTaskVersion, Integer currentAssessmentVersion) {
+                                           Long currentTaskVersion, Long currentAssessmentVersion) {
         super(message);
         this.code = code;
         this.currentTaskVersion = currentTaskVersion;
@@ -47,11 +47,11 @@ public final class CutoverTaskApplicationException extends RuntimeException {
         return code;
     }
 
-    public Integer currentTaskVersion() {
+    public Long currentTaskVersion() {
         return currentTaskVersion;
     }
 
-    public Integer currentAssessmentVersion() {
+    public Long currentAssessmentVersion() {
         return currentAssessmentVersion;
     }
 }

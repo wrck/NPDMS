@@ -75,7 +75,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
 
         ProjectQualificationPort.ProjectQualificationFact fact = adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, 7L, 7L, 5, 5L, 9L, true));
+                        1L, 100L, 7L, 7L, 5L, 5L, 9L, true));
 
         assertEquals(5L, fact.factVersion());
         ArgumentCaptor<ProjectParticipantFactRevalidationQuery> participantQuery =
@@ -103,7 +103,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
         ArrivalAcceptanceContractException stale = assertThrows(ArrivalAcceptanceContractException.class,
                 () -> adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, null, 8L, 5, 5L, 9L, false)));
+                        1L, 100L, null, 8L, 5L, 5L, 9L, false)));
         assertEquals("BUSINESS_GATE_INVALID", stale.category());
         assertEquals("PROJECT_STAGE_NOT_S4", stale.reasonCode());
 
@@ -201,14 +201,14 @@ class ArrivalAcceptanceOwnerAdapterTest {
         when(participants.inspect(any())).thenReturn(participant("S1", 5, 5L));
         when(scopes.resolveCurrent(any())).thenReturn(scope(9L, Set.of(100L)));
         var stages = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi.class);
-        when(stages.isActive(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi.Query(100L, 5, "S4"))).thenReturn(true);
+        when(stages.isActive(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi.Query(100L, 5L, "S4"))).thenReturn(true);
         var adapter = new ProjectQualificationApiAdapter(stages, participants, scopes);
         assertEquals("S1", adapter.inspect(1L, 100L, 8L).currentStage());
         when(stages.isActive(any())).thenReturn(false);
         assertThrows(ArrivalAcceptanceContractException.class, () -> adapter.inspect(1L, 100L, 8L));
     }
 
-    private static ProjectParticipantFact participant(String stage, Integer projectVersion, Long factVersion) {
+    private static ProjectParticipantFact participant(String stage, long projectVersion, Long factVersion) {
         return new ProjectParticipantFact(100L, 7L,
                 Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
                 "ACTIVE", stage, projectVersion, factVersion);

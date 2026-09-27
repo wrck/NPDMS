@@ -140,7 +140,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         entity.setStatus(STATUS_DRAFT);
         entity.setCrmPushStatus(CRM_PUSH_PENDING);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         materialExchangeMapper.insert(entity);
         saveSerials(entity.getId(), lines, serialQuantities(createReqVO),
@@ -570,7 +570,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     }
 
     private void validateVersion(MaterialExchangeDO entity, Integer version) {
-        if (version == null || !Objects.equals(entity.getVersion(), version)) {
+        if (version == null || !Objects.equals(entity.getVersion(), version.longValue())) {
             throw exception(MATERIAL_EXCH_VERSION_NOT_MATCH);
         }
     }

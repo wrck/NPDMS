@@ -174,7 +174,7 @@ class CutoverTaskQueryServiceTest {
         row.setCurrentAssessmentId(801L);
         row.setScheduledTime(LocalDateTime.of(2026, 9, 1, 1, 30));
         row.setCreateTime(LocalDateTime.of(2026, 8, 31, 4, 0));
-        row.setVersion(1);
+        row.setVersion(1L);
         return row;
     }
 
@@ -194,7 +194,7 @@ class CutoverTaskQueryServiceTest {
         row.setId(801L);
         row.setTenantId(1L);
         row.setCutoverTaskId(701L);
-        row.setAssessmentVersion(1);
+        row.setAssessmentVersion(1L);
         row.setAssessmentStatus("DRAFT");
         row.setQuestionnaireTemplateCode("CUT_P2_MANUAL_ASSESSMENT");
         row.setQuestionnaireTemplateVersion(1L);
@@ -203,7 +203,7 @@ class CutoverTaskQueryServiceTest {
                 project, List.of(device), readiness, customer)));
         row.setManualGrade("A");
         row.setSimpleFlow(false);
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 

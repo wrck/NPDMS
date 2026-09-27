@@ -141,7 +141,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         stubLockedContext(ProjectStageGateOutcome.SATISFIED);
         when(permissionApi.hasAnyRoles(ACTOR_ID, "super_admin")).thenReturn(true);
         when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of());
-        var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L,
+        var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L,
                 "admin-advance", "a".repeat(64));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-admin");
         assertEquals("S4", service.advance(command, actor).afterStage());
@@ -159,7 +159,7 @@ class ProjectStageAdvanceApplicationServiceTest {
     void advancesFrozenTargetAfterOwnerFactsAreSatisfied() {
         stubLockedContext(ProjectStageGateOutcome.SATISFIED);
 
-        ProjectStageAdvanceResult result = service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L,
+        ProjectStageAdvanceResult result = service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L,
                 "advance-1", "a".repeat(64)), new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-1"));
 
         assertEquals("S0", result.beforeStage());
@@ -182,7 +182,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         stubLockedContext(ProjectStageGateOutcome.UNSATISFIED);
 
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
-                () -> service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L,
+                () -> service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L,
                                 "advance-2", "b".repeat(64)),
                         new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-2")));
 
@@ -209,7 +209,7 @@ class ProjectStageAdvanceApplicationServiceTest {
                 ProjectStageGateOutcome.UNSATISFIED, "ENTRY_NOT_READY"));
 
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.advance(
-                new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L, "entry", "e".repeat(64)),
+                new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L, "entry", "e".repeat(64)),
                 new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "entry")));
 
         verify(providerRegistry).lockAndRevalidate(any(), org.mockito.ArgumentMatchers.argThat(query ->
@@ -228,12 +228,12 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(graphMapper.selectTasksForUpdate(any())).thenReturn(List.of(task));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "blocked");
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.advance(
-                new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L, "tasks", "e".repeat(64)), actor));
+                new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L, "tasks", "e".repeat(64)), actor));
         var stages = graphMapper.selectStagesForUpdate(null);
         stages.getFirst().setStatus("DONE"); stages.getLast().setStatus("ACTIVE");
         projectMapper.selectByIdForUpdate(PROJECT_ID).setCurrentStage("S4");
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.advance(
-                new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S4", 3L, "terminal", "f".repeat(64)), actor));
+                new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S4", 3L, "terminal", "f".repeat(64)), actor));
         assertEquals("ACTIVE", projectMapper.selectByIdForUpdate(PROJECT_ID).getLifecycleStatus());
         verify(gateMapper, never()).updateStatusIfMatch(any());
         verify(stageMapper, never()).updateStatusIfMatch(any());
@@ -252,7 +252,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         member.setMemberRole("PROJECT_MANAGER");
         member.setAssignmentType("COLLABORATOR");
         when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of(member));
-        var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L,
+        var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L,
                 "secondary", "d".repeat(64));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-secondary");
         assertEquals("S4", service.advance(command, actor).afterStage());
@@ -292,7 +292,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS), any()))
                 .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, "PROCESS",
                         "", "NOT_STARTED", "def-entry", ProjectStageGateOutcome.UNSATISFIED, "PROCESS_NOT_STARTED"));
-        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, "def-entry", Map.of(), Map.of(), "entry-start",
+        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4L, "def-entry", Map.of(), Map.of(), "entry-start",
                 "a".repeat(64), actor).outcome());
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
                 "S4".equals(command.currentStageCode()) && command.gateReferenceId().equals(42L)));
@@ -323,11 +323,11 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL), any()))
                 .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_BPM_APPROVAL, "APPROVAL",
                         "", "NOT_STARTED", "def-parallel", ProjectStageGateOutcome.UNSATISFIED, "APPROVAL_NOT_STARTED"));
-        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, Map.of("note", "value"), Map.of("approve", List.of(12L)), "parallel", "digest", actor).outcome());
+        assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4L, null, Map.of("note", "value"), Map.of("approve", List.of(12L)), "parallel", "digest", actor).outcome());
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command ->
                 command.variables().equals(Map.of("note", "value")) && command.selectedApprovers().equals(Map.of("approve", List.of(12L)))));
         verify(processOwnerApi).startProcess(org.mockito.ArgumentMatchers.argThat(command -> "def-parallel".equals(command.selectedProcessDefinitionId())));
-        assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4, "another-definition", Map.of(), Map.of(), "override", "digest", actor));
+        assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4L, "another-definition", Map.of(), Map.of(), "override", "digest", actor));
         var handlingOrder = org.mockito.Mockito.inOrder(processOwnerApi, processContexts);
         handlingOrder.verify(processOwnerApi).startProcess(any());
         handlingOrder.verify(processContexts).recordStarted(any(), eq(ACTOR_ID));
@@ -338,10 +338,10 @@ class ProjectStageAdvanceApplicationServiceTest {
         verify(stageMapper, never()).updateStatusIfMatch(any());
         verify(projectMapper, never()).advanceStageIfMatch(any());
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
-                () -> service.startProcess(PROJECT_ID, 42L, 3, null, Map.of(), Map.of(), "stale", "digest", actor));
+                () -> service.startProcess(PROJECT_ID, 42L, 3L, null, Map.of(), Map.of(), "stale", "digest", actor));
         when(permissionApi.hasAnyPermissions(ACTOR_ID, "pms:project:update")).thenReturn(false);
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
-                () -> service.startProcess(PROJECT_ID, 42L, 4, null, Map.of(), Map.of(), "forbidden", "digest", actor));
+                () -> service.startProcess(PROJECT_ID, 42L, 4L, null, Map.of(), Map.of(), "forbidden", "digest", actor));
         verify(processOwnerApi, org.mockito.Mockito.times(1)).startProcess(any());
     }
 
@@ -367,10 +367,10 @@ class ProjectStageAdvanceApplicationServiceTest {
                 "pi-2", "def-1", "approval", "PROJECT_STAGE_GATE:42", "STARTED"));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "start");
         if (allowed) {
-            assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4, null, Map.of(), Map.of(), "new-operation", "digest", actor).outcome());
+            assertEquals("STARTED", service.startProcess(PROJECT_ID, 42L, 4L, null, Map.of(), Map.of(), "new-operation", "digest", actor).outcome());
             verify(processContexts).recordStarted(any(), eq(ACTOR_ID));
         } else {
-            assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4, null, Map.of(), Map.of(), "new-operation", "digest", actor));
+            assertThrows(RuntimeException.class, () -> service.startProcess(PROJECT_ID, 42L, 4L, null, Map.of(), Map.of(), "new-operation", "digest", actor));
             verify(processOwnerApi, never()).startProcess(any());
             verify(processContexts, never()).recordStarted(any(), any());
         }
@@ -384,7 +384,7 @@ class ProjectStageAdvanceApplicationServiceTest {
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, stored));
 
-        ProjectStageGateProcessStartFact replayed = service.startProcess(PROJECT_ID, 41L, 4, null, Map.of(), Map.of(),
+        ProjectStageGateProcessStartFact replayed = service.startProcess(PROJECT_ID, 41L, 4L, null, Map.of(), Map.of(),
                 "process-1", "c".repeat(64),
                 new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-3"));
 
@@ -478,7 +478,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         edge.setTenantId(TENANT_ID); edge.setProjectId(PROJECT_ID); edge.setGraphVersion(1L);
         edge.setFromStageId(22L); edge.setToStageId(23L); edge.setTransitionCode("S4-S6"); edge.setPriority(1); edge.setIsDefault(false);
         when(graphMapper.selectTransitions(any())).thenReturn(List.of(original, edge));
-        var result = service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S4", 3L, "non-s0", "a".repeat(64)),
+        var result = service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S4", 3L, "non-s0", "a".repeat(64)),
                 new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "non-s0"));
         assertEquals("S6", result.afterStage());
         verify(memberMapper, never()).selectActiveForAssignmentState(any());
@@ -486,7 +486,7 @@ class ProjectStageAdvanceApplicationServiceTest {
 
     private void assertS0AssignmentRejected(String reason) {
         var failure = org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
-                () -> service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4, "S0", 3L, "s0-guard", "a".repeat(64)),
+                () -> service.advance(new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L, "s0-guard", "a".repeat(64)),
                         new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "s0-guard")));
         org.junit.jupiter.api.Assertions.assertTrue(failure.getMessage().contains(reason));
     }
@@ -522,7 +522,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         project.setLifecycleStatus("ACTIVE");
         project.setCurrentStage("S0");
         project.setAssignmentStatus("ASSIGNED");
-        project.setVersion(4);
+        project.setVersion(4L);
         when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(project);
 
         ProjectStageInstanceDO current = new ProjectStageInstanceDO().setId(21L).setProjectId(PROJECT_ID)

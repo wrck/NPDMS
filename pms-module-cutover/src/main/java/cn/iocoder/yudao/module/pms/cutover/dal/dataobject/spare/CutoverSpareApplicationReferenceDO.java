@@ -1,9 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -12,9 +10,7 @@ import java.time.LocalDateTime;
 @TableName("cut_spare_application_reference")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CutoverSpareApplicationReferenceDO extends TenantBaseDO {
-    @TableId
-    private Long id;
+public class CutoverSpareApplicationReferenceDO extends BaseBusinessEntity {
     private Long cutoverTaskId;
     private Long projectId;
     private String platformRequestId;
@@ -30,6 +26,4 @@ public class CutoverSpareApplicationReferenceDO extends TenantBaseDO {
     private String lastFailureCode;
     private String lastFailureDetail;
     private LocalDateTime lastAttemptAt;
-    @Version
-    private Integer version;
 }

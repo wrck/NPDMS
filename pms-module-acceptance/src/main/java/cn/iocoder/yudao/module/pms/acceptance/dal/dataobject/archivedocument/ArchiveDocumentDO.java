@@ -1,9 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.archivedocument;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -18,13 +16,11 @@ import java.time.LocalDateTime;
 @TableName("acc_archive_document")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ArchiveDocumentDO extends TenantBaseDO {
+public class ArchiveDocumentDO extends BaseBusinessEntity {
 
     /**
      * 主键编号
      */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -68,7 +64,5 @@ public class ArchiveDocumentDO extends TenantBaseDO {
     /**
      * 乐观锁版本号
      */
-    @Version
-    private Integer version;
 
 }

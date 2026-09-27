@@ -25,7 +25,7 @@ class IndependentAcceptanceResultBridgeTest {
     final AcceptanceActivityDO activity = new AcceptanceActivityDO();
     @BeforeEach void setUp() {
         TenantContextHolder.setTenantId(7L);
-        activity.setId(55L); activity.setTenantId(7L); activity.setProjectId(80L); activity.setVersion(3); activity.setOriginKind("DIRECT");
+        activity.setId(55L); activity.setTenantId(7L); activity.setProjectId(80L); activity.setVersion(3L); activity.setOriginKind("DIRECT");
         when(activities.selectById(55L)).thenReturn(activity);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }

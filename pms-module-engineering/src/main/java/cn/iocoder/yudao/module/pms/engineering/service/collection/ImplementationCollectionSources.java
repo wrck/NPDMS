@@ -23,7 +23,7 @@ public class ImplementationCollectionSources {
     private CollectionSourceAdapter source(String entry,String type,String title,boolean manual,String permission,Reader reader){
         return new CollectionSourceAdapter(){
             public String entry(){return entry;}
-            public Source authorize(Long tenant,Long actor,Long id,Long device,Access access,Integer expectedVersion){
+            public Source authorize(Long tenant,Long actor,Long id,Long device,Access access,Long expectedVersion){
                 boolean edit=access!=Access.READ,lock=access==Access.EXECUTE||access==Access.CONSUME;
                 if(actor==null||!permissions.hasAnyPermissions(actor,permission+(edit?":update":":query")))throw new AccessDeniedException("无当前业务采集权限");
                 Owner row=reader.get(id,lock);if(row==null||!tenant.equals(row.tenant()))throw new CollectionOperationException("业务记录不存在");
@@ -38,6 +38,6 @@ public class ImplementationCollectionSources {
             }
         };
     }
-    private record Owner(Long tenant,Long project,Long device,Integer version,boolean executable){}
+    private record Owner(Long tenant,Long project,Long device,Long version,boolean executable){}
     private interface Reader{Owner get(Long id,boolean lock);}
 }

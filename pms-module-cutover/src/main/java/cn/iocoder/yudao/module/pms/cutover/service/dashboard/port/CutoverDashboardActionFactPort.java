@@ -33,7 +33,7 @@ public interface CutoverDashboardActionFactPort {
         }
     }
 
-    record CandidateNeed(Long taskId, Long projectId, Integer taskVersion, String currentStage,
+    record CandidateNeed(Long taskId, Long projectId, Long taskVersion, String currentStage,
                          Long stageFactId, Integer stageFactVersion) {
         public CandidateNeed {
             currentStage = currentStage == null ? null : currentStage.trim();

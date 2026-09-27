@@ -61,7 +61,7 @@ public class RequirementAnalysisImportService {
         } else {
             var expectedCurrent = BeanUtils.toBean(expected.get(effective.getId()), RequirementAnalysisDO.class);
             expectedCurrent.setId(entityId);
-            expectedCurrent.setVersion(1);
+            expectedCurrent.setVersion(1L);
             if (current == null) mapper.insertCurrent(expectedCurrent);
             else requireEqual(projectId, expectedCurrent, current);
             importCapabilities(EntityDataRef.current(expected.get(effective.getId()).entityRef()), effective,

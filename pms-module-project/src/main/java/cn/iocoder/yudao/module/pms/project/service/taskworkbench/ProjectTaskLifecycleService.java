@@ -411,7 +411,7 @@ public class ProjectTaskLifecycleService {
         }
         var fact = acceptanceActivityCompletionFactApi.lockAndComplete(
                 new AcceptanceActivityCompletionCommand(actor.tenantId(), task.getProjectId(), task.getId(),
-                        task.getVersion(), contract.getId(), acceptanceId, command.expectedActivityVersion(),
+                        task.getVersion(), contract.getId(), acceptanceId, command.expectedActivityVersion() == null ? null : command.expectedActivityVersion().longValue(),
                         command.expectedReportVersion(), command.idempotencyKey()));
         if (fact == null || "DEPENDENCY_UNAVAILABLE".equals(fact.outcome())) {
             throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);

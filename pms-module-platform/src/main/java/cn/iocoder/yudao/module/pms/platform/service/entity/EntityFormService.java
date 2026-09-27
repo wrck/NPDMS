@@ -157,7 +157,7 @@ public class EntityFormService implements EntityFormApi {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
-    public void copy(EntityDataRef source, EntityDataRef target, Integer expectedTargetVersion, EntityActor actor) {
+    public void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor) {
         if (!source.entity().equals(target.entity()) || source.equals(target)) throw exception(ENTITY_REVISION_MISMATCH);
         var original = read(source, actor);
         registry.lockForWrite(target, actor, expectedTargetVersion);

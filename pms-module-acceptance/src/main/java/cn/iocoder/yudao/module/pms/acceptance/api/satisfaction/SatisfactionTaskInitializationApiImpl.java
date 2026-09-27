@@ -187,7 +187,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
             report.setId(IdWorker.getId()); report.setTenantId(tenantId); report.setProjectId(command.projectId());
             report.setDeliverableCode("D-SAT-MANUAL-" + taskFact.projectTaskId()); report.setName("满意度调查报告");
             report.setStageCode(option.stageCode()); report.setTaskCode(taskFact.taskCode());
-            report.setRequired(false); report.setStatus("PENDING"); report.setArchiveStatus("PENDING"); report.setVersion(0);
+            report.setRequired(false); report.setStatus("PENDING"); report.setArchiveStatus("PENDING"); report.setVersion(0L);
             if (deliverableMapper.insert(report) != 1) throw new IllegalStateException("SATISFACTION_DELIVERABLE_CREATE_FAILED");
             deliverables = List.of(report);
         }
@@ -217,7 +217,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         task.setAssignedToUserId(taskFact.currentAssigneeUserId());
         task.setTaskStatus("PENDING_COLLECTION");
         task.setQuestionnaireId(questionnaireId);
-        task.setVersion(0);
+        task.setVersion(0L);
 
         SatisfactionQuestionnaireDO questionnaire = new SatisfactionQuestionnaireDO();
         questionnaire.setId(questionnaireId);
@@ -231,12 +231,12 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         questionnaire.setRuleVersion(taskFact.ruleVersion());
         questionnaire.setQuestionnaireStatus("ACTIVE");
         questionnaire.setAccessScopeVersion(scope.treeVersion());
-        questionnaire.setVersion(0);
+        questionnaire.setVersion(0L);
 
         taskMapper.insert(task);
         questionnaireMapper.insert(questionnaire);
         return new SatisfactionTaskInitializationResult("CREATED", taskId, questionnaireId,
-                task.getCollectionKey(), 1, 0);
+                task.getCollectionKey(), 1, 0L);
     }
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(SatisfactionTaskInitializationCommand command,

@@ -112,7 +112,7 @@ public class ProjectTaskMaintenanceService {
                 var row = new ProjectTaskAssignmentDO();
                 row.setId(IdWorker.getId()); row.setTenantId(actor.tenantId()); row.setProjectTaskId(task.getId());
                 row.setAssigneeUserId(command.userId()); row.setEffectiveFrom(now); row.setAssignedBy(actor.actorId()); row.setReason(command.reason().trim());
-                row.setVersion(0); row.setCreator(String.valueOf(actor.actorId())); row.setUpdater(String.valueOf(actor.actorId()));
+                row.setVersion(0L); row.setCreator(String.valueOf(actor.actorId())); row.setUpdater(String.valueOf(actor.actorId()));
                 if (assignments.insertAssignment(row) != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
                 var status = "PENDING_ASSIGN".equals(task.getStatus()) ? "PENDING_START" : task.getStatus();
                 if (tasks.assignTaskIfMatch(new TaskAssignmentStateUpdate(actor.tenantId(), task.getProjectId(), task.getId(), task.getVersion(), task.getStatus(), status, String.valueOf(actor.actorId()))) != 1)

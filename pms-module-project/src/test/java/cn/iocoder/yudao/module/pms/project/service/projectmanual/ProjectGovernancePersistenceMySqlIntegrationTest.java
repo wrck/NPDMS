@@ -62,7 +62,7 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
     @Transactional
     void casIntervalsHistoryAndReopenConsumptionUseRealMySql() {
         var project = applicationService.create(newCommand(), newActor());
-        int version = currentVersion(project.id());
+        long version = currentVersion(project.id());
         assertEquals(1, projectMasterMapper.updateGovernanceStateIfMatch(
                 new ProjectGovernanceStateUpdate(0L, project.id(), version, "ACTIVE",
                         "S0", "EXCEPTION_CLOSED", "UNASSIGNED", "fproj006-it")));
@@ -150,7 +150,7 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
     @Test
     void concurrentRollbackCasHasOneWinner() throws Exception {
         var project = applicationService.create(newCommand(), newActor());
-        int version = currentVersion(project.id());
+        long version = currentVersion(project.id());
         CountDownLatch start = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> inTenantTransaction(() -> {
@@ -180,7 +180,7 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
     @Test
     void failedRollbackTransactionLeavesNoSuccessfulSideEffects() {
         var project = applicationService.create(newCommand(), newActor());
-        int version = currentVersion(project.id());
+        long version = currentVersion(project.id());
         LocalDateTime operatedAt = LocalDateTime.now().withNano(0);
         insertMember(project.id(), 9_920_071L, "SERVICE_MANAGER_L1", "PRIMARY", operatedAt);
         insertMember(project.id(), 9_920_072L, "SERVICE_MANAGER_L2", "COLLABORATOR", operatedAt);

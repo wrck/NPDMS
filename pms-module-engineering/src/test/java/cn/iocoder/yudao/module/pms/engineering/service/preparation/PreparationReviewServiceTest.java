@@ -289,7 +289,7 @@ class PreparationReviewServiceTest {
     private PreparationReviewCommand command(String action, Long itemId, Integer preparationVersion,
                                              Integer itemVersion, String reason) {
         return new PreparationReviewCommand(action, 1L, itemId, preparationVersion, itemVersion,
-                3, reason, "review-key-" + action);
+                3L, reason, "review-key-" + action);
     }
 
     private PreparationItemApplicationService.Actor actor() {

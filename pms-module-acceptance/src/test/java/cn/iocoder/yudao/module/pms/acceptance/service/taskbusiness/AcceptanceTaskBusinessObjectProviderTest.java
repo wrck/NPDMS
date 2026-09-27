@@ -84,7 +84,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
         activity.setProjectTaskId(300L); activity.setExecutionContractId(400L);
         activity.setDeliverableId(91L);
         activity.setAcceptanceType("FINAL"); activity.setActivityStatus("PENDING");
-        activity.setCurrentReportVersionId(51L); activity.setVersion(7); activity.setDeleted(false);
+        activity.setCurrentReportVersionId(51L); activity.setVersion(7L); activity.setDeleted(false);
         when(activities.selectById(42L)).thenReturn(activity);
         when(activities.selectByIdForUpdate(new AcceptanceActivityIdLockQuery(3L, 42L))).thenReturn(activity);
         report.setId(51L); report.setTenantId(3L); report.setAcceptanceId(42L); report.setReportVersionNo(2);
@@ -107,7 +107,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @Test void automaticAssociationsFilterAcceptanceTypeAndDoNotRequireABrowserActor() {
         SecurityContextHolder.clearContext();
         var initial = new AcceptanceActivityDO(); initial.setId(41L); initial.setTenantId(3L); initial.setProjectId(100L);
-        initial.setAcceptanceType("PRELIMINARY"); initial.setVersion(1);
+        initial.setAcceptanceType("PRELIMINARY"); initial.setVersion(1L);
         when(activities.selectByProjectScope(any())).thenReturn(List.of(activity, initial));
         var initialContext = new AssociationContext(3L, 100L, "PROJECT_ACCEPTANCE", "{\"acceptanceType\":\"PRELIMINARY\"}");
         assertEquals(List.of("41"), provider.associationCandidates(initialContext, null, 100).stream().map(AssociationCandidate::objectId).toList());
@@ -122,7 +122,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @Test void unattendedCompletionRevalidatesTheExecutionAndExactCurrentReportBeforePassing() {
         SecurityContextHolder.clearContext(); report.setConclusionCode("PASS");
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L, 1, 200L, 1, 400L, 1, 500L, 600L, 1, 1, 700L, 1, true, report.getEffectiveFrom());
+                100L, 1L, 200L, 1, 400L, 1, 500L, 600L, 1, 1, 700L, 1, true, report.getEffectiveFrom());
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
         var type = cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource.TYPE;
         var result = new cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Result(

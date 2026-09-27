@@ -18,6 +18,6 @@ public final class CutoverPlanContractException extends RuntimeException {
     public ErrorData errorData() { return errorData; }
 
     public record ErrorData(String category, String reasonCode, String recoveryAction, String ownerContext,
-                            Integer currentTaskVersion, Integer currentPlanVersion,
-                            Integer currentApprovalVersion) {}
+                            Long currentTaskVersion, Long currentPlanVersion,
+                            Long currentApprovalVersion) {}
 }

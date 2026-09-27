@@ -109,7 +109,7 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
         assertEquals(second.getId(), transactionTemplate.execute(status ->
                 assignmentMapper.selectCurrentForUpdate(new TaskAssignmentLockQuery(0L, taskId))).getId());
         assertEquals(0, assignmentMapper.closeCurrentIfMatch(new TaskAssignmentCloseUpdate(
-                0L, first.getId(), 1, transferredAt.plusMinutes(1), "fproj007-task3-test")));
+                0L, first.getId(), 1L, transferredAt.plusMinutes(1), "fproj007-task3-test")));
         assertNull(transactionTemplate.execute(status -> assignmentMapper.selectCurrentForUpdate(
                 new TaskAssignmentLockQuery(1L, taskId))));
     }
@@ -206,7 +206,7 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
         assignment.setEffectiveFrom(effectiveFrom);
         assignment.setAssignedBy(9001L);
         assignment.setReason(reason);
-        assignment.setVersion(0);
+        assignment.setVersion(0L);
         return assignment;
     }
 

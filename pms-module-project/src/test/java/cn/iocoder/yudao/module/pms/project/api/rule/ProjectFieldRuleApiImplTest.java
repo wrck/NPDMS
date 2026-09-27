@@ -40,7 +40,7 @@ class ProjectFieldRuleApiImplTest {
         var factory = new org.springframework.beans.factory.support.StaticListableBeanFactory();
         factory.addBean("templates", templates);
         api = new ProjectFieldRuleApiImpl(projects, factory.getBeanProvider(ProjectTemplateService.class), scopes, fields, engine.evaluator());
-        project.setId(9L); project.setTenantId(1L); project.setVersion(12);
+        project.setId(9L); project.setTenantId(1L); project.setVersion(12L);
         project.setLifecycleTemplateId(90L); project.setLifecycleTemplateRevisionId(91L); project.setLifecycleTemplateRevisionNo(3);
         revision.setId(91L); revision.setTenantId(1L); revision.setTemplateId(90L); revision.setRevisionNo(3); revision.setStatus("PUBLISHED");
         when(projects.selectById(9L)).thenReturn(project); when(projects.selectByIdForUpdate(9L)).thenReturn(project);

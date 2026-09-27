@@ -161,17 +161,17 @@ class CutoverChecklistPositiveLoopMySqlTest {
     @Test
     void completesP3GenerateDirectManualAndSubmitIntoP4WithRealTransactionAndMyBatis() {
         ChecklistCommandResult generated = service.generate(new GenerateChecklistCommand(
-                tenantId, ACTOR_ID, taskId, 2, 1, 7L, Map.of(), "generate-loop", "corr-generate-loop"));
+                tenantId, ACTOR_ID, taskId, 2L, 1L, 7L, Map.of(), "generate-loop", "corr-generate-loop"));
         ChecklistCommandResult saved = service.save(new SaveChecklistCommand(
-                tenantId, ACTOR_ID, taskId, 2, generated.checklistId(), 0, 7L,
+                tenantId, ACTOR_ID, taskId, 2L, generated.checklistId(), 0L, 7L,
                 List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}"))));
         CutoverChecklistFilePort.FileFactVersion fileVersion =
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
         ChecklistItemCommandResult manual = service.selectManual(new SelectManualResultCommand(
-                tenantId, ACTOR_ID, taskId, 2, generated.checklistId(), saved.checklistFactVersion(), 7L,
+                tenantId, ACTOR_ID, taskId, 2L, generated.checklistId(), saved.checklistFactVersion(), 7L,
                 "SYS-EVIDENCE", new CutoverChecklistFilePort.FileHandle(90L, 2, "ref-90", fileVersion, 7L),
                 "现场回执"));
-        SubmitChecklistCommand submit = new SubmitChecklistCommand(tenantId, ACTOR_ID, taskId, 2, 1,
+        SubmitChecklistCommand submit = new SubmitChecklistCommand(tenantId, ACTOR_ID, taskId, 2L, 1L,
                 generated.checklistId(), manual.checklistVersion(), 7L, "submit-loop", "corr-submit-loop");
 
         ChecklistCommandResult submitted = service.submit(submit);
@@ -388,7 +388,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         revision.setPlanTemplateSectionSnapshot("[]"); revision.setValidationResultSnapshot("[]");
         revision.setNavigationRuleSnapshot("{\"target\":\"TASK_OVERVIEW\"}");
         revision.setPublishedBy(ACTOR_ID); revision.setPublishedAt(LocalDateTime.of(2026, 8, 1, 0, 0));
-        revision.setVersion(0); revision.setCreator("8"); revision.setUpdater("8");
+        revision.setVersion(0L); revision.setCreator("8"); revision.setUpdater("8");
         assertEquals(1, configurationMapper.insert(revision));
 
         insertDefinition(configurationId + 1, "SYS-IP", "管理地址", "DIRECT", 10);
@@ -430,7 +430,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         task.setImplementationReadinessSnapshotVersion(4L); task.setProjectScopeVersion(7L);
         task.setProjectContextSnapshot("{}"); task.setDeviceScopeWatermark("{}");
         task.setCustomerContextSnapshot("{}"); task.setReadinessContextSnapshot("{}");
-        task.setManualGrade("A"); task.setCurrentAssessmentId(assessmentId); task.setVersion(2);
+        task.setManualGrade("A"); task.setCurrentAssessmentId(assessmentId); task.setVersion(2L);
         task.setCreator("8"); task.setUpdater("8"); task.setCreateTime(now); task.setUpdateTime(now);
         assertEquals(1, taskMapper.insert(task));
 
@@ -444,7 +444,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
         CutoverAssessmentDO assessment = new CutoverAssessmentDO();
         assessment.setId(assessmentId); assessment.setTenantId(tenantId); assessment.setCutoverTaskId(taskId);
-        assessment.setAssessmentVersion(1); assessment.setAssessmentStatus("SUBMITTED");
+        assessment.setAssessmentVersion(1L); assessment.setAssessmentStatus("SUBMITTED");
         assessment.setQuestionnaireTemplateCode("CUT_P2_MANUAL_ASSESSMENT");
         assessment.setQuestionnaireTemplateVersion(1L);
         assessment.setAnswerSnapshot("{\"businessImportanceLevel\":\"HIGH\","
@@ -455,7 +455,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
                 + "\"serviceLevelCode\":\"GOLD\"}}");
         assessment.setManualGrade("A"); assessment.setSimpleFlow(false);
         assessment.setSubmittedBy(ACTOR_ID); assessment.setSubmittedAt(now); assessment.setCurrentMarker(1);
-        assessment.setVersion(1); assessment.setCreator("8"); assessment.setUpdater("8");
+        assessment.setVersion(1L); assessment.setCreator("8"); assessment.setUpdater("8");
         assertEquals(1, assessmentMapper.insert(assessment));
     }
 

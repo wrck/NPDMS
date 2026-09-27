@@ -109,7 +109,7 @@ public class ProjectStageAdvanceController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody ProjectStageAdvanceReqVO request) {
         return withTrustedTenant(() -> {
-            Integer expectedVersion = parseIfMatch(ifMatch);
+            Long expectedVersion = parseIfMatch(ifMatch);
             return success(applicationService.advance(new ProjectStageAdvanceCommand(projectId, expectedVersion,
                     request.getExpectedCurrentStage(), request.getExpectedTreeVersion(), idempotencyKey,
                     digest(projectId, expectedVersion, request)), actor()));
@@ -136,14 +136,14 @@ public class ProjectStageAdvanceController {
         return result.get();
     }
 
-    private Integer parseIfMatch(String value) {
+    private Long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
         if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int parsed = Integer.parseInt(normalized);
+            long parsed = Long.parseLong(normalized);
             if (parsed < 0) throw new NumberFormatException("negative version");
             return parsed;
         } catch (NumberFormatException ex) {

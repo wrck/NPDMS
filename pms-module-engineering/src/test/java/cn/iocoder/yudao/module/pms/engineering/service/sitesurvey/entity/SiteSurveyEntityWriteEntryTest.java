@@ -27,12 +27,12 @@ class SiteSurveyEntityWriteEntryTest {
         ReflectionTestUtils.setField(service,"locationFactService",location);
         ReflectionTestUtils.setField(service,"formService",forms);
         ReflectionTestUtils.setField(service,"ruleEvents",events);
-        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1);
+        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1L);
         when(mapper.selectById(11L)).thenReturn(row);
         boolean legacyInternal = "associate".equals(action) || "release".equals(action);
         if (legacyInternal) doThrow(new IllegalStateException("node denied")).when(access).lock(any(),any(),any());
         else doThrow(new IllegalStateException("node denied")).when(access).lock(any(),any(),any(),any(),any());
-        var selection = new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(9L,1,21L,1,22L,1,23L,24L,1,2,true));
+        var selection = new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(9L,1L,21L,1,22L,1,23L,24L,1,2,true));
         var request = new SiteSurveyEntitySaveReqVO(); request.setId(11L); request.setProjectId(99L); request.setExecution(selection);
         Runnable write = switch(action) {
             case "create" -> () -> service.createSiteSurveyEntity(request);

@@ -78,7 +78,7 @@ public class ConfigurationCollectionService {
             return new Prepared(existing, false);
         }
         if (!Set.of(0, 1, 3).contains(configuration.getStatus())) throw rejected("已完成的配置记录不能下发命令");
-        if (!Objects.equals(configuration.getVersion(), request.getExpectedVersion())) throw rejected("配置记录已变化，请刷新");
+        if (!Objects.equals(configuration.getVersion(), request.getExpectedVersion() == null ? null : request.getExpectedVersion().longValue())) throw rejected("配置记录已变化，请刷新");
         if (configuration.getEquipmentId() == null) throw rejected("请先关联项目设备");
         var selected = devices.validateSelection(configuration.getProjectId(), List.of(configuration.getEquipmentId()));
         if (selected.size() != 1 || !Objects.equals(selected.getFirst().equipmentId(), configuration.getEquipmentId()))

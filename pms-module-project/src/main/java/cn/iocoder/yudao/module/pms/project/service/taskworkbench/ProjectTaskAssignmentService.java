@@ -174,7 +174,7 @@ public class ProjectTaskAssignmentService {
         assignment.setEffectiveFrom(occurredAt);
         assignment.setAssignedBy(actor.actorId());
         assignment.setReason(command.reason().trim());
-        assignment.setVersion(0);
+        assignment.setVersion(0L);
         assignment.setCreator(String.valueOf(actor.actorId()));
         assignment.setUpdater(String.valueOf(actor.actorId()));
         if (assignmentMapper.insertAssignment(assignment) != 1) {

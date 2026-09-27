@@ -149,7 +149,7 @@ class DeviceProjectionReconciliationServiceTest {
         device.setSn("SN-8");
         device.setProjectAssignmentVersion(1L);
         device.setCustomerAssignmentVersion(2L);
-        device.setVersion(3);
+        device.setVersion(3L);
         return device;
     }
 

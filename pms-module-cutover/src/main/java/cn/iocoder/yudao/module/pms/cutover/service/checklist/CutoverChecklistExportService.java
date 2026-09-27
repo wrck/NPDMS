@@ -31,7 +31,7 @@ public final class CutoverChecklistExportService {
     }
 
     public CutoverChecklistExportResult export(Long tenantId, Long actorId, Long taskId,
-                                                Integer checklistVersion, String correlationId) {
+                                                Long checklistVersion, String correlationId) {
         require(positive(tenantId) && positive(actorId) && positive(taskId)
                         && checklistVersion != null && checklistVersion > 0
                         && present(correlationId) && correlationId.equals(correlationId.trim())

@@ -10,7 +10,7 @@ import java.util.Map;
 public final class CutoverSpareViews {
     private CutoverSpareViews() { }
 
-    public record Detail(Long taskId, Integer taskVersion, SpareNeedSnapshot need,
+    public record Detail(Long taskId, Long taskVersion, SpareNeedSnapshot need,
                          List<Application> applications, List<ManualEvidence> manualEvidence,
                          List<String> allowedActions) { }
 

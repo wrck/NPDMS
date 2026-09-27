@@ -8,7 +8,7 @@ public interface EntityExtensionApi {
     Values read(EntityDataRef target, EntityActor actor);
     Values save(Save command);
     void validateComplete(EntityDataRef target, EntityActor actor);
-    void copy(EntityDataRef source, EntityDataRef target, Integer expectedTargetVersion, EntityActor actor);
+    void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor);
 
     record Definition(String code, String label, EntityField.Type type, boolean required,
                       Integer maxLength, List<String> allowedValues) {}
@@ -18,6 +18,6 @@ public interface EntityExtensionApi {
                                          List<Definition> fields, EntityActor actor);
     DefinitionRevision definition(Long id, EntityRef entity, EntityActor actor);
     record Values(Long definitionRevisionId, Map<String, Object> fields, int version) {}
-    record Save(EntityDataRef target, EntityActor actor, Integer expectedEntityVersion,
+    record Save(EntityDataRef target, EntityActor actor, Long expectedEntityVersion,
                 int expectedValueVersion, Long definitionRevisionId, Map<String, Object> fields) {}
 }

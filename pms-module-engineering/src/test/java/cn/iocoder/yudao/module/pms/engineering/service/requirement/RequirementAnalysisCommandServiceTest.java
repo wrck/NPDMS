@@ -117,7 +117,7 @@ class RequirementAnalysisCommandServiceTest {
         executeNewCommands();
 
         var result = service.createInitial(new RequirementAnalysisCommandService.CreateCommand(
-                100L, 3, "initial-key"), actor());
+                100L, 3L, "initial-key"), actor());
 
         assertEquals(501L, result.preparationId());
         assertEquals("DRAFT", result.status());
@@ -156,7 +156,7 @@ class RequirementAnalysisCommandServiceTest {
         when(rootMapper.incrementContentIfMatch(any())).thenReturn(1);
 
         var result = service.patch(new RequirementAnalysisCommandService.PatchCommand(501L, 701L,
-                2, 5, 3, Set.of("value"), JsonUtils.parseTree("\"new\""),
+                2, 5, 3L, Set.of("value"), JsonUtils.parseTree("\"new\""),
                 null), actor());
 
         assertEquals(6, result.contentVersion());
@@ -172,13 +172,13 @@ class RequirementAnalysisCommandServiceTest {
                 eq("SUCCESS"), any(Map.class));
 
         ServiceException invalid = assertThrows(ServiceException.class, () -> service.patch(
-                new RequirementAnalysisCommandService.PatchCommand(501L, 701L, 3, 6, 3,
+                new RequirementAnalysisCommandService.PatchCommand(501L, 701L, 3, 6, 3L,
                         Set.of("unknown"), null, null), actor()));
         assertEquals(REQUIREMENT_ANALYSIS_COMMAND_INVALID.getCode(), invalid.getCode());
 
         when(sectionMapper.patchIfMatch(any())).thenReturn(0);
         ServiceException cas = assertThrows(ServiceException.class, () -> service.patch(
-                new RequirementAnalysisCommandService.PatchCommand(501L, 701L, 3, 6, 3,
+                new RequirementAnalysisCommandService.PatchCommand(501L, 701L, 3, 6, 3L,
                         Set.of("value"), JsonUtils.parseTree("\"new\""), null), actor()));
         assertEquals(REQUIREMENT_VERSION_NOT_MATCH.getCode(), cas.getCode());
         verify(rootMapper, times(1)).incrementContentIfMatch(any());
@@ -197,7 +197,7 @@ class RequirementAnalysisCommandServiceTest {
         when(rootMapper.incrementContentIfMatch(any())).thenReturn(1);
 
         service.patch(new RequirementAnalysisCommandService.PatchCommand(501L, 701L,
-                2, 5, 3, Set.of("value"), JsonUtils.parseTree(JsonUtils.toJsonString(input)), null), actor());
+                2, 5, 3L, Set.of("value"), JsonUtils.parseTree(JsonUtils.toJsonString(input)), null), actor());
 
         ArgumentCaptor<RequirementAnalysisSectionPatchUpdate> update =
                 ArgumentCaptor.forClass(RequirementAnalysisSectionPatchUpdate.class);
@@ -238,7 +238,7 @@ class RequirementAnalysisCommandServiceTest {
         attachment.setScopeVersion(7L);
 
         service.patch(new RequirementAnalysisCommandService.PatchCommand(501L, 701L,
-                2, 5, 3, Set.of("attachments"), null, List.of(attachment)), actor());
+                2, 5, 3L, Set.of("attachments"), null, List.of(attachment)), actor());
 
         ArgumentCaptor<RequirementAnalysisSectionPatchUpdate> update =
                 ArgumentCaptor.forClass(RequirementAnalysisSectionPatchUpdate.class);
@@ -262,7 +262,7 @@ class RequirementAnalysisCommandServiceTest {
         when(sectionMapper.selectListForUpdate(any())).thenReturn(invalid);
 
         ServiceException missing = assertThrows(ServiceException.class, () -> service.complete(
-                new RequirementAnalysisCommandService.CompleteCommand(501L, 2, 5, 3, "complete-missing"), actor()));
+                new RequirementAnalysisCommandService.CompleteCommand(501L, 2, 5, 3L, "complete-missing"), actor()));
         assertEquals(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(), missing.getCode());
         verify(fileArtifactApi, never()).lockAndRevalidateReferenceSets(any());
         verify(rootMapper, never()).completeDraftIfMatch(any());
@@ -272,7 +272,7 @@ class RequirementAnalysisCommandServiceTest {
         when(sectionMapper.selectListForUpdate(any())).thenReturn(invisible);
         ServiceException invisibleText = assertThrows(ServiceException.class, () -> service.complete(
                 new RequirementAnalysisCommandService.CompleteCommand(
-                        501L, 2, 5, 3, "complete-invisible-rich-text"), actor()));
+                        501L, 2, 5, 3L, "complete-invisible-rich-text"), actor()));
         assertEquals(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(), invisibleText.getCode());
 
         List<RequirementAnalysisSectionDO> valid = elevenSections();
@@ -288,7 +288,7 @@ class RequirementAnalysisCommandServiceTest {
         when(rootMapper.completeDraftIfMatch(any())).thenReturn(1);
 
         var completed = service.complete(new RequirementAnalysisCommandService.CompleteCommand(
-                501L, 2, 5, 3, "complete-ok"), actor());
+                501L, 2, 5, 3L, "complete-ok"), actor());
 
         assertEquals("COMPLETED", completed.status());
         verify(fileArtifactApi).lockAndRevalidateReferenceSets(any());
@@ -325,7 +325,7 @@ class RequirementAnalysisCommandServiceTest {
         when(rootMapper.completeDraftIfMatch(any())).thenReturn(1);
 
         service.complete(new RequirementAnalysisCommandService.CompleteCommand(
-                501L, 2, 5, 3, "complete-ordered-files"), actor());
+                501L, 2, 5, 3L, "complete-ordered-files"), actor());
 
         ArgumentCaptor<FileReferenceSetCollectionRevalidationQuery> locks =
                 ArgumentCaptor.forClass(FileReferenceSetCollectionRevalidationQuery.class);
@@ -369,7 +369,7 @@ class RequirementAnalysisCommandServiceTest {
         when(sectionMapper.patchIfMatch(any())).thenReturn(1);
 
         var draft = service.createRevision(new RequirementAnalysisCommandService.CreateRevisionCommand(
-                501L, 4, 5, 3, "revision-key"), actor());
+                501L, 4, 5, 3L, "revision-key"), actor());
 
         assertEquals(502L, draft.preparationId());
         assertEquals(2, draft.businessVersion());
@@ -403,21 +403,21 @@ class RequirementAnalysisCommandServiceTest {
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, replay));
         assertEquals(replay, service.createInitial(new RequirementAnalysisCommandService.CreateCommand(
-                100L, 3, "same-intent"), actor()));
+                100L, 3L, "same-intent"), actor()));
         verifyNoInteractions(preparationMapper, sectionMapper);
 
         when(commandExecutionApi.execute(any(), any(), any(), any(), any()))
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.CONFLICT, null));
         ServiceException conflict = assertThrows(ServiceException.class, () -> service.createInitial(
-                new RequirementAnalysisCommandService.CreateCommand(100L, 3, "same-intent"), actor()));
+                new RequirementAnalysisCommandService.CreateCommand(100L, 3L, "same-intent"), actor()));
         assertEquals(PLATFORM_COMMAND_KEY_CONFLICT.getCode(), conflict.getCode());
 
         when(commandExecutionApi.execute(any(), any(), any(), any(), any()))
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.IN_PROGRESS, null));
         ServiceException inProgress = assertThrows(ServiceException.class, () -> service.createInitial(
-                new RequirementAnalysisCommandService.CreateCommand(100L, 3, "running-intent"), actor()));
+                new RequirementAnalysisCommandService.CreateCommand(100L, 3L, "running-intent"), actor()));
         assertEquals(PLATFORM_COMMAND_IN_PROGRESS.getCode(), inProgress.getCode());
     }
 
@@ -427,7 +427,7 @@ class RequirementAnalysisCommandServiceTest {
         executeNewCommands();
 
         ServiceException error = assertThrows(ServiceException.class, () -> service.createInitial(
-                new RequirementAnalysisCommandService.CreateCommand(100L, 3, "forbidden"), actor()));
+                new RequirementAnalysisCommandService.CreateCommand(100L, 3L, "forbidden"), actor()));
 
         assertEquals(FORBIDDEN.getCode(), error.getCode());
         verifyNoInteractions(projectScopeApi, participantFactApi, workBindingFactApi, preparationMapper, sectionMapper);
@@ -479,11 +479,11 @@ class RequirementAnalysisCommandServiceTest {
 
     private ProjectParticipantFact manager() {
         return new ProjectParticipantFact(100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 11L);
+                "PRIMARY", "ACTIVE", "S1", 3L, 11L);
     }
 
     private ProjectWorkBindingFact binding() {
-        return new ProjectWorkBindingFact(100L, 3, 201L, 1, 301L, 1, 401L, 1,
+        return new ProjectWorkBindingFact(100L, 3L, 201L, 1, 301L, 1, 401L, 1,
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.workBindingTypeCode(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetContextCode(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetObjectType(),

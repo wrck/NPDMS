@@ -19,7 +19,7 @@ class SolutionReviewPolicyServiceTest {
     final SolutionDO solution = new SolutionDO();
     SolutionReviewPolicyDO stored;
     @BeforeEach void setup() {
-        TenantContextHolder.setTenantId(1L); solution.setId(42L); solution.setProjectId(9L); solution.setVersion(6); solution.setReviewLevel(0);
+        TenantContextHolder.setTenantId(1L); solution.setId(42L); solution.setProjectId(9L); solution.setVersion(6L); solution.setReviewLevel(0);
         when(records.bySolution(any())).thenAnswer(call -> stored);
         when(records.insert(any(SolutionReviewPolicyDO.class))).thenAnswer(call -> { stored = call.getArgument(0); return 1; });
     }

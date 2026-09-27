@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectOperationResultFieldsTest {
     @Test void resultFieldsArePostOnlyAndNeverExposeArbitraryResponseData() {
-        var result = new ProjectOperationResult("SOL", "SITE_SURVEY", "9007199254740993", null, 1, "fact", "SURVEY_CONFIRMED",
+        var result = new ProjectOperationResult("SOL", "SITE_SURVEY", "9007199254740993", null, 1L, "fact", "SURVEY_CONFIRMED",
                 JsonUtils.parseTree("{\"privateValue\":\"hidden\"}"), false);
         assertEquals("9007199254740993", ProjectOperationResultFields.read(result, "transactionResult.objectId").value());
         assertTrue(ProjectOperationResultFields.read(result, "transactionResult.revisionId").available());

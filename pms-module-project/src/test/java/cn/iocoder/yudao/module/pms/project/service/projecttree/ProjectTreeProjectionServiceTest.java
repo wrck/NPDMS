@@ -102,7 +102,7 @@ class ProjectTreeProjectionServiceTest {
     void shouldLockStableIdsAndPublishMoveAsOneVersionedCommand() {
         ProjectMasterDO root = project(1L, null, 1L);
         ProjectMasterDO node = project(2L, 1L, 1L);
-        node.setTreePath("/1/"); node.setTreeDepth(1); node.setTenantId(1L); node.setVersion(0);
+        node.setTreePath("/1/"); node.setTreeDepth(1); node.setTenantId(1L); node.setVersion(0L);
         ProjectMasterDO target = project(3L, 1L, 1L);
         target.setTreePath("/1/"); target.setTreeDepth(1); target.setTenantId(1L);
         root.setTenantId(1L);

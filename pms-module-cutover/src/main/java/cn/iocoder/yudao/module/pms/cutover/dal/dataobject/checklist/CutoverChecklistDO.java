@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
@@ -12,14 +11,11 @@ import java.time.LocalDateTime;
 @TableName("cut_cutover_checklist")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CutoverChecklistDO extends TenantBaseDO {
-
-    @TableId
-    private Long id;
+public class CutoverChecklistDO extends BaseBusinessEntity {
     private Long cutoverTaskId;
     private Long assessmentId;
-    private Integer assessmentVersion;
-    private Integer checklistVersion;
+    private Long assessmentVersion;
+    private Long checklistVersion;
     private String statusCode;
     private String inputSnapshot;
     private String inputSnapshotHash;
@@ -31,6 +27,4 @@ public class CutoverChecklistDO extends TenantBaseDO {
     private LocalDateTime invalidatedAt;
     private String invalidatedReason;
     private Integer currentMarker;
-    @Version
-    private Integer version;
 }

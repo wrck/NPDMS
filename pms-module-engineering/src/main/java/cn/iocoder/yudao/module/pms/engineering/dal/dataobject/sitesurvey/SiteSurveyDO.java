@@ -1,11 +1,10 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -20,10 +19,8 @@ import java.time.LocalDate;
 @TableName(value = "sol_eng_site_survey", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SiteSurveyDO extends TenantBaseDO {
+public class SiteSurveyDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -53,15 +50,15 @@ public class SiteSurveyDO extends TenantBaseDO {
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long addressId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    private Integer addressVersion;
+    private Long addressVersion;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long siteId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    private Integer siteVersion;
+    private Long siteVersion;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long siteLocationId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    private Integer siteLocationVersion;
+    private Long siteLocationVersion;
     private String locationResolutionStatus;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String addressSnapshot;
@@ -124,14 +121,10 @@ public class SiteSurveyDO extends TenantBaseDO {
      */
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 
     private Long formRevisionId;
     private Integer formRevisionVersion;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class,
             updateStrategy = FieldStrategy.ALWAYS)
     private java.util.Map<String, Object> formExtraValues;

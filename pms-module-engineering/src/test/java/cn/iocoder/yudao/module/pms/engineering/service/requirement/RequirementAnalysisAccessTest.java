@@ -43,10 +43,10 @@ class RequirementAnalysisAccessTest {
 
     @Test void activeManagerCanEditButClosedProjectCannot() {
         allowed();
-        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S1", 3, 3L));
+        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S1", 3L, 3L));
         assertTrue(access.isManager(20L, actor));
         assertDoesNotThrow(() -> access.requireRead(20L, actor, true));
-        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"), "PRIMARY", "NORMAL_CLOSED", "S1", 3, 3L));
+        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"), "PRIMARY", "NORMAL_CLOSED", "S1", 3L, 3L));
         assertFalse(access.isManager(20L, actor));
     }
 

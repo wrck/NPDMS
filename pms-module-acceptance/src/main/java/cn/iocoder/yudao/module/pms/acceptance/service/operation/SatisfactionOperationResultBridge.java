@@ -44,7 +44,7 @@ public class SatisfactionOperationResultBridge {
                 || !Objects.equals(result.getTenantId(), tenant) || !Objects.equals(result.getCollectionTaskId(), task.getId()))
             throw new IllegalArgumentException("SATISFACTION_EVENT_IDENTITY_INVALID");
         var operation = new ProjectOperationResult("ACC", "SATISFACTION", task.getId().toString(), result.getId().toString(),
-                result.getVersion(), "ACC:SATISFACTION:" + result.getId() + ":" + result.getVersion(),
+                result.getVersion() == null ? null : result.getVersion().longValue(), "ACC:SATISFACTION:" + result.getId() + ":" + result.getVersion(),
                 "INVALIDATED".equals(event.changeType()) ? "SATISFACTION_RESULT_INVALIDATED" : "SATISFACTION_RESULT_RECORDED", null, false);
         var changed = BusinessOperationResultEvent.create(tenant, task.getProjectId(), "OWNER.SATISFACTION.RESULT_CHANGED",
                 event.eventId(), operation, event.actorId(), event.eventId());

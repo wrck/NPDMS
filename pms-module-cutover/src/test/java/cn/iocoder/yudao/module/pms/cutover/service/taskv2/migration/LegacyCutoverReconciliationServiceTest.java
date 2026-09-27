@@ -43,7 +43,7 @@ class LegacyCutoverReconciliationServiceTest {
                 "NPDMS_LEGACY", "pms_cut_task_retired", "91", "CUT-91", "{}", "0".repeat(64),
                 LocalDateTime.of(2026, 8, 31, 4, 1), null);
         CutTaskRetiredDO legacy = legacyTask();
-        ProjectOrganizationFact project = new ProjectOrganizationFact(100L, 5, 200L, 300L, "OFFICE-300");
+        ProjectOrganizationFact project = new ProjectOrganizationFact(100L, 5L, 200L, 300L, "OFFICE-300");
 
         when(migrationApi.claimStagedBatch(any())).thenReturn(new MigrationBatchClaimResult(true, batch));
         when(migrationApi.pageSourceRecords(any())).thenReturn(new MigrationSourceRecordPage(List.of(source), null));
@@ -102,7 +102,7 @@ class LegacyCutoverReconciliationServiceTest {
         when(migrationApi.claimStagedBatch(any())).thenReturn(new MigrationBatchClaimResult(true, batch));
         when(migrationApi.pageSourceRecords(any())).thenReturn(new MigrationSourceRecordPage(sources, null));
         when(reconciliationMapper.selectSourceForUpdate(any())).thenReturn(deleted, invalid, conflict);
-        ProjectOrganizationFact project = new ProjectOrganizationFact(100L, 5, 200L, 300L, "OFFICE-300");
+        ProjectOrganizationFact project = new ProjectOrganizationFact(100L, 5L, 200L, 300L, "OFFICE-300");
         when(projectApi.inspect(any())).thenReturn(project);
         when(projectApi.lockAndRevalidate(any())).thenReturn(project);
         when(reconciliationMapper.countTargetIdentityConflicts(any())).thenReturn(1L);

@@ -11,5 +11,5 @@ public record DeviceLocationProjectionUpdate(
         String locationSnapshot,
         LocalDateTime effectiveFrom,
         Long locationRecordId,
-        Integer expectedVersion) {
+        Long expectedVersion) {
 }

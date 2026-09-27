@@ -176,7 +176,7 @@ class CustomerLifecycleApplicationServiceTest {
         return new CustomerLifecycleCommand(1L, 100L, "业务停用", 2L, "life-key");
     }
 
-    private CustomerMasterDO customer(CustomerLifecycleStatus status, int version) {
+    private CustomerMasterDO customer(CustomerLifecycleStatus status, long version) {
         CustomerMasterDO customer = new CustomerMasterDO();
         customer.setId(100L);
         customer.setTenantId(1L);

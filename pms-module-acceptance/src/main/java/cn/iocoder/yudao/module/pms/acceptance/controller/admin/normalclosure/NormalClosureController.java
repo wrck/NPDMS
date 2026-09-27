@@ -27,8 +27,8 @@ public class NormalClosureController {
     private final NormalClosureQueryService query;
     private final NormalClosureApplicationService application;
     private final Environment environment;
-    public record CheckRequest(@NotNull @Min(0) Integer expectedProjectVersion, @NotNull @Positive Long expectedTreeVersion) {}
-    public record SubmitRequest(@NotNull @Positive Long snapshotId, @NotNull @Min(0) Integer expectedProjectVersion,
+    public record CheckRequest(@NotNull @Min(0) Long expectedProjectVersion, @NotNull @Positive Long expectedTreeVersion) {}
+    public record SubmitRequest(@NotNull @Positive Long snapshotId, @NotNull @Min(0) Long expectedProjectVersion,
                                 @NotNull @Positive Long expectedTreeVersion) {}
 
     @GetMapping

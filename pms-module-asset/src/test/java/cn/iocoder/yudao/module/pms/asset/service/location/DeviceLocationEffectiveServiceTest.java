@@ -117,7 +117,7 @@ class DeviceLocationEffectiveServiceTest {
         device.setId(8L);
         device.setTenantId(1L);
         device.setSn("SN-8");
-        device.setVersion(2);
+        device.setVersion(2L);
         return device;
     }
 

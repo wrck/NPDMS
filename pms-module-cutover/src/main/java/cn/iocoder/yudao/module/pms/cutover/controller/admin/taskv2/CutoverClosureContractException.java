@@ -17,7 +17,7 @@ public final class CutoverClosureContractException extends RuntimeException {
     public ErrorData errorData() { return errorData; }
 
     public record ErrorData(String category, String reasonCode, String recoveryAction,
-                            String ownerContext, Integer currentTaskVersion,
-                            Integer currentClosureVersion) {
+                            String ownerContext, Long currentTaskVersion,
+                            Long currentClosureVersion) {
     }
 }

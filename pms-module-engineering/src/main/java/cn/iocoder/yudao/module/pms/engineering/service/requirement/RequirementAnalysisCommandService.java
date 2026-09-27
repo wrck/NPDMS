@@ -324,7 +324,7 @@ public class RequirementAnalysisCommandService {
     }
 
     private Authorization lockManager(Long projectId, Actor actor, boolean requireS1, boolean withBinding,
-                                      Integer expectedProjectVersion) {
+                                      Long expectedProjectVersion) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
@@ -893,7 +893,7 @@ public class RequirementAnalysisCommandService {
         }
     }
 
-    private record Authorization(Integer projectVersion, Long scopeVersion, ProjectWorkBindingFact binding) {
+    private record Authorization(Long projectVersion, Long scopeVersion, ProjectWorkBindingFact binding) {
     }
 
     private record CommandOutcome(CommandResult result, AuditTransition auditTransition) {
@@ -930,12 +930,12 @@ public class RequirementAnalysisCommandService {
     public record Actor(Long tenantId, Long actorId, String correlationId) {
     }
 
-    public record CreateCommand(Long projectId, Integer expectedProjectVersion, String idempotencyKey) {
+    public record CreateCommand(Long projectId, Long expectedProjectVersion, String idempotencyKey) {
     }
 
     public record PatchCommand(Long preparationId, Long sectionId,
                                Integer expectedPreparationVersion, Integer expectedContentVersion,
-                               Integer expectedProjectVersion, Set<String> submittedFields,
+                               Long expectedProjectVersion, Set<String> submittedFields,
                                JsonNode value, List<RequirementAnalysisAttachmentReqVO> attachments) {
         public PatchCommand {
             submittedFields = submittedFields == null ? Set.of() : Set.copyOf(submittedFields);
@@ -944,11 +944,11 @@ public class RequirementAnalysisCommandService {
     }
 
     public record CompleteCommand(Long preparationId, Integer expectedVersion, Integer expectedContentVersion,
-                                  Integer expectedProjectVersion, String idempotencyKey) {
+                                  Long expectedProjectVersion, String idempotencyKey) {
     }
 
     public record CreateRevisionCommand(Long preparationId, Integer expectedVersion,
-                                        Integer expectedContentVersion, Integer expectedProjectVersion,
+                                        Integer expectedContentVersion, Long expectedProjectVersion,
                                         String idempotencyKey) {
     }
 

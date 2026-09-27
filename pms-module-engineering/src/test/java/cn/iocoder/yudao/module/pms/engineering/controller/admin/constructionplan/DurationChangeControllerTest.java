@@ -74,7 +74,7 @@ class DurationChangeControllerTest {
                 new MockEnvironment().withProperty("yudao.tenant.enable", "false"));
         DurationChangeSubmitReqVO request = new DurationChangeSubmitReqVO();
         request.setChangeId(801L);
-        request.setExpectedProjectVersion(3);
+        request.setExpectedProjectVersion(3L);
 
         controller.submitChange(501L, "submit-801", "0", request);
 

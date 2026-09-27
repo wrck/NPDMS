@@ -93,7 +93,7 @@ public class RequirementAnalysisRevisionFilePolicy implements FileBusinessObject
             if (!expectedVersion.equals(id)) throw exception(FILE_SCOPE_VERSION_CONFLICT);
             var selection = execution == null ? null : cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(
                     execution.toString(), cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection.class);
-            if (WRITES.contains(action)) row = access.lock(id, row.getVersion(), actor, selection, true);
+            if (WRITES.contains(action)) row = access.lock(id, row.getVersion() == null ? null : Math.toIntExact(row.getVersion()), actor, selection, true);
             else row = mapper.lockRevision(new RequirementRevisionQuery(tenantId, id));
             if (row == null) throw exception(FILE_SCOPE_VERSION_CONFLICT);
         }

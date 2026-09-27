@@ -142,10 +142,10 @@ public class ConstructionPlanApplicationService {
         plan.setTenantId(actor.tenantId());
         plan.setProjectId(projectId);
         plan.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
-        plan.setVersion(0);
+        plan.setVersion(0L);
         plan.setCreator(String.valueOf(actor.actorId()));
         plan.setUpdater(String.valueOf(actor.actorId()));
-        if (planMapper.insert(plan) != 1 || plan.getId() == null) {
+        if (planMapper.insertRow(plan) != 1 || plan.getId() == null) {
             throw new IllegalStateException("项目工期根创建失败");
         }
 
@@ -166,7 +166,7 @@ public class ConstructionPlanApplicationService {
             throw new IllegalStateException("项目工期首个版本创建失败");
         }
         if (planMapper.updateVersionIfMatch(new ConstructionPlanVersionUpdate(
-                actor.tenantId(), plan.getId(), 0, revision.getId(), null,
+                actor.tenantId(), plan.getId(), 0L, revision.getId(), null,
                 ConstructionPlanDO.RECALCULATION_PENDING, revision.getId(),
                 String.valueOf(actor.actorId()))) != 1) {
             throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
@@ -195,7 +195,7 @@ public class ConstructionPlanApplicationService {
         response.setCurrentRevision(revisionResponse);
         response.setPlanRecalculationStatus(ConstructionPlanDO.RECALCULATION_PENDING);
         response.setPlanRecalculationSourceRevisionId(revision.getId());
-        response.setPlanVersion(1);
+        response.setPlanVersion(1L);
         response.setAllowedActions(List.of("CREATE_CHANGE"));
         return response;
     }

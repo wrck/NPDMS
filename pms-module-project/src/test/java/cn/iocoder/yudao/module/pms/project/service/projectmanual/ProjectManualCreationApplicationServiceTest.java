@@ -255,7 +255,7 @@ class ProjectManualCreationApplicationServiceTest {
         snapshot.getTasks().add(task);
         when(projectTemplateService.getExecutionSnapshot(9L, 2)).thenReturn(snapshot);
         when(projectWorkBindingFactApi.inspect(any())).thenReturn(new ProjectWorkBindingFact(
-                100L, 0, 200L, 3, 300L, 4, 400L, 5,
+                100L, 0L, 200L, 3, 300L, 4, 400L, 5,
                 "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION", "PRE_02_SITE_SURVEY",
                 "PRE_02_SITE_SURVEY", 1, 1, "[]"));
         when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
@@ -439,7 +439,7 @@ class ProjectManualCreationApplicationServiceTest {
         project.setCurrentStage("S0");
         project.setAssignmentStatus("UNASSIGNED");
         project.setCreationReason("业务立项");
-        project.setVersion(0);
+        project.setVersion(0L);
         project.setLifecycleTemplateId(9L);
         project.setLifecycleTemplateRevisionNo(2);
         return project;

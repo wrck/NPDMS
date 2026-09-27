@@ -70,12 +70,12 @@ class CutoverSpareQueryServiceTest {
 
     private static CutoverTaskDO task() {
         CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setProjectId(20L);
-        row.setVersion(4); return row;
+        row.setVersion(4L); return row;
     }
 
     private static CutoverAssessmentDO assessment() {
         CutoverAssessmentDO row = new CutoverAssessmentDO(); row.setId(30L); row.setTenantId(1L);
-        row.setCutoverTaskId(10L); row.setAssessmentVersion(2); row.setAssessmentStatus("SUBMITTED");
+        row.setCutoverTaskId(10L); row.setAssessmentVersion(2L); row.setAssessmentStatus("SUBMITTED");
         row.setCurrentMarker(1); row.setAnswerSnapshot("{\"businessImportanceLevel\":\"HIGH\","
                 + "\"operationComplexityLevel\":\"MEDIUM\",\"hiddenRiskLevel\":\"LOW\","
                 + "\"sparePartApplied\":true}"); return row;
@@ -98,7 +98,7 @@ class CutoverSpareQueryServiceTest {
         row.setPlatformRequestId("REQ-1"); row.setIntegrationStatus("EXTERNAL_REFERENCED");
         row.setExternalSystemCode("SPARE"); row.setExternalRequestId("EXT-REQ-1");
         row.setExternalApplicationNo("APP-1"); row.setCurrentStatusRevisionId(51L);
-        row.setRetryCount(0); row.setVersion(1); row.setUpdateTime(LocalDateTime.of(2026, 9, 2, 8, 0)); return row;
+        row.setRetryCount(0); row.setVersion(1L); row.setUpdateTime(LocalDateTime.of(2026, 9, 2, 8, 0)); return row;
     }
 
     private static CutoverSpareStatusRevisionDO status() {

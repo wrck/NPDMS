@@ -92,7 +92,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(Long revisionId, Integer expectedVersion, CutoverConfigurationSaveReqVO request) {
+    public void update(Long revisionId, Long expectedVersion, CutoverConfigurationSaveReqVO request) {
         CutoverConfigurationRevisionDO existing = requireRevision(revisionId);
         requireExpectedVersion(existing, expectedVersion);
         requireDraft(existing);
@@ -112,7 +112,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long copyRevision(Long revisionId, Integer expectedVersion) {
+    public Long copyRevision(Long revisionId, Long expectedVersion) {
         CutoverConfigurationRevisionDO source = requireRevision(revisionId);
         requireExpectedVersion(source, expectedVersion);
         CutoverConfigurationRespVO detail = toDetail(source);
@@ -270,7 +270,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public CutoverConfigurationRespVO publish(Long revisionId, Integer expectedVersion) {
+    public CutoverConfigurationRespVO publish(Long revisionId, Long expectedVersion) {
         CutoverConfigurationRevisionDO draft = requireRevision(revisionId);
         requireExpectedVersion(draft, expectedVersion);
         requireDraft(draft);
@@ -339,7 +339,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public CutoverConfigurationRespVO disable(Long revisionId, Integer expectedVersion) {
+    public CutoverConfigurationRespVO disable(Long revisionId, Long expectedVersion) {
         CutoverConfigurationRevisionDO current = requireRevision(revisionId);
         requireExpectedVersion(current, expectedVersion);
         if (!CutoverConfigurationRules.STATUS_PUBLISHED.equals(current.getStatusCode())) {
@@ -452,7 +452,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         return row;
     }
 
-    private void requireExpectedVersion(CutoverConfigurationRevisionDO row, Integer expectedVersion) {
+    private void requireExpectedVersion(CutoverConfigurationRevisionDO row, Long expectedVersion) {
         if (!Objects.equals(row.getVersion(), expectedVersion)) {
             throw exception(CUTOVER_CONFIG_VERSION_CONFLICT);
         }

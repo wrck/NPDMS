@@ -130,7 +130,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             throw exception(PROJECT_TEMPLATE_CODE_DUPLICATE);
         }
         template.setId(null);
-        template.setVersion(0);
+        template.setVersion(0L);
         template.setStatus(TemplateRules.STATUS_DRAFT);
         template.setSystemReserved(Boolean.FALSE);
         if (template.getMatchPriority() == null) {
@@ -553,7 +553,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     @Override
-    public Long copyProjectTemplate(Long id, Integer expectedVersion,
+    public Long copyProjectTemplate(Long id, Long expectedVersion,
             cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body,
             String idempotencyKey) {
         return configurationCommands.execute("PROJECT_TEMPLATE_COPY", idempotencyKey,
@@ -571,7 +571,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         });
     }
 
-    private record CopyIntent(Long id, Integer expectedVersion,
+    private record CopyIntent(Long id, Long expectedVersion,
             cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body) { }
 
     private ProjectTemplateDO lockTemplate(Long id) {

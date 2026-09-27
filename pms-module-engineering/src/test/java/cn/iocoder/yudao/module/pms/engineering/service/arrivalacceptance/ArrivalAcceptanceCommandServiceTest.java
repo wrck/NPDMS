@@ -54,7 +54,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().patchDraft(
-                new ArrivalAcceptanceCommands.PatchDraftCommand(1L, 900L, 8L, 0,
+                new ArrivalAcceptanceCommands.PatchDraftCommand(1L, 900L, 8L, 0L,
                         "L-2", null, null,
                         List.of(new ArrivalAcceptanceCommands.DeviceDraftLine(null, null, 11L, true)),
                         fileRevision()));
@@ -82,7 +82,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().resolveDifferenceIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
-                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 1,
+                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 1L,
                         new ArrivalAcceptanceCommands.Supplement(20L, 1, 0,
                                 quantityScope("1"), "补签", fileRevision()), "resolve-key", "corr-resolve"));
 
@@ -109,7 +109,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
         fixture.service().raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
-                1L, 900L, 8L, 0, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
+                1L, 900L, 8L, 0L, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
                 "少货", "影响交付", fileRevision(), "raise-key", "corr-raise"));
 
         verify(fixture.differenceTypePort()).requireEnabled("QUANTITY_MISMATCH");
@@ -126,10 +126,10 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
         fixture.service().raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
-                1L, 900L, 8L, 0, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
+                1L, 900L, 8L, 0L, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
                 "少货", "影响交付", fileRevision(), "same-key", "corr-one"));
         fixture.service().raiseDifference(new ArrivalAcceptanceCommands.RaiseDifferenceCommand(
-                1L, 900L, 8L, 0, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
+                1L, 900L, 8L, 0L, 10L, 0, "QUANTITY_MISMATCH", quantityScope("1"),
                 "少货", "影响交付", fileRevision(), "same-key", "corr-two"));
 
         ArgumentCaptor<String> digest = ArgumentCaptor.forClass(String.class);
@@ -153,7 +153,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
-                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2,
+                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2L,
                         new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
                         "resolve-key", "corr-resolve"));
 
@@ -195,7 +195,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
         fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
-                1L, 900L, 8L, 2,
+                1L, 900L, 8L, 2L,
                 new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
                 "resolve-key", "corr-resolve"));
 
@@ -226,7 +226,7 @@ class ArrivalAcceptanceCommandServiceTest {
 
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
                 new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
-                        1L, 900L, 8L, 2,
+                        1L, 900L, 8L, 2L,
                         new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
                         "resolve-key", "corr-resolve"));
 
@@ -243,8 +243,8 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().mutateDraftIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
-                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 3,
-                        new ArrivalAcceptanceCommands.CorrectInformation(3, "修正签收人",
+                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 3L,
+                        new ArrivalAcceptanceCommands.CorrectInformation(3L, "修正签收人",
                                 new ArrivalAcceptanceCommands.CorrectionPatch(
                                         null, null, "新签收人", null), fileRevision()),
                         "correct-key", "corr-correct"));
@@ -274,7 +274,7 @@ class ArrivalAcceptanceCommandServiceTest {
 
         assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
                 () -> fixture.service().resolveDifference(
-                        new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2,
+                        new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 2L,
                                 new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
                                 "different-key", "corr-different")));
 
@@ -297,7 +297,7 @@ class ArrivalAcceptanceCommandServiceTest {
         when(fixture.acceptanceMapper().resolveDifferenceIfMatch(any())).thenReturn(1);
 
         ArrivalAcceptanceCommands.CommandResult result = fixture.service().resolveDifference(
-                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 1,
+                new ArrivalAcceptanceCommands.ResolveDifferenceCommand(1L, 900L, 8L, 1L,
                         new ArrivalAcceptanceCommands.Exempt(20L, 1, 0, "豁免", "已批准风险",
                                 java.time.LocalDateTime.of(2026, 8, 31, 4, 0), fileRevision()),
                         "resolve-key", "corr-exempt"));
@@ -390,7 +390,7 @@ class ArrivalAcceptanceCommandServiceTest {
 
         assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
                 () -> fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
-                        1L, 900L, 8L, 2,
+                        1L, 900L, 8L, 2L,
                         new ArrivalAcceptanceCommands.Close(20L, 1, 0, "关闭", fileRevision()),
                         "close-key", "corr-close")));
 
@@ -409,7 +409,7 @@ class ArrivalAcceptanceCommandServiceTest {
 
         assertThrows(ArrivalAcceptanceCommandService.StateConflictException.class,
                 () -> fixture.service().resolveDifference(new ArrivalAcceptanceCommands.ResolveDifferenceCommand(
-                        1L, 900L, 8L, 2,
+                        1L, 900L, 8L, 2L,
                         new ArrivalAcceptanceCommands.KeepRejected(20L, 1, 0, "保持拒收", fileRevision()),
                         "keep-key", "corr-keep")));
 
@@ -503,9 +503,9 @@ class ArrivalAcceptanceCommandServiceTest {
         when(acceptance.selectForUpdate(any())).thenReturn(root);
         when(acceptance.selectSuccessorForUpdate(any())).thenReturn(null);
         when(project.lockAndRevalidate(any())).thenReturn(new ProjectQualificationPort.ProjectQualificationFact(
-                100L, 8L, Set.of("PROJECT_MANAGER"), "ACTIVE", "S4", 5, 6L, 7L));
+                100L, 8L, Set.of("PROJECT_MANAGER"), "ACTIVE", "S4", 5L, 6L, 7L));
         when(systemProject.lockCurrent(1L, 100L)).thenReturn(
-                new ProjectSystemQualificationPort.CurrentProjectQualification(100L, 18L, 15, 16L, 17L));
+                new ProjectSystemQualificationPort.CurrentProjectQualification(100L, 18L, 15L, 16L, 17L));
         doAnswer(invocation -> {
             ArrivalAcceptanceDO value = invocation.getArgument(0);
             value.setId(value.getPredecessorAcceptanceId() + 1L);
@@ -560,9 +560,9 @@ class ArrivalAcceptanceCommandServiceTest {
         root.setArrivedAt(java.time.LocalDateTime.of(2026, 8, 29, 4, 0));
         root.setSignerSnapshot(JsonUtils.toJsonString(new ArrivalAcceptanceViews.SignerSnapshot("原签收人")));
         root.setStatus("DRAFT");
-        root.setVersion(version);
+        root.setVersion((long) version);
         root.setCreator("8");
-        root.setProjectVersion(5);
+        root.setProjectVersion(5L);
         root.setProjectParticipantFactVersion(6L);
         root.setProjectScopeVersion(7L);
         root.setDeliveryScopeVersion(8L);

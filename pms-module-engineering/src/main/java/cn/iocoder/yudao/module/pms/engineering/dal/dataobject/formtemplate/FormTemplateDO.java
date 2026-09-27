@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.formtemplate;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * PMS 准备数据表单模板 DO（FR-ENG-007）。
@@ -16,13 +14,8 @@ import lombok.EqualsAndHashCode;
 @TableName("plt_form_template")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class FormTemplateDO extends TenantBaseDO {
+public class FormTemplateDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 模板编号（如 FT-2026-001），全局唯一
      */
@@ -51,10 +44,5 @@ public class FormTemplateDO extends TenantBaseDO {
      * 状态：0 草稿 1 已发布 2 已停用
      */
     private Integer status;
-    /**
-     * 模板版本号
-     */
-    @Version
-    private Integer version;
 
 }

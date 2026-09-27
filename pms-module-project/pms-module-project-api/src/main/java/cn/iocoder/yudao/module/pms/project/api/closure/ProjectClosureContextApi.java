@@ -13,13 +13,13 @@ public interface ProjectClosureContextApi {
     ClosureContext read(Long tenantId, Long projectId, Long actorId, String permission);
 
     /** root 先锁再锁 project；核对项目版本与树版本并重验项目经理。 */
-    ClosureContext lock(Long tenantId, Long projectId, Integer expectedProjectVersion,
+    ClosureContext lock(Long tenantId, Long projectId, Long expectedProjectVersion,
                         Long expectedTreeVersion, Long actorId);
 
     /** 锁定项目当前主责服务经理集合（FOR UPDATE），供闭环申请的服务经理核验。 */
     List<Long> lockPrimaryServiceManagerUserIds(Long tenantId, Long projectId);
 
-    record ClosureContext(Long projectId, Long tenantId, Integer projectVersion, String lifecycleStatus,
+    record ClosureContext(Long projectId, Long tenantId, Long projectVersion, String lifecycleStatus,
                           String currentStage, Long managerId, Long rootId, Long treeVersion,
                           String closurePolicySnapshot, Long taskTreeVersion, Long taskProgressVersion,
                           Long lifecycleTemplateId, Integer lifecycleTemplateRevisionNo) {

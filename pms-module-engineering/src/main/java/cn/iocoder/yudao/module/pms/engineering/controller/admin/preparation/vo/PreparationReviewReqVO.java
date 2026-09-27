@@ -7,6 +7,6 @@ import lombok.Data;
 @Data
 public class PreparationReviewReqVO {
     private Integer expectedPreparationVersion;
-    @NotNull private Integer expectedProjectVersion;
+    @NotNull private Long expectedProjectVersion;
     @Size(max = 2000) private String reason;
 }

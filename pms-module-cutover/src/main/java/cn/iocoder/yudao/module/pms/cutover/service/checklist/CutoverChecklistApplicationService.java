@@ -391,21 +391,21 @@ public class CutoverChecklistApplicationService {
         checklist.setCutoverTaskId(task.getId());
         checklist.setAssessmentId(assessment.getId());
         checklist.setAssessmentVersion(assessment.getAssessmentVersion());
-        checklist.setChecklistVersion(1);
+        checklist.setChecklistVersion(1L);
         checklist.setStatusCode("DRAFT");
         checklist.setInputSnapshot(context.inputSnapshot());
         checklist.setInputSnapshotHash(sha256(context.inputSnapshot()));
         checklist.setConfigRevisionSnapshot(JsonUtils.toJsonString(configuration));
         checklist.setMatchTrace(context.matchTrace());
         checklist.setConfigGapSnapshot(context.gapSnapshot());
-        checklist.setVersion(0);
+        checklist.setVersion(0L);
         checklist.setCreator(String.valueOf(command.actorId()));
         checklist.setUpdater(String.valueOf(command.actorId()));
         require(checklistMapper.insert(checklist) == 1, STATE_CONFLICT, "清单创建失败");
         for (ResolvedItem resolved : context.items()) {
             insertSystemItem(command.tenantId(), command.actorId(), checklist, resolved, configuration);
         }
-        return result(task, checklist, 0, "DRAFT", false);
+        return result(task, checklist, 0L, "DRAFT", false);
     }
 
     private ChecklistCommandResult rematchOnce(RematchChecklistCommand command,
@@ -459,7 +459,7 @@ public class CutoverChecklistApplicationService {
                 insertSystemItem(command.tenantId(), command.actorId(), checklist, resolved, configuration);
             }
         }
-        int nextChecklistVersion = checklist.getChecklistVersion() + 1;
+        Long nextChecklistVersion = checklist.getChecklistVersion() + 1;
         require(checklistMapper.rematchIfMatch(new CutoverChecklistRematchUpdate(command.tenantId(),
                 checklist.getId(), command.expectedChecklistVersion(), nextChecklistVersion, assessment.getId(),
                 assessment.getAssessmentVersion(), context.inputSnapshot(), sha256(context.inputSnapshot()),
@@ -554,8 +554,8 @@ public class CutoverChecklistApplicationService {
                 fact.failureCode(), true, false);
     }
 
-    private LockedDraft lockDraft(Long tenantId, Long actorId, Long taskId, Integer expectedTaskVersion,
-                                  Long checklistId, Integer expectedChecklistVersion,
+    private LockedDraft lockDraft(Long tenantId, Long actorId, Long taskId, Long expectedTaskVersion,
+                                  Long checklistId, Long expectedChecklistVersion,
                                   Long expectedProjectScopeVersion) {
         CutoverTaskDO snapshot = requireP3Task(taskMapper.selectById(taskId), tenantId, actorId,
                 expectedTaskVersion);
@@ -570,7 +570,7 @@ public class CutoverChecklistApplicationService {
         return new LockedDraft(task, checklist, items);
     }
 
-    private CutoverAssessmentDO requireAssessment(Long tenantId, CutoverTaskDO task, Integer expectedVersion) {
+    private CutoverAssessmentDO requireAssessment(Long tenantId, CutoverTaskDO task, Long expectedVersion) {
         CutoverAssessmentDO assessment = assessmentMapper.selectForUpdate(new CutoverAssessmentRowQuery(
                 tenantId, task.getId(), task.getCurrentAssessmentId()));
         require(assessment != null && CutoverTaskRules.ASSESSMENT_SUBMITTED.equals(assessment.getAssessmentStatus())
@@ -583,7 +583,7 @@ public class CutoverChecklistApplicationService {
         return assessment;
     }
 
-    private CutoverTaskDO requireP3Task(CutoverTaskDO task, Long tenantId, Long actorId, Integer expectedVersion) {
+    private CutoverTaskDO requireP3Task(CutoverTaskDO task, Long tenantId, Long actorId, Long expectedVersion) {
         require(task != null && Objects.equals(task.getTenantId(), tenantId), NOT_FOUND, "割接任务不存在");
         require(Objects.equals(task.getOwnerUserId(), actorId), DATA_SCOPE_FORBIDDEN, "仅任务负责人可维护P3清单");
         require(CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
@@ -598,7 +598,7 @@ public class CutoverChecklistApplicationService {
         return task;
     }
 
-    private CutoverChecklistDO requireDraft(CutoverChecklistDO checklist, Integer expectedVersion) {
+    private CutoverChecklistDO requireDraft(CutoverChecklistDO checklist, Long expectedVersion) {
         require(checklist != null, NOT_FOUND, "当前清单不存在");
         require("DRAFT".equals(checklist.getStatusCode()), STATE_CONFLICT, "当前清单不可编辑");
         require(Objects.equals(checklist.getVersion(), expectedVersion), VERSION_CONFLICT, "清单版本已变化");
@@ -624,7 +624,7 @@ public class CutoverChecklistApplicationService {
                 task.getConfigurationRevisionId(), task.getConfigurationCode(), task.getConfigurationRevisionNo()));
     }
 
-    private MatchContext matchContext(CutoverTaskDO task, Integer assessmentVersion,
+    private MatchContext matchContext(CutoverTaskDO task, Long assessmentVersion,
                                       CutoverFrozenConfiguration configuration,
                                       Map<String, GenerateChecklistCommand.SelectedDefinition> selections) {
         Map<String, List<String>> dimensions = new LinkedHashMap<>();
@@ -925,7 +925,7 @@ public class CutoverChecklistApplicationService {
     }
 
     private ChecklistCommandResult result(CutoverTaskDO task, CutoverChecklistDO checklist,
-                                          Integer version, String status, boolean replayed) {
+                                          Long version, String status, boolean replayed) {
         return new ChecklistCommandResult(task.getId(), checklist.getId(), checklist.getChecklistVersion(),
                 version, status, task.getCurrentStage(), task.getVersion(), replayed);
     }
@@ -1041,7 +1041,7 @@ public class CutoverChecklistApplicationService {
         return value != null && value > 0;
     }
 
-    private static boolean nonNegative(Integer value) {
+    private static boolean nonNegative(Long value) {
         return value != null && value >= 0;
     }
 

@@ -99,7 +99,7 @@ class ProjectStageCompletionServiceTest {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));
         refreshSnapshot();
         when(nodeContexts.inspectStage(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                9L,1,11L,1,41L,1,21L,31L,1,1,true));
+                9L,1L,11L,1,41L,1,21L,31L,1,1,true));
     }
 
     @Test void directApprovalRequiresActualCurrentRoundResultBeforeConstantRules() {
@@ -251,7 +251,7 @@ class ProjectStageCompletionServiceTest {
         node.getBinding().setType("BUSINESS_OBJECT"); node.getBinding().setTargetContextCode("SOL"); node.getBinding().setTargetObjectType("REQUIREMENT_ANALYSIS");
         snapshot.getRulePrograms().put("complete",compiler.compile(JsonUtils.parseTree("{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"OWNER_COMPLETED\",\"quantifier\":\"ALL\"}}")));
         round.setContractId(41L); refreshSnapshot();
-        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(9L,1,11L,1,41L,1,21L,31L,1,1,true);
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(9L,1L,11L,1,41L,1,21L,31L,1,1,true);
         when(nodeContexts.inspectStage(any())).thenReturn(execution);
         var link = new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLinkFact(51L,"61","业务完成事实","owner-result-2",facts,List.of(),java.util.Set.of());
         when(business.lockStageCompletionFacts(eq(7L),eq(execution),any())).thenReturn(

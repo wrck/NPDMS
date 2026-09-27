@@ -96,7 +96,7 @@ class CutoverDashboardQueryServiceTest {
         row.setTaskStatus(status);
         row.setOwnerUserId(9L);
         row.setManualGrade("A");
-        row.setTaskVersion(2);
+        row.setTaskVersion(2L);
         row.setStageFactId(id * 100);
         row.setStageFactVersion(3);
         row.setCurrentApprovalStatus(approvalStatus);

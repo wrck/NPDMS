@@ -37,7 +37,7 @@ class SolutionReviewBpmGuardTest {
         assertThrows(IllegalArgumentException.class, () -> guard.authorize(2L,8L,9L,"SERVICE_MANAGER",7L));
     }
     @Test void managerRoleDoesNotGrantEngineeringReview() {
-        var member = new ProjectParticipantFact(9L,8L,Set.of("SERVICE_MANAGER"),"PRIMARY","ACTIVE","S3",1,1L);
+        var member = new ProjectParticipantFact(9L,8L,Set.of("SERVICE_MANAGER"),"PRIMARY","ACTIVE","S3",1L,1L);
         when(participants.inspect(any())).thenReturn(member); when(participants.lockAndRevalidate(any())).thenReturn(member);
         assertDoesNotThrow(() -> guard.authorize(1L,8L,9L,"SERVICE_MANAGER",7L));
         assertThrows(IllegalArgumentException.class, () -> guard.authorize(1L,8L,9L,"ENGINEERING_MANAGEMENT",7L));

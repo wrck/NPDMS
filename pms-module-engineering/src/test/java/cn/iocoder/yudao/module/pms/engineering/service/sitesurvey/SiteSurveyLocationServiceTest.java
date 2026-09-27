@@ -35,7 +35,7 @@ class SiteSurveyLocationServiceTest {
         lenient().when(mapper.insert(any(SiteSurveyDO.class))).thenAnswer(invocation -> {
             SiteSurveyDO survey = invocation.getArgument(0);
             survey.setId(101L);
-            survey.setVersion(0);
+            survey.setVersion(0L);
             return 1;
         });
         lenient().when(mapper.updateById(any(SiteSurveyDO.class))).thenReturn(1);
@@ -44,8 +44,8 @@ class SiteSurveyLocationServiceTest {
     @Test
     void createsStructuredLocationWithoutChangingEquipmentFact() {
         EngineeringLocationFactService.LocationFact fact = new EngineeringLocationFactService.LocationFact(
-                11L, 1, 21L, 2, 31L, 3, "RESOLVED", "address", "location");
-        when(locationFactService.maintain(eq(1L), eq("SITE_SURVEY"), eq(101L), eq(0),
+                11L, 1L, 21L, 2L, 31L, 3L, "RESOLVED", "address", "location");
+        when(locationFactService.maintain(eq(1L), eq("SITE_SURVEY"), eq(101L), eq(0L),
                 eq("核心机房"), any())).thenReturn(fact);
 
         SiteSurveySaveReqVO request = request("核心机房");
@@ -54,7 +54,7 @@ class SiteSurveyLocationServiceTest {
 
         verify(mapper).updateById(argThat((SiteSurveyDO value) -> value.getSiteLocationId().equals(31L)
                 && "RESOLVED".equals(value.getLocationResolutionStatus())));
-        verify(locationFactService, times(1)).maintain(anyLong(), anyString(), anyLong(), anyInt(), any(), any());
+        verify(locationFactService, times(1)).maintain(anyLong(), anyString(), anyLong(), anyLong(), any(), any());
     }
 
     @Test
@@ -71,7 +71,7 @@ class SiteSurveyLocationServiceTest {
 
     @Test
     void rejectsUnresolvedStructuredLocation() {
-        when(locationFactService.maintain(anyLong(), eq("SITE_SURVEY"), eq(101L), eq(0),
+        when(locationFactService.maintain(anyLong(), eq("SITE_SURVEY"), eq(101L), eq(0L),
                 anyString(), any())).thenReturn(new EngineeringLocationFactService.LocationFact(
                 null, null, null, null, null, null, "UNRESOLVED", null, null));
         SiteSurveySaveReqVO request = request("核心机房");
@@ -92,7 +92,7 @@ class SiteSurveyLocationServiceTest {
     @Test
     void stateCommandsKeepOldVersionForTheOptimisticLockerAndRejectLostUpdates() {
         SiteSurveyDO row = new SiteSurveyDO();
-        row.setId(101L); row.setProjectId(1L); row.setVersion(7); row.setStatus(0);
+        row.setId(101L); row.setProjectId(1L); row.setVersion(7L); row.setStatus(0);
         when(mapper.selectById(101L)).thenReturn(row);
         when(mapper.updateById(any(SiteSurveyDO.class))).thenAnswer(invocation -> {
             SiteSurveyDO changed = invocation.getArgument(0);
@@ -114,7 +114,7 @@ class SiteSurveyLocationServiceTest {
     @Test
     void completedEntitiesCannotBeEditedOrDeleted() {
         SiteSurveyDO row = new SiteSurveyDO();
-        row.setId(101L); row.setProjectId(1L); row.setStatus(1); row.setVersion(7);
+        row.setId(101L); row.setProjectId(1L); row.setStatus(1); row.setVersion(7L);
         when(mapper.selectById(101L)).thenReturn(row);
         SiteSurveySaveReqVO request = request("不可覆盖");
         request.setId(101L); request.setVersion(7);
@@ -127,7 +127,7 @@ class SiteSurveyLocationServiceTest {
     @Test
     void staleEditsFailBeforeAnyLocationWrite() {
         SiteSurveyDO row = new SiteSurveyDO();
-        row.setId(101L); row.setProjectId(1L); row.setCode("SUR-1"); row.setStatus(0); row.setVersion(7);
+        row.setId(101L); row.setProjectId(1L); row.setCode("SUR-1"); row.setStatus(0); row.setVersion(7L);
         when(mapper.selectById(101L)).thenReturn(row);
         SiteSurveySaveReqVO request = request("不可覆盖"); request.setId(101L); request.setVersion(6);
         assertThrows(ServiceException.class, () -> service.updateSiteSurvey(request));
@@ -138,7 +138,7 @@ class SiteSurveyLocationServiceTest {
     @Test
     void associatesOneRequestWithoutChangingSurveyStateAndRejectsWrongProjectOrDuplicates() {
         SiteSurveyDO row = new SiteSurveyDO();
-        row.setId(101L); row.setProjectId(1L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequired(true);
+        row.setId(101L); row.setProjectId(1L); row.setStatus(0); row.setVersion(4L); row.setOutsourceRequired(true);
         when(mapper.selectById(101L)).thenReturn(row);
         assertThrows(ServiceException.class, () -> service.associateOutsourceRequest(101L, 2L, 500L, null));
         service.associateOutsourceRequest(101L, 1L, 500L, null);
@@ -153,7 +153,7 @@ class SiteSurveyLocationServiceTest {
     @Test
     void deletingCurrentOutsourceDraftReleasesOnlyTheEditableCurrentLink() {
         SiteSurveyDO row = new SiteSurveyDO();
-        row.setId(101L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequired(true); row.setOutsourceRequestId(500L);
+        row.setId(101L); row.setStatus(0); row.setVersion(4L); row.setOutsourceRequired(true); row.setOutsourceRequestId(500L);
         when(mapper.selectById(101L)).thenReturn(row);
         service.releaseDeletedOutsourceRequest(101L, 499L, null);
         verify(mapper, never()).updateById(any(SiteSurveyDO.class));
@@ -168,7 +168,7 @@ class SiteSurveyLocationServiceTest {
     @Test
     void linkedSurveyCannotBeDeletedUntilTheOutsourceLinkIsReleased() {
         SiteSurveyDO row = new SiteSurveyDO();
-        row.setId(101L); row.setTenantId(1L); row.setStatus(0); row.setVersion(4); row.setOutsourceRequestId(500L);
+        row.setId(101L); row.setTenantId(1L); row.setStatus(0); row.setVersion(4L); row.setOutsourceRequestId(500L);
         when(mapper.selectById(101L)).thenReturn(row);
         var failure = assertThrows(ServiceException.class, () -> service.deleteSiteSurvey(101L, null));
         assertEquals(1011001008, failure.getCode());

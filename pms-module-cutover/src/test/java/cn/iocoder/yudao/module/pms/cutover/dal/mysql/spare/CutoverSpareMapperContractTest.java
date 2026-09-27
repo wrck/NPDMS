@@ -30,16 +30,16 @@ class CutoverSpareMapperContractTest {
         assertBindings(configuration, CutoverSpareApplicationReferenceMapper.class, "selectByTask",
                 new SpareApplicationQueries.ByTask(1L, 20L));
         assertBindings(configuration, CutoverSpareApplicationReferenceMapper.class, "storeInitiateResultIfMatch",
-                new SpareApplicationQueries.StoreInitiateResult(1L, 10L, 0, "REQUEST_PENDING",
+                new SpareApplicationQueries.StoreInitiateResult(1L, 10L, 0L, "REQUEST_PENDING",
                         "EXTERNAL_REFERENCED", "external-request-1", "APP-1", null, NOW, "9", NOW));
         assertBindings(configuration, CutoverSpareApplicationReferenceMapper.class, "storeFailureIfMatch",
-                new SpareApplicationQueries.StoreFailure(1L, 10L, 1, "RETRY_PENDING", 1,
+                new SpareApplicationQueries.StoreFailure(1L, 10L, 1L, "RETRY_PENDING", 1,
                         "TIMEOUT", "retry", NOW, "9", NOW));
         assertBindings(configuration, CutoverSpareApplicationReferenceMapper.class, "bindExternalReferenceIfMatch",
-                new SpareApplicationQueries.BindExternalReference(1L, 10L, 1,
+                new SpareApplicationQueries.BindExternalReference(1L, 10L, 1L,
                         "external-request-1", "APP-1", "9", NOW));
         assertBindings(configuration, CutoverSpareApplicationReferenceMapper.class, "moveCurrentStatusIfMatch",
-                new SpareApplicationQueries.MoveCurrentStatus(1L, 10L, 2, 30L, "9", NOW));
+                new SpareApplicationQueries.MoveCurrentStatus(1L, 10L, 2L, 30L, "9", NOW));
         assertBindings(configuration, CutoverSpareStatusRevisionMapper.class, "selectCurrentForUpdate",
                 new SpareApplicationQueries.StatusByApplication(1L, 10L));
         assertBindings(configuration, CutoverSpareStatusRevisionMapper.class, "selectByEvent",

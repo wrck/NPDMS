@@ -99,11 +99,11 @@ public final class CutoverClosureRequestCodec {
         return value;
     }
 
-    public Integer optionalVersion(String value, String name) {
+    public Long optionalVersion(String value, String name) {
         return value == null ? null : version(value, name);
     }
 
-    public int version(String value, String name) {
+    public long version(String value, String name) {
         String normalized = header(value, name);
         try {
             int result = Integer.parseInt(normalized);

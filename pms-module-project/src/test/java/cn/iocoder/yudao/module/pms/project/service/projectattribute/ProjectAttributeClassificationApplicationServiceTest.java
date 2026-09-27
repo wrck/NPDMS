@@ -121,7 +121,7 @@ class ProjectAttributeClassificationApplicationServiceTest {
     @SuppressWarnings("unchecked")
     void versionConflictDoesNotUpdateAttributesOrAppendHistory() {
         ProjectMasterDO current = project();
-        current.setVersion(4);
+        current.setVersion(4L);
         when(permissionApi.hasAnyPermissions(7L,
                 ProjectAttributeClassificationApplicationService.PERMISSION_CLASSIFY)).thenReturn(true);
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(current);
@@ -180,7 +180,7 @@ class ProjectAttributeClassificationApplicationServiceTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, operation.get());
         });
-        var command = new ManualProjectAttributeAdjustmentCommand(100L, 3, "DIRECT", "ENGINEERING",
+        var command = new ManualProjectAttributeAdjustmentCommand(100L, 3L, "DIRECT", "ENGINEERING",
                 "DIRECT_SERVICE", " 分类修正 ", "key-2", "b".repeat(64));
 
         service.adjust(command, new ProjectAttributeClassificationApplicationService.Actor(
@@ -195,7 +195,7 @@ class ProjectAttributeClassificationApplicationServiceTest {
     }
 
     private ManualProjectAttributeAdjustmentCommand command() {
-        return new ManualProjectAttributeAdjustmentCommand(100L, 3, "IMPLEMENT", "GENERAL",
+        return new ManualProjectAttributeAdjustmentCommand(100L, 3L, "IMPLEMENT", "GENERAL",
                 "DIRECT_SERVICE", " 调整依据 ", "key-1", "a".repeat(64));
     }
 
@@ -203,7 +203,7 @@ class ProjectAttributeClassificationApplicationServiceTest {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);
         project.setTenantId(1L);
-        project.setVersion(3);
+        project.setVersion(3L);
         project.setSigningMethod("DIRECT");
         project.setProjectCategory("GENERAL");
         project.setImplementationMode("DIRECT_SERVICE");

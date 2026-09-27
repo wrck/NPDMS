@@ -33,7 +33,7 @@ class CustomerContactMasterServiceTest {
         when(mapper.selectCustomerForUpdate(any())).thenReturn(customer);
     }
 
-    private ContactMasterWrite write(Integer version) {
+    private ContactMasterWrite write(Long version) {
         return new ContactMasterWrite(7L, 10L, version,
                 new ContactValues("联系人", "运维部", null, "13800138000", null, null, "新说明"), false, 0, false);
     }
@@ -45,12 +45,12 @@ class CustomerContactMasterServiceTest {
 
     @Test void updateRequiresFreshVersionAndPreservesSourceIdentity() {
         var existing = new CustomerContactMasterDO(); existing.setId(10L); existing.setCustomerId(7L);
-        existing.setTenantId(1L); existing.setVersion(2); existing.setName("旧姓名");
+        existing.setTenantId(1L); existing.setVersion(2L); existing.setName("旧姓名");
         when(mapper.selectByRow(any())).thenReturn(existing);
-        assertThrows(ServiceException.class, () -> service.update(actor, write(1)));
+        assertThrows(ServiceException.class, () -> service.update(actor, write(1L)));
         verify(mapper, never()).updateById(any(CustomerContactMasterDO.class));
         when(mapper.updateById(any(CustomerContactMasterDO.class))).thenReturn(1);
-        var changed = service.update(actor, write(2));
+        var changed = service.update(actor, write(2L));
         assertEquals(10L, changed.getId()); assertEquals(7L, changed.getCustomerId());
         assertEquals("旧姓名", existing.getName());
         verify(history).insert(argThat((cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.ContactHistoryDO row) -> row.getCustomerContactId().equals(10L)
@@ -60,10 +60,10 @@ class CustomerContactMasterServiceTest {
 
     @Test void rejectedConcurrentUpdateDoesNotAppendSuccessHistory() {
         var existing = new CustomerContactMasterDO(); existing.setId(10L); existing.setCustomerId(7L);
-        existing.setTenantId(1L); existing.setVersion(2);
+        existing.setTenantId(1L); existing.setVersion(2L);
         when(mapper.selectByRow(any())).thenReturn(existing);
         when(mapper.updateById(any(CustomerContactMasterDO.class))).thenReturn(0);
-        assertThrows(ServiceException.class, () -> service.update(actor, write(2)));
+        assertThrows(ServiceException.class, () -> service.update(actor, write(2L)));
         verifyNoInteractions(history);
     }
 
@@ -71,9 +71,9 @@ class CustomerContactMasterServiceTest {
         var customer = new CustomerMasterDO(); customer.setId(7L); customer.setLifecycleStatus("DISABLED");
         when(customers.get(eq(1L),eq(7L),any())).thenReturn(customer);
         when(mapper.selectCustomerForUpdate(any())).thenReturn(customer);
-        var contact = new CustomerContactMasterDO(); contact.setId(10L); contact.setCustomerId(7L); contact.setVersion(2);
+        var contact = new CustomerContactMasterDO(); contact.setId(10L); contact.setCustomerId(7L); contact.setVersion(2L);
         when(mapper.selectByRow(any())).thenReturn(contact); when(mapper.deleteUnreferenced(any())).thenReturn(1);
-        service.delete(actor,7L,10L,2);
+        service.delete(actor,7L,10L,2L);
         verify(mapper).deleteUnreferenced(any());
     }
 }

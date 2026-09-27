@@ -51,12 +51,12 @@ class InstallationLocationServiceTest {
         when(mapper.insert(any(InstallationDO.class))).thenAnswer(invocation -> {
             InstallationDO value = invocation.getArgument(0);
             value.setId(201L);
-            value.setVersion(0);
+            value.setVersion(0L);
             return 1;
         });
-        when(locationFactService.maintain(anyLong(), eq("INSTALLATION"), eq(201L), eq(0),
+        when(locationFactService.maintain(anyLong(), eq("INSTALLATION"), eq(201L), eq(0L),
                 eq("机房A"), any())).thenReturn(new EngineeringLocationFactService.LocationFact(
-                11L, 1, 21L, 2, 31L, 3, "RESOLVED", "address", "location"));
+                11L, 1L, 21L, 2L, 31L, 3L, "RESOLVED", "address", "location"));
 
         InstallationSaveReqVO structured = request("机房A");
         structured.setStatus(2);
@@ -70,7 +70,7 @@ class InstallationLocationServiceTest {
         when(mapper.insert(any(InstallationDO.class))).thenAnswer(invocation -> {
             InstallationDO value = invocation.getArgument(0);
             value.setId(202L);
-            value.setVersion(0);
+            value.setVersion(0L);
             return 1;
         });
         when(mapper.updateById(any(InstallationDO.class))).thenReturn(1);
@@ -87,13 +87,13 @@ class InstallationLocationServiceTest {
         InstallationDO next = installation(201L, 8L, 1, completedAt);
         next.setSiteId(21L);
         next.setSiteLocationId(31L);
-        next.setSiteLocationVersion(3);
+        next.setSiteLocationVersion(3L);
         next.setLocationResolutionStatus("RESOLVED");
         next.setLocationSnapshot("snapshot");
         when(mapper.selectById(201L)).thenReturn(next);
         when(mapper.selectCurrentByEquipmentId(8L)).thenReturn(current);
-        when(assetLocationApi.getSiteLocation(31L, 3)).thenReturn(new SiteLocationRespDTO(
-                31L, 21L, null, "R1", "机柜", "RACK", "/", 0, 0, 0, 3));
+        when(assetLocationApi.getSiteLocation(31L, 3L)).thenReturn(new SiteLocationRespDTO(
+                31L, 21L, null, "R1", "机柜", "RACK", "/", 0, 0, 0, 3L));
 
         service.completeInstallation(201L);
 
@@ -110,7 +110,7 @@ class InstallationLocationServiceTest {
     @Test
     void letsMybatisManageVersionAndRejectsStaleStatusUpdate() {
         InstallationDO installation = installation(201L, 8L, 0, null);
-        installation.setVersion(7);
+        installation.setVersion(7L);
         when(mapper.selectById(201L)).thenReturn(installation);
 
         service.startInstallation(201L);
@@ -120,7 +120,7 @@ class InstallationLocationServiceTest {
 
         reset(mapper);
         InstallationDO stale = installation(202L, 8L, 0, null);
-        stale.setVersion(7);
+        stale.setVersion(7L);
         when(mapper.selectById(202L)).thenReturn(stale);
         when(mapper.updateById(any(InstallationDO.class))).thenReturn(0);
 
@@ -143,7 +143,7 @@ class InstallationLocationServiceTest {
         when(mapper.insert(any(InstallationDO.class))).thenAnswer(invocation -> {
             InstallationDO value = invocation.getArgument(0);
             value.setId(203L);
-            value.setVersion(0);
+            value.setVersion(0L);
             return 1;
         });
         assertThrows(ServiceException.class, () -> service.createInstallation(request(" ")));
@@ -154,10 +154,10 @@ class InstallationLocationServiceTest {
         when(mapper.insert(any(InstallationDO.class))).thenAnswer(invocation -> {
             InstallationDO value = invocation.getArgument(0);
             value.setId(204L);
-            value.setVersion(0);
+            value.setVersion(0L);
             return 1;
         });
-        when(locationFactService.maintain(anyLong(), eq("INSTALLATION"), eq(204L), eq(0),
+        when(locationFactService.maintain(anyLong(), eq("INSTALLATION"), eq(204L), eq(0L),
                 anyString(), any())).thenReturn(new EngineeringLocationFactService.LocationFact(
                 null, null, null, null, null, null, "UNRESOLVED", null, null));
         InstallationSaveReqVO request = request("机房A");
@@ -230,7 +230,7 @@ class InstallationLocationServiceTest {
         installation.setInstallLocation("机房A");
         installation.setInstallTime(time);
         installation.setStatus(status);
-        installation.setVersion(0);
+        installation.setVersion(0L);
         return installation;
     }
 

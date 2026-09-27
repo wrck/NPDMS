@@ -100,7 +100,7 @@ class SiteSurveyEntityFormServiceTest {
         var row = saved(); row.setCode("S"); row.setStatus(0); row.setRequiredEndDate(java.time.LocalDate.of(2026, 9, 20));
         when(mapper.selectById(5L)).thenReturn(row);
         var request = new SiteSurveyEntitySaveReqVO(); request.setId(5L); request.setProjectId(7L);
-        request.setVersion(1); request.setLocation("机房"); request.setProjectEndDateVersion(6);
+        request.setVersion(1L); request.setLocation("机房"); request.setProjectEndDateVersion(6L);
         request.setBusinessValues(Map.of("requiredEndDate", "2026-09-21"));
         doThrow(new IllegalStateException("project conflict")).when(deadlines).updateFromSurvey(any());
         assertEquals("project conflict", assertThrows(IllegalStateException.class, () -> owner.updateSiteSurveyEntity(request)).getMessage());
@@ -114,7 +114,7 @@ class SiteSurveyEntityFormServiceTest {
     }
 
     private SiteSurveyEntityDO saved() {
-        var row = new SiteSurveyEntityDO(); row.setId(5L); row.setProjectId(7L); row.setTenantId(3L); row.setVersion(1); return row;
+        var row = new SiteSurveyEntityDO(); row.setId(5L); row.setProjectId(7L); row.setTenantId(3L); row.setVersion(1L); return row;
     }
 
     @Test void newSurveyResolvesExtensionDefinitionBeforeSavingValues() {

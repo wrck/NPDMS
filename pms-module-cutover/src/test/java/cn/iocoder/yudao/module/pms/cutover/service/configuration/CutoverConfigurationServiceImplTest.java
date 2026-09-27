@@ -87,7 +87,7 @@ class CutoverConfigurationServiceImplTest {
             return 1;
         });
 
-        service.copyRevision(10L, 0);
+        service.copyRevision(10L, 0L);
 
         ArgumentCaptor<CutoverChecklistItemDefinitionRevisionDO> copiedItem =
                 ArgumentCaptor.forClass(CutoverChecklistItemDefinitionRevisionDO.class);
@@ -148,7 +148,7 @@ class CutoverConfigurationServiceImplTest {
                 .when(dictDataApi).validateDictDataList(eq("pms_cutover_type"),
                         argThat(values -> values.contains("UNKNOWN")));
 
-        assertThrows(ServiceException.class, () -> service.publish(10L, 0));
+        assertThrows(ServiceException.class, () -> service.publish(10L, 0L));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
     }
@@ -162,7 +162,7 @@ class CutoverConfigurationServiceImplTest {
         when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
         when(dictDataApi.getDictDataList(anyString())).thenReturn(List.of(enabledDict("A")));
 
-        ServiceException exception = assertThrows(ServiceException.class, () -> service.publish(10L, 0));
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.publish(10L, 0L));
 
         assertTrue(exception.getMessage().contains("risk."));
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
@@ -179,7 +179,7 @@ class CutoverConfigurationServiceImplTest {
         when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
         stubEnabledDictionaries();
 
-        assertThrows(ServiceException.class, () -> service.publish(10L, 0));
+        assertThrows(ServiceException.class, () -> service.publish(10L, 0L));
 
         verify(revisionMapper, never()).selectLatestByCode(argThat(query -> "PUBLISHED".equals(query.statusCode())));
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
@@ -191,7 +191,7 @@ class CutoverConfigurationServiceImplTest {
         published.setStatusCode("PUBLISHED");
         when(revisionMapper.selectById(10L)).thenReturn(published);
 
-        assertThrows(ServiceException.class, () -> service.update(10L, 0, new CutoverConfigurationSaveReqVO()));
+        assertThrows(ServiceException.class, () -> service.update(10L, 0L, new CutoverConfigurationSaveReqVO()));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
         verify(itemMapper, never()).hardDeleteByRevisionId(any());
@@ -201,11 +201,11 @@ class CutoverConfigurationServiceImplTest {
     @Test
     void updateShouldRejectStaleIfMatchBeforeReplacingChildren() {
         CutoverConfigurationRevisionDO current = draft(10L);
-        current.setVersion(3);
+        current.setVersion(3L);
         when(revisionMapper.selectById(10L)).thenReturn(current);
 
         assertThrows(ServiceException.class,
-                () -> service.update(10L, 2, new CutoverConfigurationSaveReqVO()));
+                () -> service.update(10L, 2L, new CutoverConfigurationSaveReqVO()));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
         verify(itemMapper, never()).hardDeleteByRevisionId(any());
@@ -227,7 +227,7 @@ class CutoverConfigurationServiceImplTest {
         item.setItemType("BUSINESS_SURVEY");
         request.setItems(List.of(item));
 
-        assertThrows(ServiceException.class, () -> service.update(10L, 0, request));
+        assertThrows(ServiceException.class, () -> service.update(10L, 0L, request));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
     }
@@ -246,7 +246,7 @@ class CutoverConfigurationServiceImplTest {
 
         try (MockedStatic<SecurityFrameworkUtils> security = mockStatic(SecurityFrameworkUtils.class)) {
             security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(1L);
-            service.publish(10L, 0);
+            service.publish(10L, 0L);
         }
 
         ArgumentCaptor<CutoverConfigurationRevisionDO> update =
@@ -263,7 +263,7 @@ class CutoverConfigurationServiceImplTest {
         row.setConfigurationName("割接默认配置");
         row.setRevisionNo(2);
         row.setStatusCode("DRAFT");
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setDictionarySnapshot("{}");
         row.setDimensionDefinitionSnapshot("""
                 [

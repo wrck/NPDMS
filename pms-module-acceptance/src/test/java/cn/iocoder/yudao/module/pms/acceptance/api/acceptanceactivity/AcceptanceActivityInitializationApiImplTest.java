@@ -94,7 +94,7 @@ class AcceptanceActivityInitializationApiImplTest {
         var deliverable=new AccProjectDeliverableDO(); deliverable.setId(71L); deliverable.setTenantId(7L);
         deliverable.setProjectId(11L); deliverable.setDeliverableCode("REPORT");
         when(deliverableMapper.selectByProjectAndCodeForUpdate(any())).thenReturn(deliverable);
-        var existing=new AcceptanceActivityDO(); existing.setId(81L); existing.setVersion(3);
+        var existing=new AcceptanceActivityDO(); existing.setId(81L); existing.setVersion(3L);
         existing.setProjectTaskId(21L); existing.setExecutionContractId(31L); existing.setDeliverableId(70L);
         when(activityMapper.selectByIdentityForUpdate(any())).thenReturn(existing);
         var api=new AcceptanceActivityInitializationApiImpl(activityMapper,deliverableMapper);

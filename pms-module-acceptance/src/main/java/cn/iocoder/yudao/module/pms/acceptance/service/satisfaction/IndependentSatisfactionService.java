@@ -79,14 +79,14 @@ public class IndependentSatisfactionService {
         task.setTriggerFactId(task.getOriginKey()); task.setTriggerFactVersion(1L);
         task.setCollectionKey("SAT-" + task.getId()); task.setTaskRevisionNo(1);
         task.setAssignedToUserId(actor); task.setAssignedByUserId(actor);
-        task.setTaskStatus("PENDING_COLLECTION"); task.setQuestionnaireId(IdWorker.getId()); task.setVersion(0);
+        task.setTaskStatus("PENDING_COLLECTION"); task.setQuestionnaireId(IdWorker.getId()); task.setVersion(0L);
         task.setCreator(actor.toString()); task.setUpdater(actor.toString());
         var questionnaire = new SatisfactionQuestionnaireDO(); questionnaire.setId(task.getQuestionnaireId());
         questionnaire.setTenantId(tenant); questionnaire.setCollectionTaskId(task.getId());
         questionnaire.setTemplateId(revision.getTemplateId()); questionnaire.setTemplateRevisionId(revision.getId());
         questionnaire.setTemplateVersion(revision.getRevisionNo()); questionnaire.setFrozenQuestionJson(revision.getFrozenQuestionJson());
         questionnaire.setFrozenThreshold(revision.getFrozenThreshold()); questionnaire.setRuleVersion(revision.getRuleVersion());
-        questionnaire.setQuestionnaireStatus("ACTIVE"); questionnaire.setAccessScopeVersion(project.treeVersion()); questionnaire.setVersion(0);
+        questionnaire.setQuestionnaireStatus("ACTIVE"); questionnaire.setAccessScopeVersion(project.treeVersion()); questionnaire.setVersion(0L);
         questionnaire.setCreator(actor.toString()); questionnaire.setUpdater(actor.toString());
         if (tasks.insert(task) != 1 || questionnaires.insert(questionnaire) != 1)
             throw new IllegalStateException("SATISFACTION_CREATE_WRITE_CONFLICT");
@@ -110,6 +110,6 @@ public class IndependentSatisfactionService {
                 || !permissions.hasAnyPermissions(actor, "pms:acceptance:satisfaction:manage"))
             throw new IllegalStateException("SATISFACTION_MANAGE_FORBIDDEN");
     }
-    public record Create(Long projectId, Long templateId, Long templateRevisionId, Integer expectedProjectVersion, Long expectedTreeVersion) { }
+    public record Create(Long projectId, Long templateId, Long templateRevisionId, Long expectedProjectVersion, Long expectedTreeVersion) { }
     public record Created(Long taskId, Long questionnaireId, String collectionKey) { }
 }

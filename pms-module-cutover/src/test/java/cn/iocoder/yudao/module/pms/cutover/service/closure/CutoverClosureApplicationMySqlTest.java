@@ -124,30 +124,30 @@ class CutoverClosureApplicationMySqlTest {
         task.setProjectContextSnapshot("{}"); task.setDeviceScopeWatermark("{\"devices\":[301]}");
         task.setCustomerContextSnapshot("{}"); task.setReadinessContextSnapshot("{}"); task.setManualGrade("A");
         task.setCurrentAssessmentId(701L); task.setConfigurationRevisionId(401L); task.setConfigurationCode("CFG-1");
-        task.setConfigurationRevisionNo(1); task.setVersion(7); task.setCreator("8"); task.setUpdater("8");
+        task.setConfigurationRevisionNo(1); task.setVersion(7L); task.setCreator("8"); task.setUpdater("8");
         assertEquals(1, taskMapper.insert(task));
 
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO(); plan.setId(planId); plan.setTenantId(tenantId);
         plan.setCutoverTaskId(taskId); plan.setRevisionNo(1); plan.setOriginCode("NEW_PLATFORM");
         plan.setEditModeCode("ONLINE_TEMPLATE_STANDARD"); plan.setGradeCode("A"); plan.setAssessmentId(701L);
-        plan.setAssessmentVersion(1); plan.setChecklistId(702L); plan.setChecklistVersion(1);
+        plan.setAssessmentVersion(1L); plan.setChecklistId(702L); plan.setChecklistVersion(1L);
         plan.setConfigurationRevisionId(401L); plan.setConfigurationCode("CFG-1"); plan.setConfigurationRevisionNo(1);
         plan.setTemplateSectionSnapshot("[]"); plan.setSourceSnapshot("{}"); plan.setContentSnapshot("{}");
         plan.setStatusCode("SUBMITTED"); plan.setCurrentMarker(1); plan.setSubmittedBy(8L); plan.setSubmittedAt(now);
-        plan.setApprovalInstanceId(approvalId); plan.setApprovalVersion(4); plan.setVersion(6);
+        plan.setApprovalInstanceId(approvalId); plan.setApprovalVersion(4L); plan.setVersion(6L);
         plan.setCreator("8"); plan.setUpdater("8"); assertEquals(1, planMapper.insert(plan));
 
         CutoverApprovalInstanceDO approval = new CutoverApprovalInstanceDO(); approval.setId(approvalId);
         approval.setTenantId(tenantId); approval.setTaskId(taskId); approval.setProjectId(task.getProjectId());
         approval.setPlanRevisionId(planId); approval.setPlanRevisionNo(1); approval.setAssessmentId(701L);
-        approval.setAssessmentVersion(1); approval.setChecklistId(702L); approval.setChecklistVersion(1);
+        approval.setAssessmentVersion(1L); approval.setChecklistId(702L); approval.setChecklistVersion(1L);
         approval.setGradeCode("A"); approval.setInitiatorUserId(8L); approval.setInitiatorProjectScopeVersion(30L);
         approval.setLeadTimeEnabled(true);
         approval.setLeadTimeSnapshot(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec()
                 .encode(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator()
                         .calculate("A", task.getCutoverType(), task.getScheduledTime(), plan.getSubmittedAt())));
         approval.setSourceSnapshotVersion(1); approval.setSourceSnapshot("{}"); approval.setRouteSnapshot("{}");
-        approval.setStatusCode("APPROVED"); approval.setDecisionAt(now); approval.setVersion(4);
+        approval.setStatusCode("APPROVED"); approval.setDecisionAt(now); approval.setVersion(4L);
         approval.setCreator("8"); approval.setUpdater("8"); assertEquals(1, approvalMapper.insert(approval));
     }
 
@@ -196,7 +196,7 @@ class CutoverClosureApplicationMySqlTest {
     void collectionCallbackAndManualFallbackPersistPositiveClosureFacts() {
         Long closureId = prepareDraftWithDevice("create-collection");
 
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "collect-ok", "corr-collect-ok"));
         String acceptedTaskId = jdbc.queryForObject("""
@@ -211,18 +211,18 @@ class CutoverClosureApplicationMySqlTest {
                 "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-replay"));
 
         collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 2,
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 2L,
                 deviceId, CollectionStage.TEST, new SavedCredential(71L, 3L),
                 "test-check", 2L, "collect-failed", "corr-collect-failed"));
         String failedTaskId = jdbc.queryForObject("""
                 SELECT collection_task_id FROM cut_cutover_collection_evidence
                  WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_FAILED'
                 """, String.class, tenantId, closureId);
-        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 3,
+        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7L, closureId, 3L,
                 failedTaskId, deviceId, CollectionStage.TEST,
                 file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
                 "manual-result", "corr-manual-result"));
-        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 3,
+        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7L, closureId, 3L,
                 failedTaskId, deviceId, CollectionStage.TEST,
                 file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
                 "manual-result", "corr-manual-replay"));
@@ -238,7 +238,7 @@ class CutoverClosureApplicationMySqlTest {
     @Test
     void callbackFailureCanBeCompletedByOneManualResult() {
         Long closureId = prepareDraftWithDevice("create-callback-fallback");
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.TEST, new SavedCredential(71L, 3L),
                 "test-check", 2L, "callback-fallback-dispatch", "corr-callback-fallback-dispatch"));
         String collectionTaskId = jdbc.queryForObject("""
@@ -248,7 +248,7 @@ class CutoverClosureApplicationMySqlTest {
         service.handleCollectionCallback(new HandleClosureCollectionCallbackCommand(tenantId, taskId, closureId,
                 deviceId, CollectionStage.TEST, "callback-failed", collectionTaskId, false,
                 "failed-result", "v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-failed"));
-        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7, closureId, 2,
+        service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7L, closureId, 2L,
                 collectionTaskId, deviceId, CollectionStage.TEST,
                 file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 504L, "ref-callback-manual"),
                 "callback-manual", "corr-callback-manual"));
@@ -274,8 +274,8 @@ class CutoverClosureApplicationMySqlTest {
                 VALUES (?,?,?,?,?,?,'PRE_CHECK','DISPATCH_FAILED',?,NOW(3),8,'8',NOW(3),b'0')
                 """, 993_000_000_000L + Math.floorMod(deviceId, 1_000_000L), tenantId, closureId, taskId,
                 projectId, deviceId, externalFact.collectionTaskId());
-        RequestClosureCollectionCommand command = new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7,
-                closureId, 0, deviceId, CollectionStage.PRE_CHECK, new SavedCredential(71L, 3L),
+        RequestClosureCollectionCommand command = new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L,
+                closureId, 0L, deviceId, CollectionStage.PRE_CHECK, new SavedCredential(71L, 3L),
                 "pre-check", 2L, "collect-recovery", "corr-collect-recovery");
 
         assertThrows(RuntimeException.class, () -> service.requestCollection(command));
@@ -294,7 +294,7 @@ class CutoverClosureApplicationMySqlTest {
     @Test
     void submitsSuccessfulClosureAndPublishesCompletion() {
         Long closureId = prepareDraftWithDevice("create-success-submit");
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "collect-submit", "corr-collect-submit"));
         String collectionTaskId = jdbc.queryForObject("""
@@ -305,7 +305,7 @@ class CutoverClosureApplicationMySqlTest {
                 deviceId, CollectionStage.POST_COLLECTION, "callback-submit", collectionTaskId, true,
                 "result-submit", "v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-submit"));
 
-        service.submit(new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7, closureId, 2,
+        service.submit(new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7L, closureId, 2L,
                 "SUCCESS", "submit-success", "corr-submit-success"));
 
         assertEquals(3, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=? AND status_code='SUBMITTED' AND final_result_code='SUCCESS' AND result_ref=?",
@@ -337,7 +337,7 @@ class CutoverClosureApplicationMySqlTest {
     void submitsFailedClosureWithoutCompletionEvent() {
         Long closureId = prepareDraftWithDevice("create-failed-submit");
 
-        service.submit(new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7, closureId, 0,
+        service.submit(new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 "FAILED", "submit-failed", "corr-submit-failed"));
 
         assertEquals(1, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=? AND status_code='SUBMITTED' AND final_result_code='FAILED' AND result_ref IS NULL",
@@ -364,7 +364,7 @@ class CutoverClosureApplicationMySqlTest {
 
     private SaveCutoverClosureCommand command(Integer version, String key, String legacy,
                                                List<AttachmentInput> attachments) {
-        return new SaveCutoverClosureCommand(tenantId, 8L, taskId, 7, version,
+        return new SaveCutoverClosureCommand(tenantId, 8L, taskId, 7L, version == null ? null : version.longValue(),
                 new ClosureContent(true, null, true, null, true, null, false, null, null,
                         legacy, null, attachments), key, "corr-" + key);
     }

@@ -40,7 +40,7 @@ public class CustomerContactMasterApiImpl implements CustomerContactMasterApi {
     }
     @Override public Long create(Save command, String key) { return service.create(actor(), write(command), key).getId(); }
     @Override public void update(Save command) { service.update(actor(), write(command)); }
-    @Override public void delete(Long id, Integer version) {
+    @Override public void delete(Long id, Long version) {
         var row = mapper.selectById(id);
         if (row == null) throw exception(CONTACT_NOT_EXISTS);
         service.delete(actor(), row.getCustomerId(), id, version);

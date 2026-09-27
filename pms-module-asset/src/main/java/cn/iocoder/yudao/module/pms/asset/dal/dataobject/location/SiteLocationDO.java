@@ -22,6 +22,6 @@ public class SiteLocationDO extends TenantBaseDO {
     private Integer treeDepth;
     private Integer treeSort;
     private Integer status;
-    private Integer version;
+    private Long version;
 
 }

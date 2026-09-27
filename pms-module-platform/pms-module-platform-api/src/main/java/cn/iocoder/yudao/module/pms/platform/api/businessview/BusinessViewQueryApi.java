@@ -21,7 +21,7 @@ public interface BusinessViewQueryApi {
     java.util.List<BusinessViewRevision> lockAndRevalidateAll(java.util.List<Query> queries);
 
     enum Purpose { NEW_REFERENCE, HISTORICAL_REFERENCE }
-    record Query(Long revisionId, Purpose purpose, Integer expectedVersion) {
+    record Query(Long revisionId, Purpose purpose, Long expectedVersion) {
         public Query(Long revisionId, Purpose purpose) { this(revisionId, purpose, null); }
     }
 }

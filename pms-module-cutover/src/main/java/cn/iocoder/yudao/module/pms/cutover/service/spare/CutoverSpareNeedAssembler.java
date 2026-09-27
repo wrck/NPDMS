@@ -70,7 +70,7 @@ public final class CutoverSpareNeedAssembler {
                 CutoverChecklistItemDO item = matched.getFirst();
                 require(item.getId() != null && item.getVersion() != null && item.getVersion() >= 0,
                         "checklist risk identity");
-                sources.add(new ChecklistRiskNeedSource(item.getId(), item.getVersion(),
+                sources.add(new ChecklistRiskNeedSource(item.getId(), item.getVersion() == null ? null : item.getVersion().longValue(),
                         item.getStableItemKey(), true));
             }
         }

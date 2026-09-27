@@ -107,7 +107,7 @@ public class RequirementAnalysisEntityQueryService {
     public record AttachmentValue(Long artifactId, Integer versionNo) {}
 
     public record Workspace(Long projectId, View currentEffective, View draft, List<String> allowedActions) { }
-    public record View(Long projectId, EntityVersionProvider.Revision revision, Integer entityVersion,
+    public record View(Long projectId, EntityVersionProvider.Revision revision, Long entityVersion,
                        EntityFormApi.Layout form, Long extensionDefinitionRevisionId, int extensionValueVersion,
                        Map<String, Object> values, List<FileReferenceSetFact> attachments, List<String> allowedActions,
                        Long projectTemplateId, Long projectTemplateRevisionId, List<EntityField> fieldCatalog) {}

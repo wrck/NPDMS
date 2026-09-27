@@ -37,7 +37,7 @@ class BriefingGenerateDocumentTest {
         row.setBriefingType("STANDARD");
         row.setSourceSnapshot("WBS基线v3");
         row.setStatus(BriefingServiceImpl.STATUS_DRAFT);
-        row.setVersion(2);
+        row.setVersion(2L);
         when(mapper.selectById(1L)).thenReturn(row);
         when(mapper.updateById(any(BriefingDO.class))).thenReturn(1);
     }

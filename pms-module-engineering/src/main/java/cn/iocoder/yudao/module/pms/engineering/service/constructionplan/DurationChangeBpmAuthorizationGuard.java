@@ -58,7 +58,7 @@ public class DurationChangeBpmAuthorizationGuard {
         if (change == null || !Objects.equals(change.getTenantId(), tenantId)) {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
         }
-        ConstructionPlanDO plan = planMapper.selectById(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(
                 new ConstructionPlanLockQuery(tenantId, change.getPlanId()));
         if (plan == null || !Objects.equals(plan.getTenantId(), tenantId)) {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
@@ -102,7 +102,7 @@ public class DurationChangeBpmAuthorizationGuard {
     }
 
     record AuthorizationContext(Long tenantId, Long actorId, Long planId, Long projectId,
-                                Long changeId, Integer projectVersion) {
+                                Long changeId, Long projectVersion) {
     }
 
 }

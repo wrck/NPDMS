@@ -6,7 +6,7 @@ public record ProjectSystemQualificationFact(
         Long currentManagerUserId,
         String lifecycleStatus,
         String currentStage,
-        Integer currentProjectVersion,
+        Long currentProjectVersion,
         Long currentParticipantFactVersion,
         Long currentTreeVersion) {
 }

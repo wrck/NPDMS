@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,10 +8,7 @@ import lombok.EqualsAndHashCode;
 @TableName("acc_acceptance")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AcceptanceActivityDO extends TenantBaseDO {
-
-    @TableId
-    private Long id;
+public class AcceptanceActivityDO extends BaseBusinessEntity {
     private Long projectId;
     private Long projectTaskId;
     private Long executionContractId;
@@ -21,7 +17,6 @@ public class AcceptanceActivityDO extends TenantBaseDO {
     private String activityStatus;
     @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private Long currentReportVersionId;
-    private Integer version;
     private String originKind;
     private String originKey;
     private String originSnapshot;

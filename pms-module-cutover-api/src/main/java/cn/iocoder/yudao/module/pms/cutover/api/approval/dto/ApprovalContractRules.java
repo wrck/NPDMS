@@ -21,6 +21,11 @@ final class ApprovalContractRules {
         return value;
     }
 
+    static long nonNegative(Long value, String field) {
+        if (value == null || value < 0) throw new IllegalArgumentException(field);
+        return value;
+    }
+
     static int nonNegative(Integer value, String field) {
         if (value == null || value < 0) {
             throw invalid(field + " must be non-negative");

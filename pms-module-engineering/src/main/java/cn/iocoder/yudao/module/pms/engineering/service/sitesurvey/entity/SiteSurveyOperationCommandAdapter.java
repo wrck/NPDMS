@@ -78,7 +78,7 @@ public class SiteSurveyOperationCommandAdapter implements ProjectBusinessOperati
         boolean deleted = code.endsWith(".DELETE");
         var row = deleted ? null : mapper.selectById(id);
         if (!deleted && (row == null || !command.projectId().equals(row.getProjectId()))) throw new IllegalStateException("OWNER_RESULT_IDENTITY_INVALID");
-        Integer version = deleted ? command.expectedBusinessVersion() : row.getVersion();
+        Long version = deleted ? command.expectedBusinessVersion() : row.getVersion();
         String state = deleted ? "DELETED" : String.valueOf(row.getStatus());
         String result = switch (code) {
             case "SOL.SITE_SURVEY.CONFIRM" -> "SURVEY_CONFIRMED";

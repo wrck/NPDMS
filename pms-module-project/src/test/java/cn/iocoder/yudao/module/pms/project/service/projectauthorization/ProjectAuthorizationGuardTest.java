@@ -189,7 +189,7 @@ class ProjectAuthorizationGuardTest {
     private AuthorizationGrantDTO grant() {
         return new AuthorizationGrantDTO(30L, 0L, "USER", 9L, "PROJ", "PROJECT", 2L,
                 "PROJECT_VIEW", "CURRENT_PROJECT", null, null, "ACTIVE", "PROJ",
-                "Project", "2", 7L, null, null, null, null, 0);
+                "Project", "2", 7L, null, null, null, null, 0L);
     }
 
     private ProjectAuthorizationGuard.Actor actor() {

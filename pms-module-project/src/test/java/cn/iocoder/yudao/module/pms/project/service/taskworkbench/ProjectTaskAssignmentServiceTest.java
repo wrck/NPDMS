@@ -119,7 +119,7 @@ class ProjectTaskAssignmentServiceTest {
         ProjectTaskAssignmentDO current = new ProjectTaskAssignmentDO();
         current.setId(900L);
         current.setAssigneeUserId(55L);
-        current.setVersion(2);
+        current.setVersion(2L);
         allowAssignment("SERVICE_MANAGER_L1");
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(current);
         when(taskMapper.selectTaskForAssignmentForUpdate(any())).thenAnswer(invocation -> {
@@ -147,7 +147,7 @@ class ProjectTaskAssignmentServiceTest {
         ProjectTaskAssignmentDO current = new ProjectTaskAssignmentDO();
         current.setId(901L);
         current.setAssigneeUserId(55L);
-        current.setVersion(1);
+        current.setVersion(1L);
         allowAssignment("PROJECT_MANAGER");
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(current);
         when(taskMapper.selectTaskForAssignmentForUpdate(any())).thenAnswer(invocation -> {

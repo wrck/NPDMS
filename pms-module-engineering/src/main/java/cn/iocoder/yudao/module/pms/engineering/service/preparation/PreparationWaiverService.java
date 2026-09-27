@@ -206,7 +206,7 @@ public class PreparationWaiverService {
                 projectId, action, current.treeVersion()));
     }
 
-    private void authorizeParticipant(Long projectId, Integer projectVersion,
+    private void authorizeParticipant(Long projectId, Long projectVersion,
             PreparationItemApplicationService.Actor actor, String roleCode) {
         if (blank(roleCode)) throw exception(PREPARATION_WAIVER_INVALID);
         participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, actor.actorId(),
@@ -346,7 +346,7 @@ public class PreparationWaiverService {
 
     public record WaiverCommand(String action, Long preparationId, Long itemId, Long waiverId,
             Integer expectedPreparationVersion, Integer expectedInputVersion, Integer expectedReadinessVersion,
-            Integer expectedItemVersion, Integer expectedWaiverVersion, Integer expectedProjectVersion,
+            Integer expectedItemVersion, Integer expectedWaiverVersion, Long expectedProjectVersion,
             List<String> blockerCodes, String reason, String risk, String compensation,
             LocalDateTime validFrom, LocalDateTime validUntil, String opinion, String idempotencyKey) {
         public WaiverCommand { blockerCodes = blockerCodes == null ? List.of() : List.copyOf(blockerCodes); }

@@ -109,7 +109,7 @@ class CutoverTaskPositiveLoopMySqlTest {
         configuration.setValidationResultSnapshot("[]");
         configuration.setPublishedBy(ACTOR_ID);
         configuration.setPublishedAt(LocalDateTime.of(2026, 8, 1, 0, 0));
-        configuration.setVersion(0);
+        configuration.setVersion(0L);
         configuration.setCreator(String.valueOf(ACTOR_ID));
         configuration.setUpdater(String.valueOf(ACTOR_ID));
         assertEquals(1, configurationMapper.insert(configuration));
@@ -175,13 +175,13 @@ class CutoverTaskPositiveLoopMySqlTest {
                         customerFact(), readinessFact()));
     }
 
-    private SaveCutoverAssessmentCommand saveCommand(Long taskId, Integer taskVersion, String grade) {
-        return new SaveCutoverAssessmentCommand(tenantId, ACTOR_ID, taskId, taskVersion, 0,
+    private SaveCutoverAssessmentCommand saveCommand(Long taskId, Long taskVersion, String grade) {
+        return new SaveCutoverAssessmentCommand(tenantId, ACTOR_ID, taskId, taskVersion, 0L,
                 new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), grade, "corr-save-" + grade);
     }
 
-    private SubmitCutoverAssessmentCommand submitCommand(Long taskId, Integer taskVersion,
-                                                           Integer assessmentVersion, String key) {
+    private SubmitCutoverAssessmentCommand submitCommand(Long taskId, Long taskVersion,
+                                                           Long assessmentVersion, String key) {
         return new SubmitCutoverAssessmentCommand(tenantId, ACTOR_ID, taskId, taskVersion, assessmentVersion,
                 key, "corr-" + key);
     }

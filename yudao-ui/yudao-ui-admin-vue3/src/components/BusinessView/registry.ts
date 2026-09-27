@@ -11,6 +11,8 @@ import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instan
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index.vue'
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
+import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue'
+import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
@@ -52,18 +54,18 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.PLN_STAGE_PLAN_APPROVAL,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(ProjectSchedulePanel),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '施工计划审批', tab: 'schedule' }
+        ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) } }
         : undefined
   },
   {
     ...businessPageRoutes.SOL_IMPLEMENTATION_SOLUTION,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(SolutionWorkbench),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '实施方案审核', tab: 'solution' }
+        ? { projectId: legacyOwnerId(resolvedContext.project.id) }
         : undefined
   },
   {

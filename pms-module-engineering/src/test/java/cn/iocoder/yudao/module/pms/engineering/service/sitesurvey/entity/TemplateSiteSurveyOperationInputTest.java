@@ -39,7 +39,7 @@ class TemplateSiteSurveyOperationInputTest {
         security = mockStatic(SecurityFrameworkUtils.class); security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(7L);
         when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 1L, Set.of(9L), Set.of()));
-        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setTenantId(1L); row.setVersion(2); row.setStatus(0);
+        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setTenantId(1L); row.setVersion(2L); row.setStatus(0);
         when(mapper.selectTaskObjectForUpdate(any())).thenReturn(row); when(mapper.selectById(11L)).thenReturn(row);
         when(service.createSiteSurveyEntity(any())).thenReturn(11L);
         adapter = new SiteSurveyOperationCommandAdapter(of(service), of(mapper), of(scopes), of(permissions), of(validation.getValidator()));
@@ -91,7 +91,7 @@ class TemplateSiteSurveyOperationInputTest {
     }
     private static ProjectOperationCommand command(String action, String json) {
         return new ProjectOperationCommand(9L, "TASK", 10L, null, action.equals("CREATE") ? null : "11",
-                action.equals("CREATE") ? null : 2, "v2", JsonUtils.parseTree(json), "key");
+                action.equals("CREATE") ? null : 2L, "v2", JsonUtils.parseTree(json), "key");
     }
     @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T value) {
         ObjectProvider<T> provider = mock(ObjectProvider.class); when(provider.getObject()).thenReturn(value); return provider;

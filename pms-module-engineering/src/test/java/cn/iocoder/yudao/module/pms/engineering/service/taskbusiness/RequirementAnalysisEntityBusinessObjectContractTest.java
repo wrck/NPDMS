@@ -43,7 +43,7 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
         var login = new LoginUser(); login.setId(7L); login.setTenantId(1L);
         SecurityFrameworkUtils.setLoginUser(login, new MockHttpServletRequest());
         revision = new RequirementAnalysisRevisionDO(); revision.setId(42L); revision.setEntityId(40L);
-        revision.setTenantId(1L); revision.setProjectId(9L); revision.setVersion(2); revision.setRevisionNo(1); revision.setRevisionState("DRAFT");
+        revision.setTenantId(1L); revision.setProjectId(9L); revision.setVersion(2L); revision.setRevisionNo(1); revision.setRevisionState("DRAFT");
         draft = mock(View.class); when(draft.projectId()).thenAnswer(invocation -> revision.getProjectId());
         when(draft.revision()).thenAnswer(invocation -> revision.revisionMetadata());
         when(draft.attachments()).thenReturn(List.of()); when(draft.allowedActions()).thenReturn(List.of("PATCH_FORM"));
@@ -81,7 +81,7 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
 
     @Test void automaticAssociationUsesCurrentOwnerRecordAndBindingWithoutAnyBusinessRoundField() {
         SecurityContextHolder.clearContext();
-        var row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setProjectId(9L); row.setVersion(2);
+        var row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setProjectId(9L); row.setVersion(2L);
         row.setExecutionSnapshot("{\"binding\":{\"dynamicFormTemplateRevisionId\":701}}");
         when(roots.selectDraft(any())).thenReturn(row);
         var association = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.AssociationContext(
@@ -94,7 +94,7 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
 
     @Test void automaticAssociationAcceptsIndependentRevisionsThroughTheirFrozenConfiguration() {
         SecurityContextHolder.clearContext();
-        var independent = new RequirementAnalysisRevisionDO(); independent.setId(42L); independent.setProjectId(9L); independent.setVersion(2);
+        var independent = new RequirementAnalysisRevisionDO(); independent.setId(42L); independent.setProjectId(9L); independent.setVersion(2L);
         independent.setExecutionSnapshot("{\"binding\":null,\"configuration\":{\"tenantId\":1,\"projectId\":9,"
                 + "\"parameters\":\"{\\\"dynamicFormTemplateRevisionId\\\":701}\"}}");
         when(roots.selectDraft(any())).thenReturn(independent);
@@ -114,9 +114,9 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
     @Test void unattendedCompletionReadsOnlySameRoundOwnerResultWithoutBrowserIdentityOrPrivateBody() {
         SecurityContextHolder.clearContext();
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                9L, 1, 91L, 1, 92L, 1, 93L, 94L, 1, 1, 95L, 1, true, java.time.LocalDateTime.of(2026,9,14,9,0));
+                9L, 1L, 91L, 1, 92L, 1, 93L, 94L, 1, 1, 95L, 1, true, java.time.LocalDateTime.of(2026,9,14,9,0));
         var row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setProjectId(9L); row.setTenantId(1L);
-        row.setVersion(3); row.setRevisionNo(2);
+        row.setVersion(3L); row.setRevisionNo(2);
         row.setRevisionState("FROZEN"); row.setFrozenBy(7L); row.setFrozenAt(java.time.LocalDateTime.now());
         when(roots.lockRevision(any())).thenReturn(row);
         var result = provider.lockCompletionFact(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.CompletionContext(1L, execution), "42");
@@ -140,7 +140,7 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
         SecurityContextHolder.clearContext();
         var execution = stageExecution(9L,90L,true);
         var row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setTenantId(1L); row.setProjectId(9L);
-        row.setVersion(3); row.setRevisionNo(2);
+        row.setVersion(3L); row.setRevisionNo(2);
         row.setRevisionState("FROZEN"); row.setFrozenBy(7L); row.setFrozenAt(java.time.LocalDateTime.now());
         when(roots.lockRevision(any())).thenReturn(row);
         var request = new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.StageCompletionContext(1L,execution);
@@ -169,7 +169,7 @@ class RequirementAnalysisEntityBusinessObjectContractTest {
     }
     private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext stageExecution(Long projectId, Long stageId, boolean writable) {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                projectId,1,stageId,1,92L,1,93L,94L,1,2,writable);
+                projectId,1L,stageId,1,92L,1,93L,94L,1,2,writable);
     }
     @Test void foreignProjectObjectIsRejected() {
         revision.setProjectId(10L); assertThrows(RuntimeException.class, () -> provider.inspect(context, "42"));

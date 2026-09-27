@@ -90,7 +90,7 @@ class SatisfactionResultSourceProjectionServiceTest {
     private AccProjectDeliverableDO root() {
         AccProjectDeliverableDO row = new AccProjectDeliverableDO();
         row.setId(40L); row.setProjectId(20L); row.setTaskCode("CUSTOM-RENAMED");
-        row.setDeliverableCode("CUSTOM-REPORT"); row.setVersion(0); row.setTenantId(7L);
+        row.setDeliverableCode("CUSTOM-REPORT"); row.setVersion(0L); row.setTenantId(7L);
         return row;
     }
 

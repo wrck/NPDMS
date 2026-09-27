@@ -110,7 +110,7 @@ public class OrdinaryProjectMemberController {
         return new Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
                 UUID.randomUUID().toString());
     }
-    private static int version(String header) {
+    private static long version(String header) {
         String value = header.trim();
         if (value.startsWith("W/")) value = value.substring(2).trim();
         if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) value = value.substring(1, value.length() - 1);

@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.api.approval.dto;
 
 public record CutoverApprovalFact(
         Long approvalInstanceId,
-        Integer approvalVersion,
+        Long approvalVersion,
         Long taskId,
         Long planRevisionId,
         Integer planRevisionNo,

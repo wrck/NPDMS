@@ -26,7 +26,7 @@ class ProjectSystemQualificationFactApiContractTest {
         assertEquals(List.of("projectId", "currentManagerUserId", "lifecycleStatus", "currentStage",
                         "currentProjectVersion", "currentParticipantFactVersion", "currentTreeVersion"),
                 componentNames(ProjectSystemQualificationFact.class));
-        assertEquals(List.of(Long.class, Long.class, String.class, String.class, Integer.class, Long.class,
+        assertEquals(List.of(Long.class, Long.class, String.class, String.class, Long.class, Long.class,
                         Long.class), componentTypes(ProjectSystemQualificationFact.class));
     }
 

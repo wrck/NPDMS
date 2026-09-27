@@ -225,13 +225,13 @@ class CommerceAuthorityCandidateServiceTest {
     }
 
     private CommerceAuthorityCandidateService.DecideCandidateCommand decide(
-            Long candidateId, int version, Long ownerId, String idempotencyKey, String correlationId) {
+            Long candidateId, long version, Long ownerId, String idempotencyKey, String correlationId) {
         return new CommerceAuthorityCandidateService.DecideCandidateCommand(
                 1L, 11L, candidateId, version, ownerId, "人工核对结论", idempotencyKey, correlationId);
     }
 
     private AuthorityCandidateDO candidate(Long id, String key, String version, String company,
-                                           String status, int rowVersion) {
+                                           String status, long rowVersion) {
         AuthorityCandidateDO row = new AuthorityCandidateDO();
         row.setId(id); row.setTenantId(1L); row.setObjectType("CONTRACT");
         row.setCandidateSourceSystem("PLATFORM_MANUAL"); row.setCandidateSourceKey(key);

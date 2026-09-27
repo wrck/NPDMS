@@ -5,6 +5,6 @@ public record CustomerLocationCommand(
         Long customerId,
         String locationType,
         Long locationId,
-        Integer sourceVersion,
+        Long sourceVersion,
         String operationId) {
 }

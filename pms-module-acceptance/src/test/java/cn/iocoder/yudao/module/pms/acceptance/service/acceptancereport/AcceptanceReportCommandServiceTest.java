@@ -58,7 +58,7 @@ class AcceptanceReportCommandServiceTest {
 
     @Test
     void publishesCompleteDraftAndFreezesOrderedPublicFileFacts() {
-        AcceptanceActivityDO activity = activity("PRELIMINARY", 0, null);
+        AcceptanceActivityDO activity = activity("PRELIMINARY", 0L, null);
         AcceptanceReportVersionDO draft = report(300L, 1, "DRAFT");
         when(activityMapper.selectByIdForUpdate(any())).thenReturn(activity);
         when(reportMapper.selectCurrentForUpdate(any())).thenReturn(null);
@@ -79,7 +79,7 @@ class AcceptanceReportCommandServiceTest {
         var service = service();
 
         var result = service.publish(new AcceptanceReportCommands.PublishCommand(
-                100L, 300L, 0, 1, null, "key-1", "digest-1"), actor());
+                100L, 300L, 0L, 1, null, "key-1", "digest-1"), actor());
 
         assertEquals("EFFECTIVE", result.reportStatus());
         assertEquals("EFFECTIVE", result.changeType());
@@ -91,7 +91,7 @@ class AcceptanceReportCommandServiceTest {
 
     @Test
     void revokeClearsCurrentWithoutRestoringPreviousVersion() {
-        AcceptanceActivityDO activity = activity("PRELIMINARY", 2, 300L);
+        AcceptanceActivityDO activity = activity("PRELIMINARY", 2L, 300L);
         AcceptanceReportVersionDO current = report(300L, 2, "EFFECTIVE");
         current.setPreviousVersionId(200L);
         current.setPublisherUserId(19L);
@@ -105,7 +105,7 @@ class AcceptanceReportCommandServiceTest {
         var service = service();
 
         var result = service.revoke(new AcceptanceReportCommands.RevokeCommand(
-                100L, 2, 300L, 2, "key-2", "digest-2"), actor());
+                100L, 2L, 300L, 2, "key-2", "digest-2"), actor());
 
         assertEquals("REVOKED", result.reportStatus());
         assertNull(activity.getCurrentReportVersionId());
@@ -135,7 +135,7 @@ class AcceptanceReportCommandServiceTest {
         return new AcceptanceReportCommands.Actor(7L, 19L, "corr-1");
     }
 
-    private AcceptanceActivityDO activity(String type, int version, Long currentReportId) {
+    private AcceptanceActivityDO activity(String type, Long version, Long currentReportId) {
         AcceptanceActivityDO row = new AcceptanceActivityDO();
         row.setId(100L);
         row.setProjectId(80L);

@@ -9,10 +9,10 @@ import java.time.ZoneId;
 import java.util.List;
 
 /** F-CUT-006 ClosureView精确REST投影。 */
-public record CutoverClosureResponse(Long taskId, String taskStage, String taskStatus, Integer taskVersion,
-                                     Long closureId, Integer closureVersion, String closureStatus,
-                                     Long approvalInstanceId, Integer approvalVersion,
-                                     Long planRevisionId, Integer planRevisionNo, Integer planVersion,
+public record CutoverClosureResponse(Long taskId, String taskStage, String taskStatus, Long taskVersion,
+                                     Long closureId, Long closureVersion, String closureStatus,
+                                     Long approvalInstanceId, Long approvalVersion,
+                                     Long planRevisionId, Integer planRevisionNo, Long planVersion,
                                      ClosureContent content, List<CollectionEvidenceResponse> collectionEvidence,
                                      String resultRef, Long submittedBy, Long submittedAt,
                                      Long archivedAt, List<String> allowedActions) {

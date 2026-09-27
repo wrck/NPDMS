@@ -24,7 +24,7 @@ class RequirementAnalysisBusinessResultSourceTest {
     @BeforeEach void setUp() {
         TenantContextHolder.setTenantId(1L);
         row.setId(40L); row.setEntityId(100L); row.setTenantId(1L); row.setProjectId(3L);
-        row.setRevisionNo(2); row.setVersion(5); row.setRevisionState("FROZEN"); row.setStatusCode("COMPLETED");
+        row.setRevisionNo(2); row.setVersion(5L); row.setRevisionState("FROZEN"); row.setStatusCode("COMPLETED");
         row.setEffectiveMarker(1); row.setFrozenAt(LocalDateTime.of(2026, 9, 18, 1, 0));
         when(mapper.selectRevision(any())).thenReturn(row);
         when(mapper.selectEffective(any())).thenReturn(row);
@@ -35,7 +35,7 @@ class RequirementAnalysisBusinessResultSourceTest {
         var first = source.inspect(exact).result();
         assertEquals("100", first.objectId()); assertEquals("40", first.resultId()); assertEquals("2", first.businessRevision());
         assertEquals(Validity.CURRENT, first.validity());
-        row.setVersion(6); row.setEffectiveMarker(null);
+        row.setVersion(6L); row.setEffectiveMarker(null);
         var historical = source.inspect(exact).result();
         assertEquals(first.resultId(), historical.resultId()); assertEquals(first.businessRevision(), historical.businessRevision());
         assertNotEquals(first.observationVersion(), historical.observationVersion());
@@ -96,13 +96,13 @@ class RequirementAnalysisBusinessResultSourceTest {
     @Test void originalOwnerEventMapsToNativeLookupWithoutCreatingAResult() {
         var type=RequirementAnalysisBusinessResultSource.TYPE;
         var event=new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,type.ownerContext(),type.entityType(),
-                "40","40",2,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
+                "40","40",2L,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
         var query=source.changeQuery(event);
         assertEquals(type,query.type());assertEquals(3L,query.projectId());
         assertNull(query.objectId());assertEquals("40",query.resultId());
         assertFalse(source.declaresFormation(event));
         var formed = new BusinessOperationResultEvent(event.eventId(),1,1L,3L,type.ownerContext(),type.entityType(),
-                "40","40",2,"native-fact",type.resultType(),"OWNER.RequirementAnalysis.FORMED","key",9L,event.occurredAt(),"trace");
+                "40","40",2L,"native-fact",type.resultType(),"OWNER.RequirementAnalysis.FORMED","key",9L,event.occurredAt(),"trace");
         assertTrue(source.declaresFormation(formed));
         verifyNoInteractions(mapper);
     }

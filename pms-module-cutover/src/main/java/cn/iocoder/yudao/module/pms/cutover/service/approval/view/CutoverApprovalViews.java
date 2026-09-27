@@ -16,8 +16,8 @@ public final class CutoverApprovalViews {
     public record Node(Long nodeId, Integer nodeNo, String nodeCode, String status,
                        Long originalApproverUserId, Long currentApproverUserId, LocalDateTime decisionAt,
                        String feedback, List<ReviewItem> reviewItems, AssessmentReview assessmentReview) { }
-    public record ApprovalDetail(String viewMode, Long approvalInstanceId, Integer approvalVersion,
-                                 Long taskId, Integer taskVersion, Long planRevisionId, Integer planRevisionNo,
+    public record ApprovalDetail(String viewMode, Long approvalInstanceId, Long approvalVersion,
+                                 Long taskId, Long taskVersion, Long planRevisionId, Integer planRevisionNo,
                                  String grade, String status, String holdReason, Integer currentNodeNo,
                                  List<Node> nodes, CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot sourceSnapshot,
                                  CutoverLeadTimeCompliance leadTimeCompliance, LocalDateTime decisionAt, String rejectionReason,
@@ -29,15 +29,15 @@ public final class CutoverApprovalViews {
                                       List<String> allowedActions) implements ApprovalView { }
     public record ReassignmentNode(Long nodeId, Integer nodeNo, String nodeCode, String nodeStatus,
                                    Long currentApproverUserId, Integer nodeVersion) { }
-    public record ApprovalReassignmentView(String viewMode, Long approvalInstanceId, Integer approvalVersion,
+    public record ApprovalReassignmentView(String viewMode, Long approvalInstanceId, Long approvalVersion,
                                            Long taskId, Long projectId, String taskCode, String taskName,
                                            String grade, String status, String holdReason,
                                            List<ReassignmentNode> nodes,
                                            List<String> allowedActions) implements ApprovalView { }
-    public record TodoItem(Long approvalInstanceId, Integer approvalVersion, Long taskId, Long projectId,
+    public record TodoItem(Long approvalInstanceId, Long approvalVersion, Long taskId, Long projectId,
                            String taskCode, String taskName, String grade, Integer nodeNo,
                            String nodeCode, LocalDateTime createdAt) { }
-    public record ReassignmentCandidate(Long approvalInstanceId, Integer approvalVersion, Long taskId,
+    public record ReassignmentCandidate(Long approvalInstanceId, Long approvalVersion, Long taskId,
                                         Long projectId, String taskCode, String taskName, String grade,
                                         String status, String holdReason, Long nodeId, Integer nodeNo,
                                         String nodeCode, String nodeStatus, Long currentApproverUserId,

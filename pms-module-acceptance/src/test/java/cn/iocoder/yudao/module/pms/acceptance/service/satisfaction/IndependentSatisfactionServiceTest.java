@@ -22,15 +22,15 @@ class IndependentSatisfactionServiceTest {
     final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
     final PermissionApi permissions = mock(PermissionApi.class);
     final IndependentSatisfactionService service = new IndependentSatisfactionService(tasks, questionnaires, revisions, projects, commands, permissions);
-    final IndependentSatisfactionService.Create request = new IndependentSatisfactionService.Create(80L, 20L, 21L, 4, 3L);
-    final ProjectAcceptanceContextApi.Context context = new ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "ACTIVE");
+    final IndependentSatisfactionService.Create request = new IndependentSatisfactionService.Create(80L, 20L, 21L, 4L, 3L);
+    final ProjectAcceptanceContextApi.Context context = new ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "ACTIVE");
     final SatisfactionQuestionnaireTemplateRevisionDO revision = new SatisfactionQuestionnaireTemplateRevisionDO();
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         when(permissions.hasAnyPermissions(19L, "pms:acceptance:satisfaction:manage")).thenReturn(true);
         when(projects.inspect(any())).thenReturn(context);
-        when(projects.lock(any(), eq(4), eq(3L))).thenReturn(context);
+        when(projects.lock(any(), eq(4L), eq(3L))).thenReturn(context);
         revision.setId(21L); revision.setTenantId(7L); revision.setTemplateId(20L); revision.setRevisionNo(1);
         revision.setRevisionStatus("PUBLISHED"); revision.setRuleVersion("SUM_V1"); revision.setFrozenThreshold(new BigDecimal("80"));
         revision.setFrozenQuestionJson("""
@@ -66,7 +66,7 @@ class IndependentSatisfactionServiceTest {
         assertEquals(revision.getFrozenQuestionJson(), questionnaire.getFrozenQuestionJson());
         assertEquals(new BigDecimal("80"), questionnaire.getFrozenThreshold()); assertEquals(3L, questionnaire.getAccessScopeVersion());
         var order = inOrder(projects, tasks, questionnaires);
-        order.verify(projects).lock(any(), eq(4), eq(3L)); order.verify(tasks).insert(any(SatisfactionCollectionTaskDO.class));
+        order.verify(projects).lock(any(), eq(4L), eq(3L)); order.verify(tasks).insert(any(SatisfactionCollectionTaskDO.class));
         order.verify(questionnaires).insert(any(SatisfactionQuestionnaireDO.class));
     }
     @Test void foreignTenantAndUnauthorizedActorCannotEnterTheCommand() {
@@ -76,9 +76,9 @@ class IndependentSatisfactionServiceTest {
         verifyNoInteractions(commands, projects, tasks, questionnaires, revisions);
     }
     @Test void closedProjectAndStaleVersionCannotFreezeAQuestionnaire() {
-        when(projects.lock(any(), eq(4), eq(3L))).thenReturn(new ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "NORMAL_CLOSED"));
+        when(projects.lock(any(), eq(4L), eq(3L))).thenReturn(new ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "NORMAL_CLOSED"));
         assertThrows(RuntimeException.class, () -> service.create(7L, 19L, request, "key"));
-        when(projects.lock(any(), eq(4), eq(3L))).thenThrow(new IllegalStateException("STALE_PROJECT"));
+        when(projects.lock(any(), eq(4L), eq(3L))).thenThrow(new IllegalStateException("STALE_PROJECT"));
         assertThrows(RuntimeException.class, () -> service.create(7L, 19L, request, "key"));
         verifyNoInteractions(tasks, questionnaires, revisions);
     }
@@ -102,7 +102,7 @@ class IndependentSatisfactionServiceTest {
     }
     @Test void directMutationsRejectClosedProjectAndMixedLegacyIdentity() {
         var task = new SatisfactionCollectionTaskDO(); task.setTenantId(7L); task.setProjectId(80L); task.setOriginKind("DIRECT");
-        when(projects.lock(any(), eq(4), eq(3L))).thenReturn(new ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "NORMAL_CLOSED"));
+        when(projects.lock(any(), eq(4L), eq(3L))).thenReturn(new ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "NORMAL_CLOSED"));
         assertThrows(RuntimeException.class, () -> service.lockIfDirect(7L, 19L, task));
         task.setProjectTaskId(90L);
         assertThrows(RuntimeException.class, () -> service.lockIfDirect(7L, 19L, task));

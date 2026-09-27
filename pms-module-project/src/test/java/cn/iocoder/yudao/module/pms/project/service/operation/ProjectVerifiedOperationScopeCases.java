@@ -15,7 +15,7 @@ public final class ProjectVerifiedOperationScopeCases {
     public static void run() throws Exception {
         count = 0;
         var selection = new ProjectBusinessExecutionSelection(null,
-                new ProjectStageExecutionContext(3L,1,4L,1,5L,1,6L,7L,1,1,true));
+                new ProjectStageExecutionContext(3L,1L,4L,1,5L,1,6L,7L,1,1,true));
         var frame = new ProjectVerifiedOperationScope.Frame(1L,2L,3L,"SOL","SITE_SURVEY","CONFIRM",1,"11",selection);
         check(ProjectVerifiedOperationScope.current() == null,"initially empty");
         try (var outer = ProjectVerifiedOperationScope.open(frame)) {
@@ -30,7 +30,7 @@ public final class ProjectVerifiedOperationScopeCases {
             check(!ProjectVerifiedOperationScope.matches(9L,2L,3L,"SOL","SITE_SURVEY",selection,"CONFIRM",1,"11"),"tenant mismatch rejected");
             check(!ProjectVerifiedOperationScope.matches(1L,9L,3L,"SOL","SITE_SURVEY",selection,"CONFIRM",1,"11"),"actor mismatch rejected");
             var next = new ProjectBusinessExecutionSelection(null,
-                    new ProjectStageExecutionContext(3L,1,4L,1,5L,1,6L,8L,1,2,true));
+                    new ProjectStageExecutionContext(3L,1L,4L,1,5L,1,6L,8L,1,2,true));
             check(!match(next,"CONFIRM",1,"11"),"different round rejected");
             var innerFrame = new ProjectVerifiedOperationScope.Frame(1L,2L,3L,"SOL","SITE_SURVEY","REJECT",1,"12",selection);
             try (var inner = ProjectVerifiedOperationScope.open(innerFrame)) {

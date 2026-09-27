@@ -229,7 +229,7 @@ public class DeliveryScopeCompatibilityService {
     }
 
     private Map<Long, ProjectOfficeFact> lockProjectFacts(SplitScopeApplyCommand command, List<String> errors) {
-        Map<Long, Integer> versions = new HashMap<>();
+        Map<Long, Long> versions = new HashMap<>();
         versions.put(command.parentProjectId(), command.expectedParentProjectVersion());
         command.projectIdsByClientItemKey().forEach((key, projectId) ->
                 versions.put(projectId, command.projectVersionsByClientItemKey().get(key)));
@@ -246,7 +246,7 @@ public class DeliveryScopeCompatibilityService {
         return facts;
     }
 
-    private boolean validProjectFact(ProjectOfficeFact fact, Long projectId, Integer projectVersion) {
+    private boolean validProjectFact(ProjectOfficeFact fact, Long projectId, Long projectVersion) {
         return fact != null && fact.outcome() == ProjectFactOutcome.FOUND
                 && Objects.equals(fact.projectId(), projectId)
                 && Objects.equals(fact.projectVersion(), projectVersion)
@@ -466,7 +466,7 @@ public class DeliveryScopeCompatibilityService {
         scope.setSourceEvidence(evidencePrefix(command.idempotencyKey()) + evidenceKey);
         scope.setEffectiveFrom(now);
         scope.setStatus("ENABLED");
-        scope.setVersion(0);
+        scope.setVersion(0L);
         deliveryScopeMapper.insert(scope);
         return scope;
     }

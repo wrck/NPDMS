@@ -72,7 +72,7 @@ class DurationChangeBpmAuthorizationGuardTest {
 
         assertEquals(301L, result.projectId());
         verify(participantFactApi).lockAndRevalidate(eq(new ProjectParticipantFactRevalidationQuery(
-                301L, 10L, 3, "ACTIVE", null,
+                301L, 10L, 3L, "ACTIVE", null,
                 cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES)));
     }
 
@@ -90,7 +90,7 @@ class DurationChangeBpmAuthorizationGuardTest {
         guard.authorize("P-1", DurationChangeBpmResultService.TerminalResult.CANCEL);
 
         verify(participantFactApi).lockAndRevalidate(eq(new ProjectParticipantFactRevalidationQuery(
-                301L, 10L, 3, "ACTIVE", null,
+                301L, 10L, 3L, "ACTIVE", null,
                 Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))));
     }
 
@@ -114,12 +114,12 @@ class DurationChangeBpmAuthorizationGuardTest {
         plan.setId(501L);
         plan.setTenantId(0L);
         plan.setProjectId(301L);
-        when(planMapper.selectById(any())).thenReturn(plan);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan);
     }
 
     private ProjectParticipantFact fact(String role) {
         return new ProjectParticipantFact(301L, 10L, Set.of(role), "PRIMARY",
-                "ACTIVE", "S2", 3, 3L);
+                "ACTIVE", "S2", 3L, 3L);
     }
 
     private void login(Long actorId) {

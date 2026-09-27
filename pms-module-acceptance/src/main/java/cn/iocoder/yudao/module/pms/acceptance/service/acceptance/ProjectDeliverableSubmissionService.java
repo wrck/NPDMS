@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.*;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.*;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableCurrentSourceLockQuery;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.DeliveryMaterialSource;
 import cn.iocoder.yudao.module.pms.platform.api.file.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
@@ -44,7 +45,7 @@ public class ProjectDeliverableSubmissionService {
 
     public record FileSelection(@NotNull @Positive Long artifactId, @NotNull @Positive Integer versionNo,
                                 @NotBlank @Size(max = 64) String referenceKey) { }
-    public record Submission(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Integer expectedVersion,
+    public record Submission(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Long expectedVersion,
                              @NotBlank String sourceType, @NotNull @Size(max = 100) List<@Valid FileSelection> files,
                              BusinessResultSource.Query businessResult) { }
     public record SourceEvidence(List<FileArtifactVersionFact> files, BusinessResultSource.Result businessResult,
@@ -58,9 +59,9 @@ public class ProjectDeliverableSubmissionService {
     public record Evaluation(boolean satisfied, String reason, String evidence) { }
     public record History(Long id, Long sourceVersionId, Long planVersionId, String sourceType,
                           SourceEvidence source, String creator, java.time.LocalDateTime submittedAt) { }
-    public record Detail(Long id, Long projectId, String code, String name, String status, Integer version,
+    public record Detail(Long id, Long projectId, String code, String name, String status, Long version,
                          Long planVersionId, JsonNode configuration, boolean writable, String automaticSource, List<History> history) { }
-    public record Submitted(Long submissionId, Long sourceVersionId, String status, Integer version, Evaluation evaluation) { }
+    public record Submitted(Long submissionId, Long sourceVersionId, String status, Long version, Evaluation evaluation) { }
 
     public Detail detail(Long projectId, Long id) {
         var row = require(deliverables.selectById(id), projectId);
@@ -90,7 +91,8 @@ public class ProjectDeliverableSubmissionService {
     @Transactional(rollbackFor = Exception.class)
     public Submitted submit(Long projectId, Long id, String requestKey, Submission request) {
         if (request == null || requestKey == null || requestKey.isBlank() || requestKey.length() > 128
-                || !Set.of("UPLOAD", "BUSINESS_RESULT").contains(request.sourceType()) || request.files() == null)
+                || !Set.of(DeliveryMaterialSource.UPLOAD.code(), DeliveryMaterialSource.BUSINESS_RESULT.code())
+                        .contains(request.sourceType()) || request.files() == null)
             throw failure("交付件提交参数不完整");
         var observed = require(deliverables.selectById(id), projectId);
         var context = rules.lock(projectId, observed.getDeliverableCode());
@@ -142,7 +144,8 @@ public class ProjectDeliverableSubmissionService {
         var confirmation = rules.evaluate(projectId, row.getDeliverableCode());
         var decision = new Evaluation(confirmation.satisfied(), confirmation.reason(), confirmation.evidence());
         row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED");
-        row.setStatus(decision.satisfied() ? "ACCEPTED" : "PENDING"); row.setVersion(row.getVersion() + 1); row.setUpdater(actor.toString());
+        // 乐观锁拦截器基于 @Version 在 UPDATE 时自增并回填，此处手动递增会使 WHERE version 落空
+        row.setStatus(decision.satisfied() ? "ACCEPTED" : "PENDING"); row.setUpdater(actor.toString());
         if (deliverables.updateById(row) != 1) throw failure("交付件提交冲突");
         var submission = new ProjectDeliverableSubmissionDO();
         submission.setId(submissionId); submission.setTenantId(row.getTenantId()); submission.setProjectId(projectId);
@@ -295,7 +298,7 @@ public class ProjectDeliverableSubmissionService {
         submission.setSourceEvidence(JsonUtils.toJsonString(evidence));
         submission.setDecisionEvidence("{}"); submission.setCreator("file-collection");
         if (submissions.insert(submission) != 1) throw failure("归集历史保存失败");
-        row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED"); row.setVersion(row.getVersion() + 1);
+        row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED");
         row.setUpdater("file-collection");
         if (deliverables.updateById(row) != 1) throw failure("归集交付件冲突");
         var decision = revalidate(row);
@@ -341,7 +344,7 @@ public class ProjectDeliverableSubmissionService {
         submission.setSourceEvidence(JsonUtils.toJsonString(evidence));
         submission.setDecisionEvidence("{}"); submission.setCreator("result-collection");
         if (submissions.insert(submission) != 1) throw failure("归集历史保存失败");
-        row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED"); row.setVersion(row.getVersion() + 1);
+        row.setCurrentSourceVersionId(sourceId); row.setArchiveStatus("NOT_REQUIRED");
         row.setUpdater("result-collection");
         if (deliverables.updateById(row) != 1) throw failure("归集交付件冲突");
         var decision = revalidate(row);
@@ -361,7 +364,7 @@ public class ProjectDeliverableSubmissionService {
     private Evaluation outcome(AccProjectDeliverableDO row, boolean satisfied, String reason, String evidence) {
         String next = satisfied ? "ACCEPTED" : "PENDING";
         if (!next.equals(row.getStatus())) {
-            row.setStatus(next); row.setVersion(row.getVersion() + 1);
+            row.setStatus(next);
             if (deliverables.updateById(row) != 1) throw failure("交付件自动判定冲突");
             var eventId = "deliverable-evaluated:" + row.getId() + ":" + row.getVersion();
             outbox.append("ProjectDeliverable", row.getId().toString(), new BusinessEvent(eventId, "ProjectDeliverableEvaluated.v1",

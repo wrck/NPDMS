@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 class ProjectOperationResultDeliveryTest {
     static BusinessOperationResultEvent source() {
         return new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,9L,"SOL","SITE_SURVEY","11",null,
-                3,"SOL:SITE_SURVEY:11:3:1","SURVEY_CONFIRMED","SOL.SITE_SURVEY.CONFIRM","command-1",7L,LocalDateTime.of(2026,9,17,12,30,0,123000000),"trace-1");
+                3L,"SOL:SITE_SURVEY:11:3:1","SURVEY_CONFIRMED","SOL.SITE_SURVEY.CONFIRM","command-1",7L,LocalDateTime.of(2026,9,17,12,30,0,123000000),"trace-1");
     }
     @Test void stableRecipientIdentitySeparatesRoundsAndTargets() {
         var event = source(); String a = ProjectResultTargetEvent.id(event.eventId(),"TASK",10L,20L,30L,40L);
@@ -62,7 +62,7 @@ class ProjectOperationResultDeliveryTest {
     @Test void invalidFactVersionOrSchemaCannotBecomeAResult() {
         var event=source();
         assertThrows(IllegalArgumentException.class,() -> new BusinessOperationResultEvent(event.eventId(),2,1L,9L,"SOL","SITE_SURVEY","11",null,
-                3,"fact","CONFIRMED","CONFIRM","key",7L,event.occurredAt(),"trace"));
+                3L,"fact","CONFIRMED","CONFIRM","key",7L,event.occurredAt(),"trace"));
         assertThrows(IllegalArgumentException.class,() -> event.requireEnvelope(UUID.randomUUID().toString(),1L));
     }
 }

@@ -11,7 +11,7 @@ import java.time.LocalDate;
 
 @Data
 public class DurationChangeCreateReqVO {
-    @NotNull @Min(0) private Integer expectedProjectVersion;
+    @NotNull @Min(0) private Long expectedProjectVersion;
     @NotBlank @Size(max = 32) private String calculationBasis;
     private LocalDate startDate;
     private LocalDate endDate;

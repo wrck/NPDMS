@@ -21,7 +21,7 @@ class RequirementAnalysisExecutionAccessTest {
     private final ProjectWorkBindingFactApi bindings = mock(ProjectWorkBindingFactApi.class);
     private final ProjectBusinessExecutionApi businessExecutions = mock(ProjectBusinessExecutionApi.class);
     private final RequirementAnalysisExecutionAccess service = new RequirementAnalysisExecutionAccess(api,bindings,businessExecutions);
-    private final ProjectWorkBindingFact binding = new ProjectWorkBindingFact(100L, 1, 200L, 1, 300L, 1,
+    private final ProjectWorkBindingFact binding = new ProjectWorkBindingFact(100L, 1L, 200L, 1, 300L, 1,
             700L, 1, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS", "PRE_04_REQUIREMENT_ANALYSIS",
             null, null, null, null, 800L, 1,
             "{\"schemaVersion\":2,\"dynamicFormTemplateId\":701,\"dynamicFormTemplateRevisionId\":702}",701L,702L,1,1);
@@ -83,7 +83,7 @@ class RequirementAnalysisExecutionAccessTest {
         ProjectBusinessExecutionSelection selected;
         if ("TASK".equals(kind)) {
             var other = bindingWith("projectTaskId",201L);
-            var task = new ProjectTaskExecutionContext(100L,1,201L,1,300L,1,400L,501L,1,2,600L,1,true,null);
+            var task = new ProjectTaskExecutionContext(100L,1L,201L,1,300L,1,400L,501L,1,2,600L,1,true,null);
             when(bindings.inspectTask(any())).thenReturn(other);
             when(api.inspect(any())).thenReturn(task);
             selected = new ProjectBusinessExecutionSelection(task,null);
@@ -133,7 +133,7 @@ class RequirementAnalysisExecutionAccessTest {
         var root = root(); String original = root.getExecutionSnapshot();
         var changed = bindingWith("executionContractId",301L);
         when(bindings.inspectTask(any())).thenReturn(changed);
-        var current = new ProjectTaskExecutionContext(100L,2,200L,3,301L,2,401L,501L,2,2,600L,2,true,java.time.LocalDateTime.of(2026,9,14,10,0));
+        var current = new ProjectTaskExecutionContext(100L,2L,200L,3,301L,2,401L,501L,2,2,600L,2,true,java.time.LocalDateTime.of(2026,9,14,10,0));
         when(api.inspect(any())).thenReturn(current);
         assertTrue(service.canWrite(root)); service.lockForWrite(root);
         verify(bindings,times(2)).inspectTask(argThat(query -> query.projectId()==100L && query.projectTaskId()==200L));
@@ -219,7 +219,7 @@ class RequirementAnalysisExecutionAccessTest {
     }
 
     private ProjectStageExecutionContext stageContext(long execution, int version) {
-        return new ProjectStageExecutionContext(100L,1,600L,1,300L,1,400L,execution,version,2,true);
+        return new ProjectStageExecutionContext(100L,1L,600L,1,300L,1,400L,execution,version,2,true);
     }
 
     private ProjectWorkBindingFact bindingWith(String field,long value) {
@@ -236,7 +236,7 @@ class RequirementAnalysisExecutionAccessTest {
     }
 
     private ProjectTaskExecutionContext context(long plan, long execution, int version, boolean writable) {
-        return new ProjectTaskExecutionContext(100L, 1, 200L, version, 300L, 1, plan,
+        return new ProjectTaskExecutionContext(100L, 1L, 200L, version, 300L, 1, plan,
                 execution, version, 1, 600L, 1, writable, java.time.LocalDateTime.of(2026,9,14,9,0));
     }
 }

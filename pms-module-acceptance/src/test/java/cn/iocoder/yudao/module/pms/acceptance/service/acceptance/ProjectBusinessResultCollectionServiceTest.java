@@ -30,7 +30,7 @@ class ProjectBusinessResultCollectionServiceTest {
         var result = new BusinessResultSource.Result(7L, 9L, type, "55", "56", "1", "1",
                 BusinessResultSource.Validity.CURRENT, LocalDateTime.parse("2026-09-20T12:00:00"));
         var source = new BusinessOperationResultEvent(UUID.randomUUID().toString(), 1, 7L, 9L, "SOL", "REQUIREMENT_ANALYSIS",
-                "55", null, 1, "1", "REQUIREMENT_ANALYSIS_COMPLETED", "REQUIREMENT_ANALYSIS_COMPLETE", "owner-command", 11L,
+                "55", null, 1L, "1", "REQUIREMENT_ANALYSIS_COMPLETED", "REQUIREMENT_ANALYSIS_COMPLETE", "owner-command", 11L,
                 LocalDateTime.parse("2026-09-20T12:00:00"), "test");
         return new BusinessResultChange(UUID.randomUUID().toString(), 1, new BusinessResultChange.Channel(1L, 7L, 9L, type),
                 8, source, formation ? BusinessResultSource.Observation.available(result)

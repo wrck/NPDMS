@@ -28,14 +28,14 @@ class CutoverCompletionProviderTest {
 
     private final CutoverCompletionProvider provider = new CutoverCompletionProvider(mapper, scope, permissions, executions, closures);
     private final CutoverTaskDO row = new CutoverTaskDO();
-    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
+    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1L,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
     private final TaskBusinessObjectProvider.Context context = new TaskBusinessObjectProvider.Context(1L,7L,9L,91L,"test");
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
 
-        row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3); row.setTaskStatus("ARCHIVED"); row.setCurrentStage("P6");
-        closure.setId(43L); closure.setTaskId(42L); closure.setTenantId(1L); closure.setProjectId(9L); closure.setVersion(1);
+        row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3L); row.setTaskStatus("ARCHIVED"); row.setCurrentStage("P6");
+        closure.setId(43L); closure.setTaskId(42L); closure.setTenantId(1L); closure.setProjectId(9L); closure.setVersion(1L);
         closure.setStatusCode("ARCHIVED"); closure.setFinalResultCode("SUCCESS"); closure.setResultRef("closure:43:1");
         closure.setSubmittedAt(java.time.LocalDateTime.now()); closure.setArchivedAt(java.time.LocalDateTime.now());
         when(mapper.one(any())).thenReturn(row); when(closures.selectByTaskForUpdate(any())).thenReturn(closure);

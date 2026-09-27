@@ -142,4 +142,10 @@
         </if>
         ORDER BY id ASC LIMIT #{query.limit}
     </select>
+    <update id="discardDraft">
+        UPDATE sol_requirement_analysis_revision
+        SET revision_no = -id, deleted = b'1', update_time = NOW()
+        WHERE id = #{query.revisionId} AND tenant_id = #{query.tenantId} AND deleted = b'0'
+          AND revision_state = 'DRAFT'
+    </update>
 </mapper>

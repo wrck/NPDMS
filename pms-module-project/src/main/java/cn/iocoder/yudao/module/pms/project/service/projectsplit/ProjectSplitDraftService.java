@@ -74,7 +74,7 @@ public class ProjectSplitDraftService {
             request.setScopeVersion(scopeVersion);
             request.setTreeVersion(activeTree == null ? 0L : activeTree.getTreeVersion());
             request.setTemplateRevisionId(command.templateRevisionId());
-            request.setVersion(0);
+            request.setVersion(0L);
             requestMapper.insert(request);
         } else {
             request = requireRequest(command.requestId(), actor);

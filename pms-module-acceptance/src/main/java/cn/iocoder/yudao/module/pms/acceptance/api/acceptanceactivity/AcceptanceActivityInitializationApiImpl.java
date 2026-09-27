@@ -55,7 +55,7 @@ public class AcceptanceActivityInitializationApiImpl implements AcceptanceActivi
         row.setDeliverableId(deliverable.getId());
         row.setAcceptanceType(command.acceptanceType());
         row.setActivityStatus("PENDING");
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator("acceptance-activity-initializer");
         row.setUpdater("acceptance-activity-initializer");
         if (activityMapper.insert(row) != 1) return result("DEPENDENCY_UNAVAILABLE", null, null);
@@ -74,7 +74,7 @@ public class AcceptanceActivityInitializationApiImpl implements AcceptanceActivi
                 && command.templateRevision() != null && command.templateRevision() > 0;
     }
 
-    private AcceptanceActivityInitializationResult result(String outcome, Long id, Integer version) {
+    private AcceptanceActivityInitializationResult result(String outcome, Long id, Long version) {
         return new AcceptanceActivityInitializationResult(outcome, id, version);
     }
 

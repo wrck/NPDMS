@@ -40,8 +40,8 @@ public class ProjectManagerMemberController {
         if (version.startsWith("W/")) version = version.substring(2).trim();
         if (version.startsWith("\"") && version.endsWith("\"") && version.length() >= 2)
             version = version.substring(1, version.length() - 1);
-        int expected;
-        try { expected = Integer.parseInt(version); }
+        long expected;
+        try { expected = Long.parseLong(version); }
         catch (NumberFormatException ex) { throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "If-Match版本无效"); }
         return CommonResult.success(service.update(new ProjectManagerMemberCommand(projectId, expected,
                 request.addUserIds(), request.removeUserIds(), request.primaryUserId(), request.reason(), key),

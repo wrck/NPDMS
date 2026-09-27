@@ -37,7 +37,7 @@ class ProjectRuleClosureServiceTest {
     ProjectMasterDO project;
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
-        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setVersion(3);
+        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setVersion(3L);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
         snapshot = new TemplateExecutionSnapshot(); snapshot.setClosureRuleKey("close");
         snapshot.getRulePrograms().put("close", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));

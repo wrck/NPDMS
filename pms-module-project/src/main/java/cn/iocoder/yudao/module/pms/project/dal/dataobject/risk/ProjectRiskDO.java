@@ -1,13 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.risk;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * PMS 项目风险 DO（FR-PROJ-026 / T-V1-PROJ-009）。
@@ -18,10 +16,8 @@ import java.time.LocalDateTime;
 @TableName("proj_project_risk")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectRiskDO extends TenantBaseDO {
+public class ProjectRiskDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -81,6 +77,4 @@ public class ProjectRiskDO extends TenantBaseDO {
     /**
      * 乐观锁版本号
      */
-    @Version
-    private Integer version;
 }

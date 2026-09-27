@@ -18,7 +18,7 @@ public interface ProjectTemplateService {
 
     Validation validateProjectTemplate(Long id);
 
-    Long copyProjectTemplate(Long id, Integer expectedVersion,
+    Long copyProjectTemplate(Long id, Long expectedVersion,
             cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO body,
             String idempotencyKey);
 
@@ -33,6 +33,11 @@ public interface ProjectTemplateService {
 
     /** V2 authoring read. */
     default TemplateDesignerDocument getDraftDesigner(Long templateId) {
+        throw new UnsupportedOperationException("template designer v2 is not available on the legacy service");
+    }
+
+    /** Latest PUBLISHED revision's frozen Designer, read-only projection (BR-3). */
+    default TemplateDesignerDocument getPublishedDesigner(Long templateId) {
         throw new UnsupportedOperationException("template designer v2 is not available on the legacy service");
     }
 

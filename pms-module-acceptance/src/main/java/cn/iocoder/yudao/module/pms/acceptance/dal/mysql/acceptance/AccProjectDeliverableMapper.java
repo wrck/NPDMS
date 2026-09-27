@@ -57,6 +57,6 @@ public interface AccProjectDeliverableMapper extends BaseMapperX<AccProjectDeliv
     List<Long> selectRetirablePlanDefinitionIds(
             @Param("query") cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverablePlanScopeQuery query);
 
-    record PlanDefinitionChange(Long tenantId, Long projectId, Long id, Integer expectedVersion,
+    record PlanDefinitionChange(Long tenantId, Long projectId, Long id, Long expectedVersion,
                                 AccProjectDeliverableDO definition, String updater) { }
 }

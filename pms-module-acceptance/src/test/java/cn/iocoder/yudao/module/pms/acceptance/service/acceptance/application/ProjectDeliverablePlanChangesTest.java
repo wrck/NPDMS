@@ -34,7 +34,7 @@ class ProjectDeliverablePlanChangesTest {
         verify(mapper,never()).updatePlanDefinition(any()); verify(mapper,never()).retireUnhandledForPlan(any());
     }
     @Test void swapsCodesInTwoPhasesAndLeavesSourceAndArchiveStateToTheOwner() {
-        service.applyPlanChanges(command(new DeliverablePlanChange(20L,3,definition("D10")),new DeliverablePlanChange(10L,3,definition("D20"))));
+        service.applyPlanChanges(command(new DeliverablePlanChange(20L,3L,definition("D10")),new DeliverablePlanChange(10L,3L,definition("D20"))));
         var order=inOrder(mapper);
         order.verify(mapper).selectByIdForUpdate(argThat(query -> query.deliverableId()==10L));
         order.verify(mapper).selectByIdForUpdate(argThat(query -> query.deliverableId()==20L));
@@ -45,28 +45,28 @@ class ProjectDeliverablePlanChangesTest {
         verify(mapper,never()).clearCurrentSource(any()); verify(mapper,never()).retireUnhandledForPlan(any());
     }
     @Test void removesUnhandledInstanceBeforeAddingIndependentReplacementWithSameCode() {
-        service.applyPlanChanges(command(new DeliverablePlanChange(10L,3,null),new DeliverablePlanChange(null,null,definition("D10"))));
+        service.applyPlanChanges(command(new DeliverablePlanChange(10L,3L,null),new DeliverablePlanChange(null,null,definition("D10"))));
         var order=inOrder(mapper); order.verify(mapper).retireUnhandledForPlan(argThat(query -> query.id()==10L));
         order.verify(mapper).insert(argThat((AccProjectDeliverableDO row) -> row.getId()==null && row.getProjectId()==9L
                 && row.getTenantId()==1L && row.getStatus().equals("PENDING") && row.getCurrentSourceVersionId()==null));
     }
     @Test void staleOrForeignPreviewCannotWriteAnyDefinition() {
-        assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,2,definition("D10")))));
+        assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,2L,definition("D10")))));
         var foreign=current(10L); foreign.setProjectId(99L); doReturn(foreign).when(mapper).selectByIdForUpdate(any());
-        assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3,null))));
+        assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3L,null))));
         foreign.setProjectId(9L); foreign.setTenantId(2L);
-        assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3,null))));
+        assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3L,null))));
         verify(mapper,never()).updatePlanDefinition(any()); verify(mapper,never()).stagePlanCodeForRename(any());
         verify(mapper,never()).retireUnhandledForPlan(any());
     }
     @Test void rejectsDuplicateIdentityOrTargetCodeBeforeTakingLocks() {
-        assertThrows(IllegalArgumentException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3,null),new DeliverablePlanChange(10L,3,null))));
-        assertThrows(IllegalArgumentException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3,definition("SAME")),new DeliverablePlanChange(null,null,definition("SAME")))));
+        assertThrows(IllegalArgumentException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3L,null),new DeliverablePlanChange(10L,3L,null))));
+        assertThrows(IllegalArgumentException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3L,definition("SAME")),new DeliverablePlanChange(null,null,definition("SAME")))));
         verify(mapper,never()).selectByIdForUpdate(any());
     }
     @Test void refusedRetirementDoesNotContinueWithOtherChanges() {
         when(mapper.retireUnhandledForPlan(any())).thenReturn(0);
-        var failure=assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3,null),new DeliverablePlanChange(null,null,definition("D10")))));
+        var failure=assertThrows(IllegalStateException.class,()->service.applyPlanChanges(command(new DeliverablePlanChange(10L,3L,null),new DeliverablePlanChange(null,null,definition("D10")))));
         assertEquals("DELIVERABLE_PLAN_HANDLING_HISTORY_PROTECTED",failure.getMessage());
         verify(mapper,never()).insert(any(AccProjectDeliverableDO.class)); verify(mapper,never()).updatePlanDefinition(any());
     }
@@ -76,7 +76,7 @@ class ProjectDeliverablePlanChangesTest {
     ApplyDeliverablePlanChanges command(DeliverablePlanChange... changes) { return new ApplyDeliverablePlanChanges(9L,7L,List.of(changes)); }
     DeliverableDefinition definition(String code) { return new DeliverableDefinition(code,"现场工勘交付件","PREP","SURVEY",true,null); }
     AccProjectDeliverableDO current(Long id) {
-        var row=new AccProjectDeliverableDO(); row.setId(id); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3);
+        var row=new AccProjectDeliverableDO(); row.setId(id); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3L);
         row.setDeliverableCode("D"+id); row.setStatus("SUBMITTED"); row.setCurrentSourceVersionId(88L); row.setArchiveStatus("VALID"); return row;
     }
 }

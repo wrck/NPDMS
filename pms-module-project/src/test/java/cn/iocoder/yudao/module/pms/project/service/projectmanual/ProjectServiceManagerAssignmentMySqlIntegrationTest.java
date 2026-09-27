@@ -135,7 +135,7 @@ class ProjectServiceManagerAssignmentMySqlIntegrationTest
                 .filter(message -> eventId.equals(message.eventId())).count());
     }
 
-    private AssignServiceManagerCommand command(Long projectId, int expectedVersion, Long managerId) {
+    private AssignServiceManagerCommand command(Long projectId, long expectedVersion, Long managerId) {
         return new AssignServiceManagerCommand(projectId, expectedVersion, "L1", managerId,
                 null, "PRIMARY", 1L, "IT-DEPT", "真实MySQL服务经理指派验证", null, null);
     }

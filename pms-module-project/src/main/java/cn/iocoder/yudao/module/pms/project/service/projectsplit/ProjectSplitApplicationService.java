@@ -111,7 +111,7 @@ public class ProjectSplitApplicationService {
         ProjectSplitDraftService.DraftResult draft = draftService.getDraft(request.getId(), actor);
         List<CreatedProject> created = new ArrayList<>();
         Map<String, Long> projectIds = new LinkedHashMap<>();
-        Map<String, Integer> projectVersions = new LinkedHashMap<>();
+        Map<String, Long> projectVersions = new LinkedHashMap<>();
         for (ProjectSplitItemDO item : draft.items()) {
             ProjectMasterDO child = childCreationService.create(parent, item, actor.tenantId(), request.getId(),
                     actor.actorId(), actor.correlationId());
@@ -175,7 +175,7 @@ public class ProjectSplitApplicationService {
             change.setProjectId(child.projectId()); change.setParentIdAfter(parent.getId());
             change.setBaseTreeVersion(baseVersion); change.setNewTreeVersion(newVersion);
             change.setActorId(actor.actorId()); change.setReason("PROJECT_SPLIT_APPLY");
-            change.setOccurredAt(now); change.setVersion(0);
+            change.setOccurredAt(now); change.setVersion(0L);
             treeChangeMapper.insert(change);
         }
     }

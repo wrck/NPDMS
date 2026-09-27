@@ -5,7 +5,7 @@ import tools.jackson.databind.JsonNode;
 
 /** Expected values are concurrency checks, never authorization. The HTTP layer supplies the key. */
 public record ProjectOperationCommand(Long projectId, String nodeKind, Long nodeId,
-        ProjectBusinessExecutionSelection execution, String objectId, Integer expectedBusinessVersion,
+        ProjectBusinessExecutionSelection execution, String objectId, Long expectedBusinessVersion,
         String expectedObjectFactVersion, JsonNode input, String idempotencyKey) {
     public ProjectOperationCommand withExecution(ProjectBusinessExecutionSelection current) {
         return new ProjectOperationCommand(projectId, nodeKind, nodeId, current, objectId,

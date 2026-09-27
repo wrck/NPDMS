@@ -77,7 +77,6 @@ public class AcceptanceReportArchiveCompensationService {
         if (sourceMapper.updateById(source) != 1) throw new IllegalStateException("archive projection update failed");
         if (Objects.equals(deliverable.getCurrentSourceVersionId(), source.getId())) {
             deliverable.setArchiveStatus("ARCHIVED");
-            deliverable.setVersion(deliverable.getVersion() + 1);
             deliverable.setUpdater(String.valueOf(report.getPublisherUserId()));
             if (deliverableMapper.updateById(deliverable) != 1) {
                 throw new IllegalStateException("deliverable archive update failed");

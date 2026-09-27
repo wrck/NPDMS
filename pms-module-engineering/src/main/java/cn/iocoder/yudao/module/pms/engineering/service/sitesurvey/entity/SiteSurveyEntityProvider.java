@@ -42,7 +42,7 @@ public class SiteSurveyEntityProvider implements EntityFieldProvider {
     @Override public void requireReadable(EntityDataRef target, EntityActor actor) { authorized(target, actor, false); }
 
     @Override
-    public void lockForWrite(EntityDataRef target, EntityActor actor, Integer expectedVersion) {
+    public void lockForWrite(EntityDataRef target, EntityActor actor, Long expectedVersion) {
         var observed = authorized(target, actor, true);
         var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), observed.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
         scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(), observed.getProjectId(),

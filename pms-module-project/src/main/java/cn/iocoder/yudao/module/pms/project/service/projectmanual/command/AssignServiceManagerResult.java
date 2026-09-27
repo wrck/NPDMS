@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 public record AssignServiceManagerResult(
         Long projectId,
         Long assignmentId,
-        Integer version,
+        Long version,
         String assignmentStatus,
         LocalDateTime effectiveFrom,
         Long previousPrimaryManagerId,

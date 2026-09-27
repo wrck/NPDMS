@@ -96,7 +96,7 @@ public class ArrivalEvidenceRetryService {
         int newCount = Math.addExact(oldCount, 1);
         RetryTransition transition = transition(root.getAccSyncStatus());
         ImplementationEvidencePublishedMessage message = rebuildMessage(root, retriedAt);
-        int queueExpectedVersion = root.getVersion();
+        long queueExpectedVersion = root.getVersion();
         String queueExpectedStatus = root.getAccSyncStatus();
         if (!root.getAccSyncStatus().equals(transition.retryState())) {
             int entered = evidenceMapper.enterRetryStateIfMatch(
@@ -106,7 +106,7 @@ public class ArrivalEvidenceRetryService {
             if (entered != 1) {
                 throw new IllegalStateException("arrival evidence changed before entering retry state");
             }
-            queueExpectedVersion = Math.addExact(root.getVersion(), 1);
+            queueExpectedVersion = Math.addExact(root.getVersion(), 1L);
             queueExpectedStatus = transition.retryState();
         }
         int updated = evidenceMapper.advanceRetryIfMatch(new DeliveryEvidenceRetryUpdate(

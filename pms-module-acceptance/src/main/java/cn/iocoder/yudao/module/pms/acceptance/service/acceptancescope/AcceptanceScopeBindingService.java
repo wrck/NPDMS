@@ -129,7 +129,7 @@ public class AcceptanceScopeBindingService implements AcceptanceScopeBindingApi,
         created.setEffectiveFrom(LocalDateTime.now());
         created.setEffectiveTo(null);
         created.setAcceptanceFactVersion(INITIAL_FACT_VERSION);
-        created.setVersion(0);
+        created.setVersion(0L);
         if (bindingRepository.append(created) != 1) {
             throw exception(ACC_ACCEPTANCE_SCOPE_BINDING_CONFLICT);
         }

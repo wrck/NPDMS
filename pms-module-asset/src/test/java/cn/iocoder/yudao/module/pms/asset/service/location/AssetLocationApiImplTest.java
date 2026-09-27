@@ -66,7 +66,7 @@ class AssetLocationApiImplTest {
                 new SiteInput(null, null, "SITE-A", "站点A", null, "CUSTOMER_SITE"),
                 null, null, null, null, null, null));
         LocationReferenceDTO second = api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
                 new SiteInput(null, null, "SITE-B", "站点B", null, "CUSTOMER_SITE"),
                 null, null, null, null, null, null));
@@ -80,7 +80,7 @@ class AssetLocationApiImplTest {
     @Test
     void shouldRejectStaleAddressVersion() {
         when(addressMapper.selectById(11L)).thenReturn(address(11L, 2));
-        assertThrows(ServiceException.class, () -> api.getAddress(11L, 1));
+        assertThrows(ServiceException.class, () -> api.getAddress(11L, 1L));
     }
 
     @Test
@@ -117,19 +117,19 @@ class AssetLocationApiImplTest {
         site.setId(21L);
         site.setAddressId(11L);
         site.setStatus(0);
-        site.setVersion(0);
+        site.setVersion(0L);
         when(siteMapper.selectById(21L)).thenReturn(site);
 
         LocationReferenceDTO replay = api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
-                new SiteInput(21L, 0, null, null, null, null), null, null, "SURVEY", "S-1", "v3", null));
+                new SiteInput(21L, 0L, null, null, null, null), null, null, "SURVEY", "S-1", "v3", null));
         assertEquals(21L, replay.siteId());
 
         assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(12L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(12L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
-                new SiteInput(21L, 0, null, null, null, null), null, null, "SURVEY", "S-1", "v3", null)));
+                new SiteInput(21L, 0L, null, null, null, null), null, null, "SURVEY", "S-1", "v3", null)));
     }
 
     @Test
@@ -141,20 +141,20 @@ class AssetLocationApiImplTest {
         when(locationCodeService.next("CUS-7-S-")).thenReturn("CUS-7-S-0001");
         var captor = org.mockito.ArgumentCaptor.forClass(SiteDO.class);
         api.maintain(new LocationMaintenanceCommand(null,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
                 new SiteInput(null, null, null, "站点", 7L, "CUSTOMER_SITE"), null, null, null, null, null, null));
         verify(siteMapper).insert(captor.capture());
         SiteDO created = captor.getValue();
         assertEquals("CUS-7-S-0001", created.getCode());
         created.setId(21L);
         when(siteMapper.selectById(21L)).thenReturn(created);
-        when(siteMapper.updateByIdAndVersion(any(), org.mockito.ArgumentMatchers.eq(0))).thenReturn(1);
+        when(siteMapper.updateByIdAndVersion(any(), org.mockito.ArgumentMatchers.eq(0L))).thenReturn(1);
         api.maintain(new LocationMaintenanceCommand(null, null,
-                new SiteInput(21L, 0, null, "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null, null));
-        verify(siteMapper).updateByIdAndVersion(captor.capture(), org.mockito.ArgumentMatchers.eq(0));
+                new SiteInput(21L, 0L, null, "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null, null));
+        verify(siteMapper).updateByIdAndVersion(captor.capture(), org.mockito.ArgumentMatchers.eq(0L));
         assertEquals("CUS-7-S-0001", captor.getValue().getCode());
         assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null, null,
-                new SiteInput(21L, 0, "RECODE", "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null, null)));
+                new SiteInput(21L, 0L, "RECODE", "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null, null)));
     }
 
     @Test
@@ -164,7 +164,7 @@ class AssetLocationApiImplTest {
         site.setId(21L);
         site.setAddressId(11L);
         site.setStatus(0);
-        site.setVersion(0);
+        site.setVersion(0L);
         when(siteMapper.selectById(21L)).thenReturn(site);
         SiteLocationDO floor = siteLocation(31L);
         SiteLocationDO room = siteLocation(32L);
@@ -177,9 +177,9 @@ class AssetLocationApiImplTest {
                 eq(new SiteLocationInput(null, null, 32L, null, "机柜01", "RACK", 0)))).thenReturn(rack);
 
         LocationReferenceDTO result = api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
-                new SiteInput(21L, 0, null, null, null, null),
+                new SiteInput(21L, 0L, null, null, null, null),
                 new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0),
                 null, null, null, null,
                 List.of(new SiteLocationInput(null, null, null, null, "机房A", "ROOM", 0),
@@ -199,16 +199,16 @@ class AssetLocationApiImplTest {
         site.setId(21L);
         site.setAddressId(11L);
         site.setStatus(0);
-        site.setVersion(0);
+        site.setVersion(0L);
         when(siteMapper.selectById(21L)).thenReturn(site);
         when(treeService.maintain(eq(21L),
                 eq(new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0))))
                         .thenReturn(siteLocation(31L));
 
         LocationReferenceDTO result = api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
-                new SiteInput(21L, 0, null, null, null, null),
+                new SiteInput(21L, 0L, null, null, null, null),
                 new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0),
                 null, null, null, null, null));
 
@@ -218,7 +218,7 @@ class AssetLocationApiImplTest {
     @Test
     void shouldRejectExtraSiteLocationsWithoutSite() {
         assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
                 null, null, null, null, null, null,
                 List.of(new SiteLocationInput(null, null, null, null, "机房A", "ROOM", 0)))));
@@ -227,11 +227,11 @@ class AssetLocationApiImplTest {
     private SiteLocationDO siteLocation(Long id) {
         SiteLocationDO entity = new SiteLocationDO();
         entity.setId(id);
-        entity.setVersion(0);
+        entity.setVersion(0L);
         return entity;
     }
 
-    private AddressDO address(Long id, int version) {
+    private AddressDO address(Long id, long version) {
         AddressDO address = new AddressDO();
         address.setId(id);
         address.setStatus(0);

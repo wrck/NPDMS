@@ -183,7 +183,7 @@ class DurationChangeSubmitServiceTest {
         change.setCustomerEvidenceFileVersion(null);
         change.setCustomerEvidenceReferenceKey(null);
         when(changeMapper.selectById(any())).thenReturn(change);
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         stubReasonConfiguration();
 
         ServiceException failure = assertThrows(ServiceException.class,
@@ -325,7 +325,7 @@ class DurationChangeSubmitServiceTest {
     private void stubAuthorizedFacts(Long approverId) {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.inspect(any())).thenReturn(fact(approverId,
@@ -363,7 +363,7 @@ class DurationChangeSubmitServiceTest {
 
     private ProjectParticipantFact fact(Long userId, Set<String> roles) {
         return new ProjectParticipantFact(100L, userId, roles, "PRIMARY",
-                "ACTIVE", "S1", 3, 3L);
+                "ACTIVE", "S1", 3L, 3L);
     }
 
     private ConstructionPlanDO plan() {
@@ -373,7 +373,7 @@ class DurationChangeSubmitServiceTest {
         row.setCurrentDurationRevisionId(701L);
         row.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
         row.setPlanRecalculationSourceRevisionId(701L);
-        row.setVersion(1);
+        row.setVersion(1L);
         row.setTenantId(0L);
         return row;
     }
@@ -413,7 +413,7 @@ class DurationChangeSubmitServiceTest {
     }
 
     private SubmitDurationChangeCommand command() {
-        return new SubmitDurationChangeCommand(501L, 801L, 0, 3,
+        return new SubmitDurationChangeCommand(501L, 801L, 0, 3L,
                 "submit-801", "a".repeat(64));
     }
 

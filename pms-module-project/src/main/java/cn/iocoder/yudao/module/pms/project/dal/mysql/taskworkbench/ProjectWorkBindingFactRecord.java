@@ -4,7 +4,7 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench;
 public record ProjectWorkBindingFactRecord(
         Long tenantId,
         Long projectId,
-        Integer projectVersion,
+        Long projectVersion,
         Long projectTaskId,
         Integer projectTaskVersion,
         Long projectTemplateId,

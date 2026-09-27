@@ -203,7 +203,7 @@ public class SatisfactionTaskController {
     @Data
     public static class AssignReqVO {
         @NotNull @Positive private Long assignedToUserId;
-        @NotNull @PositiveOrZero private Integer expectedTaskVersion;
+        @NotNull @PositiveOrZero private Long expectedTaskVersion;
     }
 
     @Data

@@ -109,7 +109,7 @@ class ConstructionPlanMySqlIntegrationTest {
                 new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of()));
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
                 projectId, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
-                "ACTIVE", "S1", 3, 3L));
+                "ACTIVE", "S1", 3L, 3L));
     }
 
     @AfterEach
@@ -222,11 +222,11 @@ class ConstructionPlanMySqlIntegrationTest {
                 keyPrefix + "-patch-draft", "b".repeat(64)), actor(keyPrefix + "-patch-draft"));
 
         var reasonPatched = changeService.patchDraft(new PatchDurationChangeCommand(
-                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3,
+                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3L,
                 new DurationChangePatch(null, null, null, null, null, null, null, null,
                         Set.of("reasonDetail"))), actor(keyPrefix + "-patch-reason"));
         var durationPatched = changeService.patchDraft(new PatchDurationChangeCommand(
-                plan.getPlanId(), draft.getChangeId(), reasonPatched.getVersion(), 3,
+                plan.getPlanId(), draft.getChangeId(), reasonPatched.getVersion(), 3L,
                 new DurationChangePatch(null, null, null, 7, null, null, null, null,
                         Set.of("durationDays"))), actor(keyPrefix + "-patch-days"));
 
@@ -275,7 +275,7 @@ class ConstructionPlanMySqlIntegrationTest {
                 keyPrefix + "-no-legacy-draft", "b".repeat(64)),
                 actor(keyPrefix + "-no-legacy-draft"));
         changeService.patchDraft(new PatchDurationChangeCommand(
-                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3,
+                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3L,
                 new DurationChangePatch(null, null, null, 7, null, null, null, null,
                         Set.of("durationDays"))), actor(keyPrefix + "-no-legacy-patch"));
 
@@ -292,12 +292,12 @@ class ConstructionPlanMySqlIntegrationTest {
 
     private CreateInitialDurationCommand command(String key, String digest) {
         return new CreateInitialDurationCommand(projectId, "DATE_RANGE",
-                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5, 3, key, digest);
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5, 3L, key, digest);
     }
 
-    private CreateDurationChangeCommand changeCommand(Long planId, Integer planVersion,
+    private CreateDurationChangeCommand changeCommand(Long planId, Long planVersion,
                                                        String key, String digest) {
-        return new CreateDurationChangeCommand(planId, planVersion, 3,
+        return new CreateDurationChangeCommand(planId, planVersion == null ? null : Math.toIntExact(planVersion), 3L,
                 "DURATION_FROM_START", LocalDate.of(2026, 9, 10), null, 5,
                 "CUSTOMER_DELAY", "客户延期", null, null, key, digest);
     }

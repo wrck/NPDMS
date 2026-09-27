@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.platform.service.entity;
 
 import cn.iocoder.yudao.module.pms.platform.api.entity.*;
+import cn.iocoder.yudao.module.pms.platform.support.revision.InheritedRevisionAdapterFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
@@ -14,19 +15,28 @@ public class EntityProviderRegistry {
     // Resolve lazily: business adapters also call the public extension and form APIs.
     private final ObjectProvider<EntityFieldProvider> fieldProviders;
     private final ObjectProvider<EntityVersionProvider> versionProviders;
+    private final InheritedRevisionAdapterFactory inheritedRevisions;
 
     public EntityFieldProvider fields(EntityRef entity) {
         var matches = fieldProviders.orderedStream().filter(provider ->
                 entity.ownerModule().equals(provider.ownerModule()) && entity.entityType().equals(provider.entityType())).toList();
-        if (matches.size() != 1) throw exception(ENTITY_PROVIDER_UNAVAILABLE);
-        return matches.getFirst();
+        if (matches.size() == 1) return matches.getFirst();
+        if (matches.isEmpty() && inheritedRevisions.supports(entity)) {
+            // 继承式内容历史：统一字段 Provider，避免每个普通修订实体手写实现。
+            return inheritedRevisions.fieldProvider(entity);
+        }
+        throw exception(ENTITY_PROVIDER_UNAVAILABLE);
     }
 
     public EntityVersionProvider versions(EntityRef entity) {
         var matches = versionProviders.orderedStream().filter(provider ->
                 entity.ownerModule().equals(provider.ownerModule()) && entity.entityType().equals(provider.entityType())).toList();
-        if (matches.size() != 1) throw exception(ENTITY_PROVIDER_UNAVAILABLE);
-        return matches.getFirst();
+        if (matches.size() == 1) return matches.getFirst();
+        if (matches.isEmpty() && inheritedRevisions.supports(entity)) {
+            // 继承式内容历史：通用修订实现承接 createDraft/save/freeze/activate。
+            return inheritedRevisions.versionProvider(entity);
+        }
+        throw exception(ENTITY_PROVIDER_UNAVAILABLE);
     }
 
     public void requireReadable(EntityDataRef target, EntityActor actor) {
@@ -35,7 +45,7 @@ public class EntityProviderRegistry {
         if (target.isRevision()) requireRevision(target, actor);
     }
 
-    public void lockForWrite(EntityDataRef target, EntityActor actor, Integer expectedVersion) {
+    public void lockForWrite(EntityDataRef target, EntityActor actor, Long expectedVersion) {
         actor.requireTenant(target.entity());
         if (expectedVersion == null || expectedVersion < 0) throw exception(ENTITY_PROVIDER_UNAVAILABLE);
         fields(target.entity()).lockForWrite(target, actor, expectedVersion);

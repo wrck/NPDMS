@@ -4,7 +4,7 @@ package cn.iocoder.yudao.module.pms.platform.api.collection;
 @lombok.Getter @lombok.Setter
 public class CollectionExecutionRequest {
     private String requestKey;
-    private Integer expectedVersion;
+    private Long expectedVersion;
     private Long deviceId;
     private String host;
     private Integer port;

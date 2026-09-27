@@ -31,10 +31,10 @@ class CutoverClosureMapperContractTest {
         assertBindings(configuration, CutoverClosureMapper.class, "selectByTask", new CutoverClosureRowQuery(1L, 2L));
         assertBindings(configuration, CutoverClosureMapper.class, "selectByTaskForUpdate", new CutoverClosureRowQuery(1L, 2L));
         assertBindings(configuration, CutoverClosureMapper.class, "submitIfMatch",
-                new CutoverClosureSubmitUpdate(1L, 3L, 4, "SUCCESS", "CUTOVER_CLOSURE:3:5", 6L,
+                new CutoverClosureSubmitUpdate(1L, 3L, 4L, "SUCCESS", "CUTOVER_CLOSURE:3:5", 6L,
                         LocalDateTime.parse("2026-09-02T10:00:00")));
         assertBindings(configuration, CutoverClosureMapper.class, "advanceDraftVersionIfMatch",
-                new CutoverClosureVersionUpdate(1L, 3L, 4, "6",
+                new CutoverClosureVersionUpdate(1L, 3L, 4L, "6",
                         LocalDateTime.parse("2026-09-02T10:00:00")));
         var children = new CutoverClosureChildrenQuery(1L, 3L);
         assertBindings(configuration, CutoverClosureAttachmentMapper.class, "selectListByClosure", children);
@@ -43,7 +43,7 @@ class CutoverClosureMapperContractTest {
         assertBindings(configuration, CutoverCollectionEvidenceMapper.class, "selectListByClosure", children);
         assertBindings(configuration, CutoverCollectionEvidenceMapper.class, "selectListByClosureForUpdate", children);
         assertBindings(configuration, CutoverCollectionEvidenceMapper.class, "selectUnresolvedDispatchCount", children);
-        assertBindings(configuration, CutoverTaskMapper.class, "archiveFromP6IfMatch", new CutoverTaskArchiveUpdate(1L, 2L, 7));
+        assertBindings(configuration, CutoverTaskMapper.class, "archiveFromP6IfMatch", new CutoverTaskArchiveUpdate(1L, 2L, 7L));
         assertBindings(configuration, CutoverTaskDeviceScopeMapper.class, "selectActiveByTaskForUpdate",
                 new CutoverTaskDeviceListQuery(1L, 2L));
         assertBindings(configuration, CutoverTaskDeviceScopeMapper.class, "releaseActiveByTask",

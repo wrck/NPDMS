@@ -372,7 +372,7 @@ public class PreparationInitializationService {
         return value == null || value <= 0;
     }
 
-    private boolean invalidVersion(Integer value) {
-        return value == null || value < 0;
+    private boolean invalidVersion(Number value) {
+        return value == null || value.longValue() < 0;
     }
 }

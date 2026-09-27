@@ -89,7 +89,7 @@ public class SiteSurveyEntitySaveReqVO {
     private String remark;
 
     @Schema(description = "乐观锁版本号", example = "0")
-    private Integer version;
+    private Long version;
 
     private Long formRevisionId;
     private Long extensionDefinitionRevisionId;
@@ -97,6 +97,6 @@ public class SiteSurveyEntitySaveReqVO {
     private java.util.Map<String, Object> businessValues;
     private java.util.Map<String, Object> extensionValues;
     private Boolean outsourceRequired;
-    private Integer projectEndDateVersion;
+    private Long projectEndDateVersion;
     private Boolean projectEndDateChanged;
 }

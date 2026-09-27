@@ -43,7 +43,7 @@ class MaterialExchangeSerialServiceTest {
             call.getArgument(0, MaterialExchangeDO.class).setId(100L); return 1;
         });
         var existing = new MaterialExchangeDO(); existing.setId(100L); existing.setProjectId(10L);
-        existing.setCode("EX-1"); existing.setStatus(0); existing.setVersion(3);
+        existing.setCode("EX-1"); existing.setStatus(0); existing.setVersion(3L);
         when(mapper.selectByIdForUpdate(100L)).thenReturn(existing);
         when(mapper.updateById(any(MaterialExchangeDO.class))).thenReturn(1);
     }

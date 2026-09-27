@@ -57,10 +57,10 @@ public class InstallationServiceImpl implements InstallationService {
                 InstallationDO::getProjectId, InstallationDO::getCode));
         installation.setStatus(0); // 状态只能通过动作接口流转
         if (installation.getVersion() == null) {
-            installation.setVersion(0);
+            installation.setVersion(0L);
         }
         installationMapper.insert(installation);
-        applyLocation(installation, createReqVO.getInstallLocation(), createReqVO.getLocationMaintenance(), 0);
+        applyLocation(installation, createReqVO.getInstallLocation(), createReqVO.getLocationMaintenance(), 0L);
         updateRecord(installation);
         return installation.getId();
     }
@@ -81,7 +81,7 @@ public class InstallationServiceImpl implements InstallationService {
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
         applyLocation(update, updateReqVO.getInstallLocation(), updateReqVO.getLocationMaintenance(),
-                existing.getVersion() + 1);
+                existing.getVersion() + 1L);
         updateRecord(update);
     }
 
@@ -160,7 +160,7 @@ public class InstallationServiceImpl implements InstallationService {
     }
 
     private void validateVersion(InstallationDO installation, Integer version) {
-        if (version != null && !Objects.equals(installation.getVersion(), version)) {
+        if (version != null && !Objects.equals(installation.getVersion(), version.longValue())) {
             throw exception(INSTALLATION_VERSION_NOT_MATCH);
         }
     }
@@ -186,7 +186,7 @@ public class InstallationServiceImpl implements InstallationService {
     }
 
     private void applyLocation(InstallationDO installation, String fallbackLocation,
-                               LocationMaintenanceCommand command, Integer sourceVersion) {
+                               LocationMaintenanceCommand command, Long sourceVersion) {
         if (command == null) {
             if (fallbackLocation == null || fallbackLocation.isBlank()) {
                 throw exception(INSTALLATION_LOCATION_REQUIRED);

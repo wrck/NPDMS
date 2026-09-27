@@ -106,7 +106,7 @@ class LegacyCutoverPlanReconciliationMySqlTest {
         target.setLegacyStatusValue(2);
         target.setLegacySourceVersion(6);
         target.setLegacyMappingVersion("F-CUT-002-PMS-CUT-TASK-V1");
-        target.setVersion(0);
+        target.setVersion(0L);
         target.setCreator("10");
         target.setUpdater("11");
         target.setCreateTime(LocalDateTime.of(2026, 8, 1, 10, 0));

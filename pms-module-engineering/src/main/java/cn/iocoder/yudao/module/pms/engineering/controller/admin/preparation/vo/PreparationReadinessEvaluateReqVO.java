@@ -6,5 +6,5 @@ import lombok.Data;
 
 @Data
 public class PreparationReadinessEvaluateReqVO {
-    @NotNull @Min(0) private Integer expectedProjectVersion;
+    @NotNull @Min(0) private Long expectedProjectVersion;
 }

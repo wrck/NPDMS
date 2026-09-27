@@ -12,6 +12,6 @@ public class ConstructionPlanRespVO {
     private ConstructionPlanChangeRespVO pendingChangeSummary;
     private String planRecalculationStatus;
     private Long planRecalculationSourceRevisionId;
-    private Integer planVersion;
+    private Long planVersion;
     private List<String> allowedActions = List.of();
 }

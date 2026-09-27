@@ -43,7 +43,7 @@ public final class ArrivalAcceptanceViews {
 
     public record ArrivalListItem(Long id, Long projectId, String batchCode, String logisticsNo,
                                   LocalDateTime arrivedAt, String signerName, String status,
-                                  String evidenceSyncStatus, Integer version,
+                                  String evidenceSyncStatus, Long version,
                                   List<String> allowedActions, LocalDateTime createTime) {
     }
 
@@ -53,7 +53,7 @@ public final class ArrivalAcceptanceViews {
                                 Long evidenceId, Integer evidenceRevision, Long projectFactVersion,
                                 Long predecessorAcceptanceId, String successorReason,
                                 Long submittedBy, LocalDateTime submittedAt,
-                                Long confirmedBy, LocalDateTime confirmedAt, Integer version,
+                                Long confirmedBy, LocalDateTime confirmedAt, Long version,
                                 List<String> allowedActions, List<ArrivalLineData> currentLines,
                                 List<ArrivalDifferenceData> differences, DeliveryEvidenceData evidence) {
     }

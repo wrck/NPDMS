@@ -46,7 +46,7 @@ class NormalClosureCheckServiceTest {
         checks = new NormalClosureCheckService(closureProjects, mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class),
                 contracts, links, graphs, mock(ProjectStageGateProviderRegistry.class), business, evaluator,
                 descendantGuard, mock(NormalClosureAccess.class), resultEvidence);
-        project.setId(9L); project.setTenantId(7L); project.setVersion(3); project.setLifecycleStatus("ACTIVE");
+        project.setId(9L); project.setTenantId(7L); project.setVersion(3L); project.setLifecycleStatus("ACTIVE");
         project.setClosurePolicySnapshot("{}"); project.setTaskTreeVersion(2L); project.setTaskProgressVersion(4L);
         var task = new ProjectTaskInstanceDO();
         task.setId(21L); task.setTenantId(7L); task.setProjectId(9L); task.setStatus("DONE"); task.setVersion(2);

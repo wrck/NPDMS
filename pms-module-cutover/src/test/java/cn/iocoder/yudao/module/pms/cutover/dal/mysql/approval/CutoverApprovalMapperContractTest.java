@@ -39,9 +39,9 @@ class CutoverApprovalMapperContractTest {
         assertBindings(configuration, CutoverApprovalInstanceMapper.class, "selectCurrentByTask",
                 new ApprovalTaskQuery(1L, 10L));
         assertBindings(configuration, CutoverApprovalInstanceMapper.class, "updateAfterReassignmentIfMatch",
-                new ApprovalInstanceReassignmentUpdate(1L, 4L, 0, null, "9", NOW));
+                new ApprovalInstanceReassignmentUpdate(1L, 4L, 0L, null, "9", NOW));
         assertBindings(configuration, CutoverApprovalInstanceMapper.class, "updateStateIfMatch",
-                new ApprovalInstanceStateUpdate(1L, 4L, 0, "PENDING", 2, null, null,
+                new ApprovalInstanceStateUpdate(1L, 4L, 0L, "PENDING", 2, null, null,
                         null, null, "9", NOW));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectByInstanceAndNodeForUpdate",
                 new ApprovalNodeLockQuery(1L, 4L, 2));

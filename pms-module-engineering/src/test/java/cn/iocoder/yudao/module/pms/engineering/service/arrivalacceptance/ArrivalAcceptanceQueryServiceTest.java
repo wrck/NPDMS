@@ -192,7 +192,7 @@ class ArrivalAcceptanceQueryServiceTest {
         row.setStatus("DRAFT");
         row.setDeliveryScopeVersion(8L);
         row.setScopeWatermark(JsonUtils.toJsonString(new ArrivalScopeWatermark(8L, java.util.Map.of(11L, 9L))));
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator("8");
         row.setCreateTime(LocalDateTime.of(2026, 8, 30, 8, 1));
         return row;

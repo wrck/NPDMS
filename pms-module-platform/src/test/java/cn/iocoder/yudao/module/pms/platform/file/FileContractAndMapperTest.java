@@ -89,7 +89,7 @@ class FileContractAndMapperTest {
     void dispatchesGeneratedFilePolicyAndRejectsChangedScopeVersion() {
         FileBusinessObjectPolicyProvider provider = provider("ACC", "SATISFACTION_RESULT");
         GeneratedBusinessFilePolicyRevalidationQuery query = new GeneratedBusinessFilePolicyRevalidationQuery(
-                0L, 9L, 40L, 10L, 11L, 12L, 4,
+                0L, 9L, 40L, 10L, 11L, 12L, 4L,
                 "ACC", "SATISFACTION_RESULT", "SATISFACTION_RESULT_DOCUMENT",
                 "satisfaction-result-40", FileActionCodes.UPLOAD, 7L);
         when(provider.lockAndRevalidateGeneratedBusinessFile(query)).thenReturn(allowedFact(7L));

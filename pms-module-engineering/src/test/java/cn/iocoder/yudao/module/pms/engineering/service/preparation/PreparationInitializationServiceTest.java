@@ -196,12 +196,12 @@ class PreparationInitializationServiceTest {
 
     private PreparationInitializationCommand command(Long actorId, String trigger) {
         return new PreparationInitializationCommand(100L, 200L, 300L,
-                2, 4, 6, trigger, "PRE02-KEY-" + actorId,
+                2L, 4, 6, trigger, "PRE02-KEY-" + actorId,
                 "PRE02-OP-" + actorId, actorId);
     }
 
     private ProjectWorkBindingFact fact() {
-        return new ProjectWorkBindingFact(100L, 2, 200L, 4, 300L, 6,
+        return new ProjectWorkBindingFact(100L, 2L, 200L, 4, 300L, 6,
                 400L, 5, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
                 "PRE_02_SITE_SURVEY", "PRE_02_SITE_SURVEY", 1, 1,
                 "[{\"itemCode\":\"POWER\",\"itemName\":\"供电\",\"enabled\":true,"

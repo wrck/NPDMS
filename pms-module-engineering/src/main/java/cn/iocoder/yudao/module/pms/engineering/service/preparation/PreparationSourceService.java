@@ -249,7 +249,7 @@ public class PreparationSourceService {
                                 ? String.valueOf(service.getCode()) : "PREPARATION_SOURCE_REFRESH_FAILED"));
     }
 
-    private void authorize(Long projectId, Integer projectVersion, PreparationItemApplicationService.Actor actor) {
+    private void authorize(Long projectId, Long projectVersion, PreparationItemApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) throw exception(FORBIDDEN);
         ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
@@ -290,7 +290,7 @@ public class PreparationSourceService {
 
     public record SourceRefreshCommand(Long preparationId, Long itemId, Integer expectedPreparationVersion,
             Integer expectedInputVersion, Integer expectedReadinessVersion, Integer expectedItemVersion,
-            Integer expectedSourceVersion, Integer expectedProjectVersion, String sourceTypeCode,
+            Integer expectedSourceVersion, Long expectedProjectVersion, String sourceTypeCode,
             String sourceObjectType, String sourceObjectId, String sourceReferenceKey, String idempotencyKey) {}
 
     public record SourceRefreshResult(Long sourceReferenceId, Long preparationId, Long itemId, String syncStatus,

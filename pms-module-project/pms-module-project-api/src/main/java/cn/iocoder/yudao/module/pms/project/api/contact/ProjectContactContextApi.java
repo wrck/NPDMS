@@ -9,10 +9,10 @@ public interface ProjectContactContextApi {
     Context associateCustomer(AssociateQuery query);
 
     record Query(Long tenantId, Long actorUserId, Long projectId) {}
-    record WriteQuery(Long tenantId, Long actorUserId, Long projectId, Integer expectedProjectVersion) {}
-    record AssociateQuery(Long tenantId, Long actorUserId, Long projectId, Integer expectedProjectVersion, Long customerId) {}
-    record Context(Long projectId, Long customerId, Integer projectVersion, String lifecycleStatus, boolean canManage, boolean canViewHistory) {
-        public Context(Long projectId, Long customerId, Integer projectVersion, String lifecycleStatus, boolean canManage) {
+    record WriteQuery(Long tenantId, Long actorUserId, Long projectId, Long expectedProjectVersion) {}
+    record AssociateQuery(Long tenantId, Long actorUserId, Long projectId, Long expectedProjectVersion, Long customerId) {}
+    record Context(Long projectId, Long customerId, Long projectVersion, String lifecycleStatus, boolean canManage, boolean canViewHistory) {
+        public Context(Long projectId, Long customerId, Long projectVersion, String lifecycleStatus, boolean canManage) {
             this(projectId, customerId, projectVersion, lifecycleStatus, canManage, canManage);
         }
     }

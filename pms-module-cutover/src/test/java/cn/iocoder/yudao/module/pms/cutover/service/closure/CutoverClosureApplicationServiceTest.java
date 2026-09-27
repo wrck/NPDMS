@@ -62,7 +62,7 @@ class CutoverClosureApplicationServiceTest {
         CutoverTaskDO task = task();
         CutoverClosureDO closure = new CutoverClosureDO();
         closure.setId(400L); closure.setTenantId(1L); closure.setTaskId(100L); closure.setProjectId(10L);
-        closure.setStatusCode("DRAFT"); closure.setVersion(0);
+        closure.setStatusCode("DRAFT"); closure.setVersion(0L);
         CutoverTaskDeviceScopeDO device = new CutoverTaskDeviceScopeDO();
         device.setTenantId(1L); device.setCutoverTaskId(100L); device.setProjectId(10L); device.setDeviceId(11L);
         List<CutoverCollectionEvidenceDO> evidence = new ArrayList<>();
@@ -92,7 +92,7 @@ class CutoverClosureApplicationServiceTest {
                 new CutoverClosureControlledPorts.ProjectScopes(10L, 5L),
                 new CutoverClosureControlledPorts.Files(), collections, new DirectPlatform(), clock);
 
-        service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7, 400L, 0,
+        service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 0L,
                 11L, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "collect-ok", "corr-collect-ok"));
         String acceptedTaskId = evidence.getFirst().getCollectionTaskId();
@@ -104,15 +104,15 @@ class CutoverClosureApplicationServiceTest {
                 "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-replay"));
 
         collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
-        service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7, 400L, 2,
+        service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 2L,
                 11L, CollectionStage.TEST, new SavedCredential(71L, 3L),
                 "test-check", 2L, "collect-failed", "corr-collect-failed"));
         String failedTaskId = evidence.get(2).getCollectionTaskId();
-        service.linkManualResult(new LinkClosureManualResultCommand(1L, 9L, 100L, 7, 400L, 3,
+        service.linkManualResult(new LinkClosureManualResultCommand(1L, 9L, 100L, 7L, 400L, 3L,
                 failedTaskId, 11L, CollectionStage.TEST,
                 file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
                 "manual-result", "corr-manual-result"));
-        service.linkManualResult(new LinkClosureManualResultCommand(1L, 9L, 100L, 7, 400L, 3,
+        service.linkManualResult(new LinkClosureManualResultCommand(1L, 9L, 100L, 7L, 400L, 3L,
                 failedTaskId, 11L, CollectionStage.TEST,
                 file(AttachmentPurpose.MANUAL_COLLECTION_RESULT, 503L, "ref-manual"),
                 "manual-result", "corr-manual-replay"));
@@ -199,7 +199,7 @@ class CutoverClosureApplicationServiceTest {
     }
 
     private static SaveCutoverClosureCommand command(Integer version, String key, ClosureContent content) {
-        return new SaveCutoverClosureCommand(1L, 9L, 100L, 7, version, content, key, "corr-" + key);
+        return new SaveCutoverClosureCommand(1L, 9L, 100L, 7L, version == null ? null : version.longValue(), content, key, "corr-" + key);
     }
 
     private static ClosureContent draft(String legacy, List<AttachmentInput> attachments) {
@@ -225,7 +225,7 @@ class CutoverClosureApplicationServiceTest {
         CutoverTaskDO row = new CutoverTaskDO();
         row.setId(100L); row.setTenantId(1L); row.setProjectId(10L); row.setTaskOrigin("NEW_PLATFORM");
         row.setCurrentStage("P6"); row.setTaskStatus("CLOSURE_IN_PROGRESS"); row.setOwnerUserId(9L);
-        row.setProjectScopeVersion(5L); row.setDeviceScopeWatermark("{\"devices\":[11]}"); row.setVersion(7);
+        row.setProjectScopeVersion(5L); row.setDeviceScopeWatermark("{\"devices\":[11]}"); row.setVersion(7L);
         return row;
     }
 
@@ -233,13 +233,13 @@ class CutoverClosureApplicationServiceTest {
         CutoverPlanRevisionDO row = new CutoverPlanRevisionDO();
         row.setId(300L); row.setTenantId(1L); row.setCutoverTaskId(100L); row.setRevisionNo(2);
         row.setStatusCode("SUBMITTED"); row.setCurrentMarker(1); row.setApprovalInstanceId(200L);
-        row.setApprovalVersion(4); row.setVersion(6); return row;
+        row.setApprovalVersion(4L); row.setVersion(6L); return row;
     }
 
     private static CutoverApprovalInstanceDO approval() {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO();
         row.setId(200L); row.setTenantId(1L); row.setTaskId(100L); row.setProjectId(10L);
-        row.setPlanRevisionId(300L); row.setPlanRevisionNo(2); row.setStatusCode("APPROVED"); row.setVersion(4);
+        row.setPlanRevisionId(300L); row.setPlanRevisionNo(2); row.setStatusCode("APPROVED"); row.setVersion(4L);
         return row;
     }
 

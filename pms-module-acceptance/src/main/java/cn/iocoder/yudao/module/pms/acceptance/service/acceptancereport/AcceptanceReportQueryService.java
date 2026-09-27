@@ -154,9 +154,9 @@ public class AcceptanceReportQueryService {
 
     public record ActivityView(Long id, Long projectId, Long projectTaskId, Long executionContractId,
                                String acceptanceType, String activityStatus, Long currentReportVersionId,
-                               Integer version, Long deliverableId, String originKind) {
+                               Long version, Long deliverableId, String originKind) {
         public ActivityView(Long id, Long projectId, Long projectTaskId, Long executionContractId, String acceptanceType,
-                            String activityStatus, Long currentReportVersionId, Integer version, Long deliverableId) {
+                            String activityStatus, Long currentReportVersionId, Long version, Long deliverableId) {
             this(id, projectId, projectTaskId, executionContractId, acceptanceType, activityStatus, currentReportVersionId,
                     version, deliverableId, "LEGACY_TASK");
         }

@@ -53,7 +53,7 @@ public class IndependentAcceptanceService {
         if (existing != null) return new Result(existing.getId(), existing.getProjectId(), existing.getAcceptanceType(), false);
         var row = new AcceptanceActivityDO(); row.setId(IdWorker.getId()); row.setTenantId(actor.tenantId());
         row.setProjectId(context.projectId()); row.setAcceptanceType(command.acceptanceType());
-        row.setActivityStatus("PENDING"); row.setVersion(0); row.setOriginKind("DIRECT");
+        row.setActivityStatus("PENDING"); row.setVersion(0L); row.setOriginKind("DIRECT");
         row.setOriginKey(actor.userId() + ":" + key);
         row.setOriginSnapshot(JsonUtils.toJsonString(Map.of("projectId", context.projectId(), "rootProjectId", context.rootProjectId(),
                 "projectVersion", context.projectVersion(), "treeVersion", context.treeVersion(), "actorId", actor.userId())));
@@ -73,6 +73,6 @@ public class IndependentAcceptanceService {
                 .digest(JsonUtils.toJsonString(command).getBytes(StandardCharsets.UTF_8))); }
         catch (NoSuchAlgorithmException unavailable) { throw new IllegalStateException(unavailable); }
     }
-    public record Create(Long projectId, String acceptanceType, Integer expectedProjectVersion, Long expectedTreeVersion) { }
+    public record Create(Long projectId, String acceptanceType, Long expectedProjectVersion, Long expectedTreeVersion) { }
     public record Result(Long acceptanceId, Long projectId, String acceptanceType, boolean created) { }
 }

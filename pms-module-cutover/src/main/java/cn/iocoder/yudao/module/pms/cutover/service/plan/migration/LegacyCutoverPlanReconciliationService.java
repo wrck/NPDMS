@@ -154,7 +154,7 @@ public class LegacyCutoverPlanReconciliationService {
         row.setLegacyStatusRaw(source.legacyStatus());
         row.setLegacySourceVersion(source.legacyVersion());
         row.setLegacyMappingVersion(LegacyCutoverPlanRowConverter.MAPPING_VERSION);
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator(source.creator());
         row.setCreateTime(source.createTime());
         row.setUpdater(source.updater());

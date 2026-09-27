@@ -124,7 +124,7 @@ public class ProjectGovernanceGuardTokenService {
     }
 
     public record GuardClaims(Long tenantId, Long projectId, String action,
-                              Integer projectVersion, Long treeRootProjectId,
+                              Long projectVersion, Long treeRootProjectId,
                               Long treeVersion,
                               List<ProjectGovernanceGuardResult.ProviderVersion> providerFacts,
                               LocalDateTime checkedAt) {

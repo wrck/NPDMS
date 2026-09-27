@@ -26,7 +26,7 @@ class ProjectPlanStoredSnapshotBoundaryTest {
         fixture.effective.setExecutionSnapshot(json);
         for (boolean publishing : new boolean[]{false, true}) {
             var error = assertThrows(ServiceException.class,
-                    () -> fixture.service.prepare(9L, 52L, 0, 1L, publishing));
+                    () -> fixture.service.prepare(9L, 52L, 0L, 1L, publishing));
             assertEquals(PROJECT_PLAN_CHANGE_INVALID.getCode(), error.getCode());
         }
         verifyNoInteractions(fixture.compiler, fixture.dependencies, fixture.ruleValidator,
@@ -46,7 +46,7 @@ class ProjectPlanStoredSnapshotBoundaryTest {
             default -> throw new AssertionError(field);
         }
         var error = assertThrows(ServiceException.class,
-                () -> fixture.service.prepare(9L, 52L, 0, 1L, true));
+                () -> fixture.service.prepare(9L, 52L, 0L, 1L, true));
         assertEquals(PROJECT_PLAN_VERSION_CONFLICT.getCode(), error.getCode());
         verifyNoInteractions(fixture.compiler, fixture.executions, fixture.graph, fixture.commands);
     }

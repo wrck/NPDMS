@@ -97,7 +97,7 @@ public class ProjectOfficeFactApiImpl implements ProjectOfficeFactApi {
         }
     }
 
-    private ProjectOfficeFact outcome(ProjectFactOutcome outcome, Long projectId, Integer version) {
+    private ProjectOfficeFact outcome(ProjectFactOutcome outcome, Long projectId, Long version) {
         return new ProjectOfficeFact(outcome, projectId, version, null, null, null, null, null);
     }
 }

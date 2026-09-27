@@ -15,7 +15,7 @@ public interface CutoverCollectionPort {
     }
 
     record Request(Long tenantId, Long actorId, Long projectId, Long taskId,
-                   Long checklistId, Integer checklistVersion, Long checklistItemId,
+                   Long checklistId, Long checklistVersion, Long checklistItemId,
                    Integer itemVersion, String stableItemKey, Long deviceId,
                    Long commandTemplateId, String idempotencyKey, String correlationId) {
     }

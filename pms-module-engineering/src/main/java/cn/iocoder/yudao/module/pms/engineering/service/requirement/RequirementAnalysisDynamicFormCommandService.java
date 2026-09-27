@@ -465,7 +465,7 @@ public class RequirementAnalysisDynamicFormCommandService {
         }
     }
 
-    private record Authorization(Integer projectVersion, Long scopeVersion, ProjectWorkBindingFact binding,
+    private record Authorization(Long projectVersion, Long scopeVersion, ProjectWorkBindingFact binding,
                                  RequirementAnalysisExecutionBinding.Frozen execution) {}
     private record Outcome(CommandResult result, AuditTransition transition) {}
     private record AuditTransition(String action, String operationId, Long projectId, Long preparationId,

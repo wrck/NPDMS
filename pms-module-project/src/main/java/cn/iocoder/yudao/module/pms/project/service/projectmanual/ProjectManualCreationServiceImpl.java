@@ -259,7 +259,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // Active stages are determined by their own admission rules, not a single project stage pointer.
         draft.setCurrentStage(null);
         draft.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
-        draft.setVersion(0);
+        draft.setVersion(0L);
         // e) 主档写入：根项目两段（code_root_id=root_id=id）；子项目单段（继承父）
         if (draft.getParentId() == null) {
             draft.setCodeRootId(0L);
@@ -477,7 +477,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                     legacyView.setRequired(deliverable.required());
                     legacyView.setSourceDefinitionId(deliverable.sourceDefinitionId());
                     legacyView.setStatus(deliverable.status());
-                    legacyView.setVersion(deliverable.version());
+                    legacyView.setVersion(deliverable.version() == null ? null : deliverable.version().intValue());
                     return legacyView;
                 }).toList());
         view.setGates(gateInstanceMapper.selectListByProjectId(projectId));
@@ -545,7 +545,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         Long previousPrimaryManagerId = currentPrimaryServiceManager(activeBefore, memberRole, command.siteId());
         ProjectMemberAssignmentDO assignment = doAssignServiceManager(
                 command, project, memberRole, effectiveFrom);
-        int newVersion = command.expectedVersion() + 1;
+        long newVersion = command.expectedVersion() + 1;
         List<ProjectMemberAssignmentDO> activeAfter = memberAssignmentMapper.selectActiveForAssignmentState(
                 new ProjectAssignmentStateQuery(command.projectId(), effectiveFrom));
         String assignmentStatus = calculateAssignmentStatus(activeAfter);

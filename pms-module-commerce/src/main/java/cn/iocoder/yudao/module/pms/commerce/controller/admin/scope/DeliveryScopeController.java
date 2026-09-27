@@ -123,12 +123,8 @@ public class DeliveryScopeController {
                 scope.getEffectiveFrom(), scope.getEffectiveTo(), scope.getVersion(), details);
     }
 
-    private Integer parseVersion(String value) {
-        long version = parseLongVersion(value);
-        if (version > Integer.MAX_VALUE) {
-            throw exception(BAD_REQUEST, "If-Match版本超出范围");
-        }
-        return (int) version;
+    private Long parseVersion(String value) {
+        return parseLongVersion(value);
     }
 
     private Long parseLongVersion(String value) {

@@ -57,7 +57,7 @@ class PreparationSourceAndWaiverServiceTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
         when(participantApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 10L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 3, 4L));
+                "ACTIVE", "S1", 3L, 4L));
 
         var page = service.page(1L, 2L, null, 20, actor(7L));
 
@@ -90,7 +90,7 @@ class PreparationSourceAndWaiverServiceTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
         when(participantApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 10L, 7L, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1), null,
-                "ACTIVE", "S1", 3, 4L));
+                "ACTIVE", "S1", 3L, 4L));
 
         var page = service.page(1L, 2L, null, 20, actor(7L));
 
@@ -152,7 +152,7 @@ class PreparationSourceAndWaiverServiceTest {
         });
 
         var command = new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                null, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1");
+                null, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1");
         assertThrows(ServiceException.class, () -> service.refresh(command, actor(7L)));
 
         ArgumentCaptor<PreparationSourceReferenceDO> inserted = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
@@ -202,7 +202,7 @@ class PreparationSourceAndWaiverServiceTest {
         });
 
         var result = service.refresh(new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                null, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1"), actor(7L));
+                null, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1"), actor(7L));
 
         assertTrue(result.succeeded());
         ArgumentCaptor<PreparationSourceReferenceDO> inserted = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
@@ -256,7 +256,7 @@ class PreparationSourceAndWaiverServiceTest {
         });
 
         var command = new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                4, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1");
+                4, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1");
         assertThrows(ServiceException.class, () -> service.refresh(command, actor(7L)));
 
         ArgumentCaptor<cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationSourceSyncUpdate> update =
@@ -295,7 +295,7 @@ class PreparationSourceAndWaiverServiceTest {
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, replay));
 
         var command = new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                null, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1");
+                null, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1");
 
         assertEquals(replay, service.refresh(command, actor(7L)));
         verify(preparationMapper, never()).selectForUpdate(any());
@@ -335,7 +335,7 @@ class PreparationSourceAndWaiverServiceTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
         });
         var command = new PreparationWaiverService.WaiverCommand("APPROVE", 1L, 2L, 41L,
-                0, 0, 0, 0, 2, 3, List.of(), null, null, null,
+                0, 0, 0, 0, 2, 3L, List.of(), null, null, null,
                 null, null, "accepted", "K2");
 
         var result = service.execute(command, actor(7L));
@@ -373,7 +373,7 @@ class PreparationSourceAndWaiverServiceTest {
                 new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, replay));
         var command = new PreparationWaiverService.WaiverCommand("APPROVE", 1L, 2L, 41L,
-                0, 0, 0, 0, 2, 3, List.of(), null, null, null,
+                0, 0, 0, 0, 2, 3L, List.of(), null, null, null,
                 null, null, "accepted", "K2");
 
         assertEquals(replay, service.execute(command, actor(7L)));

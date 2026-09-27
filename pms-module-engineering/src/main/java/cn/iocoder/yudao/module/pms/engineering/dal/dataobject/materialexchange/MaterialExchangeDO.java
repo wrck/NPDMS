@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,13 +18,8 @@ import java.time.LocalDateTime;
 @TableName("imp_eng_material_exchange")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class MaterialExchangeDO extends TenantBaseDO {
+public class MaterialExchangeDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -136,10 +129,5 @@ public class MaterialExchangeDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 
 }

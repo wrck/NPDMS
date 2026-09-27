@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptancescope;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeAcceptanceLockApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeVersionFact;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingResult;
@@ -72,7 +73,7 @@ class AcceptanceScopeBindingServiceTest {
         });
 
         AcceptanceScopeBindingResult result = service.bindForStageEntry(new AcceptanceStageEntryBindingCommand(
-                TENANT_ID, PROJECT_ID, 9, SNAPSHOT_ID, "S4", "S5", "op-stage"));
+                TENANT_ID, PROJECT_ID, 9L, SNAPSHOT_ID, "S4", "S5", "op-stage"));
 
         assertFalse(result.replayed());
         assertEquals(2, result.bindings().size());
@@ -112,7 +113,7 @@ class AcceptanceScopeBindingServiceTest {
                 new DeliveryScopeVersionFact(301L, 1L)));
 
         assertThrows(RuntimeException.class, () -> service.bindForStageEntry(new AcceptanceStageEntryBindingCommand(
-                TENANT_ID, PROJECT_ID, 9, SNAPSHOT_ID, "S4", "S5", "op-order")));
+                TENANT_ID, PROJECT_ID, 9L, SNAPSHOT_ID, "S4", "S5", "op-order")));
         verify(bindingRepository, never()).append(any());
     }
 
@@ -158,8 +159,17 @@ class AcceptanceScopeBindingServiceTest {
 
     @Test
     void shouldGenerateStableBindingIdBeforeInsert() throws Exception {
-        TableId tableId = AcceptanceScopeBindingDO.class.getDeclaredField("id").getAnnotation(TableId.class);
-        assertEquals(IdType.ASSIGN_ID, tableId.type());
+        Class<?> type = AcceptanceScopeBindingDO.class;
+        while (type != null && type != TenantBaseDO.class) {
+            try {
+                TableId tableId = type.getDeclaredField("id").getAnnotation(TableId.class);
+                assertEquals(IdType.AUTO, tableId.type());
+                return;
+            } catch (NoSuchFieldException absent) {
+                type = type.getSuperclass();
+            }
+        }
+        throw new AssertionError("id field not found");
     }
 
     private AcceptanceScopeBindingDO binding(Long scopeId, Long allocationVersion, String trigger) {
@@ -173,7 +183,7 @@ class AcceptanceScopeBindingServiceTest {
         row.setBindingTrigger(trigger);
         row.setBindingStatus("LOCKED");
         row.setAcceptanceFactVersion(1);
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 }

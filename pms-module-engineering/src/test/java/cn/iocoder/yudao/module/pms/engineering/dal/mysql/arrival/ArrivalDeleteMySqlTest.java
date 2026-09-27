@@ -47,17 +47,17 @@ class ArrivalDeleteMySqlTest {
                 try (var sql = connection.createStatement()) {
                     sql.executeUpdate("UPDATE imp_eng_arrival SET status=1,version=7 WHERE id=1");
                 }
-                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(1L, 6)));
-                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(1L, 7)));
-                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 5)));
-                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(4L, 6)));
+                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(1L, 6L)));
+                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(1L, 7L)));
+                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 5L)));
+                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(4L, 6L)));
 
                 TenantContextHolder.setTenantId(2L);
-                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 6)));
+                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 6L)));
                 TenantContextHolder.setTenantId(1L);
-                assertEquals(1, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 6)));
-                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 6)));
-                assertEquals(1, mapper.deleteEditable(new ArrivalEditableDeleteQuery(3L, 6)));
+                assertEquals(1, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 6L)));
+                assertEquals(0, mapper.deleteEditable(new ArrivalEditableDeleteQuery(2L, 6L)));
+                assertEquals(1, mapper.deleteEditable(new ArrivalEditableDeleteQuery(3L, 6L)));
                 try (var sql = connection.createStatement(); var result = sql.executeQuery(
                         "SELECT COUNT(*) FROM imp_eng_arrival WHERE status=1 AND deleted=b'0'")) {
                     assertTrue(result.next());

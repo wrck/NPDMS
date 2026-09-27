@@ -35,7 +35,7 @@ public class ProjectCustomerContactService {
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
         var customer = customerQuery.get(actor.tenantId(), customerId, customerScopes.resolve(actor.tenantId(), actor.userId()));
         if (customer == null || !"ENABLED".equals(customer.getLifecycleStatus())) throw exception(CUSTOMER_SCOPE_DENIED);
-        return projects.associateCustomer(new ProjectContactContextApi.AssociateQuery(actor.tenantId(), actor.userId(), projectId, version, customerId));
+        return projects.associateCustomer(new ProjectContactContextApi.AssociateQuery(actor.tenantId(), actor.userId(), projectId, toLong(version), customerId));
     }
 
     public ProjectContactContextApi.Context context(CustomerContactMasterService.Actor actor, Long projectId) {
@@ -105,7 +105,7 @@ public class ProjectCustomerContactService {
         } else {
             values = normalize(command.values(), command.status());
             source = new CustomerContactMasterDO();
-            source.setCustomerId(context.customerId()); source.setTenantId(actor.tenantId()); source.setVersion(0);
+            source.setCustomerId(context.customerId()); source.setTenantId(actor.tenantId()); source.setVersion(0L);
             source.setName(values.name()); source.setDepartment(values.department()); source.setTitle(values.title());
             source.setMobile(values.mobile()); source.setPhone(values.phone()); source.setEmail(values.email());
             // Project primary/role/status are not customer-master primary/role/status.
@@ -173,8 +173,13 @@ public class ProjectCustomerContactService {
         return lock(actor, projectId, version, true);
     }
 
+    /** 项目 API 的期望版本为 Long，customer 侧 VO 仍以 Integer 承载，跨界时转换。 */
+    private static Long toLong(Integer version) {
+        return version == null ? null : version.longValue();
+    }
+
     private ProjectContactContextApi.Context lock(CustomerContactMasterService.Actor actor, Long projectId, Integer version, boolean requireEnabledCustomer) {
-        var context = projects.lockForWrite(new ProjectContactContextApi.WriteQuery(actor.tenantId(), actor.userId(), projectId, version));
+        var context = projects.lockForWrite(new ProjectContactContextApi.WriteQuery(actor.tenantId(), actor.userId(), projectId, toLong(version)));
         if (context.customerId() == null) throw exception(CONTACT_VALUES_INVALID, "项目尚未关联客户，不能建立联系人");
         var customer = sources.selectCustomerForUpdate(new ContactCustomerReferenceQuery(actor.tenantId(), context.customerId()));
         if (customer == null || requireEnabledCustomer && !"ENABLED".equals(customer.getLifecycleStatus())) throw exception(CONTACT_VALUES_INVALID, "项目客户不可用");

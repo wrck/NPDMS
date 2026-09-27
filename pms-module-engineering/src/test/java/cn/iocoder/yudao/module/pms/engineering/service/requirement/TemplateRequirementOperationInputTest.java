@@ -27,7 +27,7 @@ class TemplateRequirementOperationInputTest {
         adapter = new RequirementAnalysisOperationCommandAdapter(of(commands), of(access));
         when(access.isManager(eq(9L), any())).thenReturn(true);
         var row = new RequirementAnalysisRevisionDO(); row.setId(11L); row.setEntityId(12L); row.setTenantId(1L);
-        row.setProjectId(9L); row.setVersion(2); row.setRevisionNo(1); row.setRevisionState("DRAFT");
+        row.setProjectId(9L); row.setVersion(2L); row.setRevisionNo(1); row.setRevisionState("DRAFT");
         when(access.read(eq(11L), any())).thenReturn(row);
         var result = row.revisionMetadata();
         when(commands.create(any(), any(), anyString())).thenReturn(result);
@@ -73,7 +73,7 @@ class TemplateRequirementOperationInputTest {
     }
     private static ProjectOperationCommand command(String action, String json) {
         return new ProjectOperationCommand(9L, "TASK", 10L, null, action.equals("CREATE") ? null : "11",
-                2, "v2", JsonUtils.parseTree(json), "key");
+                2L, "v2", JsonUtils.parseTree(json), "key");
     }
     @SuppressWarnings("unchecked") private static <T> ObjectProvider<T> of(T value) {
         ObjectProvider<T> provider = mock(ObjectProvider.class); when(provider.getObject()).thenReturn(value); return provider;

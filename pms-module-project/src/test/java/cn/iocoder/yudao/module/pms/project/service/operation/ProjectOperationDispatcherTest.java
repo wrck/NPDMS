@@ -22,8 +22,8 @@ class ProjectOperationDispatcherTest {
         var adapter = mock(ProjectBusinessOperationCommandAdapter.class);
         String code = "OTHER.NON_NUMERIC_OBJECT.SAVE";
         var selection = new ProjectBusinessExecutionSelection(null,
-                new ProjectStageExecutionContext(3L, 1, 4L, 1, 5L, 1, 6L, 7L, 1, 1, true));
-        var command = new ProjectOperationCommand(3L, "STAGE", 4L, selection, "object:alpha", 1, "fact", JsonUtils.parseTree("{}"), "same-key");
+                new ProjectStageExecutionContext(3L, 1L, 4L, 1, 5L, 1, 6L, 7L, 1, 1, true));
+        var command = new ProjectOperationCommand(3L, "STAGE", 4L, selection, "object:alpha", 1L, "fact", JsonUtils.parseTree("{}"), "same-key");
         when(contexts.resolve(3L, "STAGE", 4L, null)).thenReturn(new ProjectOperationContextResolver.Context(
                 1L, 2L, null, null, null, null, null, false, "CURRENT_ROUND_CHANGED"));
         var plan = new ProjectPlanVersionDO(); plan.setId(6L); plan.setTenantId(1L); plan.setProjectId(3L); plan.setStatus("SUPERSEDED");
@@ -35,7 +35,7 @@ class ProjectOperationDispatcherTest {
         round.setNodeKind("STAGE"); round.setNodeInstanceId(4L); round.setNodeKey("original-node");
         when(plans.selectById(6L)).thenReturn(plan); when(rounds.selectById(7L)).thenReturn(round);
         var dispatcher = new ProjectOperationDispatcher(contexts, executor, adapters, plans, rounds);
-        var result = new ProjectOperationResult("OTHER", "NON_NUMERIC_OBJECT", "object:alpha", null, 2, "next", "SAVED", null, false);
+        var result = new ProjectOperationResult("OTHER", "NON_NUMERIC_OBJECT", "object:alpha", null, 2L, "next", "SAVED", null, false);
         when(adapters.require(code, 7)).thenReturn(adapter); when(adapter.invoke(code, command)).thenReturn(result);
         when(executor.execute(eq(code), eq(7), eq(command), any())).thenAnswer(call -> {
             ProjectControlledOperationExecutor.Work work = call.getArgument(3); return work.invoke(command);

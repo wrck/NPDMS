@@ -125,6 +125,6 @@ class ProjectStageExecutionApiTest {
     }
 
     private ProjectStageExecutionRecord row(String project, String stage, String execution, Long id, Integer version) {
-        return new ProjectStageExecutionRecord(9L,1,project,90L,1,stage,99L,1,100L,id,version,2,execution);
+        return new ProjectStageExecutionRecord(9L,1L,project,90L,1,stage,99L,1,100L,id,version,2,execution);
     }
 }

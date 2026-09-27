@@ -186,9 +186,9 @@ public class CutoverPlanController {
                         ex.currentPlanVersion(), ex.currentApprovalVersion()));
     }
     private static CutoverPlanContractException.ErrorData data(String category, String reason, String recovery,
-                                                               String owner, Integer currentTaskVersion,
-                                                               Integer currentPlanVersion,
-                                                               Integer currentApprovalVersion) {
+                                                               String owner, Long currentTaskVersion,
+                                                               Long currentPlanVersion,
+                                                               Long currentApprovalVersion) {
         return new CutoverPlanContractException.ErrorData(category, reason, recovery, owner,
                 currentTaskVersion, currentPlanVersion, currentApprovalVersion);
     }

@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,8 +10,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("cus_customer_contact")
-public class CustomerContactMasterDO extends TenantBaseDO {
-    @TableId(type = IdType.ASSIGN_ID) private Long id;
+public class CustomerContactMasterDO extends BaseBusinessEntity {
     private Long customerId;
     @TableField(exist=false) private String customerName;
     private String name;
@@ -22,5 +22,4 @@ public class CustomerContactMasterDO extends TenantBaseDO {
     private Boolean primaryFlag;
     private Integer status;
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private String remark;
-    @Version private Integer version;
 }

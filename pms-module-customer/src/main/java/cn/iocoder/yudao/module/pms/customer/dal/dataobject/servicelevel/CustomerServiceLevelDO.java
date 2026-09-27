@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.pms.customer.dal.dataobject.servicelevel;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -15,13 +14,11 @@ import java.time.LocalDate;
 @TableName("cus_customer_service_level")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CustomerServiceLevelDO extends TenantBaseDO {
+public class CustomerServiceLevelDO extends BaseBusinessEntity {
 
     /**
      * 服务等级编号
      */
-    @TableId
-    private Long id;
     /**
      * 客户编号
      */
@@ -57,7 +54,5 @@ public class CustomerServiceLevelDO extends TenantBaseDO {
     /**
      * 乐观锁版本
      */
-    @Version
-    private Integer version;
 
 }

@@ -64,7 +64,7 @@ public class JointTestServiceImpl implements JointTestService {
         if (JointTestStatusRules.isTerminal(existing.getStatus())) {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }
-        if (updateReqVO.getVersion() != null && !Objects.equals(existing.getVersion(), updateReqVO.getVersion())) {
+        if (updateReqVO.getVersion() != null && !Objects.equals(existing.getVersion(), updateReqVO.getVersion().longValue())) {
             throw exception(JOINT_TEST_VERSION_NOT_MATCH);
         }
         JointTestDO update = BeanUtils.toBean(updateReqVO, JointTestDO.class);
@@ -130,7 +130,7 @@ public class JointTestServiceImpl implements JointTestService {
         updateRecord(update);
     }
 
-    private void updateStatus(Long id, JointTestStatusRules.Action action, Integer version) {
+    private void updateStatus(Long id, JointTestStatusRules.Action action, Long version) {
         JointTestDO update = new JointTestDO();
         update.setId(id);
         update.setStatus(JointTestStatusRules.targetStatus(action));

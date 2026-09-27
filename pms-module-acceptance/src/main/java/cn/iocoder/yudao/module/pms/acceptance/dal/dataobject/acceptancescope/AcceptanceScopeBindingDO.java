@@ -1,8 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancescope;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
@@ -14,10 +13,7 @@ import java.time.LocalDateTime;
 @TableName("acc_acceptance_scope_binding")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AcceptanceScopeBindingDO extends TenantBaseDO {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class AcceptanceScopeBindingDO extends BaseBusinessEntity {
     private Long projectId;
     private Long projectStageSnapshotId;
     private Long deliveryScopeId;
@@ -27,6 +23,4 @@ public class AcceptanceScopeBindingDO extends TenantBaseDO {
     private LocalDateTime effectiveFrom;
     private LocalDateTime effectiveTo;
     private Integer acceptanceFactVersion;
-    @Version
-    private Integer version;
 }

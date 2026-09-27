@@ -81,7 +81,7 @@ class ProjectMasterControllerTenantContextTest {
             assertEquals(managerId, command.serviceManagerUserId());
             assertEquals(1L, TenantContextHolder.getTenantId());
             return new ManualProjectCreateResult(100L, "P100", "S0", "ACTIVE", "S0", "UNASSIGNED",
-                    1, 910005L, 2, "MANUAL", 1, 1, 0, 0, 0,
+                    1L, 910005L, 2, "MANUAL", 1, 1, 0, 0, 0,
                     managerId != null, null, null, null);
         });
         ProjectCreateReqVO request = JsonUtils.parseObject(managerId == null ? "{}"
@@ -113,7 +113,7 @@ class ProjectMasterControllerTenantContextTest {
             assertEquals(0L, TenantContextHolder.getTenantId());
             assertEquals(0L, actor.tenantId());
             return new ManualProjectCreateResult(100L, "P100", "S0", "ACTIVE", "S0", "UNASSIGNED",
-                    1, 910005L, 2, "MANUAL", 1, 1, 0, 0, 0,
+                    1L, 910005L, 2, "MANUAL", 1, 1, 0, 0, 0,
                     false, null, null, null);
         });
 

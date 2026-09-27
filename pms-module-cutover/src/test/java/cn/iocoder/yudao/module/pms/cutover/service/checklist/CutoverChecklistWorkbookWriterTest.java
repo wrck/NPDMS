@@ -68,7 +68,7 @@ class CutoverChecklistWorkbookWriterTest {
     }
 
     private static CutoverChecklistView view(List<CutoverChecklistView.Item> items) {
-        return new CutoverChecklistView(31L, "P3", 7, 19L, 41L, 3, 2, "DRAFT",
+        return new CutoverChecklistView(31L, "P3", 7L, 19L, 41L, 3L, 2L, "DRAFT",
                 "hash", "config", "trace", null, items);
     }
 }

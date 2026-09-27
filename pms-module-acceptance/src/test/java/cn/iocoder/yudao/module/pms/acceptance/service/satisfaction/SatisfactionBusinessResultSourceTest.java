@@ -24,7 +24,7 @@ class SatisfactionBusinessResultSourceTest {
     final Query query = new Query(7L, 80L, SatisfactionBusinessResultSource.TYPE, "10", "12");
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
-        task.setId(10L); task.setTenantId(7L); task.setProjectId(80L); task.setResultId(12L); task.setVersion(2);
+        task.setId(10L); task.setTenantId(7L); task.setProjectId(80L); task.setResultId(12L); task.setVersion(2L);
         result.setId(12L); result.setTenantId(7L); result.setCollectionTaskId(10L); result.setResponseId(12L);
         result.setResultVersion(1); result.setVersion(0); result.setResultStatus("EFFECTIVE"); result.setPassed(true);
         result.setEffectiveFrom(LocalDateTime.of(2026, 9, 20, 22, 0));

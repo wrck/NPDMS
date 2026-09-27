@@ -17,15 +17,15 @@ public final class CutoverApprovalApplicationException extends RuntimeException 
     private final Code code;
     private final String reasonCode;
     private final String ownerContext;
-    private final Integer currentApprovalVersion;
-    private final Integer currentTaskVersion;
+    private final Long currentApprovalVersion;
+    private final Long currentTaskVersion;
 
     public CutoverApprovalApplicationException(Code code, String message) {
         this(code, defaultReason(code), null, null, null, message);
     }
 
     public CutoverApprovalApplicationException(Code code, String reasonCode, String ownerContext,
-            Integer currentApprovalVersion, Integer currentTaskVersion, String message) {
+            Long currentApprovalVersion, Long currentTaskVersion, String message) {
         super(message);
         this.code = code;
         this.reasonCode = reasonCode;
@@ -40,8 +40,8 @@ public final class CutoverApprovalApplicationException extends RuntimeException 
 
     public String reasonCode() { return reasonCode; }
     public String ownerContext() { return ownerContext; }
-    public Integer currentApprovalVersion() { return currentApprovalVersion; }
-    public Integer currentTaskVersion() { return currentTaskVersion; }
+    public Long currentApprovalVersion() { return currentApprovalVersion; }
+    public Long currentTaskVersion() { return currentTaskVersion; }
 
     private static String defaultReason(Code code) {
         return switch (code) {

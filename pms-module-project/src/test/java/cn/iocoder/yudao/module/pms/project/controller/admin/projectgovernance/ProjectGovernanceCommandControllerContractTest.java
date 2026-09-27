@@ -110,7 +110,7 @@ class ProjectGovernanceCommandControllerContractTest {
                         assertEquals(0L, TenantContextHolder.getRequiredTenantId());
                         ProjectGovernanceGuardService.Actor actor = invocation.getArgument(2);
                         assertEquals(0L, actor.tenantId());
-                        return new ProjectGovernanceGuardResult(11L, 3, "ACTIVE", "S3", "ASSIGNED",
+                        return new ProjectGovernanceGuardResult(11L, 3L, "ACTIVE", "S3", "ASSIGNED",
                                 10L, 5L, "ROLLBACK", true, "guard-token", List.of(), List.of(), operatedAt);
                     });
             when(applicationService.rollback(any(), any())).thenAnswer(invocation -> {
@@ -118,7 +118,7 @@ class ProjectGovernanceCommandControllerContractTest {
                 ProjectGovernanceGuardService.Actor actor = invocation.getArgument(1);
                 assertEquals(0L, actor.tenantId());
                 return new GovernanceActionResult(11L, "ROLLBACK", "ACTIVE", "S3", "ASSIGNED",
-                        "ACTIVE", "S0", "UNASSIGNED", 4, 101L, "op-1", operatedAt, false);
+                        "ACTIVE", "S0", "UNASSIGNED", 4L, 101L, "op-1", operatedAt, false);
             });
             MockMvc mvc = standaloneSetup(new ProjectGovernanceCommandController(
                     guardService, applicationService, historyService, environment)).build();

@@ -27,13 +27,13 @@ public final class ArrivalAcceptanceContractException extends RuntimeException {
     private final String category;
     private final String reasonCode;
     private final String ownerContext;
-    private final Integer currentAggregateVersion;
+    private final Long currentAggregateVersion;
     private final Integer currentLineVersion;
     private final Integer currentDifferenceRevision;
     private final Integer currentDifferenceVersion;
 
     public ArrivalAcceptanceContractException(String category, String reasonCode, String message,
-                                              String ownerContext, Integer currentAggregateVersion,
+                                              String ownerContext, Long currentAggregateVersion,
                                               Integer currentLineVersion, Integer currentDifferenceRevision,
                                               Integer currentDifferenceVersion) {
         super(message);
@@ -63,7 +63,7 @@ public final class ArrivalAcceptanceContractException extends RuntimeException {
                 required(ownerContext, "ownerContext"), null, null, null, null);
     }
 
-    public static ArrivalAcceptanceContractException aggregateVersion(Integer currentVersion, String message) {
+    public static ArrivalAcceptanceContractException aggregateVersion(Long currentVersion, String message) {
         return new ArrivalAcceptanceContractException("AGGREGATE_OR_LINE_VERSION_CONFLICT",
                 "AGGREGATE_VERSION_STALE", message, null, currentVersion, null, null, null);
     }
@@ -72,7 +72,7 @@ public final class ArrivalAcceptanceContractException extends RuntimeException {
         return simple("NOT_VISIBLE_OR_NOT_FOUND", "ARRIVAL_ACCEPTANCE_NOT_VISIBLE", message);
     }
 
-    public static ArrivalAcceptanceContractException stateConflict(Integer currentVersion, String message) {
+    public static ArrivalAcceptanceContractException stateConflict(Long currentVersion, String message) {
         return new ArrivalAcceptanceContractException("STATE_CONFLICT", "BATCH_STATE_CONFLICT",
                 message, null, currentVersion, null, null, null);
     }
@@ -80,7 +80,7 @@ public final class ArrivalAcceptanceContractException extends RuntimeException {
     public String category() { return category; }
     public String reasonCode() { return reasonCode; }
     public String ownerContext() { return ownerContext; }
-    public Integer currentAggregateVersion() { return currentAggregateVersion; }
+    public Long currentAggregateVersion() { return currentAggregateVersion; }
     public Integer currentLineVersion() { return currentLineVersion; }
     public Integer currentDifferenceRevision() { return currentDifferenceRevision; }
     public Integer currentDifferenceVersion() { return currentDifferenceVersion; }

@@ -9,6 +9,7 @@ public interface EntityVersionApi {
     EntityVersionProvider.Revision create(EntityRef entity, RevisionRef source, String reason, EntityActor actor);
     EntityVersionProvider.Revision save(RevisionRef ref, int expectedVersion, Map<String, Object> fields, EntityActor actor);
     EntityVersionProvider.Revision complete(RevisionRef ref, int expectedVersion, EntityActor actor);
+    void discard(RevisionRef ref, EntityActor actor);
     List<FieldDifference> compare(RevisionRef left, RevisionRef right, EntityActor actor);
 
     record FieldDifference(String fieldCode, EntityFieldValue before, EntityFieldValue after) {}

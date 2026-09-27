@@ -28,15 +28,15 @@ class StagePlanApprovalCompletionProviderTest {
 
     private final StagePlanApprovalCompletionProvider provider = new StagePlanApprovalCompletionProvider(mapper, scope, permissions, executions, plans);
     private final StagePlanBatchDO row = new StagePlanBatchDO();
-    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
+    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1L,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
     private final TaskBusinessObjectProvider.Context context = new TaskBusinessObjectProvider.Context(1L,7L,9L,91L,"test");
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
 
-        row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3); row.setStatus(2);
+        row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3L); row.setStatus(2);
         row.setDurationRevisionId(20L); row.setEffectiveAt(java.time.LocalDateTime.now()); row.setBpmProcessInstanceId("bpm-approved");
-        plan.setId(19L); plan.setProjectId(9L); plan.setTenantId(1L); plan.setVersion(1); plan.setCurrentDurationRevisionId(20L);
+        plan.setId(19L); plan.setProjectId(9L); plan.setTenantId(1L); plan.setVersion(1L); plan.setCurrentDurationRevisionId(20L);
         when(mapper.current(any())).thenReturn(row); when(plans.selectByProjectId(1L,9L)).thenReturn(plan);
         when(plans.selectForUpdate(any())).thenReturn(plan);
 

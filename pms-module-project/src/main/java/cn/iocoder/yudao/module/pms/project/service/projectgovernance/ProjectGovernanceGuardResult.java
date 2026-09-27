@@ -6,7 +6,7 @@ import java.util.List;
 
 public record ProjectGovernanceGuardResult(
         Long projectId,
-        Integer projectVersion,
+        Long projectVersion,
         String lifecycleStatus,
         String currentStage,
         String assignmentStatus,

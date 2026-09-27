@@ -216,7 +216,7 @@ class PreparationMySqlIntegrationTest {
 
         var assignCommand = new PatchPreparationItemCommand(preparationId, itemId,
                 ((Number) item.get("item_version")).intValue(), 0, 0, 0,
-                ((Number) item.get("form_version")).intValue(), created.version(),
+                ((Number) item.get("form_version")).intValue(), created.version().longValue(),
                 java.util.Set.of("assignee"), null, null, assigneeId, null,
                 null, null, null, null);
         var assigned = itemService.patch(assignCommand,
@@ -227,7 +227,7 @@ class PreparationMySqlIntegrationTest {
         login(assigneeId);
         var filled = itemService.patch(new PatchPreparationItemCommand(preparationId, itemId,
                 assigned.getItemVersion(), assigned.getPreparationVersion(), assigned.getInputVersion(), 0,
-                assigned.getFormVersion(), created.version(),
+                assigned.getFormVersion(), created.version().longValue(),
                 java.util.Set.of("siteResultCode", "siteResultDetail", "formValueSnapshot", "evidenceReferences"),
                 null, null, null, null, "READY", "现场供电条件满足",
                 "{\"siteCondition\":\"供电稳定\"}", List.of(new PatchPreparationItemCommand.EvidenceReference(
@@ -291,7 +291,7 @@ class PreparationMySqlIntegrationTest {
         int preparationVersion = currentPreparationVersion(preparationId);
         String submitKey = "PRE02-CHAIN-SUBMIT-" + created.id();
         var submitCommand = new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
-                preparationId, null, preparationVersion, null, created.version(), null,
+                preparationId, null, preparationVersion, null, created.version().longValue(), null,
                 submitKey);
         var submitted = reviewService.execute(submitCommand,
                 reviewActor(manager.actorId(), "SUBMIT", created.id()));
@@ -309,12 +309,12 @@ class PreparationMySqlIntegrationTest {
             String reason = "FIBER".equals(itemCode) ? "确认无光纤需求" : null;
             preparationVersion = reviewService.execute(new PreparationReviewCommand(action, preparationId,
                     ((Number) item.get("id")).longValue(), preparationVersion,
-                    ((Number) item.get("version")).intValue(), created.version(), reason,
+                    ((Number) item.get("version")).intValue(), created.version().longValue(), reason,
                     "PRE02-CHAIN-CONFIRM-" + itemCode + "-" + created.id()),
                     reviewActor(manager.actorId(), "CONFIRM-" + itemCode, created.id())).preparationVersion();
         }
         var evaluated = readinessService.evaluate(new PreparationReadinessCommand(preparationId,
-                preparationVersion, created.version(), "PRE02-CHAIN-EVALUATE-" + created.id()),
+                preparationVersion, created.version().longValue(), "PRE02-CHAIN-EVALUATE-" + created.id()),
                 reviewActor(manager.actorId(), "EVALUATE", created.id()));
 
         assertEquals("CONFIRMED", evaluated.readiness().status());
@@ -339,7 +339,7 @@ class PreparationMySqlIntegrationTest {
         int finalVersion = evaluated.readiness().preparationVersion();
         assertThrows(ServiceException.class, () -> reviewService.execute(new PreparationReviewCommand(
                 PreparationReviewCommand.SUBMIT, preparationId, null, submitCommand.expectedPreparationVersion(),
-                null, created.version(), "不同载荷", submitKey),
+                null, created.version().longValue(), "不同载荷", submitKey),
                 reviewActor(manager.actorId(), "SUBMIT-CONFLICT", created.id())));
         assertEquals(finalVersion, currentPreparationVersion(preparationId));
         assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
@@ -415,7 +415,7 @@ class PreparationMySqlIntegrationTest {
                         + "'INTERNAL','ACTIVE',1,1,0)", IdWorker.getId(), String.valueOf(itemId), artifactId);
     }
 
-    private void patchItem(Long preparationId, String itemCode, Integer projectVersion, long actorId,
+    private void patchItem(Long preparationId, String itemCode, long projectVersion, long actorId,
             Set<String> fields, String applicabilityCode, Long assigneeId, String notApplicableReason,
             String siteResultCode, String siteResultDetail,
             List<PatchPreparationItemCommand.EvidenceReference> evidence) {

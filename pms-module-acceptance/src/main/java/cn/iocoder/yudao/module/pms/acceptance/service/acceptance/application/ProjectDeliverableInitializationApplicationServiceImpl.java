@@ -136,7 +136,7 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         row.setRequired(definition.required());
         row.setSourceDefinitionId(definition.sourceDefinitionId());
         row.setStatus("PENDING");
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 }

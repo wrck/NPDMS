@@ -79,7 +79,7 @@ class RequirementLegacyReadOnlyTest {
         record.setId(1L);
         record.setRequirementType(type);
         record.setStatus(0);
-        record.setVersion(0);
+        record.setVersion(0L);
         return record;
     }
 

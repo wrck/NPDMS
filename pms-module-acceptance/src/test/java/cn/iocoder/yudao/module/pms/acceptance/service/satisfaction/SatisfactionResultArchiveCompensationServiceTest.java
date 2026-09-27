@@ -69,7 +69,7 @@ class SatisfactionResultArchiveCompensationServiceTest {
     }
     private AccProjectDeliverableDO root() {
         AccProjectDeliverableDO row = new AccProjectDeliverableDO();
-        row.setId(20L); row.setTenantId(7L); row.setCurrentSourceVersionId(30L); row.setVersion(0); return row;
+        row.setId(20L); row.setTenantId(7L); row.setCurrentSourceVersionId(30L); row.setVersion(0L); return row;
     }
     private SatisfactionResultDO result() {
         SatisfactionResultDO row = new SatisfactionResultDO();

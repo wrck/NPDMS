@@ -6,7 +6,7 @@ public record DeliveryEvidenceAcceptedUpdate(
         Long tenantId,
         Long evidenceId,
         Integer currentRevision,
-        Integer expectedVersion,
+        Long expectedVersion,
         String reviewRecordId,
         String eventId,
         Integer retryCount,

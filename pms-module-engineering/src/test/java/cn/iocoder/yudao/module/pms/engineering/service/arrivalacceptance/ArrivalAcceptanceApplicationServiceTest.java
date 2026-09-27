@@ -205,7 +205,7 @@ class ArrivalAcceptanceApplicationServiceTest {
                             "create-key", invalid)));
             assertThrows(IllegalArgumentException.class, () -> service.submit(
                     new ArrivalAcceptanceApplicationService.SubmitCommand(
-                            1L, 900L, 8L, 0, "submit-key", invalid)));
+                            1L, 900L, 8L, 0L, "submit-key", invalid)));
             assertEquals(0, commands.requestDigests.size());
         }
     }
@@ -278,7 +278,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         when(fixture.acceptanceMapper().updateSubmittedIfMatch(any())).thenReturn(1);
 
         fixture.service().submit(new ArrivalAcceptanceApplicationService.SubmitCommand(
-                1L, 900L, 8L, 0, "submit-key", "corr-submit"));
+                1L, 900L, 8L, 0L, "submit-key", "corr-submit"));
 
         assertEquals("IMP:ARRIVAL_SUBMIT:900", fixture.commandExecutionApi().scope.scopeCode());
         assertEquals(64, fixture.commandExecutionApi().requestDigest.length());
@@ -438,7 +438,7 @@ class ArrivalAcceptanceApplicationServiceTest {
 
         ArrivalAcceptanceApplicationService.ConfirmationResult result = fixture.service().confirm(
                 new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                        1L, 900L, 8L, 1, "confirm-key", "corr-1"));
+                        1L, 900L, 8L, 1L, "confirm-key", "corr-1"));
 
         assertEquals("CONFIRMED", result.status());
         assertEquals(2, result.version());
@@ -475,13 +475,13 @@ class ArrivalAcceptanceApplicationServiceTest {
         SubmissionFixture spaced = submissionFixture();
         assertThrows(IllegalArgumentException.class, () -> spaced.service().confirm(
                 new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                        1L, 900L, 8L, 1, "confirm-key", " corr-1")));
+                        1L, 900L, 8L, 1L, "confirm-key", " corr-1")));
         assertEquals(null, spaced.commandExecutionApi().scope);
 
         SubmissionFixture oversized = submissionFixture();
         assertThrows(IllegalArgumentException.class, () -> oversized.service().confirm(
                 new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                        1L, 900L, 8L, 1, "confirm-key", "c".repeat(129))));
+                        1L, 900L, 8L, 1L, "confirm-key", "c".repeat(129))));
         assertEquals(null, oversized.commandExecutionApi().scope);
     }
 
@@ -491,14 +491,14 @@ class ArrivalAcceptanceApplicationServiceTest {
         LocalDateTime confirmedAt = LocalDateTime.of(2026, 8, 30, 10, 0);
         ArrivalAcceptanceApplicationService.ConfirmationResult replay =
                 new ArrivalAcceptanceApplicationService.ConfirmationResult(
-                        900L, "CONFIRMED", 2, 5L, 50L, 1, 40L, 5,
+                        900L, "CONFIRMED", 2L, 5L, 50L, 1, 40L, 5,
                         "REF-1", "hash", 3L, "{}", "event-1", confirmedAt);
         fixture.commandExecutionApi().decision = PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED;
         fixture.commandExecutionApi().replay = new ConfirmationResultHolder(replay);
 
         ArrivalAcceptanceApplicationService.ConfirmationResult result = fixture.service().confirm(
                 new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                        1L, 900L, 8L, 1, "confirm-key", "corr-1"));
+                        1L, 900L, 8L, 1L, "confirm-key", "corr-1"));
 
         assertEquals(replay, result);
         verify(fixture.acceptanceMapper(), never()).selectForUpdate(any());
@@ -510,12 +510,12 @@ class ArrivalAcceptanceApplicationServiceTest {
     void rejectsStaleConfirmationBeforeOwnerFactsOrBusinessWrites() {
         SubmissionFixture fixture = submissionFixture();
         ArrivalAcceptanceDO stale = confirmableCandidate();
-        stale.setVersion(2);
+        stale.setVersion(2L);
         when(fixture.acceptanceMapper().selectForUpdate(any())).thenReturn(stale);
 
         ArrivalAcceptanceContractException exception = assertThrows(ArrivalAcceptanceContractException.class,
                 () -> fixture.service().confirm(new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                        1L, 900L, 8L, 1, "confirm-key", "corr-1")));
+                        1L, 900L, 8L, 1L, "confirm-key", "corr-1")));
         assertEquals("AGGREGATE_OR_LINE_VERSION_CONFLICT", exception.category());
         assertEquals("AGGREGATE_VERSION_STALE", exception.reasonCode());
         assertEquals(2, exception.currentAggregateVersion());
@@ -542,13 +542,13 @@ class ArrivalAcceptanceApplicationServiceTest {
 
     private static ArrivalAcceptanceApplicationService.SubmitCommand submitCommand(String correlationId) {
         return new ArrivalAcceptanceApplicationService.SubmitCommand(
-                1L, 900L, 8L, 0, "submit-key", correlationId);
+                1L, 900L, 8L, 0L, "submit-key", correlationId);
     }
 
     private static ProjectQualificationPort.ProjectQualificationFact projectFact() {
         return new ProjectQualificationPort.ProjectQualificationFact(
                 100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "ACTIVE", "S4", 5, 6L, 7L);
+                "ACTIVE", "S4", 5L, 6L, 7L);
     }
 
     private static DeliveryScopePort.AssignedScope deliveryScope() {
@@ -595,8 +595,8 @@ class ArrivalAcceptanceApplicationServiceTest {
         row.setProjectId(100L);
         row.setStatus("DRAFT");
         row.setCreator("8");
-        row.setVersion(0);
-        row.setProjectVersion(5);
+        row.setVersion(0L);
+        row.setProjectVersion(5L);
         row.setProjectParticipantFactVersion(6L);
         row.setProjectScopeVersion(7L);
         row.setDeliveryScopeVersion(8L);
@@ -630,7 +630,7 @@ class ArrivalAcceptanceApplicationServiceTest {
     private static ArrivalAcceptanceDO confirmableCandidate() {
         ArrivalAcceptanceDO row = draft();
         row.setStatus("ACCEPTED");
-        row.setVersion(1);
+        row.setVersion(1L);
         row.setEvidenceId(50L);
         row.setEvidenceRevision(1);
         row.setScopeWatermark("{\"deliveryScopeVersion\":8}");
@@ -644,7 +644,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         row.setProjectId(100L);
         row.setCurrentRevisionNo(1);
         row.setAccSyncStatus("NOT_PUBLISHED");
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 

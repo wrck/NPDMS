@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.forminstance;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDateTime;
 
@@ -18,13 +16,8 @@ import java.time.LocalDateTime;
 @TableName("plt_form_instance")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class FormInstanceDO extends TenantBaseDO {
+public class FormInstanceDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 实例编号（如 FI-2026-001），全局唯一
      */
@@ -53,11 +46,6 @@ public class FormInstanceDO extends TenantBaseDO {
      * 状态：0 待填 1 已填 2 已提交 3 已审核 4 已驳回
      */
     private Integer status;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
     /**
      * 提交时间
      */

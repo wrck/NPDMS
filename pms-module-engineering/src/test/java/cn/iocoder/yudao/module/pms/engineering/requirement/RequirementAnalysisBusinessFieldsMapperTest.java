@@ -52,7 +52,7 @@ class RequirementAnalysisBusinessFieldsMapperTest {
                 var revision = new RequirementAnalysisRevisionDO();
                 revision.setId(102L); revision.setEntityId(101L); revision.setTenantId(1L); revision.setProjectId(20L);
                 revision.setRevisionNo(1); revision.setRevisionState("DRAFT"); revision.setDraftMarker(1);
-                revision.setStatusCode("DRAFT"); revision.setVersion(1); revision.setCreator("test"); revision.setUpdater("test");
+                revision.setStatusCode("DRAFT"); revision.setVersion(1L); revision.setCreator("test"); revision.setUpdater("test");
                 var values = Map.<String, Object>of("transmissionCurrentOptions", List.of("IPv6", "MTU"),
                         "trafficNewConnections", "100/s", "trafficConcurrency", "2000", "trafficThroughput", "1G",
                         "businessDeviceDetails", List.of(Map.of("deviceName", "设备甲", "serialNumber", "SN-1")),
@@ -75,7 +75,7 @@ class RequirementAnalysisBusinessFieldsMapperTest {
                 assertNull(cleared.getTrafficConcurrency()); assertTrue(cleared.getBusinessDeviceDetails().isEmpty());
                 assertEquals("100/s", cleared.getTrafficNewConnections());
                 assertEquals(1, mapper.freeze(new RequirementFreezeUpdate(1L, 102L, 2, 7L, java.time.LocalDateTime.now())));
-                cleared.setVersion(3);
+                cleared.setVersion(3L);
                 assertEquals(0, mapper.saveDraft(cleared), "frozen content is immutable");
             }
         } finally { database.shutdown(); }

@@ -37,13 +37,13 @@ class AcceptanceStageBindingCoordinatorTest {
     @Test
     void shouldBindExactNewScopeWhenProjectIsInAcceptanceStage() {
         when(stageFactApi.lockAndRead(any())).thenReturn(new ProjectAcceptanceStageFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "S5", "S5", 701L));
+                ProjectFactOutcome.FOUND, 501L, 3L, "S5", "S5", 701L));
         when(bindingApi.bindEffectiveScope(any())).thenReturn(new AcceptanceScopeBindingResult(false, 1,
                 List.of(new AcceptanceScopeBindingFact(801L, 701L, 401L, 7L,
                         "SCOPE_VERSION_EFFECTIVE", 1))));
 
         AcceptanceStageBindingCoordinator.StageContext context = coordinator.lockAndRead(
-                1L, 501L, 3, "op-1");
+                1L, 501L, 3L, "op-1");
         coordinator.bindIfRequired(context, 401L, 7L, "op-1");
 
         assertTrue(context.acceptanceStage());
@@ -53,10 +53,10 @@ class AcceptanceStageBindingCoordinatorTest {
     @Test
     void shouldNotBindBeforeConfiguredAcceptanceStage() {
         when(stageFactApi.lockAndRead(any())).thenReturn(new ProjectAcceptanceStageFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "S4", "S5", null));
+                ProjectFactOutcome.FOUND, 501L, 3L, "S4", "S5", null));
 
         AcceptanceStageBindingCoordinator.StageContext context = coordinator.lockAndRead(
-                1L, 501L, 3, "op-1");
+                1L, 501L, 3L, "op-1");
         coordinator.bindIfRequired(context, 401L, 7L, "op-1");
 
         assertFalse(context.acceptanceStage());
@@ -66,16 +66,16 @@ class AcceptanceStageBindingCoordinatorTest {
     @Test
     void shouldRejectAcceptanceStageWithoutOwnerSnapshot() {
         when(stageFactApi.lockAndRead(any())).thenReturn(new ProjectAcceptanceStageFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "S5", "S5", null));
+                ProjectFactOutcome.FOUND, 501L, 3L, "S5", "S5", null));
 
         assertThrows(IllegalStateException.class,
-                () -> coordinator.lockAndRead(1L, 501L, 3, "op-1"));
+                () -> coordinator.lockAndRead(1L, 501L, 3L, "op-1"));
         verify(bindingApi, never()).bindEffectiveScope(any());
     }
 
     @Test
     void shouldRejectMismatchedBindingResult() {
-        var context = new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3, 701L, true);
+        var context = new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3L, 701L, true);
         when(bindingApi.bindEffectiveScope(any())).thenReturn(new AcceptanceScopeBindingResult(false, 1,
                 List.of(new AcceptanceScopeBindingFact(801L, 701L, 999L, 7L,
                         "SCOPE_VERSION_EFFECTIVE", 1))));

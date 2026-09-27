@@ -38,7 +38,7 @@ public class ProjectPlanActivationService {
     private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
 
     public record Apply(Long projectId, Long draftId, ProjectPlanDraftService.Preview expectedPreview) { }
-    public record Applied(Long projectId, Long planVersionId, Integer revisionNo, Integer projectVersion) { }
+    public record Applied(Long projectId, Long planVersionId, Integer revisionNo, Long projectVersion) { }
 
     public Applied apply(Apply command, Long actorId, String key) {
         var scope = drafts.authorize(command.projectId(),actorId);

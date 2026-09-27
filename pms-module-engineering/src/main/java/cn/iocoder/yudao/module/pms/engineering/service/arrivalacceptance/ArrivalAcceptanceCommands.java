@@ -54,7 +54,7 @@ public final class ArrivalAcceptanceCommands {
     }
 
     public record PatchDraftCommand(Long tenantId, Long arrivalAcceptanceId, Long actorUserId,
-                                    Integer expectedVersion, String logisticsNo,
+                                    Long expectedVersion, String logisticsNo,
                                     LocalDateTime arrivedAt, String signerName,
                                     List<DraftLine> lines, FileRevision evidenceRevision) {
         public PatchDraftCommand {
@@ -71,7 +71,7 @@ public final class ArrivalAcceptanceCommands {
     }
 
     public record RaiseDifferenceCommand(Long tenantId, Long arrivalAcceptanceId, Long actorUserId,
-                                         Integer expectedVersion, Long arrivalLineId,
+                                         Long expectedVersion, Long arrivalLineId,
                                          Integer expectedLineVersion, String differenceTypeCode,
                                          ArrivalDifferenceScopeCodec.Scope scope, String reason,
                                          String riskDescription, FileRevision evidenceRevision,
@@ -157,7 +157,7 @@ public final class ArrivalAcceptanceCommands {
         }
     }
 
-    public record CorrectInformation(Integer expectedSourceVersion, String reason,
+    public record CorrectInformation(Long expectedSourceVersion, String reason,
                                      CorrectionPatch correctionPatch,
                                      FileRevision evidenceRevision) implements Resolution {
         public CorrectInformation {
@@ -170,7 +170,7 @@ public final class ArrivalAcceptanceCommands {
     }
 
     public record ResolveDifferenceCommand(Long tenantId, Long arrivalAcceptanceId, Long actorUserId,
-                                           Integer expectedVersion, Resolution resolution,
+                                           Long expectedVersion, Resolution resolution,
                                            String idempotencyKey, String correlationId) {
         public ResolveDifferenceCommand {
             requireIdentity(tenantId, arrivalAcceptanceId, actorUserId, expectedVersion);
@@ -182,7 +182,7 @@ public final class ArrivalAcceptanceCommands {
 
     public record CommandResult(Long arrivalAcceptanceId, Long differenceId, Integer differenceNo,
                                 Integer revisionNo, String resolutionStatus, String aggregateStatus,
-                                Integer aggregateVersion, Long successorAcceptanceId,
+                                Long aggregateVersion, Long successorAcceptanceId,
                                 Long projectFactVersion, String factImpactType,
                                 ArrivalDifferenceScopeCodec.Scope remainingScope) {
     }
@@ -195,7 +195,7 @@ public final class ArrivalAcceptanceCommands {
         }
     }
 
-    private static void requireIdentity(Long tenantId, Long id, Long actorId, Integer version) {
+    private static void requireIdentity(Long tenantId, Long id, Long actorId, Long version) {
         if (tenantId == null || tenantId < 0 || id == null || id <= 0 || actorId == null || actorId <= 0
                 || version == null || version < 0) throw new IllegalArgumentException("invalid command identity");
     }

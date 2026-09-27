@@ -46,7 +46,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
             }
             validateCodeUnique(siteId, null, entity.getCode());
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
-            entity.setVersion(0);
+            entity.setVersion(0L);
             siteLocationMapper.insert(entity);
             return entity;
         }
@@ -69,7 +69,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         SiteLocationDO update = buildEntity(siteId, input, parent);
         update.setCode(existing.getCode());
         update.setId(existing.getId());
-        update.setVersion(existing.getVersion() + 1);
+        update.setVersion(existing.getVersion() + 1L);
         if (siteLocationMapper.updateByIdAndVersion(update, existing.getVersion()) == 0) {
             throw exception(AST_LOCATION_VERSION_CONFLICT);
         }
@@ -79,7 +79,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
     }
 
     @Override
-    public SiteLocationDO get(Long locationId, Integer expectedVersion) {
+    public SiteLocationDO get(Long locationId, Long expectedVersion) {
         SiteLocationDO entity = siteLocationMapper.selectById(locationId);
         if (entity == null) {
             throw exception(AST_SITE_LOCATION_NOT_EXISTS);
@@ -97,7 +97,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disable(Long locationId, Integer expectedVersion) {
+    public void disable(Long locationId, Long expectedVersion) {
         SiteLocationDO entity = get(locationId, expectedVersion);
         String descendantPrefix = entity.getTreePath() + entity.getId() + "/";
         boolean hasActiveChildren = getTree(entity.getSiteId()).stream()
@@ -113,7 +113,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         SiteLocationDO update = new SiteLocationDO();
         update.setId(entity.getId());
         update.setStatus(CommonStatusEnum.DISABLE.getStatus());
-        update.setVersion(entity.getVersion() + 1);
+        update.setVersion(entity.getVersion() + 1L);
         if (siteLocationMapper.updateByIdAndVersion(update, entity.getVersion()) == 0) {
             throw exception(AST_LOCATION_VERSION_CONFLICT);
         }
@@ -181,7 +181,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
             update.setId(descendant.getId());
             update.setTreePath(newPrefix + descendant.getTreePath().substring(oldPrefix.length()));
             update.setTreeDepth(descendant.getTreeDepth() + depthDelta);
-            update.setVersion(descendant.getVersion() + 1);
+            update.setVersion(descendant.getVersion() + 1L);
             if (siteLocationMapper.updateByIdAndVersion(update, descendant.getVersion()) == 0) {
                 throw exception(AST_LOCATION_VERSION_CONFLICT);
             }

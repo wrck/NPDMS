@@ -6,7 +6,7 @@ public record DeliveryEvidencePublishUpdate(
         Long tenantId,
         Long evidenceId,
         Integer expectedRevision,
-        Integer expectedVersion,
+        Long expectedVersion,
         String eventId,
         String correlationId,
         Long actorUserId,

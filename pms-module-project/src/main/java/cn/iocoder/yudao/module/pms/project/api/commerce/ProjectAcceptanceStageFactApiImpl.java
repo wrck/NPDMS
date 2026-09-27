@@ -101,7 +101,7 @@ public class ProjectAcceptanceStageFactApiImpl implements ProjectAcceptanceStage
                 && Objects.equals(snapshot.getAfterStage(), stageCode);
     }
 
-    private ProjectAcceptanceStageFact outcome(ProjectFactOutcome outcome, Long projectId, Integer version,
+    private ProjectAcceptanceStageFact outcome(ProjectFactOutcome outcome, Long projectId, Long version,
                                                  String currentStage, String acceptanceStage) {
         return new ProjectAcceptanceStageFact(outcome, projectId, version, currentStage, acceptanceStage, null);
     }

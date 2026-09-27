@@ -74,7 +74,7 @@ class CutoverPlanQueryServiceTest {
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO(); plan.setId(81L); plan.setTenantId(1L);
         plan.setCutoverTaskId(50L); plan.setRevisionNo(1); plan.setOriginCode("LEGACY_FORWARD");
         plan.setStatusCode(null); plan.setCurrentMarker(null); plan.setLegacyPlanId(701L); plan.setLegacyStatusRaw(2);
-        plan.setVersion(0); plan.setSourceSnapshot("""
+        plan.setVersion(0L); plan.setSourceSnapshot("""
                 {"sourceTable":"pms_cut_plan_retired","sourceId":701,"sourceTenantId":1,"sourceTaskId":50,
                  "sourceVersion":3,"sourceStatusRaw":2,"mappingVersion":"FCUT004_LEGACY_V1",
                  "code":"CUT-LEGACY-001","name":"旧割接方案","level":"A","remark":"历史备注"}
@@ -126,7 +126,7 @@ class CutoverPlanQueryServiceTest {
     void projectsRejectedApprovalAndReviseAction() {
         Fixture fixture = fixture();
         fixture.plan.setStatusCode("SUBMITTED"); fixture.plan.setApprovalInstanceId(901L);
-        fixture.plan.setApprovalVersion(2);
+        fixture.plan.setApprovalVersion(2L);
         CutoverApprovalFact fact = approval(fixture.plan, ApprovalStatus.REJECTED, 2, 1788220800000L, "请修订");
         CutoverApprovalFactApi approval = mock(CutoverApprovalFactApi.class);
         when(approval.inspect(any())).thenReturn(new CutoverApprovalInspectResult(InspectStatus.FOUND, fact));
@@ -143,7 +143,7 @@ class CutoverPlanQueryServiceTest {
     void projectsSourceReplacementRevisionFromInvalidatedHistory() {
         Fixture fixture = fixture();
         fixture.plan.setStatusCode("INVALIDATED"); fixture.plan.setCurrentMarker(null);
-        fixture.plan.setApprovalInstanceId(902L); fixture.plan.setApprovalVersion(3);
+        fixture.plan.setApprovalInstanceId(902L); fixture.plan.setApprovalVersion(3L);
         when(fixture.planMapper.selectCurrent(any())).thenReturn(null);
         when(fixture.planMapper.selectListHistory(any())).thenReturn(List.of(fixture.plan));
         when(fixture.planMapper.selectListDirectSuccessors(any())).thenReturn(List.of());
@@ -164,7 +164,7 @@ class CutoverPlanQueryServiceTest {
         Fixture fixture = fixture();
         fixture.task.setCurrentStage("P6"); fixture.task.setTaskStatus("CLOSURE_IN_PROGRESS");
         fixture.plan.setStatusCode("SUBMITTED"); fixture.plan.setApprovalInstanceId(903L);
-        fixture.plan.setApprovalVersion(4);
+        fixture.plan.setApprovalVersion(4L);
         CutoverApprovalFact fact = approval(fixture.plan, ApprovalStatus.APPROVED, 4, 1788220800000L, null);
         CutoverApprovalFactApi approval = mock(CutoverApprovalFactApi.class);
         when(approval.inspect(any())).thenReturn(new CutoverApprovalInspectResult(InspectStatus.FOUND, fact));
@@ -181,7 +181,7 @@ class CutoverPlanQueryServiceTest {
     }
 
     private static CutoverApprovalFact approval(CutoverPlanRevisionDO plan, ApprovalStatus status,
-                                                 int version, Long decisionAt, String rejectionReason) {
+                                                 long version, Long decisionAt, String rejectionReason) {
         return new CutoverApprovalFact(plan.getApprovalInstanceId(), version, plan.getCutoverTaskId(), plan.getId(),
                 plan.getRevisionNo(), status, 1, null, decisionAt, rejectionReason);
     }
@@ -229,14 +229,14 @@ class CutoverPlanQueryServiceTest {
         CutoverTaskDO row = new CutoverTaskDO(); row.setId(50L); row.setTenantId(1L); row.setProjectId(70L);
         row.setOwnerUserId(8L); row.setTaskOrigin(CutoverTaskRules.ORIGIN_NEW_PLATFORM);
         row.setCurrentStage(CutoverTaskRules.STAGE_P4); row.setTaskStatus(CutoverTaskRules.STATUS_PLAN_DRAFTING);
-        row.setVersion(4); return row;
+        row.setVersion(4L); return row;
     }
 
     private static CutoverPlanRevisionDO plan(CutoverPlanSourcePort.SourceFacts facts) {
         CutoverPlanRevisionDO row = new CutoverPlanRevisionDO(); row.setId(80L); row.setTenantId(1L);
         row.setCutoverTaskId(50L); row.setRevisionNo(1); row.setOriginCode("NEW_PLATFORM");
         row.setEditModeCode("ONLINE_TEMPLATE_STANDARD"); row.setStatusCode("DRAFT"); row.setCurrentMarker(1);
-        row.setVersion(1); row.setSourceSnapshot(JsonUtils.toJsonString(facts.snapshot()));
+        row.setVersion(1L); row.setSourceSnapshot(JsonUtils.toJsonString(facts.snapshot()));
         row.setContentSnapshot("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\",\"overview\":{},\"riskMitigations\":[]}"); return row;
     }
 
@@ -256,8 +256,8 @@ class CutoverPlanQueryServiceTest {
         for (int i = 0; i < CutoverPlanRules.STANDARD_SECTIONS.size(); i++) templates.add(
                 new CutoverPlanSourcePort.TemplateSectionSnapshot(CutoverPlanRules.STANDARD_SECTIONS.get(i),
                         CutoverPlanRules.STANDARD_SECTIONS.get(i), i + 1, List.of("NETWORK_CUTOVER"), List.of("A"), true));
-        CutoverPlanSourcePort.SourceSnapshot snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4,
-                100L, 2, "A", 200L, 3, 70L, 6, 30L,
+        CutoverPlanSourcePort.SourceSnapshot snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4L,
+                100L, 2L, "A", 200L, 3L, 70L, 6, 30L,
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(301L, "SN-1", 9L, "ROUTER", "type-v1")),
                 401L, "CFG-1", 1, templates, List.of());
         return new CutoverPlanSourcePort.SourceFacts(snapshot, List.of());

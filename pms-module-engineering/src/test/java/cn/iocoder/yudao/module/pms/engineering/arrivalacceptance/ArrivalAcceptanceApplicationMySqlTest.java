@@ -132,12 +132,12 @@ class ArrivalAcceptanceApplicationMySqlTest {
         EvidenceFixture evidence = attachAcceptedDeviceAndEvidence(draft);
         ArrivalAcceptanceApplicationService.SubmissionResult submitted = applicationService.submit(
                 new ArrivalAcceptanceApplicationService.SubmitCommand(
-                        tenantId, draft.getId(), ACTOR_ID, 0, "submit-full", "corr-submit-full"));
+                        tenantId, draft.getId(), ACTOR_ID, 0L, "submit-full", "corr-submit-full"));
         assertEquals("ACCEPTED", submitted.status());
 
         ArrivalAcceptanceApplicationService.ConfirmCommand command =
                 new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                        tenantId, draft.getId(), ACTOR_ID, 1, "confirm-full", "corr-confirm-full");
+                        tenantId, draft.getId(), ACTOR_ID, 1L, "confirm-full", "corr-confirm-full");
         ArrivalAcceptanceApplicationService.ConfirmationResult confirmed = applicationService.confirm(command);
         ArrivalAcceptanceApplicationService.ConfirmationResult replay = applicationService.confirm(command);
 
@@ -170,7 +170,7 @@ class ArrivalAcceptanceApplicationMySqlTest {
 
         assertThrows(IllegalStateException.class, () -> applicationService.submit(
                 new ArrivalAcceptanceApplicationService.SubmitCommand(
-                        tenantId, draft.getId(), ACTOR_ID, 0,
+                        tenantId, draft.getId(), ACTOR_ID, 0L,
                         "submit-owner-failure", "corr-owner-failure")));
 
         assertEquals("DRAFT", scalar("SELECT status FROM imp_arrival_acceptance WHERE id=?", draft.getId()));
@@ -206,9 +206,9 @@ class ArrivalAcceptanceApplicationMySqlTest {
         ArrivalAcceptanceDO draft = createDraft("create-callback");
         EvidenceFixture evidence = attachAcceptedDeviceAndEvidence(draft);
         applicationService.submit(new ArrivalAcceptanceApplicationService.SubmitCommand(
-                tenantId, draft.getId(), ACTOR_ID, 0, "submit-callback", "corr-submit-callback"));
+                tenantId, draft.getId(), ACTOR_ID, 0L, "submit-callback", "corr-submit-callback"));
         applicationService.confirm(new ArrivalAcceptanceApplicationService.ConfirmCommand(
-                tenantId, draft.getId(), ACTOR_ID, 1, "confirm-callback", "corr-confirm-callback"));
+                tenantId, draft.getId(), ACTOR_ID, 1L, "confirm-callback", "corr-confirm-callback"));
 
         ArtifactCallbackResult outOfOrder = callbackHandler.handle(new ArtifactArchivedMessage(
                 "archive-before-accepted", tenantId, evidence.evidenceId(), 1,
@@ -255,7 +255,7 @@ class ArrivalAcceptanceApplicationMySqlTest {
         evidence.setCurrentRevisionNo(1);
         evidence.setAccSyncStatus("NOT_PUBLISHED");
         evidence.setAccRetryCount(0);
-        evidence.setVersion(0);
+        evidence.setVersion(0L);
         evidence.setCreator(String.valueOf(ACTOR_ID));
         evidence.setUpdater(String.valueOf(ACTOR_ID));
         evidenceMapper.insert(evidence);
@@ -361,7 +361,7 @@ class ArrivalAcceptanceApplicationMySqlTest {
                 throw new IllegalStateException("test project is not ACTIVE/S4 or actor is not project manager");
             }
             return new ProjectQualificationFact(projectId, ACTOR_ID, Set.of("PROJECT_MANAGER"),
-                    "ACTIVE", "S4", 5, 6L, 7L);
+                    "ACTIVE", "S4", 5L, 6L, 7L);
         }
 
         @Override

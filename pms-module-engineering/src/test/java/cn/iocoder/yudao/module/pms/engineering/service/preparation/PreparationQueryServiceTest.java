@@ -71,7 +71,7 @@ class PreparationQueryServiceTest {
         when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 4, 9L));
+                "ACTIVE", "S1", 4L, 9L));
         PreparationDO preparation = preparation();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
         PreparationItemDO first = item(200L, "POWER", 1);
@@ -136,7 +136,7 @@ class PreparationQueryServiceTest {
         when(permissionApi.hasAnyPermissions(any(), any(String[].class))).thenReturn(true);
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 4, 9L));
+                "ACTIVE", "S1", 4L, 9L));
         PreparationDO preparation = preparation();
         when(preparationMapper.selectCurrent(any())).thenReturn(preparation);
 
@@ -179,7 +179,7 @@ class PreparationQueryServiceTest {
         when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
         when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 4, 9L));
+                "ACTIVE", "S1", 4L, 9L));
         PreparationDO preparation = preparation();
         preparation.setStatusCode("PENDING_CONFIRMATION");
         when(preparationMapper.selectById(any())).thenReturn(preparation);

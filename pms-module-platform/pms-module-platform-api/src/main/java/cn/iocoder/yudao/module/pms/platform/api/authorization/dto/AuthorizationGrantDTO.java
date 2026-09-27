@@ -23,5 +23,5 @@ public record AuthorizationGrantDTO(
         Long revokedBy,
         LocalDateTime revokedAt,
         String revokeReason,
-        Integer version) {
+        Long version) {
 }

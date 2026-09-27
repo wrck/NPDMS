@@ -103,7 +103,7 @@ public class SatisfactionResultArchiveCompensationService {
             throw new IllegalStateException("archive result update failed");
         }
         if (Objects.equals(root.getCurrentSourceVersionId(), source.getId())) {
-            root.setArchiveStatus("ARCHIVED"); root.setVersion(root.getVersion() + 1);
+            root.setArchiveStatus("ARCHIVED");
             root.setUpdater(String.valueOf(result.getArchiveActorUserId()));
             if (deliverableMapper.updateById(root) != 1) {
                 throw new IllegalStateException("archive root update failed");

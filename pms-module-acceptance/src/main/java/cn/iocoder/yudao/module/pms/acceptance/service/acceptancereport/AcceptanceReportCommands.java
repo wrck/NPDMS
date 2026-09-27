@@ -14,22 +14,22 @@ public final class AcceptanceReportCommands {
                                String conclusionText, String acceptorName) {
     }
 
-    public record CreateDraftCommand(Long acceptanceId, Integer expectedActivityVersion,
+    public record CreateDraftCommand(Long acceptanceId, Long expectedActivityVersion,
                                      DraftContent content) {
     }
 
     public record UpdateDraftCommand(Long acceptanceId, Long reportVersionId,
-                                     Integer expectedActivityVersion, Integer expectedReportVersionNo,
+                                     Long expectedActivityVersion, Integer expectedReportVersionNo,
                                      DraftContent content) {
     }
 
     public record PublishCommand(Long acceptanceId, Long reportVersionId,
-                                 Integer expectedActivityVersion, Integer expectedReportVersionNo,
+                                 Long expectedActivityVersion, Integer expectedReportVersionNo,
                                  Long expectedCurrentReportVersionId, String idempotencyKey,
                                  String requestDigest) {
     }
 
-    public record RevokeCommand(Long acceptanceId, Integer expectedActivityVersion,
+    public record RevokeCommand(Long acceptanceId, Long expectedActivityVersion,
                                 Long expectedCurrentReportVersionId, Integer expectedCurrentReportVersionNo,
                                 String idempotencyKey, String requestDigest) {
     }

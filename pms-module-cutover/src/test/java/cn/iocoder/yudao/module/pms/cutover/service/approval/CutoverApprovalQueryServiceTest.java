@@ -65,7 +65,7 @@ class CutoverApprovalQueryServiceTest {
         CutoverApprovalNodeDO node = node();
         ApprovalTodoPageRow row = new ApprovalTodoPageRow();
         row.setNodeId(101L);
-        row.setApprovalInstanceId(100L); row.setApprovalVersion(0); row.setTaskId(10L); row.setProjectId(20L);
+        row.setApprovalInstanceId(100L); row.setApprovalVersion(0L); row.setTaskId(10L); row.setProjectId(20L);
         row.setTaskCode("CUT-10"); row.setTaskName("割接任务"); row.setGrade("A"); row.setNodeNo(1);
         row.setNodeCode("INITIATOR"); row.setCreatedAt(LocalDateTime.now());
         when(f.nodes.selectTodoPage(any())).thenReturn(List.of(node));
@@ -85,7 +85,7 @@ class CutoverApprovalQueryServiceTest {
         Fixture f = new Fixture();
         CutoverApprovalNodeDO node = node(); node.setNodeCode("SECOND_LINE"); node.setCurrentApproverUserId(22L);
         ApprovalTodoPageRow row = new ApprovalTodoPageRow();
-        row.setNodeId(101L); row.setApprovalInstanceId(100L); row.setApprovalVersion(0);
+        row.setNodeId(101L); row.setApprovalInstanceId(100L); row.setApprovalVersion(0L);
         row.setTaskId(10L); row.setProjectId(20L); row.setTaskCode("CUT-10"); row.setTaskName("割接任务");
         row.setGrade("A"); row.setNodeNo(1); row.setNodeCode("SECOND_LINE"); row.setCreatedAt(LocalDateTime.now());
         when(f.nodes.selectTodoPage(any())).thenReturn(List.of(node));
@@ -176,11 +176,11 @@ class CutoverApprovalQueryServiceTest {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO();
         row.setId(100L); row.setTenantId(1L); row.setTaskId(10L); row.setProjectId(20L); row.setPlanRevisionId(200L);
         row.setPlanRevisionNo(1); row.setGradeCode("A"); row.setInitiatorUserId(11L); row.setStatusCode(status);
-        row.setLeadTimeEnabled(false); row.setCurrentNodeNo(1); row.setVersion(0); return row;
+        row.setLeadTimeEnabled(false); row.setCurrentNodeNo(1); row.setVersion(0L); return row;
     }
     private static CutoverTaskDO task() {
         CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setTaskNo("CUT-10");
-        row.setTaskName("割接任务"); row.setVersion(3); return row;
+        row.setTaskName("割接任务"); row.setVersion(3L); return row;
     }
     private static CutoverApprovalNodeDO node() {
         CutoverApprovalNodeDO row = new CutoverApprovalNodeDO(); row.setId(101L); row.setTenantId(1L);

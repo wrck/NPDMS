@@ -26,7 +26,7 @@ class ProjectContactContextApiImplTest {
     private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,mock(CustomerQueryApi.class),projectRoles);
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
-        var row = new ProjectMasterDO(); row.setId(7L); row.setTenantId(1L); row.setCustomerId(8L); row.setVersion(2); row.setLifecycleStatus("ACTIVE");
+        var row = new ProjectMasterDO(); row.setId(7L); row.setTenantId(1L); row.setCustomerId(8L); row.setVersion(2L); row.setLifecycleStatus("ACTIVE");
         when(projects.selectById(7L)).thenReturn(row); when(projects.selectByIdForUpdate(7L)).thenReturn(row);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(7L,1L,Set.of(7L),Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(7L,1L,Set.of(7L),Set.of()));
@@ -36,29 +36,29 @@ class ProjectContactContextApiImplTest {
     @AfterEach void clear() { TenantContextHolder.clear(); }
     @Test void superAdminCanMaintainContactsWithoutPretendingToBeAProjectManager() {
         when(projectRoles.isTenantSuperAdmin(1L, 3L)).thenReturn(true);
-        assertTrue(api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)).canManage());
+        assertTrue(api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)).canManage());
         verify(members, never()).selectParticipantFacts(any());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1L)));
     }
     @Test void visibleServiceRoleAloneDoesNotGrantContactMaintenance() {
         when(members.selectParticipantFacts(any())).thenReturn(List.of());
         assertFalse(api.inspect(new ProjectContactContextApi.Query(1L,3L,7L)).canManage());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
     }
     @Test void managerCanMaintainOnlyWithCurrentProjectVersion() {
         when(members.selectParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
-        var context = api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2));
+        var context = api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L));
         assertTrue(context.canManage()); assertEquals(8L, context.customerId());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1L)));
         assertThrows(RuntimeException.class, () -> api.inspect(new ProjectContactContextApi.Query(2L,3L,7L)));
     }
 
     @Test void closedProjectManagerKeepsHistoryReadButCannotWrite() {
         when(members.selectParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
-        var closed = new ProjectMasterDO(); closed.setId(7L); closed.setTenantId(1L); closed.setCustomerId(8L); closed.setVersion(2); closed.setLifecycleStatus("NORMAL_CLOSED");
+        var closed = new ProjectMasterDO(); closed.setId(7L); closed.setTenantId(1L); closed.setCustomerId(8L); closed.setVersion(2L); closed.setLifecycleStatus("NORMAL_CLOSED");
         when(projects.selectById(7L)).thenReturn(closed); when(projects.selectByIdForUpdate(7L)).thenReturn(closed);
         var context = api.inspect(new ProjectContactContextApi.Query(1L,3L,7L));
         assertFalse(context.canManage()); assertTrue(context.canViewHistory());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
     }
 }

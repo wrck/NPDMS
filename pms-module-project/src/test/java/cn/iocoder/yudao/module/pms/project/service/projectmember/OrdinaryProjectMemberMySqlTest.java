@@ -207,12 +207,12 @@ class OrdinaryProjectMemberMySqlTest {
         catch (ServiceException conflict) { assertEquals(PROJECT_VERSION_CONFLICT.getCode(), conflict.getCode()); return 0; }
         finally { TenantContextHolder.clear(); }
     }
-    private Command command(Action action, Long assignment, Long user, String role, String note, int version, String key) {
+    private Command command(Action action, Long assignment, Long user, String role, String note, long version, String key) {
         return new Command(projectId, version, action, assignment,
                 action == Action.REMOVE ? null : new MemberValues(user, role, "现场支持", note), key, marker + "-" + key);
     }
     private Actor actor() { return new Actor(1L, 7L, marker); }
-    private int version() { return jdbc.queryForObject("SELECT version FROM proj_project WHERE id=?", Integer.class, projectId); }
+    private long version() { return jdbc.queryForObject("SELECT version FROM proj_project WHERE id=?", Integer.class, projectId); }
     private long ordinaryCount() { return jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment WHERE tenant_id=1 AND project_id=? AND member_role IN ('TEAM_MEMBER','SALES_REPRESENTATIVE')", Long.class, projectId); }
     private long user(String suffix, int tenant, int status) {
         long id = insert("INSERT INTO system_users (tenant_id,username,password,nickname,status,dept_id,creator) VALUES (?,?,'',?,?,25,?)", tenant, marker + suffix, suffix, status, marker);

@@ -83,7 +83,7 @@ public class FormInstanceServiceImpl implements FormInstanceService {
         FormInstanceDO entity = BeanUtils.toBean(createReqVO, FormInstanceDO.class);
         entity.setStatus(STATUS_PENDING);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         // 5. 冻结模板快照：若未传入 templateSnapshot，则自动从模板当前版本生成快照
         if (StringUtils.isBlank(entity.getTemplateSnapshot())) {

@@ -298,14 +298,14 @@ class PreparationInitializationMySqlIntegrationTest {
         var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-REVIEW-" + projectId);
 
         var submitted = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
-                preparationId, null, 0, null, 4, null, "REVIEW-SUBMIT-" + projectId), actor);
+                preparationId, null, 0, null, 4L, null, "REVIEW-SUBMIT-" + projectId), actor);
         assertEquals("PENDING_CONFIRMATION", submitted.statusCode());
         List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
         int preparationVersion = 1;
         for (int index = 0; index < itemIds.size(); index++) {
             var confirmed = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.CONFIRM,
-                    preparationId, itemIds.get(index), preparationVersion, 0, 4, null,
+                    preparationId, itemIds.get(index), preparationVersion, 0, 4L, null,
                     "REVIEW-CONFIRM-" + projectId + "-" + index), actor);
             preparationVersion = confirmed.preparationVersion();
         }
@@ -313,7 +313,7 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND id=?", String.class, preparationId));
 
         var returned = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.RETURN,
-                preparationId, itemIds.getFirst(), preparationVersion, 1, 4, "补充现场资料",
+                preparationId, itemIds.getFirst(), preparationVersion, 1, 4L, "补充现场资料",
                 "REVIEW-RETURN-" + projectId), actor);
 
         assertEquals("DRAFT", returned.statusCode());
@@ -346,7 +346,7 @@ class PreparationInitializationMySqlIntegrationTest {
                 actor.correlationId()));
 
         var resubmitted = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
-                returned.currentPreparationId(), null, 0, null, 4, null,
+                returned.currentPreparationId(), null, 0, null, 4L, null,
                 "REVIEW-RESUBMIT-" + projectId), actor);
         assertEquals("PENDING_CONFIRMATION", resubmitted.statusCode());
         assertEquals((long) itemIds.size(), jdbcTemplate.queryForObject("SELECT COUNT(*) "
@@ -373,7 +373,7 @@ class PreparationInitializationMySqlIntegrationTest {
         var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-PATCH-" + projectId);
         PatchPreparationItemCommand command = new PatchPreparationItemCommand(preparationId, itemId,
                 ((Number) item.get("item_version")).intValue(), 0, 0, 0,
-                ((Number) item.get("form_version")).intValue(), 4,
+                ((Number) item.get("form_version")).intValue(), 4L,
                 Set.of("siteResultCode", "evidenceReferences"), null, null, null, null,
                 "READY", null, null, List.of(new PatchPreparationItemCommand.EvidenceReference(
                 projectId + 3, 2, "SITE", new FileFactVersion(1, 2, 3), 1L)));
@@ -390,7 +390,7 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND artifact_id=? AND version_no=2", projectId + 3);
         PatchPreparationItemCommand stale = new PatchPreparationItemCommand(preparationId, itemId,
                 patched.getItemVersion(), patched.getPreparationVersion(), patched.getInputVersion(), 0,
-                patched.getFormVersion(), 4, Set.of("evidenceReferences"), null, null, null, null,
+                patched.getFormVersion(), 4L, Set.of("evidenceReferences"), null, null, null, null,
                 null, null, null, command.evidenceReferences());
 
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
@@ -407,9 +407,9 @@ class PreparationInitializationMySqlIntegrationTest {
         PreparedReadiness prepared = prepareConfirmedNoSource();
 
         var first = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                prepared.preparationVersion(), 4, "READY-EVALUATE-" + projectId + "-1"), prepared.actor());
+                prepared.preparationVersion(), 4L, "READY-EVALUATE-" + projectId + "-1"), prepared.actor());
         var replay = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                first.readiness().preparationVersion(), 4, "READY-EVALUATE-" + projectId + "-2"), prepared.actor());
+                first.readiness().preparationVersion(), 4L, "READY-EVALUATE-" + projectId + "-2"), prepared.actor());
 
         assertEquals("READY", first.readiness().readinessStatus(),
                 () -> "blockers=" + first.readiness().blockerCodes());
@@ -489,7 +489,7 @@ class PreparationInitializationMySqlIntegrationTest {
         Long oaItemId = draft.itemId();
         var actor = draft.actor();
         var refreshed = sourceService.refresh(new PreparationSourceService.SourceRefreshCommand(
-                preparationId, oaItemId, 0, 0, 0, 0, null, 4,
+                preparationId, oaItemId, 0, 0, 0, 0, null, 4L,
                 "OA", "REQUEST", "OA-" + projectId, "REF-" + projectId,
                 "SOURCE-REFRESH-" + projectId), actor);
         assertEquals("SYNCED", refreshed.syncStatus());
@@ -498,16 +498,16 @@ class PreparationInitializationMySqlIntegrationTest {
 
         int preparationVersion = reviewService.execute(new PreparationReviewCommand(
                 PreparationReviewCommand.SUBMIT, preparationId, null, refreshed.preparationVersion(),
-                null, 4, null, "SOURCE-SUBMIT-" + projectId), actor).preparationVersion();
+                null, 4L, null, "SOURCE-SUBMIT-" + projectId), actor).preparationVersion();
         List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
         for (int index = 0; index < itemIds.size(); index++) {
             preparationVersion = reviewService.execute(new PreparationReviewCommand(
                     PreparationReviewCommand.CONFIRM, preparationId, itemIds.get(index), preparationVersion,
-                    0, 4, null, "SOURCE-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
+                    0, 4L, null, "SOURCE-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
         }
         var ready = readinessService.evaluate(new PreparationReadinessCommand(
-                preparationId, preparationVersion, 4, "SOURCE-READY-" + projectId), actor);
+                preparationId, preparationVersion, 4L, "SOURCE-READY-" + projectId), actor);
         assertEquals("READY", ready.readiness().readinessStatus(),
                 () -> "blockers=" + ready.readiness().blockerCodes());
         assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
@@ -530,7 +530,7 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND aggregate_key=?", Long.class, String.valueOf(preparationId)));
 
         var notReady = readinessService.evaluate(new PreparationReadinessCommand(
-                preparationId, readyVersion, 4, "SOURCE-CHANGED-" + projectId), actor);
+                preparationId, readyVersion, 4L, "SOURCE-CHANGED-" + projectId), actor);
         assertEquals("NOT_READY", notReady.readiness().readinessStatus());
         assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
                 + "FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 AND preparation_id=?",
@@ -587,7 +587,7 @@ class PreparationInitializationMySqlIntegrationTest {
         WaiverPreparation prepared = prepareConfirmedOaWithoutSource();
         var manager = prepared.manager();
         var initial = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                prepared.preparationVersion(), 4, "WAIVER-INITIAL-" + projectId), manager);
+                prepared.preparationVersion(), 4L, "WAIVER-INITIAL-" + projectId), manager);
         assertEquals("NOT_READY", initial.readiness().readinessStatus());
         assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), initial.readiness().blockerCodes());
 
@@ -601,7 +601,7 @@ class PreparationInitializationMySqlIntegrationTest {
 
         PreparationVersions approvedVersions = preparationVersions(prepared.preparationId());
         var ready = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                approvedVersions.preparationVersion(), 4, "WAIVER-READY-" + projectId), manager);
+                approvedVersions.preparationVersion(), 4L, "WAIVER-READY-" + projectId), manager);
         assertEquals("READY", ready.readiness().readinessStatus(),
                 () -> "blockers=" + ready.readiness().blockerCodes());
 
@@ -622,14 +622,14 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(auditCount, preparationAuditCount(prepared.preparationId()));
 
         var expired = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                readyPreparationVersion, 4, "WAIVER-EXPIRED-" + projectId), manager);
+                readyPreparationVersion, 4L, "WAIVER-EXPIRED-" + projectId), manager);
         assertEquals("NOT_READY", expired.readiness().readinessStatus());
         assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
         int expiredVersion = expired.readiness().preparationVersion();
         int expiredReadinessVersion = expired.readiness().readinessVersion();
 
         var replay = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                expiredVersion, 4, "WAIVER-EXPIRED-REPLAY-" + projectId), manager);
+                expiredVersion, 4L, "WAIVER-EXPIRED-REPLAY-" + projectId), manager);
         assertEquals("NOT_READY", replay.readiness().readinessStatus());
         assertEquals(expiredReadinessVersion, replay.readiness().readinessVersion());
         assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
@@ -640,7 +640,7 @@ class PreparationInitializationMySqlIntegrationTest {
         WaiverPreparation prepared = prepareConfirmedOaWithoutSource();
         var manager = prepared.manager();
         var initial = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                prepared.preparationVersion(), 4, "WITHDRAW-INITIAL-" + projectId), manager);
+                prepared.preparationVersion(), 4L, "WITHDRAW-INITIAL-" + projectId), manager);
         assertEquals("NOT_READY", initial.readiness().readinessStatus());
 
         var created = createWaiver(prepared, LocalDateTime.now().plusMinutes(5),
@@ -653,7 +653,7 @@ class PreparationInitializationMySqlIntegrationTest {
 
         PreparationVersions versions = preparationVersions(prepared.preparationId());
         var evaluated = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                versions.preparationVersion(), 4, "WITHDRAW-EVALUATE-" + projectId), manager);
+                versions.preparationVersion(), 4L, "WITHDRAW-EVALUATE-" + projectId), manager);
         assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
         assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), evaluated.readiness().blockerCodes());
         assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
@@ -666,7 +666,7 @@ class PreparationInitializationMySqlIntegrationTest {
         WaiverPreparation prepared = prepareConfirmedOaWithoutSource();
         var manager = prepared.manager();
         var initial = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                prepared.preparationVersion(), 4, "ROLE-INITIAL-" + projectId), manager);
+                prepared.preparationVersion(), 4L, "ROLE-INITIAL-" + projectId), manager);
         assertEquals("NOT_READY", initial.readiness().readinessStatus());
         var created = createWaiver(prepared, LocalDateTime.now().plusMinutes(5),
                 "ROLE-CREATE-" + projectId);
@@ -687,7 +687,7 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND id=? AND status_code='APPROVED'", Long.class, submitted.waiverId()));
 
         var evaluated = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                beforeDecision.preparationVersion(), 4, "ROLE-EVALUATE-" + projectId), manager);
+                beforeDecision.preparationVersion(), 4L, "ROLE-EVALUATE-" + projectId), manager);
         assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
         assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), evaluated.readiness().blockerCodes());
     }
@@ -696,7 +696,7 @@ class PreparationInitializationMySqlIntegrationTest {
     void changedFileFactExpiresReadySnapshotWithoutInspectWritesAndAppendsNotReady() {
         PreparedReadiness prepared = prepareConfirmedWithFile();
         var ready = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                prepared.preparationVersion(), 4, "FILE-READY-" + projectId), prepared.actor());
+                prepared.preparationVersion(), 4L, "FILE-READY-" + projectId), prepared.actor());
         assertEquals("READY", ready.readiness().readinessStatus());
 
         jdbcTemplate.update("UPDATE plt_file_version SET availability_version=4 "
@@ -715,7 +715,7 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(auditCount, preparationAuditCount(prepared.preparationId()));
 
         var notReady = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                readyPreparationVersion, 4, "FILE-CHANGED-" + projectId), prepared.actor());
+                readyPreparationVersion, 4L, "FILE-CHANGED-" + projectId), prepared.actor());
         assertEquals("NOT_READY", notReady.readiness().readinessStatus());
         assertEquals(List.of("FILE_FACT_CHANGED"), notReady.readiness().blockerCodes());
         assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
@@ -725,7 +725,7 @@ class PreparationInitializationMySqlIntegrationTest {
     void changedProjectScopeExpiresReadySnapshotAndExplicitEvaluateFreezesNewScope() {
         PreparedReadiness prepared = prepareConfirmedNoSource();
         var ready = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                prepared.preparationVersion(), 4, "SCOPE-READY-" + projectId), prepared.actor());
+                prepared.preparationVersion(), 4L, "SCOPE-READY-" + projectId), prepared.actor());
         assertEquals("READY", ready.readiness().readinessStatus());
         assertEquals(1L, ready.readiness().projectScopeVersion());
 
@@ -744,7 +744,7 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(auditCount, preparationAuditCount(prepared.preparationId()));
 
         var refreshed = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                readyPreparationVersion, 4, "SCOPE-REFRESH-" + projectId), prepared.actor());
+                readyPreparationVersion, 4L, "SCOPE-REFRESH-" + projectId), prepared.actor());
         assertEquals("READY", refreshed.readiness().readinessStatus());
         assertEquals(true, refreshed.readiness().snapshotCurrent());
         assertEquals(2L, refreshed.readiness().projectScopeVersion());
@@ -768,14 +768,14 @@ class PreparationInitializationMySqlIntegrationTest {
         assertSourcePolicies(preparationId, List.of("NONE"));
         var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-READY-" + projectId);
         reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
-                preparationId, null, 0, null, 4, null, "READY-SUBMIT-" + projectId), actor);
+                preparationId, null, 0, null, 4L, null, "READY-SUBMIT-" + projectId), actor);
         assertSourcePolicies(preparationId, List.of("NONE"));
         List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
         int preparationVersion = 1;
         for (int index = 0; index < itemIds.size(); index++) {
             preparationVersion = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.CONFIRM,
-                    preparationId, itemIds.get(index), preparationVersion, 0, 4, null,
+                    preparationId, itemIds.get(index), preparationVersion, 0, 4L, null,
                     "READY-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
         }
         assertSourcePolicies(preparationId, List.of("NONE"));
@@ -807,13 +807,13 @@ class PreparationInitializationMySqlIntegrationTest {
         var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-FILE-" + projectId);
         int preparationVersion = reviewService.execute(new PreparationReviewCommand(
                 PreparationReviewCommand.SUBMIT, preparationId, null, 0,
-                null, 4, null, "FILE-SUBMIT-" + projectId), actor).preparationVersion();
+                null, 4L, null, "FILE-SUBMIT-" + projectId), actor).preparationVersion();
         List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
         for (int index = 0; index < itemIds.size(); index++) {
             preparationVersion = reviewService.execute(new PreparationReviewCommand(
                     PreparationReviewCommand.CONFIRM, preparationId, itemIds.get(index), preparationVersion,
-                    0, 4, null, "FILE-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
+                    0, 4L, null, "FILE-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
         }
         return new PreparedReadiness(preparationId, preparationVersion, actor);
     }
@@ -824,7 +824,7 @@ class PreparationInitializationMySqlIntegrationTest {
         if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("concurrent start timeout");
         try {
             var result = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
-                    prepared.preparationVersion(), 4, "READY-CONCURRENT-" + projectId + "-" + suffix),
+                    prepared.preparationVersion(), 4L, "READY-CONCURRENT-" + projectId + "-" + suffix),
                     new PreparationItemApplicationService.Actor(0L, 9L,
                             "PRE02-READY-CONCURRENT-" + projectId + "-" + suffix));
             return result.readiness().readinessStatus();
@@ -868,14 +868,14 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND id=?", draft.itemId());
         int preparationVersion = reviewService.execute(new PreparationReviewCommand(
                 PreparationReviewCommand.SUBMIT, draft.preparationId(), null, 0,
-                null, 4, null, "WAIVER-PREPARE-SUBMIT-" + projectId), draft.actor()).preparationVersion();
+                null, 4L, null, "WAIVER-PREPARE-SUBMIT-" + projectId), draft.actor()).preparationVersion();
         List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class,
                 draft.preparationId());
         for (int index = 0; index < itemIds.size(); index++) {
             preparationVersion = reviewService.execute(new PreparationReviewCommand(
                     PreparationReviewCommand.CONFIRM, draft.preparationId(), itemIds.get(index), preparationVersion,
-                    0, 4, null, "WAIVER-PREPARE-CONFIRM-" + projectId + "-" + index),
+                    0, 4L, null, "WAIVER-PREPARE-CONFIRM-" + projectId + "-" + index),
                     draft.actor()).preparationVersion();
         }
         return new WaiverPreparation(draft.preparationId(), draft.itemId(), preparationVersion, draft.actor());
@@ -887,7 +887,7 @@ class PreparationInitializationMySqlIntegrationTest {
         return waiverService.execute(new PreparationWaiverService.WaiverCommand("CREATE",
                 prepared.preparationId(), prepared.itemId(), null, versions.preparationVersion(),
                 versions.inputVersion(), versions.readinessVersion(), currentItemVersion(prepared.itemId()),
-                null, 4, List.of("SOURCE_PROVIDER_UNAVAILABLE"), "OA来源暂不可用", "就绪依据暂缺",
+                null, 4L, List.of("SOURCE_PROVIDER_UNAVAILABLE"), "OA来源暂不可用", "就绪依据暂缺",
                 "上线前补齐OA事实", LocalDateTime.now().minusMinutes(1), validUntil, null, key),
                 prepared.manager());
     }
@@ -898,7 +898,7 @@ class PreparationInitializationMySqlIntegrationTest {
         return waiverService.execute(new PreparationWaiverService.WaiverCommand(action,
                 prepared.preparationId(), prepared.itemId(), waiverId, versions.preparationVersion(),
                 versions.inputVersion(), versions.readinessVersion(), currentItemVersion(prepared.itemId()),
-                waiverVersion, 4, List.of(), null, null, null, null, null,
+                waiverVersion, 4L, List.of(), null, null, null, null, null,
                 "APPROVE".equals(action) ? "同意" : null, key), actor);
     }
 
@@ -928,7 +928,7 @@ class PreparationInitializationMySqlIntegrationTest {
     private PreparationSourceService.SourceRefreshCommand sourceCommand(OaSourceDraft draft,
             int preparationVersion, int inputVersion, Integer sourceVersion, String key) {
         return new PreparationSourceService.SourceRefreshCommand(draft.preparationId(), draft.itemId(),
-                preparationVersion, inputVersion, 0, 0, sourceVersion, 4,
+                preparationVersion, inputVersion, 0, 0, sourceVersion, 4L,
                 "OA", "REQUEST", "OA-" + projectId, "REF-" + projectId, key);
     }
 
@@ -1006,7 +1006,7 @@ class PreparationInitializationMySqlIntegrationTest {
 
     private PreparationInitializationCommand command() {
         return new PreparationInitializationCommand(projectId, taskId, contractId,
-                4, 2, 1, PreparationInitializationApi.TRIGGER_PROJECT_CREATION,
+                4L, 2, 1, PreparationInitializationApi.TRIGGER_PROJECT_CREATION,
                 idempotencyKey, "PRE02-IT-" + projectId, 9L);
     }
 

@@ -100,6 +100,6 @@ public class SiteSurveySaveReqVO {
     private Integer formRevisionVersion;
     private java.util.Map<String, Object> formExtraValues;
     private Boolean outsourceRequired;
-    private Integer projectEndDateVersion;
+    private Long projectEndDateVersion;
     private Boolean projectEndDateChanged;
 }

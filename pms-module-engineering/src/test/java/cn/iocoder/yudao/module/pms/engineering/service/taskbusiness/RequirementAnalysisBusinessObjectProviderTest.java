@@ -92,7 +92,7 @@ class RequirementAnalysisBusinessObjectProviderTest {
     @Test void unattendedCompletionReadsOnlySameRoundOwnerResultWithoutBrowserIdentityOrPrivateBody() {
         SecurityContextHolder.clearContext();
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                9L, 1, 91L, 1, 92L, 1, 93L, 94L, 1, 1, 95L, 1, true, java.time.LocalDateTime.of(2026,9,14,9,0));
+                9L, 1L, 91L, 1, 92L, 1, 93L, 94L, 1, 1, 95L, 1, true, java.time.LocalDateTime.of(2026,9,14,9,0));
         var row = new PreparationDO(); row.setId(42L); row.setProjectId(9L); row.setTenantId(1L);
         row.setDynamicFormInstanceId(500L); row.setVersion(3); row.setContentVersion(2);
         row.setStatusCode("COMPLETED"); row.setCompletedBy(7L); row.setCompletedAt(java.time.LocalDateTime.now());
@@ -147,7 +147,7 @@ class RequirementAnalysisBusinessObjectProviderTest {
     }
     private cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext stageExecution(Long projectId, Long stageId, boolean writable) {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                projectId,1,stageId,1,92L,1,93L,94L,1,2,writable);
+                projectId,1L,stageId,1,92L,1,93L,94L,1,2,writable);
     }
     @Test void foreignProjectObjectIsRejected() {
         draft.setProjectId(10L); assertThrows(RuntimeException.class, () -> provider.inspect(context, "42"));
@@ -190,7 +190,7 @@ class RequirementAnalysisBusinessObjectProviderTest {
         when(fact.projectId()).thenReturn(9L); when(fact.preparationId()).thenReturn(42L);
         when(fact.status()).thenReturn("COMPLETED"); when(fact.factVector()).thenReturn(vector);
         when(fact.businessVersion()).thenReturn(1); when(fact.contentVersion()).thenReturn(1);
-        when(fact.projectVersion()).thenReturn(2); when(fact.templateRevision()).thenReturn(8L);
+        when(fact.projectVersion()).thenReturn(2L); when(fact.templateRevision()).thenReturn(8L);
         when(facts.inspect(any())).thenReturn(fact); when(facts.lockAndRevalidate(any())).thenReturn(fact);
         String version = provider.inspect(context, "42").factVersion();
         var locked = provider.lockAndRevalidate(context, "42", version);

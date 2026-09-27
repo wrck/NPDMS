@@ -32,7 +32,7 @@ class ProjectDeliverableStageGateFactProviderTest {
         AccProjectDeliverableDO row = new AccProjectDeliverableDO();
         row.setId(31L);
         row.setStatus("ACCEPTED");
-        row.setVersion(5);
+        row.setVersion(5L);
         when(mapper.selectGateFactForUpdate(any())).thenReturn(row);
 
         var rules = mock(cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.class);

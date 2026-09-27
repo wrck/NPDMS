@@ -79,7 +79,7 @@ class TaskNativeBindingHostProviderTest {
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
         assignment.setAssigneeUserId(9L);
-        assignment.setVersion(1);
+        assignment.setVersion(1L);
         when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));
         when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
@@ -172,7 +172,7 @@ class TaskNativeBindingHostProviderTest {
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
         assignment.setAssigneeUserId(9L);
-        assignment.setVersion(1);
+        assignment.setVersion(1L);
         when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));
         var membership = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
         membership.setProjectId(100L);

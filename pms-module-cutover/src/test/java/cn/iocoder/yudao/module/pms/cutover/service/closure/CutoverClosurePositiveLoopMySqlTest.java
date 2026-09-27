@@ -91,32 +91,32 @@ class CutoverClosurePositiveLoopMySqlTest {
         task.setDeviceScopeWatermark("{\"devices\":[301]}"); task.setCustomerContextSnapshot("{}");
         task.setReadinessContextSnapshot("{}"); task.setManualGrade("A"); task.setCurrentAssessmentId(701L);
         task.setConfigurationRevisionId(401L); task.setConfigurationCode("CFG-1");
-        task.setConfigurationRevisionNo(1); task.setVersion(7); task.setCreator("8"); task.setUpdater("8");
+        task.setConfigurationRevisionNo(1); task.setVersion(7L); task.setCreator("8"); task.setUpdater("8");
         assertEquals(1, taskMapper.insert(task));
 
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
         plan.setId(planId); plan.setTenantId(tenantId); plan.setCutoverTaskId(taskId); plan.setRevisionNo(1);
         plan.setOriginCode("NEW_PLATFORM"); plan.setEditModeCode("ONLINE_TEMPLATE_STANDARD"); plan.setGradeCode("A");
-        plan.setAssessmentId(701L); plan.setAssessmentVersion(1); plan.setChecklistId(702L); plan.setChecklistVersion(1);
+        plan.setAssessmentId(701L); plan.setAssessmentVersion(1L); plan.setChecklistId(702L); plan.setChecklistVersion(1L);
         plan.setConfigurationRevisionId(401L); plan.setConfigurationCode("CFG-1"); plan.setConfigurationRevisionNo(1);
         plan.setTemplateSectionSnapshot("[]"); plan.setSourceSnapshot("{}"); plan.setContentSnapshot("{}");
         plan.setStatusCode("SUBMITTED"); plan.setCurrentMarker(1); plan.setSubmittedBy(8L); plan.setSubmittedAt(now);
-        plan.setApprovalInstanceId(approvalId); plan.setApprovalVersion(4); plan.setVersion(6);
+        plan.setApprovalInstanceId(approvalId); plan.setApprovalVersion(4L); plan.setVersion(6L);
         plan.setCreator("8"); plan.setUpdater("8");
         assertEquals(1, planMapper.insert(plan));
 
         CutoverApprovalInstanceDO approval = new CutoverApprovalInstanceDO();
         approval.setId(approvalId); approval.setTenantId(tenantId); approval.setTaskId(taskId);
         approval.setProjectId(projectId); approval.setPlanRevisionId(planId); approval.setPlanRevisionNo(1);
-        approval.setAssessmentId(701L); approval.setAssessmentVersion(1); approval.setChecklistId(702L);
-        approval.setChecklistVersion(1); approval.setGradeCode("A"); approval.setInitiatorUserId(8L);
+        approval.setAssessmentId(701L); approval.setAssessmentVersion(1L); approval.setChecklistId(702L);
+        approval.setChecklistVersion(1L); approval.setGradeCode("A"); approval.setInitiatorUserId(8L);
         approval.setInitiatorProjectScopeVersion(30L); approval.setLeadTimeEnabled(true);
         approval.setLeadTimeSnapshot(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec()
                 .encode(new cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator()
                         .calculate("A", task.getCutoverType(), task.getScheduledTime(), plan.getSubmittedAt())));
         approval.setSourceSnapshotVersion(1);
         approval.setSourceSnapshot("{}"); approval.setRouteSnapshot("{}"); approval.setStatusCode("APPROVED");
-        approval.setDecisionAt(now); approval.setVersion(4); approval.setCreator("8"); approval.setUpdater("8");
+        approval.setDecisionAt(now); approval.setVersion(4L); approval.setCreator("8"); approval.setUpdater("8");
         assertEquals(1, approvalMapper.insert(approval));
     }
 
@@ -138,7 +138,7 @@ class CutoverClosurePositiveLoopMySqlTest {
 
     @Test
     void completesP6DraftCollectionFilesAndSuccessArchiveInOneRealStack() {
-        service.save(new SaveCutoverClosureCommand(tenantId, 8L, taskId, 7, null,
+        service.save(new SaveCutoverClosureCommand(tenantId, 8L, taskId, 7L, null,
                 new SaveCutoverClosureCommand.ClosureContent(true, null, true, null, true, null,
                         false, null, null, null, null, attachments()),
                 "loop-create", "corr-loop-create"));
@@ -151,7 +151,7 @@ class CutoverClosurePositiveLoopMySqlTest {
                 VALUES (?,?,?,?,?,'SN-P6-LOOP',1,1,0,'8',NOW(3),'8',NOW(3),b'0')
                 """, 996_000_000_000L + Math.floorMod(deviceId, 1_000_000L), tenantId, taskId, projectId, deviceId);
 
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7, closureId, 0,
+        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "loop-collect", "corr-loop-collect"));
         String collectionTaskId = jdbc.queryForObject("""
@@ -162,7 +162,7 @@ class CutoverClosurePositiveLoopMySqlTest {
                 deviceId, CollectionStage.POST_COLLECTION, "loop-callback", collectionTaskId, true,
                 "loop-result", "v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-loop-callback"));
 
-        SubmitCutoverClosureCommand submit = new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7, closureId, 2,
+        SubmitCutoverClosureCommand submit = new SubmitCutoverClosureCommand(tenantId, 8L, taskId, 7L, closureId, 2L,
                 "SUCCESS", "loop-submit", "corr-loop-submit");
         service.submit(submit);
         service.submit(submit);

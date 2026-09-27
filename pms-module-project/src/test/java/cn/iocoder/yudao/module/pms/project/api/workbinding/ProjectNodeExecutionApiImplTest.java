@@ -77,7 +77,7 @@ class ProjectNodeExecutionApiImplTest {
     }
 
     private ProjectTaskExecutionRecord row(String project, String stage, String round, String task, long execution, int version) {
-        return new ProjectTaskExecutionRecord(100L, 1, project, 200L, 2, task, 300L, 1, 400L,
+        return new ProjectTaskExecutionRecord(100L, 1L, project, 200L, 2, task, 300L, 1, 400L,
                 execution, version, 1, round, 600L, 1, stage, stage, java.time.LocalDateTime.of(2026,9,14,9,0));
     }
 }

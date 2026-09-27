@@ -43,12 +43,12 @@ class NormalClosureExitExecutorTest {
     @BeforeEach
     void setUp() {
         executor = new NormalClosureExitExecutor(access, checks, closureProjects, stages, executions, childWaitEvents);
-        project.setId(9L); project.setTenantId(7L); project.setVersion(3); project.setCurrentStage("S6");
+        project.setId(9L); project.setTenantId(7L); project.setVersion(3L); project.setCurrentStage("S6");
         project.setActivePlanVersionId(21L); project.setLifecycleTemplateId(31L); project.setLifecycleTemplateRevisionNo(2);
         stage.setId(11L); stage.setVersion(4); stage.setProjectId(9L); stage.setTenantId(7L); stage.setStatus("ACTIVE");
         TenantContextHolder.setTenantId(7L);
         login(1L);
-        when(access.lock(eq(9L), eq(3), eq(15L), any())).thenReturn(new NormalClosureAccess.Context(project, 15L));
+        when(access.lock(eq(9L), eq(3L), eq(15L), any())).thenReturn(new NormalClosureAccess.Context(project, 15L));
         when(access.lockPrimaryServiceManagerUserIds(7L, 9L)).thenReturn(List.of(5L));
         when(checks.evaluateLocked(eq(project), eq(15L), eq(103L), eq(1L), eq("closure-1"))).thenReturn(evaluation());
         when(closureProjects.selectFrozenTemplateRevisionId(any())).thenReturn(51L);
@@ -235,8 +235,8 @@ class NormalClosureExitExecutorTest {
     }
 
     private ClosureExitCommand command() {
-        return new ClosureExitCommand(7L, 9L, 3, 15L, 103L, "closure-1", 101L, 102L, 1L,
-                "S6", 5L, "digest-1", "approval-1", 4);
+        return new ClosureExitCommand(7L, 9L, 3L, 15L, 103L, "closure-1", 101L, 102L, 1L,
+                "S6", 5L, "digest-1", "approval-1", 4L);
     }
 
     private void login(Long userId) {

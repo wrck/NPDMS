@@ -29,14 +29,14 @@ class BusinessViewControllerTest {
         assertEquals(Set.of("GET ", "GET /components", "GET /{id}", "POST ", "PUT /{id}",
                 "POST /{id}/actions/copy", "POST /{id}/actions/validate", "POST /{id}/actions/publish", "POST /{id}/actions/disable"), paths);
         for (String action : List.of("copy", "publish", "disable")) {
-            Method method = BusinessViewController.class.getMethod(action, Long.class, Integer.class, String.class);
+            Method method = BusinessViewController.class.getMethod(action, Long.class, Long.class, String.class);
             assertEquals("If-Match", method.getParameters()[1].getAnnotation(RequestHeader.class).value());
             assertEquals("Idempotency-Key", method.getParameters()[2].getAnnotation(RequestHeader.class).value());
             assertTrue(method.getAnnotation(PreAuthorize.class).value().contains(action.equals("copy") ? ":manage'" : ":" + action + "'"));
         }
         Method validate = BusinessViewController.class.getMethod("validate", Long.class);
         assertTrue(validate.getAnnotation(PreAuthorize.class).value().contains(":manage'"));
-        Method update = BusinessViewController.class.getMethod("update", Long.class, Integer.class, String.class, BusinessViewController.SelectionRequest.class);
+        Method update = BusinessViewController.class.getMethod("update", Long.class, Long.class, String.class, BusinessViewController.SelectionRequest.class);
         assertEquals("If-Match", update.getParameters()[1].getAnnotation(RequestHeader.class).value());
         assertEquals("Idempotency-Key", update.getParameters()[2].getAnnotation(RequestHeader.class).value());
     }
@@ -61,15 +61,15 @@ class BusinessViewControllerTest {
         assertEquals(0, controller.page(page).getCode()); assertEquals(0L, controller.page(page).getData().getTotal());
         var request = new BusinessViewController.SelectionRequest("REQUIREMENT_ANALYSIS", "analysis", "PROJ_REQUIREMENT_ANALYSIS", "1", null);
         controller.create("key", request); verify(service).create("key", request.selection());
-        controller.update(1L, 0, "edit", request); verify(service).update(1L, 0, "edit", request.selection());
-        controller.copy(1L, 0, "copy"); verify(service).copy(1L, 0, "copy");
+        controller.update(1L, 0L, "edit", request); verify(service).update(1L, 0L, "edit", request.selection());
+        controller.copy(1L, 0L, "copy"); verify(service).copy(1L, 0L, "copy");
     }
 
     @Test void responseRoundTripsMetadataAndDoesNotExposeMutableJsonOrObjectActions() {
         var schema = JsonUtils.parseTree("{\"type\":\"object\"}");
         var response = new BusinessViewRevision(1L, "REQUIREMENT_ANALYSIS", "analysis", 1L, "SOL",
                 BusinessViewComponentProvider.ViewSource.PAGE, "PROJ_REQUIREMENT_ANALYSIS", "1", null,
-                schema, JsonUtils.parseTree("[\"VIEW\"]"), "SOL_QUERY", "SOL_COMMAND", "SOL_PERMISSION", null, null, 0, "DRAFT", Set.of("UPDATE"));
+                schema, JsonUtils.parseTree("[\"VIEW\"]"), "SOL_QUERY", "SOL_COMMAND", "SOL_PERMISSION", null, null, 0L, "DRAFT", Set.of("UPDATE"));
         var json = JsonUtils.toJsonString(response);
         assertEquals(response, JsonUtils.parseObject(json, BusinessViewRevision.class));
         assertFalse(json.contains("tenantId")); assertFalse(json.contains("actorId"));

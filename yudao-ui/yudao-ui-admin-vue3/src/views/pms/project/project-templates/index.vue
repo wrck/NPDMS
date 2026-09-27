@@ -53,7 +53,8 @@
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="交付设计" name="draft">
-          <el-alert v-if="draftReadonly" title="模板已停用，Designer 只读。需要新供给请显式复制，不修改既有历史。" type="warning" :closable="false" />
+          <el-alert v-if="detail?.status === 'RETIRED'" title="模板已停用，Designer 只读。需要新供给请显式复制，不修改既有历史。" type="warning" :closable="false" />
+          <el-alert v-else-if="publishedReadonly" title="当前仅存在已发布（冻结）配置，Designer 只读。需要修改请通过“复制”另起草稿，不修改既有历史。" type="warning" :closable="false" />
           <TemplateContentEditor ref="contentEditor" :content="draft" :readonly="draftReadonly" :busy="saving" @dirty-change="bindingDirty = $event" />
           <div class="mt-16px">
             <el-button type="primary" :disabled="draftReadonly" :loading="saving" @click="saveDraft" v-hasPermi="['pms:project-template:update']">保存 Designer 草稿</el-button>
@@ -180,7 +181,8 @@ const baseline = ref('')
 const identityBaseline = ref('')
 const draftDirty = computed(() => bindingDirty.value || JSON.stringify(draft.value) !== baseline.value)
 const identityDirty = computed(() => JSON.stringify(identityForm) !== identityBaseline.value)
-const draftReadonly = computed(() => detail.value?.status === 'RETIRED')
+const publishedReadonly = ref(false)
+const draftReadonly = computed(() => detail.value?.status === 'RETIRED' || publishedReadonly.value)
 interface DraftStash { savedAt: number; identity: { name: string; matchPriority: number; description: string }; content: TemplateDesignerDocument }
 const stashKey = (id?: number) => id == null ? '' : `pms:template-designer-v2-stash:${id}`
 const readStash = (id: number): DraftStash | undefined => { try { const raw = localStorage.getItem(stashKey(id)); return raw ? JSON.parse(raw) : undefined } catch { return undefined } }
@@ -196,7 +198,13 @@ watch([draft, identityForm], () => {
 }, { deep: true })
 const openDetail = async (row: ProjectTemplateVO, tab = 'draft') => {
   try {
-    const [result, designer] = await Promise.all([TemplateApi.getProjectTemplate(row.id!), TemplateApi.getProjectTemplateDraft(row.id!)])
+    const result = await TemplateApi.getProjectTemplate(row.id!)
+    // 已发布模板可能没有草稿修订：回退到最新 PUBLISHED 冻结 Designer，只读打开（BR-3）。
+    const hasDraft = result.revisions.some((revision) => revision.status === 'DRAFT')
+    publishedReadonly.value = !hasDraft
+    const designer = hasDraft
+      ? await TemplateApi.getProjectTemplateDraft(row.id!)
+      : await TemplateApi.getProjectTemplatePublishedDesigner(row.id!)
     detail.value = result
     Object.assign(identityForm, { name: result.name, matchPriority: result.matchPriority ?? 100, description: result.description ?? '' })
     draft.value = cloneContent(designer); baseline.value = JSON.stringify(draft.value); identityBaseline.value = JSON.stringify(identityForm); failure.value = ''; detailTab.value = tab

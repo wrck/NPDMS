@@ -87,7 +87,7 @@ class ProjectBusinessFactSourceServiceTest {
     }
     @Test void activeStageReadsItsExactCurrentExecutionAndDoesNotRequireCompletionToExposeFalse() {
         round.setStatus("ACTIVE"); round.setResultSnapshot(null);
-        var context = new ProjectStageExecutionContext(9L, 1, 21L, 1, 31L, 1, 51L, 61L, 1, 1, true);
+        var context = new ProjectStageExecutionContext(9L, 1L, 21L, 1, 31L, 1, 51L, 61L, 1, 1, true);
         when(contexts.inspectStage(any())).thenReturn(context);
         when(business.lockStageCompletionFacts(eq(7L), eq(context), any())).thenReturn(new TaskBusinessCompletionFacts(
                 new TaskBusinessLinkedFacts("result-v2", List.of(link(Map.of("SURVEY_CONFIRMED", false)))), false));
@@ -97,7 +97,7 @@ class ProjectBusinessFactSourceServiceTest {
     }
     @Test void unknownOwnerResultIsNotNegatedIntoAdmission() {
         round.setStatus("ACTIVE");
-        when(contexts.inspectStage(any())).thenReturn(new ProjectStageExecutionContext(9L, 1, 21L, 1, 31L, 1, 51L, 61L, 1, 1, true));
+        when(contexts.inspectStage(any())).thenReturn(new ProjectStageExecutionContext(9L, 1L, 21L, 1, 31L, 1, 51L, 61L, 1, 1, true));
         when(business.lockStageCompletionFacts(any(), any(), any())).thenThrow(new IllegalStateException("unavailable"));
         assertEquals(RuleEvaluation.Outcome.UNKNOWN, evaluate(true).outcome());
     }
@@ -108,7 +108,7 @@ class ProjectBusinessFactSourceServiceTest {
         assertTrue(evaluate(false).matched());
         round.setStatus("ACTIVE"); round.setResultSnapshot(null);
         var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                9L, 1, 21L, 1, 31L, 1, 51L, 61L, 1, 1, 81L, 1, true, java.time.LocalDateTime.now());
+                9L, 1L, 21L, 1, 31L, 1, 51L, 61L, 1, 1, 81L, 1, true, java.time.LocalDateTime.now());
         var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
         contract.setId(31L);
         when(contexts.inspect(any())).thenReturn(context); when(contracts.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);

@@ -60,7 +60,7 @@ class TrainingServiceTest {
         row.setTrainerUserId(9L);
         row.setTrainerName("王工");
         row.setStatus(0);
-        row.setVersion(3);
+        row.setVersion(3L);
         row.setConfirmationRevisionId(100L);
         row.setConfirmationFormRules(TrainingConfirmationForms.safeSnapshot(TrainingConfirmationForms.defaults()));
         when(trainingMapper.selectById(1L)).thenReturn(row);

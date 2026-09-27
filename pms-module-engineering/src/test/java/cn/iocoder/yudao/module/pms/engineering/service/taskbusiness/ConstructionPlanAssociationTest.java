@@ -19,7 +19,7 @@ class ConstructionPlanAssociationTest {
     @BeforeEach void setUp() { TenantContextHolder.setTenantId(7L); }
     @AfterEach void clear() { TenantContextHolder.clear(); }
     @Test void designerProjectKeyAndLegacyKeyResolveTheSameActualProjectPlan() {
-        var plan = new ConstructionPlanDO(); plan.setId(30L); plan.setProjectId(80L); plan.setTenantId(7L); plan.setVersion(1);
+        var plan = new ConstructionPlanDO(); plan.setId(30L); plan.setProjectId(80L); plan.setTenantId(7L); plan.setVersion(1L);
         when(plans.selectByProjectId(7L, 80L)).thenReturn(plan);
         var modern = new AssociationContext(7L, 80L, "PROJECT_CONSTRUCTION_PLAN", "{}");
         var legacy = new AssociationContext(7L, 80L, "CONSTRUCTION_PLAN", "{}");

@@ -45,14 +45,14 @@ class CutoverApprovalFactApiImplTest {
         CutoverApprovalApplicationService application = mock(CutoverApprovalApplicationService.class);
         CutoverApprovalInstanceMapper mapper = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalCommandResult expected = new CutoverApprovalCommandResult(CommandOutcome.APPLIED,
-                new CutoverApprovalFact(500L, 4, 100L, 900L, 1,
+                new CutoverApprovalFact(500L, 4L, 100L, 900L, 1,
                         ApprovalStatus.PAUSED_SOURCE_INVALIDATED, 1, null, 1000L, null));
         when(application.pause(any())).thenReturn(expected);
         CutoverApprovalFactApiImpl api = new CutoverApprovalFactApiImpl(
                 new CutoverApprovalFactTransactionExecutor(application, mapper));
 
         CutoverApprovalCommandResult actual = api.pauseForSourceInvalidation(new CutoverApprovalPauseCommand(
-                1L, 500L, 3, 900L, 1, "SOURCE_FACT_INVALIDATED", "pause-1", "corr-1"));
+                1L, 500L, 3L, 900L, 1, "SOURCE_FACT_INVALIDATED", "pause-1", "corr-1"));
 
         assertEquals(expected, actual);
         verify(application).pause(any());
@@ -67,8 +67,8 @@ class CutoverApprovalFactApiImplTest {
         CutoverApprovalFactApiImpl api = new CutoverApprovalFactApiImpl(transactions);
 
         CutoverApprovalFactException conflict = assertThrows(CutoverApprovalFactException.class,
-                () -> api.start(new CutoverApprovalStartCommand(1L, 100L, 5, 900L, 1,
-                        "A", 600L, 2, 700L, 3, 1, java.time.LocalDateTime.of(2026, 9, 3, 18, 0),
+                () -> api.start(new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
+                        "A", 600L, 2L, 700L, 3L, 1, java.time.LocalDateTime.of(2026, 9, 3, 18, 0),
                         null, "start-1", "corr-1")));
 
         assertEquals(CutoverApprovalFactException.Code.IDEMPOTENCY_CONFLICT, conflict.code());
@@ -77,7 +77,7 @@ class CutoverApprovalFactApiImplTest {
     private static CutoverApprovalInstanceDO row() {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO();
         row.setId(500L); row.setTenantId(1L); row.setTaskId(100L); row.setPlanRevisionId(900L);
-        row.setPlanRevisionNo(1); row.setStatusCode("PENDING"); row.setSourceSnapshotVersion(1); row.setVersion(3);
+        row.setPlanRevisionNo(1); row.setStatusCode("PENDING"); row.setSourceSnapshotVersion(1); row.setVersion(3L);
         return row;
     }
 }

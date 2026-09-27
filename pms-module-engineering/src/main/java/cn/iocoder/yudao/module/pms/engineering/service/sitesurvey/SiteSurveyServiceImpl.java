@@ -49,12 +49,12 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
         SiteSurveyDO survey = BeanUtils.toBean(createReqVO, SiteSurveyDO.class);
         survey.setId(null);
         survey.setStatus(0);
-        survey.setVersion(0);
+        survey.setVersion(0L);
         survey.setOutsourceRequired(Boolean.TRUE.equals(createReqVO.getOutsourceRequired()));
         validateForm(survey, true);
         updateProjectEndDate(createReqVO, null);
         siteSurveyMapper.insert(survey);
-        applyLocation(survey, createReqVO.getLocation(), createReqVO.getLocationMaintenance(), 0);
+        applyLocation(survey, createReqVO.getLocation(), createReqVO.getLocationMaintenance(), 0L);
         updateChecked(survey);
         return survey.getId();
     }
@@ -68,7 +68,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
         if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
                 || !Objects.equals(existing.getCode(), updateReqVO.getCode())) throw exception(SITE_SURVEY_FORM_INVALID);
         validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
-        validateVersion(existing, updateReqVO.getVersion());
+        validateVersion(existing, updateReqVO.getVersion() == null ? null : updateReqVO.getVersion().longValue());
         SiteSurveyDO update = BeanUtils.toBean(updateReqVO, SiteSurveyDO.class);
         update.setStatus(existing.getStatus());
         update.setOutsourceRequired(updateReqVO.getOutsourceRequired() == null
@@ -160,7 +160,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
         }
     }
 
-    private void validateVersion(SiteSurveyDO survey, Integer version) {
+    private void validateVersion(SiteSurveyDO survey, Long version) {
         if (version == null || !Objects.equals(survey.getVersion(), version)) {
             throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
         }
@@ -243,7 +243,7 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
 
     private void applyLocation(SiteSurveyDO survey, String fallbackLocation,
                                LocationMaintenanceCommand command,
-                               Integer sourceVersion) {
+                               Long sourceVersion) {
         if (command == null) {
             if (fallbackLocation == null || fallbackLocation.isBlank()) {
                 throw exception(SITE_SURVEY_LOCATION_REQUIRED);

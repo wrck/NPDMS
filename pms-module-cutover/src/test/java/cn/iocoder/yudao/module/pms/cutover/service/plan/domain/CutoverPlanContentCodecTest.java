@@ -145,8 +145,8 @@ class CutoverPlanContentCodecTest {
         List<CutoverPlanSourcePort.RiskFactSnapshot> risks = "D".equals(grade) ? List.of()
                 : List.of(new CutoverPlanSourcePort.RiskFactSnapshot(71L, "risk-1", 1,
                 "风险", "FAILED", "描述"));
-        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2, 20L, 1, grade,
-                "D".equals(grade) ? null : 30L, "D".equals(grade) ? null : 1,
+        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2L, 20L, 1L, grade,
+                "D".equals(grade) ? null : 30L, "D".equals(grade) ? null : 1L,
                 40L, 3, 4L, List.of(new CutoverPlanSourcePort.DeviceSnapshot(
                 50L, "Sn-001", 6L, "ROUTER", "ast-v1")), 60L, "DEFAULT", 1, sections, risks);
         var facts = new CutoverPlanSourcePort.SourceFacts(snapshot, risks);
@@ -162,7 +162,7 @@ class CutoverPlanContentCodecTest {
                 new CutoverPlanSourcePort.RiskFactSnapshot(73L, "risk-2", 1,
                         "新增风险", "FAILED", "待填写措施"));
         var snapshot = new CutoverPlanSourcePort.SourceSnapshot(2, old.taskId(), old.taskVersion(),
-                old.assessmentId(), old.assessmentVersion(), old.grade(), old.checklistId(), 2,
+                old.assessmentId(), old.assessmentVersion(), old.grade(), old.checklistId(), 2L,
                 old.projectId(), old.projectVersion(), old.projectScopeVersion(),
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(51L, "SN-NEW", 7L,
                         "SWITCH", "ast-v2")), old.configurationRevisionId(), old.configurationCode(),

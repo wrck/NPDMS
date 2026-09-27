@@ -66,13 +66,13 @@ public class ProjectReworkService {
 
     public record Candidate(ProjectReworkPlanner.Node node, Long executionId, Integer executionVersion,
                             Integer roundNo, String status) { }
-    public record State(Long planVersionId, Integer projectVersion, List<Candidate> nodes) { }
-    public record Preview(Long planVersionId, Integer projectVersion, ProjectReworkPlanner.Plan plan) { }
+    public record State(Long planVersionId, Long projectVersion, List<Candidate> nodes) { }
+    public record Preview(Long planVersionId, Long projectVersion, ProjectReworkPlanner.Plan plan) { }
     public record ExpectedExecution(String nodeKey, Long executionId, Integer version) { }
-    public record Apply(Long projectId, Long planVersionId, Integer expectedProjectVersion,
+    public record Apply(Long projectId, Long planVersionId, Long expectedProjectVersion,
                         List<String> selectedNodeKeys, List<ExpectedExecution> expectedExecutions, String reason) { }
     public record NewExecution(String nodeKey, Long previousExecutionId, Long executionId, Integer roundNo) { }
-    public record Result(Long projectId, Long planVersionId, Integer projectVersion, List<NewExecution> executions) { }
+    public record Result(Long projectId, Long planVersionId, Long projectVersion, List<NewExecution> executions) { }
     private record Runtime(ProjectMasterDO project, TemplateExecutionSnapshot snapshot, List<ProjectNodeExecutionDO> rounds,
                            List<ProjectTaskInstanceDO> tasks, List<ProjectStageInstanceDO> stages) { }
 

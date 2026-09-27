@@ -108,7 +108,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     }
 
     @Override
-    public AddressRespDTO getAddress(Long addressId, Integer expectedVersion) {
+    public AddressRespDTO getAddress(Long addressId, Long expectedVersion) {
         AddressDO entity = addressMapper.selectById(addressId);
         if (entity == null) {
             throw exception(AST_ADDRESS_NOT_EXISTS);
@@ -118,7 +118,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     }
 
     @Override
-    public SiteRespDTO getSite(Long siteId, Integer expectedVersion) {
+    public SiteRespDTO getSite(Long siteId, Long expectedVersion) {
         SiteDO entity = siteMapper.selectById(siteId);
         if (entity == null) {
             throw exception(AST_SITE_NOT_EXISTS);
@@ -128,7 +128,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     }
 
     @Override
-    public SiteLocationRespDTO getSiteLocation(Long locationId, Integer expectedVersion) {
+    public SiteLocationRespDTO getSiteLocation(Long locationId, Long expectedVersion) {
         return toSiteLocationResp(siteLocationTreeService.get(locationId, expectedVersion));
     }
 
@@ -164,7 +164,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         if (input.id() == null) {
             AddressDO entity = copyAddress(input);
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
-            entity.setVersion(0);
+            entity.setVersion(0L);
             addressMapper.insert(entity);
             return entity;
         }
@@ -178,7 +178,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         }
         AddressDO update = copyAddress(input);
         update.setId(existing.getId());
-        update.setVersion(existing.getVersion() + 1);
+        update.setVersion(existing.getVersion() + 1L);
         if (addressMapper.updateByIdAndVersion(update, existing.getVersion()) == 0) {
             throw exception(AST_LOCATION_VERSION_CONFLICT);
         }
@@ -210,7 +210,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
             validateSiteCodeUnique(null, entity.getCode());
             entity.setAddressId(maintainedAddress.getId());
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
-            entity.setVersion(0);
+            entity.setVersion(0L);
             siteMapper.insert(entity);
             return entity;
         }
@@ -302,15 +302,21 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     }
 
     private LocationReferenceDTO toReference(LocationSourceMappingDO mapping, Long locationId, String fallback) {
-        Integer addressVersion = mapping.getAddressId() == null ? null : getAddress(mapping.getAddressId(), null).version();
-        Integer siteVersion = mapping.getSiteId() == null ? null : getSite(mapping.getSiteId(), null).version();
+        Long addressVersion = mapping.getAddressId() == null ? null : getAddress(mapping.getAddressId(), null).version();
+        Long siteVersion = mapping.getSiteId() == null ? null : getSite(mapping.getSiteId(), null).version();
         Long replayLocationId = locationId == null ? mapping.getSiteLocationId() : locationId;
-        Integer locationVersion = replayLocationId == null ? null : getSiteLocation(replayLocationId, null).version();
+        Long locationVersion = replayLocationId == null ? null : getSiteLocation(replayLocationId, null).version();
         return new LocationReferenceDTO(mapping.getLocationResolutionStatus(), mapping.getAddressId(), addressVersion,
                 mapping.getSiteId(), siteVersion, replayLocationId, locationVersion, fallback);
     }
 
     private void validateVersion(Integer actualVersion, Integer expectedVersion) {
+        if (expectedVersion != null && !Objects.equals(actualVersion, expectedVersion)) {
+            throw exception(AST_LOCATION_VERSION_CONFLICT);
+        }
+    }
+
+    private void validateVersion(Long actualVersion, Long expectedVersion) {
         if (expectedVersion != null && !Objects.equals(actualVersion, expectedVersion)) {
             throw exception(AST_LOCATION_VERSION_CONFLICT);
         }

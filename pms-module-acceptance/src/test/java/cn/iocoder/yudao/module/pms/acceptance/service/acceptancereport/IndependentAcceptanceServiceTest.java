@@ -19,14 +19,14 @@ class IndependentAcceptanceServiceTest {
     final PermissionApi permissions = mock(PermissionApi.class);
     final IndependentAcceptanceService service = new IndependentAcceptanceService(activities, projects, commands, permissions);
     final AcceptanceReportCommands.Actor actor = new AcceptanceReportCommands.Actor(7L, 19L, "request");
-    final IndependentAcceptanceService.Create request = new IndependentAcceptanceService.Create(80L, "FINAL", 4, 3L);
-    final ProjectAcceptanceContextApi.Context context = new ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "ACTIVE");
+    final IndependentAcceptanceService.Create request = new IndependentAcceptanceService.Create(80L, "FINAL", 4L, 3L);
+    final ProjectAcceptanceContextApi.Context context = new ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "ACTIVE");
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         when(permissions.hasAnyPermissions(19L, "pms:acceptance:report:write")).thenReturn(true);
         when(projects.inspect(any())).thenReturn(context);
-        when(projects.lock(any(), eq(4), eq(3L))).thenReturn(context);
+        when(projects.lock(any(), eq(4L), eq(3L))).thenReturn(context);
         when(activities.insert(any(AcceptanceActivityDO.class))).thenReturn(1);
         when(commands.execute(any(), any(), any(), any(), any())).thenAnswer(call -> {
             var result = call.<Supplier<IndependentAcceptanceService.Result>>getArgument(3).get();
@@ -48,7 +48,7 @@ class IndependentAcceptanceServiceTest {
         assertEquals("PENDING", row.getActivityStatus()); assertTrue(IndependentAcceptancePolicy.validSnapshot(row.getRuleSnapshot()));
         assertTrue(row.getOriginSnapshot().contains("treeVersion"));
         var order = inOrder(projects, activities);
-        order.verify(projects).lock(any(), eq(4), eq(3L)); order.verify(activities).selectByIdentityForUpdate(any());
+        order.verify(projects).lock(any(), eq(4L), eq(3L)); order.verify(activities).selectByIdentityForUpdate(any());
         order.verify(activities).insert(any(AcceptanceActivityDO.class));
     }
     @Test void existingProjectTypeIdentityIsReusedWithoutChangingLegacyProvenance() {
@@ -66,9 +66,9 @@ class IndependentAcceptanceServiceTest {
         verifyNoInteractions(commands, projects, activities);
     }
     @Test void closedProjectOrStaleProjectContextCannotCreate() {
-        when(projects.lock(any(), eq(4), eq(3L))).thenReturn(new ProjectAcceptanceContextApi.Context(80L, 80L, 4, 3L, "NORMAL_CLOSED"));
+        when(projects.lock(any(), eq(4L), eq(3L))).thenReturn(new ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "NORMAL_CLOSED"));
         assertThrows(RuntimeException.class, () -> service.create(request, "key", actor));
-        when(projects.lock(any(), eq(4), eq(3L))).thenThrow(new IllegalArgumentException("ACCEPTANCE_PROJECT_CONTEXT_CHANGED"));
+        when(projects.lock(any(), eq(4L), eq(3L))).thenThrow(new IllegalArgumentException("ACCEPTANCE_PROJECT_CONTEXT_CHANGED"));
         assertThrows(RuntimeException.class, () -> service.create(request, "key", actor));
         verifyNoInteractions(activities);
     }
@@ -81,7 +81,7 @@ class IndependentAcceptanceServiceTest {
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.CONFLICT, null))
                 .when(commands).execute(any(), any(), any(), any(), any());
         assertThrows(RuntimeException.class, () -> service.create(request, "key", actor));
-        assertThrows(RuntimeException.class, () -> service.create(new IndependentAcceptanceService.Create(80L, "OTHER", 4, 3L), "key", actor));
+        assertThrows(RuntimeException.class, () -> service.create(new IndependentAcceptanceService.Create(80L, "OTHER", 4L, 3L), "key", actor));
         verifyNoInteractions(activities);
     }
 }

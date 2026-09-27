@@ -296,7 +296,7 @@ public class PreparationItemApplicationService {
         requireManager(manager, projectId, actor.actorId());
     }
 
-    private void requireManagerLocked(Long projectId, Integer expectedProjectVersion, Actor actor) {
+    private void requireManagerLocked(Long projectId, Long expectedProjectVersion, Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
@@ -403,7 +403,7 @@ public class PreparationItemApplicationService {
         }
     }
 
-    private boolean invalidVersion(Integer value) { return value == null || value < 0; }
+    private boolean invalidVersion(Number value) { return value == null || value.longValue() < 0; }
     private long positive(Long value) {
         if (value == null || value <= 0) throw exception(PREPARATION_COMMAND_INVALID);
         return value;

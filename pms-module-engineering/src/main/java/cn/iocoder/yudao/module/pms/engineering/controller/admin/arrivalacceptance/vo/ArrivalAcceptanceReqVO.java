@@ -110,7 +110,7 @@ public final class ArrivalAcceptanceReqVO {
                         String reason, FileRevision evidenceRevision) implements Resolution {
     }
 
-    public record CorrectInformation(String resolutionType, Integer expectedSourceVersion,
+    public record CorrectInformation(String resolutionType, Long expectedSourceVersion,
                                      String reason, CorrectionPatch correctionPatch,
                                      FileRevision evidenceRevision) implements Resolution {
     }

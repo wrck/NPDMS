@@ -78,9 +78,9 @@ class ArrivalAcceptanceMigrationContractTest {
 
     @Test
     void locksTenantScopedIdentityCurrentVersionsAndFactVersions() {
-        assertTrue(schemaSql.contains("UNIQUE KEY `uk_imp_eng_arrival_batch` "
+        assertTrue(schemaSql.contains("UNIQUE KEY `uk_imp_arrival_batch` "
                 + "(`tenant_id`, `project_id`, `batch_code`)"));
-        assertTrue(schemaSql.contains("UNIQUE KEY `uk_imp_eng_arrival_project_fact` "
+        assertTrue(schemaSql.contains("UNIQUE KEY `uk_imp_arrival_project_fact` "
                 + "(`tenant_id`, `project_id`, `project_fact_version`)"));
         assertTrue(schemaSql.contains("UNIQUE KEY `uk_imp_arrival_line_revision` "
                 + "(`tenant_id`, `arrival_acceptance_id`, `line_no`, `line_revision`)"));
@@ -252,7 +252,7 @@ class ArrivalAcceptanceMigrationContractTest {
         assertTrue(task5BUpgradeSql.contains(
                 "ADD COLUMN `fact_impact_type` varchar(32) NULL DEFAULT NULL"));
         assertTrue(task5BUpgradeSql.contains("'CORRECTION', 'REOPEN', 'EXEMPTION_INVALIDATION'"));
-        assertTrue(task5BUpgradeSql.contains("chk_imp_eng_arrival_successor_pair"));
+        assertTrue(task5BUpgradeSql.contains("chk_imp_arrival_successor_pair"));
         assertTrue(task5BUpgradeSql.contains("chk_imp_arrival_difference_fact_pair"));
         assertFalse(task5BUpgradeSql.contains("UPDATE `imp_eng_arrival_"));
     }
@@ -285,7 +285,7 @@ class ArrivalAcceptanceMigrationContractTest {
                 "ADD COLUMN `batch_root_marker` tinyint NULL"));
         assertFalse(successorIdentityUpgradeSql.contains("`batch_root_marker` tinyint NULL DEFAULT"));
         assertTrue(successorIdentityUpgradeSql.contains(
-                "DROP INDEX `uk_imp_eng_arrival_batch`"));
+                "DROP INDEX `uk_imp_arrival_batch`"));
         assertTrue(successorIdentityUpgradeSql.contains(
                 "(`tenant_id`, `project_id`, `batch_code`, `batch_root_marker`)"));
         assertTrue(successorIdentityUpgradeSql.contains(

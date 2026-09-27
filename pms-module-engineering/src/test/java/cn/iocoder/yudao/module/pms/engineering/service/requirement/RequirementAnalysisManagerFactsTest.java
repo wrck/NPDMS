@@ -14,7 +14,7 @@ class RequirementAnalysisManagerFactsTest {
     @Test void superAdminUsesTheRealPrimaryManagerFactRatherThanInventingMembership() {
         var participants = mock(ProjectParticipantFactApi.class);
         var permissions = mock(PermissionApi.class);
-        var actual = new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S1", 3, 3L);
+        var actual = new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S1", 3L, 3L);
         when(permissions.hasAnyRoles(1L, "super_admin")).thenReturn(true);
         when(participants.inspect(any())).thenReturn(actual);
         assertSame(actual, RequirementAnalysisManagerFacts.inspect(participants, permissions, 20L, 1L));

@@ -211,7 +211,7 @@ class DurationChangeApplicationServiceTest {
     private void stubAuthorizedPlan() {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(null);
@@ -231,7 +231,7 @@ class DurationChangeApplicationServiceTest {
         plan.setCurrentDurationRevisionId(701L);
         plan.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
         plan.setPlanRecalculationSourceRevisionId(701L);
-        plan.setVersion(1);
+        plan.setVersion(1L);
         plan.setTenantId(0L);
         return plan;
     }
@@ -282,13 +282,13 @@ class DurationChangeApplicationServiceTest {
     }
 
     private CreateDurationChangeCommand createCommand() {
-        return new CreateDurationChangeCommand(501L, 1, 3, "DURATION_FROM_START",
+        return new CreateDurationChangeCommand(501L, 1, 3L, "DURATION_FROM_START",
                 LocalDate.of(2026, 9, 10), null, 3, "CUSTOMER_DELAY", "原因",
                 null, null, "idem-1", "a".repeat(64));
     }
 
     private PatchDurationChangeCommand patchCommand(DurationChangePatch patch) {
-        return new PatchDurationChangeCommand(501L, 801L, 0, 3, patch);
+        return new PatchDurationChangeCommand(501L, 801L, 0, 3L, patch);
     }
 
     private ConstructionPlanApplicationService.Actor actor() {

@@ -129,7 +129,7 @@ public class RequirementAnalysisAccess {
         lockScope(observed.getProjectId(), actor);
         lockExecution(observed.getProjectId(), observed.getExecutionSnapshot(), selection, actor, revisionId);
         var locked = mapper.lockRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
-        if (locked == null || !Objects.equals(expectedVersion, locked.getVersion())
+        if (locked == null || !Objects.equals(expectedVersion == null ? null : expectedVersion.longValue(), locked.getVersion())
                 || draftOnly && !"DRAFT".equals(locked.getRevisionState())) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         return locked;
     }

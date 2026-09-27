@@ -42,14 +42,14 @@ class ProjectControlledOperationExecutorTest {
     private ProjectControlledOperationExecutor executor;
     private ProjectOperationCommand command;
     private ProjectOperationContextResolver.Context context;
-    private final ProjectOperationResult result = new ProjectOperationResult("SOL", "SITE_SURVEY", "11", null, 3,
+    private final ProjectOperationResult result = new ProjectOperationResult("SOL", "SITE_SURVEY", "11", null, 3L,
             "SOL:SITE_SURVEY:11:3:1", "SURVEY_CONFIRMED", JsonUtils.parseTree("{}"), false);
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         tenant = mockStatic(TenantContextHolder.class); tenant.when(TenantContextHolder::getRequiredTenantId).thenReturn(1L);
         security = mockStatic(SecurityFrameworkUtils.class); security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(7L);
-        var selection = new ProjectBusinessExecutionSelection(null, new ProjectStageExecutionContext(9L, 1, 10L, 1, 20L, 1, 30L, 40L, 1, 1, true));
-        command = new ProjectOperationCommand(9L, "STAGE", 10L, selection, "11", 2, "owner:2", JsonUtils.parseTree("{}"), "request-1");
+        var selection = new ProjectBusinessExecutionSelection(null, new ProjectStageExecutionContext(9L, 1L, 10L, 1, 20L, 1, 30L, 40L, 1, 1, true));
+        command = new ProjectOperationCommand(9L, "STAGE", 10L, selection, "11", 2L, "owner:2", JsonUtils.parseTree("{}"), "request-1");
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(1L);
         var round = new ProjectNodeExecutionDO(); round.setId(40L); round.setPlanVersionId(30L);
         var binding = new TemplateExecutionSnapshot.BindingContract(); binding.setTargetContextCode("SOL"); binding.setTargetObjectType("SITE_SURVEY");
@@ -103,7 +103,7 @@ class ProjectControlledOperationExecutorTest {
         assertThrows(RuntimeException.class,() -> executor.execute(CODE,1,command,c -> fail("stale write")));
     }
     @Test void explicitCommandCannotOmitOrMixExecutionIdentity() {
-        var bad = new ProjectOperationCommand(9L,"TASK",10L,command.execution(),"11",2,"owner:2",command.input(),"key");
+        var bad = new ProjectOperationCommand(9L,"TASK",10L,command.execution(),"11",2L,"owner:2",command.input(),"key");
         assertThrows(RuntimeException.class,() -> ProjectControlledOperationExecutor.validate(bad));
     }
     @Test void replayReauthorizesButDoesNotRerunRulesOrOwner() {
@@ -138,7 +138,7 @@ class ProjectControlledOperationExecutorTest {
         verifyNoInteractions(sink);
     }
     @Test void stageStartVersionIsPassedToOwnerWithoutChangingRetryDigestInput() {
-        var started = new ProjectStageExecutionContext(9L,1,10L,1,20L,1,30L,40L,2,1,true);
+        var started = new ProjectStageExecutionContext(9L,1L,10L,1,20L,1,30L,40L,2,1,true);
         when(executions.beginStageHandling(command.execution().stage(),7L)).thenReturn(started);
         executor.execute(CODE,1,command,c -> { assertEquals(started,c.execution().stage()); return result; });
         assertEquals(1,command.execution().stage().executionVersion());

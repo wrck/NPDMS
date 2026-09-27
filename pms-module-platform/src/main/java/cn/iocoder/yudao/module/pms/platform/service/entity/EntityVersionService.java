@@ -31,17 +31,23 @@ public class EntityVersionService implements EntityVersionApi {
 
     @Transactional(rollbackFor = Exception.class)
     public EntityVersionProvider.Revision save(RevisionRef ref, int expectedVersion, Map<String, Object> fields, EntityActor actor) {
-        registry.lockForWrite(EntityDataRef.revision(ref), actor, expectedVersion);
+        registry.lockForWrite(EntityDataRef.revision(ref), actor, (long) expectedVersion);
         return registry.versions(ref.entity()).save(ref, expectedVersion, fields, actor);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public EntityVersionProvider.Revision complete(RevisionRef ref, int expectedVersion, EntityActor actor) {
-        registry.lockForWrite(EntityDataRef.revision(ref), actor, expectedVersion);
+        registry.lockForWrite(EntityDataRef.revision(ref), actor, (long) expectedVersion);
         extensions.validateComplete(EntityDataRef.revision(ref), actor);
         var provider = registry.versions(ref.entity());
         var frozen = provider.freeze(ref, expectedVersion, actor);
         return provider.activate(ref, frozen.version(), actor);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void discard(RevisionRef ref, EntityActor actor) {
+        actor.requireTenant(ref.entity());
+        registry.versions(ref.entity()).discard(ref, actor);
     }
 
     public List<FieldDifference> compare(RevisionRef left, RevisionRef right, EntityActor actor) {

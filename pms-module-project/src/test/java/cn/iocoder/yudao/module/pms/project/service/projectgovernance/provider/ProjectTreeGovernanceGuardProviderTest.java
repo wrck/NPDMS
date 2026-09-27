@@ -57,8 +57,8 @@ class ProjectTreeGovernanceGuardProviderTest {
 
     @Test
     void shouldFreezeTreeVersionAndReturnStableActiveBlockers() {
-        ProjectMasterDO active = project(12L, "P-12", "ACTIVE", 3);
-        ProjectMasterDO closed = project(11L, "P-11", "NORMAL_CLOSED", 5);
+        ProjectMasterDO active = project(12L, "P-12", "ACTIVE", 3L);
+        ProjectMasterDO closed = project(11L, "P-11", "NORMAL_CLOSED", 5L);
         active.setTreeDepth(2);
         closed.setTreeDepth(1);
         ProjectTreeVersionDO version = activeVersion();
@@ -86,7 +86,7 @@ class ProjectTreeGovernanceGuardProviderTest {
 
     @Test
     void shouldFailClosedWhenActiveTreePathIsIncomplete() {
-        ProjectMasterDO closed = project(11L, "P-11", "NORMAL_CLOSED", 5);
+        ProjectMasterDO closed = project(11L, "P-11", "NORMAL_CLOSED", 5L);
         closed.setTreeDepth(1);
         when(projectMapper.selectBatchIds(anyCollection())).thenReturn(List.of(closed));
         ProjectTreeVersionDO version = activeVersion();
@@ -106,8 +106,8 @@ class ProjectTreeGovernanceGuardProviderTest {
 
     @Test
     void shouldExpandCurrentSubtreeAndRejectOmittedActiveDescendant() {
-        ProjectMasterDO anchor = project(11L, "P-11", "ACTIVE", 5);
-        ProjectMasterDO activeDescendant = project(12L, "P-12", "ACTIVE", 3);
+        ProjectMasterDO anchor = project(11L, "P-11", "ACTIVE", 5L);
+        ProjectMasterDO activeDescendant = project(12L, "P-12", "ACTIVE", 3L);
         anchor.setTreeDepth(1);
         activeDescendant.setTreeDepth(2);
         when(projectMapper.selectBatchIds(anyCollection())).thenReturn(List.of(anchor))
@@ -132,8 +132,8 @@ class ProjectTreeGovernanceGuardProviderTest {
 
     @Test
     void shouldFailClosedWhenProjectsBelongToDifferentTrees() {
-        ProjectMasterDO first = project(11L, "P-11", "NORMAL_CLOSED", 5);
-        ProjectMasterDO second = project(21L, "P-21", "NORMAL_CLOSED", 5);
+        ProjectMasterDO first = project(11L, "P-11", "NORMAL_CLOSED", 5L);
+        ProjectMasterDO second = project(21L, "P-21", "NORMAL_CLOSED", 5L);
         first.setTreeDepth(1);
         second.setTreeDepth(0);
         second.setRootId(20L);
@@ -177,7 +177,7 @@ class ProjectTreeGovernanceGuardProviderTest {
 
     @Test
     void shouldRejectOutOfScopeFactsReturnedByPersistence() {
-        ProjectMasterDO crossTenant = project(11L, "P-11", "NORMAL_CLOSED", 5);
+        ProjectMasterDO crossTenant = project(11L, "P-11", "NORMAL_CLOSED", 5L);
         crossTenant.setTenantId(8L);
         when(projectMapper.selectBatchIds(anyCollection())).thenReturn(List.of(crossTenant));
 
@@ -186,7 +186,7 @@ class ProjectTreeGovernanceGuardProviderTest {
 
     @Test
     void shouldChangeFrozenFactWhenActiveTreeVersionChanges() {
-        ProjectMasterDO anchor = project(11L, "P-11", "ACTIVE", 5);
+        ProjectMasterDO anchor = project(11L, "P-11", "ACTIVE", 5L);
         anchor.setTreeDepth(1);
         when(projectMapper.selectBatchIds(anyCollection())).thenReturn(List.of(anchor));
         ProjectTreeVersionDO nextVersion = activeVersion();
@@ -194,7 +194,7 @@ class ProjectTreeGovernanceGuardProviderTest {
         currentVersion.setNodeCount(2);
         currentVersion.setPathCount(3);
         nextVersion.setTreeVersion(TREE_VERSION + 1);
-        nextVersion.setVersion(3);
+        nextVersion.setVersion(3L);
         nextVersion.setNodeCount(2);
         nextVersion.setPathCount(3);
         when(treeVersionMapper.selectLatestActive(ROOT_ID)).thenReturn(currentVersion, nextVersion);
@@ -220,7 +220,7 @@ class ProjectTreeGovernanceGuardProviderTest {
         return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "EXCEPTION_CLOSE", CHECKED_AT);
     }
 
-    private static ProjectMasterDO project(Long id, String code, String lifecycleStatus, Integer version) {
+    private static ProjectMasterDO project(Long id, String code, String lifecycleStatus, Long version) {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setTenantId(TENANT_ID);
         project.setId(id);
@@ -239,7 +239,7 @@ class ProjectTreeGovernanceGuardProviderTest {
         version.setTreeVersion(TREE_VERSION);
         version.setNodeCount(3);
         version.setPathCount(6);
-        version.setVersion(2);
+        version.setVersion(2L);
         version.setActivatedAt(CHECKED_AT.minusHours(1));
         version.setUpdateTime(CHECKED_AT.minusHours(1));
         return version;

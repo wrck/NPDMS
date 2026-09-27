@@ -92,7 +92,7 @@ class PreparationReadinessServiceTest {
         });
         when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
 
-        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "ready-key"), actor());
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2L, "ready-key"), actor());
 
         assertEquals("READY", result.readiness().readinessStatus());
         assertTrue(result.readiness().snapshotCurrent());
@@ -164,7 +164,7 @@ class PreparationReadinessServiceTest {
         });
         when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
 
-        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "oa-key"), actor());
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2L, "oa-key"), actor());
 
         assertEquals("NOT_READY", result.readiness().readinessStatus());
         assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), result.readiness().blockerCodes());
@@ -190,7 +190,7 @@ class PreparationReadinessServiceTest {
         });
         when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
 
-        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "waiver-key"), actor());
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2L, "waiver-key"), actor());
 
         assertEquals("READY", result.readiness().readinessStatus());
         assertTrue(result.readiness().blockerCodes().isEmpty());
@@ -217,7 +217,7 @@ class PreparationReadinessServiceTest {
         });
         when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
 
-        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "source-key"), actor());
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2L, "source-key"), actor());
 
         assertEquals("READY", result.readiness().readinessStatus());
         assertEquals("F1", result.readiness().factVector().sourceFacts().getFirst().sourceFactVersion());
@@ -239,7 +239,7 @@ class PreparationReadinessServiceTest {
         when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
 
         var inspected = service.inspect(new SiteSurveyReadinessQuery(10L, 1L), 1L, 7L);
-        var evaluated = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "provider-down"), actor());
+        var evaluated = service.evaluate(new PreparationReadinessCommand(1L, 4, 2L, "provider-down"), actor());
 
         assertEquals(vector(snapshotWithSource(preparation, 3L)), inspected.factVector());
         assertFalse(inspected.snapshotCurrent());
@@ -265,7 +265,7 @@ class PreparationReadinessServiceTest {
         when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
 
         var inspected = service.inspect(new SiteSurveyReadinessQuery(10L, 1L), 1L, 7L);
-        var evaluated = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "waiver-expired"), actor());
+        var evaluated = service.evaluate(new PreparationReadinessCommand(1L, 4, 2L, "waiver-expired"), actor());
 
         assertEquals(vector(snapshotWithWaiver(preparation, 3L, waiver)), inspected.factVector());
         assertFalse(inspected.snapshotCurrent());

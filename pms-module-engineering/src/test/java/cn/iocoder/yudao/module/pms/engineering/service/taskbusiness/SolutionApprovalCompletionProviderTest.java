@@ -26,13 +26,13 @@ class SolutionApprovalCompletionProviderTest {
     private final cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewService tieredReviews = mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewService.class);
     private final SolutionApprovalCompletionProvider provider = new SolutionApprovalCompletionProvider(mapper, scope, permissions, executions, tieredReviews);
     private final SolutionDO row = new SolutionDO();
-    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
+    private final ProjectTaskExecutionContext execution = new ProjectTaskExecutionContext(9L,1L,91L,1,92L,1,93L,94L,1,1,95L,1,true,java.time.LocalDateTime.now());
     private final TaskBusinessObjectProvider.Context context = new TaskBusinessObjectProvider.Context(1L,7L,9L,91L,"test");
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         when(executions.lockAndRevalidate(execution)).thenReturn(execution);
 
-        row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3); row.setStatus(3);
+        row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3L); row.setStatus(3);
         row.setSolutionType("IMPLEMENTATION"); row.setReviewLevel(0); row.setApprovedBy(7L);
         row.setApprovedTime(java.time.LocalDateTime.now()); row.setBaselineVersion(3);
         when(mapper.one(any())).thenReturn(row);

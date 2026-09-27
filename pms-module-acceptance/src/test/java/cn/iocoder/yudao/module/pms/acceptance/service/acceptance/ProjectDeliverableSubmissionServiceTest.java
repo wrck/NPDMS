@@ -41,7 +41,7 @@ class ProjectDeliverableSubmissionServiceTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         root.setId(31L); root.setTenantId(7L); root.setProjectId(9L); root.setDeliverableCode("D1");
-        root.setName("施工材料"); root.setRequired(true); root.setStatus("PENDING"); root.setVersion(0);
+        root.setName("施工材料"); root.setRequired(true); root.setStatus("PENDING"); root.setVersion(0L);
         context = new ProjectDeliverableRuleApi.Context(9L, 15L, "ACTIVE", 11L, "S1", "T1",
                 JsonUtils.parseTree("""
                 {"minimumQuantity":1,"allowedSources":["UPLOAD","BUSINESS_RESULT"],"confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
@@ -122,7 +122,7 @@ class ProjectDeliverableSubmissionServiceTest {
     }
     private BusinessResultChange resultChange(UUID eventId, BusinessResultSource.Result result, boolean formation) {
         var source = new cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent(
-                UUID.randomUUID().toString(), 1, 7L, 9L, "SOL", "REQUIREMENT_ANALYSIS", "55", null, 1, "1",
+                UUID.randomUUID().toString(), 1, 7L, 9L, "SOL", "REQUIREMENT_ANALYSIS", "55", null, 1L, "1",
                 "REQUIREMENT_ANALYSIS_COMPLETED", "REQUIREMENT_ANALYSIS_COMPLETE", "owner-command", 11L,
                 java.time.LocalDateTime.parse("2026-09-20T12:00:00"), "test");
         return new BusinessResultChange(eventId.toString(), 1, new BusinessResultChange.Channel(1L, 7L, 9L, result.type()), 8, source,
@@ -180,7 +180,7 @@ class ProjectDeliverableSubmissionServiceTest {
         verifyNoInteractions(outbox);
     }
 
-    private ProjectDeliverableSubmissionService.Submission upload(int version) {
+    private ProjectDeliverableSubmissionService.Submission upload(Long version) {
         return new ProjectDeliverableSubmissionService.Submission(15L, version, "UPLOAD",
                 List.of(new ProjectDeliverableSubmissionService.FileSelection(40L, 1, "slot1")), null);
     }
@@ -226,7 +226,7 @@ class ProjectDeliverableSubmissionServiceTest {
                     new org.springframework.jdbc.datasource.DataSourceTransactionManager(database),
                     new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
             var transactional = (ProjectDeliverableSubmissionService) factory.getProxy();
-            var failure = assertThrows(IllegalStateException.class, () -> transactional.submit(9L, 31L, "request1", upload(0)));
+            var failure = assertThrows(IllegalStateException.class, () -> transactional.submit(9L, 31L, "request1", upload(0L)));
             assertEquals("OUTBOX_UNAVAILABLE", failure.getMessage());
             assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM fixture_writes", Integer.class));
             assertEquals("PENDING", jdbc.queryForObject("SELECT payload FROM fixture_writes WHERE kind='ROOT'", String.class));
@@ -234,23 +234,23 @@ class ProjectDeliverableSubmissionServiceTest {
         } finally { database.shutdown(); }
     }
     @Test void validFileAndConfiguredConditionAutomaticallySatisfyAndReplayOneIntent() {
-        var submitted = service.submit(9L, 31L, "request1", upload(0));
+        var submitted = service.submit(9L, 31L, "request1", upload(0L));
         assertEquals("ACCEPTED", submitted.status()); assertEquals(1, root.getVersion());
-        assertEquals(submitted, service.submit(9L, 31L, "request1", upload(0)));
+        assertEquals(submitted, service.submit(9L, 31L, "request1", upload(0L)));
         verify(sources, times(1)).insert(any(ProjectDeliverableSourceVersionDO.class));
         verify(outbox, times(1)).append(anyString(), anyString(), any());
         assertTrue(service.revalidate(root).satisfied());
     }
     @Test void submittedFileWaitsForBusinessConditionThenGateRevalidatesAutomatically() {
         when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(false, "DELIVERABLE_RULE_NOT_SATISFIED", "{}"));
-        assertEquals("PENDING", service.submit(9L, 31L, "request1", upload(0)).status());
+        assertEquals("PENDING", service.submit(9L, 31L, "request1", upload(0L)).status());
         String original = saved.get("request1").getDecisionEvidence();
         when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(true, "DELIVERABLE_RULE_SATISFIED", "{}"));
         assertTrue(service.revalidate(root).satisfied()); assertEquals("ACCEPTED", root.getStatus());
         assertEquals(original, saved.get("request1").getDecisionEvidence());
     }
     @Test void invalidatedFileBlocksGateWithoutRewritingSubmissionHistory() {
-        service.submit(9L, 31L, "request1", upload(0));
+        service.submit(9L, 31L, "request1", upload(0L));
         String evidence = saved.get("request1").getSourceEvidence();
         when(facts.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false, "FILE_EVIDENCE_UNAVAILABLE", 2, 2, 1));
         assertFalse(service.revalidate(root).satisfied()); assertEquals("PENDING", root.getStatus());
@@ -258,7 +258,7 @@ class ProjectDeliverableSubmissionServiceTest {
     }
     @Test void reevaluationEventsMeetPlatformIdentityContractWithoutDuplicatingUnchangedStatus() {
         when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(false, "DELIVERABLE_RULE_NOT_SATISFIED", "{}"));
-        service.submit(9L, 31L, "request1", upload(0));
+        service.submit(9L, 31L, "request1", upload(0L));
         String original = saved.get("request1").getDecisionEvidence();
         var events = new ArrayList<cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent>();
         doAnswer(call -> {
@@ -281,32 +281,32 @@ class ProjectDeliverableSubmissionServiceTest {
         assertEquals(original, saved.get("request1").getDecisionEvidence());
     }
     @Test void sameKeyDifferentIntentFailsBeforeChangingSource() {
-        service.submit(9L, 31L, "request1", upload(0));
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "request1", upload(1)));
+        service.submit(9L, 31L, "request1", upload(0L));
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "request1", upload(1L)));
         verify(sources, times(1)).insert(any(ProjectDeliverableSourceVersionDO.class));
     }
     @Test void staleVersionAndMissingMaterialsCannotSubmit() {
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "stale", upload(1)));
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "stale", upload(1L)));
         assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "missing",
-                new ProjectDeliverableSubmissionService.Submission(15L, 0, "UPLOAD", List.of(), null)));
+                new ProjectDeliverableSubmissionService.Submission(15L, 0L, "UPLOAD", List.of(), null)));
         verify(sources, never()).insert(any(ProjectDeliverableSourceVersionDO.class));
     }
     @Test void replacementRetainsOriginalEvidenceAndOriginalRetryReceipt() {
-        var old = service.submit(9L, 31L, "request1", upload(0));
+        var old = service.submit(9L, 31L, "request1", upload(0L));
         var previous = current;
-        var next = service.submit(9L, 31L, "request2", upload(1));
+        var next = service.submit(9L, 31L, "request2", upload(1L));
         assertNotEquals(old.sourceVersionId(), next.sourceVersionId());
         assertEquals("SUPERSEDED", previous.getRelationStatus()); assertEquals(2, saved.size());
-        assertEquals(old, service.submit(9L, 31L, "request1", upload(0)));
+        assertEquals(old, service.submit(9L, 31L, "request1", upload(0L)));
         assertEquals(next.sourceVersionId(), root.getCurrentSourceVersionId());
     }
     @Test void tenantProjectAndPermissionFailuresNeverSaveMaterial() {
-        assertThrows(RuntimeException.class, () -> service.submit(10L, 31L, "wrong-project", upload(0)));
+        assertThrows(RuntimeException.class, () -> service.submit(10L, 31L, "wrong-project", upload(0L)));
         TenantContextHolder.setTenantId(8L);
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "wrong-tenant", upload(0)));
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "wrong-tenant", upload(0L)));
         TenantContextHolder.setTenantId(7L);
         when(access.require(context, true, true)).thenThrow(new IllegalArgumentException("permission denied"));
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "no-access", upload(0)));
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "no-access", upload(0L)));
         verify(sources, never()).insert(any(ProjectDeliverableSourceVersionDO.class));
     }
     @Test void validBusinessResultIsRecheckedByExactIdentityAndRevocationBlocksIt() {
@@ -317,7 +317,7 @@ class ProjectDeliverableSubmissionServiceTest {
         when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(result));
         var query = new BusinessResultSource.Query(7L, 9L, type, "55", "56");
         assertEquals("ACCEPTED", service.submit(9L, 31L, "business", new ProjectDeliverableSubmissionService.Submission(
-                15L, 0, "BUSINESS_RESULT", List.of(), query)).status());
+                15L, 0L, "BUSINESS_RESULT", List.of(), query)).status());
         when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(new BusinessResultSource.Result(
                 7L, 9L, type, "55", "56", "1", "2", BusinessResultSource.Validity.REVOKED, result.formedAt())));
         assertFalse(service.revalidate(root).satisfied());
@@ -336,7 +336,7 @@ class ProjectDeliverableSubmissionServiceTest {
     }
     @Test void manualSubmissionCannotTakeOverAnAutomaticBusinessTarget() {
         when(ownerSources.ownerType(root)).thenReturn("ACCEPTANCE_REPORT");
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "manual", upload(0)));
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "manual", upload(0L)));
         verify(sources, never()).insert(any(ProjectDeliverableSourceVersionDO.class));
         verify(files, never()).lockAndRevalidate(any());
     }

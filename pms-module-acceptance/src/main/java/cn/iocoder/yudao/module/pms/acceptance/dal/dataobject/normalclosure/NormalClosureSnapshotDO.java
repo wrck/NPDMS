@@ -12,7 +12,7 @@ public class NormalClosureSnapshotDO extends TenantBaseDO {
     @TableId(type = IdType.INPUT)
     private Long id;
     private Long projectId;
-    private Integer projectVersion;
+    private Long projectVersion;
     private Long treeVersion;
     private String fromStage;
     private String closureType;

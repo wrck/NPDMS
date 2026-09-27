@@ -22,14 +22,14 @@ class SiteSurveyBusinessResultSourceTest {
 
     @BeforeEach void setUp() {
         TenantContextHolder.setTenantId(1L);
-        row.setId(40L); row.setTenantId(1L); row.setProjectId(3L); row.setVersion(2); row.setStatus(1);
+        row.setId(40L); row.setTenantId(1L); row.setProjectId(3L); row.setVersion(2L); row.setStatus(1);
         row.setConfirmedAt(LocalDateTime.of(2026,9,18,1,0)); when(mapper.selectById(40L)).thenReturn(row);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
     @Test void archivingDoesNotFabricateAnotherConfirmationOrBusinessRevision() {
         var confirmed = source.inspect(query).result();
-        row.setStatus(3); row.setVersion(3);
+        row.setStatus(3); row.setVersion(3L);
         var archived = source.inspect(query).result();
         assertEquals(confirmed.resultId(), archived.resultId()); assertEquals(confirmed.formedAt(), archived.formedAt());
         assertNull(archived.businessRevision()); assertEquals(Validity.CURRENT, archived.validity());
@@ -64,7 +64,7 @@ class SiteSurveyBusinessResultSourceTest {
     @Test void originalOwnerEventMapsToNativeLookupWithoutCreatingAResult() {
         var type=SiteSurveyBusinessResultSource.TYPE;
         var event=new BusinessOperationResultEvent(UUID.randomUUID().toString(),1,1L,3L,type.ownerContext(),type.entityType(),
-                "40",null,2,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
+                "40",null,2L,"native-fact",type.resultType(),"OWNER.CHANGED","key",9L,LocalDateTime.now(),"trace");
         var query=source.changeQuery(event);
         assertEquals(type,query.type());assertEquals(3L,query.projectId());
         assertEquals("40",query.objectId());assertNull(query.resultId());

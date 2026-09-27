@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDateTime;
 
@@ -18,13 +16,8 @@ import java.time.LocalDateTime;
 @TableName("sol_eng_briefing")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class BriefingDO extends TenantBaseDO {
+public class BriefingDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 交底书编号（如 BR-2026-001），全局唯一
      */
@@ -77,11 +70,6 @@ public class BriefingDO extends TenantBaseDO {
      * 状态：0 草稿 1 已生成 2 已审核 3 已发布 4 已作废
      */
     private Integer status;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
     /**
      * 生成时间
      */

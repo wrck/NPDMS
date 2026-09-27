@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -16,10 +15,8 @@ import lombok.EqualsAndHashCode;
 @TableName("sol_eng_requirement")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RequirementDO extends TenantBaseDO {
+public class RequirementDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -104,9 +101,4 @@ public class RequirementDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 }

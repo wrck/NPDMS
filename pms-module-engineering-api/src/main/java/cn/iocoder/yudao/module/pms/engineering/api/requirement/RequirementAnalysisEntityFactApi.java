@@ -14,8 +14,8 @@ public interface RequirementAnalysisEntityFactApi {
     record Form(Long revisionId, int bindingVersion, Long extensionDefinitionRevisionId,
                 Map<String, String> fieldBindings) {}
     /** workBinding is absent for an independently created revision; its frozen Owner configuration remains authoritative. */
-    record Fact(Long projectId, Long entityId, Long revisionId, int revisionNo, int version,
-                Integer projectVersion, Long projectTemplateRevisionId,
+    record Fact(Long projectId, Long entityId, Long revisionId, int revisionNo, long version,
+                Long projectVersion, Long projectTemplateRevisionId,
                 RequirementAnalysisWorkBindingFact workBinding, Form form,
                 Long extensionDefinitionRevisionId, int extensionValueVersion,
                 Map<String, Object> values, List<RequirementAnalysisFileFact> files,

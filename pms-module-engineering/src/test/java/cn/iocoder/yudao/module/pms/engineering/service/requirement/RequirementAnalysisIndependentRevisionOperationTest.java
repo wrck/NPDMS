@@ -38,13 +38,13 @@ class RequirementAnalysisIndependentRevisionOperationTest {
     private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions);
     private final EntityActor actor = new EntityActor(1L, 9L, "independent");
     private final RequirementAnalysisRevisionDO row = new RequirementAnalysisRevisionDO();
-    private final ProjectTaskExecutionContext origin = new ProjectTaskExecutionContext(20L, 1, 30L, 1, 40L, 1,
+    private final ProjectTaskExecutionContext origin = new ProjectTaskExecutionContext(20L, 1L, 30L, 1, 40L, 1,
             50L, 60L, 1, 1, 70L, 1, false, null);
 
     @BeforeEach void setUp() {
         row.setId(80L); row.setTenantId(1L); row.setProjectId(20L); row.setEntityId(90L);
-        row.setRevisionNo(1); row.setRevisionState("DRAFT"); row.setVersion(3);
-        var binding = new ProjectWorkBindingFact(20L, 1, 30L, 1, 40L, 1, 100L, 1,
+        row.setRevisionNo(1); row.setRevisionState("DRAFT"); row.setVersion(3L);
+        var binding = new ProjectWorkBindingFact(20L, 1L, 30L, 1, 40L, 1, 100L, 1,
                 "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS", "PRE_04_REQUIREMENT_ANALYSIS",
                 null, null, null, null, 101L, 1, "{}");
         row.setExecutionSnapshot(executions.freeze(binding, origin));
@@ -55,7 +55,7 @@ class RequirementAnalysisIndependentRevisionOperationTest {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 2L, Set.of(20L), Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 2L, Set.of(20L), Set.of()));
         when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"),
-                "PRIMARY", "ACTIVE", "S6", 2, 2L));
+                "PRIMARY", "ACTIVE", "S6", 2L, 2L));
     }
 
     @Test void existingRevisionLocksCurrentOwnerPermissionAndRowButNotTheOriginNode() {
@@ -75,7 +75,7 @@ class RequirementAnalysisIndependentRevisionOperationTest {
             case "permission" -> when(permissions.hasAnyPermissions(eq(9L), any(String[].class))).thenReturn(false);
             case "scope" -> when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 2L, Set.of(), Set.of(20L)));
             case "manager" -> when(participants.inspect(any())).thenReturn(null);
-            case "version" -> row.setVersion(4);
+            case "version" -> row.setVersion(4L);
             case "frozen" -> row.setRevisionState("FROZEN");
             default -> throw new AssertionError(failure);
         }

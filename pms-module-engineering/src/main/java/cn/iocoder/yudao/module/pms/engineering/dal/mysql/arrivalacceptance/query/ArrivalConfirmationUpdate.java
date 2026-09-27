@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public record ArrivalConfirmationUpdate(
         Long tenantId,
         Long arrivalAcceptanceId,
-        Integer expectedVersion,
+        Long expectedVersion,
         Long projectFactVersion,
         Long confirmedBy,
         LocalDateTime confirmedAt) {

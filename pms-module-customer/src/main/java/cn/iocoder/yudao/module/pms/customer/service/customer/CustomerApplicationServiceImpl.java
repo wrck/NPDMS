@@ -164,7 +164,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
         customer.setIndustryCode(classification.industryCode());
         customer.setIndustryName(classification.industryName());
         customer.setRemark(command.remark());
-        customer.setVersion(0);
+        customer.setVersion(0L);
         customerMasterMapper.insert(customer);
         if (hasSourceIdentity(command)) {
             insertMapping(customer, command);
@@ -315,7 +315,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
     private CustomerMasterDO eventCustomer(CustomerCommandResult result, String sourceType) {
         CustomerMasterDO customer = new CustomerMasterDO();
         customer.setId(result.customerId());
-        customer.setVersion(Math.toIntExact(result.version()));
+        customer.setVersion(result.version());
         customer.setSourceType(sourceType);
         return customer;
     }

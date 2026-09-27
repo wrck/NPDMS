@@ -10,7 +10,6 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.businessview.Business
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.businessview.BusinessViewRevisionMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.businessview.query.*;
 import cn.iocoder.yudao.module.pms.platform.domain.businessview.BusinessViewDescriptor;
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -43,7 +42,7 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
     public record Validation(boolean valid, List<Issue> issues) {
         public Validation { issues = List.copyOf(issues); }
     }
-    private record Intent(String action, Long id, Integer expectedVersion, Selection selection) { }
+    private record Intent(String action, Long id, Long expectedVersion, Selection selection) { }
 
     public List<BusinessViewComponentProvider.Component> components() {
         return access.trusted(() -> {
@@ -147,7 +146,7 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
         });
     }
 
-    public BusinessViewRevision update(Long id, Integer version, String key, Selection selection) {
+    public BusinessViewRevision update(Long id, Long version, String key, Selection selection) {
         return access.trusted(() -> {
             Context context = access.context();
             access.require(context, "manage");
@@ -171,7 +170,7 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
         });
     }
 
-    public BusinessViewRevision copy(Long id, Integer version, String key) {
+    public BusinessViewRevision copy(Long id, Long version, String key) {
         return access.trusted(() -> {
             Context context = access.context();
             access.require(context, "manage");
@@ -201,15 +200,15 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
         });
     }
 
-    public BusinessViewRevision publish(Long id, Integer version, String key) {
+    public BusinessViewRevision publish(Long id, Long version, String key) {
         return lifecycle(id, version, key, true);
     }
 
-    public BusinessViewRevision disable(Long id, Integer version, String key) {
+    public BusinessViewRevision disable(Long id, Long version, String key) {
         return lifecycle(id, version, key, false);
     }
 
-    private BusinessViewRevision lifecycle(Long id, Integer version, String key, boolean publish) {
+    private BusinessViewRevision lifecycle(Long id, Long version, String key, boolean publish) {
         return access.trusted(() -> {
             Context context = access.context();
             access.require(context, publish ? "publish" : "disable");
@@ -273,8 +272,8 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
             throw exception(IDENTITY_CONFLICT);
         }
     }
-    private record Audit(String action, Long sourceId, Integer expectedVersion, Long revisionId,
-                         Long revisionNo, Integer version, String status) { }
+    private record Audit(String action, Long sourceId, Long expectedVersion, Long revisionId,
+                         Long revisionNo, Long version, String status) { }
 
     private BusinessViewDescriptor selected(Context context, Selection selection, long revisionNo) {
         if (selection == null) throw exception(INVALID);
@@ -298,15 +297,15 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
     private List<BusinessViewRevisionDO> lockIdentity(Context context, String entityType, String viewKey) {
         return mapper.selectIdentityForUpdate(new BusinessViewIdentityQuery(context.tenantId(), entityType, viewKey));
     }
-    private BusinessViewRevisionDO selectedLocked(Context context, BusinessViewRevisionDO inspected, Integer version) {
+    private BusinessViewRevisionDO selectedLocked(Context context, BusinessViewRevisionDO inspected, Long version) {
         return findLocked(lockIdentity(context, inspected.getEntityType(), inspected.getViewKey()), inspected.getId(), version);
     }
-    private BusinessViewRevisionDO findLocked(List<BusinessViewRevisionDO> rows, Long id, Integer version) {
+    private BusinessViewRevisionDO findLocked(List<BusinessViewRevisionDO> rows, Long id, Long version) {
         var row = rows.stream().filter(value -> value.getId().equals(id)).findFirst().orElseThrow(() -> exception(NOT_FOUND));
-        if (!Objects.equals(row.getVersion(), version) || version == Integer.MAX_VALUE) throw exception(VERSION_CONFLICT);
+        if (!Objects.equals(row.getVersion(), version) || version == Long.MAX_VALUE) throw exception(VERSION_CONFLICT);
         return row;
     }
-    private static void requireVersionArgument(Integer version) {
+    private static void requireVersionArgument(Long version) {
         if (version == null || version < 0) throw exception(INVALID);
     }
     private static boolean isDraft(BusinessViewRevisionDO row) { return row.getPublishedAt() == null && row.getDisabledAt() == null; }
@@ -316,9 +315,8 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
     }
     private BusinessViewRevisionDO newRow(Context context, BusinessViewDescriptor descriptor) {
         var row = new BusinessViewRevisionDO();
-        row.setId(IdWorker.getId());
         row.setTenantId(context.tenantId());
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator(context.actorId().toString());
         row.setUpdater(context.actorId().toString());
         row.setDeleted(false);

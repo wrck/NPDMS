@@ -127,7 +127,8 @@ class RequirementAnalysisMigrationContractTest {
         assertTrue(legacyPermissionSql.contains("r.`code` <> 'super_admin'"));
         assertTrue(legacyPermissionSql.contains("m.`id` = 19010"));
         assertTrue(legacyPermissionSql.contains("m.`parent_id` = 19010"));
-        assertTrue(legacyPermissionSql.contains("m.`permission` LIKE 'pms:sol-requirement:%'"));
+        // V101 执行时菜单权限仍为 pms:eng-requirement:%（V256 才整体改名为 pms:sol-requirement:%），迁移已落库不可改。
+        assertTrue(legacyPermissionSql.contains("m.`permission` LIKE 'pms:eng-requirement:%'"));
         assertFalse(legacyPermissionSql.contains("UPDATE `system_menu`"));
         assertFalse(legacyPermissionSql.contains("DELETE FROM"));
         assertFalse(legacyPermissionSql.contains("sol_eng_requirement"));

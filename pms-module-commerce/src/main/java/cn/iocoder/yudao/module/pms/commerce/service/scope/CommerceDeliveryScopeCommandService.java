@@ -249,7 +249,7 @@ public class CommerceDeliveryScopeCommandService {
     }
 
     private ProjectOfficeFact lockProject(Long tenantId, Long subjectUserId, Long projectId,
-                                          Integer projectVersion, Long projectScopeVersion) {
+                                          Long projectVersion, Long projectScopeVersion) {
         ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
                 tenantId, subjectUserId, projectId, ProjectScopeApi.ACTION_MANAGE, projectScopeVersion));
         if (scope == null || !Objects.equals(scope.treeVersion(), projectScopeVersion)
@@ -447,7 +447,7 @@ public class CommerceDeliveryScopeCommandService {
         scope.setSourceEvidence(operationId);
         scope.setEffectiveFrom(now);
         scope.setStatus("ENABLED");
-        scope.setVersion(0);
+        scope.setVersion(0L);
         scopeMapper.insert(scope);
         return scope;
     }
@@ -559,7 +559,7 @@ public class CommerceDeliveryScopeCommandService {
     }
 
     private boolean invalidIdentity(Long tenantId, Long subjectUserId, Long projectId,
-                                    Integer projectVersion, Long projectScopeVersion) {
+                                    Long projectVersion, Long projectScopeVersion) {
         return tenantId == null || tenantId < 0 || subjectUserId == null || subjectUserId <= 0
                 || projectId == null || projectId <= 0 || projectVersion == null || projectVersion < 0
                 || projectScopeVersion == null || projectScopeVersion < 0

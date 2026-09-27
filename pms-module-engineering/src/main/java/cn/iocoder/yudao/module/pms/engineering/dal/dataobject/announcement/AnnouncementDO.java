@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.announcement;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDate;
 
@@ -18,13 +16,8 @@ import java.time.LocalDate;
 @TableName("kno_announcement")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AnnouncementDO extends TenantBaseDO {
+public class AnnouncementDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 公告编号（如 TA-2026-001），全局唯一
      */
@@ -89,11 +82,6 @@ public class AnnouncementDO extends TenantBaseDO {
      * 状态：0 草稿 1 已发布 2 已停用
      */
     private Integer status;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
     /**
      * 创建人
      */

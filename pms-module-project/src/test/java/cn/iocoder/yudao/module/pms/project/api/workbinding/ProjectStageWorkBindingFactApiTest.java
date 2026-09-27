@@ -25,7 +25,7 @@ class ProjectStageWorkBindingFactApiTest {
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
-        var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(1L); project.setVersion(1);
+        var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(1L); project.setVersion(1L);
         project.setLifecycleTemplateId(700L); project.setLifecycleTemplateRevisionId(701L); project.setLifecycleTemplateRevisionNo(1);
         when(projects.selectById(9L)).thenReturn(project);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
@@ -60,7 +60,7 @@ class ProjectStageWorkBindingFactApiTest {
 
     @Test void lockRevalidatesCompletedStageFactsAndRejectsStaleExpectedVersions() {
         stage.setStatus("DONE");
-        var request = new ProjectWorkBindingStageFactRevalidationQuery(9L,90L,99L,3,4,1,query.target());
+        var request = new ProjectWorkBindingStageFactRevalidationQuery(9L,90L,99L,3,4,1L,query.target());
         assertEquals(api.inspectStage(query),api.lockAndRevalidateStage(request));
         var order = inOrder(projects, graph);
         order.verify(projects).selectByIdForUpdate(9L);
@@ -75,13 +75,13 @@ class ProjectStageWorkBindingFactApiTest {
     @Test void foreignTenantCannotLockAnotherProjectsStageFacts() {
         TenantContextHolder.setTenantId(2L);
         assertThrows(RuntimeException.class, () -> api.lockAndRevalidateStage(
-                new ProjectWorkBindingStageFactRevalidationQuery(9L,90L,99L,3,4,1,query.target())));
+                new ProjectWorkBindingStageFactRevalidationQuery(9L,90L,99L,3,4,1L,query.target())));
         verify(graph, never()).selectStagesForUpdate(any());
     }
 
     @Test void changedProjectVersionCannotUseAnOldStageBindingProof() {
         assertThrows(RuntimeException.class, () -> api.lockAndRevalidateStage(
-                new ProjectWorkBindingStageFactRevalidationQuery(9L,90L,99L,3,4,0,query.target())));
+                new ProjectWorkBindingStageFactRevalidationQuery(9L,90L,99L,3,4,0L,query.target())));
         verify(graph, never()).selectStagesForUpdate(any());
     }
 

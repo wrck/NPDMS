@@ -66,7 +66,7 @@ public class RiskServiceImpl implements RiskService {
         RiskDO entity = BeanUtils.toBean(createReqVO, RiskDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         if (entity.getCrmSynced() == null) {
             entity.setCrmSynced(false);

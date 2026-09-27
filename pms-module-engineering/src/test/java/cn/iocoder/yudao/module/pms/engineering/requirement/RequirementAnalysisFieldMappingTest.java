@@ -60,7 +60,7 @@ class RequirementAnalysisFieldMappingTest {
     void formCannotWriteIdentityAuditOrRevisionMetadata() {
         var row = new RequirementAnalysisRevisionDO();
         row.setTenantId(7L);
-        row.setVersion(4);
+        row.setVersion(4L);
         row.setEffectiveMarker(1);
         for (String code : List.of("id", "tenantId", "creator", "deleted", "version", "effectiveMarker", "frozenAt")) {
             assertThrows(IllegalArgumentException.class, () -> fields.write(row, Map.of(code, 99)));

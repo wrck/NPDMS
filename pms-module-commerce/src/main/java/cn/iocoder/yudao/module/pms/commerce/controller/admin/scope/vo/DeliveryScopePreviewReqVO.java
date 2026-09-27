@@ -7,7 +7,7 @@ import java.util.List;
 
 public record DeliveryScopePreviewReqVO(
         @NotNull @Positive Long projectId,
-        @NotNull @PositiveOrZero Integer expectedProjectVersion,
+        @NotNull @PositiveOrZero Long expectedProjectVersion,
         @NotNull @PositiveOrZero Long expectedProjectScopeVersion,
         @NotNull @PositiveOrZero Long expectedDeliveryScopeVersion,
         @NotNull @Positive Long orderLineId,

@@ -22,7 +22,7 @@ public class AcceptanceStageBindingCoordinator {
     private final ProjectAcceptanceStageFactApi stageFactApi;
     private final AcceptanceScopeBindingApi bindingApi;
 
-    public StageContext lockAndRead(Long tenantId, Long projectId, Integer expectedProjectVersion,
+    public StageContext lockAndRead(Long tenantId, Long projectId, Long expectedProjectVersion,
                                     String operationId) {
         ProjectAcceptanceStageFact fact = stageFactApi.lockAndRead(new ProjectAcceptanceStageFactQuery(
                 tenantId, projectId, expectedProjectVersion, operationId));
@@ -70,7 +70,7 @@ public class AcceptanceStageBindingCoordinator {
         return value == null || value.isBlank();
     }
 
-    public record StageContext(Long tenantId, Long projectId, Integer projectVersion,
+    public record StageContext(Long tenantId, Long projectId, Long projectVersion,
                                Long projectStageSnapshotId, boolean acceptanceStage) {
     }
 }

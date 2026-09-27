@@ -78,7 +78,7 @@ class ArrivalAcceptanceConcurrencyMySqlTest {
         support.attachAcceptedDeviceAndEvidence(draft);
         applicationService.submit(new ArrivalAcceptanceApplicationService.SubmitCommand(
                 tenantId, draft.getId(), ArrivalAcceptanceApplicationMySqlTest.ACTOR_ID,
-                0, "submit-concurrent", "corr-submit-concurrent"));
+                0L, "submit-concurrent", "corr-submit-concurrent"));
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -123,7 +123,7 @@ class ArrivalAcceptanceConcurrencyMySqlTest {
             if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("start timed out");
             applicationService.confirm(new ArrivalAcceptanceApplicationService.ConfirmCommand(
                     tenantId, acceptanceId, ArrivalAcceptanceApplicationMySqlTest.ACTOR_ID,
-                    1, suffix, "corr-" + suffix));
+                    1L, suffix, "corr-" + suffix));
             return true;
         } catch (RuntimeException exception) {
             return false;

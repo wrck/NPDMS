@@ -378,7 +378,7 @@ class ProjectTreeScopeServiceTest {
         return new AuthorizationGrantDTO(
                 100L + resourceId, 0L, "USER", 9L, "PROJ", "PROJECT", resourceId,
                 actionCode, scopeCode, null, null, "ACTIVE", "PROJ", null, null,
-                7L, null, null, null, null, 0);
+                7L, null, null, null, null, 0L);
     }
 
     private ProjectTreePathDO path(Long ancestorId, Long descendantId) {

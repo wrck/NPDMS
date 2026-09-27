@@ -55,10 +55,10 @@ class SolutionTieredReviewServiceTest {
         SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(7L).setTenantId(1L), new MockHttpServletRequest());
         when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(true);
         when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
-        var member = new ProjectParticipantFact(9L,7L,Set.of("PROJECT_MANAGER"),"PRIMARY","ACTIVE","S3",1,1L);
+        var member = new ProjectParticipantFact(9L,7L,Set.of("PROJECT_MANAGER"),"PRIMARY","ACTIVE","S3",1L,1L);
         when(participants.inspect(any())).thenReturn(member); when(participants.lockAndRevalidate(any())).thenReturn(member);
         solution = new SolutionDO(); solution.setId(42L); solution.setTenantId(1L); solution.setProjectId(9L);
-        solution.setVersion(0); solution.setStatus(0); solution.setReviewLevel(1); solution.setSolutionType("IMPLEMENTATION");
+        solution.setVersion(0L); solution.setStatus(0); solution.setReviewLevel(1); solution.setSolutionType("IMPLEMENTATION");
         solution.setName("重大方案"); solution.setCode("SOL-42"); solution.setBackground("保留源正文");
         when(reviews.source(any())).thenReturn(solution);
         when(reviews.bySolution(any())).thenAnswer(call -> stored);
@@ -87,7 +87,7 @@ class SolutionTieredReviewServiceTest {
     }
     @Test void finalApprovalArchivesOnceAndProtectsApprovedVersion() {
         service.start(command(0)); result("APPROVE"); service.refresh(selection);
-        assertEquals(3, solution.getStatus()); assertEquals(solution.getVersion(), solution.getBaselineVersion());
+        assertEquals(3, solution.getStatus()); assertEquals(solution.getVersion().longValue(), solution.getBaselineVersion().longValue());
         assertEquals(10L, solution.getApprovedBy()); assertEquals("APPROVE", stored.getStatus());
         assertTrue(service.approved(solution, true));
         service.refresh(selection); verify(deliverables,times(1)).insert(any(cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO.class));
@@ -103,7 +103,7 @@ class SolutionTieredReviewServiceTest {
         assertEquals("保留源正文",captured.getValue().getBackground()); assertEquals(4,solution.getStatus());
     }
     @Test void currentSourceChangeRejectsTerminalResultWithoutOverwrite() {
-        service.start(command(0)); result("APPROVE"); solution.setVersion(99);
+        service.start(command(0)); result("APPROVE"); solution.setVersion(99L);
         assertThrows(IllegalStateException.class, () -> service.refresh(selection)); assertNull(solution.getBaselineVersion());
         verifyNoInteractions(deliverables);
     }

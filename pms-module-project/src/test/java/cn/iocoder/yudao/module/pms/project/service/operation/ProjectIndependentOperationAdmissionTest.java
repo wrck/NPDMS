@@ -43,7 +43,7 @@ class ProjectIndependentOperationAdmissionTest {
     private final ProjectIndependentOperationAdmission admission = new ProjectIndependentOperationAdmission(policies, scopes, contextProvider);
     private final ProjectOperationAwareExecutionGuard guard = new ProjectOperationAwareExecutionGuard(old, nodes, admission);
     private final ProjectBusinessExecutionSelection selection = new ProjectBusinessExecutionSelection(null,
-            new ProjectStageExecutionContext(9L,1,21L,1,22L,1,23L,24L,1,2,true));
+            new ProjectStageExecutionContext(9L,1L,21L,1,22L,1,23L,24L,1,2,true));
 
     @BeforeEach void setUp() {
         TenantContextHolder.setTenantId(7L);

@@ -277,7 +277,7 @@ class AuthorizationGrantMySqlTest {
                 effectiveFrom, effectiveTo, "PROJ", "PROJECT", String.valueOf(resourceId), "集成测试");
     }
 
-    private AuthorizationGrantRevokeCommand revokeCommand(Long grantId, int version, String suffix) {
+    private AuthorizationGrantRevokeCommand revokeCommand(Long grantId, long version, String suffix) {
         return new AuthorizationGrantRevokeCommand(
                 0L, 9_900_003L, grantId, version, "撤销集成测试授权",
                 KEY_PREFIX + subjectId + "-" + suffix, sha256(suffix));

@@ -59,7 +59,7 @@ public class ConstructionPlanQueryService {
 
     public ConstructionPlanRespVO getById(Long planId, Actor actor) {
         requireQueryPermission(actor);
-        ConstructionPlanDO plan = planMapper.selectById(new ConstructionPlanLockQuery(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(new ConstructionPlanLockQuery(
                 actor.tenantId(), requirePositive(planId)));
         requirePlan(plan);
         assertProjectScope(actor, plan.getProjectId(), ProjectScopeApi.ACTION_VIEW);
@@ -136,7 +136,7 @@ public class ConstructionPlanQueryService {
 
     private ConstructionPlanDO requireVisiblePlan(Long planId, Actor actor) {
         requireQueryPermission(actor);
-        ConstructionPlanDO plan = planMapper.selectById(new ConstructionPlanLockQuery(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(new ConstructionPlanLockQuery(
                 actor.tenantId(), requirePositive(planId)));
         requirePlan(plan);
         assertProjectScope(actor, plan.getProjectId(), ProjectScopeApi.ACTION_VIEW);

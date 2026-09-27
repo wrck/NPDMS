@@ -30,7 +30,7 @@ public class ProjectCurrentStageService implements ProjectLifecycleStageFactApi 
 
     /** Joins the stage/plan/round transition transaction; no read endpoint repairs state. */
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
-    public Integer synchronize(Long projectId) {
+    public Long synchronize(Long projectId) {
         var project = projects.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("PROJECT_NOT_FOUND");

@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -16,17 +15,14 @@ import java.time.LocalDateTime;
  * 对应表 {@code imp_eng_training}。
  * 状态：0 草稿、1 已外发、2 客户已确认、3 已作废。
  * 外发令牌仅存 SHA-256 摘要，原始令牌只在外发时返回一次，不落库。
+ * <p>
+ * P12-B1：继承统一业务基类，主键与乐观锁并发依据（id/version）由基类唯一定义。
  */
 @TableName("imp_eng_training")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TrainingDO extends TenantBaseDO {
+public class TrainingDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -123,11 +119,6 @@ public class TrainingDO extends TenantBaseDO {
      * 培训记录表文件SHA-256校验值
      */
     private String fileChecksum;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
     /**
      * 备注
      */

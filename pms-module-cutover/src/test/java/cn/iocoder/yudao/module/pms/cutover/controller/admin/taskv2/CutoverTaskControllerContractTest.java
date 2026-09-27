@@ -78,7 +78,7 @@ class CutoverTaskControllerContractTest {
                 CutoverTaskViews.ConfigurationChoice::configurationCode).containsExactly("CORE_STANDARD");
 
         when(applicationService.create(any())).thenReturn(
-                new CutoverTaskCommandResult(101L, "CUT-001", "P2", "GRADE_CONFIRMING", 1, false));
+                new CutoverTaskCommandResult(101L, "CUT-001", "P2", "GRADE_CONFIRMING", 1L, false));
         CutoverTaskReqVO.Create createRequest = new CutoverTaskReqVO.Create(
                 31L, "CORE_STANDARD", List.of("SN-001"), "核心网割接", "设备替换",
                 "CORE_REPLACEMENT", "DUAL_PLANE", now,

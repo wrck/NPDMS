@@ -97,7 +97,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
         ExternalProcurementDO entity = BeanUtils.toBean(createReqVO, ExternalProcurementDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         externalProcurementMapper.insert(entity);
         return entity.getId();
