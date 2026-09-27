@@ -75,7 +75,7 @@
           </el-form-item>
         </el-col>
         <el-col :xs="24" :sm="12">
-          <el-form-item label="签收人" prop="receiverUserId"><PmsEntitySelect v-model="form.receiverUserId" :api="UserApi.getUserPage" label-field="nickname" value-field="id" query-field="nickname" placeholder="请选择签收人" /></el-form-item>
+          <el-form-item label="签收人" prop="receiverUserId"><PmsEntitySelect v-model="form.receiverUserId" :api="signerOptions" label-field="name" value-field="userId" query-field="name" placeholder="请选择签收人" /></el-form-item>
         </el-col>
         <el-col :xs="24" :sm="12">
           <el-form-item label="关联设备" prop="equipmentId">
@@ -121,6 +121,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import type { ArrivalVO } from '@/api/pms/engineering/arrival'
 import * as UserApi from '@/api/system/user'
+import { getMemberPage } from '@/api/pms/project/unified-members'
 import { useUserStore } from '@/store/modules/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import { checkPermi } from '@/utils/permission'
@@ -146,6 +147,27 @@ const rules = {
   arrivalTime: [{ required: true, message: '请选择到货时间' }]
 }
 
+// 签收人收敛为项目当前成员：全量用户列表会混入设备权限测试等与项目无关的账号。
+const signerOptions = async (params?: Record<string, unknown>) => {
+  const keyword = typeof params?.name === 'string' && params.name ? params.name : undefined
+  const page = await getMemberPage(props.projectId, { state: 'CURRENT', pageNo: 1, pageSize: 100, keyword })
+  // 同一用户可能以多个角色出现在成员表（如服务经理兼项目经理），选择器按人去重。
+  const options: { userId: number; name: string }[] = []
+  for (const m of page?.list || []) {
+    if (options.some((o) => o.userId === m.userId)) continue
+    options.push({ userId: m.userId, name: m.memberName || `用户${m.userId}` })
+  }
+  // 历史记录的签收人可能不在当前成员中（如项目成员变更前登记），按值反查一次系统用户用于回显。
+  if (/^\d+$/.test(keyword ?? '') && !options.some((o) => String(o.userId) === keyword)) {
+    try {
+      const user = await UserApi.getUser(Number(keyword))
+      if (user?.id) options.push({ userId: user.id, name: user.nickname || `用户${user.id}` })
+    } catch {
+      // 反查失败时仅展示成员选项
+    }
+  }
+  return options
+}
 const load = async () => {
   loading.value = true
   try {

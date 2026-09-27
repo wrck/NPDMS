@@ -38,11 +38,11 @@
 - B. 修订模板：为 DEPLOY_CUTOVER 配置界面可发起的过渡完成依据（如改用流程表单 NORMAL 类型定义或 PAGE 绑定）。
 - C. 维持现状并披露：S4→S5 为已知阻塞点（本次记录即此形态）。
 
-## 缺陷观察（未修复，不在本次请求范围）
+## 缺陷观察（2026-09-27 专项任务修复，已浏览器复验）
 
-1. **方案类型自由文本**：`engineering/solution` 表单"方案类型"为无枚举校验的 `el-input`（`SolutionChapterForm.vue` 形态）。本次误输入中文"实施方案"导致 `SolutionCompletionMapper`（固定 `solution_type='IMPLEMENTATION'`）查不到候选，业务链接为空，PLAN_SOLUTION 永久 UNKNOWN；经抽屉内补建 V2（IMPLEMENTATION）走完审核恢复。建议改为枚举选择或服务端校验。
-2. **到货签收"签收人"下拉污染**：登记到货的签收人选项混入设备编码（FCUS001/FAST001 等）与用户名两类数据，且项目无设备时"关联设备"下拉为空（可选字段，不阻塞）。建议收敛数据源。
-3. **割接任务列表加载失败提示**：割接上线 5.5 视图对 404 显示"割接任务服务未接入、暂不可用或无访问权限，任务列表未成功刷新；这不代表没有任务。"——措辞与真实原因（端点未注册）不符，易误导排查。
+1. **方案类型自由文本**：~~已修复~~ `SolutionChapterForm.vue`/`SolutionReviewChapterForm.vue` 的"方案类型"改为单选下拉（仅 `IMPLEMENTATION`，任务完成链 `SolutionCompletionMapper`/`SolutionReviewMapper` 固定值；扩充值域须先经规格裁决），新增表单默认 `IMPLEMENTATION`，`SolutionSaveReqVO` 增加 `@Pattern(regexp="IMPLEMENTATION")` 服务端校验（实测非法值返回 400"方案类型仅支持 IMPLEMENTATION"）。证据 `defect-fix/fix1-solution-type-*.png`。遗留：库中 1 条历史脏数据（id 30009 solution_type='实施方案'，本次误输入产物）保留作缺陷证据，只读场景禁用下拉回显原始码（已实测，`defect-fix/fix1-legacy-badrow-readonly.png`）；SERVICE/MIGRATION 历史行同样以原始码展示，且 update 路径同受 `@Valid @Pattern` 约束——历史行不改类型直接保存会被 400 拦截，须重选方案类型后方可保存。
+2. **到货签收"签收人"下拉污染**：~~已修复~~ 选项由全量用户表收敛为项目 CURRENT 成员（`getMemberPage`，同项目成员页数据源），按 userId 去重；历史记录签收人不在当前成员时按值反查系统用户回显（如 userId=1 → 管理员）。设备测试账号（FCUS001/FAST001 等）不再混入。证据 `defect-fix/fix2-signer-*.png`。"关联设备"为可选字段，项目无设备时下拉为空属预期，未改。
+3. **割接任务列表加载失败提示**：~~已修复~~ 文案改为与真实原因一致的"割接任务服务尚未接入（服务端点未注册，待割接业务 Owner 正式接入后开放），任务列表无法加载；这不代表项目没有割接任务。"证据 `defect-fix/fix3-cutover-banner.png`。
 
 ## 过程要点（界面驱动）
 
@@ -53,6 +53,7 @@
 ## 证据索引
 
 - 浏览器截图：`browser/`（创建向导 01~12、S1/S3/S4 各环节、割接阻塞 `s4-cutover-drawer-blocked.png`、终态 `final-task-list.png`）。
+- 缺陷修复复验截图：`defect-fix/`（方案类型下拉、签收人成员收敛与去重、割接 5.5 新文案）。
 - 上传材料：`uploads/`（各阶段提交的 PDF/MD）。
 - 模板快照：`snap.json`（含 DEPLOY_CUTOVER 绑定与完成规则 CONSTANT true 的过渡说明）。
 - 修复记录：本次会话修复交付件提交乐观锁缺陷（11 处）、文件存储主配置（baidu 假配置→DB 存储）、客户模块编译断链（Integer→Long），均随重建部署后经浏览器复验。

@@ -224,7 +224,7 @@ const openForm = async (row?: SolutionVO) => {
   form.value = {
       projectId: props.projectId ?? 0,
       name: '',
-      solutionType: '',
+      solutionType: 'IMPLEMENTATION',
       background: '',
       target: '',
       team: '',
