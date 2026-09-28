@@ -58,22 +58,43 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
         var ordered = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.StageContract>();
         var seen = new java.util.HashSet<String>();
         var pathInputs = new java.util.ArrayList<java.util.Map<String, Object>>();
-        var current = starts.getFirst();
-        while (current != null) {
-            if (!seen.add(current.getCode())) throw new IllegalArgumentException("冻结计划路径存在循环");
+        // 并行分支（如模板"计划与方案并行、部署要求二者均完成"）都必须参与计划：
+        // 工作队列覆盖全部可达阶段，条件边按冻结事实求值后并行纳入，默认分支仅在无其他可用转移时兜底
+        var queue = new java.util.ArrayDeque<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.StageContract>();
+        var usableEdges = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract>();
+        seen.add(starts.getFirst().getCode());
+        queue.add(starts.getFirst());
+        while (!queue.isEmpty()) {
+            var current = queue.poll();
             ordered.add(current);
-            if (Boolean.TRUE.equals(current.getTerminal())) break;
-            String code = current.getCode();
-            var outgoing = snapshot.getTransitions().stream().filter(edge -> code.equals(edge.getFromStageCode())).toList();
-            String target;
-            if (outgoing.size() == 1 && !conditional(outgoing.getFirst())) {
-                target = outgoing.getFirst().getToStageCode();
-            } else {
-                target = resolveTarget(snapshot, project, stages, tasks, code, pathInputs);
+            if (Boolean.TRUE.equals(current.getTerminal())) continue;
+            var outgoing = snapshot.getTransitions().stream()
+                    .filter(edge -> current.getCode().equals(edge.getFromStageCode())).toList();
+            List<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract> usable =
+                    outgoing.size() == 1 && !conditional(outgoing.getFirst())
+                            ? List.of(outgoing.getFirst())
+                            : resolveTargets(snapshot, project, stages, tasks, current.getCode(), pathInputs);
+            for (var edge : usable) {
+                var next = definitions.get(edge.getToStageCode());
+                if (next == null) throw new IllegalArgumentException("冻结路径目标阶段不存在");
+                usableEdges.add(edge);
+                if (seen.add(next.getCode())) queue.add(next);
             }
-            current = definitions.get(target);
-            if (current == null) throw new IllegalArgumentException("冻结路径目标阶段不存在");
         }
+        // 多分支汇聚回同一阶段是合法图；用拓扑消化区分汇聚与真正的环，成环仍拒绝推算
+        var indegree = new java.util.HashMap<String, Integer>();
+        for (String code : seen) indegree.put(code, 0);
+        for (var edge : usableEdges) indegree.merge(edge.getToStageCode(), 1, Integer::sum);
+        var outgoingByFrom = usableEdges.stream().collect(java.util.stream.Collectors.groupingBy(
+                cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract::getFromStageCode));
+        var acyclic = seen.stream().filter(code -> indegree.get(code) == 0)
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayDeque::new));
+        while (!acyclic.isEmpty()) {
+            for (var edge : outgoingByFrom.getOrDefault(acyclic.poll(), List.of())) {
+                if (indegree.merge(edge.getToStageCode(), -1, Integer::sum) == 0) acyclic.add(edge.getToStageCode());
+            }
+        }
+        if (indegree.values().stream().anyMatch(value -> value > 0)) throw new IllegalArgumentException("冻结计划路径存在循环");
         // Demo 页面9 / Excel 3.1：建议最迟完成按签约方式维护的倒排规则解析（V355 配置），
         // 未覆盖或未解析的阶段回退阶段实例既有建议；各阶段计划起止仍为逐行直接输入
         var orderedFacts = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.projectschedule.StageSuggestionRules.StageFacts>();
@@ -135,13 +156,14 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
                 || edge.getConditionRule() != null && !edge.getConditionRule().isNull();
     }
 
-    private String resolveTarget(TemplateExecutionSnapshot snapshot,
+    private List<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract> resolveTargets(
+            TemplateExecutionSnapshot snapshot,
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
             List<ProjectStageInstanceDO> stages,
             List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO> tasks,
             String code, List<java.util.Map<String, Object>> pathInputs) {
-        var matched = new java.util.ArrayList<TemplateExecutionSnapshot.TransitionContract>();
-        var defaults = new java.util.ArrayList<TemplateExecutionSnapshot.TransitionContract>();
+        var matched = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract>();
+        var defaults = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract>();
         var query = new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
         if (ruleEvaluator == null || runtimeGraphMapper == null) throw new IllegalArgumentException("冻结路径条件求值不可用");
         var gates = runtimeGraphMapper.selectGates(query);
@@ -178,13 +200,13 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
         // constrained by the legacy S0-S6 graph validator; preserve the same priority semantics.
         if (defaults.size() > 1) throw new IllegalArgumentException("冻结路径默认分支不唯一：" + code);
         if (matched.isEmpty()) {
-            if (defaults.size() == 1) return defaults.getFirst().getToStageCode();
+            if (defaults.size() == 1) return List.of(defaults.getFirst());
             throw new IllegalArgumentException("冻结路径无匹配分支：" + code);
         }
-        int priority = matched.stream().mapToInt(TemplateExecutionSnapshot.TransitionContract::getPriority).min().orElseThrow();
-        var winners = matched.stream().filter(edge -> edge.getPriority() == priority).toList();
-        if (winners.size() != 1) throw new IllegalArgumentException("冻结路径同优先级分支同时命中：" + code);
-        return winners.getFirst().getToStageCode();
+        // 并行分支全部纳入推算；priority 升序仅决定推算顺序（稳定排序保持快照内相对次序）
+        return matched.stream()
+                .sorted(java.util.Comparator.comparingInt(cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TransitionContract::getPriority))
+                .toList();
     }
 
 

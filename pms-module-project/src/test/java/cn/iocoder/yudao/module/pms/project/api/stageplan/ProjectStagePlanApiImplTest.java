@@ -109,6 +109,53 @@ class ProjectStagePlanApiImplTest {
         snapshot.getTransitions().getFirst().setConditionRuleKey("UNRESOLVED"); freeze();
         assertThrows(IllegalArgumentException.class, () -> api.calculateSchedule(1L,7L,start,end));
     }
+    @Test void parallelBranchesAllEnterThePlanInPriorityOrder() {
+        // 模板允许并行分支（如"计划与方案并行、部署要求二者均完成"）：
+        // 推算必须覆盖全部可达阶段并按 priority 升序决定顺序，不得只走优先级最小的一条；多分支汇聚回同一阶段合法
+        var evaluator = mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator.class);
+        var graphMapper = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(api, "ruleEvaluator", evaluator);
+        org.springframework.test.util.ReflectionTestUtils.setField(api, "runtimeGraphMapper", graphMapper);
+        when(graphMapper.selectGates(any())).thenReturn(List.of());
+        var stageA = new TemplateExecutionSnapshot.StageContract(); stageA.setCode("A"); stageA.setStart(true);
+        var stageB = new TemplateExecutionSnapshot.StageContract(); stageB.setCode("B");
+        var stageC = new TemplateExecutionSnapshot.StageContract(); stageC.setCode("C");
+        var stageD = new TemplateExecutionSnapshot.StageContract(); stageD.setCode("D"); stageD.setTerminal(true);
+        var aToPlan = new TemplateExecutionSnapshot.TransitionContract();
+        aToPlan.setFromStageCode("A"); aToPlan.setToStageCode("C");
+        aToPlan.setCode("A_C"); aToPlan.setPriority(2); aToPlan.setDefaultBranch(false);
+        var aToB = snapshot.getTransitions().getFirst();
+        aToB.setCode("A_B"); aToB.setPriority(1); aToB.setDefaultBranch(false);
+        var planToD = new TemplateExecutionSnapshot.TransitionContract();
+        planToD.setFromStageCode("C"); planToD.setToStageCode("D");
+        planToD.setCode("C_D"); planToD.setPriority(0); planToD.setDefaultBranch(false);
+        var bToD = new TemplateExecutionSnapshot.TransitionContract();
+        bToD.setFromStageCode("B"); bToD.setToStageCode("D");
+        bToD.setCode("B_D"); bToD.setPriority(0); bToD.setDefaultBranch(false);
+        snapshot.setStages(List.of(stageA, stageB, stageC, stageD));
+        snapshot.setTransitions(List.of(aToB, aToPlan, bToD, planToD));
+        var instanceC = new ProjectStageInstanceDO(); instanceC.setId(13L); instanceC.setProjectId(7L); instanceC.setTenantId(1L); instanceC.setCode("C"); instanceC.setVersion(1);
+        var instanceD = new ProjectStageInstanceDO(); instanceD.setId(14L); instanceD.setProjectId(7L); instanceD.setTenantId(1L); instanceD.setCode("D"); instanceD.setVersion(1);
+        when(stages.selectListByProjectId(7L)).thenReturn(List.of(first, last, instanceC, instanceD));
+        freeze();
+        var result = api.calculateSchedule(1L,7L,start,end);
+        assertEquals(List.of(11L, 12L, 13L, 14L),
+                result.stages().stream().map(cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.StagePlanDate::stageId).toList(),
+                "并行分支（B 计划、C 方案）必须同时参与计划且汇聚阶段 D 只出现一次");
+    }
+    @Test void cyclicFrozenPathIsStillRejected() {
+        // 汇聚合法，但真正的环仍须拒绝推算
+        snapshot.getStages().stream().filter(stage -> "B".equals(stage.getCode())).findFirst().orElseThrow().setTerminal(false);
+        var aToB = snapshot.getTransitions().getFirst();
+        aToB.setCode("A_B"); aToB.setPriority(1); aToB.setDefaultBranch(false);
+        var bToA = new TemplateExecutionSnapshot.TransitionContract();
+        bToA.setFromStageCode("B"); bToA.setToStageCode("A");
+        bToA.setCode("B_A"); bToA.setPriority(1); bToA.setDefaultBranch(false);
+        snapshot.setTransitions(List.of(aToB, bToA));
+        freeze();
+        var violation = assertThrows(IllegalArgumentException.class, () -> api.calculateSchedule(1L,7L,start,end));
+        assertTrue(violation.getMessage().contains("循环"));
+    }
     @Test void resolvedFrozenConditionCanSelectTheUniquePath() {
         var evaluator = mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator.class);
         var graphMapper = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper.class);

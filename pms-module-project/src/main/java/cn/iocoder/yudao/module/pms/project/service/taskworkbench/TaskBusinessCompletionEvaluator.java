@@ -53,6 +53,15 @@ public class TaskBusinessCompletionEvaluator {
     }
 
     public Result evaluate(ProjectTaskExecutionContractDO contract, String factVersion, List<TaskBusinessLinkFact> links) {
+        return evaluate(contract, factVersion, links, null);
+    }
+
+    /**
+     * 闭环复评注入运行时叶子解析器：冻结完成规则可能包含 DELIVERABLE 等任务完成路径本就支持的谓词
+     * （ProjectTaskPlanCompletionService 的完成解析器语义），缺省仍按链接级业务事实失败关闭。
+     */
+    public Result evaluate(ProjectTaskExecutionContractDO contract, String factVersion, List<TaskBusinessLinkFact> links,
+                           java.util.function.Function<RuleProgram.Leaf, RuleFact> runtimeLeaf) {
         List<String> unmet = new ArrayList<>();
         List<Map<String, Object>> criteria = new ArrayList<>();
         Map<String, Object> evidence = new LinkedHashMap<>();
@@ -88,7 +97,14 @@ public class TaskBusinessCompletionEvaluator {
                             contract.getCompletionRuleTypeCode(), "parameters", snapshot)), JsonNode.class);
                 }
                 var evaluation = rules.evaluate("task-contract:" + contract.getId() + ":" + contract.getContractVersion(),
-                        compiler.compile(rule), leaf -> businessFact(leaf, links, criteria, unmet));
+                        compiler.compile(rule), leaf -> {
+                            if (runtimeLeaf != null && (!"BUSINESS_FACT".equals(leaf.predicate())
+                                    || leaf.parameters().has("sourceNodeKey"))) {
+                                RuleFact fact = runtimeLeaf.apply(leaf);
+                                if (fact != null) return fact;
+                            }
+                            return businessFact(leaf, links, criteria, unmet);
+                        });
                 evidence.put("ruleOutcome", evaluation.outcome());
                 evidence.put("conditions", evaluation.conditions());
                 evidence.put("components", evaluation.steps());

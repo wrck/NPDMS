@@ -45,6 +45,7 @@ class NormalClosureCheckServiceTest {
     void setUp() {
         checks = new NormalClosureCheckService(closureProjects, mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class),
                 contracts, links, graphs, mock(ProjectStageGateProviderRegistry.class), business, evaluator,
+                mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator.class),
                 descendantGuard, mock(NormalClosureAccess.class), resultEvidence);
         project.setId(9L); project.setTenantId(7L); project.setVersion(3L); project.setLifecycleStatus("ACTIVE");
         project.setClosurePolicySnapshot("{}"); project.setTaskTreeVersion(2L); project.setTaskProgressVersion(4L);
@@ -69,7 +70,7 @@ class NormalClosureCheckServiceTest {
         when(graphs.lockClosureGates(project)).thenReturn(new ProjectRuntimeGraphResolver.ClosureGates(List.of(), List.of()));
         when(business.inspectLinkedFactsSnapshot(any(), any(), any(), any())).thenReturn(facts);
         when(business.lockAndRevalidateLinkedFacts(any(), any(), any(), any(), any())).thenReturn(facts);
-        when(evaluator.evaluate(eq(contract), eq("owner-v1"), eq(facts.links())))
+        when(evaluator.evaluate(eq(contract), eq("owner-v1"), eq(facts.links()), any()))
                 .thenReturn(new TaskBusinessCompletionEvaluator.Result(true, List.of(), Map.of()));
         when(resultEvidence.revalidate(eq(project), eq(task), eq(contract), any()))
                 .thenReturn(new ProjectResultEvidenceGuard.Proof(true, "NO_RESULT_SUBSCRIPTION", List.of()));

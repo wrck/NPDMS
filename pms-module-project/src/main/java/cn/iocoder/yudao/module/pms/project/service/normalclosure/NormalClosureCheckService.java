@@ -33,6 +33,7 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     private final ProjectStageGateProviderRegistry gates;
     private final ProjectTaskBusinessService business;
     private final TaskBusinessCompletionEvaluator evaluator;
+    private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator runtimeRules;
     private final ProjectClosureGuardService descendantGuard;
     private final NormalClosureAccess access;
     private final NormalClosureResultEvidence resultEvidence;
@@ -85,7 +86,8 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
         var closureGates = graphs.lockClosureGates(project);
         add(checks, "TERMINAL_STAGE", graph.terminal(), graph.current().getId());
         add(checks, "STAGE_COMPLETION", graph.completion() == ConditionStatus.SATISFIED, graph.current().getId());
-        source.put("stage", List.of(graph.current().getId(), graph.current().getVersion(), graph.current().getGraphVersion(),
+        // v2 契约（sourceNodeKey）阶段实例的 definitionRevisionId 允许为 null，证据行不能使用拒绝 null 的 List.of。
+        source.put("stage", Arrays.asList(graph.current().getId(), graph.current().getVersion(), graph.current().getGraphVersion(),
                 graph.current().getDefinitionRevisionId(), graph.current().getCode()));
         List<Object> gateEvidence = new ArrayList<>();
         for (var gate : closureGates.gates()) {
@@ -125,13 +127,22 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
                 var before = business.inspectLinkedFactsSnapshot(task.getId(), project.getTenantId(), factActorId, correlationId);
                 var locked = business.lockAndRevalidateLinkedFacts(task.getId(), project.getTenantId(), factActorId,
                         correlationId, before.factVersion());
-                var value = evaluator.evaluate(contract, locked.factVersion(), locked.links());
+                // 冻结完成规则按任务完成路径的同一语义复评：DELIVERABLE 等运行时谓词经门禁事实提供者解析，
+                // 本机状态以闭环时刻任务实例状态为准（DONE 蕴含当轮已提交）。
+                var runtimeFacts = new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator.Facts(
+                        project, graph.current(), tasks, graph.gates(), graph.references(), false);
+                var value = evaluator.evaluate(contract, locked.factVersion(), locked.links(),
+                        leaf -> switch (leaf.predicate()) {
+                            case "TASK_NATIVE_STATUS" -> cn.iocoder.yudao.module.pms.project.domain.rule.RuleFact.known(
+                                    "DONE".equals(task.getStatus()));
+                            default -> runtimeRules.resolveFact(leaf, runtimeFacts);
+                        });
                 add(checks, "TASK_BUSINESS_FACTS", value.satisfied(), task.getId());
                 taskSource.put("businessEvidence", value.evidence());
             } else if (!cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.TYPE.equals(contract.getWorkBindingTypeCode())) {
-                // Native DONE is valid only for an explicitly frozen native completion contract.
-                boolean nativeContract = Set.of("TASK_NATIVE", "PAGE").contains(contract.getWorkBindingTypeCode())
-                        && "TASK_NATIVE_STATUS".equals(contract.getCompletionRuleTypeCode());
+                // 非业务/非结果订阅任务的 DONE 仅在冻结契约为运行时支持的本机完成形态时有效：
+                // 本机/页面提交与审批完成；完成规则本体由冻结快照决定，不再要求固定为 TASK_NATIVE_STATUS。
+                boolean nativeContract = Set.of("TASK_NATIVE", "PAGE", "APPROVAL").contains(contract.getWorkBindingTypeCode());
                 add(checks, "TASK_NATIVE_CONTRACT", nativeContract, task.getId());
             }
             var proof = resultEvidence.revalidate(project, task, contract, resultRounds);
