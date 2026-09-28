@@ -4,10 +4,13 @@
       <div class="requirement-toolbar">
         <div><strong>需求分析</strong><p class="requirement-caption">维护项目需求与附件，按版本保存和确认。</p></div>
         <div class="requirement-actions">
-          <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
-          <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial">创建需求分析草稿</el-button>
-          <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从查看版本创建草稿</el-button>
-          <el-button :disabled="!detail" @click="openHistory">修订记录</el-button>
+          <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（需求分析）原地渲染 -->
+          <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+            <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
+            <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial">创建需求分析草稿</el-button>
+            <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从查看版本创建草稿</el-button>
+            <el-button :disabled="!detail" @click="openHistory">修订记录</el-button>
+          </Teleport>
         </div>
       </div>
       <el-divider />
@@ -44,7 +47,9 @@
           @dirty-change="formDirty = $event" @saved="emit('changed')"
         />
         <RequirementBriefingSection v-if="project.id" :project-id="project.id" :manage="openBriefing" />
-        <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
+        <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+          <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
+        </Teleport>
       </template>
     </ContentWrap>
   </div>
@@ -68,9 +73,12 @@ import RequirementBriefingSection from './RequirementBriefingSection.vue'
 import RevisionDrawer from './RevisionDrawer.vue'
 import CompareDrawer from './CompareDrawer.vue'
 import { stableCommandIntent } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
+import { takeTaskViewPrefetch, requirementWorkspaceKey } from '@/views/pms/project/project-master-detail/taskViewPrefetch'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
 const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean; openBriefing?: () => unknown }>()
+const { barTarget } = useBusinessActionBar()
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {
     ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),
@@ -204,7 +212,11 @@ const load = async () => {
   detailLoading.value = true
   errorText.value = ''
   try {
-    const current = await RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
+    // 命中任务办理路径的点击时刻预取（键与本 workspace 实参严格一致）；未命中照常直查。
+    const prefetched = takeTaskViewPrefetch<Workspace>(
+      requirementWorkspaceKey(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId))
+    const current = await (prefetched
+      ?? RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId))
     if (sequence !== loadSequence) return
     const value = await readWorkspaceDetail(current, revisionId, projectId)
     if (sequence !== loadSequence) return

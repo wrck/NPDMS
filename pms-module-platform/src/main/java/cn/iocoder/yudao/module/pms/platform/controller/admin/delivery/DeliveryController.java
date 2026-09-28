@@ -102,6 +102,8 @@ public class DeliveryController {
         private Long fileReferenceId;
         private String title;
         private String sourceKind;
+        /** 项目上下文（可空）：项目域材料用于项目级汇总定位。 */
+        private Long projectId;
     }
 
     @Data
@@ -295,9 +297,9 @@ public class DeliveryController {
     @PostMapping("/materials")
     @PreAuthorize("@ss.hasPermission('pms:delivery:operate')")
     public CommonResult<MaterialVO> registerMaterial(@Valid @RequestBody MaterialRegisterReqVO reqVO) {
-        return success(toView(materialService.register(reqVO.getOwnerModule(), reqVO.getEntityType(),
+        return success(toView(materialService.registerFile(reqVO.getOwnerModule(), reqVO.getEntityType(),
                 reqVO.getEntityId(), reqVO.getTypeCode(), reqVO.getFileReferenceId(), reqVO.getTitle(),
-                reqVO.getSourceKind())));
+                reqVO.getSourceKind(), reqVO.getProjectId(), null)));
     }
 
     @PostMapping("/materials/{id}/withdraw")

@@ -93,6 +93,13 @@ public class DeliveryCatalogService {
         return row;
     }
 
+    /** 可空查找：purposeCode 非类型目录编码（模板冻结交付件编码等）时返回 null，由策略提供方委派 Owner 校验。 */
+    public DeliveryTypeDO findEnabledType(String typeCode) {
+        return typeMapper.selectByCode(typeCode)
+                .filter(row -> Boolean.TRUE.equals(row.getEnabled()))
+                .orElse(null);
+    }
+
     public List<String> allowedMedia(DeliveryTypeDO type) {
         return JsonUtils.parseObject(type.getAllowedMediaJson(),
                 new tools.jackson.core.type.TypeReference<List<String>>() {});

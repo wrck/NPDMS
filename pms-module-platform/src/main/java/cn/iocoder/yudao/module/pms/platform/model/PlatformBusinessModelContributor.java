@@ -10,10 +10,12 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.Authori
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.businessview.BusinessViewRevisionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTemplateDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.authorization.AuthorizationGrantMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.businessview.BusinessViewRevisionMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionTaskMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionTemplateMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryRequirementMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -31,15 +33,18 @@ public class PlatformBusinessModelContributor implements BusinessModelContributo
     private final BusinessViewRevisionMapper businessViewRevisionMapper;
     private final CollectionTemplateMapper collectionTemplateMapper;
     private final CollectionTaskMapper collectionTaskMapper;
+    private final DeliveryRequirementMapper deliveryRequirementMapper;
 
     public PlatformBusinessModelContributor(AuthorizationGrantMapper authorizationGrantMapper,
                                             BusinessViewRevisionMapper businessViewRevisionMapper,
                                             CollectionTemplateMapper collectionTemplateMapper,
-                                            CollectionTaskMapper collectionTaskMapper) {
+                                            CollectionTaskMapper collectionTaskMapper,
+                                            DeliveryRequirementMapper deliveryRequirementMapper) {
         this.authorizationGrantMapper = authorizationGrantMapper;
         this.businessViewRevisionMapper = businessViewRevisionMapper;
         this.collectionTemplateMapper = collectionTemplateMapper;
         this.collectionTaskMapper = collectionTaskMapper;
+        this.deliveryRequirementMapper = deliveryRequirementMapper;
     }
 
     private static BusinessFieldDescriptor field(String code, String name, EntityField.Type type) {
@@ -131,6 +136,25 @@ public class PlatformBusinessModelContributor implements BusinessModelContributo
                         field("failureCategory", "失败分类", EntityField.Type.TEXT)),
                 List.of(), List.of(), List.of(), "plt_collection_task");
         declarations.add(new BusinessModelDeclaration(task, CollectionTaskDO.class, collectionTaskMapper, null));
+        // P06R：统一交付要求根（TEMPLATE_FROZEN 承接 acc_project_deliverable 身份），只读目录呈现，
+        // 写路径经 PlatformDeliveryRequirementApi / 提交台账，不开放通用 create/save。
+        BusinessModelDescriptor deliveryRequirement = new BusinessModelDescriptor("PLT", "deliveryRequirement",
+                "PLT_DELIVERY_REQUIREMENT", 1, BusinessModelKind.AGGREGATE_ROOT, "统一交付要求",
+                "pms:project:query",
+                List.of(required("projectId", "项目", EntityField.Type.NUMBER),
+                        required("typeCode", "交付件编码", EntityField.Type.TEXT),
+                        required("name", "交付件名称", EntityField.Type.TEXT),
+                        field("stageCode", "阶段", EntityField.Type.TEXT),
+                        field("taskCode", "任务", EntityField.Type.TEXT),
+                        field("required", "是否必备", EntityField.Type.BOOLEAN),
+                        field("minimumQuantity", "最少有效材料数", EntityField.Type.NUMBER),
+                        field("planVersionId", "计划版本", EntityField.Type.NUMBER),
+                        field("sourceDefinitionId", "来源定义", EntityField.Type.NUMBER),
+                        field("status", "状态", EntityField.Type.TEXT),
+                        field("requirementKind", "要求种类", EntityField.Type.TEXT)),
+                List.of(), List.of(), List.of(), "plt_delivery_requirement");
+        declarations.add(new BusinessModelDeclaration(deliveryRequirement, DeliveryRequirementDO.class,
+                deliveryRequirementMapper, null));
         return declarations;
     }
 }

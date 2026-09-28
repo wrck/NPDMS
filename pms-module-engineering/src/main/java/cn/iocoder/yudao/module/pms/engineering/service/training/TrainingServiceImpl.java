@@ -16,17 +16,14 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.Trai
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.TrainingPublicConfirmReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.TrainingPublicRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.TrainingSaveReqVO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.training.TrainingMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
-import cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum;
 import cn.iocoder.yudao.module.pms.engineering.enums.TrainingStatusEnum;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +50,6 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
  */
 @Service
 @Validated
-@Slf4j
 public class TrainingServiceImpl implements TrainingService {
 
     /**
@@ -65,12 +61,10 @@ public class TrainingServiceImpl implements TrainingService {
     private static final Set<String> SATISFACTION_RATING_OPTIONS = Set.of("非常满意", "较满意", "一般", "差");
     private static final long TOKEN_VALID_DAYS = 7;
 
-    private static final String DELIVERABLE_SOURCE_TYPE = "TRAINING";
-
     @Resource
     private TrainingMapper trainingMapper;
     @Resource
-    private DeliverableMapper deliverableMapper;
+    private PlatformDeliveryMaterialApi deliveryMaterialApi;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
     @Resource
@@ -309,7 +303,7 @@ public class TrainingServiceImpl implements TrainingService {
         update.setFileChecksum(entity.getFileChecksum());
         if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
 
-        archiveConfirmedDeliverable(entity, update.getFileUrl());
+        archiveConfirmedDeliverable(entity);
     }
 
     private String confirmationRules(TrainingDO entity) {
@@ -408,32 +402,16 @@ public class TrainingServiceImpl implements TrainingService {
         return fileUrl;
     }
 
-    private void archiveConfirmedDeliverable(TrainingDO entity, String fileUrl) {
-        DeliverableDO existing = deliverableMapper.selectByProjectAndSource(
-                entity.getProjectId(), DELIVERABLE_SOURCE_TYPE, entity.getId());
-        if (existing != null) {
-            // 交付件归集版本不可覆盖：同一来源重复确认（不应发生）时保持既有归集
-            log.info("培训记录 {} 的交付件已归集（{}），不重复归档", entity.getId(), existing.getCode());
-            return;
-        }
-        DeliverableDO deliverable = new DeliverableDO();
-        deliverable.setProjectId(entity.getProjectId());
-        deliverable.setCode(recordCodeGenerator.next(entity.getProjectId(),
-                EngineeringRecordCodeGenerator.DELIVERABLE, deliverableMapper,
-                DeliverableDO::getProjectId, DeliverableDO::getCode));
-        deliverable.setName(entity.getName() + "（现场培训记录）");
-        deliverable.setDeliverableType("TRAINING");
-        deliverable.setSourceType(DELIVERABLE_SOURCE_TYPE);
-        deliverable.setSourceId(entity.getId());
-        deliverable.setFileUrl(fileUrl);
-        deliverable.setFileSize(entity.getFileSize());
-        deliverable.setFileChecksum(entity.getFileChecksum());
-        deliverable.setStatus(EngStatusEnum.DELIVERABLE_ARCHIVED);
-        deliverable.setArchivedTime(entity.getSignTime());
-        deliverable.setArchivedBy(entity.getTrainerUserId());
-        deliverable.setRemark("ACC-01 现场培训客户确认后自动归档，签字人：" + entity.getSignConfirmerName());
-        deliverable.setVersion(0L);
-        deliverableMapper.insert(deliverable);
+    /**
+     * 培训客户确认后自动登记交付件（ACC-01 → P06R 统一交付件）：业务结果型，锚定培训业务对象，
+     * 培训记录文件仍归属 imp_eng_training 本体；同一培训幂等，不覆盖既有登记。
+     */
+    private void archiveConfirmedDeliverable(TrainingDO entity) {
+        deliveryMaterialApi.registerBusinessResultMaterial("IMP", "training", entity.getId(),
+                "TRAINING_RECORD", "training", String.valueOf(entity.getId()),
+                null,
+                entity.getName() + "（现场培训记录）",
+                entity.getProjectId());
     }
 
     private String renderRecordDocument(TrainingDO entity) {

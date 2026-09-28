@@ -2,346 +2,532 @@ package cn.iocoder.yudao.module.pms.acceptance.service.acceptance;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.*;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.*;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.*;
-import cn.iocoder.yudao.module.pms.platform.api.file.*;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenConvergence;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenMaterialView;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmissionView;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmitOutcome;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenView;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.result.*;
-import org.junit.jupiter.api.*;
-import java.util.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultChange;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.result.ProjectBusinessResultEvidenceApi;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableBusinessResultEvidenceProvider.compositeObjectId;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * 统一交付件承接编排验证（P06R）：台账在平台 plt_delivery_*，本服务只做权限/来源/并发守卫与判定回填。
+ * 覆盖：幂等重放与载荷冲突、计划快照与乐观并发、来源白名单与自动来源守卫、上传锚校验、
+ * 数量下限、业务成果精确复核、文档/成果归集 keep-set、收敛判定阶梯与评估事件契约。
+ */
 class ProjectDeliverableSubmissionServiceTest {
-    final AccProjectDeliverableMapper roots = mock(AccProjectDeliverableMapper.class);
-    final ProjectDeliverableSubmissionMapper submissions = mock(ProjectDeliverableSubmissionMapper.class);
-    final ProjectDeliverableSourceVersionMapper sources = mock(ProjectDeliverableSourceVersionMapper.class);
-    final ProjectDeliverableSourceAttachmentMapper attachments = mock(ProjectDeliverableSourceAttachmentMapper.class);
+
+    static final String CONFIG = """
+            {"minimumQuantity":1,"allowedSources":["UPLOAD","BUSINESS_RESULT"],
+             "automaticSources":["SOL.REQUIREMENT_DOCUMENT","SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED"],
+             "confirmationRule":{"predicate":"CONSTANT","parameters":{"value":true}}}
+            """;
+
+    final PlatformDeliveryRequirementApi platform = mock(PlatformDeliveryRequirementApi.class);
     final ProjectDeliverableRuleApi rules = mock(ProjectDeliverableRuleApi.class);
     final ProjectDeliverableAccess access = mock(ProjectDeliverableAccess.class);
-    final FileArtifactApi files = mock(FileArtifactApi.class);
-    final FileEvidenceApi facts = mock(FileEvidenceApi.class);
+    final FileEvidenceApi fileEvidence = mock(FileEvidenceApi.class);
     final ProjectBusinessResultEvidenceApi results = mock(ProjectBusinessResultEvidenceApi.class);
     final PlatformBusinessEventApi outbox = mock(PlatformBusinessEventApi.class);
     final ProjectDeliverableOwnerSources ownerSources = mock(ProjectDeliverableOwnerSources.class);
     final ProjectDocumentSourceRegistry documentSources = mock(ProjectDocumentSourceRegistry.class);
-    final ProjectDeliverableSubmissionService service = new ProjectDeliverableSubmissionService(roots, submissions, sources,
-            attachments, rules, access, files, facts, results, outbox, ownerSources, documentSources);
-    final AccProjectDeliverableDO root = new AccProjectDeliverableDO();
-    final Map<String, ProjectDeliverableSubmissionDO> saved = new HashMap<>();
-    ProjectDeliverableSourceVersionDO current;
+    final ProjectDeliverableRequirementResolver resolver =
+            new ProjectDeliverableRequirementResolver(platform, rules, ownerSources, documentSources, fileEvidence);
+    final ProjectDeliverableSubmissionService service = new ProjectDeliverableSubmissionService(
+            platform, rules, access, fileEvidence, results, outbox, ownerSources, resolver);
+
+    TemplateFrozenView view;
     ProjectDeliverableRuleApi.Context context;
 
-    @BeforeEach void setup() {
+    @BeforeEach
+    void setup() {
         TenantContextHolder.setTenantId(7L);
-        root.setId(31L); root.setTenantId(7L); root.setProjectId(9L); root.setDeliverableCode("D1");
-        root.setName("施工材料"); root.setRequired(true); root.setStatus("PENDING"); root.setVersion(0L);
+        view = view("OPEN", 0, 1);
         context = new ProjectDeliverableRuleApi.Context(9L, 15L, "ACTIVE", 11L, "S1", "T1",
-                JsonUtils.parseTree("""
-                {"minimumQuantity":1,"allowedSources":["UPLOAD","BUSINESS_RESULT"],"confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
-                """));
-        when(roots.selectById(31L)).thenReturn(root); when(roots.selectByIdForUpdate(any())).thenReturn(root);
-        when(roots.updateById(any(AccProjectDeliverableDO.class))).thenReturn(1);
-        when(rules.lock(9L, "D1")).thenReturn(context); when(rules.read(9L, "D1")).thenReturn(context);
+                JsonUtils.parseTree(CONFIG));
+        when(rules.read(9L, "D1")).thenReturn(context);
+        when(rules.lock(9L, "D1")).thenReturn(context);
+        when(rules.evaluate(9L, "D1")).thenReturn(
+                new ProjectDeliverableRuleApi.Decision(true, "DELIVERABLE_RULE_SATISFIED", "{}"));
         when(access.require(any(), anyBoolean(), anyBoolean())).thenReturn(11L);
-        when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(true, "DELIVERABLE_RULE_SATISFIED", "{}"));
-        var file = new FileArtifactVersionFact(40L, 1, "slot1", "PROJECT_DELIVERABLE_DOCUMENT", "proof.pdf", 100L,
-                "application/pdf", "a".repeat(64), "AVAILABLE", "ACTIVE", new FileFactVersion(1, 1, 1), 1L);
-        when(files.inspect(any())).thenReturn(file); when(files.lockAndRevalidate(any())).thenReturn(file);
-        when(facts.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(true, "FILE_EVIDENCE_VALID", 1, 1, 1));
-        when(attachments.insert(any(ProjectDeliverableSourceAttachmentDO.class))).thenReturn(1);
-        when(sources.selectCurrentForUpdate(any())).thenAnswer(i -> current);
-        when(sources.insert(any(ProjectDeliverableSourceVersionDO.class))).thenAnswer(i -> { current = i.getArgument(0); return 1; });
-        when(sources.updateById(any(ProjectDeliverableSourceVersionDO.class))).thenReturn(1);
-        when(submissions.selectRequest(anyLong(), anyLong(), anyString())).thenAnswer(i -> saved.get(i.getArgument(2)));
-        when(submissions.insert(any(ProjectDeliverableSubmissionDO.class))).thenAnswer(i -> {
-            ProjectDeliverableSubmissionDO row = i.getArgument(0); saved.put(row.getRequestKey(), row); return 1;
-        });
-        when(submissions.updateById(any(ProjectDeliverableSubmissionDO.class))).thenReturn(1);
-        when(submissions.selectSource(anyLong(), anyLong())).thenAnswer(i -> saved.values().stream()
-                .filter(row -> row.getSourceVersionId().equals(i.getArgument(1))).findFirst().orElse(null));
+        when(platform.findById(31L)).thenReturn(Optional.of(view));
+        when(platform.lockById(31L)).thenReturn(Optional.of(view));
+        when(platform.findSubmissionByRequestKey(eq(31L), anyString())).thenReturn(Optional.empty());
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.empty());
+        when(platform.submitTemplateFrozen(any())).thenReturn(new TemplateFrozenSubmitOutcome(1001L, false, "SATISFIED", null));
+        when(platform.registerTemplateFrozenFile(anyLong(), anyLong(), any(), anyString())).thenReturn(9001L);
+        when(platform.registerTemplateFrozenBusinessResult(anyLong(), anyString(), anyString(), any(), any())).thenReturn(9002L);
+        when(platform.registerTemplateFrozenDocument(anyLong(), anyString(), anyLong(), any())).thenReturn(9003L);
+        when(platform.updateSubmissionDecision(anyLong(), anyString())).thenReturn(true);
+        when(platform.listMaterials(31L)).thenReturn(List.of());
+        when(ownerSources.ownerType(any())).thenReturn(null);
+        // 统一上传锚默认可用（各用例按引用号精确覆写）。
+        when(fileEvidence.inspectDocument(anyLong(), anyLong())).thenAnswer(
+                i -> unifiedDocument(i.getArgument(1), true));
     }
-    @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
-    private FileEvidenceApi.Document businessDocument(boolean available) {
-        return new FileEvidenceApi.Document(71L, "SOL", "REQUIREMENT_ANALYSIS_REVISION", "81",
-                "FORM_FIELD_ATTACHMENT/report", "slot2", 41L, 1, "b".repeat(64), "requirement.pdf", available);
+    @AfterEach
+    void cleanup() {
+        TenantContextHolder.clear();
     }
-    private void configureCollection(String status, String source) {
-        context = new ProjectDeliverableRuleApi.Context(9L, 15L, status, null, "S1", "T1",
-                JsonUtils.parseTree("{\"minimumQuantity\":1,\"allowedSources\":[\"UPLOAD\"],\"automaticSources\":[\"" + source
-                        + "\"],\"confirmationRule\":{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}}"));
-        when(rules.read(9L, "D1")).thenReturn(context); when(rules.lock(9L, "D1")).thenReturn(context);
-        when(documentSources.resolve(eq(7L), any())).thenReturn(new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT"));
+
+    // ———— 夹具 ————
+
+    static TemplateFrozenView view(String status, int version, int minimumQuantity) {
+        return new TemplateFrozenView(31L, 9L, "D1", "施工材料", "S1", "T1", 15L, null, true,
+                minimumQuantity, null, status, CONFIG, version);
     }
-    @Test void businessDocumentCollectsWithoutManualSubmissionAndDetachInvalidatesWithoutRewritingHistory() {
-        configureCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT");
-        var scope = new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT");
-        service.collectDocument(root, scope, businessDocument(true), "attached-1");
-        assertEquals("ACCEPTED", root.getStatus());
-        assertEquals(1, saved.size());
-        var original = saved.get("file-event:attached-1");
-        String originalEvidence = original.getSourceEvidence(), originalDecision = original.getDecisionEvidence();
-        service.collectDocument(root, scope, businessDocument(true), "attached-1");
-        assertEquals(1, saved.size());
-        service.collectDocument(root, scope, businessDocument(false), "detached-1");
-        assertEquals("PENDING", root.getStatus());
-        assertEquals(2, saved.size());
-        assertEquals(originalEvidence, original.getSourceEvidence());
-        assertEquals(originalDecision, original.getDecisionEvidence());
-        verifyNoInteractions(access, files, results);
+
+    static TemplateFrozenSubmissionView submission(Long id, String sourceType, String payloadJson,
+                                                   String decisionJson, List<Long> materialIds) {
+        return new TemplateFrozenSubmissionView(id, 31L, "k" + id, sourceType, "CURRENT",
+                payloadJson, decisionJson, materialIds, LocalDateTime.parse("2026-09-20T12:00:00"));
     }
-    @Test void unconfiguredClosedOrOtherProjectEventsCannotCreateSubmissions() {
-        var scope = new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT");
-        configureCollection("ACTIVE", "ACC.FINAL_REPORT");
-        service.collectDocument(root, scope, businessDocument(true), "unconfigured");
-        configureCollection("NORMAL_CLOSED", "SOL.REQUIREMENT_DOCUMENT");
-        service.collectDocument(root, scope, businessDocument(true), "closed");
-        configureCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT");
-        service.collectDocument(root, new FileDocumentSourceProvider.Scope(10L, scope.sourceCode()), businessDocument(true), "other-project");
-        assertTrue(saved.isEmpty());
+
+    static TemplateFrozenMaterialView fileMaterial(long id, Long referenceId, String businessObjectType, String status) {
+        return new TemplateFrozenMaterialView(id, 31L, "FILE", referenceId, referenceId * 10, 1,
+                "a".repeat(64), "proof.pdf", businessObjectType, null, null, status, "ARCHIVED", null, 0);
+    }
+
+    /** 统一上传锚：PLT/DELIVERY_MATERIAL/ACC:project_deliverable:{projectId}，purposeCode=交付件编码。 */
+    static FileEvidenceApi.Document unifiedDocument(long referenceId, boolean available) {
+        return new FileEvidenceApi.Document(referenceId, "PLT", "DELIVERY_MATERIAL", "ACC:project_deliverable:9",
+                "D1", "plt/ref/" + referenceId, referenceId * 10, 1, "a".repeat(64), "proof.pdf", available);
+    }
+
+    static FileEvidenceApi.Document legacyDocument(long referenceId) {
+        return new FileEvidenceApi.Document(referenceId, "ACC", "PROJECT_DELIVERABLE", "31",
+                "PROJECT_DELIVERABLE_DOCUMENT", "acc/ref/" + referenceId, referenceId * 10, 1,
+                "b".repeat(64), "legacy.pdf", true);
+    }
+
+    static FileEvidenceApi.Document collectedDocument(long referenceId, boolean available) {
+        return new FileEvidenceApi.Document(referenceId, "SOL", "REQUIREMENT_DOCUMENT", "81",
+                "FORM_FIELD_ATTACHMENT/report", "slot2", referenceId * 10, 1, "c".repeat(64),
+                "requirement.pdf", available);
+    }
+
+    ProjectDeliverableSubmissionService.Submission upload(Long expectedVersion, Long... referenceIds) {
+        return new ProjectDeliverableSubmissionService.Submission(15L, expectedVersion, "UPLOAD",
+                Arrays.stream(referenceIds)
+                        .map(referenceId -> new ProjectDeliverableSubmissionService.FileSelection(referenceId))
+                        .toList(), null);
+    }
+
+    FileDocumentSourceProvider.Scope scope(long projectId) {
+        return new FileDocumentSourceProvider.Scope(projectId, "SOL.REQUIREMENT_DOCUMENT");
+    }
+
+    // ———— 手工提交：幂等、并发、守卫 ————
+
+    @Test
+    void uploadSatisfiesReplaysByKeyAndFreezesConfirmationEvidence() {
+        var submitted = service.submit(9L, 31L, "request1", upload(0L, 50L));
+        assertEquals("ACCEPTED", submitted.status());
+        assertEquals(1001L, submitted.submissionId());
+        assertEquals(0L, submitted.version());
+        assertTrue(submitted.evaluation().satisfied());
+        verify(platform).registerTemplateFrozenFile(31L, 50L, null,
+                PlatformDeliveryRequirementApi.MATERIAL_SOURCE_UPLOAD);
+        var decisionCaptor = ArgumentCaptor.forClass(String.class);
+        verify(platform).updateSubmissionDecision(eq(1001L), decisionCaptor.capture());
+        assertTrue(decisionCaptor.getValue().contains("DELIVERABLE_RULE_SATISFIED"));
+        verify(outbox, times(1)).append(anyString(), anyString(), any(BusinessEvent.class));
+
+        var commandCaptor = ArgumentCaptor.forClass(PlatformDeliveryRequirementApi.TemplateFrozenSubmitCommand.class);
+        verify(platform).submitTemplateFrozen(commandCaptor.capture());
+        when(platform.findSubmissionByRequestKey(31L, "request1")).thenReturn(Optional.of(
+                submission(1001L, "UPLOAD", commandCaptor.getValue().requestPayloadJson(),
+                        decisionCaptor.getValue(), List.of(9001L))));
+        // 首次提交后平台账本已翻转要求状态；重放回执按当前要求状态给出（不再冻结原回执）。
+        var satisfiedView = view("SATISFIED", 1, 1);
+        when(platform.findById(31L)).thenReturn(Optional.of(satisfiedView));
+        when(platform.lockById(31L)).thenReturn(Optional.of(satisfiedView));
+        var replayed = service.submit(9L, 31L, "request1", upload(0L, 50L));
+        assertEquals(submitted.status(), replayed.status());
+        assertTrue(replayed.evaluation().satisfied());
+        verify(platform, times(1)).submitTemplateFrozen(any());
+        verify(outbox, times(1)).append(anyString(), anyString(), any(BusinessEvent.class));
+    }
+
+    @Test
+    void sameKeyDifferentIntentFailsWithoutTouchingLedger() {
+        var first = upload(0L, 50L);
+        when(platform.findSubmissionByRequestKey(31L, "request1")).thenReturn(Optional.of(
+                submission(1001L, "UPLOAD", JsonUtils.toJsonString(first), null, List.of(9001L))));
+        var conflict = assertThrows(RuntimeException.class,
+                () -> service.submit(9L, 31L, "request1", upload(0L, 51L)));
+        assertTrue(conflict.getMessage().contains("同一提交标识不能用于不同材料"));
+        verify(platform, never()).submitTemplateFrozen(any());
+        verify(platform, never()).registerTemplateFrozenFile(anyLong(), anyLong(), any(), anyString());
+    }
+
+    @Test
+    void staleVersionOrPlanSnapshotRejectsBeforeCapture() {
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "stale", upload(1L, 50L)))
+                .getMessage().contains("交付件或项目计划已变化"));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "stale-plan",
+                new ProjectDeliverableSubmissionService.Submission(16L, 0L, "UPLOAD",
+                        List.of(new ProjectDeliverableSubmissionService.FileSelection(50L)), null)))
+                .getMessage().contains("交付件或项目计划已变化"));
+        verify(platform, never()).submitTemplateFrozen(any());
+        verify(platform, never()).registerTemplateFrozenFile(anyLong(), anyLong(), any(), anyString());
+    }
+
+    @Test
+    void disallowedSourceAndAutomaticOwnerTargetsAreRejected() {
+        var restricted = new ProjectDeliverableRuleApi.Context(9L, 15L, "ACTIVE", 11L, "S1", "T1",
+                JsonUtils.parseTree(CONFIG.replace("\"UPLOAD\",\"BUSINESS_RESULT\"", "\"BUSINESS_RESULT\"")));
+        when(rules.lock(9L, "D1")).thenReturn(restricted);
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "r1", upload(0L, 50L)))
+                .getMessage().contains("模板未允许此交付件来源"));
+
+        when(rules.lock(9L, "D1")).thenReturn(context);
+        when(ownerSources.ownerType(any())).thenReturn("ACCEPTANCE_REPORT");
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "r2", upload(0L, 50L)))
+                .getMessage().contains("该交付件由来源业务自动关联"));
+
+        when(ownerSources.ownerType(any())).thenReturn(null);
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1002L, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, "{}", null, List.of(9002L))));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "r3", upload(0L, 50L)))
+                .getMessage().contains("该交付件已有业务来源"));
+        verify(platform, never()).submitTemplateFrozen(any());
+    }
+
+    @Test
+    void foreignProjectOrMissingRequirementIsRejected() {
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(10L, 31L, "x", upload(0L, 50L)))
+                .getMessage().contains("项目交付件不存在"));
+        when(platform.findById(31L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "missing", upload(0L, 50L)));
+        verify(platform, never()).submitTemplateFrozen(any());
+    }
+
+    // ———— 上传捕获：可用性、锚归属、重复与数量下限 ————
+
+    @Test
+    void uploadCaptureValidatesAvailabilityAnchorAndDuplicates() {
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(unifiedDocument(50L, false));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "u1", upload(0L, 50L)))
+                .getMessage().contains("文件引用不存在或不可用: 50"));
+
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(null);
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "u2", upload(0L, 50L)));
+
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(new FileEvidenceApi.Document(50L, "PLT",
+                "DELIVERY_MATERIAL", "ACC:project_deliverable:9", "D2", "plt/ref/50", 500L, 1,
+                "a".repeat(64), "proof.pdf", true));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "u3", upload(0L, 50L)))
+                .getMessage().contains("文件归属与交付件不一致"));
+
+        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "u4", upload(0L, 50L, 50L)));
+        verify(platform, never()).submitTemplateFrozen(any());
+
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(unifiedDocument(50L, true));
+        service.submit(9L, 31L, "u5", upload(0L, 50L));
+        verify(platform).registerTemplateFrozenFile(31L, 50L, null,
+                PlatformDeliveryRequirementApi.MATERIAL_SOURCE_UPLOAD);
+    }
+
+    @Test
+    void migratedLegacyAnchorStillUploads() {
+        when(fileEvidence.inspectDocument(7L, 51L)).thenReturn(legacyDocument(51L));
+        var submitted = service.submit(9L, 31L, "legacy", upload(0L, 51L));
+        assertEquals("ACCEPTED", submitted.status());
+        verify(platform).registerTemplateFrozenFile(31L, 51L, null,
+                PlatformDeliveryRequirementApi.MATERIAL_SOURCE_UPLOAD);
+    }
+
+    @Test
+    void minimumQuantityFloorRejectsInsufficientMaterials() {
+        view = view("OPEN", 0, 2);
+        when(platform.findById(31L)).thenReturn(Optional.of(view));
+        when(platform.lockById(31L)).thenReturn(Optional.of(view));
+        when(fileEvidence.inspectDocument(anyLong(), anyLong())).thenAnswer(
+                i -> unifiedDocument(i.getArgument(1), true));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "one", upload(0L, 50L)))
+                .getMessage().contains("有效材料数量不足，至少需要 2 项"));
+        var seq = new java.util.concurrent.atomic.AtomicInteger(9000);
+        when(platform.registerTemplateFrozenFile(anyLong(), anyLong(), any(), anyString()))
+                .thenAnswer(i -> (long) seq.incrementAndGet());
+        service.submit(9L, 31L, "two", upload(0L, 50L, 51L));
+        verify(platform).submitTemplateFrozen(argThat(command ->
+                command.materialIds().size() == 2 && List.of(9001L, 9002L).equals(command.materialIds())));
+    }
+
+    // ———— 业务成果提交 ————
+
+    private BusinessResultSource.Type resultType() {
+        return new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED");
+    }
+
+    private BusinessResultSource.Query resultQuery() {
+        return new BusinessResultSource.Query(7L, 9L, resultType(), "55", "56");
+    }
+
+    private BusinessResultSource.Result formedResult(BusinessResultSource.Validity validity) {
+        return new BusinessResultSource.Result(7L, 9L, resultType(), "55", "56", "1", "1", validity,
+                LocalDateTime.parse("2026-09-20T12:00:00"));
+    }
+
+    @Test
+    void businessResultSubmissionRechecksExactIdentity() {
+        when(results.types()).thenReturn(List.of(new BusinessResultSource.Descriptor(resultType(), true, true, true)));
+        when(results.lockAndInspect(any())).thenReturn(
+                BusinessResultSource.Observation.available(formedResult(BusinessResultSource.Validity.CURRENT)));
+        var query = resultQuery();
+        var request = new ProjectDeliverableSubmissionService.Submission(15L, 0L, "BUSINESS_RESULT", List.of(), query);
+        var submitted = service.submit(9L, 31L, "business", request);
+        assertEquals("ACCEPTED", submitted.status());
+        verify(platform).registerTemplateFrozenBusinessResult(eq(31L), eq("project_business_result"),
+                eq(compositeObjectId(resultType(), "55", "56", formedResult(BusinessResultSource.Validity.CURRENT).formedAt())),
+                eq(1L), isNull());
+        var commandCaptor = ArgumentCaptor.forClass(PlatformDeliveryRequirementApi.TemplateFrozenSubmitCommand.class);
+        verify(platform).submitTemplateFrozen(commandCaptor.capture());
+        assertEquals("BUSINESS_RESULT", commandCaptor.getValue().sourceType());
+        assertEquals(List.of(9002L), commandCaptor.getValue().materialIds());
+
+        when(results.types()).thenReturn(List.of(new BusinessResultSource.Descriptor(
+                new BusinessResultSource.Type("SOL", "OTHER", "OTHER_DONE"), true, true, true)));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "wrong-type", request))
+                .getMessage().contains("不支持的业务成果类型"));
+
+        when(results.types()).thenReturn(List.of(new BusinessResultSource.Descriptor(resultType(), true, true, true)));
+        when(results.lockAndInspect(any())).thenReturn(
+                BusinessResultSource.Observation.available(formedResult(BusinessResultSource.Validity.REVOKED)));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "revoked", request))
+                .getMessage().contains("业务成果尚未形成、已撤销或已被替换"));
+
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "with-file",
+                new ProjectDeliverableSubmissionService.Submission(15L, 0L, "BUSINESS_RESULT",
+                        List.of(new ProjectDeliverableSubmissionService.FileSelection(50L)), query)))
+                .getMessage().contains("请选择当前项目的完整业务成果"));
+        assertTrue(assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "no-query",
+                new ProjectDeliverableSubmissionService.Submission(15L, 0L, "BUSINESS_RESULT", List.of(), null)))
+                .getMessage().contains("请选择当前项目的完整业务成果"));
+    }
+
+    // ———— 文档归集 ————
+
+    @Test
+    void collectDocumentRegistersDocKeepsManualMaterialsAndReplaysByEventId() {
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1001L, "UPLOAD", "{}", null, List.of(9001L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(9001L, 50L, null, "ACTIVE")));
+        service.collectDocument(view, scope(9L), collectedDocument(71L, true), "evt-1");
+        verify(platform).registerTemplateFrozenDocument(31L, "SOL.REQUIREMENT_DOCUMENT", 71L, null);
+        var commandCaptor = ArgumentCaptor.forClass(PlatformDeliveryRequirementApi.TemplateFrozenSubmitCommand.class);
+        verify(platform).submitTemplateFrozen(commandCaptor.capture());
+        assertEquals(PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT, commandCaptor.getValue().sourceType());
+        assertEquals(List.of(9001L, 9003L), commandCaptor.getValue().materialIds());
+        // 状态由 OPEN 翻转：appendEvaluated + 常规唤醒 = 2 次事件；重放不再追加。
+        verify(outbox, times(2)).append(anyString(), anyString(), any(BusinessEvent.class));
+
+        when(platform.findSubmissionByRequestKey(31L, "file-event:evt-1")).thenReturn(Optional.of(
+                submission(1003L, PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT,
+                        commandCaptor.getValue().requestPayloadJson(), null, List.of(9001L, 9003L))));
+        service.collectDocument(view, scope(9L), collectedDocument(71L, true), "evt-1");
+        verify(platform, times(1)).submitTemplateFrozen(any());
+    }
+
+    @Test
+    void collectDocumentGuardsLifecycleScopeProjectionAndResultSlots() {
+        var file = collectedDocument(71L, true);
+        when(rules.read(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Context(9L, 15L, "NORMAL_CLOSED",
+                11L, "S1", "T1", JsonUtils.parseTree(CONFIG)));
+        service.collectDocument(view, scope(9L), file, "closed");
+        when(rules.read(9L, "D1")).thenReturn(context);
+        service.collectDocument(view, new FileDocumentSourceProvider.Scope(9L, "SOL.OTHER_SOURCE"), file, "unconfigured");
+        service.collectDocument(view, scope(10L), file, "other-project");
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1002L, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, "{}", null, List.of(9002L))));
+        service.collectDocument(view, scope(9L), file, "projection-current");
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1004L, PlatformDeliveryRequirementApi.SOURCE_BUSINESS_RESULT, "{}", null, List.of(9002L))));
+        service.collectDocument(view, scope(9L), file, "result-current");
+        verify(platform, never()).submitTemplateFrozen(any());
         verifyNoInteractions(outbox);
     }
-    @Test void aBusinessEventWithNoAvailableDocumentCannotSatisfyTheDeliverable() {
-        configureCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT");
-        service.collectDocument(root, new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT"), businessDocument(false), "not-available");
-        assertEquals("PENDING", root.getStatus());
-        assertTrue(saved.isEmpty());
+
+    @Test
+    void collectDocumentDetachLeavesValidityToConvergence() {
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1001L, PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT, "{}", null,
+                        List.of(9001L, 9003L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(
+                fileMaterial(9001L, 50L, null, "ACTIVE"),
+                fileMaterial(9003L, 71L, "SOL.REQUIREMENT_DOCUMENT", "ACTIVE")));
+        // 解除挂接事件（同引用、不可用）不落新提交：材料有效性由收敛重验撤回。
+        service.collectDocument(view, scope(9L), collectedDocument(71L, false), "detached-1");
+        verify(platform, never()).registerTemplateFrozenDocument(anyLong(), anyString(), anyLong(), any());
+        verify(platform, never()).submitTemplateFrozen(any());
     }
 
-    private BusinessResultSource.Result formedResult() {
-        return new BusinessResultSource.Result(7L, 9L, new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS",
-                "REQUIREMENT_ANALYSIS_COMPLETED"), "55", "56", "1", "1", BusinessResultSource.Validity.CURRENT,
-                java.time.LocalDateTime.parse("2026-09-20T12:00:00"));
-    }
-    private BusinessResultChange resultChange(UUID eventId, BusinessResultSource.Result result, boolean formation) {
+    // ———— 业务成果归集 ————
+
+    private BusinessResultChange resultChange(UUID eventId, BusinessResultSource.Validity validity) {
+        var result = new BusinessResultSource.Result(7L, 9L, resultType(), "55", "56", "1", "1", validity,
+                LocalDateTime.parse("2026-09-20T12:00:00"));
         var source = new cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent(
                 UUID.randomUUID().toString(), 1, 7L, 9L, "SOL", "REQUIREMENT_ANALYSIS", "55", null, 1L, "1",
                 "REQUIREMENT_ANALYSIS_COMPLETED", "REQUIREMENT_ANALYSIS_COMPLETE", "owner-command", 11L,
-                java.time.LocalDateTime.parse("2026-09-20T12:00:00"), "test");
-        return new BusinessResultChange(eventId.toString(), 1, new BusinessResultChange.Channel(1L, 7L, 9L, result.type()), 8, source,
-                BusinessResultSource.Observation.available(result), formation);
+                LocalDateTime.parse("2026-09-20T12:00:00"), "test");
+        return new BusinessResultChange(eventId.toString(), 1,
+                new BusinessResultChange.Channel(1L, 7L, 9L, result.type()), 8L, source,
+                validity == BusinessResultSource.Validity.CURRENT
+                        ? BusinessResultSource.Observation.available(result)
+                        : BusinessResultSource.Observation.absent(BusinessResultSource.Status.UNAVAILABLE,
+                        "OWNER_REVOKED"),
+                validity == BusinessResultSource.Validity.CURRENT);
     }
-    private void configureResultCollection(String status, String source, String allowed) {
-        context = new ProjectDeliverableRuleApi.Context(9L, 15L, status, null, "S1", "T1",
-                JsonUtils.parseTree("{\"minimumQuantity\":1,\"allowedSources\":[\"" + allowed + "\"],\"automaticSources\":[\"" + source
-                        + "\"],\"confirmationRule\":{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}}"));
-        when(rules.read(9L, "D1")).thenReturn(context); when(rules.lock(9L, "D1")).thenReturn(context);
+
+    @Test
+    void collectBusinessResultSwapsSlotReplaysByEventIdAndSkipsProjection() {
+        var change = resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT);
+        service.collectBusinessResult(view, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        var commandCaptor = ArgumentCaptor.forClass(PlatformDeliveryRequirementApi.TemplateFrozenSubmitCommand.class);
+        verify(platform).submitTemplateFrozen(commandCaptor.capture());
+        assertEquals(PlatformDeliveryRequirementApi.SOURCE_BUSINESS_RESULT, commandCaptor.getValue().sourceType());
+        assertEquals(List.of(9002L), commandCaptor.getValue().materialIds());
+        verify(platform).registerTemplateFrozenBusinessResult(eq(31L), eq("project_business_result"), anyString(),
+                eq(1L), isNull());
+
+        when(platform.findSubmissionByRequestKey(31L, "result-change:" + change.eventId())).thenReturn(Optional.of(
+                submission(1005L, PlatformDeliveryRequirementApi.SOURCE_BUSINESS_RESULT,
+                        commandCaptor.getValue().requestPayloadJson(), null, List.of(9002L))));
+        service.collectBusinessResult(view, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
+        verify(platform, times(1)).submitTemplateFrozen(any());
+
+        when(platform.findSubmissionByRequestKey(eq(31L), anyString())).thenReturn(Optional.empty());
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1002L, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, "{}", null, List.of(9002L))));
+        service.collectBusinessResult(view, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED",
+                resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT));
+        verify(platform, times(1)).submitTemplateFrozen(any());
     }
-    @Test void formedResultCollectsAutomaticallyReplaysByEventIdAndRevocationBlocksLaterGates() {
-        var type = new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED");
-        var result = formedResult();
-        configureResultCollection("ACTIVE", "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", "BUSINESS_RESULT");
-        when(results.types()).thenReturn(List.of(new BusinessResultSource.Descriptor(type, true, true, true)));
-        when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(result));
-        var change = resultChange(UUID.randomUUID(), result, true);
-        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
-        assertEquals("ACCEPTED", root.getStatus());
-        assertEquals(1, saved.size());
-        var original = saved.get("result-change:" + change.eventId());
-        assertEquals("BUSINESS_RESULT", original.getSourceType());
-        String evidence = original.getSourceEvidence(), decision = original.getDecisionEvidence();
-        assertTrue(decision.contains("DELIVERABLE_RULE_SATISFIED"));
-        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
-        assertEquals(1, saved.size());
-        assertEquals(evidence, original.getSourceEvidence());
-        when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(new BusinessResultSource.Result(
-                7L, 9L, type, "55", "56", "1", "2", BusinessResultSource.Validity.REVOKED, result.formedAt())));
-        assertFalse(service.revalidate(root).satisfied());
-        assertEquals("PENDING", root.getStatus());
-        assertEquals(evidence, original.getSourceEvidence());
-        assertEquals(decision, original.getDecisionEvidence());
-        verifyNoInteractions(access, files);
-    }
-    @Test void automaticGrantStillGatesOnAllowedSourcesBeforeAcceptance() {
-        configureResultCollection("ACTIVE", "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", "UPLOAD");
-        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED",
-                resultChange(UUID.randomUUID(), formedResult(), true));
-        assertEquals("PENDING", root.getStatus());
-        assertEquals(1, saved.size());
-    }
-    @Test void unconfiguredClosedOrForeignScopesCannotCollectBusinessResults() {
-        var change = resultChange(UUID.randomUUID(), formedResult(), true);
-        configureResultCollection("ACTIVE", "SOL.REQUIREMENT_DOCUMENT", "BUSINESS_RESULT");
-        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
-        configureResultCollection("NORMAL_CLOSED", "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", "BUSINESS_RESULT");
-        service.collectBusinessResult(root, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
-        var foreign = new AccProjectDeliverableDO();
-        foreign.setId(32L); foreign.setTenantId(7L); foreign.setProjectId(10L); foreign.setDeliverableCode("D1");
-        when(rules.read(10L, "D1")).thenReturn(context); when(rules.lock(10L, "D1")).thenReturn(context);
-        service.collectBusinessResult(foreign, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
-        assertTrue(saved.isEmpty());
+
+    @Test
+    void collectBusinessResultGuardsLifecycleScopeAndNonCurrentResults() {
+        service.collectBusinessResult(view, "SOL.OTHER_SOURCE",
+                resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT));
+        when(rules.read(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Context(9L, 15L, "NORMAL_CLOSED",
+                11L, "S1", "T1", JsonUtils.parseTree(CONFIG)));
+        service.collectBusinessResult(view, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED",
+                resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT));
+        when(rules.read(9L, "D1")).thenReturn(context);
+        service.collectBusinessResult(view, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED",
+                resultChange(UUID.randomUUID(), BusinessResultSource.Validity.REVOKED));
+        verify(platform, never()).registerTemplateFrozenBusinessResult(anyLong(), anyString(), anyString(), any(), any());
+        verify(platform, never()).submitTemplateFrozen(any());
         verifyNoInteractions(outbox);
     }
 
-    private ProjectDeliverableSubmissionService.Submission upload(Long version) {
-        return new ProjectDeliverableSubmissionService.Submission(15L, version, "UPLOAD",
-                List.of(new ProjectDeliverableSubmissionService.FileSelection(40L, 1, "slot1")), null);
+    // ———— 收敛重验阶梯（真实 Resolver）———
+
+    @Test
+    void revalidateLadderCoversMissingSourceQuantityAndConfirmation() {
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("SATISFIED", 1, 1), List.of()));
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1001L, "UPLOAD", "{}", null, List.of(9001L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(9001L, 50L, null, "ACTIVE")));
+        var satisfied = service.revalidate(view);
+        assertTrue(satisfied.satisfied());
+        assertEquals("DELIVERABLE_RULE_SATISFIED", satisfied.reason());
+        verify(platform).updateSubmissionDecision(eq(1001L), contains("DELIVERABLE_RULE_SATISFIED"));
+
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("OPEN", 1, 1), List.of()));
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.empty());
+        assertFalse(service.revalidate(view).satisfied());
+        assertEquals("DELIVERABLE_SOURCE_MISSING", service.revalidate(view).reason());
+
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1001L, "UPLOAD", "{}", null, List.of(9001L))));
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("OPEN", 1, 2), List.of()));
+        assertEquals("DELIVERABLE_QUANTITY_NOT_MET", service.revalidate(view).reason());
+        verify(platform, times(1)).updateSubmissionDecision(anyLong(), anyString());
     }
-    @Test void outboxFailureRollsBackAllSubmissionWritesAndTheSupersededSource() {
-        // Real Spring transaction interception and an isolated JDBC ledger. Production MySQL/Mapper SQL is
-        // exercised separately by migration/browser acceptance; this test proves the service transaction boundary.
-        var database = new org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder().generateUniqueName(true)
-                .setType(org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.H2).build();
-        try {
-            var jdbc = new org.springframework.jdbc.core.JdbcTemplate(database);
-            jdbc.execute("CREATE TABLE fixture_writes(kind VARCHAR(32),id BIGINT,payload CLOB,PRIMARY KEY(kind,id))");
-            jdbc.update("INSERT INTO fixture_writes VALUES('ROOT',31,'PENDING'),('SOURCE',88,'CURRENT')");
-            current = new ProjectDeliverableSourceVersionDO(); current.setId(88L); current.setSourceObjectType("ProjectDeliverableSubmission");
-            current.setRelationStatus("CURRENT"); root.setCurrentSourceVersionId(88L);
-            doAnswer(call -> {
-                var row = call.<ProjectDeliverableSourceVersionDO>getArgument(0);
-                return jdbc.update("UPDATE fixture_writes SET payload=? WHERE kind='SOURCE' AND id=?", row.getRelationStatus(), row.getId());
-            }).when(sources).updateById(any(ProjectDeliverableSourceVersionDO.class));
-            doAnswer(call -> {
-                var row = call.<ProjectDeliverableSourceVersionDO>getArgument(0);
-                return jdbc.update("INSERT INTO fixture_writes VALUES('SOURCE',?,?)", row.getId(), row.getRelationStatus());
-            }).when(sources).insert(any(ProjectDeliverableSourceVersionDO.class));
-            doAnswer(call -> {
-                var row = call.<ProjectDeliverableSourceAttachmentDO>getArgument(0);
-                return jdbc.update("INSERT INTO fixture_writes VALUES('ATTACHMENT',?,?)", row.getId(), row.getReferenceKey());
-            }).when(attachments).insert(any(ProjectDeliverableSourceAttachmentDO.class));
-            doAnswer(call -> {
-                var row = call.<AccProjectDeliverableDO>getArgument(0);
-                return jdbc.update("UPDATE fixture_writes SET payload=? WHERE kind='ROOT' AND id=?", row.getStatus(), row.getId());
-            }).when(roots).updateById(any(AccProjectDeliverableDO.class));
-            doAnswer(call -> {
-                var row = call.<ProjectDeliverableSubmissionDO>getArgument(0);
-                return jdbc.update("INSERT INTO fixture_writes VALUES('SUBMISSION',?,?)", row.getId(), row.getSourceEvidence());
-            }).when(submissions).insert(any(ProjectDeliverableSubmissionDO.class));
-            doAnswer(call -> {
-                assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM fixture_writes WHERE kind='SOURCE'", Integer.class));
-                assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM fixture_writes WHERE kind='SUBMISSION'", Integer.class));
-                assertEquals("ACCEPTED", jdbc.queryForObject("SELECT payload FROM fixture_writes WHERE kind='ROOT'", String.class));
-                throw new IllegalStateException("OUTBOX_UNAVAILABLE");
-            }).when(outbox).append(anyString(), anyString(), any());
-            var factory = new org.springframework.aop.framework.ProxyFactory(service); factory.setProxyTargetClass(true);
-            factory.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(
-                    new org.springframework.jdbc.datasource.DataSourceTransactionManager(database),
-                    new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
-            var transactional = (ProjectDeliverableSubmissionService) factory.getProxy();
-            var failure = assertThrows(IllegalStateException.class, () -> transactional.submit(9L, 31L, "request1", upload(0L)));
-            assertEquals("OUTBOX_UNAVAILABLE", failure.getMessage());
-            assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM fixture_writes", Integer.class));
-            assertEquals("PENDING", jdbc.queryForObject("SELECT payload FROM fixture_writes WHERE kind='ROOT'", String.class));
-            assertEquals("CURRENT", jdbc.queryForObject("SELECT payload FROM fixture_writes WHERE kind='SOURCE'", String.class));
-        } finally { database.shutdown(); }
+
+    @Test
+    void revalidateCollectedDocumentScopeChangeIsRejected() {
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("OPEN", 1, 1), List.of()));
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1001L, PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT, "{}", null, List.of(9003L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(
+                fileMaterial(9003L, 71L, "SOL.REQUIREMENT_DOCUMENT", "ACTIVE")));
+        when(fileEvidence.inspectDocument(7L, 71L)).thenReturn(collectedDocument(71L, true));
+        when(documentSources.resolve(7L, collectedDocument(71L, true))).thenReturn(scope(10L));
+        var evaluation = service.revalidate(view);
+        assertEquals("DELIVERABLE_DOCUMENT_SCOPE_CHANGED", evaluation.reason());
+        assertFalse(evaluation.satisfied());
     }
-    @Test void validFileAndConfiguredConditionAutomaticallySatisfyAndReplayOneIntent() {
-        var submitted = service.submit(9L, 31L, "request1", upload(0L));
-        assertEquals("ACCEPTED", submitted.status()); assertEquals(1, root.getVersion());
-        assertEquals(submitted, service.submit(9L, 31L, "request1", upload(0L)));
-        verify(sources, times(1)).insert(any(ProjectDeliverableSourceVersionDO.class));
-        verify(outbox, times(1)).append(anyString(), anyString(), any());
-        assertTrue(service.revalidate(root).satisfied());
+
+    @Test
+    void revalidateProjectionDelegatesToOwnerEvidence() {
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("SATISFIED", 1, 1), List.of()));
+        var projection = submission(1002L, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, "{}", null, List.of(9002L));
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(projection));
+        when(ownerSources.revalidate(view, projection)).thenReturn(
+                new ProjectDeliverableOwnerSources.Evidence(true, "VALID", 1, List.of()));
+        assertTrue(service.revalidate(view).satisfied());
+
+        when(ownerSources.revalidate(view, projection)).thenReturn(
+                new ProjectDeliverableOwnerSources.Evidence(false, "FILE_EVIDENCE_UNAVAILABLE", 0, List.of()));
+        var evaluation = service.revalidate(view);
+        assertEquals("FILE_EVIDENCE_UNAVAILABLE", evaluation.reason());
+        // 有效证据路径已评估一次；证据失效路径不得再触发规则判定。
+        verify(rules, times(1)).evaluate(9L, "D1");
     }
-    @Test void submittedFileWaitsForBusinessConditionThenGateRevalidatesAutomatically() {
-        when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(false, "DELIVERABLE_RULE_NOT_SATISFIED", "{}"));
-        assertEquals("PENDING", service.submit(9L, 31L, "request1", upload(0L)).status());
-        String original = saved.get("request1").getDecisionEvidence();
-        when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(true, "DELIVERABLE_RULE_SATISFIED", "{}"));
-        assertTrue(service.revalidate(root).satisfied()); assertEquals("ACCEPTED", root.getStatus());
-        assertEquals(original, saved.get("request1").getDecisionEvidence());
-    }
-    @Test void invalidatedFileBlocksGateWithoutRewritingSubmissionHistory() {
-        service.submit(9L, 31L, "request1", upload(0L));
-        String evidence = saved.get("request1").getSourceEvidence();
-        when(facts.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false, "FILE_EVIDENCE_UNAVAILABLE", 2, 2, 1));
-        assertFalse(service.revalidate(root).satisfied()); assertEquals("PENDING", root.getStatus());
-        assertEquals(evidence, saved.get("request1").getSourceEvidence());
-    }
-    @Test void reevaluationEventsMeetPlatformIdentityContractWithoutDuplicatingUnchangedStatus() {
-        when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(false, "DELIVERABLE_RULE_NOT_SATISFIED", "{}"));
-        service.submit(9L, 31L, "request1", upload(0L));
-        String original = saved.get("request1").getDecisionEvidence();
-        var events = new ArrayList<cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent>();
-        doAnswer(call -> {
-            var event = call.<cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent>getArgument(2);
-            // The platform Outbox rejects a missing or different eventId in the payload.
-            assertEquals(event.eventId(), JsonUtils.parseTree(event.eventPayload()).path("eventId").asText());
-            if ("ProjectDeliverableEvaluated.v1".equals(event.eventType())) events.add(event);
-            return null;
-        }).when(outbox).append(anyString(), anyString(), any());
-        when(rules.evaluate(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Decision(true, "DELIVERABLE_RULE_SATISFIED", "{}"));
-        assertTrue(service.refresh(9L, 31L).satisfied());
-        assertTrue(service.refresh(9L, 31L).satisfied());
-        assertEquals(1, events.size());
-        when(facts.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false, "FILE_EVIDENCE_UNAVAILABLE", 2, 2, 1));
+
+    // ———— 门禁刷新与评估事件 ————
+
+    @Test
+    void refreshAppendsEvaluatedEventOnlyOnStatusChange() {
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("OPEN", 3, 1), List.of()));
         assertFalse(service.refresh(9L, 31L).satisfied());
-        assertEquals(2, events.size());
-        assertNotEquals(events.getFirst().eventId(), events.getLast().eventId());
-        assertEquals("ACCEPTED", JsonUtils.parseTree(events.getFirst().eventPayload()).path("status").asText());
-        assertEquals("PENDING", JsonUtils.parseTree(events.getLast().eventPayload()).path("status").asText());
-        assertEquals(original, saved.get("request1").getDecisionEvidence());
-    }
-    @Test void sameKeyDifferentIntentFailsBeforeChangingSource() {
-        service.submit(9L, 31L, "request1", upload(0L));
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "request1", upload(1L)));
-        verify(sources, times(1)).insert(any(ProjectDeliverableSourceVersionDO.class));
-    }
-    @Test void staleVersionAndMissingMaterialsCannotSubmit() {
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "stale", upload(1L)));
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "missing",
-                new ProjectDeliverableSubmissionService.Submission(15L, 0L, "UPLOAD", List.of(), null)));
-        verify(sources, never()).insert(any(ProjectDeliverableSourceVersionDO.class));
-    }
-    @Test void replacementRetainsOriginalEvidenceAndOriginalRetryReceipt() {
-        var old = service.submit(9L, 31L, "request1", upload(0L));
-        var previous = current;
-        var next = service.submit(9L, 31L, "request2", upload(1L));
-        assertNotEquals(old.sourceVersionId(), next.sourceVersionId());
-        assertEquals("SUPERSEDED", previous.getRelationStatus()); assertEquals(2, saved.size());
-        assertEquals(old, service.submit(9L, 31L, "request1", upload(0L)));
-        assertEquals(next.sourceVersionId(), root.getCurrentSourceVersionId());
-    }
-    @Test void tenantProjectAndPermissionFailuresNeverSaveMaterial() {
-        assertThrows(RuntimeException.class, () -> service.submit(10L, 31L, "wrong-project", upload(0L)));
-        TenantContextHolder.setTenantId(8L);
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "wrong-tenant", upload(0L)));
-        TenantContextHolder.setTenantId(7L);
-        when(access.require(context, true, true)).thenThrow(new IllegalArgumentException("permission denied"));
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "no-access", upload(0L)));
-        verify(sources, never()).insert(any(ProjectDeliverableSourceVersionDO.class));
-    }
-    @Test void validBusinessResultIsRecheckedByExactIdentityAndRevocationBlocksIt() {
-        var type = new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED");
-        var result = new BusinessResultSource.Result(7L, 9L, type, "55", "56", "1", "1", BusinessResultSource.Validity.CURRENT,
-                java.time.LocalDateTime.parse("2026-09-20T12:00:00"));
-        when(results.types()).thenReturn(List.of(new BusinessResultSource.Descriptor(type, true, true, true)));
-        when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(result));
-        var query = new BusinessResultSource.Query(7L, 9L, type, "55", "56");
-        assertEquals("ACCEPTED", service.submit(9L, 31L, "business", new ProjectDeliverableSubmissionService.Submission(
-                15L, 0L, "BUSINESS_RESULT", List.of(), query)).status());
-        when(results.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(new BusinessResultSource.Result(
-                7L, 9L, type, "55", "56", "1", "2", BusinessResultSource.Validity.REVOKED, result.formedAt())));
-        assertFalse(service.revalidate(root).satisfied());
-        assertEquals("PENDING", root.getStatus());
-    }
-    @Test void automaticBusinessProjectionIsValidatedWithoutReplacingItsHistory() {
-        current = new ProjectDeliverableSourceVersionDO(); current.setId(88L); current.setSourceObjectType("AcceptanceReportVersion");
-        root.setCurrentSourceVersionId(88L);
-        when(ownerSources.revalidate(root, current)).thenReturn(new ProjectDeliverableOwnerSources.Evidence(true, "VALID", 1, List.of()));
-        assertTrue(service.revalidate(root).satisfied());
-        assertEquals(88L, root.getCurrentSourceVersionId());
-        when(ownerSources.revalidate(root, current)).thenReturn(new ProjectDeliverableOwnerSources.Evidence(false, "FILE_EVIDENCE_UNAVAILABLE", 0, List.of()));
-        assertFalse(service.revalidate(root).satisfied());
-        verify(sources, never()).updateById(any(ProjectDeliverableSourceVersionDO.class));
-        verify(submissions, never()).insert(any(ProjectDeliverableSubmissionDO.class));
-    }
-    @Test void manualSubmissionCannotTakeOverAnAutomaticBusinessTarget() {
-        when(ownerSources.ownerType(root)).thenReturn("ACCEPTANCE_REPORT");
-        assertThrows(RuntimeException.class, () -> service.submit(9L, 31L, "manual", upload(0L)));
-        verify(sources, never()).insert(any(ProjectDeliverableSourceVersionDO.class));
-        verify(files, never()).lockAndRevalidate(any());
-    }
-    @Test void oldAcceptedRootWithoutAnySourceDoesNotPass() {
-        root.setStatus("ACCEPTED");
-        assertFalse(service.revalidate(root).satisfied());
+        verify(outbox, times(1)).append(anyString(), anyString(), any(BusinessEvent.class));
+
+        when(platform.revalidateConvergence(31L)).thenReturn(new TemplateFrozenConvergence(
+                view("SATISFIED", 4, 1), List.of()));
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(
+                submission(1001L, "UPLOAD", "{}", null, List.of(9001L))));
+        assertTrue(service.refresh(9L, 31L).satisfied());
+        var eventCaptor = ArgumentCaptor.forClass(BusinessEvent.class);
+        verify(outbox, times(3)).append(anyString(), anyString(), eventCaptor.capture());
+        var evaluated = eventCaptor.getAllValues().stream()
+                .filter(event -> "ProjectDeliverableEvaluated.v1".equals(event.eventType())).toList();
+        assertEquals(1, evaluated.size());
+        assertEquals("deliverable-evaluated:31:4", evaluated.getFirst().eventId());
+        var payload = JsonUtils.parseTree(evaluated.getFirst().eventPayload());
+        assertEquals(evaluated.getFirst().eventId(), payload.path("eventId").asText());
+        assertEquals("SATISFIED", payload.path("status").asText());
     }
 }

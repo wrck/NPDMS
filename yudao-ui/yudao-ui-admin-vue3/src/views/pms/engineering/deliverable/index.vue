@@ -34,16 +34,18 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-deliverable:create']"
-          ><Icon icon="ep:plus" />新增交付件</el-button
-        >
       </el-form-item>
     </el-form>
   </ContentWrap>
     <ProjectDeliverablesPanel v-if="query.projectId" :project-id="Number(query.projectId)" />
-  <el-alert v-else title="请先选择项目，查看模板交付件并上传材料。下方为历史归集记录。" type="info" :closable="false" />
+  <el-alert
+    v-else
+    title="请先选择项目，查看模板交付件并上传材料。交付件统一经交付面板登记，下方为统一交付件启用前的历史归集记录（只读）。"
+    type="info"
+    :closable="false"
+  />
   <ContentWrap>
-    <h3>历史归集记录</h3>
+    <h3>历史归集记录（只读）</h3>
     <el-table v-loading="loading" :data="rows">
       <el-table-column prop="name" label="交付件名称" min-width="220" show-overflow-tooltip />
       <el-table-column prop="deliverableType" label="类型" width="110">
@@ -58,42 +60,6 @@
           <dict-tag :type="DICT_TYPE.PMS_ENG_DELIVERABLE_STATUS" :value="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="340" fixed="right">
-        <template #default="{ row }">
-          <el-button
-            link
-            type="primary"
-            v-if="row.status !== 1"
-            @click="openForm(row)"
-            v-hasPermi="['pms:imp-deliverable:update']"
-            >编辑</el-button
-          >
-          <el-button
-            link
-            type="success"
-            v-if="row.status === 0"
-            @click="archive(row)"
-            v-hasPermi="['pms:imp-deliverable:archive']"
-            >归集</el-button
-          >
-          <el-button
-            link
-            type="warning"
-            v-if="row.status === 0 || row.status === 1"
-            @click="voidRow(row)"
-            v-hasPermi="['pms:imp-deliverable:update']"
-            >作废</el-button
-          >
-          <el-button
-            link
-            type="danger"
-            v-if="row.status !== 1"
-            @click="remove(row)"
-            v-hasPermi="['pms:imp-deliverable:delete']"
-            >删除</el-button
-          >
-        </template>
-      </el-table-column>
     </el-table>
     <Pagination
       :total="total"
@@ -102,83 +68,18 @@
       @pagination="load"
     />
   </ContentWrap>
-
-  <Dialog v-model="formVisible" :title="form.id ? '编辑交付件' : '新增交付件'" width="780px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="项目编号" prop="projectId">
-            <PmsEntitySelect
-              v-model="form.projectId"
-              :api="ProjectApi.getProjectPage"
-              label-field="projectName"
-              value-field="id"
-              query-field="projectName"
-              placeholder="请选择项目"
-              :disabled="!!form.id"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="阶段编号" prop="phaseId"><el-input v-model="form.phaseId" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="deliverableType">
-            <el-select v-model="form.deliverableType" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_ENG_DELIVERABLE_TYPE)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="交付件名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="来源业务类型" prop="sourceType"><el-input v-model="form.sourceType" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="来源业务编号" prop="sourceId"><el-input v-model="form.sourceId" /></el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="文件地址" prop="fileUrl"><UploadFile v-model="form.fileUrl!" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="文件大小(B)" prop="fileSize"><el-input v-model="form.fileSize" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="文件校验值" prop="fileChecksum"><el-input v-model="form.fileChecksum" /></el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
-    <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-    </template>
-  </Dialog>
 </template>
 
 <script setup lang="ts">
 import ProjectDeliverablesPanel from '@/views/pms/project/project-master-detail/components/ProjectDeliverablesPanel.vue'
 import { onMounted, reactive, ref } from 'vue'
-import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as DeliverableApi from '@/api/pms/engineering/deliverable'
 import type { DeliverableVO } from '@/api/pms/engineering/deliverable'
 import * as ProjectApi from '@/api/pms/project/projects'
 
 defineOptions({ name: 'PmsEngDeliverable' })
-const message = useMessage()
 const loading = ref(false)
-const saving = ref(false)
 const rows = ref<DeliverableVO[]>([])
 const total = ref(0)
 const query = reactive({
@@ -188,14 +89,6 @@ const query = reactive({
   deliverableType: undefined,
   status: undefined
 })
-const formVisible = ref(false)
-const formRef = ref()
-const form = reactive<DeliverableVO>({ projectId: 0, name: '', deliverableType: 'DAILY' })
-const rules = {
-  projectId: [{ required: true, message: '请选择项目' }],
-  name: [{ required: true, message: '请输入交付件名称' }],
-  deliverableType: [{ required: true, message: '请选择类型' }]
-}
 
 const load = async () => {
   loading.value = true
@@ -206,57 +99,6 @@ const load = async () => {
   } finally {
     loading.value = false
   }
-}
-const openForm = (row?: DeliverableVO) => {
-  Object.assign(
-    form,
-    {
-      id: undefined,
-      projectId: 0,
-      phaseId: undefined,
-      name: '',
-      deliverableType: 'DAILY',
-      sourceType: '',
-      sourceId: undefined,
-      fileUrl: '',
-      fileSize: undefined,
-      fileChecksum: '',
-      remark: '',
-      version: undefined
-    },
-    row || {}
-  )
-  formVisible.value = true
-}
-const save = async () => {
-  await formRef.value.validate()
-  saving.value = true
-  try {
-    form.id ? await DeliverableApi.updateDeliverable(form) : await DeliverableApi.createDeliverable(form)
-    message.success('保存成功')
-    formVisible.value = false
-    await load()
-  } finally {
-    saving.value = false
-  }
-}
-const remove = async (row: DeliverableVO) => {
-  await message.delConfirm()
-  await DeliverableApi.deleteDeliverable(row.id!)
-  message.success('删除成功')
-  await load()
-}
-const archive = async (row: DeliverableVO) => {
-  await message.confirm(`确认归集交付件【${row.name}】？归集后不可修改，仅可作废。`)
-  await DeliverableApi.archiveDeliverable(row.id!)
-  message.success('归集成功')
-  await load()
-}
-const voidRow = async (row: DeliverableVO) => {
-  await message.confirm(`确认作废交付件【${row.name}】？`)
-  await DeliverableApi.voidDeliverable(row.id!)
-  message.success('作废成功')
-  await load()
 }
 onMounted(load)
 </script>

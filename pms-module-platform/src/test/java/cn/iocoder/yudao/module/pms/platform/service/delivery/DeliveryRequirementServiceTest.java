@@ -65,7 +65,8 @@ class DeliveryRequirementServiceTest {
     void setUp() {
         TenantContextHolder.setTenantId(1L);
         service = new DeliveryRequirementService(requirementMapper, submissionMapper,
-                materialMapper, catalogService, materialService, outbox);
+                materialMapper, catalogService, materialService, outbox,
+                org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class));
     }
 
     @AfterEach
@@ -130,12 +131,9 @@ class DeliveryRequirementServiceTest {
                         .toList());
         org.mockito.Mockito.lenient().when(materialService.revalidateActive(any())).thenAnswer(invocation -> {
             DeliveryMaterialDO material = invocation.getArgument(0);
-            return new FileEvidenceApi.Document(material.getFileReferenceId(),
-                    DeliveryMaterialService.FILE_OWNER_CONTEXT, DeliveryMaterialService.FILE_OBJECT_TYPE,
-                    DeliveryMaterialService.fileObjectId(material.getOwnerModule(), material.getEntityType(),
-                            material.getEntityId()), material.getTypeCode(), "ref-key",
-                    material.getFileArtifactId(), material.getFileVersionNo(), material.getFileSha256(),
-                    material.getFileName(), true);
+            return new DeliveryMaterialService.FrozenEvidence(material.getMaterialKind(),
+                    material.getFileReferenceId(), material.getFileName(), material.getFileSha256(),
+                    material.getFileArtifactId(), material.getFileVersionNo(), null, null, null);
         });
     }
 
@@ -186,7 +184,7 @@ class DeliveryRequirementServiceTest {
         DeliveryRequirementDO requirement = requirement(10L, "OPEN",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         stubEntityState();
-        when(submissionMapper.selectByRequestKey("k-new")).thenReturn(java.util.Optional.empty());
+        when(submissionMapper.selectByRequestKey(10L, "k-new")).thenReturn(java.util.Optional.empty());
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
         when(submissionMapper.insert(any(DeliverySubmissionDO.class))).thenAnswer(invocation -> {
             requirementSubmissions.add(invocation.getArgument(0));
@@ -215,12 +213,12 @@ class DeliveryRequirementServiceTest {
         DeliverySubmissionDO existing = submission(21, "k-old", "CURRENT", List.of(1L));
         DeliveryRequirementDO requirement = requirement(10L, "SATISFIED",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
-        when(submissionMapper.selectByRequestKey("k-old")).thenReturn(java.util.Optional.of(existing));
+        when(submissionMapper.selectByRequestKey(10L, "k-old")).thenReturn(java.util.Optional.of(existing));
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
         when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
                 .thenReturn(List.of());
 
-        SubmissionOutcome outcome = service.submit(99L, "k-old", List.of(1L));
+        SubmissionOutcome outcome = service.submit(10L, "k-old", List.of(1L));
 
         assertTrue(outcome.replay());
         assertEquals(existing.getId(), outcome.submission().getId());
@@ -235,7 +233,7 @@ class DeliveryRequirementServiceTest {
         DeliveryRequirementDO requirement = requirement(10L, "OPEN",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         stubEntityState();
-        when(submissionMapper.selectByRequestKey("k1")).thenReturn(java.util.Optional.empty());
+        when(submissionMapper.selectByRequestKey(10L, "k1")).thenReturn(java.util.Optional.empty());
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
 
         BusinessContractException ex = assertThrows(BusinessContractException.class,
@@ -250,7 +248,7 @@ class DeliveryRequirementServiceTest {
         DeliveryRequirementDO requirement = requirement(10L, "OPEN",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         stubEntityState();
-        when(submissionMapper.selectByRequestKey("k-race")).thenReturn(java.util.Optional.empty());
+        when(submissionMapper.selectByRequestKey(10L, "k-race")).thenReturn(java.util.Optional.empty());
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
         when(submissionMapper.insert(any(DeliverySubmissionDO.class)))
                 .thenThrow(new DuplicateKeyException("uk"));
@@ -299,7 +297,7 @@ class DeliveryRequirementServiceTest {
                 .thenAnswer(invocation -> new ArrayList<>(entityMaterials));
         when(materialService.revalidateActive(any()))
                 .thenThrow(new BusinessContractException("DELIVERY_FILE_UNAVAILABLE", "失效"));
-        when(submissionMapper.selectByRequestKey("k-x")).thenReturn(java.util.Optional.empty());
+        when(submissionMapper.selectByRequestKey(10L, "k-x")).thenReturn(java.util.Optional.empty());
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
 
         BusinessContractException ex = assertThrows(BusinessContractException.class,
@@ -324,7 +322,7 @@ class DeliveryRequirementServiceTest {
                     public FileEvidenceApi.Fact lockAndRevalidate(Query query) {
                         throw new AssertionError("登记路径不应触发锁重验");
                     }
-                }, eventPublisher());
+                }, eventPublisher(), java.util.List.of());
         BusinessContractException ex = assertThrows(BusinessContractException.class,
                 () -> materialSvc.register(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE,
                         5001L, "签收单", null));

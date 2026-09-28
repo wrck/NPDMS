@@ -10,15 +10,12 @@ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.*;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.*;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.AcceptanceActivityIdLockQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.AcceptanceReportIdLockQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableSourceIdLockQuery;
 import cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportQueryService;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,9 +39,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
     private final AcceptanceActivityMapper activityMapper;
     private final AcceptanceReportVersionMapper reportMapper;
     private final AcceptanceReportAttachmentMapper attachmentMapper;
-    private final AccProjectDeliverableMapper deliverableMapper;
-    private final ProjectDeliverableSourceVersionMapper sourceMapper;
-    private final ProjectDeliverableSourceAttachmentMapper sourceAttachmentMapper;
+    private final PlatformDeliveryRequirementApi platform;
     private final FileArtifactApi fileArtifactApi;
     private final ProjectScopeApi projectScopeApi;
     private final PermissionApi permissionApi;
@@ -188,7 +183,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                     throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
                 }
             }
-            // Preserve Owner lock order: activity -> report -> deliverable -> source -> PLT files.
+            // Preserve Owner lock order: activity -> report -> platform requirement/submission/materials -> PLT files.
             var source = archivedSource(context, activity, report, lock);
             files = inspectFiles(report, attachments, lock);
             effective = report.getAcceptanceTime() != null && notBlank(report.getConclusionCode())
@@ -281,65 +276,63 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 && "AVAILABLE".equals(f.availabilityStatus()) && "ACTIVE".equals(f.referenceStatus())));
     }
 
-    private ProjectDeliverableSourceVersionDO archivedSource(Context context,
+    /** 归档来源：统一交付件平台提交台账（requestKey=report:{reportVersionId}）+ 材料全部 ARCHIVED。 */
+    private ArchivedSource archivedSource(Context context,
             AcceptanceReportQueryService.ActivityView activity, AcceptanceReportVersionDO report, boolean lock) {
-        var snapshot = sourceMapper.selectByReportVersionId(report.getId());
-        if (snapshot == null) return null; // Async projection not formed: never pretend it is archived.
-        if (!Objects.equals(snapshot.getTenantId(), context.tenantId()) || Boolean.TRUE.equals(snapshot.getDeleted())) {
+        if (activity.deliverableId() == null) return null;
+        var view = lock ? platform.lockById(activity.deliverableId()).orElse(null)
+                : platform.findById(activity.deliverableId()).orElse(null);
+        if (view == null || !Objects.equals(view.projectId(), context.projectId())
+                || !Objects.equals(view.id(), activity.deliverableId()))
             throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
-        }
-        AccProjectDeliverableDO deliverable = lock
-                ? deliverableMapper.selectByIdForUpdate(new ProjectDeliverableIdLockQuery(context.tenantId(), snapshot.getDeliverableId()))
-                : deliverableMapper.selectById(snapshot.getDeliverableId());
-        var source = lock ? sourceMapper.selectByIdForUpdate(new DeliverableSourceIdLockQuery(
-                context.tenantId(), snapshot.getId())) : snapshot;
-        if (deliverable == null || source == null || Boolean.TRUE.equals(deliverable.getDeleted())
-                || Boolean.TRUE.equals(source.getDeleted()) || !Objects.equals(deliverable.getTenantId(), context.tenantId())
-                || !Objects.equals(source.getTenantId(), context.tenantId())
-                || !Objects.equals(deliverable.getProjectId(), context.projectId())
-                || !Objects.equals(deliverable.getId(), source.getDeliverableId())
-                || !Objects.equals(source.getId(), snapshot.getId())
-                || !Objects.equals(activity.deliverableId(), deliverable.getId()) || !"AcceptanceReportVersion".equals(source.getSourceObjectType())
-                || !"ACC-03@V1".equals(source.getSourceRequirementId())
-                || !Objects.equals(source.getSourceObjectId(), report.getId())
-                || !Objects.equals(source.getSourceVersion(), report.getReportVersionNo())) {
+        var submission = platform.findSubmissionByRequestKey(activity.deliverableId(),
+                "report:" + report.getId()).orElse(null);
+        if (submission == null) return null; // Async projection not formed: never pretend it is archived.
+        if (!Objects.equals(submission.requirementId(), activity.deliverableId())
+                || !"AUTO_PROJECTION".equals(submission.sourceType())
+                || submission.materialIds() == null || submission.materialIds().isEmpty())
             throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
-        }
-        return Objects.equals(deliverable.getCurrentSourceVersionId(), source.getId())
-                && "CURRENT".equals(source.getRelationStatus()) && "ARCHIVED".equals(source.getArchiveStatus())
-                && "ARCHIVED".equals(deliverable.getArchiveStatus()) && source.getArchiveTime() != null ? source : null;
+        if (!"CURRENT".equals(submission.status())) return null;
+        List<PlatformDeliveryRequirementApi.TemplateFrozenMaterialView> materials = lock
+                ? platform.lockMaterials(submission.materialIds())
+                : platform.listMaterials(activity.deliverableId()).stream()
+                .filter(material -> submission.materialIds().contains(material.id())).toList();
+        if (materials.size() != submission.materialIds().size()
+                || materials.stream().anyMatch(material -> !"FILE".equals(material.materialKind())))
+            throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
+        boolean archived = materials.stream().allMatch(material ->
+                PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED.equals(material.archiveStatus()));
+        return archived ? new ArchivedSource(submission, materials) : null;
     }
 
     private List<BusinessArtifact> artifacts(Context context, AcceptanceReportVersionDO report,
-            ProjectDeliverableSourceVersionDO source, List<AcceptanceReportAttachmentDO> attachments,
+            ArchivedSource source, List<AcceptanceReportAttachmentDO> attachments,
             List<FileArtifactVersionFact> files) {
-        var rows = sourceAttachmentMapper.selectBySourceVersion(source.getId());
-        if (rows.size() != attachments.size()) throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
+        List<PlatformDeliveryRequirementApi.TemplateFrozenMaterialView> materials = source.materials();
+        if (materials.size() != attachments.size()) throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
         List<BusinessArtifact> result = new ArrayList<>();
-        Set<Integer> sequences = new HashSet<>();
-        for (var row : rows) {
-            if (Boolean.TRUE.equals(row.getDeleted()) || !Objects.equals(row.getTenantId(), context.tenantId())
-                    || !Objects.equals(row.getDeliverableSourceVersionId(), source.getId())
-                    || !sequences.add(row.getAttachmentSequence())) throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
-            var attachment = attachments.stream().filter(a -> Objects.equals(a.getAttachmentSequence(), row.getAttachmentSequence()))
-                    .findFirst().orElseThrow(() -> exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE));
-            if (!Objects.equals(row.getFileArtifactId(), attachment.getFileArtifactId())
-                    || !Objects.equals(row.getFileVersionNo(), attachment.getFileVersionNo())
-                    || !Objects.equals(row.getReferenceKey(), attachment.getReferenceKey())
-                    || !Objects.equals(row.getArtifactVersion(), attachment.getArtifactVersion())
-                    || !Objects.equals(row.getReferenceVersion(), attachment.getReferenceVersion())
-                    || !Objects.equals(row.getAvailabilityVersion(), attachment.getAvailabilityVersion())
-                    || !Objects.equals(row.getScopeVersion(), attachment.getScopeVersion())
-                    || !Objects.equals(row.getFileHash(), attachment.getFileHash()) || !uuid(row.getReferenceKey())) {
+        for (var material : materials) {
+            // 投影材料冻结 (artifactId, versionNo, sha256)；referenceKey 等事实元组经活动附件冻结行与 PLT 现值互证。
+            var attachment = attachments.stream().filter(a -> Objects.equals(a.getFileArtifactId(), material.fileArtifactId())
+                            && Objects.equals(a.getFileVersionNo(), material.fileVersionNo())).findFirst()
+                    .orElseThrow(() -> exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE));
+            if (material.fileSha256() == null || material.fileSha256().length() != 64
+                    || !Objects.equals(attachment.getFileHash(), material.fileSha256()))
                 throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
-            }
-            var file = files.stream().filter(f -> row.getReferenceKey().equals(f.referenceKey())).findFirst().orElseThrow();
+            var file = files.stream().filter(f -> Objects.equals(f.artifactId(), material.fileArtifactId())
+                            && Objects.equals(f.versionNo(), material.fileVersionNo())).findFirst()
+                    .orElseThrow(() -> exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE));
             // The actual archive operation preserves this exact ACTIVE attachment tuple and UUID in its
             // separate ARCHIVED set. Do not invoke archiveReferenceSets (a write) during task inspection.
-            result.add(new BusinessArtifact(row.getFileArtifactId().toString(), row.getFileVersionNo(), row.getReferenceKey(),
-                    file.name(), "ACC_REPORT:" + report.getId() + ":" + source.getSourceVersion() + ":SOURCE:" + source.getId()));
+            result.add(new BusinessArtifact(material.fileArtifactId().toString(), material.fileVersionNo(),
+                    file.referenceKey(), file.name(),
+                    "ACC_REPORT:" + report.getId() + ":" + report.getReportVersionNo() + ":SOURCE:" + source.submission().id()));
         }
         return List.copyOf(result);
+    }
+
+    private record ArchivedSource(PlatformDeliveryRequirementApi.TemplateFrozenSubmissionView submission,
+                                  List<PlatformDeliveryRequirementApi.TemplateFrozenMaterialView> materials) {
     }
 
     private void requireQuery(Context context, boolean lock) {

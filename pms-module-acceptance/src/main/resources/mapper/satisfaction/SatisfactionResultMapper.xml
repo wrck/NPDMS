@@ -41,6 +41,8 @@
     <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionResultDO">
         SELECT * FROM acc_satisfaction_result WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
     </select>
+    <!-- 归档投影回写：成果行可能停留在旧提交链（A 已归档、B 递取代位），指针按提交 ID 链序推进；
+         提交 ID 单调递增，携带更小 ID 的过期事件仍被拒绝。 -->
     <update id="updateArchiveProjection">
         UPDATE acc_satisfaction_result
            SET deliverable_source_version_id=#{query.deliverableSourceVersionId},
@@ -51,7 +53,7 @@
          WHERE tenant_id=#{query.tenantId} AND id=#{query.resultId}
            AND version=#{query.expectedFactVersion}
            AND (deliverable_source_version_id IS NULL
-                OR deliverable_source_version_id=#{query.deliverableSourceVersionId})
+                OR deliverable_source_version_id &lt;= #{query.deliverableSourceVersionId})
     </update>
     <select id="selectByScope"
             resultType="cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionResultViewRecord">

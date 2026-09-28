@@ -4,7 +4,7 @@
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon />
     <template v-if="detail">
       <h3>{{ detail.name }}</h3>
-      <p>状态：{{ detail.status === 'ACCEPTED' ? '已满足' : '待满足' }} · 至少 {{ detail.configuration.minimumQuantity }} 项有效材料</p>
+      <p>状态：{{ statusLabel(detail.status) }} · 至少 {{ detail.configuration.minimumQuantity ?? 1 }} 项有效材料</p>
       <p class="hint">提交后按模板条件自动判定。文件或成果有效且配置条件满足时，交付件满足门禁。</p>
       <el-alert v-if="!detail.writable" title="当前交付件只读：请确认项目仍在进行中，且具有该项目的材料管理权限。" type="info" :closable="false" />
       <el-alert v-if="detail.configuration.automaticSources?.length" title="业务页面上传的匹配文档会自动归集；归集完成后刷新查看，无需重复上传。" type="info" :closable="false" />
@@ -13,15 +13,15 @@
       <el-form v-if="detail.writable && !detail.automaticSource" label-position="top" class="submission-form">
         <el-form-item label="材料来源">
           <el-radio-group v-model="sourceType" :disabled="busy || uploadBusy" @change="clearAttempt">
-            <el-radio-button v-if="detail.configuration.allowedSources.includes('UPLOAD')" value="UPLOAD">上传文件</el-radio-button>
-            <el-radio-button v-if="detail.configuration.allowedSources.includes('BUSINESS_RESULT')" value="BUSINESS_RESULT">关联业务成果</el-radio-button>
+            <el-radio-button v-if="detail.configuration.allowedSources?.includes('UPLOAD')" value="UPLOAD">上传文件</el-radio-button>
+            <el-radio-button v-if="detail.configuration.allowedSources?.includes('BUSINESS_RESULT')" value="BUSINESS_RESULT">关联业务成果</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <template v-if="sourceType === 'UPLOAD'">
-          <PmsFileUploader ref="uploader" :key="slotKey" v-bind="fileKey(slotKey)" category-code="PROJECT_DELIVERABLE_DOCUMENT"
+          <PmsFileUploader ref="uploader" :key="slotKey" v-bind="uploadKey(slotKey)" category-code="PROJECT_DELIVERABLE_DOCUMENT"
             :disabled="busy" @completed="uploaded" />
           <div v-for="file in selectedFiles" :key="file.referenceKey" class="selected-file">
-            <PmsFileReferenceList v-bind="fileKey(file.referenceKey)" :artifact-id="file.artifactId" :version-no="file.versionNo" />
+            <PmsFileReferenceList v-bind="uploadKey(file.referenceKey)" :artifact-id="file.artifactId" :version-no="file.versionNo" />
             <el-button link :disabled="busy" @click="removeSelection(file.referenceKey)">从本次提交移除</el-button>
           </div>
         </template>
@@ -46,12 +46,16 @@
       <el-divider>提交历史</el-divider>
       <el-empty v-if="!detail.history.length" description="尚无提交记录" :image-size="56" />
       <el-collapse v-else>
-        <el-collapse-item v-for="item in detail.history" :key="item.id" :name="String(item.id)" :title="`${item.sourceType === 'UPLOAD' ? '文件提交' : item.sourceType === 'BUSINESS_DOCUMENT' ? '业务文档自动归集' : '业务成果关联'} · ${formatDate(item.submittedAt)}`">
-          <PmsFileReferenceList v-for="file in item.source.files" :key="file.referenceKey" v-bind="fileKey(file.referenceKey)" :artifact-id="file.artifactId" :version-no="file.versionNo" />
-          <PmsFileReferenceList v-for="file in item.source.businessFiles || []" :key="String(file.referenceId)"
-            :owner-context="file.ownerContext" :object-type="file.objectType" :object-id="file.objectId"
-            :purpose-code="file.purposeCode" :reference-key="file.referenceKey" :artifact-id="file.artifactId" :version-no="file.versionNo" />
-          <p v-if="item.source.businessResult">{{ typeLabel(item.source.businessResult.type) }} · 成果 {{ item.source.businessResult.resultId }}</p>
+        <el-collapse-item v-for="item in detail.history" :key="item.id" :name="String(item.id)"
+          :title="`${sourceLabel(item.sourceType)} · ${formatDate(item.submittedAt)}`">
+          <p v-for="material in item.materials" :key="material.id" class="hint">
+            <template v-if="material.materialKind === 'BUSINESS_RESULT'">
+              业务成果：{{ typeLabel({ resultType: businessResultLine(material).type }) }} · 成果 {{ businessResultLine(material).resultId }}
+            </template>
+            <template v-else>
+              文件材料：{{ material.fileName || '未命名文件' }}<template v-if="material.versionNo"> · v{{ material.versionNo }}</template><template v-if="material.businessObjectType"> · 来源 {{ material.businessObjectType }}</template>
+            </template>
+          </p>
         </el-collapse-item>
       </el-collapse>
     </template>
@@ -62,6 +66,7 @@
 import { generateUUID } from '@/utils'
 import { computed, ref } from 'vue'
 import * as Api from '@/api/pms/acceptance/project-deliverable'
+import { type FileSelection as UploadedSelection } from '@/components/PmsFileArtifact/types'
 import { PmsFileUploader, PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import { formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -72,17 +77,29 @@ const message = useMessage()
 const visible = ref(false), loading = ref(false), busy = ref(false), error = ref(''), outcome = ref(''), satisfied = ref(false)
 const detail = ref<Api.DeliverableDetail>()
 const sourceType = ref('UPLOAD'), slotKey = ref('')
-const selectedFiles = ref<Api.FileSelection[]>([])
+const selectedFiles = ref<UploadedSelection[]>([])
 const uploader = ref<InstanceType<typeof PmsFileUploader>>()
 const uploadBusy = computed(() => uploader.value?.isBusy() ?? false)
-const types = ref<{ type: Api.ResultType }[]>([]), candidates = ref<Api.BusinessResult[]>([])
+const types = ref<Api.ResultTypeDescriptor[]>([]), candidates = ref<Api.BusinessResult[]>([])
 const typeIndex = ref<number>(), resultIndex = ref<number>()
 const candidatesLoading = ref(false), candidatesComplete = ref(true), after = ref<string>()
 let attempt: { signature: string; key: string } | undefined
-const fileKey = (referenceKey: string) => ({ ownerContext: 'ACC', objectType: 'PROJECT_DELIVERABLE', objectId: String(detail.value?.id ?? ''), purposeCode: 'PROJECT_DELIVERABLE_DOCUMENT', referenceKey })
+// 统一交付材料上传锚：PLT/DELIVERY_MATERIAL/ACC:project_deliverable:{projectId}，purposeCode=交付件编码。
+const uploadKey = (referenceKey: string) => ({
+  ownerContext: 'PLT', objectType: 'DELIVERY_MATERIAL',
+  objectId: `ACC:project_deliverable:${props.projectId}`,
+  purposeCode: detail.value?.code ?? '', referenceKey
+})
 const clearAttempt = () => { attempt = undefined }
-const typeLabel = (type: Api.ResultType) => ({ SURVEY_CONFIRMED: '工勘确认成果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析成果', REPORT_EFFECTIVE: '生效验收报告' }[type.resultType] || type.resultType)
-const uploaded = (selection: Api.FileSelection) => { selectedFiles.value.push(selection); slotKey.value = generateUUID(); clearAttempt() }
+const typeLabel = (type: { resultType: string }) => ({ SURVEY_CONFIRMED: '工勘确认成果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析成果', REPORT_EFFECTIVE: '生效验收报告' }[type.resultType] || type.resultType)
+const statusLabel = (status: string) => ({ ACCEPTED: '已满足', CONFIRMED: '已确认' }[status] || '待满足')
+const sourceLabel = (sourceType: string) =>
+  ({ UPLOAD: '文件提交', BUSINESS_DOCUMENT: '业务文档自动归集', BUSINESS_RESULT: '业务成果关联', AUTO_PROJECTION: '业务单据投影' }[sourceType] || sourceType)
+const businessResultLine = (material: Api.MaterialLine) => {
+  const segments = (material.businessObjectId || '').split('|')
+  return { type: segments[0] || '', resultId: segments[2] || '' }
+}
+const uploaded = (selection: UploadedSelection) => { selectedFiles.value.push(selection); slotKey.value = generateUUID(); clearAttempt() }
 const removeSelection = (key: string) => { selectedFiles.value = selectedFiles.value.filter(file => file.referenceKey !== key); clearAttempt() }
 const canSubmit = computed(() => sourceType.value === 'UPLOAD' ? selectedFiles.value.length > 0 : resultIndex.value !== undefined)
 const reasonLabel = (reason: string) => ({ DELIVERABLE_RULE_NOT_SATISFIED: '材料已保存，模板配置的业务条件尚未满足', DELIVERABLE_RULE_SATISFIED: '文件或业务成果有效，模板条件已满足', DELIVERABLE_SOURCE_MISSING: '尚未提交材料', FILE_EVIDENCE_UNAVAILABLE: '提交的文件已失效或引用已变化', DELIVERABLE_BUSINESS_RESULT_INVALID: '关联成果已失效或被替换', DELIVERABLE_QUANTITY_NOT_MET: '有效材料数量未达到模板要求', DELIVERABLE_SOURCE_REQUIRES_SUBMISSION: '请按模板规则关联业务成果或提交文件' }[reason] || `暂未满足：${reason}`)
@@ -94,8 +111,8 @@ const open = async (id: number) => {
   slotKey.value = generateUUID()
   try {
     detail.value = await Api.getDetail(props.projectId, id)
-    sourceType.value = detail.value.configuration.allowedSources.includes('UPLOAD') ? 'UPLOAD' : 'BUSINESS_RESULT'
-    if (detail.value.configuration.allowedSources.includes('BUSINESS_RESULT')) types.value = await Api.getTypes(props.projectId, id)
+    sourceType.value = detail.value.configuration.allowedSources?.includes('UPLOAD') ? 'UPLOAD' : 'BUSINESS_RESULT'
+    if (detail.value.configuration.allowedSources?.includes('BUSINESS_RESULT')) types.value = await Api.getTypes(props.projectId, id)
   } catch { error.value = '交付件加载失败，请关闭后重试' } finally { loading.value = false }
 }
 const loadCandidates = async (append: boolean) => {
@@ -114,7 +131,7 @@ const submit = async () => {
   try {
     const selected = resultIndex.value === undefined ? undefined : candidates.value[resultIndex.value]
     const data: Api.Submission = { planVersionId: detail.value.planVersionId, expectedVersion: detail.value.version, sourceType: sourceType.value,
-      files: sourceType.value === 'UPLOAD' ? selectedFiles.value : [],
+      files: sourceType.value === 'UPLOAD' ? selectedFiles.value.map(file => ({ referenceId: file.referenceId })) : [],
       ...(sourceType.value === 'BUSINESS_RESULT' && selected ? { businessResult: { tenantId: selected.tenantId, projectId: selected.projectId, type: selected.type, objectId: selected.objectId, resultId: selected.resultId } } : {}) }
     const signature = JSON.stringify(data)
     if (!attempt || attempt.signature !== signature) attempt = { signature, key: generateUUID() }

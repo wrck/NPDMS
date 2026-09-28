@@ -8,15 +8,16 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenMaterialView;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmissionView;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenView;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.Context;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.*;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.*;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.*;
 import cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportQueryService;
@@ -36,6 +37,7 @@ import org.springframework.transaction.support.DefaultTransactionStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,9 +48,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
     private final AcceptanceActivityMapper activities = mock(AcceptanceActivityMapper.class);
     private final AcceptanceReportVersionMapper reports = mock(AcceptanceReportVersionMapper.class);
     private final AcceptanceReportAttachmentMapper attachments = mock(AcceptanceReportAttachmentMapper.class);
-    private final AccProjectDeliverableMapper deliverables = mock(AccProjectDeliverableMapper.class);
-    private final ProjectDeliverableSourceVersionMapper sources = mock(ProjectDeliverableSourceVersionMapper.class);
-    private final ProjectDeliverableSourceAttachmentMapper sourceAttachments = mock(ProjectDeliverableSourceAttachmentMapper.class);
+    private final PlatformDeliveryRequirementApi platform = mock(PlatformDeliveryRequirementApi.class);
     private final ProjectScopeApi scope = mock(ProjectScopeApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final FileArtifactApi files = mock(FileArtifactApi.class);
@@ -58,16 +58,13 @@ class AcceptanceTaskBusinessObjectProviderTest {
             mock(cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportBusinessResultSource.class);
     // Exercise the existing Owner query service, rather than a second fake activity repository.
     private final AcceptanceReportQueryService queries = new AcceptanceReportQueryService(
-            activities, reports, attachments, scope, files, sources);
+            activities, reports, attachments, scope, files, platform);
     private final AcceptanceTaskBusinessObjectProvider provider = new AcceptanceTaskBusinessObjectProvider(
-            queries, activities, reports, attachments, deliverables, sources, sourceAttachments, files, scope, permissions, executions, reportResults);
+            queries, activities, reports, attachments, platform, files, scope, permissions, executions, reportResults);
     private final Context context = new Context(3L, 9L, 100L, 200L, "acc-task-test");
     private final AcceptanceActivityDO activity = new AcceptanceActivityDO();
     private final AcceptanceReportVersionDO report = new AcceptanceReportVersionDO();
     private final AcceptanceReportAttachmentDO attachment = new AcceptanceReportAttachmentDO();
-    private final ProjectDeliverableSourceVersionDO source = new ProjectDeliverableSourceVersionDO();
-    private final AccProjectDeliverableDO deliverable = new AccProjectDeliverableDO();
-    private final ProjectDeliverableSourceAttachmentDO sourceAttachment = new ProjectDeliverableSourceAttachmentDO();
     private final FileReferenceSetKey setKey = new FileReferenceSetKey("ACC", "ACCEPTANCE_REPORT_VERSION", "51", "ACCEPTANCE_REPORT_ATTACHMENT");
 
     @BeforeEach
@@ -98,6 +95,10 @@ class AcceptanceTaskBusinessObjectProviderTest {
         attachment.setReferenceKey(KEY); attachment.setArtifactVersion(4); attachment.setReferenceVersion(5);
         attachment.setAvailabilityVersion(6); attachment.setScopeVersion(1L); attachment.setFileHash("a".repeat(64));
         when(attachments.selectByReportVersion(51L)).thenReturn(List.of(attachment));
+        // 投影未形成前 inspect 只视为"未归档"，不得伪造工件。
+        when(platform.findById(91L)).thenReturn(Optional.of(deliverableView(100L)));
+        when(platform.lockById(91L)).thenReturn(Optional.of(deliverableView(100L)));
+        when(platform.findSubmissionByRequestKey(91L, "report:51")).thenReturn(Optional.empty());
         fileFact("AVAILABLE", 3);
     }
 
@@ -146,8 +147,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
     void completionFactCatalogIsDeploymentMetadataWithoutBusinessAccess() {
         clean();
         assertEquals(Set.of("REPORT_EFFECTIVE", "PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED"), provider.completionFactCodes());
-        verifyNoInteractions(activities, reports, attachments, deliverables, sources, sourceAttachments,
-                files, scope, permissions);
+        verifyNoInteractions(activities, reports, attachments, platform, files, scope, permissions);
     }
 
     @Test
@@ -172,13 +172,12 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @Test
     void exactArchivedCurrentSourceReturnsImmutableFileTupleAndSourceIdentity() {
         archived();
-        deliverable.setDeliverableCode("RENAMED_CUSTOM_REPORT");
         var fact = provider.inspect(context, "42");
         assertEquals(1, fact.artifacts().size());
         var artifact = fact.artifacts().getFirst();
         assertEquals("71", artifact.artifactId()); assertEquals(3, artifact.versionNo());
         assertEquals(KEY, artifact.referenceKey()); assertEquals("真实报告.pdf", artifact.displayName());
-        assertEquals("ACC_REPORT:51:2:SOURCE:81", artifact.sourceVersion());
+        assertEquals("ACC_REPORT:51:2:SOURCE:1001", artifact.sourceVersion());
         assertEquals(fact, provider.lockAndRevalidate(context, "42", fact.factVersion()));
         verify(files).lockAndRevalidateReferenceSets(argThat(q -> q.collections().size() == 1
                 && q.collections().getFirst().key().equals(setKey)
@@ -188,7 +187,11 @@ class AcceptanceTaskBusinessObjectProviderTest {
     @Test
     void archiveMustBelongToTheActivitysFrozenDeliverableNotJustTheSameProject() {
         archived(); activity.setDeliverableId(999L);
-        assertThrows(RuntimeException.class,()->provider.inspect(context,"42"));
+        assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
+        activity.setDeliverableId(91L);
+        when(platform.findById(91L)).thenReturn(Optional.of(deliverableView(101L)));
+        when(platform.lockById(91L)).thenReturn(Optional.of(deliverableView(101L)));
+        assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
     }
 
     @Test
@@ -208,31 +211,40 @@ class AcceptanceTaskBusinessObjectProviderTest {
     }
 
     @Test
-    void pendingSupersededAndWrongCurrentSourcesNeverBecomeArtifacts() {
+    void pendingSupersededAndNonCurrentSubmissionsNeverBecomeArtifacts() {
         archived();
-        source.setArchiveStatus("PENDING_COMPENSATION");
+        when(platform.listMaterials(91L)).thenReturn(List.of(material("PENDING_COMPENSATION")));
+        when(platform.lockMaterials(List.of(801L))).thenReturn(List.of(material("PENDING_COMPENSATION")));
         assertTrue(provider.inspect(context, "42").artifacts().isEmpty());
-        source.setArchiveStatus("ARCHIVED"); source.setRelationStatus("SUPERSEDED");
+        when(platform.findSubmissionByRequestKey(91L, "report:51")).thenReturn(Optional.of(supersededSubmission()));
         assertTrue(provider.inspect(context, "42").artifacts().isEmpty());
-        source.setRelationStatus("CURRENT"); deliverable.setCurrentSourceVersionId(999L);
-        assertTrue(provider.inspect(context, "42").artifacts().isEmpty());
-    }
-
-    @Test
-    void archiveFromDifferentProjectOrReportVersionIsRejected() {
-        archived(); deliverable.setProjectId(101L);
-        assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
-        deliverable.setProjectId(100L); source.setSourceVersion(1);
+        when(platform.findSubmissionByRequestKey(91L, "report:51")).thenReturn(Optional.of(submission()));
+        when(platform.listMaterials(91L)).thenReturn(List.of(documentMaterial()));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
     }
 
     @Test
-    void mismatchedArchiveAttachmentOrRawUrlCannotBecomeAnArtifact() {
-        archived(); sourceAttachment.setFileVersionNo(2);
+    void archiveFromDifferentProjectOrReportVersionIsRejectedOrIgnored() {
+        archived(); when(platform.findById(91L)).thenReturn(Optional.of(deliverableView(101L)));
+        when(platform.lockById(91L)).thenReturn(Optional.of(deliverableView(101L)));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
-        sourceAttachment.setFileVersionNo(3); sourceAttachment.setReferenceKey("https://example/report.pdf");
+        // requestKey 承载报告版本绑定：其他版本的报告没有对应投影，不构成归档来源。
+        when(platform.findById(91L)).thenReturn(Optional.of(deliverableView(100L)));
+        when(platform.lockById(91L)).thenReturn(Optional.of(deliverableView(100L)));
+        when(platform.findSubmissionByRequestKey(91L, "report:51")).thenReturn(Optional.empty());
+        assertTrue(provider.inspect(context, "42").artifacts().isEmpty());
+    }
+
+    @Test
+    void mismatchedArchiveAttachmentOrFileHashCannotBecomeAnArtifact() {
+        archived(); when(platform.listMaterials(91L)).thenReturn(List.of(materialWithArtifact(72L, 3, "a".repeat(64))));
+        when(platform.lockMaterials(List.of(801L))).thenReturn(List.of(materialWithArtifact(72L, 3, "a".repeat(64))));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
-        sourceAttachment.setReferenceKey(KEY); sourceAttachment.setFileHash("b".repeat(64));
+        when(platform.listMaterials(91L)).thenReturn(List.of(materialWithArtifact(71L, 3, "b".repeat(64))));
+        when(platform.lockMaterials(List.of(801L))).thenReturn(List.of(materialWithArtifact(71L, 3, "b".repeat(64))));
+        assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
+        when(platform.listMaterials(91L)).thenReturn(List.of(materialWithArtifact(71L, 2, "a".repeat(64))));
+        when(platform.lockMaterials(List.of(801L))).thenReturn(List.of(materialWithArtifact(71L, 2, "a".repeat(64))));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
     }
 
@@ -282,7 +294,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
         assertEquals(Set.of("QUERY", "MANAGE"), provider.inspectContext(context),
                 () -> "permissions=" + mockingDetails(permissions).getInvocations()
                         + "; scope=" + mockingDetails(scope).getInvocations());
-        verifyNoInteractions(activities, reports, attachments, sources, files);
+        verifyNoInteractions(activities, reports, attachments, platform, files);
         assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE", "FILE_WRITE"), provider.inspect(context, "42").allowedActions());
         when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
@@ -344,7 +356,7 @@ class AcceptanceTaskBusinessObjectProviderTest {
         when(activities.selectByProjectScope(query)).thenReturn(List.of());
         assertTrue(provider.candidates(context).isEmpty());
         verify(activities).selectByProjectScope(query); verifyNoMoreInteractions(activities);
-        verifyNoInteractions(reports, attachments, sources, sourceAttachments, deliverables, files);
+        verifyNoInteractions(reports, attachments, platform, files);
     }
 
     @Test
@@ -384,14 +396,14 @@ class AcceptanceTaskBusinessObjectProviderTest {
         archived();
         var fact = provider.inspect(context, "42");
         provider.lockAndRevalidate(context, "42", fact.factVersion());
-        for (Object dependency : List.of(activities, reports, attachments, sources, sourceAttachments, deliverables, files)) {
+        for (Object dependency : List.of(activities, reports, attachments, platform, files)) {
             assertTrue(mockingDetails(dependency).getInvocations().stream().allMatch(invocation -> {
                 String method = invocation.getMethod().getName();
-                return method.startsWith("select") || method.startsWith("inspect") || method.startsWith("lockAndRevalidate");
+                return method.startsWith("select") || method.startsWith("inspect") || method.startsWith("lock")
+                        || method.startsWith("find") || method.startsWith("list");
             }));
         }
         assertEquals("PENDING", activity.getActivityStatus()); assertEquals("EFFECTIVE", report.getReportStatus());
-        assertEquals("CURRENT", source.getRelationStatus()); assertEquals("ARCHIVED", source.getArchiveStatus());
     }
 
     @Test
@@ -428,21 +440,44 @@ class AcceptanceTaskBusinessObjectProviderTest {
         when(files.lockAndRevalidateReferenceSets(any())).thenReturn(List.of(set));
     }
 
+    /** 统一交付件平台侧：要求行 + report:{版本ID} 投影提交 + 全 ARCHIVED 材料。 */
     private void archived() {
-        source.setId(81L); source.setTenantId(3L); source.setDeliverableId(91L);
-        source.setSourceRequirementId("ACC-03@V1"); source.setSourceObjectType("AcceptanceReportVersion");
-        source.setSourceObjectId(51L); source.setSourceVersion(2); source.setRelationStatus("CURRENT");
-        source.setArchiveStatus("ARCHIVED"); source.setArchiveTime(LocalDateTime.of(2026, 9, 10, 11, 0));
-        when(sources.selectByReportVersionId(51L)).thenReturn(source);
-        when(sources.selectByIdForUpdate(new DeliverableSourceIdLockQuery(3L, 81L))).thenReturn(source);
-        deliverable.setId(91L); deliverable.setTenantId(3L); deliverable.setProjectId(100L);
-        deliverable.setDeliverableCode("D-FINAL-REPORT"); deliverable.setCurrentSourceVersionId(81L); deliverable.setArchiveStatus("ARCHIVED");
-        when(deliverables.selectById(91L)).thenReturn(deliverable);
-        when(deliverables.selectByIdForUpdate(new ProjectDeliverableIdLockQuery(3L, 91L))).thenReturn(deliverable);
-        sourceAttachment.setId(101L); sourceAttachment.setTenantId(3L); sourceAttachment.setDeliverableSourceVersionId(81L);
-        sourceAttachment.setAttachmentSequence(1); sourceAttachment.setFileArtifactId(71L); sourceAttachment.setFileVersionNo(3);
-        sourceAttachment.setReferenceKey(KEY); sourceAttachment.setArtifactVersion(4); sourceAttachment.setReferenceVersion(5);
-        sourceAttachment.setAvailabilityVersion(6); sourceAttachment.setScopeVersion(1L); sourceAttachment.setFileHash("a".repeat(64));
-        when(sourceAttachments.selectBySourceVersion(81L)).thenReturn(List.of(sourceAttachment));
+        when(platform.findSubmissionByRequestKey(91L, "report:51")).thenReturn(Optional.of(submission()));
+        when(platform.listMaterials(91L)).thenReturn(List.of(material("ARCHIVED")));
+        when(platform.lockMaterials(List.of(801L))).thenReturn(List.of(material("ARCHIVED")));
+    }
+
+    private TemplateFrozenView deliverableView(long projectId) {
+        return new TemplateFrozenView(91L, projectId, "D-FINAL-REPORT", "终验报告", "S4", "T-40",
+                null, null, true, 1, null, "OPEN", "{}", 3);
+    }
+
+    private TemplateFrozenSubmissionView submission() {
+        return new TemplateFrozenSubmissionView(1001L, 91L, "report:51",
+                PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, "CURRENT", "{}", null,
+                List.of(801L), null);
+    }
+
+    private TemplateFrozenSubmissionView supersededSubmission() {
+        return new TemplateFrozenSubmissionView(1001L, 91L, "report:51",
+                PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, "SUPERSEDED", "{}", null,
+                List.of(801L), null);
+    }
+
+    private TemplateFrozenMaterialView material(String archiveStatus) {
+        return new TemplateFrozenMaterialView(801L, 91L, "FILE", 40L, 71L, 3, "a".repeat(64),
+                "真实报告.pdf", null, null, null, "ACTIVE", archiveStatus, null, null);
+    }
+
+    private TemplateFrozenMaterialView materialWithArtifact(long artifactId, int versionNo, String sha256) {
+        return new TemplateFrozenMaterialView(801L, 91L, "FILE", 40L, artifactId, versionNo, sha256,
+                "真实报告.pdf", null, null, null, "ACTIVE",
+                PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED, null, null);
+    }
+
+    private TemplateFrozenMaterialView documentMaterial() {
+        return new TemplateFrozenMaterialView(801L, 91L, "DOCUMENT", null, null, null, null,
+                null, null, null, null, "ACTIVE",
+                PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED, null, null);
     }
 }

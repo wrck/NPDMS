@@ -7,12 +7,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.Solu
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionGenerateDraftReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
-import cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -41,9 +39,9 @@ public class SolutionServiceImpl implements SolutionService {
     @Resource
     private SolutionMapper solutionMapper;
     @Resource
-    private DeliverableMapper deliverableMapper;
-    @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
+    @Resource
+    private PlatformDeliveryMaterialApi deliveryMaterialApi;
 
     @Resource
     private cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tieredReviewMapper;
@@ -209,29 +207,16 @@ public class SolutionServiceImpl implements SolutionService {
     // ==================== 内部工具方法 ====================
 
     /**
-     * 批准方案同步归集交付件（4.1→6.4，ACC-04）：同一方案幂等，不覆盖既有归档记录。
-     * 方案基线一经批准即冻结，归档件直接进入已归集状态；失败随当前事务回滚。
+     * 批准方案同步登记统一交付材料（4.1→6.4，P06R）：同一方案同一基线幂等，不重复登记。
+     * 业务成果证据锚 = 方案ID + 冻结基线版本；失败随当前事务回滚。
      */
     private void archiveApprovedSolution(SolutionDO solution, Long approverId) {
-        if (deliverableMapper.selectByProjectAndSource(solution.getProjectId(), SOURCE_TYPE_SOLUTION, solution.getId()) != null) {
-            return;
-        }
-        DeliverableDO deliverable = new DeliverableDO();
-        deliverable.setProjectId(solution.getProjectId());
-        deliverable.setCode(recordCodeGenerator.next(solution.getProjectId(),
-                EngineeringRecordCodeGenerator.DELIVERABLE, deliverableMapper,
-                DeliverableDO::getProjectId, DeliverableDO::getCode));
-        deliverable.setName(StringUtils.defaultIfBlank(solution.getName(), solution.getCode())
-                + "（基线v" + solution.getBaselineVersion() + "）");
-        deliverable.setDeliverableType("IMPLEMENTATION");
-        deliverable.setSourceType(SOURCE_TYPE_SOLUTION);
-        deliverable.setSourceId(solution.getId());
-        deliverable.setStatus(EngStatusEnum.DELIVERABLE_ARCHIVED);
-        deliverable.setArchivedBy(approverId);
-        deliverable.setArchivedTime(LocalDateTime.now());
-        deliverable.setRemark("实施方案审批通过自动归档");
-        deliverable.setVersion(0L);
-        deliverableMapper.insert(deliverable);
+        deliveryMaterialApi.registerBusinessResultMaterial("SOL", "solution", solution.getId(),
+                "IMPLEMENTATION_PLAN", "solution", String.valueOf(solution.getId()),
+                solution.getBaselineVersion() == null ? null : solution.getBaselineVersion().longValue(),
+                StringUtils.defaultIfBlank(solution.getName(), solution.getCode())
+                        + "（基线v" + solution.getBaselineVersion() + "）",
+                solution.getProjectId());
     }
 
     private SolutionDO validateSolutionExists(Long id) {

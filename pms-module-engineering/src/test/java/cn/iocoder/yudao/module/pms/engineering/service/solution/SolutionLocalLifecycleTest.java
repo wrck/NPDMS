@@ -4,10 +4,9 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionApproveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -19,7 +18,7 @@ import static org.mockito.Mockito.*;
 
 class SolutionLocalLifecycleTest {
     private final SolutionMapper mapper = mock(SolutionMapper.class);
-    private final DeliverableMapper deliverableMapper = mock(DeliverableMapper.class);
+    private final PlatformDeliveryMaterialApi deliveryMaterialApi = mock(PlatformDeliveryMaterialApi.class);
     private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final SolutionServiceImpl service = new SolutionServiceImpl();
     private final cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tiered = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.class);
@@ -29,11 +28,9 @@ class SolutionLocalLifecycleTest {
         ReflectionTestUtils.setField(service, "tieredReviewMapper", tiered);
         ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "solutionMapper", mapper);
-        ReflectionTestUtils.setField(service, "deliverableMapper", deliverableMapper);
+        ReflectionTestUtils.setField(service, "deliveryMaterialApi", deliveryMaterialApi);
         doReturn("PROJ-FA-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.SOLUTION), any(), any(), any());
-        doReturn("PROJ-JF-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.DELIVERABLE), any(), any(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
-        when(deliverableMapper.selectByProjectAndSource(anyLong(), anyString(), anyLong())).thenReturn(null);
         row = new SolutionDO(); row.setId(1L); row.setProjectId(7L); row.setCode("SOL-TEST"); row.setStatus(0); row.setReviewLevel(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);
     }
@@ -54,24 +51,11 @@ class SolutionLocalLifecycleTest {
         assertEquals(9, row.getVersion());
         assertEquals(9, row.getBaselineVersion());
         assertNotNull(row.getApprovedTime());
-        // 批准方案自动归集交付件（4.1→6.4）
-        ArgumentCaptor<DeliverableDO> archived = ArgumentCaptor.forClass(DeliverableDO.class);
-        verify(deliverableMapper).insert(archived.capture());
-        assertEquals(7L, archived.getValue().getProjectId());
-        assertEquals("SOLUTION", archived.getValue().getSourceType());
-        assertEquals(1L, archived.getValue().getSourceId());
-        // 交付件编码改由系统生成器按项目编码生成
-        assertEquals("PROJ-JF-001", archived.getValue().getCode());
-        assertEquals(1, archived.getValue().getStatus());
-    }
-
-    @Test void repeatedApprovalDoesNotDuplicateTheArchivedDeliverable() {
-        row.setStatus(2);
-        when(mapper.updateById(any(SolutionDO.class))).thenReturn(1);
-        when(deliverableMapper.selectByProjectAndSource(7L, "SOLUTION", 1L))
-                .thenReturn(new DeliverableDO());
-        service.approveSolution(new SolutionApproveReqVO() {{ setId(1L); }});
-        verify(deliverableMapper, never()).insert(any(DeliverableDO.class));
+        // 批准方案统一登记交付件（P06R：业务结果型，锚定方案基线）
+        ArgumentCaptor<Long> revision = ArgumentCaptor.forClass(Long.class);
+        verify(deliveryMaterialApi).registerBusinessResultMaterial(eq("SOL"), eq("solution"), eq(1L),
+                eq("IMPLEMENTATION_PLAN"), eq("solution"), eq("1"), revision.capture(), anyString(), eq(7L));
+        assertEquals(9L, revision.getValue());
     }
 
     @Test void majorReviewCannotBeSimulatedAsApproved() {
@@ -94,7 +78,7 @@ class SolutionLocalLifecycleTest {
         doThrow(new IllegalArgumentException("缺少判定")).when(policies).requireOrdinaryApproval(row);
         assertThrows(IllegalArgumentException.class, () -> service.approveSolution(new SolutionApproveReqVO() {{ setId(1L); }}));
         assertEquals(2, row.getStatus()); assertNull(row.getBaselineVersion());
-        verify(mapper, never()).updateById(any(SolutionDO.class)); verifyNoInteractions(deliverableMapper);
+        verify(mapper, never()).updateById(any(SolutionDO.class)); verifyNoInteractions(deliveryMaterialApi);
     }
 
     @Test void originalActionsCannotBypassAnActiveTieredProcess() {

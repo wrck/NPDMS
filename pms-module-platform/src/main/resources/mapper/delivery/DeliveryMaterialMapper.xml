@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryMaterialMapper">
+
+    <select id="selectMaterialsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMaterialDO">
+        SELECT *
+        FROM plt_delivery_material
+        WHERE tenant_id = #{query.tenantId}
+          AND id IN
+        <foreach collection="query.ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND deleted = b'0'
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
+    <update id="updateArchiveStateIfPending">
+        UPDATE plt_delivery_material
+           SET archive_status = #{query.archiveStatus},
+               archive_failure_code = #{query.failureCode},
+               archive_time = #{query.archiveTime},
+               updater = #{query.updater},
+               update_time = NOW(3)
+         WHERE id = #{query.materialId}
+           AND tenant_id = #{query.tenantId}
+           AND archive_status = 'PENDING_COMPENSATION'
+           AND deleted = b'0'
+    </update>
+
+    <update id="bumpArchiveRetryIfPending">
+        UPDATE plt_delivery_material
+           SET archive_failure_code = #{query.failureCode},
+               archive_retry_count = COALESCE(archive_retry_count, 0) + 1,
+               update_time = NOW(3)
+         WHERE id = #{query.materialId}
+           AND tenant_id = #{query.tenantId}
+           AND archive_status = 'PENDING_COMPENSATION'
+           AND deleted = b'0'
+    </update>
+</mapper>

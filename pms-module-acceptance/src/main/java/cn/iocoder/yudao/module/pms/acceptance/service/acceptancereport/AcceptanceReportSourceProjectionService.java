@@ -1,133 +1,103 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmitCommand;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmitOutcome;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenView;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceAttachmentMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableCurrentSourceLockQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableSourceIdentityQuery;
+import cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi;
 import cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.event.AcceptanceReportVersionChangedMessage;
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 验收报告 → 统一交付件投影（P06R I2）：报告版本事实是权威来源，以 AUTO_PROJECTION 提交
+ * 落平台提交台账（requestKey=report:{版本ID}，载荷冻结 projectionKind/版本号），材料按工件版本登记。
+ * 撤销走平台投影失效（材料置 INVALID 不再归档）。判定与数量由平台状态收敛承接。
+ */
 @Service
 @RequiredArgsConstructor
 public class AcceptanceReportSourceProjectionService {
 
-    private final AccProjectDeliverableMapper deliverableMapper;
-    private final ProjectDeliverableSourceVersionMapper sourceMapper;
-    private final ProjectDeliverableSourceAttachmentMapper sourceAttachmentMapper;
+    private final PlatformDeliveryRequirementApi platform;
+    private final ProjectDeliverableRuleApi rules;
 
     @Transactional(rollbackFor = Exception.class)
     public void project(AcceptanceReportVersionChangedMessage event) {
         validate(event);
-        AccProjectDeliverableDO deliverable = deliverableMapper.selectByIdForUpdate(
-                new ProjectDeliverableIdLockQuery(event.tenantId(), event.deliverableId()));
-        if (deliverable == null || !Objects.equals(deliverable.getId(), event.deliverableId())
-                || !Objects.equals(deliverable.getTenantId(), event.tenantId())
-                || !Objects.equals(deliverable.getProjectId(), event.projectId()) || Boolean.TRUE.equals(deliverable.getDeleted()))
-            throw new IllegalStateException("acceptance deliverable root unavailable");
+        TemplateFrozenView view = platform.lockById(event.deliverableId())
+                .filter(row -> Objects.equals(row.projectId(), event.projectId()))
+                .orElseThrow(() -> new IllegalStateException("acceptance deliverable root unavailable"));
         if ("REVOKED".equals(event.changeType())) {
-            revoke(event, deliverable);
+            revoke(event, view);
             return;
         }
-        upsertCurrent(event, deliverable);
+        upsertCurrent(event, view);
     }
 
-    private void upsertCurrent(AcceptanceReportVersionChangedMessage event, AccProjectDeliverableDO deliverable) {
-        ProjectDeliverableSourceVersionDO existing = sourceMapper.selectIdentityForUpdate(
-                new DeliverableSourceIdentityQuery(event.tenantId(), deliverable.getId(),
-                        event.currentReportVersionId(), event.reportVersionNo()));
-        if (existing != null) {
-            if (!"CURRENT".equals(existing.getRelationStatus())
-                    || !Objects.equals(deliverable.getCurrentSourceVersionId(), existing.getId())) {
-                throw new IllegalStateException("acceptance source replay conflict");
-            }
-            return;
-        }
-        ProjectDeliverableSourceVersionDO current = sourceMapper.selectCurrentForUpdate(
-                new DeliverableCurrentSourceLockQuery(event.tenantId(), deliverable.getId()));
-        if (current != null) {
-            if (!"REPLACED".equals(event.changeType())
-                    || !Objects.equals(current.getSourceObjectId(), event.previousReportVersionId())) {
+    private void upsertCurrent(AcceptanceReportVersionChangedMessage event, TemplateFrozenView view) {
+        String requestKey = projectionKey(event.currentReportVersionId());
+        // 同版本事件重放幂等（无论该投影现行与否——不可变投影事实不重复落账）。
+        if (platform.findSubmissionByRequestKey(view.id(), requestKey).isPresent()) return;
+        var current = platform.findCurrentSubmission(view.id());
+        if ("EFFECTIVE".equals(event.changeType())) {
+            if (current.isPresent()) throw new IllegalStateException("acceptance source current conflict");
+        } else {
+            // REPLACED：现行提交必须是先前报告版本的投影，链完整性由 requestKey 承载。
+            if (current.isEmpty()) throw new IllegalStateException("acceptance source previous version missing");
+            if (!PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION.equals(current.get().sourceType())
+                    || !Objects.equals(projectionVersionId(current.get().requestKey()),
+                    String.valueOf(event.previousReportVersionId()))) {
                 throw new IllegalStateException("acceptance source current conflict");
             }
-            current.setRelationStatus("SUPERSEDED");
-            current.setUpdater(String.valueOf(event.publisherActorUserId()));
-            if (sourceMapper.updateById(current) != 1) throw new IllegalStateException("source update failed");
-        } else if (!"EFFECTIVE".equals(event.changeType())) {
-            throw new IllegalStateException("acceptance source previous version missing");
         }
-        ProjectDeliverableSourceVersionDO source = new ProjectDeliverableSourceVersionDO();
-        source.setId(IdWorker.getId());
-        source.setDeliverableId(deliverable.getId());
-        source.setSourceRequirementId("ACC-03@V1");
-        source.setSourceObjectType("AcceptanceReportVersion");
-        source.setSourceObjectId(event.currentReportVersionId());
-        source.setSourceVersion(event.reportVersionNo());
-        source.setRelationStatus("CURRENT");
-        source.setArchiveStatus("PENDING_COMPENSATION");
-        source.setArchiveRetryCount(0);
-        source.setCreator(String.valueOf(event.publisherActorUserId()));
-        source.setUpdater(String.valueOf(event.publisherActorUserId()));
-        source.setTenantId(event.tenantId());
-        if (sourceMapper.insert(source) != 1) throw new IllegalStateException("source insert failed");
-        insertAttachments(event, source.getId());
-        deliverable.setCurrentSourceVersionId(source.getId());
-        deliverable.setArchiveStatus("PENDING_COMPENSATION");
-        deliverable.setUpdater(String.valueOf(event.publisherActorUserId()));
-        if (deliverableMapper.updateById(deliverable) != 1) throw new IllegalStateException("deliverable update failed");
+        List<Long> materialIds = new ArrayList<>();
+        for (FileArtifactVersionFact fact : event.attachments()) {
+            materialIds.add(platform.registerProjectionFile(view.id(), fact, null,
+                    PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION));
+        }
+        String payload = JsonUtils.toJsonString(Map.of("projectionKind", "ACCEPTANCE_REPORT",
+                "reportVersionId", event.currentReportVersionId(), "reportVersionNo", event.reportVersionNo()));
+        var outcome = platform.submitTemplateFrozen(new TemplateFrozenSubmitCommand(view.id(), requestKey,
+                materialIds, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, payload, null));
+        backfillDecision(view, outcome);
     }
 
-    private void revoke(AcceptanceReportVersionChangedMessage event, AccProjectDeliverableDO deliverable) {
-        ProjectDeliverableSourceVersionDO current = sourceMapper.selectCurrentForUpdate(
-                new DeliverableCurrentSourceLockQuery(event.tenantId(), deliverable.getId()));
-        if (current == null) {
-            if (deliverable.getCurrentSourceVersionId() == null && "INVALID".equals(deliverable.getArchiveStatus())) return;
+    private void revoke(AcceptanceReportVersionChangedMessage event, TemplateFrozenView view) {
+        String requestKey = projectionKey(event.previousReportVersionId());
+        if (platform.findSubmissionByRequestKey(view.id(), requestKey).isEmpty()) {
             throw new IllegalStateException("acceptance source current missing");
         }
-        if (!Objects.equals(current.getSourceObjectId(), event.previousReportVersionId())) {
-            throw new IllegalStateException("acceptance source revoke conflict");
+        if (!platform.revokeProjectionSubmission(view.id(), requestKey,
+                PlatformDeliveryRequirementApi.ARCHIVE_INVALID)) {
+            // 已不是现行提交：重复撤销幂等通过；被更新版本取代后收到撤销属乱序冲突。
+            if (platform.findCurrentSubmission(view.id()).isPresent()) {
+                throw new IllegalStateException("acceptance source revoke conflict");
+            }
         }
-        current.setRelationStatus("REVOKED");
-        current.setArchiveStatus("INVALID");
-        current.setUpdater(String.valueOf(event.publisherActorUserId()));
-        if (sourceMapper.updateById(current) != 1) throw new IllegalStateException("source revoke failed");
-        deliverable.setCurrentSourceVersionId(null);
-        deliverable.setArchiveStatus("INVALID");
-        deliverable.setUpdater(String.valueOf(event.publisherActorUserId()));
-        if (deliverableMapper.updateById(deliverable) != 1) throw new IllegalStateException("deliverable revoke failed");
     }
 
-    private void insertAttachments(AcceptanceReportVersionChangedMessage event, Long sourceId) {
-        int sequence = 1;
-        for (FileArtifactVersionFact fact : event.attachments()) {
-            ProjectDeliverableSourceAttachmentDO row = new ProjectDeliverableSourceAttachmentDO();
-            row.setId(IdWorker.getId());
-            row.setDeliverableSourceVersionId(sourceId);
-            row.setAttachmentSequence(sequence++);
-            row.setFileArtifactId(fact.artifactId());
-            row.setFileVersionNo(fact.versionNo());
-            row.setReferenceKey(fact.referenceKey());
-            row.setArtifactVersion(fact.fileFactVersion().artifactVersion());
-            row.setReferenceVersion(fact.fileFactVersion().referenceVersion());
-            row.setAvailabilityVersion(fact.fileFactVersion().availabilityVersion());
-            row.setScopeVersion(fact.scopeVersion());
-            row.setFileHash(fact.sha256());
-            row.setCreator(String.valueOf(event.publisherActorUserId()));
-            row.setUpdater(String.valueOf(event.publisherActorUserId()));
-            row.setTenantId(event.tenantId());
-            if (sourceAttachmentMapper.insert(row) != 1) throw new IllegalStateException("source attachment insert failed");
-        }
+    private void backfillDecision(TemplateFrozenView view, TemplateFrozenSubmitOutcome outcome) {
+        if (outcome.replay()) return;
+        var confirmation = rules.evaluate(view.projectId(), view.deliverableCode());
+        platform.updateSubmissionDecision(outcome.submissionId(),
+                JsonUtils.toJsonString(Map.of("confirmation", confirmation)));
+    }
+
+    static String projectionKey(Long reportVersionId) {
+        return "report:" + reportVersionId;
+    }
+
+    static String projectionVersionId(String requestKey) {
+        return requestKey != null && requestKey.startsWith("report:")
+                ? requestKey.substring("report:".length()) : "";
     }
 
     private void validate(AcceptanceReportVersionChangedMessage event) {

@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.platform.service.delivery;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.DeliveryRequirementRuleResolver;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryCapabilityConfigDO;
@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryRequireme
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliverySubmissionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryCounting.CountingInput;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,8 @@ public class DeliveryRequirementService {
     private final DeliveryCatalogService catalogService;
     private final DeliveryMaterialService materialService;
     private final PlatformBusinessEventApi outbox;
+    /** TEMPLATE_FROZEN 要求的冻结规则判定（Owner 模块注册）；无模板要求时不必存在。 */
+    private final ObjectProvider<DeliveryRequirementRuleResolver> ruleResolverProvider;
 
     /** 按能力配置为实体生成要求实例；已存在的要求保持既有口径，不因配置变更被改写。 */
     @Transactional
@@ -55,6 +58,7 @@ public class DeliveryRequirementService {
             row.setEntityType(entityType);
             row.setEntityId(entityId);
             row.setTypeCode(config.getTypeCode());
+            row.setRequirementKind(DeliveryRequirementDO.KIND_CATALOG);
             row.setRequired(config.getRequired());
             row.setMinimumQuantity(config.getMinimumQuantity());
             row.setCountingUnit(config.getCountingUnit());
@@ -109,26 +113,54 @@ public class DeliveryRequirementService {
 
     @Transactional
     public SubmissionOutcome submit(Long requirementId, String requestKey, List<Long> materialIds) {
+        return submit(requirementId, requestKey, materialIds, null, null, null);
+    }
+
+    /**
+     * 提交扩展形态：TEMPLATE_FROZEN 链携带来源语义、请求快照与判定证据；
+     * CATALOG 路径三参为 null，保持原语义。
+     */
+    @Transactional
+    public SubmissionOutcome submit(Long requirementId, String requestKey, List<Long> materialIds,
+                                    String sourceType, String requestPayloadJson, String decisionEvidenceJson) {
         if (materialIds == null || materialIds.isEmpty()) {
             throw new BusinessContractException("CONTRACT_REJECTED", "提交必须携带至少一个材料");
         }
-        Optional<DeliverySubmissionDO> replay = submissionMapper.selectByRequestKey(requestKey);
-        if (replay.isPresent()) {
-            DeliveryRequirementDO requirement = requireRequirement(replay.get().getRequirementId());
-            return new SubmissionOutcome(replay.get(), true, requirement, countOf(requirement));
-        }
         DeliveryRequirementDO requirement = requireRequirement(requirementId);
-        catalogService.requireEnabledType(requirement.getTypeCode());
+        // 幂等重放按（要求 + request_key）范围：同键落在不同要求上是两个独立提交；
+        // 携带请求快照的提交（TEMPLATE_FROZEN）在重放时比对载荷，同键不同载荷显式拒绝。
+        Optional<DeliverySubmissionDO> replay = submissionMapper.selectByRequestKey(requirementId, requestKey);
+        if (replay.isPresent()) {
+            DeliverySubmissionDO replayRow = replay.get();
+            if (requestPayloadJson != null
+                    && !JsonUtils.parseTree(replayRow.getRequestPayloadJson() == null ? ""
+                            : replayRow.getRequestPayloadJson()).equals(JsonUtils.parseTree(requestPayloadJson))) {
+                throw new BusinessContractException("DELIVERY_SUBMISSION_PAYLOAD_CONFLICT",
+                        "同一提交标识不能用于不同材料");
+            }
+            return new SubmissionOutcome(replayRow, true, requirement, countOf(requirement));
+        }
+        if (DeliveryRequirementDO.KIND_CATALOG.equals(requirement.getRequirementKind())) {
+            catalogService.requireEnabledType(requirement.getTypeCode());
+        }
         List<DeliveryMaterialDO> materials = materialMapper.selectByMaterialIds(materialIds);
         if (materials.size() != materialIds.stream().distinct().count()) {
             throw new BusinessContractException("DELIVERY_MATERIAL_NOT_FOUND", "提交包含不存在的材料");
         }
-        List<FileEvidenceApi.Document> evidence = new ArrayList<>();
+        List<DeliveryMaterialService.FrozenEvidence> evidence = new ArrayList<>();
         for (DeliveryMaterialDO material : materials) {
-            if (!material.getOwnerModule().equals(requirement.getOwnerModule())
-                    || !material.getEntityType().equals(requirement.getEntityType())
-                    || !material.getEntityId().equals(requirement.getEntityId())
-                    || !material.getTypeCode().equals(requirement.getTypeCode())) {
+            // TEMPLATE_FROZEN 材料按绑定要求归属（项目内共享 owner 三元组，type_code=交付件编码）；
+            // CATALOG 材料继续按 owner 三元组 + 类型精确匹配。
+            boolean ownerMatch;
+            if (DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
+                ownerMatch = requirement.getId().equals(material.getRequirementId());
+            } else {
+                ownerMatch = material.getOwnerModule().equals(requirement.getOwnerModule())
+                        && material.getEntityType().equals(requirement.getEntityType())
+                        && material.getEntityId().equals(requirement.getEntityId())
+                        && material.getTypeCode().equals(requirement.getTypeCode());
+            }
+            if (!ownerMatch) {
                 throw new BusinessContractException("DELIVERY_MATERIAL_OWNER_MISMATCH",
                         "材料与要求归属或类型不一致，拒绝伪造关联: 材料 " + material.getId());
             }
@@ -149,6 +181,9 @@ public class DeliveryRequirementService {
         submission.setRequirementId(requirementId);
         submission.setRequestKey(requestKey);
         submission.setMaterialIdsJson(JsonUtils.toJsonString(materialIds));
+        submission.setSourceType(sourceType);
+        submission.setRequestPayloadJson(requestPayloadJson);
+        submission.setDecisionEvidenceJson(decisionEvidenceJson);
         submission.setStatus(DeliverySubmissionDO.STATUS_CURRENT);
         submission.setSubmitEvidenceJson(JsonUtils.toJsonString(evidence));
         try {
@@ -181,7 +216,9 @@ public class DeliveryRequirementService {
     @Transactional
     public RequirementView confirm(Long requirementId) {
         DeliveryRequirementDO requirement = requireRequirement(requirementId);
-        catalogService.requireEnabledType(requirement.getTypeCode());
+        if (DeliveryRequirementDO.KIND_CATALOG.equals(requirement.getRequirementKind())) {
+            catalogService.requireEnabledType(requirement.getTypeCode());
+        }
         int count = countOf(requirement);
         if (count < requirement.getMinimumQuantity()) {
             throw new BusinessContractException("DELIVERY_REQUIREMENT_NOT_SATISFIED",
@@ -190,6 +227,13 @@ public class DeliveryRequirementService {
         // 确认前重验全部计数材料证据；文件失效或撤回在此显式失败，不伪造确认。
         for (DeliveryMaterialDO material : DeliveryCounting.countedMaterials(countingInput(requirement))) {
             materialService.revalidateActive(material);
+        }
+        if (DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
+            DeliveryRequirementRuleResolver.Resolution resolution = resolveRule(requirement, count);
+            if (!resolution.satisfied()) {
+                throw new BusinessContractException("DELIVERY_REQUIREMENT_NOT_SATISFIED",
+                        "冻结确认规则未通过，不能确认: " + resolution.reason());
+            }
         }
         requirement.setStatus(DeliveryRequirementDO.STATUS_CONFIRMED);
         requirement.setConfirmedBy(String.valueOf(
@@ -201,12 +245,17 @@ public class DeliveryRequirementService {
                 requirement.getCountingUnit());
     }
 
-    /** 数量回落时的状态收敛：CONFIRMED/SATISFIED → OPEN（旧确认不再有效，事件留痕）。 */
+    /** 数量回落时的状态收敛：CONFIRMED/SATISFIED → OPEN（旧确认不再有效，事件留痕）。
+     *  TEMPLATE_FROZEN 要求的满足 = 数量达标 且 冻结规则判定通过。 */
     @Transactional
     public DeliveryRequirementDO refreshStatus(DeliveryRequirementDO requirement) {
         int count = countOf(requirement);
+        boolean satisfied = count >= requirement.getMinimumQuantity();
+        if (satisfied && DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
+            satisfied = resolveRule(requirement, count).satisfied();
+        }
         String next;
-        if (count >= requirement.getMinimumQuantity()) {
+        if (satisfied) {
             next = DeliveryRequirementDO.STATUS_CONFIRMED.equals(requirement.getStatus())
                     ? DeliveryRequirementDO.STATUS_CONFIRMED : DeliveryRequirementDO.STATUS_SATISFIED;
         } else {
@@ -222,6 +271,15 @@ public class DeliveryRequirementService {
             publishRequirement(requirement, "STATUS_REFRESHED");
         }
         return requirement;
+    }
+
+    private DeliveryRequirementRuleResolver.Resolution resolveRule(DeliveryRequirementDO requirement, int count) {
+        DeliveryRequirementRuleResolver resolver = ruleResolverProvider.getIfAvailable();
+        if (resolver == null) {
+            throw new BusinessContractException("DELIVERY_RULE_RESOLVER_MISSING",
+                    "模板冻结要求缺少规则判定方，不能判定满足: " + requirement.getId());
+        }
+        return resolver.evaluate(requirement.getId(), requirement.getProjectId(), requirement.getTypeCode(), count);
     }
 
     private void publishRequirement(DeliveryRequirementDO requirement, String action) {

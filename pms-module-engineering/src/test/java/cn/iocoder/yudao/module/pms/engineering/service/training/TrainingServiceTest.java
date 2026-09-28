@@ -3,11 +3,10 @@ package cn.iocoder.yudao.module.pms.engineering.service.training;
 import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.TrainingIssueRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.TrainingPublicConfirmReqVO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
-import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.training.TrainingMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.BeforeEach;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -35,7 +34,7 @@ import static org.mockito.Mockito.*;
 class TrainingServiceTest {
 
     private final TrainingMapper trainingMapper = mock(TrainingMapper.class);
-    private final DeliverableMapper deliverableMapper = mock(DeliverableMapper.class);
+    private final PlatformDeliveryMaterialApi deliveryMaterialApi = mock(PlatformDeliveryMaterialApi.class);
     private final AdminUserApi adminUserApi = mock(AdminUserApi.class);
     private final FileApi fileApi = mock(FileApi.class);
     private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
@@ -45,7 +44,7 @@ class TrainingServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "trainingMapper", trainingMapper);
-        ReflectionTestUtils.setField(service, "deliverableMapper", deliverableMapper);
+        ReflectionTestUtils.setField(service, "deliveryMaterialApi", deliveryMaterialApi);
         ReflectionTestUtils.setField(service, "adminUserApi", adminUserApi);
         ReflectionTestUtils.setField(service, "fileApi", fileApi);
         doReturn("PROJ-JF-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
@@ -106,7 +105,6 @@ class TrainingServiceTest {
         row.setSignTokenDigest(rawDigest);
         row.setTokenExpiresAt(LocalDateTime.now().plusDays(1));
         when(trainingMapper.selectByDigest(rawDigest)).thenReturn(row);
-        when(deliverableMapper.selectByProjectAndSource(7L, "TRAINING", 1L)).thenReturn(null);
         when(fileApi.createFile(any(), anyString(), anyString(), anyString()))
                 .thenReturn("/file/training/TR-001-signed.html");
 
@@ -123,19 +121,11 @@ class TrainingServiceTest {
         assertEquals("张三", row.getSignConfirmerName());
         assertNotNull(row.getSignTime());
 
-        // 确认后自动归档交付件（5.1/4.1 同款 sourceType 机制）
-        ArgumentCaptor<DeliverableDO> deliverableCaptor = ArgumentCaptor.forClass(DeliverableDO.class);
-        verify(deliverableMapper).insert(deliverableCaptor.capture());
-        DeliverableDO deliverable = deliverableCaptor.getValue();
-        assertEquals(7L, deliverable.getProjectId());
-        // 交付件编码改由系统生成器按项目编码生成
-        assertEquals("PROJ-JF-001", deliverable.getCode());
-        assertEquals("TRAINING", deliverable.getDeliverableType());
-        assertEquals("TRAINING", deliverable.getSourceType());
-        assertEquals(1L, deliverable.getSourceId());
-        assertEquals(1, deliverable.getStatus());
-        assertEquals("/file/training/TR-001-signed.html", deliverable.getFileUrl());
-        // 归档文件包含客户填写区域
+        // 确认后统一登记交付件（P06R：业务结果型，锚定培训业务对象）
+        verify(deliveryMaterialApi).registerBusinessResultMaterial(eq("IMP"), eq("training"), eq(1L),
+                eq("TRAINING_RECORD"), eq("training"), eq("1"), isNull(),
+                eq("设备运维培训（现场培训记录）"), eq(7L));
+        // 培训记录表仍归属培训本体，含客户填写区域
         ArgumentCaptor<byte[]> contentCaptor = ArgumentCaptor.forClass(byte[].class);
         verify(fileApi).createFile(contentCaptor.capture(), eq("TR-001.html"), eq("training"), eq("text/html"));
         String html = new String(contentCaptor.getValue(), StandardCharsets.UTF_8);
@@ -187,7 +177,8 @@ class TrainingServiceTest {
         request.setSatisfactionRating("非常满意"); request.setSignConfirmerName("张三");
         request.setSignatureImageDataUrl(TrainingConfirmationFormsTest.png(true));
         assertThrows(RuntimeException.class, () -> service.confirmByToken("token", request));
-        verify(deliverableMapper, never()).insert(any(DeliverableDO.class));
+        verify(deliveryMaterialApi, never()).registerBusinessResultMaterial(any(), any(), any(), any(),
+                any(), any(), any(), any(), any());
     }
 
     @Test

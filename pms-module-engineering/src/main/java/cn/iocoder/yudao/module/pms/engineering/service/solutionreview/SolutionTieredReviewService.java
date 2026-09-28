@@ -8,18 +8,16 @@ import cn.iocoder.yudao.module.bpm.api.solutionreview.*;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solutionreview.SolutionReviewDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.SolutionReviewQuery;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
-import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionService;
 import cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents;
 import cn.iocoder.yudao.module.pms.project.api.participant.*;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -29,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
-import static cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum.DELIVERABLE_ARCHIVED;
 
 /** Independent SOL commands; the existing ordinary-review service and its routes remain intact. */
 @Service @RequiredArgsConstructor
@@ -41,8 +38,7 @@ public class SolutionTieredReviewService {
     private final ProjectParticipantFactApi participants;
     private final PermissionApi permissions;
     private final EngineeringRuleReevaluationEvents events;
-    private final DeliverableMapper deliverables;
-    private final EngineeringRecordCodeGenerator codes;
+    private final PlatformDeliveryMaterialApi deliveryMaterials;
     private final SolutionService original;
     private final SolutionReviewPolicyService policies;
 
@@ -225,16 +221,12 @@ public class SolutionTieredReviewService {
         events.changed(solution.getProjectId(), "ImplementationSolution", solution.getId(), actor,
                 "solution-review:" + solution.getId() + ":" + solution.getVersion());
     }
+    /** 复审通过归档实施方案交付件：统一登记为业务结果型交付件（P06R），同一方案幂等。 */
     private void archive(SolutionDO solution) {
-        if (deliverables.selectByProjectAndSource(solution.getProjectId(), "SOLUTION", solution.getId()) != null) return;
-        var item = new DeliverableDO();
-        item.setProjectId(solution.getProjectId());
-        item.setCode(codes.next(solution.getProjectId(), EngineeringRecordCodeGenerator.DELIVERABLE,
-                deliverables, DeliverableDO::getProjectId, DeliverableDO::getCode));
-        item.setName(solution.getName() + "（基线v" + solution.getBaselineVersion() + "）");
-        item.setDeliverableType("IMPLEMENTATION"); item.setSourceType("SOLUTION"); item.setSourceId(solution.getId());
-        item.setStatus(DELIVERABLE_ARCHIVED); item.setArchivedBy(solution.getApprovedBy()); item.setArchivedTime(solution.getApprovedTime());
-        item.setRemark("工程管理部复审通过自动归档"); item.setVersion(0L);
-        deliverables.insert(item);
+        deliveryMaterials.registerBusinessResultMaterial("SOL", "solution", solution.getId(),
+                "IMPLEMENTATION_PLAN", "solution", String.valueOf(solution.getId()),
+                solution.getBaselineVersion() == null ? null : solution.getBaselineVersion().longValue(),
+                solution.getName() + "（基线v" + solution.getBaselineVersion() + "）",
+                solution.getProjectId());
     }
 }

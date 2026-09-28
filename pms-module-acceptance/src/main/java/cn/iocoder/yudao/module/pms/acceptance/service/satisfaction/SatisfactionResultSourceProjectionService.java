@@ -1,84 +1,88 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.satisfaction;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionResultFactApi;
 import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionResultFact;
 import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionResultFactQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.DeliverableCurrentSourceClearQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceAttachmentMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableCurrentSourceLockQuery;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableSourceObjectIdentityQuery;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmitCommand;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmitOutcome;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmissionView;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenView;
 import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.event.SatisfactionResultVersionChangedMessage;
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 满意度成果 → 统一交付件投影（P06R I2）：成果事实是权威来源，以 AUTO_PROJECTION 提交落
+ * 平台提交台账（requestKey=satisfaction-result:{成果ID}:{成果版本}）。旧"非本来源占据 CURRENT 时
+ * 让位落历史行"语义在统一台账下收敛为跳过（现行链不可并发并存）；证据已失效的事件不再投影。
+ */
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResultSourceProjectionService {
     private final SatisfactionResultFactApi resultFactApi;
-    private final AccProjectDeliverableMapper deliverableMapper;
-    private final ProjectDeliverableSourceVersionMapper sourceMapper;
-    private final ProjectDeliverableSourceAttachmentMapper attachmentMapper;
+    private final PlatformDeliveryRequirementApi platform;
+    private final ProjectDeliverableRuleApi rules;
 
     @Transactional(rollbackFor = Exception.class)
     public void project(SatisfactionResultVersionChangedMessage event) {
         validate(event);
         // The event describes frozen Owner evidence, not a request to advance the current project task version.
-        AccProjectDeliverableDO root = deliverableMapper.selectByIdForUpdate(
-                new ProjectDeliverableIdLockQuery(event.tenantId(), event.deliverableId()));
-        if (root == null || !Objects.equals(root.getId(), event.deliverableId())
-                || !Objects.equals(root.getTenantId(), event.tenantId()) || !Objects.equals(root.getProjectId(), event.projectId())
-                || Boolean.TRUE.equals(root.getDeleted())) {
-            throw new IllegalStateException("SATISFACTION_DELIVERABLE_ROOT_UNAVAILABLE");
-        }
+        TemplateFrozenView view = platform.lockById(event.deliverableId())
+                .filter(row -> Objects.equals(row.projectId(), event.projectId()))
+                .orElseThrow(() -> new IllegalStateException("SATISFACTION_DELIVERABLE_ROOT_UNAVAILABLE"));
         if ("INVALIDATED".equals(event.changeType())) {
-            invalidate(event, root);
+            invalidate(event, view);
         } else {
-            record(event, root);
+            record(event, view);
         }
     }
 
-    private void record(SatisfactionResultVersionChangedMessage event, AccProjectDeliverableDO root) {
-        ProjectDeliverableSourceVersionDO existing = find(event, root.getId());
-        if (existing != null) return;
-
+    private void record(SatisfactionResultVersionChangedMessage event, TemplateFrozenView view) {
+        String requestKey = projectionKey(event.resultId(), event.resultVersion());
+        if (platform.findSubmissionByRequestKey(view.id(), requestKey).isPresent()) return;
         SatisfactionResultFact resultFact = resultFactApi.lockAndRevalidate(new SatisfactionResultFactQuery(
                 event.tenantId(), event.resultId(), event.resultFactVersion()));
-        boolean ownerCurrent = exactCurrentResult(event, resultFact);
-        ProjectDeliverableSourceVersionDO current = sourceMapper.selectCurrentForUpdate(
-                new DeliverableCurrentSourceLockQuery(event.tenantId(), root.getId()));
-        boolean becomesCurrent = ownerCurrent && mayBecomeCurrent(event, current);
-        if (becomesCurrent && current != null) {
-            current.setRelationStatus("SUPERSEDED");
-            current.setUpdater(String.valueOf(event.archiveActorUserId()));
-            if (sourceMapper.updateById(current) != 1) {
-                throw new IllegalStateException("SATISFACTION_SOURCE_SUPERSEDE_CONFLICT");
+        if (!exactCurrentResult(event, resultFact)) return;
+        var current = platform.findCurrentSubmission(view.id());
+        if (current.isPresent()) {
+            if (!PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION.equals(current.get().sourceType())) return;
+            String kind = projectionKind(current.get().requestPayloadJson());
+            // 与文档收集侧语义对齐：其他证据来源已占据 CURRENT 时让位，避免两个自动投影因
+            // 调度先后不同互抛冲突、outbox 无限重试。
+            if (!"SATISFACTION_RESULT".equals(kind)) return;
+            long currentVersion = JsonUtils.parseTree(current.get().requestPayloadJson())
+                    .path("resultVersion").asLong(0);
+            if (currentVersion > event.resultVersion()) return;
+            if (currentVersion == event.resultVersion()) {
+                throw new IllegalStateException("SATISFACTION_SOURCE_VERSION_CONFLICT");
             }
         }
-        ProjectDeliverableSourceVersionDO source = insertSource(event, root.getId(),
-                becomesCurrent ? "CURRENT" : "SUPERSEDED");
-        insertFiles(event, source.getId());
-        if (becomesCurrent) {
-            root.setCurrentSourceVersionId(source.getId());
-            root.setArchiveStatus("PENDING_COMPENSATION");
-            root.setUpdater(String.valueOf(event.archiveActorUserId()));
-            if (deliverableMapper.updateById(root) != 1) {
-                throw new IllegalStateException("SATISFACTION_DELIVERABLE_UPDATE_CONFLICT");
-            }
+        List<Long> materialIds = new ArrayList<>();
+        for (var file : event.files()) {
+            materialIds.add(platform.registerProjectionFile(view.id(), toFact(file), null,
+                    PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION));
+        }
+        String payload = JsonUtils.toJsonString(Map.of("projectionKind", "SATISFACTION_RESULT",
+                "resultId", event.resultId(), "resultVersion", event.resultVersion()));
+        var outcome = platform.submitTemplateFrozen(new TemplateFrozenSubmitCommand(view.id(), requestKey,
+                materialIds, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, payload, null));
+        if (!outcome.replay()) {
+            var confirmation = rules.evaluate(view.projectId(), view.deliverableCode());
+            platform.updateSubmissionDecision(outcome.submissionId(),
+                    JsonUtils.toJsonString(Map.of("confirmation", confirmation)));
         }
     }
 
-    private void invalidate(SatisfactionResultVersionChangedMessage event, AccProjectDeliverableDO root) {
+    private void invalidate(SatisfactionResultVersionChangedMessage event, TemplateFrozenView view) {
         SatisfactionResultFact resultFact = resultFactApi.lockAndRevalidate(new SatisfactionResultFactQuery(
                 event.tenantId(), event.resultId(), event.resultFactVersion()));
         if (resultFact == null || !"FOUND".equals(resultFact.outcome())
@@ -88,24 +92,12 @@ public class SatisfactionResultSourceProjectionService {
                 || !"INVALIDATED".equals(resultFact.resultStatus())) {
             throw new IllegalStateException("SATISFACTION_RESULT_INVALIDATION_FACT_CONFLICT");
         }
-        ProjectDeliverableSourceVersionDO source = find(event, root.getId());
-        if (source == null) {
+        String requestKey = projectionKey(event.resultId(), event.resultVersion());
+        if (platform.findSubmissionByRequestKey(view.id(), requestKey).isEmpty()) {
             throw new IllegalStateException("SATISFACTION_SOURCE_INVALIDATION_PENDING_RECORDED");
         }
-        if (!"REVOKED".equals(source.getRelationStatus())) {
-            source.setRelationStatus("REVOKED");
-            source.setUpdater(String.valueOf(event.invalidatedByUserId()));
-            if (sourceMapper.updateById(source) != 1) {
-                throw new IllegalStateException("SATISFACTION_SOURCE_REVOKE_CONFLICT");
-            }
-        }
-        if (Objects.equals(root.getCurrentSourceVersionId(), source.getId())) {
-            if (deliverableMapper.clearCurrentSource(new DeliverableCurrentSourceClearQuery(
-                    event.tenantId(), root.getId(), source.getId(), root.getVersion(),
-                    String.valueOf(event.invalidatedByUserId()))) != 1) {
-                throw new IllegalStateException("SATISFACTION_DELIVERABLE_REVOKE_CONFLICT");
-            }
-        }
+        // 满意度撤销保持材料待归档（历史证据仍归档），仅失效提交链。
+        platform.revokeProjectionSubmission(view.id(), requestKey, null);
     }
 
     private boolean exactCurrentResult(SatisfactionResultVersionChangedMessage event, SatisfactionResultFact fact) {
@@ -115,62 +107,27 @@ public class SatisfactionResultSourceProjectionService {
                 && fact.passed() && "EFFECTIVE".equals(fact.resultStatus());
     }
 
-    private boolean mayBecomeCurrent(SatisfactionResultVersionChangedMessage event,
-                                     ProjectDeliverableSourceVersionDO current) {
-        if (current == null) return true;
-        if (!"SatisfactionResult".equals(current.getSourceObjectType())) {
-            // 与文档收集侧语义对齐：其他证据来源已占据 CURRENT 时让位，仅落库为历史版本，
-            // 避免两个自动投影因调度先后不同而互抛冲突、outbox 无限重试。
-            return false;
-        }
-        if (current.getSourceVersion() > event.resultVersion()) return false;
-        if (Objects.equals(current.getSourceVersion(), event.resultVersion())) {
-            throw new IllegalStateException("SATISFACTION_SOURCE_VERSION_CONFLICT");
-        }
-        return true;
+    static String projectionKey(Long resultId, long resultVersion) {
+        return "satisfaction-result:" + resultId + ":" + resultVersion;
     }
 
-    private ProjectDeliverableSourceVersionDO find(SatisfactionResultVersionChangedMessage event, Long rootId) {
-        return sourceMapper.selectSourceObjectIdentityForUpdate(new DeliverableSourceObjectIdentityQuery(
-                event.tenantId(), rootId, "SatisfactionResult", event.resultId(), event.resultVersion()));
+    private static String projectionKind(String requestPayloadJson) {
+        try {
+            return JsonUtils.parseTree(requestPayloadJson == null ? "{}" : requestPayloadJson)
+                    .path("projectionKind").asText("");
+        } catch (Exception invalid) {
+            return "";
+        }
     }
 
-    private ProjectDeliverableSourceVersionDO insertSource(SatisfactionResultVersionChangedMessage event,
-                                                           Long rootId, String relationStatus) {
-        ProjectDeliverableSourceVersionDO source = new ProjectDeliverableSourceVersionDO();
-        source.setId(IdWorker.getId());
-        source.setDeliverableId(rootId);
-        source.setSourceRequirementId("ACC-04@V1");
-        source.setSourceObjectType("SatisfactionResult");
-        source.setSourceObjectId(event.resultId());
-        source.setSourceVersion(event.resultVersion());
-        source.setRelationStatus(relationStatus);
-        source.setArchiveStatus("PENDING_COMPENSATION");
-        source.setArchiveRetryCount(0);
-        source.setTenantId(event.tenantId());
-        source.setCreator(String.valueOf(event.archiveActorUserId()));
-        source.setUpdater(String.valueOf(event.archiveActorUserId()));
-        if (sourceMapper.insert(source) != 1) {
-            throw new IllegalStateException("SATISFACTION_SOURCE_INSERT_CONFLICT");
-        }
-        return source;
-    }
-
-    private void insertFiles(SatisfactionResultVersionChangedMessage event, Long sourceId) {
-        for (SatisfactionResultVersionChangedMessage.FileFact file : event.files()) {
-            ProjectDeliverableSourceAttachmentDO row = new ProjectDeliverableSourceAttachmentDO();
-            row.setId(IdWorker.getId()); row.setTenantId(event.tenantId());
-            row.setDeliverableSourceVersionId(sourceId); row.setAttachmentSequence(file.sourceSequence());
-            row.setFileArtifactId(file.artifactId()); row.setFileVersionNo(file.versionNo());
-            row.setReferenceKey(file.referenceKey()); row.setArtifactVersion(file.artifactVersion());
-            row.setReferenceVersion(file.referenceVersion()); row.setAvailabilityVersion(file.availabilityVersion());
-            row.setScopeVersion(file.scopeVersion()); row.setFileHash(file.sha256());
-            row.setCreator(String.valueOf(event.archiveActorUserId()));
-            row.setUpdater(String.valueOf(event.archiveActorUserId()));
-            if (attachmentMapper.insert(row) != 1) {
-                throw new IllegalStateException("SATISFACTION_SOURCE_FILE_INSERT_CONFLICT");
-            }
-        }
+    private static cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact toFact(
+            SatisfactionResultVersionChangedMessage.FileFact file) {
+        return new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact(
+                file.artifactId(), file.versionNo(), file.referenceKey(), null, null, null, null,
+                file.sha256(), "AVAILABLE", "ACTIVE",
+                new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion(
+                        file.artifactVersion(), file.referenceVersion(), file.availabilityVersion()),
+                file.scopeVersion());
     }
 
     private void validate(SatisfactionResultVersionChangedMessage event) {

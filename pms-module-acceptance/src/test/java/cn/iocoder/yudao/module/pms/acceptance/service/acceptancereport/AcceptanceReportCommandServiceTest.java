@@ -85,7 +85,8 @@ class AcceptanceReportCommandServiceTest {
         assertEquals("EFFECTIVE", result.changeType());
         assertEquals(19L, draft.getPublisherUserId());
         assertEquals(300L, activity.getCurrentReportVersionId());
-        assertEquals(1, activity.getVersion());
+        // 活动并发版本由数据库乐观锁插件在 updateById 时递增，单测 Mock 不经过该层。
+        assertEquals(String.valueOf(19L), activity.getUpdater());
         verify(attachmentMapper).insert(any(AcceptanceReportAttachmentDO.class));
     }
 

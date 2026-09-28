@@ -1,20 +1,18 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport;
 
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenMaterialView;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenSubmissionView;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSetsCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceAttachmentDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceReportVersionMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceAttachmentMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.DeliverableSourceIdLockQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,41 +21,40 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 报告投影材料归档补偿（P06R I2）：材料行是补偿主体，投影来源经 材料 → 提交台账 → report:{版本ID}
+ * 反查；文件事实按工件版本现场重建（业务附件冻结元组的一致性由任务绑定侧 matchesAttachments 守护）。
+ * 撤销置 INVALID 的材料不再进入补偿（仅 PENDING_COMPENSATION 推进）。
+ */
 @Service
 @RequiredArgsConstructor
 public class AcceptanceReportArchiveCompensationService {
 
-    private final AccProjectDeliverableMapper deliverableMapper;
-    private final ProjectDeliverableSourceVersionMapper sourceMapper;
-    private final ProjectDeliverableSourceAttachmentMapper sourceAttachmentMapper;
+    private final PlatformDeliveryRequirementApi platform;
     private final AcceptanceReportVersionMapper reportMapper;
+    private final FileEvidenceApi fileEvidence;
     private final FileArtifactApi fileArtifactApi;
 
     @Transactional(rollbackFor = Exception.class)
-    public void archive(Long tenantId, Long sourceVersionId) {
-        ProjectDeliverableSourceVersionDO snapshot = sourceMapper.selectById(sourceVersionId);
-        if (snapshot == null || !Objects.equals(snapshot.getTenantId(), tenantId)) {
-            throw new IllegalStateException("archive source unavailable");
-        }
-        AccProjectDeliverableDO deliverable = deliverableMapper.selectByIdForUpdate(
-                new ProjectDeliverableIdLockQuery(tenantId, snapshot.getDeliverableId()));
-        ProjectDeliverableSourceVersionDO source = sourceMapper.selectByIdForUpdate(
-                new DeliverableSourceIdLockQuery(tenantId, sourceVersionId));
-        if (deliverable == null || source == null || !Objects.equals(source.getDeliverableId(), deliverable.getId())) {
-            throw new IllegalStateException("archive source identity conflict");
-        }
-        if ("ARCHIVED".equals(source.getArchiveStatus())) return;
-        if (!("CURRENT".equals(source.getRelationStatus()) || "SUPERSEDED".equals(source.getRelationStatus()))
-                || !"PENDING_COMPENSATION".equals(source.getArchiveStatus())) {
+    public void archive(Long tenantId, Long materialId) {
+        List<TemplateFrozenMaterialView> locked = platform.lockMaterials(List.of(materialId));
+        if (locked.isEmpty()) throw new IllegalStateException("archive source unavailable");
+        TemplateFrozenMaterialView material = locked.getFirst();
+        if (PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED.equals(material.archiveStatus())) return;
+        if (!PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION.equals(material.archiveStatus())
+                || !PlatformDeliveryRequirementApi.MATERIAL_KIND_FILE.equals(material.materialKind())) {
             throw new IllegalStateException("archive source state conflict");
         }
-        AcceptanceReportVersionDO report = reportMapper.selectById(source.getSourceObjectId());
+        TemplateFrozenSubmissionView submission = requireReportProjection(material);
+        long reportId = Long.parseLong(
+                AcceptanceReportSourceProjectionService.projectionVersionId(submission.requestKey()));
+        AcceptanceReportVersionDO report = reportMapper.selectById(reportId);
         if (report == null || !Objects.equals(report.getTenantId(), tenantId) || report.getPublisherUserId() == null) {
             throw new IllegalStateException("archive publisher unavailable");
         }
-        List<ProjectDeliverableSourceAttachmentDO> rows = sourceAttachmentMapper.selectBySourceVersion(source.getId());
-        if (rows.isEmpty()) throw new IllegalStateException("archive attachments missing");
-        List<FileArtifactVersionFact> facts = rows.stream().map(this::toFact).toList();
+        List<TemplateFrozenMaterialView> materials = platform.lockMaterials(submission.materialIds());
+        if (materials.isEmpty()) throw new IllegalStateException("archive attachments missing");
+        List<FileArtifactVersionFact> facts = materials.stream().map(this::toFact).toList();
         Long scopeVersion = facts.getFirst().scopeVersion();
         if (facts.stream().anyMatch(fact -> !Objects.equals(scopeVersion, fact.scopeVersion()))) {
             throw new IllegalStateException("archive attachment scope conflict");
@@ -67,40 +64,48 @@ public class AcceptanceReportArchiveCompensationService {
         FileReferenceSetKey archiveKey = new FileReferenceSetKey("ACC", "ACCEPTANCE_REPORT_VERSION",
                 String.valueOf(report.getId()), "ACCEPTANCE_REPORT_ARCHIVE");
         fileArtifactApi.archiveReferenceSets(new ArchiveFileReferenceSetsCommand(
-                "ACC-ARCHIVE:" + source.getId(), "ACC-ARCHIVE:" + source.getId(),
+                "ACC-ARCHIVE:" + submission.id(), "ACC-ARCHIVE:" + submission.id(),
                 "ACC-REPORT:" + report.getId(), report.getPublisherUserId(),
                 attachmentKey, archiveKey, scopeVersion, facts));
-        source.setArchiveStatus("ARCHIVED");
-        source.setArchiveFailureCode(null);
-        source.setArchiveTime(LocalDateTime.now());
-        source.setUpdater(String.valueOf(report.getPublisherUserId()));
-        if (sourceMapper.updateById(source) != 1) throw new IllegalStateException("archive projection update failed");
-        if (Objects.equals(deliverable.getCurrentSourceVersionId(), source.getId())) {
-            deliverable.setArchiveStatus("ARCHIVED");
-            deliverable.setUpdater(String.valueOf(report.getPublisherUserId()));
-            if (deliverableMapper.updateById(deliverable) != 1) {
-                throw new IllegalStateException("deliverable archive update failed");
-            }
+        LocalDateTime now = LocalDateTime.now();
+        String actor = String.valueOf(report.getPublisherUserId());
+        for (TemplateFrozenMaterialView row : materials) {
+            platform.markMaterialArchiveState(row.id(), PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED, null, now, actor);
         }
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void recordFailure(Long tenantId, Long sourceVersionId, String failureCode) {
-        ProjectDeliverableSourceVersionDO snapshot = sourceMapper.selectById(sourceVersionId);
-        if (snapshot == null || !Objects.equals(snapshot.getTenantId(), tenantId)) return;
-        deliverableMapper.selectByIdForUpdate(new ProjectDeliverableIdLockQuery(tenantId, snapshot.getDeliverableId()));
-        ProjectDeliverableSourceVersionDO source = sourceMapper.selectByIdForUpdate(
-                new DeliverableSourceIdLockQuery(tenantId, sourceVersionId));
-        if (source == null || !"PENDING_COMPENSATION".equals(source.getArchiveStatus())) return;
-        source.setArchiveFailureCode(failureCode);
-        source.setArchiveRetryCount(source.getArchiveRetryCount() == null ? 1 : source.getArchiveRetryCount() + 1);
-        if (sourceMapper.updateById(source) != 1) throw new IllegalStateException("archive failure watermark update failed");
+    public void recordFailure(Long tenantId, Long materialId, String failureCode) {
+        platform.bumpMaterialArchiveRetry(materialId, failureCode);
     }
 
-    private FileArtifactVersionFact toFact(ProjectDeliverableSourceAttachmentDO row) {
-        return new FileArtifactVersionFact(row.getFileArtifactId(), row.getFileVersionNo(), row.getReferenceKey(),
-                null, null, null, null, row.getFileHash(), "AVAILABLE", "ACTIVE",
-                new FileFactVersion(row.getArtifactVersion(), row.getReferenceVersion(), row.getAvailabilityVersion()),
-                row.getScopeVersion());
+    private TemplateFrozenSubmissionView requireReportProjection(TemplateFrozenMaterialView material) {
+        Long submissionId = platform.findSubmissionIdByMaterial(material.id())
+                .orElseThrow(() -> new IllegalStateException("archive source identity conflict"));
+        TemplateFrozenSubmissionView submission = platform.findSubmissionById(submissionId)
+                .orElseThrow(() -> new IllegalStateException("archive source identity conflict"));
+        if (!PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION.equals(submission.sourceType())
+                || AcceptanceReportSourceProjectionService.projectionVersionId(submission.requestKey()).isBlank()) {
+            throw new IllegalStateException("archive source identity conflict");
+        }
+        return submission;
+    }
+
+    private FileArtifactVersionFact toFact(TemplateFrozenMaterialView material) {
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        FileEvidenceApi.Document document = fileEvidence.inspectDocumentByArtifact(
+                tenantId, material.fileArtifactId(), material.fileVersionNo());
+        if (document == null || !document.available()
+                || !Objects.equals(document.sha256(), material.fileSha256())) {
+            throw new IllegalStateException("archive material reference unavailable");
+        }
+        FileArtifactVersionFact fact = fileArtifactApi.inspect(new FileArtifactVersionQuery(
+                document.artifactId(), document.versionNo(), document.ownerContext(), document.objectType(),
+                document.objectId(), document.purposeCode(), document.referenceKey(), FileActionCodes.REFERENCE));
+        if (fact == null || fact.fileFactVersion() == null || fact.scopeVersion() == null
+                || !Objects.equals(fact.sha256(), material.fileSha256())) {
+            throw new IllegalStateException("archive material reference unavailable");
+        }
+        return fact;
     }
 }

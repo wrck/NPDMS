@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.acceptance.api.satisfaction;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
 import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTaskInitializationCommand;
 import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTaskInitializationResult;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -53,7 +54,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionQuestionnaireTemplateRevisionMapper templateRevisionMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
-    private final cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper deliverableMapper;
+    private final PlatformDeliveryRequirementApi platform;
 
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi manualProjects;
@@ -177,24 +178,20 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
             return conflict();
         }
 
-        var deliverables = deliverableMapper.selectTaskDeliverablesForUpdate(
-                new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper.TaskDeliverablesQuery(
-                        tenantId, command.projectId(), taskFact.taskCode()));
+        var deliverables = platform.lockByTask(command.projectId(), taskFact.taskCode());
         if (deliverables.isEmpty() && "SatisfactionManualInitiation".equals(command.sourceObjectType())) {
             var option = manualProjects.options(command.projectId(), manualActorId).tasks().stream()
                     .filter(task -> task.id().equals(taskFact.projectTaskId())).findFirst().orElseThrow();
-            var report = new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO();
-            report.setId(IdWorker.getId()); report.setTenantId(tenantId); report.setProjectId(command.projectId());
-            report.setDeliverableCode("D-SAT-MANUAL-" + taskFact.projectTaskId()); report.setName("满意度调查报告");
-            report.setStageCode(option.stageCode()); report.setTaskCode(taskFact.taskCode());
-            report.setRequired(false); report.setStatus("PENDING"); report.setArchiveStatus("PENDING"); report.setVersion(0L);
-            if (deliverableMapper.insert(report) != 1) throw new IllegalStateException("SATISFACTION_DELIVERABLE_CREATE_FAILED");
-            deliverables = List.of(report);
+            platform.instantiateTemplateFrozen(command.projectId(), null,
+                    List.of(new PlatformDeliveryRequirementApi.TemplateFrozenDefinition(
+                            "D-SAT-MANUAL-" + taskFact.projectTaskId(), "满意度调查报告",
+                            option.stageCode(), taskFact.taskCode(), false, 0, null, null)));
+            deliverables = platform.lockByTask(command.projectId(), taskFact.taskCode());
         }
         if (deliverables.size() != 1) throw new IllegalStateException("SATISFACTION_DELIVERABLE_BINDING_NOT_UNIQUE");
         var deliverable = deliverables.getFirst();
-        if (!Objects.equals(deliverable.getTenantId(), tenantId) || !Objects.equals(deliverable.getProjectId(), command.projectId())
-                || !Objects.equals(deliverable.getTaskCode(), taskFact.taskCode()))
+        if (!Objects.equals(deliverable.projectId(), command.projectId())
+                || !Objects.equals(deliverable.taskCode(), taskFact.taskCode()))
             throw new IllegalStateException("SATISFACTION_DELIVERABLE_BINDING_CONFLICT");
         long taskId = IdWorker.getId();
         long questionnaireId = IdWorker.getId();
@@ -203,7 +200,7 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         task.setTenantId(tenantId);
         task.setProjectId(command.projectId());
         task.setProjectTaskId(command.projectTaskId());
-        task.setDeliverableId(deliverable.getId());
+        task.setDeliverableId(deliverable.id());
         task.setSourceOwnerContext(command.sourceOwnerContext());
         task.setSourceObjectType(command.sourceObjectType());
         task.setSourceObjectId(command.sourceObjectId());

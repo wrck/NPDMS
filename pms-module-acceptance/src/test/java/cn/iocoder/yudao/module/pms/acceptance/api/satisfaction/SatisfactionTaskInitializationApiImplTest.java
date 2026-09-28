@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.Satisfactio
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateRevisionMapper;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TemplateFrozenView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -42,7 +45,7 @@ class SatisfactionTaskInitializationApiImplTest {
     @Mock private SatisfactionQuestionnaireMapper questionnaireMapper;
     @Mock private SatisfactionQuestionnaireTemplateRevisionMapper revisionMapper;
     @Mock private PlatformCommandExecutionApi commandExecutionApi;
-    @Mock private cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper deliverableMapper;
+    @Mock private PlatformDeliveryRequirementApi platform;
     private SatisfactionTaskInitializationApiImpl api;
     private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> emitted = new AtomicReference<>();
 
@@ -50,7 +53,7 @@ class SatisfactionTaskInitializationApiImplTest {
     void setUp() {
         TenantContextHolder.setTenantId(0L);
         api = new SatisfactionTaskInitializationApiImpl(workBindingFactApi, projectScopeApi, taskMapper,
-                questionnaireMapper, revisionMapper, commandExecutionApi, deliverableMapper);
+                questionnaireMapper, revisionMapper, commandExecutionApi, platform);
         org.mockito.Mockito.lenient().when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<?> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
@@ -73,7 +76,7 @@ class SatisfactionTaskInitializationApiImplTest {
         when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L,
                 Set.of(100L), Set.of()));
         when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
-        when(deliverableMapper.selectTaskDeliverablesForUpdate(any())).thenReturn(java.util.List.of(deliverable()));
+        when(platform.lockByTask(100L, "CUSTOM-SAT")).thenReturn(List.of(deliverable()));
 
         var result = api.initialize(command());
 
@@ -131,7 +134,7 @@ class SatisfactionTaskInitializationApiImplTest {
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope);
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope);
         when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
-        when(deliverableMapper.selectTaskDeliverablesForUpdate(any())).thenReturn(java.util.List.of(deliverable()));
+        when(platform.lockByTask(100L, "CUSTOM-SAT")).thenReturn(List.of(deliverable()));
         assertEquals("CREATED", api.startManual(100L, 2000L, "manual-1").outcome());
         var task = ArgumentCaptor.forClass(SatisfactionCollectionTaskDO.class);
         verify(taskMapper).insert(task.capture());
@@ -158,9 +161,9 @@ class SatisfactionTaskInitializationApiImplTest {
         first.setSourceObjectId("100");
         when(taskMapper.selectFirstByProjectForUpdate(any())).thenReturn(first);
         assertEquals("REPLAYED", api.initialize(command()).outcome());
-        assertEquals(java.util.List.of(), emitted.get().businessEvents());
+        assertEquals(List.of(), emitted.get().businessEvents());
         verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
-        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper, revisionMapper, deliverableMapper);
+        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper, revisionMapper, platform);
     }
 
     @Test
@@ -172,9 +175,9 @@ class SatisfactionTaskInitializationApiImplTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope);
         when(taskMapper.selectFirstByProjectForUpdate(any())).thenReturn(existingTask());
         assertEquals(200L, api.startManual(100L, 2000L, "manual-2").taskId());
-        assertEquals(java.util.List.of(), emitted.get().businessEvents());
+        assertEquals(List.of(), emitted.get().businessEvents());
         verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
-        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper, revisionMapper, deliverableMapper);
+        org.mockito.Mockito.verifyNoInteractions(questionnaireMapper, revisionMapper, platform);
     }
 
     @Test
@@ -183,8 +186,8 @@ class SatisfactionTaskInitializationApiImplTest {
         when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L,
                 Set.of(100L), Set.of()));
         when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
-        when(deliverableMapper.selectTaskDeliverablesForUpdate(any()))
-                .thenReturn(java.util.List.of(), java.util.List.of(deliverable(), deliverable()));
+        when(platform.lockByTask(100L, "CUSTOM-SAT"))
+                .thenReturn(List.of(), List.of(deliverable(), deliverable()));
         for (int i = 0; i < 2; i++) {
             assertEquals("SATISFACTION_DELIVERABLE_BINDING_NOT_UNIQUE",
                     org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
@@ -194,11 +197,24 @@ class SatisfactionTaskInitializationApiImplTest {
         verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
     }
 
-    private static cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO deliverable() {
-        var row = new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO();
-        row.setId(400L); row.setTenantId(0L); row.setProjectId(100L); row.setTaskCode("CUSTOM-SAT");
-        row.setDeliverableCode("CUSTOM-RESULT");
-        return row;
+    @Test
+    void misboundDeliverableCannotInitializeTheCollectionTask() {
+        when(workBindingFactApi.lockAndRevalidateSatisfactionTask(any())).thenReturn(taskFact());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 9L,
+                Set.of(100L), Set.of()));
+        when(revisionMapper.selectFrozenRevision(any())).thenReturn(revision());
+        when(platform.lockByTask(100L, "CUSTOM-SAT")).thenReturn(List.of(
+                new TemplateFrozenView(400L, 101L, "CUSTOM-RESULT", "满意度报告", "S5", "CUSTOM-SAT",
+                        null, null, false, 0, null, "OPEN", "{}", 0)));
+        assertEquals("SATISFACTION_DELIVERABLE_BINDING_CONFLICT",
+                org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                        () -> api.initialize(command())).getMessage());
+        verify(taskMapper, never()).insert(any(SatisfactionCollectionTaskDO.class));
+    }
+
+    private static TemplateFrozenView deliverable() {
+        return new TemplateFrozenView(400L, 100L, "CUSTOM-RESULT", "满意度调查报告", "S5", "CUSTOM-SAT",
+                null, null, false, 0, null, "OPEN", "{}", 0);
     }
 
     private static SatisfactionTaskInitializationCommand command() {

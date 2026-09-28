@@ -8,8 +8,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionD
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solutionreview.SolutionReviewDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.deliverable.DeliverableMapper;
-import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionService;
 import cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents;
 import cn.iocoder.yudao.module.pms.project.api.participant.*;
@@ -39,8 +38,7 @@ class SolutionTieredReviewServiceTest {
     @Mock ProjectParticipantFactApi participants;
     @Mock PermissionApi permissions;
     @Mock EngineeringRuleReevaluationEvents events;
-    @Mock DeliverableMapper deliverables;
-    @Mock EngineeringRecordCodeGenerator codes;
+    @Mock PlatformDeliveryMaterialApi deliveryMaterials;
     @Mock SolutionService original;
     @Mock SolutionReviewPolicyService policies;
     @InjectMocks SolutionTieredReviewService service;
@@ -83,14 +81,17 @@ class SolutionTieredReviewServiceTest {
     @Test void firstApprovalDoesNotCompleteMajorSolution() {
         service.start(command(0)); result("RUNNING"); service.refresh(selection);
         assertEquals(2, solution.getStatus()); assertNull(solution.getBaselineVersion());
-        verifyNoInteractions(deliverables);
+        verifyNoInteractions(deliveryMaterials);
     }
     @Test void finalApprovalArchivesOnceAndProtectsApprovedVersion() {
         service.start(command(0)); result("APPROVE"); service.refresh(selection);
         assertEquals(3, solution.getStatus()); assertEquals(solution.getVersion().longValue(), solution.getBaselineVersion().longValue());
         assertEquals(10L, solution.getApprovedBy()); assertEquals("APPROVE", stored.getStatus());
         assertTrue(service.approved(solution, true));
-        service.refresh(selection); verify(deliverables,times(1)).insert(any(cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO.class));
+        // 复审通过统一登记交付件（P06R：业务结果型，锚定方案基线）；终态复审不重复登记（幂等在统一能力层）
+        service.refresh(selection);
+        verify(deliveryMaterials, times(1)).registerBusinessResultMaterial(eq("SOL"), eq("solution"), eq(42L),
+                eq("IMPLEMENTATION_PLAN"), eq("solution"), eq("42"), any(), anyString(), eq(9L));
         solution.setVersion(solution.getVersion()+1); assertFalse(service.approved(solution,true));
     }
     @Test void rejectionKeepsOriginalAndOnlyCopiesToNewDraft() {
@@ -105,7 +106,7 @@ class SolutionTieredReviewServiceTest {
     @Test void currentSourceChangeRejectsTerminalResultWithoutOverwrite() {
         service.start(command(0)); result("APPROVE"); solution.setVersion(99L);
         assertThrows(IllegalStateException.class, () -> service.refresh(selection)); assertNull(solution.getBaselineVersion());
-        verifyNoInteractions(deliverables);
+        verifyNoInteractions(deliveryMaterials);
     }
     @Test void staleVersionMissingManagerAndEmptyScopeFailBeforeProcessStart() {
         assertThrows(IllegalArgumentException.class, () -> service.start(command(3)));

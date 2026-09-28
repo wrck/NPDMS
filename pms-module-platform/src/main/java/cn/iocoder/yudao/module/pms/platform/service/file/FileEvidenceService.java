@@ -2,7 +2,9 @@ package cn.iocoder.yudao.module.pms.platform.service.file;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.*;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.*;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,18 @@ public class FileEvidenceService implements FileEvidenceApi {
         return new Document(referenceId, reference.getOwnerContext(), reference.getObjectType(), reference.getObjectId(),
                 reference.getPurposeCode(), reference.getReferenceKey(), reference.getArtifactId(), reference.getFileVersionNo(),
                 version.getSha256(), artifact.getName(), available);
+    }
+
+    @Override @Transactional(propagation = Propagation.MANDATORY)
+    public Document inspectDocumentByArtifact(Long tenantId, Long artifactId, Integer versionNo) {
+        if (!Objects.equals(tenantId, TenantContextHolder.getRequiredTenantId()) || artifactId == null || versionNo == null)
+            throw new IllegalArgumentException("FILE_DOCUMENT_QUERY_INVALID");
+        // 同一工件版本可能被多个引用槽锚定（如既有版本附加），取最早引用作为代表身份。
+        var reference = references.selectByArtifactForUpdate(new FileArtifactReferenceQuery(tenantId, artifactId))
+                .stream().filter(row -> versionNo.equals(row.getFileVersionNo()))
+                .sorted(java.util.Comparator.comparing(FileReferenceDO::getId)).findFirst().orElse(null);
+        if (reference == null) return null;
+        return inspectDocument(tenantId, reference.getId());
     }
 
     @Override @Transactional(propagation = Propagation.MANDATORY)

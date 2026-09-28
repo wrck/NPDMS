@@ -13,8 +13,8 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.Ac
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceActivityMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceReportAttachmentMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceReportVersionMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.query.AcceptanceActivityScopeQuery;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +41,7 @@ public class AcceptanceReportQueryService {
     private final AcceptanceReportAttachmentMapper attachmentMapper;
     private final ProjectScopeApi projectScopeApi;
     private final FileArtifactApi fileArtifactApi;
-    private final ProjectDeliverableSourceVersionMapper sourceVersionMapper;
+    private final PlatformDeliveryRequirementApi platform;
 
     public List<ActivityView> list(Long projectId, Actor actor) {
         Set<Long> projectIds = projectId == null
@@ -120,14 +120,45 @@ public class AcceptanceReportQueryService {
 
     private ReportVersionView toReportView(AcceptanceReportVersionDO row,
                                            List<AcceptanceReportAttachmentDO> attachments) {
-        var source = sourceVersionMapper.selectByReportVersionId(row.getId());
+        var mirror = archiveMirror(row.getAcceptanceId(), row.getId());
         return new ReportVersionView(row.getId(), row.getAcceptanceId(), row.getReportVersionNo(),
                 row.getReportStatus(), row.getAcceptanceTime(), row.getConclusionCode(), row.getConclusionText(),
                 row.getAcceptorName(), row.getPreviousVersionId(), row.getEffectiveFrom(), row.getEffectiveTo(),
-                row.getUploaderUserId(), row.getPublisherUserId(), source == null ? null : source.getArchiveStatus(),
-                source == null ? null : source.getArchiveFailureCode(),
-                source == null ? null : source.getArchiveRetryCount(),
+                row.getUploaderUserId(), row.getPublisherUserId(), mirror.status(), mirror.failureCode(),
+                mirror.retryCount(),
                 attachments.stream().map(this::toAttachmentView).toList());
+    }
+
+    /**
+     * 归档镜像经统一交付件提交台账聚合：全部材料 ARCHIVED → ARCHIVED；任一 INVALID → INVALID；
+     * 否则仍待补偿。failureCode 取首个非空，retry 取最大值；无对应提交或材料时镜像为空。
+     */
+    private ArchiveMirror archiveMirror(Long acceptanceId, Long reportVersionId) {
+        var activity = activityMapper.selectById(acceptanceId);
+        if (activity == null || activity.getDeliverableId() == null) return new ArchiveMirror(null, null, null);
+        var submission = platform.findSubmissionByRequestKey(activity.getDeliverableId(),
+                "report:" + reportVersionId);
+        if (submission.isEmpty() || submission.get().materialIds() == null
+                || submission.get().materialIds().isEmpty()) return new ArchiveMirror(null, null, null);
+        List<PlatformDeliveryRequirementApi.TemplateFrozenMaterialView> materials =
+                platform.listMaterials(activity.getDeliverableId()).stream()
+                        .filter(material -> submission.get().materialIds().contains(material.id())).toList();
+        if (materials.isEmpty()) return new ArchiveMirror(null, null, null);
+        String status = materials.stream()
+                .allMatch(material -> PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED.equals(material.archiveStatus()))
+                ? PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED
+                : materials.stream()
+                .anyMatch(material -> PlatformDeliveryRequirementApi.ARCHIVE_INVALID.equals(material.archiveStatus()))
+                ? PlatformDeliveryRequirementApi.ARCHIVE_INVALID
+                : PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION;
+        String failureCode = materials.stream().map(PlatformDeliveryRequirementApi.TemplateFrozenMaterialView::archiveFailureCode)
+                .filter(code -> code != null && !code.isBlank()).findFirst().orElse(null);
+        Integer retryCount = materials.stream().map(PlatformDeliveryRequirementApi.TemplateFrozenMaterialView::archiveRetryCount)
+                .filter(Objects::nonNull).max(Integer::compareTo).orElse(null);
+        return new ArchiveMirror(status, failureCode, retryCount);
+    }
+
+    private record ArchiveMirror(String status, String failureCode, Integer retryCount) {
     }
 
     private AttachmentView toAttachmentView(AcceptanceReportAttachmentDO row) {

@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.acceptance.model;
 
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AcceptanceDO;
-import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AccProjectDeliverableDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceActivityDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancescope.AcceptanceScopeBindingDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.archivedocument.ArchiveDocumentDO;
@@ -12,7 +11,6 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.Satisf
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionQuestionnaireDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionQuestionnaireTemplateDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AcceptanceMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceActivityMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.AcceptanceScopeBindingMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.archivedocument.ArchiveDocumentMapper;
@@ -42,7 +40,6 @@ import java.util.List;
 @Component
 public class AcceptanceBusinessModelContributor implements BusinessModelContributor {
 
-    private final AccProjectDeliverableMapper accProjectDeliverableMapper;
     private final AcceptanceMapper acceptanceMapper;
     private final AcceptanceActivityMapper acceptanceActivityMapper;
     private final AcceptanceScopeBindingMapper acceptanceScopeBindingMapper;
@@ -54,8 +51,7 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
     private final SatisfactionQuestionnaireMapper satisfactionQuestionnaireMapper;
     private final SatisfactionQuestionnaireTemplateMapper satisfactionQuestionnaireTemplateMapper;
 
-    public AcceptanceBusinessModelContributor(AccProjectDeliverableMapper accProjectDeliverableMapper,
-                                              AcceptanceMapper acceptanceMapper,
+    public AcceptanceBusinessModelContributor(AcceptanceMapper acceptanceMapper,
                                               AcceptanceActivityMapper acceptanceActivityMapper,
                                               AcceptanceScopeBindingMapper acceptanceScopeBindingMapper,
                                               ArchiveDocumentMapper archiveDocumentMapper,
@@ -65,7 +61,6 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                                               SatisfactionCollectionTaskMapper satisfactionCollectionTaskMapper,
                                               SatisfactionQuestionnaireMapper satisfactionQuestionnaireMapper,
                                               SatisfactionQuestionnaireTemplateMapper satisfactionQuestionnaireTemplateMapper) {
-        this.accProjectDeliverableMapper = accProjectDeliverableMapper;
         this.acceptanceMapper = acceptanceMapper;
         this.acceptanceActivityMapper = acceptanceActivityMapper;
         this.acceptanceScopeBindingMapper = acceptanceScopeBindingMapper;
@@ -89,21 +84,6 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
     @Override
     public List<BusinessModelDeclaration> declarations() {
         List<BusinessModelDeclaration> declarations = new ArrayList<>();
-        BusinessModelDescriptor projectDeliverable = new BusinessModelDescriptor("ACC", "accProjectDeliverable",
-                "ACC_PROJECT_DELIVERABLE", 1, BusinessModelKind.AGGREGATE_ROOT, "项目交付件登记",
-                "pms:project:query",
-                List.of(required("projectId", "项目", EntityField.Type.NUMBER),
-                        required("deliverableCode", "交付件编码", EntityField.Type.TEXT),
-                        required("name", "交付件名称", EntityField.Type.TEXT),
-                        field("stageCode", "阶段", EntityField.Type.TEXT),
-                        field("taskCode", "任务", EntityField.Type.TEXT),
-                        field("required", "是否必备", EntityField.Type.BOOLEAN),
-                        field("sourceDefinitionId", "来源定义", EntityField.Type.NUMBER),
-                        field("status", "状态", EntityField.Type.TEXT),
-                        field("archiveStatus", "归档状态", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "acc_project_deliverable");
-        declarations.add(new BusinessModelDeclaration(projectDeliverable, AccProjectDeliverableDO.class,
-                accProjectDeliverableMapper, null));
         BusinessModelDescriptor acceptance = new BusinessModelDescriptor("ACC", "acceptance",
                 "ACC_ACCEPTANCE", 1, BusinessModelKind.AGGREGATE_ROOT, "验收记录",
                 "pms:acc-acceptance:query",

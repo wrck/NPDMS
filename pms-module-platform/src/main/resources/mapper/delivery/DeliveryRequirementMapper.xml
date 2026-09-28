@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryRequirementMapper">
+    <sql id="columns">
+        id, owner_module, entity_type, entity_id, type_code, name, requirement_kind,
+        stage_code, task_code, plan_version_id, source_definition_id, project_id, frozen_config_json,
+        required, minimum_quantity, counting_unit, status, confirmed_by, confirmed_time,
+        config_id, config_version, version,
+        creator, create_time, updater, update_time, deleted, tenant_id
+    </sql>
+
+    <select id="selectIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO">
+        SELECT <include refid="columns"/>
+        FROM plt_delivery_requirement
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.id}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectIdentityForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO">
+        SELECT <include refid="columns"/>
+        FROM plt_delivery_requirement
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_module = #{query.ownerModule}
+          AND entity_type = #{query.entityType}
+          AND entity_id = #{query.entityId}
+          AND type_code = #{query.typeCode}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectTaskForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO">
+        SELECT <include refid="columns"/>
+        FROM plt_delivery_requirement
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND task_code = #{query.taskCode}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectScopeForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO">
+        SELECT <include refid="columns"/>
+        FROM plt_delivery_requirement
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND deleted = b'0'
+        <if test="query.stageCode != null">
+          AND stage_code = #{query.stageCode}
+        </if>
+        <if test="query.taskCode != null">
+          AND task_code = #{query.taskCode}
+        </if>
+        ORDER BY id
+        FOR UPDATE
+    </select>
+</mapper>

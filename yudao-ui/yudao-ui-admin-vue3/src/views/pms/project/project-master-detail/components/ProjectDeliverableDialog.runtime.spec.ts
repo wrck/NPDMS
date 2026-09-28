@@ -9,11 +9,11 @@ vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileUploader: { methods: { i
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks() })
 it('submits material without crypto.randomUUID and retains the idempotency key on retry', async () => {
   vi.stubGlobal('crypto', {})
-  api.getDetail.mockResolvedValue({ id: 12, name: 'Evidence', status: 'PENDING', writable: true,
+  api.getDetail.mockResolvedValue({ id: 12, code: 'D1', name: 'Evidence', status: 'PENDING', writable: true,
     planVersionId: 5, version: 2, history: [],
     configuration: { minimumQuantity: 1, allowedSources: ['UPLOAD'], automaticSources: [] } })
   api.submit.mockRejectedValueOnce(new Error('network failure')).mockResolvedValueOnce({
-    evaluation: { satisfied: true, reason: 'DELIVERABLE_RULE_SATISFIED' } })
+    submissionId: 900, status: 'CURRENT', evaluation: { satisfied: true, reason: 'DELIVERABLE_RULE_SATISFIED' } })
   const child = ref<any>()
   const view = mount(defineComponent({ setup: () => () => h(Dialog, { projectId: 9, ref: child }) }), {},
     { ElDialog: passthrough, ElSkeleton: passthrough, ElRadioGroup: passthrough,
@@ -24,12 +24,12 @@ it('submits material without crypto.randomUUID and retains the idempotency key o
     const state = child.value.$.setupState
     expect(api.getDetail).toHaveBeenCalledWith(9, 12)
     expect(state.slotKey).toMatch(/^[0-9a-f-]{36}$/)
-    state.uploaded({ artifactId: 21, fileVersionId: 22, referenceKey: 'file-1' })
+    state.uploaded({ artifactId: 21, versionNo: 1, referenceId: 33, referenceKey: 'file-1', sha256: 'ab' })
     await expect(state.submit()).rejects.toThrow('network failure')
     await state.submit()
     expect(api.submit).toHaveBeenCalledTimes(2)
     expect(api.submit.mock.calls[0][3]).toBe(api.submit.mock.calls[1][3])
-    expect(api.submit.mock.calls[1][2]).toMatchObject({ planVersionId: 5, expectedVersion: 2, sourceType: 'UPLOAD' })
+    expect(api.submit.mock.calls[1][2]).toMatchObject({ planVersionId: 5, expectedVersion: 2, sourceType: 'UPLOAD', files: [{ referenceId: 33 }] })
     expect(state.satisfied).toBe(true)
   } finally { view.app.unmount() }
 })

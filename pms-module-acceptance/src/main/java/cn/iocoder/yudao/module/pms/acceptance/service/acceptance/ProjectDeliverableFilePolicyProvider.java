@@ -1,8 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptance;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AccProjectDeliverableMapper;
-import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.ProjectDeliverableIdLockQuery;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyProvider;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi;
@@ -12,10 +11,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
+/**
+ * V374 保留的历史交付件文档锚（ACC/PROJECT_DELIVERABLE）只读策略：历史锚不重挂、不可变，
+ * 仅允许读取类动作；统一上传走 PLT/DELIVERY_MATERIAL 锚（平台自有策略），UPLOAD 在此一律拒绝。
+ */
 @Component @RequiredArgsConstructor
 public class ProjectDeliverableFilePolicyProvider implements FileBusinessObjectPolicyProvider {
     public static final String OWNER = "ACC", TYPE = "PROJECT_DELIVERABLE", PURPOSE = "PROJECT_DELIVERABLE_DOCUMENT";
-    private final AccProjectDeliverableMapper deliverables;
+    private final PlatformDeliveryRequirementApi platform;
     private final ProjectDeliverableRuleApi rules;
     private final ProjectDeliverableAccess access;
     @Override public String ownerContext() { return OWNER; }
@@ -42,20 +45,15 @@ public class ProjectDeliverableFilePolicyProvider implements FileBusinessObjectP
     }
     private FileBusinessObjectPolicyFact policy(Long tenant, Long actor, String id, String purpose, String action, boolean lock, Long expectedScope) {
         if (!Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || !PURPOSE.equals(purpose)
-                || !Set.of("UPLOAD", "READ", "DOWNLOAD", "PREVIEW").contains(action)) return denied();
+                || !Set.of("READ", "DOWNLOAD", "PREVIEW").contains(action)) return denied();
         Long objectId;
         try { objectId = Long.valueOf(id); } catch (NumberFormatException invalid) { return denied(); }
-        var row = deliverables.selectById(objectId);
-        if (row == null || !Objects.equals(row.getTenantId(), tenant)) return denied();
-        var context = lock ? rules.lock(row.getProjectId(), row.getDeliverableCode()) : rules.read(row.getProjectId(), row.getDeliverableCode());
-        if (lock) {
-            var current = deliverables.selectByIdForUpdate(new ProjectDeliverableIdLockQuery(tenant, objectId));
-            if (current == null || !Objects.equals(row.getProjectId(), current.getProjectId())
-                    || !Objects.equals(row.getDeliverableCode(), current.getDeliverableCode())) return denied();
-        }
-        boolean write = "UPLOAD".equals(action);
-        if (write && !ProjectDeliverableSubmissionService.allowed(context.configuration(), "UPLOAD")) return denied();
-        Long scope = access.check(context, tenant, actor, write, lock, expectedScope);
+        // 历史锚 objectId 即统一要求根 ID（V374 保留原 ID），据其定位并沿用 Owner 数据范围校验。
+        var row = lock ? platform.lockById(objectId).orElse(null) : platform.findById(objectId).orElse(null);
+        if (row == null) return denied();
+        var context = lock ? rules.lock(row.projectId(), row.deliverableCode())
+                : rules.read(row.projectId(), row.deliverableCode());
+        Long scope = access.check(context, tenant, actor, false, lock, expectedScope);
         // Reuse the controlled document uploader's supported media and platform 50 MiB limit.
         return new FileBusinessObjectPolicyFact(true, scope, "IMMUTABLE", "MULTIPLE", Set.of(PURPOSE),
                 Set.of("application/pdf", "image/jpeg", "image/png"), 52_428_800L, "INTERNAL");
