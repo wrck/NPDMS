@@ -25,9 +25,6 @@ vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
 vi.mock('./TaskStateActions.vue', () => ({ default: defineComponent({
   setup(_, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作' }, ['任务状态操作', slots.default?.()]) }
 }) }))
-vi.mock('../wbs/TaskMaintenancePanel.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ requestLeave: () => true, description: { description: '任务的基本说明', descriptionFormat: 'PLAIN' }, canEditDescription: true, openDescription: vi.fn() }); return () => h('div', '任务职责维护') }
-}) }))
 vi.mock('./TaskApprovalPanel.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: leave, isBusy: () => false }); return () => h('div', '原BPM审批办理') }
 }) }))
@@ -150,8 +147,9 @@ it('propagates the Owner leave refusal and does not clear its content during a r
 
 it('does not equate S2 with duration or call a task workbench with a stage identity', async () => {
   const view = render({ kind: 'stage', stageCode: 'S2' }); await flush()
-  expect(textOf(view.root)).toContain('真实准入')
+  expect(textOf(view.root)).toContain('S2')
   expect(textOf(view.root)).toContain('阶段绑定上下文')
+  expect(textOf(view.root)).not.toContain('阶段信息')
   expect(api.getTaskWorkbench).not.toHaveBeenCalled()
 })
 
@@ -169,13 +167,15 @@ it('places one refresh action next to the task business heading and delegates to
   expect(api.getTaskWorkbench).toHaveBeenCalledTimes(1)
 })
 
-it('places the description in a full-width basic-information field and task editing in the action group', async () => {
+it('omits the task breadcrumb and description block and keeps task editing in the action group', async () => {
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
     predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
-  const description = find(view.root, node => node.props?.label === '任务说明')
-  expect(description?.props?.span).toBe(2)
-  expect(textOf(description!)).toContain('任务的基本说明')
+  const text = textOf(view.root)
+  expect(text).not.toContain('任务说明')
+  expect(text).not.toContain('任务的基本说明')
+  expect(find(view.root, node => String(node.props?.class || '').includes('task-breadcrumb'))).toBeUndefined()
+  expect(find(view.root, node => String(node.props?.class || '').includes('task-description-block'))).toBeUndefined()
   const actions = find(view.root, node => node.props?.['aria-label'] === '任务状态操作')
   expect(textOf(actions!)).toContain('任务资料与进度')
 })

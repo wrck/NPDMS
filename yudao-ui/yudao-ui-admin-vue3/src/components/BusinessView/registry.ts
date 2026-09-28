@@ -1,5 +1,6 @@
 import { markRaw, type Component } from 'vue'
 import OwnerCompletionEntry from './OwnerCompletionEntry.vue'
+import ProjectMembersBusinessView from './ProjectMembersBusinessView.vue'
 import { businessPageRoutes, validatePagePresentation, type PagePresentation } from './presentationRoute'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platform/business-view'
@@ -46,10 +47,10 @@ const positiveId = isBusinessViewId
 const adapters: readonly Adapter[] = [
   {
     ...businessPageRoutes.PROJ_PROJECT_ASSIGNMENT,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(ProjectMembersBusinessView),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '人员指派', tab: 'members' }
+        ? { project: { ...resolvedContext.project, id: legacyOwnerId(resolvedContext.project.id) } }
         : undefined
   },
   {

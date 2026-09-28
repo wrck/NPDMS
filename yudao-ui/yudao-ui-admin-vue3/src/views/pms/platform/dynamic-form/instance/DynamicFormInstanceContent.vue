@@ -9,12 +9,15 @@
         <span>实例版本 {{ instance?.instanceVersion ?? '-' }}</span>
       </div>
       <div class="actions">
-        <el-button :disabled="loading || saving" @click="reloadPreservingIntent"
-          >刷新权威事实</el-button
-        >
-        <el-button v-if="canSave" type="primary" :loading="saving" @click="save"
-          >保存填写值</el-button
-        >
+        <!-- 实例操作收口到工作区底部吸附操作栏（businessActionBar 协议）；抽屉等独立渲染原地保留 -->
+        <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+          <el-button :disabled="loading || saving" @click="reloadPreservingIntent"
+            >刷新权威事实</el-button
+          >
+          <el-button v-if="canSave" type="primary" :loading="saving" @click="save"
+            >保存填写值</el-button
+          >
+        </Teleport>
       </div>
     </div>
     <el-alert
@@ -55,9 +58,11 @@ import {
   reconcileInstancePatch
 } from '../components/dynamicFormRuntime'
 import { registerDynamicFormComponents } from '../components/registerDynamicFormComponents'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 // PM-03 / F-PLT-002: the drawer and BusinessView use this single manual-instance renderer.
 defineOptions({ name: 'DynamicFormInstanceContent' })
+const { barTarget } = useBusinessActionBar()
 const props = defineProps<{
   instanceId: BusinessViewId
   expectedRevisionId?: BusinessViewId

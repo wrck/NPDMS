@@ -106,6 +106,7 @@
               @click="toggleStage(stage.stageCode)"
             >
               <Icon
+                v-if="stageHasTasks(stage)"
                 :icon="expandedStage === stage.stageCode ? 'ep:arrow-down' : 'ep:arrow-right'"
                 class="stage-caret"
               />
@@ -114,7 +115,7 @@
               <span class="stage-prog">{{ stageProgress(stage) }}</span>
             </button>
             <div
-              v-if="detail?.id && expandedStage === stage.stageCode"
+              v-if="detail?.id && expandedStage === stage.stageCode && stageHasTasks(stage)"
               class="nav-task-tree"
               :data-testid="`project-nav-tasks-${stage.stageCode}`"
             >
@@ -409,18 +410,24 @@
                 ref="flowRef"
                 :project-id="detail.id"
                 :project="detail"
+                :instances="instances"
                 :selection="stageSelection"
                 :show-stage-gates="false"
                 show-responsibilities
                 @changed="handleFlowChanged"
               />
             </div>
-            <aside class="stage-ws-side" aria-label="门禁与阶段历史">
+            <aside class="stage-ws-side" aria-label="完成条件与阶段历史">
               <ContentWrap>
+                <!-- 侧栏按「完成条件」口径展示：准入/准出/交付件/审批分节；选中任务时由面板追加当前任务交付件 -->
                 <StageGateResultsPanel
+                  ref="stageGateRef"
+                  title="完成条件"
                   :project-id="detail.id"
                   :stage-code="stageSelection?.stageCode || ''"
                   :project-version="detail.version"
+                  :instances="instances"
+                  :task-deliverables="stageSelection?.kind === 'task' ? flowTaskDeliverables : undefined"
                   @changed="loadAll"
                 />
               </ContentWrap>
@@ -748,6 +755,7 @@ const switchTab = async (key: string) => {
   if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return
   if (key !== activeTab.value && (await acceptanceReportRef.value?.requestLeave()) === false) return
   if (key !== activeTab.value && (await flowRef.value?.requestLeave()) === false) return
+  if (key !== activeTab.value && activeTab.value === 'stage' && (await stageGateRef.value?.requestLeave()) === false) return
   activeTab.value = key
   visitedTabs.value = new Set([...visitedTabs.value, key])
 }
@@ -824,6 +832,7 @@ const expandedStage = ref('')
 const stageTreeToken = ref(0)
 const stageSelection = ref<ProjectFlowSelection>()
 const flowRef = ref<InstanceType<typeof ProjectFlowPanel>>()
+const stageGateRef = ref<InstanceType<typeof StageGateResultsPanel>>()
 const deliverableRef = ref<InstanceType<typeof ProjectDeliverableDialog>>()
 const historyVisible = ref(false)
 
@@ -843,11 +852,23 @@ const stageProgress = (stage: StageInstance) => {
   return `${Math.round((done / tasks.length) * 100)}%`
 }
 
+// 无子任务的阶段：导航不渲染展开箭头、不展开任务树（阶段工作台同样不显示任务表格）
+const stageHasTasks = (stage: StageInstance) => instTasks(stage.stageCode).length > 0
+
 const stageHistory = computed(() =>
   sortedStages.value
     .filter((stage) => stage.actualStartTime)
     .sort((a, b) => (a.actualStartTime! < b.actualStartTime! ? 1 : -1))
 )
+
+// 侧栏「完成条件」的任务口径：选中任务时展示该任务绑定的交付件（含状态），门禁部分由阶段门禁面板承载
+const flowTaskDeliverables = computed(() => {
+  const selection = stageSelection.value
+  const taskCode = selection?.task?.taskCode
+  if (selection?.kind !== 'task' || !taskCode) return []
+  return (instances.value?.deliverables || []).filter((item) => item.taskCode === taskCode)
+})
+
 
 const ensureStageSelection = () => {
   if (stageSelection.value?.stageCode && sortedStages.value.some((stage) => stage.stageCode === stageSelection.value?.stageCode)) return
@@ -857,6 +878,11 @@ const ensureStageSelection = () => {
 }
 
 const selectStage = async (stageCode: string) => {
+  // 同页签内切换阶段不经过 switchTab 守卫，先保护工作台与门禁侧栏未保存的修改
+  if (activeTab.value === 'stage' && stageSelection.value?.stageCode !== stageCode) {
+    if ((await flowRef.value?.requestLeave()) === false) return
+    if ((await stageGateRef.value?.requestLeave()) === false) return
+  }
   expandedStage.value = stageCode
   stageSelection.value = { kind: 'stage', stageCode }
   await switchTab('stage')
@@ -878,7 +904,12 @@ const toggleStage = async (stageCode: string) => {
 
 const onTaskSelect = async (task: TaskNode, stageCode: string) => {
   if (task.placeholder || !task.stageCode) return
-  stageSelection.value = { kind: 'task', stageCode, taskId: task.taskId }
+  if (activeTab.value === 'stage' && stageSelection.value?.taskId !== task.taskId) {
+    if ((await flowRef.value?.requestLeave()) === false) return
+    if ((await stageGateRef.value?.requestLeave()) === false) return
+  }
+  // 携带导航任务快照：工作台返回前面板头部即时呈现所选任务，不出现占位标题
+  stageSelection.value = { kind: 'task', stageCode, taskId: task.taskId, task }
   await switchTab('stage')
 }
 
@@ -922,6 +953,9 @@ const loadAll = async () => {
   try {
     await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount(), loadProductRows()])
     stageTreeToken.value++
+    // 深链直达阶段和任务页签时实例尚未就绪，首帧补选必然空转；
+    // 在实例加载完成后回填默认选中，避免中栏空白、侧栏完成条件以空 stageCode 请求门禁报错
+    ensureStageSelection()
   } finally {
     loading.value = false
   }
@@ -930,8 +964,7 @@ const loadAll = async () => {
 const goBack = () => router.push('/pms/project-management/projects')
 
 onMounted(() => {
-  loadAll()
-  ensureStageSelection()
+  void loadAll()
 })
 </script>
 

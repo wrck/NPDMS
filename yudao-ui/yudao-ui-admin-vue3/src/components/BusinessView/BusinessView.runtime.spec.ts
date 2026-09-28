@@ -22,11 +22,38 @@ vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
-vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', async () => {
+  const { defineComponent, h, ref } = await import('vue')
+  // 工期面板的既定离开协议：不暴露 requestLeave，仅暴露 discardChanges（关闭抽屉）。
+  return {
+    default: defineComponent({
+      name: 'MockDurationPanel',
+      props: { readonly: Boolean },
+      emits: ['dirty-change', 'changed'],
+      setup(_props, { expose, emit }) {
+        const dirty = ref(false)
+        expose({ discardChanges: () => durationPanelState.discardResult })
+        return () => {
+          if (durationPanelState.crash) throw new Error('PANEL_RENDER_CRASH')
+          return h('div', [
+            h('button', {
+              'data-testid': 'duration-dirty',
+              onClick: () => { dirty.value = !dirty.value; emit('dirty-change', dirty.value) }
+            }, 'make-dirty')
+          ])
+        }
+      }
+    })
+  }
+})
 vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
 vi.mock('@/config/axios', () => ({ default: { post: vi.fn() } }))
 vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } } }))
 const confirm = vi.hoisted(() => vi.fn(async (): Promise<void> => undefined))
+const durationPanelState = vi.hoisted(() => ({
+  crash: false,
+  discardResult: true
+}))
 vi.mock('@/hooks/web/useMessage', () => ({
   useMessage: () => ({ confirm, warning: vi.fn(), success: vi.fn(), info: vi.fn() })
 }))
@@ -643,5 +670,61 @@ describe('PM-03 BusinessView runtime', () => {
     data.registration.status = 'DISABLED'
     data.allowedActions = ['PATCH_INSTANCE']
     expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+  })
+  const durationTarget = (): BusinessViewTarget & Record<string, unknown> => {
+    const data = target('PAGE') as any
+    Object.assign(data.registration, {
+      componentKey: 'PLN_CONSTRUCTION_PLAN', ownerContext: 'PLN', entityType: 'CONSTRUCTION_PLAN'
+    })
+    data.resolvedContext = { project: { id: 11 } as any }
+    data.allowedActions = ['QUERY']
+    return data
+  }
+  it('lets discardable content leave and discards it in the second phase instead of blocking switches', async () => {
+    durationPanelState.discardResult = true
+    const state = reactive({ ...durationTarget() })
+    const host = ref<any>()
+    const mounted = mount(
+      defineComponent({ setup: () => () => h(BusinessViewHost, { ...state, ref: host }) }),
+      {},
+      options
+    )
+    await tick()
+    await (findByTestId(mounted.root, 'duration-dirty')!.props!.onClick as Function)()
+    await tick()
+    expect(host.value.isDirty()).toBe(true)
+    expect(await host.value.requestLeave()).toBe(true)
+    expect(host.value.isDirty()).toBe(true)
+    state.resolvedContext = { project: { id: 12 } } as any
+    await tick()
+    expect(host.value.isDirty()).toBe(false)
+    expect(textOf(mounted.root)).not.toContain('业务组件暂不可用')
+    mounted.app.unmount()
+  })
+  it('resets a stale dirty flag after a crashed view unmounts and revives it on same-target refresh', async () => {
+    durationPanelState.discardResult = true
+    const state = reactive({ ...durationTarget() })
+    const host = ref<any>()
+    const mounted = mount(
+      defineComponent({ setup: () => () => h(BusinessViewHost, { ...state, ref: host }) }),
+      {},
+      options
+    )
+    await tick()
+    await (findByTestId(mounted.root, 'duration-dirty')!.props!.onClick as Function)()
+    await tick()
+    expect(host.value.isDirty()).toBe(true)
+    durationPanelState.crash = true
+    state.allowedActions = ['QUERY']
+    await tick()
+    expect(textOf(mounted.root)).toContain('业务组件暂不可用')
+    expect(host.value.isDirty()).toBe(false)
+    expect(await host.value.requestLeave()).toBe(true)
+    durationPanelState.crash = false
+    state.resolvedContext = { project: { id: 11 } } as any
+    await tick()
+    expect(textOf(mounted.root)).not.toContain('业务组件暂不可用')
+    expect(findByTestId(mounted.root, 'duration-dirty')).toBeTruthy()
+    mounted.app.unmount()
   })
 })

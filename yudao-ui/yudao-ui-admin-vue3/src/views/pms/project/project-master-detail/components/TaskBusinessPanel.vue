@@ -51,6 +51,10 @@ import {
 } from '@/api/pms/platform/business-view'
 import { getProject, type ProjectMasterVO } from '@/api/pms/project/projects'
 import { legacyOwnerId } from '@/api/pms/platform/business-view/ids'
+import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import {
+  prefetchTaskView, takeTaskViewPrefetch, taskBusinessContextKey, requirementWorkspaceKey
+} from '../taskViewPrefetch'
 const props = defineProps<{
   taskId: BusinessViewId
   taskVersion: number
@@ -119,9 +123,21 @@ const load = async (useInitialProject = false) => {
   error.value = ''
   clearFactVersion()
   try {
-    const next = await BusinessApi.getTaskBusinessContext(taskId)
+    const next = await (takeTaskViewPrefetch<TaskBusinessContext>(taskBusinessContextKey(taskId))
+      ?? BusinessApi.getTaskBusinessContext(taskId))
     if (!isCurrent()) return
     if (!sameTask(next.taskId, taskId)) throw new Error('Task context mismatch')
+    // 需求分析：把工作区读取也提前到 Owner 项目解析与 BusinessViewHost 装载之前并行；
+    // 仅在 enclosing 项目与业务上下文一致（EntityPanel 直接复用 initialProject）时预取，
+    // 键与 EntityPanel.workspace 的实参严格一致。未命中时 EntityPanel 照常直查。
+    const execution = next.execution
+    const initialProjectId = props.initialProject?.id
+    if (next.businessView?.componentKey === 'PROJ_REQUIREMENT_ANALYSIS' && execution != null
+        && initialProjectId != null && String(initialProjectId) === String(next.projectId)) {
+      const workspaceProjectId = legacyOwnerId(initialProjectId)
+      prefetchTaskView(requirementWorkspaceKey(workspaceProjectId, undefined, execution.taskId),
+        () => RequirementAnalysisApi.workspace(workspaceProjectId, undefined, execution.taskId))
+    }
     // Reuse the enclosing project's authorized response only on entry and only
     // for the same project. Refreshes still query current Owner project facts.
     const initialProject = useInitialProject && props.initialProject?.id != null &&

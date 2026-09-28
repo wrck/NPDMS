@@ -226,7 +226,7 @@
             <el-button
               link
               type="success"
-              @click="goMembers(row)"
+              @click="openMembers(row)"
               v-hasPermi="['pms:project:query']"
             >
               项目成员
@@ -874,6 +874,16 @@
       </div>
     </el-drawer>
 
+    <!-- ============ 项目成员抽屉（内嵌成员页，立项后直接指派） ============ -->
+    <el-drawer
+      v-model="membersVisible"
+      :title="`项目成员：${membersProject?.projectName || membersProject?.projectCode || ''}`"
+      :size="membersDrawerSize"
+      destroy-on-close
+    >
+      <ProjectMembersPanel v-if="membersProject" :project="membersProject" @updated="load" />
+    </el-drawer>
+
     <CustomerCorrectionDialog ref="customerCorrectionRef" @updated="load" />
     <!-- ============ 编辑弹窗（BR-7 可编辑属性） ============ -->
     <Dialog v-model="editVisible" title="编辑项目（可编辑属性）" width="520px">
@@ -940,6 +950,7 @@ import type { SiteVO } from '@/api/pms/asset/location'
 import { getSelectableCustomers, type SelectedCustomer } from './customerSelection'
 import TemplateMatchDiagnostics from '@/views/pms/project/project-templates/TemplateMatchDiagnostics.vue'
 import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
+import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
 import { matchCustomerSelectedTemplates, createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import { getSelectableContracts, type SelectedContract } from '@/views/pms/project/projects/contractSelection'
@@ -1299,6 +1310,7 @@ const submitCreate = async () => {
         `${created.matchDecisionMode || '-'}；operationId ${created.matchOperationId || '-'}`
     )
     wizardVisible.value = false
+    openMembers(created)
     await load()
   } catch (error: any) {
     createErrorMessage.value =
@@ -1323,9 +1335,15 @@ const goDetail = (row: ProjectMasterVO) => {
     query: { projectId: row.id }
   })
 }
-const goMembers = (row: ProjectMasterVO) => router.push({
-  path: '/pms-inheritance/project-detail', query: { projectId: row.id, section: 'members' }
-})
+
+/** 内嵌打开项目成员页（立项后直接指派，不跳转详情工作台） */
+const membersVisible = ref(false)
+const membersProject = ref<ProjectMasterVO>()
+const membersDrawerSize = computed(() => (mobile.value ? '100%' : 'min(1100px, 92%)'))
+const openMembers = (row: ProjectMasterVO) => {
+  membersProject.value = row
+  membersVisible.value = true
+}
 
 const openDetail = async (row: ProjectMasterVO) => {
   detailTab.value = 'base'

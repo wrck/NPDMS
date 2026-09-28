@@ -44,11 +44,11 @@
     <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="load" />
     <el-text v-if="project.lifecycleStatus !== 'ACTIVE'" type="info">项目已关闭，成员只读。</el-text>
     <el-dialog v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
-      :width="dialogWidth" :close-on-click-modal="false" destroy-on-close>
+      :width="dialogWidth" append-to-body :close-on-click-modal="false" destroy-on-close>
       <UnifiedMemberForm v-if="memberVisible && dialogProject?.version != null" :project="dialogProject"
         :primary-user-id="managers?.primaryUserId ?? undefined" :member="selected" :rejoin="rejoin" @cancel="memberVisible = false" @saved="saved" />
     </el-dialog>
-    <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" :close-on-click-modal="false">
+    <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" append-to-body :close-on-click-modal="false">
       <el-form label-position="top" @submit.prevent="remove">
         <p>{{ selected?.memberName }} · {{ selected && roleLabel(selected.memberRole) }}；只结束当前区间，不删除历史。</p>
         <el-form-item v-if="requiresReplacementPrimary" label="接任主责项目经理" required>

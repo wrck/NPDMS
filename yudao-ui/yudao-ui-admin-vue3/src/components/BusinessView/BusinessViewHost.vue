@@ -9,9 +9,12 @@
         :title="`业务已提交：${operation.receipt.value.resultCode}；节点当前状态：${operation.observation.value?.node.status || '待刷新'}。业务提交不等于节点完成。`"
         type="info" :closable="false" />
       <el-alert v-if="operation.uncertain.value" title="上次操作响应未确认，请先用原请求确认结果；不要重新填写并重复提交。" type="warning" :closable="false" />
-      <el-button v-if="operation.uncertain.value" :loading="operation.recovering.value" @click="operation.recover()">用原请求确认提交结果</el-button>
-      <el-button v-if="operation.requiresReopen.value" @click="retry">处理未保存内容并重新进入</el-button>
-      <el-button :loading="operation.checking.value" @click="operation.refresh()">刷新执行状态（不重载业务表单）</el-button>
+      <!-- 执行状态操作收口到工作区底部吸附操作栏（businessActionBar 协议）；无操作栏的独立渲染原地保留 -->
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+        <el-button v-if="operation.uncertain.value" :loading="operation.recovering.value" @click="operation.recover()">用原请求确认提交结果</el-button>
+        <el-button v-if="operation.requiresReopen.value" @click="retry">处理未保存内容并重新进入</el-button>
+        <el-button :loading="operation.checking.value" @click="operation.refresh()">刷新执行状态（不重载业务表单）</el-button>
+      </Teleport>
       <el-table v-if="operation.observation.value?.actions.length" :data="operation.observation.value.actions" size="small" aria-label="操作权限与规则">
         <el-table-column prop="label" label="业务操作" min-width="120" />
         <el-table-column label="业务权限" width="120"><template #default="{ row }">{{ row.ownerPermitted ? '允许' : active.resolvedContext.businessObjectId == null ? '选择对象后校验' : '未获授权' }}</template></el-table-column>
@@ -32,11 +35,13 @@ import { computed, onErrorCaptured, provide, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { resolveBusinessView, type BusinessViewTarget } from './registry'
 import { editingTargetKey, operationClientKey, useOperationHost } from './operationHost'
+import { useBusinessActionBar } from './businessActionBar'
 
 defineOptions({ name: 'BusinessViewHost' })
 const props = defineProps<BusinessViewTarget>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean]; 'switch-blocked': [] }>()
 const message = useMessage()
+const { barTarget } = useBusinessActionBar()
 const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },
   allowedActions: [...(props.allowedActions || [])], readonly: props.readonly })
 const active = shallowRef(capture())
@@ -51,6 +56,10 @@ const loadError = ref('')
 const retryNo = ref(0)
 const setDirty = (value: boolean) => { dirty.value = value; emit('dirty-change', value) }
 const ownerChanged = () => { emit('changed'); void operation.refresh(true) }
+// 业务内容一旦卸载（装载失败、上下文缺失或执行检查中），其未保存缓冲已不存在；
+// 脏标记必须随之复位，否则切换与重新装载会被永久阻断。
+const contentMounted = computed(() => !loadError.value && !resolved.value.error && operation.mode.value !== 'CHECKING')
+watch(contentMounted, (mounted) => { if (!mounted) setDirty(false) })
 let leaving: Promise<boolean> | undefined
 const requestLeave = (): Promise<boolean> => {
   if (operation.client.value?.isBusy()) return Promise.resolve(false)
@@ -62,6 +71,8 @@ const requestLeave = (): Promise<boolean> => {
   leaving = (async () => {
     if (contentRef.value?.requestLeave) return await contentRef.value.requestLeave()
     if (!dirty.value) return true
+    // 内容暴露 discardChanges 即其声明的放弃协议（如工期抽屉关闭），放行给第二阶段执行。
+    if (contentRef.value?.discardChanges) return true
     message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
     return false
   })().finally(() => { leaving = undefined })
@@ -73,14 +84,24 @@ watch(() => [editingTargetKey(props), props.registration, props.resolvedContext,
   if (editingTargetKey(next) !== activeKey.value) {
     if (!(await requestLeave())) { if (sequence === switchSequence) emit('switch-blocked'); return }
     if (sequence !== switchSequence || editingTargetKey(next) !== editingTargetKey(props)) return
-    if (contentRef.value?.discardChanges?.() === false) { emit('switch-blocked'); return }
+    if (contentRef.value?.discardChanges?.() === false) {
+      message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
+      emit('switch-blocked'); return
+    }
     loadError.value = ''; setDirty(false)
+  } else if (loadError.value) {
+    // 同目标上下文重载：已崩溃的装载没有可保存缓冲，直接重建以恢复业务视图显示。
+    loadError.value = ''; retryNo.value++
   }
   active.value = next
 }, { deep: true })
 const retry = async () => {
   const sequence = ++switchSequence
-  if (!(await requestLeave()) || sequence !== switchSequence || contentRef.value?.discardChanges?.() === false) return
+  if (!(await requestLeave()) || sequence !== switchSequence) return
+  if (contentRef.value?.discardChanges?.() === false) {
+    message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
+    return
+  }
   loadError.value = ''; retryNo.value++
   await operation.reopen()
 }

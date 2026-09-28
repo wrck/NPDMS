@@ -13,7 +13,10 @@
     <el-card v-if="context?.bindingType === 'PAGE'" shadow="never" class="stage-page-card">
       <template #header>页面办理</template>
       <p class="stage-page-hint">本阶段通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，不产生阶段完成事实。</p>
-      <el-button type="primary" :disabled="!!error || loading || !context.routePath" @click="openPage">打开页面</el-button>
+      <!-- 跳转入口收口到工作区底部吸附操作栏（businessActionBar 协议）；无操作栏的独立渲染原地保留 -->
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+        <el-button type="primary" :disabled="!!error || loading || !context.routePath" @click="openPage">打开页面</el-button>
+      </Teleport>
       <span v-if="context.routePath" class="stage-page-route">{{ context.routePath }}</span>
     </el-card>
   </section>
@@ -23,10 +26,12 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
 import StageApprovalPanel from './StageApprovalPanel.vue'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 import { getStageBusinessContext, type StageBusinessContext } from '@/api/pms/project/stage-business'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 const props = defineProps<{ project: ProjectMasterVO; stageCode: string }>()
-const emit = defineEmits<{ changed: []; 'dirty-change': [boolean] }>()
+const emit = defineEmits<{ changed: []; 'dirty-change': [boolean]; binding: [bindingType?: string] }>()
+const { barTarget } = useBusinessActionBar()
 const context = ref<StageBusinessContext>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
 const approvalRef = ref<InstanceType<typeof StageApprovalPanel>>()
@@ -47,6 +52,8 @@ const load = async () => {
     context.value = context.value?.businessView && !value.businessView && hostRef.value?.isDirty?.()
       ? { ...context.value, ownerActions: [], readonly: true, recoverableError: value.recoverableError || 'VIEW_UNAVAILABLE' }
       : value
+    // 上报冻结绑定类型：STAGE_NATIVE 无办理区，父级据此整节隐藏（标题与本面板）
+    emit('binding', context.value?.bindingType)
   } catch {
     if (token === sequence) error.value = '阶段业务上下文加载失败，请重试。'
   } finally {

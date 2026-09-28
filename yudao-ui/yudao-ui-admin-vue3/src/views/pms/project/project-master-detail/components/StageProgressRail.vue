@@ -37,7 +37,7 @@
     </div>
     <div v-else class="rail-empty">阶段实例尚未生成，创建项目计划后展示推进轨。</div>
     <div v-show="legendVisible && sortedStages.length" class="rail-detail">
-      <span class="rail-hint">每阶段通过出口门禁后进入下一阶段；门禁要求与推进操作见工作区右侧栏。</span>
+      <span class="rail-hint">每阶段通过出口门禁后进入下一阶段；门禁要求见工作区右侧栏，推进操作见工作区底部操作栏。</span>
       <span class="lg"><i class="lg-done"></i>已完成</span>
       <span class="lg"><i class="lg-cur"></i>进行中</span>
       <span class="lg"><i class="lg-over"></i>超期</span>
