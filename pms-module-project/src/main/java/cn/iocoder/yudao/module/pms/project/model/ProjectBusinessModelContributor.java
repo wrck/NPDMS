@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.model;
 
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessFieldDescriptor;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelDeclaration;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelDescriptor;
@@ -133,7 +135,10 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
                         field("lifecycleStatus", "生命周期状态", EntityField.Type.TEXT),
                         field("currentStage", "当前阶段", EntityField.Type.TEXT),
                         field("assignmentStatus", "指派状态", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "proj_project");
+                List.of(), List.of(),
+                // P06R：项目主档接入统一交付件能力，/pms/business-entity/PRJ/project/{id} 呈现交付面板
+                List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY, null, true)),
+                "proj_project");
         declarations.add(new BusinessModelDeclaration(project, ProjectMasterDO.class, projectMasterMapper, null));
         BusinessModelDescriptor portfolio = new BusinessModelDescriptor("PRJ", "portfolio",
                 "PRJ_PORTFOLIO", 1, BusinessModelKind.AGGREGATE_ROOT, "项目组合",
