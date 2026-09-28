@@ -5,10 +5,13 @@
         ><h3>施工计划</h3><p>从工期要求倒排阶段，在阶段内安排任务，确认后提交服务经理审核。</p></div
       >
       <div class="schedule-actions">
-        <el-button :disabled="dirty || acting" @click="load()">刷新</el-button>
-        <el-button :disabled="acting" @click="durationVisible = true">{{
-          durationPlan ? '管理工期' : '录入工期'
-        }}</el-button>
+        <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（计划进度）原地渲染 -->
+        <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+          <el-button :disabled="dirty || acting" @click="load()">刷新</el-button>
+          <el-button :disabled="acting" @click="durationVisible = true">{{
+            durationPlan ? '管理工期' : '录入工期'
+          }}</el-button>
+        </Teleport>
       </div>
     </header>
     <dl class="schedule-facts">
@@ -76,18 +79,20 @@
           :label="`计划 #${item.id} · ${versionLabel(item)}`"
         />
       </el-select>
-      <el-button
-        v-hasPermi="['pms:imp-stage-plan:create']"
-        :disabled="dirty || acting || loading || hasActiveDraft || !durationPlan"
-        @click="createDraft"
-        >{{ currentEffective ? '新建调整版本' : '制定施工计划' }}</el-button
-      >
-      <el-button
-        v-if="currentEffective && batch?.id !== currentEffective.id"
-        :disabled="acting || loading"
-        @click="showComparison"
-        >与生效计划对比</el-button
-      >
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+        <el-button
+          v-hasPermi="['pms:imp-stage-plan:create']"
+          :disabled="dirty || acting || loading || hasActiveDraft || !durationPlan"
+          @click="createDraft"
+          >{{ currentEffective ? '新建调整版本' : '制定施工计划' }}</el-button
+        >
+        <el-button
+          v-if="currentEffective && batch?.id !== currentEffective.id"
+          :disabled="acting || loading"
+          @click="showComparison"
+          >与生效计划对比</el-button
+        >
+      </Teleport>
       <el-tag
         v-if="batch"
         :type="batch.status === 2 ? 'success' : batch.status === 1 ? 'warning' : 'info'"
@@ -150,42 +155,46 @@
             placeholder="说明调整依据，随计划一并提交审核"
         /></el-form-item>
         <div class="schedule-actions plan-footer">
-          <el-button
-            :disabled="acting || dirty"
-            @click="estimate"
-            v-hasPermi="['pms:imp-stage-plan:update']"
-            >重新倒排</el-button
-          >
-          <span class="footer-note">{{
-            dirty ? '日期已调整，请先保存' : '审批通过后，阶段和任务计划统一生效'
-          }}</span>
-          <el-button
-            :disabled="acting || !dirty"
-            @click="save"
-            v-hasPermi="['pms:imp-stage-plan:update']"
-            >保存调整</el-button
-          >
-          <el-button
-            type="primary"
-            :disabled="acting || dirty || !!taskIssues.length || staleDuration"
-            @click="openSubmit"
-            v-hasPermi="['pms:imp-stage-plan:submit']"
-            >提交审核</el-button
-          >
+          <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+            <el-button
+              :disabled="acting || dirty"
+              @click="estimate"
+              v-hasPermi="['pms:imp-stage-plan:update']"
+              >重新倒排</el-button
+            >
+            <span class="footer-note">{{
+              dirty ? '日期已调整，请先保存' : '审批通过后，阶段和任务计划统一生效'
+            }}</span>
+            <el-button
+              :disabled="acting || !dirty"
+              @click="save"
+              v-hasPermi="['pms:imp-stage-plan:update']"
+              >保存调整</el-button
+            >
+            <el-button
+              type="primary"
+              :disabled="acting || dirty || staleDuration"
+              @click="openSubmit"
+              v-hasPermi="['pms:imp-stage-plan:submit']"
+              >提交审核</el-button
+            >
+          </Teleport>
         </div>
       </el-form>
-      <el-button
-        v-if="batch.bpmProcessInstanceId"
-        link
-        type="primary"
-        @click="
-          router.push({
-            name: 'BpmProcessInstanceDetail',
-            query: { id: batch.bpmProcessInstanceId }
-          })
-        "
-        >查看审批进度</el-button
-      >
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+        <el-button
+          v-if="batch.bpmProcessInstanceId"
+          link
+          type="primary"
+          @click="
+            router.push({
+              name: 'BpmProcessInstanceDetail',
+              query: { id: batch.bpmProcessInstanceId }
+            })
+          "
+          >查看审批进度</el-button
+        >
+      </Teleport>
     </template>
     <el-empty
       v-else-if="!loading && !errorText"
@@ -195,17 +204,19 @@
           : initialDurationHint(project) || '先录入项目工期，再倒排阶段并安排任务。'
       "
     >
-      <el-button v-if="!durationPlan" type="primary" :disabled="!!initialDurationHint(project)" @click="durationVisible = true"
-        >录入项目工期</el-button
-      >
-      <el-button
-        v-else
-        v-hasPermi="['pms:imp-stage-plan:create']"
-        type="primary"
-        :disabled="acting"
-        @click="createDraft"
-        >制定施工计划</el-button
-      >
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+        <el-button v-if="!durationPlan" type="primary" :disabled="!!initialDurationHint(project)" @click="durationVisible = true"
+          >录入项目工期</el-button
+        >
+        <el-button
+          v-else
+          v-hasPermi="['pms:imp-stage-plan:create']"
+          type="primary"
+          :disabled="acting"
+          @click="createDraft"
+          >制定施工计划</el-button
+        >
+      </Teleport>
     </el-empty>
   </ContentWrap>
   <el-drawer
@@ -269,9 +280,11 @@ import * as TaskApi from '@/api/pms/project/task-workbench'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectDurationPanel from './ProjectDurationPanel.vue'
 import SchedulePlanningTable from './SchedulePlanningTable.vue'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
+const { barTarget } = useBusinessActionBar()
 const emit = defineEmits<{
   'open-task': [task: TaskApi.TaskNode, stageCode: string]
   changed: []
@@ -392,6 +405,31 @@ const apply = (value: PlanApi.StagePlanBatchVO) => {
   selectedId.value = value.id
   saved.value = JSON.stringify(value)
 }
+// 任务计划日期为空时默认沿用所属阶段日期，避免逐项重复填写；默认回填不计为用户调整。
+// 生效与审批中的计划（status 1/2）按原样展示，不回填。
+watch(
+  () =>
+    batch.value && (batch.value.status === 0 || batch.value.status === 3) && editable.value
+      ? batch.value.items
+          .map((item) => `${item.phaseCode}:${item.planStart}~${item.planEnd}`)
+          .join('|')
+      : '',
+  () => {
+    const value = batch.value
+    if (!value || (value.status !== 0 && value.status !== 3) || !editable.value) return
+    const wasDirty = JSON.stringify(value) !== saved.value
+    let changed = false
+    for (const task of value.tasks || []) {
+      if (task.planStart && task.planEnd) continue
+      const stage = value.items.find((item) => item.phaseCode === task.stageCode)
+      if (!stage?.planStart || !stage.planEnd) continue
+      if (!task.planStart) task.planStart = stage.planStart
+      if (!task.planEnd) task.planEnd = stage.planEnd
+      changed = true
+    }
+    if (changed && !wasDirty) saved.value = JSON.stringify(value)
+  }
+)
 const guard = async () => {
   if (acting.value || durationRef.value?.isDirty()) return false
   if (!dirty.value) return true
@@ -567,17 +605,6 @@ const showComparison = async () => {
 const save = async () => {
   const value = batch.value
   if (!value || !editable.value) return
-  if (!value.remark?.trim()) return message.warning('请填写调整原因')
-  // 2026-09-24 按业务指示停用阶段起止日期逆序/重叠前端校验；超出版本工期与任务日期检查保留
-  for (const item of value.items) {
-    if (
-      (value.baselineStart && item.planStart < value.baselineStart) ||
-      (value.baselineEnd && item.planEnd > value.baselineEnd)
-    )
-      return message.warning('阶段日期不能超出本版本工期')
-  }
-  const invalidTask = taskIssues.value.find((item) => item.issue !== '待安排日期')
-  if (invalidTask) return message.warning(`${invalidTask.task.name}：${invalidTask.issue}`)
   await command(
     () =>
       PlanApi.updateStagePlanItems({
@@ -595,13 +622,28 @@ const save = async () => {
     '计划调整已保存'
   )
 }
+// 保存不做校验，避免填写中的计划日期丢失；完整性检查集中在提交审核时进行。
+// 阶段次序是否合法由后端按模板冻结路径准入约束判定（串行边允许当天衔接，并行分支允许重叠）。
 const submit = async () => {
-  if (!batch.value || !approverId.value || dirty.value) return
+  const value = batch.value
+  if (!value || !approverId.value || dirty.value) return
+  if (!value.remark?.trim()) return message.warning('请填写调整原因')
+  for (const item of value.items) {
+    if (!item.planStart || !item.planEnd)
+      return message.warning('请填写全部阶段的计划起止日期')
+    if (item.planEnd < item.planStart)
+      return message.warning(`${item.phaseName || '阶段'}计划结束不能早于计划开始`)
+    if (
+      (value.baselineStart && item.planStart < value.baselineStart) ||
+      (value.baselineEnd && item.planEnd > value.baselineEnd)
+    )
+      return message.warning('阶段日期不能超出本版本工期')
+  }
   if (taskIssues.value.length)
     return message.warning(`${taskIssues.value[0].task.name}：${taskIssues.value[0].issue}`)
   if (
     await command(
-      () => PlanApi.submitStagePlanBatch(batch.value!.id!, approverId.value!),
+      () => PlanApi.submitStagePlanBatch(value.id!, approverId.value!),
       '计划已提交审核'
     )
   )

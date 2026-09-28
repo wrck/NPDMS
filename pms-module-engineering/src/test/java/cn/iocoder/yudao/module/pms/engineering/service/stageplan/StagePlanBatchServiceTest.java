@@ -74,6 +74,7 @@ class StagePlanBatchServiceTest {
         batch.setStatus(StagePlanBatchDO.STATUS_DRAFT);
         batch.setBpmProcessInstanceId("PI-1");
         batch.setVersion(1L);
+        batch.setRemark("测试调整原因");
         when(batchMapper.selectById(100L)).thenReturn(batch);
         when(batchMapper.updateById(any(StagePlanBatchDO.class))).thenReturn(1);
         when(itemMapper.updateById(any(StagePlanItemDO.class))).thenReturn(1);
@@ -240,23 +241,73 @@ class StagePlanBatchServiceTest {
     }
 
     @Test
-    void updateItemsRejectsOverlappingStages() {
+    void updateItemsAllowsOverlappingDraftDatesWithoutValidation() {
         when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
                 item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
                 item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 6), LocalDate.of(2026, 1, 10))));
         StagePlanItemUpdateReqVO reqVO = new StagePlanItemUpdateReqVO();
         reqVO.setId(100L);
         reqVO.setVersion(1);
-        reqVO.setRemark("调整阶段日期");
         StagePlanItemUpdateReqVO.Item i2 = new StagePlanItemUpdateReqVO.Item();
         i2.setId(2L);
-        // 调整为与阶段一在 1/5 重叠
+        // 保存仅持久化草稿调整，不校验重叠/原因，避免填写中的计划日期丢失；完整性检查集中在提交审核
         i2.setPlanStart(LocalDate.of(2026, 1, 5));
         i2.setPlanEnd(LocalDate.of(2026, 1, 10));
         reqVO.setItems(List.of(i2));
 
-        ServiceException ex = assertThrows(ServiceException.class, () -> service.updateItems(reqVO));
-        assertTrue(ex.getMessage().contains("重叠"));
+        assertDoesNotThrow(() -> service.updateItems(reqVO));
+        ArgumentCaptor<StagePlanItemDO> captor = ArgumentCaptor.forClass(StagePlanItemDO.class);
+        verify(itemMapper, times(1)).updateById(captor.capture());
+        assertEquals(LocalDate.of(2026, 1, 5), captor.getValue().getPlanStart());
+    }
+
+    @Test
+    void submitRejectsSerialEdgeOverlap() {
+        // 冻结路径串行边 1→2：后继开始（1/4）早于前驱结束（1/5）才拒绝
+        batch.setInputSnapshot("{\"serialEdges\":[{\"fromStageId\":1,\"toStageId\":2}]}");
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
+                item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 4), LocalDate.of(2026, 1, 10))));
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertTrue(ex.getMessage().contains("不得早于"));
+        verifyNoInteractions(processInstanceApi);
+    }
+
+    @Test
+    void submitAllowsBackToBackSerialStages() {
+        // 串行边允许当天首尾衔接：前驱 1/5 结束，后继 1/5 即可开始
+        String edgeSnapshot = "{\"serialEdges\":[{\"fromStageId\":1,\"toStageId\":2}]}";
+        frozenInputs();
+        batch.setInputSnapshot(edgeSnapshot);
+        when(stagePlanApi.calculateSchedule(any(), any(), any(), any())).thenReturn(new ProjectStagePlanApi.ScheduleCalculation(
+                1L, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 11), List.of(), edgeSnapshot));
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
+                item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 10))));
+        properties.setProcessDefinitionKey("pms_stage_plan_approve");
+        when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class)))
+                .thenReturn("PI-1");
+        assertDoesNotThrow(() -> service.submit(100L, 99L));
+    }
+
+    @Test
+    void submitAllowsParallelSiblingOverlap() {
+        // 并行分支之间无边约束：允许日期重叠
+        frozenInputs();
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
+                item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 3), LocalDate.of(2026, 1, 10))));
+        properties.setProcessDefinitionKey("pms_stage_plan_approve");
+        when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class)))
+                .thenReturn("PI-1");
+        assertDoesNotThrow(() -> service.submit(100L, 99L));
+    }
+
+    @Test
+    void submitRequiresAdjustmentRemark() {
+        batch.setRemark(" ");
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        verifyNoInteractions(processInstanceApi);
     }
 
     private List<StagePlanItemDO> nonOverlappingItems() {

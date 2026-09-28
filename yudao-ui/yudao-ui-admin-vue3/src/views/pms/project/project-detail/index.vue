@@ -1358,22 +1358,16 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'deliverable': {
+    // P06R 统一交付件后 imp-deliverable 只读：历史记录查看；新登记走交付面板/统一交付件能力
     key: 'deliverable', label: '交付件', icon: 'ep:folder', path: '/pms/engineering/execution/imp-deliverable',
     load: (pid, pageNo, pageSize) => DeliverableApi.getDeliverablePage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => DeliverableApi.createDeliverable(data),
-    update: (data) => DeliverableApi.updateDeliverable(data),
-    delete: (id) => DeliverableApi.deleteDeliverable(id),
     get: (id) => DeliverableApi.getDeliverable(id),
     columns: [
       { prop: 'name', label: '交付件名称', minWidth: 180 },
       { prop: 'deliverableType', label: '类型', width: 100 },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
-    statusMap: { 0: { label: '待归档', tone: 'yellow' }, 1: { label: '已归档', tone: 'green' }, 2: { label: '已作废', tone: 'red' } },
-    actions: [
-      { label: '归档', type: 'success', show: (r) => r.status === 0, run: (r) => DeliverableApi.archiveDeliverable(r.id), confirm: '归档该交付件？' },
-      { label: '作废', type: 'danger', show: (r) => r.status === 0 || r.status === 1, run: (r) => DeliverableApi.voidDeliverable(r.id), confirm: '作废该交付件？' }
-    ]
+    statusMap: { 0: { label: '待归档', tone: 'yellow' }, 1: { label: '已归档', tone: 'green' }, 2: { label: '已作废', tone: 'red' } }
   },
   // --- 验收收尾 ---
   'completion-certificate': {

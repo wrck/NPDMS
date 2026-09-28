@@ -233,12 +233,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                 .collect(java.util.stream.Collectors.toSet()).containsAll(updates.keySet())) {
             throw exception(STAGE_PLAN_ARGUMENT_INVALID, "不能调整其他批次的阶段明细");
         }
-        boolean datesChanged = items.stream().anyMatch(item -> {
-            var change = updates.get(item.getId());
-            return change != null && (!Objects.equals(item.getPlanStart(), change.getPlanStart()) || !Objects.equals(item.getPlanEnd(), change.getPlanEnd()));
-        }) || updateReqVO.getTasks() != null && !Objects.equals(readTasks(batch), updateReqVO.getTasks());
-        if (datesChanged && (updateReqVO.getRemark() == null || updateReqVO.getRemark().isBlank()))
-            throw exception(STAGE_PLAN_ARGUMENT_INVALID, "调整日期必须填写原因");
+        // 保存仅持久化草稿调整，不做阶段/任务日期与原因校验，避免填写中的计划内容被拦截丢失；
+        // 完整性检查集中在 submit。
         for (StagePlanItemDO item : items) {
             StagePlanItemUpdateReqVO.Item change = updates.get(item.getId());
             if (change == null) continue;
@@ -252,9 +248,6 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             update.setRemark(item.getRemark());
             itemMapper.updateById(update);
         }
-        ConstructionPlanRevisionDO baseline = loadBatchBaseline(batch);
-        validateNoOverlap(items, baseline, batch);
-        validateAcceptanceConstraints(batch, items);
         var taskPlans = updateReqVO.getTasks() == null ? readTasks(batch) : updateReqVO.getTasks();
         validateTaskPlans(readTasks(batch), taskPlans, items, false);
         {
@@ -280,9 +273,11 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         if (approver == null || !Objects.equals(approver.userId(), approverUserId)
                 || approver.effectiveRoleCodes().stream().noneMatch(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES::contains))
             throw exception(STAGE_PLAN_ARGUMENT_INVALID, "审批人必须是本项目的有效服务经理");
+        if (batch.getRemark() == null || batch.getRemark().isBlank())
+            throw exception(STAGE_PLAN_ARGUMENT_INVALID, "提交审核前请填写调整原因");
         List<StagePlanItemDO> items = itemMapper.selectListByBatchId(batchId);
         ConstructionPlanRevisionDO baseline = loadBatchBaseline(batch);
-        validateNoOverlap(items, baseline, batch);
+        validateStageSequence(items, baseline, batch);
         validateAcceptanceConstraints(batch, items);
         validateTaskPlans(readTasks(batch), readTasks(batch), items, true);
         if (batch.getInputSnapshot() == null) throw exception(STAGE_PLAN_DATE_INVALID, "请先按冻结项目计划重新推算，再提交审核");
@@ -524,7 +519,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                     || !Objects.equals(before.parentTaskId(), task.parentTaskId()) || !Objects.equals(before.version(), task.version())
                     || !Objects.equals(before.acceptanceTime(), task.acceptanceTime()) || !Objects.equals(before.name(), task.name()))
                 throw exception(STAGE_PLAN_ARGUMENT_INVALID, "任务不属于当前计划或其冻结身份被修改");
-            if (!requireDates && task.planStart() == null && task.planEnd() == null) continue;
+            if (!requireDates) continue;
             var stage = stages.get(task.stageCode());
             if (stage == null || task.planStart() == null || task.planEnd() == null || task.planEnd().isBefore(task.planStart())
                     || stage.getPlanStart() == null || stage.getPlanEnd() == null || task.planStart().isBefore(stage.getPlanStart())
@@ -573,9 +568,10 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     }
 
     /**
-     * 阶段间不得重叠；有工期基线时计划必须落在基线窗口内。
+     * 阶段次序按模板冻结路径的准入约束校验：串行边要求后继开始不早于前驱结束（允许当天首尾衔接），
+     * 并行分支（边之间无约束）允许重叠；有工期基线时计划必须落在基线窗口内。
      */
-    private void validateNoOverlap(List<StagePlanItemDO> items, ConstructionPlanRevisionDO baseline, StagePlanBatchDO batch) {
+    private void validateStageSequence(List<StagePlanItemDO> items, ConstructionPlanRevisionDO baseline, StagePlanBatchDO batch) {
         // A direct-sign acceptance deadline may shift the calculated window. Do not mutate the
         // duration revision: MyBatis can return that same instance during input verification.
         LocalDate windowStart = batch.getCalculatedStart() != null ? batch.getCalculatedStart()
@@ -585,11 +581,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         if (items.isEmpty() || items.stream().anyMatch(item -> item.getPlanStart() == null || item.getPlanEnd() == null)) {
             throw exception(STAGE_PLAN_DATE_INVALID, "请填写全部阶段的计划起止日期");
         }
-        List<StagePlanItemDO> ordered = new ArrayList<>(items.stream()
-                .filter(item -> item.getPlanStart() != null && item.getPlanEnd() != null).toList());
-        ordered.sort((a, b) -> Integer.compare(a.getSort() == null ? 0 : a.getSort(),
-                b.getSort() == null ? 0 : b.getSort()));
-        for (StagePlanItemDO item : ordered) {
+        for (StagePlanItemDO item : items) {
             if (item.getPlanEnd().isBefore(item.getPlanStart())) {
                 throw exception(STAGE_PLAN_DATE_INVALID,
                         item.getPhaseName() + " 计划结束时间早于计划开始时间");
@@ -601,13 +593,16 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                                 + windowStart + " ~ " + windowEnd + "）");
             }
         }
-        for (int i = 1; i < ordered.size(); i++) {
-            StagePlanItemDO prev = ordered.get(i - 1);
-            StagePlanItemDO current = ordered.get(i);
-            if (!current.getPlanStart().isAfter(prev.getPlanEnd())) {
+        if (batch.getInputSnapshot() == null) return;
+        var input = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(batch.getInputSnapshot(), tools.jackson.databind.JsonNode.class);
+        var byId = items.stream().collect(java.util.stream.Collectors.toMap(StagePlanItemDO::getPhaseId, item -> item, (a, b) -> a));
+        for (var edge : input.path("serialEdges")) {
+            var from = byId.get(edge.path("fromStageId").asLong());
+            var to = byId.get(edge.path("toStageId").asLong());
+            if (from == null || to == null || to.getPlanStart() == null || from.getPlanEnd() == null) continue;
+            if (to.getPlanStart().isBefore(from.getPlanEnd()))
                 throw exception(STAGE_PLAN_DATE_INVALID,
-                        current.getPhaseName() + " 与前一阶段【" + prev.getPhaseName() + "】计划时间重叠");
-            }
+                        to.getPhaseName() + " 计划开始不得早于前一阶段【" + from.getPhaseName() + "】计划结束");
         }
     }
 

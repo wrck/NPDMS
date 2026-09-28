@@ -37,8 +37,7 @@ public class ProjectEndDateApiImpl implements ProjectEndDateApi {
         var project = projectMapper.selectEndDateForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateRowQuery(command.tenantId(), command.projectId()));
         if (project == null || !Objects.equals(project.getTenantId(), command.tenantId()) || !"ACTIVE".equals(project.getLifecycleStatus())) throw exception(PROJECT_END_DATE_NOT_ALLOWED);
         if (command.endDate() == null || command.expectedProjectVersion() == null || !Objects.equals(project.getVersion(), command.expectedProjectVersion())) throw exception(PROJECT_END_DATE_CONFLICT);
-        // Duration windows may diverge from the survey deadline (customer-approved shift); the
-        // expectedProjectVersion check above already rejects stale entries after a survey update.
+        // 工勘要求的结束日期只是工期录入的默认倒排锚点；计划工期结束日期保持独立，不强制与其一致。
         // Planning never writes the deadline back: updateFromSurvey is the only writer.
     }
 

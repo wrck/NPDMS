@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 
 class ProjectEndDateApiImplTest {
-    @Test void planningEntryChecksScopeAndVersionAndNeverWritesDeadlineBack() {
+    @Test void planningEndDateStaysIndependentOfSurveyDeadlineAndNeverWritesItBack() {
         var scope = mock(ProjectScopeApi.class); var mapper = mock(ProjectMasterMapper.class);
         var allowed = new ProjectScopeResult(7L, 1L, Set.of(7L), Set.of());
         when(scope.resolveCurrent(any())).thenReturn(allowed); when(scope.lockAndRevalidate(any())).thenReturn(allowed);
@@ -23,6 +23,7 @@ class ProjectEndDateApiImplTest {
         api.validatePlanningEndDate(new ProjectEndDateCommand(1L,3L,7L,2L,LocalDate.of(2026,12,31)));
         api.validatePlanningEndDate(new ProjectEndDateCommand(1L,3L,7L,2L,LocalDate.of(2027,1,1)));
         assertThrows(RuntimeException.class, () -> api.validatePlanningEndDate(new ProjectEndDateCommand(1L,3L,7L,3L,LocalDate.of(2026,12,31))));
+        assertThrows(RuntimeException.class, () -> api.validatePlanningEndDate(new ProjectEndDateCommand(1L,3L,7L,3L,LocalDate.of(2027,1,1))));
         assertThrows(RuntimeException.class, () -> api.validatePlanningEndDate(new ProjectEndDateCommand(1L,3L,7L,2L,null)));
         verify(mapper, never()).updateEndDateIfMatch(any());
     }

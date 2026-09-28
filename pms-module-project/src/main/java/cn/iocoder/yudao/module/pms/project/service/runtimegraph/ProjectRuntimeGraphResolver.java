@@ -109,15 +109,17 @@ public class ProjectRuntimeGraphResolver {
                 .filter(stage -> Objects.equals(stage.getCode(), project.getCurrentStage()))
                 .findFirst().orElseThrow(() -> exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_CURRENT_STAGE_MISSING"));
         // A configured closure is evaluated after the terminal stage has already completed. In that
-        // path there is no active graph node left; ordinary stage advancement still requires exactly
-        // one ACTIVE node. SKIPPED branches are terminal and remain valid in a completed graph.
+        // path there is no active graph node left; ordinary resolution requires the current pointer
+        // on an ACTIVE node and at least one ACTIVE node until closure. Rule-driven admission may
+        // keep several parallel siblings ACTIVE at once, so the count itself is not capped.
+        // SKIPPED branches are terminal and remain valid in a completed graph.
         boolean configuredClosure = closureCheck && contracts.stream().allMatch(contract -> !blank(contract.getSourceNodeKey()));
         long activeStages = stages.stream().filter(stage -> "ACTIVE".equals(stage.getStatus())).count();
         boolean completedConfiguredGraph = configuredClosure && Boolean.TRUE.equals(current.getTerminalNode())
                 && "DONE".equals(current.getStatus()) && activeStages == 0
                 && stages.stream().allMatch(stage -> Set.of("DONE", "SKIPPED").contains(stage.getStatus()));
         if (!"ACTIVE".equals(project.getLifecycleStatus())
-                || (!completedConfiguredGraph && (!"ACTIVE".equals(current.getStatus()) || activeStages != 1))
+                || (!completedConfiguredGraph && (!"ACTIVE".equals(current.getStatus()) || activeStages == 0))
                 || stages.stream().anyMatch(stage -> !Objects.equals(stage.getTenantId(), project.getTenantId())
                 || !Objects.equals(stage.getProjectId(), project.getId())
                 || !Objects.equals(stage.getGraphVersion(), current.getGraphVersion())))

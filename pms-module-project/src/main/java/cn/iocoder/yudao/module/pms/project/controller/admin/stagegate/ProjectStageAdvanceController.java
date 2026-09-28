@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,16 +66,16 @@ public class ProjectStageAdvanceController {
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectStageGateWorkbench> gateWorkbench(@PathVariable("id") Long projectId,
             @PathVariable("stageCode") @NotBlank @Size(max = 32) String stageCode) {
-        return withTrustedTenant(() -> success(workbenchService.inspect(projectId, stageCode,
-                new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId()))));
+        return withTrustedTenant(() -> success(withDeadlockRetry(() -> workbenchService.inspect(projectId, stageCode,
+                new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId())))));
     }
 
     @GetMapping("/{id}/stage-advance-readiness")
     @Operation(summary = "查询当前阶段准出门禁")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectStageAdvanceReadinessRespVO> readiness(@PathVariable("id") Long projectId) {
-        return withTrustedTenant(() -> success(ProjectStageAdvanceReadinessRespVO.from(
-                readinessService.evaluate(projectId, SecurityFrameworkUtils.getLoginUserId()))));
+        return withTrustedTenant(() -> success(ProjectStageAdvanceReadinessRespVO.from(withDeadlockRetry(() ->
+                readinessService.evaluate(projectId, SecurityFrameworkUtils.getLoginUserId())))));
     }
 
     @GetMapping("/{id}/stage-gates/{gateReferenceId}/process-definitions")
@@ -134,6 +135,28 @@ public class ProjectStageAdvanceController {
         AtomicReference<T> result = new AtomicReference<>();
         TenantUtils.execute(0L, () -> result.set(action.get()));
         return result.get();
+    }
+
+    /** 只读门禁重验与并发命令在 proj_project_stage 行锁上可能死锁；死锁时事务已回滚，按 MySQL
+     * "try restarting transaction" 原参重读。写命令路径不适用（自动重试写操作超出本层职责）。 */
+    private <T> T withDeadlockRetry(Supplier<T> action) {
+        DeadlockLoserDataAccessException last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(40L * attempt);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            try {
+                return action.get();
+            } catch (DeadlockLoserDataAccessException ex) {
+                last = ex;
+            }
+        }
+        throw last;
     }
 
     private Long parseIfMatch(String value) {

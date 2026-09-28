@@ -55,8 +55,9 @@ class StageSuggestionRulesTest {
     void unresolvedAnchorsAndInvalidConfigsFailLoudly() {
         var rules = List.of(
                 new StageSuggestionRules.RuleFacts("S4", null, "STAGE_PLAN", "S5", 0, -14, true));
-        // 参照阶段 S5 无解析建议（无规则行）→ S4 不产生建议
-        assertTrue(StageSuggestionRules.resolveAdviceEnds(ordered, rules, "CHANNEL_SIGN", DURATION_END).isEmpty());
+        // 参照阶段 S5 无规则行（无解析建议）→ S4 回退工期要求锚按自身偏移产出，规则涉及阶段不留空
+        assertEquals(DURATION_END.minusDays(14),
+                StageSuggestionRules.resolveAdviceEnds(ordered, rules, "CHANNEL_SIGN", DURATION_END).get("S4"));
         // 工期要求未登记 → 工期锚不解析
         var durationRule = List.of(new StageSuggestionRules.RuleFacts("S4", null, "DURATION_REQUIRE", null, 0, -14, true));
         assertTrue(StageSuggestionRules.resolveAdviceEnds(ordered, durationRule, "CHANNEL_SIGN", null).isEmpty());
@@ -67,5 +68,25 @@ class StageSuggestionRulesTest {
         var unknownSource = List.of(new StageSuggestionRules.RuleFacts("S4", null, "PERCENTAGE", null, 0, -14, true));
         assertThrows(IllegalArgumentException.class,
                 () -> StageSuggestionRules.resolveAdviceEnds(ordered, unknownSource, "CHANNEL_SIGN", DURATION_END));
+    }
+
+    @Test
+    void missingAcceptanceFallsBackToDurationRequireAnchorDownTheChain() {
+        // 无验收带入的节点按工期要求推算：PMS_IMPORTED 与断链的 STAGE_PLAN 都回退工期要求锚，
+        // 偏移仍由规则行配置驱动（如全部阶段无验收时间的项目，S5→S4→S1 倒排链照常产出）
+        var noAcceptance = List.of(
+                new StageSuggestionRules.StageFacts("S1", null),
+                new StageSuggestionRules.StageFacts("S4", null),
+                new StageSuggestionRules.StageFacts("S5", null));
+        var rules = List.of(
+                new StageSuggestionRules.RuleFacts("S5", "DIRECT_SIGN", "PMS_IMPORTED", null, 0, 0, true),
+                new StageSuggestionRules.RuleFacts("S4", "DIRECT_SIGN", "STAGE_PLAN", "S5", 3, -14, true),
+                new StageSuggestionRules.RuleFacts("S1", null, "STAGE_PLAN", "S4", 0, -14, true));
+        var direct = StageSuggestionRules.resolveAdviceEnds(noAcceptance, rules, "DIRECT_SIGN", DURATION_END);
+        assertEquals(DURATION_END, direct.get("S5"));
+        assertEquals(DURATION_END.plusMonths(3).minusDays(14), direct.get("S4"));
+        assertEquals(DURATION_END.plusMonths(3).minusDays(28), direct.get("S1"));
+        // 无任何可用锚点（工期要求也未登记）时仍不产出
+        assertTrue(StageSuggestionRules.resolveAdviceEnds(noAcceptance, rules, "DIRECT_SIGN", null).isEmpty());
     }
 }

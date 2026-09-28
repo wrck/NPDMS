@@ -19,11 +19,12 @@
     <el-table
       :data="rows"
       row-key="key"
-      default-expand-all
+      :expand-row-keys="expandedKeys"
       :tree-props="{ children: 'children' }"
       :row-class-name="rowClass"
       data-testid="schedule-stage-task-table"
       empty-text="没有符合条件的阶段或任务"
+      @expand-change="onExpandChange"
     >
       <el-table-column label="阶段 / 任务" min-width="200" fixed>
         <template #default="{ row }">
@@ -159,6 +160,20 @@ const emit = defineEmits<{ 'open-task': [task: StagePlanTaskVO] }>()
 const view = ref('dates'),
   keyword = ref('')
 const rows = computed(() => buildScheduleRows(props.items, props.tasks, keyword.value))
+// 阶段展开状态由 collapsedKeys 受控保持：面板刷新重建行数据后，未折叠的阶段仍保持展开。
+const collapsedKeys = ref<Set<string>>(new Set())
+const expandedKeys = computed(() =>
+  rows.value
+    .filter((row) => row.kind === 'stage')
+    .map((row) => row.key)
+    .filter((key) => !collapsedKeys.value.has(key))
+)
+const onExpandChange = (row: ScheduleRow) => {
+  const next = new Set(collapsedKeys.value)
+  if (next.has(row.key)) next.delete(row.key)
+  else next.add(row.key)
+  collapsedKeys.value = next
+}
 const range = computed(() => scheduleRange(props.items, props.tasks))
 const issue = (row: ScheduleRow) =>
   (row.kind === 'stage' &&

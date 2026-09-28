@@ -96,7 +96,8 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
         }
         if (indegree.values().stream().anyMatch(value -> value > 0)) throw new IllegalArgumentException("冻结计划路径存在循环");
         // Demo 页面9 / Excel 3.1：建议最迟完成按签约方式维护的倒排规则解析（V355 配置），
-        // 未覆盖或未解析的阶段回退阶段实例既有建议；各阶段计划起止仍为逐行直接输入
+        // 无验收带入或参照断链回退工期要求锚（规则涉及阶段必有建议）；
+        // 未覆盖的阶段回退阶段既有建议；各阶段计划起止仍为逐行直接输入
         var orderedFacts = new java.util.ArrayList<cn.iocoder.yudao.module.pms.project.domain.projectschedule.StageSuggestionRules.StageFacts>();
         for (var definition : ordered) {
             var stage = stages.stream().filter(value -> definition.getCode().equals(value.getCode())).findFirst()
@@ -113,7 +114,8 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
                                 rule.getOffsetMonths(), rule.getOffsetDays(), Boolean.TRUE.equals(rule.getEnabled())))
                         .toList(),
                 project.getSigningMethod(),
-                // 工期要求锚点：工勘要求结束日期（Demo 工前准备带入）未登记时回退计划域本版工期（倒排截止）
+                // 工期要求锚点：工勘要求结束日期（Demo 工前准备带入）未登记时回退计划域本版工期（倒排截止）；
+                // 无验收带入或参照断链时该锚同样是兜底锚
                 project.getProjectEndDate() != null ? project.getProjectEndDate() : end);
         // Demo 3.1：各阶段计划起止为逐行直接输入；不再按工期占比分配
         var inputStages = new java.util.ArrayList<java.util.Map<String, Object>>();
@@ -136,7 +138,7 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
             input.put("tasks", taskInputs); inputStages.add(input);
             var adviceEnd = adviceEnds.get(stage.getCode());
             if (adviceEnd == null) adviceEnd = stage.getSuggestedEndTime() == null ? null : stage.getSuggestedEndTime().toLocalDate();
-            // 合同验收时间为行内约束：阶段建议结束不得晚于计划验收时间
+            // 验收日与规则/既有建议比对：有验收的节点不直接以验收日为结束，建议结束不得晚于计划验收时间
             if (deadline != null && adviceEnd != null && adviceEnd.isAfter(deadline))
                 throw new IllegalArgumentException(stage.getCode() + " 计划结束晚于计划验收时间，请调整工期配置");
             planDates.add(new StagePlanDate(stage.getId(),
@@ -147,6 +149,18 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
         inputs.put("durationStart", start); inputs.put("durationEnd", end);
         inputs.put("stages", inputStages);
         inputs.put("pathConditions", pathInputs);
+        // 冻结路径的串行边进入快照：计划校验按模板准入要求判定次序，串行边允许当天首尾衔接，并行分支（无边）允许重叠
+        var stageIdByCode = stages.stream().collect(java.util.stream.Collectors.toMap(
+                cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO::getCode,
+                cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO::getId, (a, b) -> a));
+        var serialEdges = new java.util.ArrayList<java.util.Map<String, Object>>();
+        for (var edge : usableEdges) {
+            var edgeInput = new java.util.LinkedHashMap<String, Object>();
+            edgeInput.put("fromStageId", stageIdByCode.get(edge.getFromStageCode()));
+            edgeInput.put("toStageId", stageIdByCode.get(edge.getToStageCode()));
+            serialEdges.add(edgeInput);
+        }
+        inputs.put("serialEdges", serialEdges);
         return new ScheduleCalculation(plan.getId(), start, end, planDates,
                 cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(inputs));
     }

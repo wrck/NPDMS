@@ -52,6 +52,16 @@ class ProjectRuntimeGraphResolverTest {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("ACTIVE"); project.setCurrentStage("S4");
         assertEquals("S6", resolver.resolve(project).target().getCode());
     }
+    @Test void parallelAdmittedSiblingsRemainResolvable() {
+        // Rule-driven admission activates every sibling whose admission rule matched, so several
+        // nodes can be ACTIVE at once; ordinary resolution follows the current pointer instead of
+        // rejecting the multi-active state as stale.
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("ACTIVE"); stages.getLast().setStatus("ACTIVE");
+        project.setCurrentStage("S4");
+        when(mapper.selectTransitions(any())).thenReturn(List.of(edge(1L, 2L), edge(1L, 3L)));
+        var resolution = resolver.resolve(project);
+        assertEquals("S4", resolution.current().getCode());
+    }
     @Test void closureIncludesEarlierExitGatesButNotUnvisitedBranchesOrEntryGates() {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("SKIPPED"); stages.getLast().setStatus("ACTIVE");
         var oldExit = new ProjectGateInstanceDO(); oldExit.setId(11L); oldExit.setStageCode("S0"); oldExit.setGateType("EXIT");

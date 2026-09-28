@@ -48,7 +48,8 @@ class ProjectStagePlanApiImplTest {
     }
     void freeze() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
     @Test void windowIsTheBaselineAndDatesComeFromStageSuggestions() {
-        // Demo 3.1：推算窗口就是工期基线；阶段建议日期来自阶段配置，未配置为 null 留给用户填写
+        // Demo 3.1：推算窗口就是工期基线；阶段建议日期来自阶段配置与规则，
+        // 未覆盖规则的阶段留给用户填写
         first.setSuggestedStartTime(LocalDate.of(2026, 1, 1).atStartOfDay());
         first.setSuggestedEndTime(LocalDate.of(2026, 1, 4).atStartOfDay());
         var result = api.calculateSchedule(1L, 7L, start, end);
@@ -77,7 +78,8 @@ class ProjectStagePlanApiImplTest {
     }
     @Test void adviceEndComesFromMaintainedRulesWithInstanceFallback() {
         // Demo 页面9 / Excel 3.1：建议最迟完成 = 工期要求-偏移 或 带入计划验收时间（V355 规则配置）；
-        // 未解析或未覆盖的阶段回退阶段实例既有建议；行内约束作用于最终建议
+        // 验收日不直接充当结束，而是与规则建议比对（建议晚于计划验收时间报错）；
+        // 未覆盖规则的阶段回退阶段实例既有建议
         first.setSuggestedEndTime(LocalDate.of(2026, 1, 8).atStartOfDay());
         project.setProjectEndDate(LocalDate.of(2026, 1, 10));
         when(rules.selectActiveRules(any())).thenReturn(List.of(
