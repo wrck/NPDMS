@@ -73,8 +73,8 @@ public class DurationChangeBpmAuthorizationGuard {
             requiredRoles = PROJECT_MANAGER_ROLE;
             permission = ConstructionPlanApplicationService.PERMISSION_MANAGE;
         } else {
-            if (!Objects.equals(actorId, change.getApproverUserId())
-                    || Objects.equals(actorId, change.getApplicantUserId())) {
+            // 服务经理本人提交的变更由其自审，仅要求审批人就是提交时冻结的服务经理
+            if (!Objects.equals(actorId, change.getApproverUserId())) {
                 throw exception(FORBIDDEN);
             }
             requiredRoles = SERVICE_MANAGER_ROLES;

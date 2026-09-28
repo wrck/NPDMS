@@ -1,10 +1,13 @@
 package cn.iocoder.yudao.module.pms.asset.api.device;
 
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceProjectMatchQuery;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.service.device.DeviceQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,5 +29,10 @@ public class DeviceQueryApiImpl implements DeviceQueryApi {
                 device.getCustomerId(), device.getCustomerAssignmentVersion(),
                 device.getWarrantyStartDate(), device.getWarrantyEndDate(), device.getWarrantyStatus(),
                 device.getConpVersion(), device.getConpType(), device.getConpSeries(), device.getConpMark());
+    }
+
+    @Override
+    public Set<Long> resolveProjectIds(DeviceProjectMatchQuery query) {
+        return deviceQueryService.resolveProjectIds(query);
     }
 }

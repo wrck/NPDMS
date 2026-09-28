@@ -179,13 +179,11 @@ public class ProjectMasterController {
     }
 
     @GetMapping("/page")
-    @Operation(summary = "分页查询项目（名称/编码/状态/三维过滤）")
+    @Operation(summary = "分页查询项目（名称/编码/状态/三维/级别/合同/归属/责任成员/时间/设备条件过滤）")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectRespVO>> getProjectPage(@Valid ProjectPageReqVO pageReqVO) {
-        PageResult<ProjectMasterDO> pageResult = projectManualCreationService.getProjectPage(
-                pageReqVO, pageReqVO.getProjectName(), pageReqVO.getProjectCode(), pageReqVO.getStatus(),
-                pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode(),
-                pageReqVO.getManagerId(), accessActor());
+        PageResult<ProjectMasterDO> pageResult =
+                projectManualCreationService.getProjectPage(pageReqVO, accessActor());
         PageResult<ProjectRespVO> response = BeanUtils.toBean(pageResult, ProjectRespVO.class);
         projectStatusPresentationService.populate(response.getList());
         return success(response);

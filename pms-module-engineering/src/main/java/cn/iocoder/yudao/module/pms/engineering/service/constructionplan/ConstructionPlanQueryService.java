@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeLockQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeObjectQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangePageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery;
@@ -125,6 +126,29 @@ public class ConstructionPlanQueryService {
         ConstructionPlanChangeDO change = changeMapper.selectById(new ConstructionPlanChangeLockQuery(
                 actor.tenantId(), plan.getId(), requirePositive(changeId)));
         if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
+        ConstructionPlanRevisionDO candidate = revisionMapper.selectById(
+                new ConstructionPlanRevisionLockQuery(actor.tenantId(), plan.getId(),
+                        change.getCandidateRevisionId()));
+        if (candidate == null) throw exception(CONSTRUCTION_PLAN_NOT_EXISTS);
+        ConstructionPlanChangeRespVO response = toChange(change);
+        response.setCandidateRevision(toRevision(candidate, plan.getCurrentDurationRevisionId()));
+        return response;
+    }
+
+    /** 审批详情视图按业务键（变更编号）读取；服务经理审批人凭审批权限可见项目范围。 */
+    public ConstructionPlanChangeRespVO getChangeById(Long changeId, Actor actor) {
+        requireActor(actor);
+        if (!permissionApi.hasAnyPermissions(actor.actorId(), PERMISSION_QUERY, PERMISSION_MANAGE,
+                DurationChangeBpmAuthorizationGuard.PERMISSION_APPROVE)) {
+            throw exception(FORBIDDEN);
+        }
+        ConstructionPlanChangeDO change = changeMapper.selectByObjectId(
+                new ConstructionPlanChangeObjectQuery(actor.tenantId(), requirePositive(changeId)));
+        if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(new ConstructionPlanLockQuery(
+                actor.tenantId(), change.getPlanId()));
+        requirePlan(plan);
+        assertProjectScope(actor, plan.getProjectId(), ProjectScopeApi.ACTION_VIEW);
         ConstructionPlanRevisionDO candidate = revisionMapper.selectById(
                 new ConstructionPlanRevisionLockQuery(actor.tenantId(), plan.getId(),
                         change.getCandidateRevisionId()));

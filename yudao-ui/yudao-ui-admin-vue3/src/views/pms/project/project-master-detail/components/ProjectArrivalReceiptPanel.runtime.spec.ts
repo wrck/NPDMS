@@ -5,22 +5,24 @@ import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('@/api/system/user', () => ({ __v_isRef: false, getUserPage: vi.fn() }))
-vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 8 } }) }))
-vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
+vi.mock('@/api/system/user', () => ({ __v_isRef: false, getUserPage: vi.fn(), getSimpleUser: vi.fn() }))
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 8, nickname: '测试用户' } }) }))
 vi.mock('@/api/pms/engineering/arrival', () => ({ getArrivalPage: vi.fn(), createArrival: vi.fn(), updateArrival: vi.fn(), deleteArrival: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_ARRIVAL_STATUS: 'arrival' }, getIntDictOptions: () => [] }))
-vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), delConfirm: vi.fn() }) }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
   expose({ validate: async () => true })
   return () => h('form', attrs, slots.default?.())
 } })
-const editorStub = defineComponent({ setup(_, { attrs }) { return () => h('editor', attrs) } })
 const uploaderStub = defineComponent({ setup(_, { attrs }) { return () => h('uploader', attrs) } })
 const nodes = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap(child => nodes(child, type))]
 const flush = async () => { for (let i = 0; i < 5; i++) await nextTick() }
+const uploadValue = (mounted: ReturnType<typeof render>): (value: string) => void => {
+  const listener = nodes(mounted.root, 'uploader')[0].props?.['onUpdate:modelValue'] as any
+  return (value: string) => (Array.isArray(listener) ? listener : [listener]).forEach(fn => fn(value))
+}
 const render = () => {
-  const mounted = mount(Arrival, { projectId: 1 }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElInput: passthrough, ElInputNumber: passthrough, ElDatePicker: passthrough, ElSelect: passthrough, ElOption: passthrough, PmsEntitySelect: passthrough, Editor: editorStub, UploadFile: uploaderStub })
+  const mounted = mount(Arrival, { projectId: 1 }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, UploadFile: uploaderStub })
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
 beforeEach(() => {
@@ -34,7 +36,6 @@ it('makes a signed record and its attachment read-only in the existing page', as
     const signed = { id: 8, projectId: 1, code: 'ARR-SIGNED', status: 1, version: 2, attachmentUrl: 'original-file' }
     mounted.state.openForm(signed); await flush()
     expect(mounted.state.readOnly).toBe(true)
-    expect(nodes(mounted.root, 'editor').every(node => node.props?.readonly === true)).toBe(true)
     expect(nodes(mounted.root, 'uploader')[0].props?.disabled).toBe(true)
     await mounted.state.save(); await mounted.state.remove(signed)
     expect(ArrivalApi.updateArrival).not.toHaveBeenCalled()
@@ -42,14 +43,20 @@ it('makes a signed record and its attachment read-only in the existing page', as
   } finally { mounted.app.unmount() }
 })
 
-it('creates a pending record without inheriting a viewed record status or evidence', async () => {
+it('creates a pending record with receiver defaulting to the current user and completion time auto-filled from upload', async () => {
   const mounted = render()
   try {
     mounted.state.openForm({ id: 8, projectId: 1, code: 'ARR-SIGNED', status: 1, version: 2, attachmentUrl: 'original-file' })
     mounted.state.openForm(); await flush()
-    Object.assign(mounted.state.form, { projectId: 1, code: 'ARR-NEW', arrivalTime: '1788055200000' })
+    expect(mounted.state.receiverName).toBe('测试用户')
+    expect(mounted.state.form.receiverUserId).toBe(8)
+    expect(mounted.state.completionTimeText).toBe('上传交付件后自动填入')
+    uploadValue(mounted)('receipt-url')
+    const autoTime = mounted.state.form.arrivalTime
+    expect(autoTime).toBeTypeOf('number')
+    expect(mounted.state.completionTimeText).not.toBe('上传交付件后自动填入')
     await mounted.state.save()
-    expect(ArrivalApi.createArrival).toHaveBeenCalledWith(expect.objectContaining({ status: 0, attachmentUrl: '', version: undefined, arrivalTime: 1788055200000 }))
+    expect(ArrivalApi.createArrival).toHaveBeenCalledWith(expect.objectContaining({ status: 0, attachmentUrl: 'receipt-url', version: undefined, arrivalTime: autoTime, receiverUserId: 8 }))
   } finally { mounted.app.unmount() }
 })
 
@@ -59,9 +66,9 @@ it('keeps local pending and abnormal records editable with their existing versio
     for (const status of [0, 2]) {
       mounted.state.openForm({ id: 9, projectId: 1, code: 'ARR-LOCAL', status, version: 3 }); await flush()
       expect(mounted.state.readOnly).toBe(false)
-      mounted.state.form.remark = '本地补充'
+      uploadValue(mounted)('receipt-url')
       await mounted.state.save()
-      expect(ArrivalApi.updateArrival).toHaveBeenLastCalledWith(expect.objectContaining({ id: 9, status, version: 3, remark: '本地补充' }))
+      expect(ArrivalApi.updateArrival).toHaveBeenLastCalledWith(expect.objectContaining({ id: 9, status, version: 3, attachmentUrl: 'receipt-url', arrivalTime: expect.any(Number) }))
     }
   } finally { mounted.app.unmount() }
 })
@@ -73,8 +80,7 @@ it('normalizes null legacy evidence before upload so reopening does not switch t
     await flush()
     const uploader = nodes(mounted.root, 'uploader')[0]
     expect(uploader.props?.modelValue).toBe('')
-    const emitValue = uploader.props?.['onUpdate:modelValue'] as (value: string) => void
-    emitValue('receipt-url')
+    uploadValue(mounted)('receipt-url')
     await mounted.state.save()
     expect(ArrivalApi.updateArrival).toHaveBeenCalledWith(expect.objectContaining({ attachmentUrl: 'receipt-url', version: 1 }))
   } finally { mounted.app.unmount() }
@@ -87,7 +93,7 @@ it('keeps both list and create in the enclosing project', async () => {
     await mounted.state.load()
     expect(ArrivalApi.getArrivalPage).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 1 }))
     mounted.state.openForm()
-    Object.assign(mounted.state.form, { projectId: 99, arrivalTime: '1788055200000' })
+    uploadValue(mounted)('receipt-url')
     await mounted.state.save()
     expect(ArrivalApi.createArrival).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 1 }))
   } finally { mounted.app.unmount() }

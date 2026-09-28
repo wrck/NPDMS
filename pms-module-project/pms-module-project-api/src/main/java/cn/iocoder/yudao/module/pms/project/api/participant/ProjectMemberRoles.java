@@ -19,6 +19,7 @@ public final class ProjectMemberRoles {
     public static final Set<String> TASK_EXECUTION_CODES = Set.of(PROJECT_MANAGER, SERVICE_MANAGER,
             LEGACY_SERVICE_MANAGER_L1, LEGACY_SERVICE_MANAGER_L2, TEAM_MEMBER);
     public static final Set<String> ORDINARY_CODES = Set.of(TEAM_MEMBER, SALES_REPRESENTATIVE);
+    public static final Set<String> SALES_CODES = Set.of(SALES_REPRESENTATIVE);
     public static final Set<String> ALL_CODES = Set.of(PROJECT_MANAGER, SERVICE_MANAGER,
             LEGACY_SERVICE_MANAGER_L1, LEGACY_SERVICE_MANAGER_L2, TEAM_MEMBER, SALES_REPRESENTATIVE);
 

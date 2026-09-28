@@ -10,11 +10,14 @@ describe('installation form contract', () => {
     assert.doesNotMatch(source, /installTime: ''/)
   })
 
-  it('references an existing location without mutable fields', () => {
-    assert.match(source, /id: row\.siteLocationId,\s*expectedVersion: row\.siteLocationVersion/)
-    assert.doesNotMatch(
-      source,
-      /id: row\.siteLocationId,\s*expectedVersion: row\.siteLocationVersion,\s*(code|name|locationType|treeSort):/
-    )
+  it('fills the site manually instead of maintaining a structured location reference', () => {
+    assert.match(source, /站点未维护时手动填写站点/)
+    assert.doesNotMatch(source, /PmsLocationSelector/)
+    assert.doesNotMatch(source, /locationMaintenance:\s*\{/)
+  })
+
+  it('defaults the installer to the current user with a dropdown selection', () => {
+    assert.match(source, /installerUserId: userStore\.getUser\.id/)
+    assert.match(source, /getSimpleUserList/)
   })
 })

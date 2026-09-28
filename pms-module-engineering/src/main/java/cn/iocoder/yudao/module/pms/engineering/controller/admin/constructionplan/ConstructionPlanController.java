@@ -153,6 +153,15 @@ public class ConstructionPlanController {
         return withTrustedTenant(() -> success(queryService.getChange(planId, changeId, queryActor())));
     }
 
+    @GetMapping("/changes/{changeId}")
+    @Operation(summary = "按变更编号查询工期变更；供审批详情页读取")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:construction-plan:query',"
+            + "'pms:construction-plan:duration-manage','pms:construction-plan:duration-approve')")
+    public CommonResult<ConstructionPlanChangeRespVO> getChangeById(
+            @PathVariable("changeId") @Positive Long changeId) {
+        return withTrustedTenant(() -> success(queryService.getChangeById(changeId, queryActor())));
+    }
+
     @PatchMapping("/{id}/changes/{changeId}")
     @Operation(summary = "部分修改工期变更草稿")
     @PreAuthorize("@ss.hasPermission('pms:construction-plan:duration-manage')")

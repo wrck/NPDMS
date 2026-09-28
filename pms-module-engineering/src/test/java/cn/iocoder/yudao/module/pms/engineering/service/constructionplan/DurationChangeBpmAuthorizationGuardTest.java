@@ -95,6 +95,22 @@ class DurationChangeBpmAuthorizationGuardTest {
     }
 
     @Test
+    void shouldAuthorizeApplicantAsFrozenServiceManagerForSelfApproval() {
+        stubRows(10L, 10L);
+        when(permissionApi.hasAnyPermissions(10L,
+                DurationChangeBpmAuthorizationGuard.PERMISSION_APPROVE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(301L, 1L, Set.of(301L), Set.of()));
+        ProjectParticipantFact fact = fact(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
+        when(participantFactApi.inspect(any())).thenReturn(fact);
+        when(participantFactApi.lockAndRevalidate(any())).thenReturn(fact);
+
+        var result = guard.authorize("P-1", DurationChangeBpmResultService.TerminalResult.APPROVE);
+
+        assertEquals(301L, result.projectId());
+    }
+
+    @Test
     void shouldRejectActorWhoIsNotFrozenApprover() {
         stubRows(9L, 11L);
 

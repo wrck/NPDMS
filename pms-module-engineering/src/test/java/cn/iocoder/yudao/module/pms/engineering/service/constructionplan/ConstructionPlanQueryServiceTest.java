@@ -154,6 +154,26 @@ class ConstructionPlanQueryServiceTest {
         assertFalse(response.getCandidateRevision().getCurrent());
     }
 
+    @Test
+    void changeDetailByBusinessKeyServesApproverWithApprovePermissionOnly() {
+        when(permissionApi.hasAnyPermissions(9L, ConstructionPlanQueryService.PERMISSION_QUERY,
+                ConstructionPlanApplicationService.PERMISSION_MANAGE,
+                DurationChangeBpmAuthorizationGuard.PERMISSION_APPROVE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                0L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+                .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(801L,
+                LocalDateTime.of(2026, 8, 26, 13, 0)));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(revisionMapper.selectById(any())).thenReturn(revision(702L, 2));
+
+        var response = service.getChangeById(801L, actor());
+
+        assertEquals(801L, response.getChangeId());
+        assertEquals(702L, response.getCandidateRevision().getRevisionId());
+        assertEquals(702L, response.getCandidateRevisionId());
+    }
+
     private void stubViewScope() {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanQueryService.PERMISSION_QUERY,

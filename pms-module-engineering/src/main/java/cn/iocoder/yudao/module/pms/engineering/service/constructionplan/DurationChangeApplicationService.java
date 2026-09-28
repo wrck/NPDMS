@@ -71,6 +71,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.D
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_PENDING_CONFLICT;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_SERVICE_MANAGER_MISSING;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_REASON_CONFIG_INVALID;
 
 @Service
@@ -453,10 +454,10 @@ public class DurationChangeApplicationService {
             Long projectId, Long projectVersion, ConstructionPlanApplicationService.Actor actor) {
         ProjectParticipantFact selected = participantFactApi.inspect(new ProjectParticipantFactQuery(
                 projectId, null, SERVICE_MANAGER_ROLES, LocalDateTime.now()));
-        if (selected == null || selected.userId() == null
-                || Objects.equals(selected.userId(), actor.actorId())) {
-            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        if (selected == null || selected.userId() == null) {
+            throw exception(DURATION_CHANGE_SERVICE_MANAGER_MISSING);
         }
+        // 服务经理本人提交的变更由其自审；审批人只要求具备服务经理身份
         ProjectParticipantFact revalidated = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
                 projectId, selected.userId(), projectVersion, "ACTIVE", null, SERVICE_MANAGER_ROLES));

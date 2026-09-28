@@ -56,6 +56,9 @@ public class InstallationServiceImpl implements InstallationService {
                 EngineeringRecordCodeGenerator.INSTALLATION, installationMapper,
                 InstallationDO::getProjectId, InstallationDO::getCode));
         installation.setStatus(0); // 状态只能通过动作接口流转
+        if (installation.getInstallTime() == null) {
+            installation.setInstallTime(LocalDateTime.now()); // 界面不录入安装时间，统一取提交时间
+        }
         if (installation.getVersion() == null) {
             installation.setVersion(0L);
         }

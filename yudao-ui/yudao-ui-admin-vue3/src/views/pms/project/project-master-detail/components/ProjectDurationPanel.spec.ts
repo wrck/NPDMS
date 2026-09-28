@@ -5,6 +5,7 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf
 const panel = read('./ProjectDurationPanel.vue')
 const form = read('./ProjectDurationFormDrawer.vue')
 const history = read('./ProjectDurationHistoryDrawer.vue')
+const schedule = read('./ProjectSchedulePanel.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/construction-plan/index.ts')
 const oldBackwardApi = read('../../../../../api/pms/engineering/schedule-backward/index.ts')
@@ -30,8 +31,9 @@ describe('F-SOL-001 project duration panel', () => {
   })
 
   it('connects the project detail mainline and obeys server allowed actions', () => {
-    expect(detail).toContain("activeTab === 'duration'")
-    expect(detail).toContain('<ProjectDurationPanel')
+    // 主详情页将旧 duration 页签深链落到 schedule 工作台，工期面板由 ProjectSchedulePanel 内嵌
+    expect(detail).toContain("duration: 'schedule'")
+    expect(schedule).toContain('<ProjectDurationPanel')
     expect(panel).toContain("plan.allowedActions.includes('CREATE_CHANGE')")
     expect(form).toContain('createInitial')
     expect(form).toContain('createChange')

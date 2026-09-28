@@ -571,8 +571,35 @@ export interface ProjectMatchTemplatesReqVO {
 export const matchTemplates = (params: ProjectMatchTemplatesReqVO) =>
   request.get<ProjectMatchTemplatesRespVO>({ url: `${baseUrl}/actions/match-templates`, params })
 
-/** 分页查询（名称/编码/状态/三维过滤） */
-export const getProjectPage = (params: PageParam) =>
+/** 项目分页过滤参数（与 ProjectPageReqVO 对齐；时间范围左闭右开 [start, endExclusive)） */
+export type ProjectPageParams = PageParam & {
+  projectCode?: string
+  projectName?: string
+  status?: string
+  signingMethod?: string
+  projectCategory?: string
+  implementationMode?: string
+  managerId?: number
+  serviceManagerId?: number
+  salesId?: number
+  majorProjectLevel?: string
+  contractNo?: string
+  companyId?: number
+  departmentId?: number
+  agentServiceProviderKeyword?: string
+  deviceSn?: string
+  deviceProductModel?: string
+  deviceWarrantyStatus?: string
+  createTimeStart?: string
+  createTimeEnd?: string
+  closeTimeStart?: string
+  closeTimeEnd?: string
+  refreshTimeStart?: string
+  refreshTimeEnd?: string
+}
+
+/** 分页查询（名称/编码/状态/三维/成员/归属/时间/设备/当事方过滤） */
+export const getProjectPage = (params: ProjectPageParams) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
 /** 项目详情（基本信息+四维+模板绑定） */

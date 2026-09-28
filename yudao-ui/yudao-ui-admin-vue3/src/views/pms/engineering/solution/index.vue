@@ -201,6 +201,25 @@ const rules = {
   name: [{ required: true, message: '请输入方案名称' }]
 }
 
+// 新建草稿时方案名称自动带入“项目名称+实施方案”；编辑中或用户已改名称时不覆盖
+const lastAutoName = ref('')
+const autoFillName = async (projectId: number | string) => {
+  const pid = Number(projectId)
+  if (!pid || pid <= 0 || form.value.id) return
+  if (form.value.name && form.value.name !== lastAutoName.value) return
+  try {
+    const project = await ProjectApi.getProject(pid)
+    const name = project?.projectName ? `${project.projectName}实施方案` : ''
+    if (!name || Number(form.value.projectId) !== pid || form.value.id) return
+    if (form.value.name && form.value.name !== lastAutoName.value) return
+    form.value.name = name
+    lastAutoName.value = name
+  } catch {
+    // 项目名称获取失败时保持手输
+  }
+}
+watch(() => form.value.projectId, pid => { autoFillName(pid) })
+
 const approveVisible = ref(false)
 const approveAction = ref<'approve' | 'reject'>('approve')
 const approveForm = reactive<SolutionApproveVO>({ id: 0, approvalOpinion: '', version: undefined })
@@ -245,7 +264,10 @@ const openForm = async (row?: SolutionVO) => {
       id: row?.id
   }
   formVisible.value = true
-  if (!row?.id) return
+  if (!row?.id) {
+    autoFillName(form.value.projectId)
+    return
+  }
   try {
     const detail: SolutionVO | null = await SolutionApi.getSolution(row.id)
     if (sequence !== detailSequence) return

@@ -1,7 +1,7 @@
 <template>
   <div class="solution-chapter-form">
     <el-alert
-      title="按项目交付 Demo 4.1 编写实施方案组织：第 1~8 章为方案内容，前序阶段（需求分析 2.3、团队 1.2、产品清单 1.1、施工计划 3.1、序列号 1.1.1）可通过“引用/同步”带入正文；底部为页面功能按钮（保存草稿/生成方案/下载方案/提交审核），不是方案内容章节。"
+      title="按项目交付 Demo 4.1 编写实施方案组织：第 1~8 章为方案内容，前序阶段（需求分析 2.3、团队 1.2、产品清单 1.1、序列号 1.1.1）可通过“引用/同步”带入正文；底部为页面功能按钮（保存草稿/生成方案/下载方案/提交审核），不是方案内容章节。"
       type="info"
       :closable="false"
       class="mb-12px"
@@ -13,10 +13,6 @@
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="方案名称" prop="name"><el-input v-model="form.name" :disabled="readOnly || !!form.id" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <!-- 任务完成链仅认可 IMPLEMENTATION（SolutionCompletionMapper/SolutionReviewMapper 固定值）；扩充值域须先经规格裁决 -->
-          <el-form-item label="方案类型" prop="solutionType"><el-select v-model="form.solutionType" class="!w-full" :disabled="readOnly"><el-option label="实施方案" value="IMPLEMENTATION" /></el-select></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="版本标签" prop="versionLabel"><el-input v-model="form.versionLabel" :disabled="readOnly" /></el-form-item>
@@ -43,7 +39,7 @@
         </el-col>
         <el-col v-if="meta.hasCustomerPlan === 'yes'" :span="12">
           <el-form-item label="上传方案文件">
-            <UploadFile v-model="meta.customerPlanUrl" :disabled="readOnly" />
+            <UploadFile v-model="meta.customerPlanUrl" :disabled="readOnly" :file-size="50" />
           </el-form-item>
         </el-col>
         <el-col v-if="meta.hasCustomerPlan === 'yes'" :span="24">
@@ -140,35 +136,6 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.inventory.push(emptyInventoryRow())">添加行</el-button>
-        </div>
-      </el-form-item>
-
-      <div class="ref-block">
-        <div class="ref-head">
-          <span>1.5 项目进度计划（调用 3.1 施工计划）</span>
-          <el-button link type="primary" :disabled="readOnly || !stagePlanItems.length" @click="tables.plan = stagePlanRows()">引用到正文</el-button>
-        </div>
-        <el-table :data="stagePlanItems" size="small" border max-height="200">
-          <el-table-column prop="phaseName" label="项目阶段" min-width="110" />
-          <el-table-column prop="planStart" label="计划开始" min-width="140" />
-          <el-table-column prop="planEnd" label="计划结束" min-width="140" />
-          <el-table-column prop="remark" label="备注" min-width="120" />
-        </el-table>
-        <el-empty v-if="!stagePlanItems.length" description="暂无阶段施工计划批次" :image-size="50" />
-      </div>
-      <el-form-item label="1.5 进度计划" label-width="140px">
-        <div class="table-editor">
-          <el-table :data="tables.plan" size="small" border>
-            <el-table-column label="项目阶段" min-width="110"><template #default="{ row }"><el-input v-model="row.stage" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="计划开始" min-width="150"><template #default="{ row }"><el-input v-model="row.start" :disabled="readOnly" placeholder="yyyy-MM-dd HH:mm" /></template></el-table-column>
-            <el-table-column label="计划结束" min-width="150"><template #default="{ row }"><el-input v-model="row.end" :disabled="readOnly" placeholder="yyyy-MM-dd HH:mm" /></template></el-table-column>
-            <el-table-column label="工期建议" min-width="120"><template #default="{ row }"><el-input v-model="row.suggest" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="备注" min-width="110"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="操作" width="70" fixed="right">
-              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.plan.splice($index, 1)">删除</el-button></template>
-            </el-table-column>
-          </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.plan.push({ stage: '', start: '', end: '', suggest: '', remark: '' })">添加行</el-button>
         </div>
       </el-form-item>
     </section>
@@ -439,7 +406,6 @@ import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import * as ContactApi from '@/api/pms/customer/contacts'
-import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import { getDeliveryScopePage } from '@/api/pms/commerce'
 import { DICT_TYPE, getDictLabel, getIntDictOptions } from '@/utils/dict'
@@ -452,7 +418,7 @@ const form = defineModel<SolutionVO>({ required: true })
 
 // ---------- JSON 信封映射说明 ----------
 // 九章正文映射到既有 sol_solution 文本列（后端未拆列前的序列化边界，后续拆列仅需调整此处）：
-//   background/target = 1.1/1.2 正文；team/inventory/plan/interfacePlan/ipPlan = 对应章节行 JSON；
+//   background/target = 1.1/1.2 正文；team/inventory/interfacePlan/ipPlan = 对应章节行 JSON（1.5 进度计划已从界面移除，plan 列仅随旧数据原样往返）；
 //   topology = {asIsUrl,toBeChanged,toBeUrl,deploy[],software[]}（2.1/3.1/3.2/3.5）；
 //   script = {network,businessModule,ha,full}（4.x）；quality/risk/oAndM = 6.x 正文；
 //   remark = {hasCustomerPlan,customerPlanUrl,hardwareInvolved,softwareDebug,trainingPurpose,trainingContent,archive(6.4),business[]}。
@@ -472,7 +438,6 @@ const reqValues = ref<Record<string, unknown>>({})
 const members = ref<ProjectsApi.ProjectMemberAssignmentVO[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
 const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQuantity: number }[]>([])
-const stagePlanItems = ref<StagePlanApi.StagePlanItemVO[]>([])
 const devices = ref<DeviceArchiveApi.DeviceArchiveVO[]>([])
 
 const stripHtml = (v: unknown) => String(v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -534,14 +499,6 @@ const scopeProductRows = (): Row[] =>
     unshippedQty: '',
     sn: ''
   }))
-const stagePlanRows = (): Row[] =>
-  stagePlanItems.value.map((i) => ({
-    stage: i.phaseName || i.phaseCode || '',
-    start: i.planStart || i.suggestedStart || '',
-    end: i.planEnd || i.suggestedEnd || '',
-    suggest: '',
-    remark: i.remark || ''
-  }))
 const deviceDeployRows = (): Row[] =>
   devices.value.map((d) => ({
     deviceName: d.name || '',
@@ -559,7 +516,6 @@ const emptyBusinessRow = (): Row => ({ deviceName: '', sn: '', businessName: '',
 const tables = reactive({
   team: [] as Row[],
   inventory: [] as Row[],
-  plan: [] as Row[],
   deploy: [] as Row[],
   interface: [] as Row[],
   ip: [] as Row[],
@@ -590,7 +546,6 @@ const scriptItems = [
 const syncFromForm = () => {
   tables.team = parseRows(safeParse(form.value.team))
   tables.inventory = parseRows(safeParse(form.value.inventory))
-  tables.plan = parseRows(safeParse(form.value.plan))
   tables.interface = parseRows(safeParse(form.value.interfacePlan))
   tables.ip = parseRows(safeParse(form.value.ipPlan))
   const topo = parseObject(form.value.topology)
@@ -630,7 +585,6 @@ const safeParse = (raw: string | undefined | null): unknown => {
 watch(tables, () => {
   form.value.team = JSON.stringify(tables.team)
   form.value.inventory = JSON.stringify(tables.inventory)
-  form.value.plan = JSON.stringify(tables.plan)
   form.value.interfacePlan = JSON.stringify(tables.interface)
   form.value.ipPlan = JSON.stringify(tables.ip)
 }, { deep: true })
@@ -665,11 +619,10 @@ watch(
 onMounted(async () => {
   const projectId = form.value.projectId
   if (!projectId) return
-  const [overview, memberList, scopePage, planPage, devicePage, contactPage] = await Promise.all([
+  const [overview, memberList, scopePage, devicePage, contactPage] = await Promise.all([
     RequirementAnalysisApi.getCurrent(projectId).catch(() => null),
     ProjectsApi.getProjectMembers(projectId).catch(() => []),
     getDeliveryScopePage({ projectId, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
-    StagePlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 10 }).catch(() => ({ list: [] })),
     DeviceArchiveApi.getDeviceArchivePage({ projectId, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] })),
     ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
   ])
@@ -683,7 +636,6 @@ onMounted(async () => {
       allocatedQuantity: d.allocatedQuantity ?? scope.allocatedQuantity ?? 0
     }))
   )
-  stagePlanItems.value = (planPage as any).list?.[0]?.items || []
   devices.value = ((devicePage as any).list || []) as DeviceArchiveApi.DeviceArchiveVO[]
 })
 
@@ -694,7 +646,6 @@ const generateFromSources = () => {
   if (reqObjective.value && !String(form.value.target ?? '').trim()) form.value.target = reqObjective.value
   if (members.value.length && !tables.team.length) tables.team = memberRows()
   if (scopeRows.value.length && !tables.inventory.length) tables.inventory = scopeProductRows()
-  if (stagePlanItems.value.length && !tables.plan.length) tables.plan = stagePlanRows()
   if (devices.value.length && !tables.deploy.length) tables.deploy = deviceDeployRows()
   if (devices.value.length && !tables.software.length) tables.software = deviceSoftwareRows()
   if (reqBusinessRows.value.length && !tables.business.length) tables.business = reqBusinessRows.value.map((r) => ({ ...r }))
@@ -728,8 +679,7 @@ const buildSolutionHtml = () => {
     htmlField('1.1 项目背景', form.value.background ?? ''),
     htmlField('1.2 项目目标', form.value.target ?? ''),
     htmlField('1.3 项目团队', htmlTable(tables.team, [['role', '角色'], ['name', '姓名'], ['contact', '联系方式'], ['remark', '备注']])),
-    htmlField('1.4 项目清单', htmlTable(tables.inventory, [['productCode', '产品编码'], ['model', '产品型号'], ['desc', '产品描述'], ['projectQty', '项目数量'], ['shippedQty', '发货数量'], ['unshippedQty', '未发货数量'], ['sn', '序列号']])),
-    htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']]))
+    htmlField('1.4 项目清单', htmlTable(tables.inventory, [['productCode', '产品编码'], ['model', '产品型号'], ['desc', '产品描述'], ['projectQty', '项目数量'], ['shippedQty', '发货数量'], ['unshippedQty', '未发货数量'], ['sn', '序列号']]))
   ].join('')
   const chapter2 = [
     htmlField('2.1 现网拓扑图', topology.asIsUrl ? `<p>已上传：${escapeHtml(topology.asIsUrl)}</p>` : '<p>（未上传）</p>'),
