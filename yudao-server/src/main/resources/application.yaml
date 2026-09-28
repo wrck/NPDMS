@@ -163,14 +163,14 @@ spring:
       qdrant:
         initialize-schema: true
         collection-name: knowledge_segment # Qdrant 中向量集合的名称：用于存储向量数据的集合标识符，所有相关的向量操作都会在这个集合中进行
-        host: 127.0.0.1
+        host: 10.210.0.11
         port: 6334
       milvus:
         initialize-schema: true
         database-name: default # Milvus 中数据库的名称
         collection-name: knowledge_segment # Milvus 中集合的名称：用于存储向量数据的集合标识符，所有相关的向量操作都会在这个集合中进行
         client:
-          host: 127.0.0.1
+          host: 10.210.0.11
           port: 19530
     openai: # OpenAI 官方
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
@@ -179,7 +179,7 @@ spring:
       base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
       api-key: ${ANTHROPIC_API_KEY:sk-xxxx}
     ollama:
-      base-url: http://127.0.0.1:11434
+      base-url: http://10.210.0.11:11434
       chat:
         model: llama3
     stabilityai:
@@ -211,7 +211,7 @@ spring:
         sse:
           connections:
             filesystem:
-              url: http://127.0.0.1:8089
+              url: http://10.210.0.11:8089
               sse-endpoint: /sse
         annotation-scanner:
           enabled: false # TODO 有 bug，需要官方修复
@@ -271,7 +271,7 @@ yudao:
     suno:
       enable: false
   #    base-url: https://suno-55ishh05u-status2xxs-projects.vercel.app
-      base-url: http://127.0.0.1:3001
+      base-url: http://10.210.0.11:3001
     web-search:
       enable: false
       api-key: ${WEB_SEARCH_API_KEY:sk-xxxx}
@@ -284,7 +284,7 @@ yudao:
     base-package: cn.iocoder.yudao
   web:
     admin-ui:
-      url: http://localhost:18081 # Admin 管理后台 UI 的地址
+      url: http://10.210.0.11:18081 # Admin 管理后台 UI 的地址
   xss:
     enable: false
     exclude-urls: # 如下两个 url，仅仅是为了演示，去掉配置也没关系

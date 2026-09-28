@@ -48,7 +48,7 @@ if (!(Test-Path -LiteralPath $jar -PathType Leaf)) { throw "Built server JAR mis
 $java = (Get-Command java -CommandType Application -ErrorAction Stop).Source
 $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 48182)
 try { $listener.Start() }
-catch { throw 'Port 127.0.0.1:48182 is unavailable. No existing process was stopped.' }
+catch { throw 'Port 48182 is unavailable. No existing process was stopped.' }
 finally { $listener.Stop() }
 
 $dbName = 'management_acceptance_' + [Guid]::NewGuid().ToString('N')
@@ -57,7 +57,7 @@ $arguments = @(
     '-jar', $jar,
     '--spring.config.location=classpath:/application.yml',
     '--spring.profiles.active=acceptance-isolated',
-    '--server.address=127.0.0.1', '--server.port=48182',
+    '--server.address=0.0.0.0', '--server.port=48182',
     "--spring.datasource.url=jdbc:h2:mem:${dbName};DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
     '--spring.datasource.driver-class-name=org.h2.Driver',
     '--spring.datasource.username=sa', '--spring.datasource.password=',
@@ -91,7 +91,7 @@ $process = New-Object Diagnostics.Process
 $process.StartInfo = $info
 $started = $false
 try {
-    Write-Host 'ISOLATED LOCAL AUTH: http://127.0.0.1:48182 ; in-memory H2, synthetic terminal history only.'
+    Write-Host 'ISOLATED LOCAL AUTH: http://10.210.0.11:48182 ; in-memory H2, synthetic terminal history only.'
     Write-Host 'Do not execute collection commands against any device. Stop this script to end the acceptance server.'
     $started = $process.Start()
     if (!$started) { throw 'Java process did not start.' }

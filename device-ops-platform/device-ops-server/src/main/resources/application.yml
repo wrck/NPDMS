@@ -26,8 +26,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8080/realms/device-ops}
-          jwk-set-uri: ${OIDC_JWK_SET_URI:http://127.0.0.1:65535/.well-known/jwks.json}
+          issuer-uri: ${OIDC_ISSUER_URI:http://10.210.0.11:8080/realms/device-ops}
+          jwk-set-uri: ${OIDC_JWK_SET_URI:http://10.210.0.11:65535/.well-known/jwks.json}
 
 device-ops:
   parser:
@@ -95,7 +95,7 @@ device-ops:
     enabled: false
   runtime:
     auth-mode: ${DEVICE_OPS_AUTH_MODE:oauth2}
-    oidc-authority: ${OIDC_AUTHORITY:http://localhost:8080/realms/device-ops}
+    oidc-authority: ${OIDC_AUTHORITY:http://10.210.0.11:8080/realms/device-ops}
     client-id: ${OIDC_CLIENT_ID:device-ops-web}
     scope: ${OIDC_SCOPE:openid profile device-ops:collections:read device-ops:collections:execute}
     api-base-url: /api/v1

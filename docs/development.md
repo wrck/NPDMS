@@ -78,7 +78,7 @@ docker compose --profile security-scan up -d clamav
 
 ### 2. 启动后端（宿主机）
 
-后端连接 Docker 中的 MySQL（`localhost:13306`）与 Redis（`localhost:16379`）。
+后端连接 Docker 中的 MySQL（`10.210.0.11:13306`）与 Redis（`10.210.0.11:16379`）。
 请确保 `yudao-server` 的本地配置（`application-local.yaml` 或对应 profile）
 指向上述宿主机端口，并监听 `58080`。
 
@@ -89,8 +89,8 @@ mvn -pl yudao-server -am package -DskipTests
 java -jar yudao-server/target/yudao-server.jar --server.port=58080
 ```
 
-- 后端健康检查：<http://localhost:58080/actuator/health>
-- 后端接口文档：<http://localhost:58080/doc.html>
+- 后端健康检查：<http://10.210.0.11:58080/actuator/health>
+- 后端接口文档：<http://10.210.0.11:58080/doc.html>
 
 ### 3. 启动前端（宿主机）
 
@@ -101,7 +101,7 @@ pnpm dev
 ```
 
 前端 Vite dev server 默认监听 `18081`，通过同源 `/admin-api` 代理到后端
-`58080`。管理端访问地址：<http://localhost:18081>
+`58080`。管理端访问地址：<http://10.210.0.11:18081>
 
 ## 迁移校验与重复启动
 
@@ -153,9 +153,9 @@ Redis，再重新启动原 Flyway 容器执行迁移。运行宿主机集成测�
 .\tests\infrastructure\verify-docker-baseline.ps1
 docker compose exec mysql sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT installed_rank, version, description, success FROM flyway_schema_history;"'
 docker compose exec redis sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping'
-Invoke-WebRequest http://localhost:58080/actuator/health
-Invoke-WebRequest http://localhost:18081
-Invoke-WebRequest http://localhost:18081/admin-api/system/auth/get-permission-info
+Invoke-WebRequest http://10.210.0.11:58080/actuator/health
+Invoke-WebRequest http://10.210.0.11:18081
+Invoke-WebRequest http://10.210.0.11:18081/admin-api/system/auth/get-permission-info
 ```
 
 ## 停止与清理
