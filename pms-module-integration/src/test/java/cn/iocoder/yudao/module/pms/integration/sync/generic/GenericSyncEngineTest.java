@@ -92,6 +92,23 @@ class GenericSyncEngineTest {
         assertEquals("PACK-1",jdbc.queryForObject("SELECT package_no FROM ast_device",String.class));
         assertEquals("UNCHANGED",apply(d,first).getFirst().action());
     }
+    @Test void batchedInsertsHandleMixedSignaturesAndSameChunkInsertThenUpdate() {
+        var d=definition(2);
+        var twin=new LinkedHashMap<>(barcode("SN-B"));twin.put("barcode2","SN-B2");twin.put("item2","ITEM-2");twin.put("updateTime","2026-09-20T12:00:00");
+        var twin2=new LinkedHashMap<>(barcode("SN-B"));twin2.put("barcode2","SN-B2");twin2.put("item2","ITEM-3");twin2.put("updateTime","2026-09-21T12:00:00");
+        var changes=apply(d,row(d,"1",barcode("SN-A")),row(d,"2",twin),row(d,"3",twin2));
+        assertEquals("CREATED",changes.getFirst().action());
+        assertEquals(3,count("ast_device"));assertEquals(3,count("ast_device_shipment"));
+        // barcode2 行经 secondaryDevice 以不同列签名建档（INSERT_IGNORE 建后不改）
+        assertEquals("ITEM-2",jdbc.queryForObject("SELECT product_code FROM ast_device WHERE sn='SN-B2'",String.class));
+        // deviceShipment 在同批内先插后更（两行先后更新同一设备），列签名不同的更新保持原顺序生效
+        assertEquals("ITEM-3",jdbc.queryForObject("SELECT secondary_item FROM ast_device WHERE sn='SN-B'",String.class));
+        assertEquals("PACK-1",jdbc.queryForObject("SELECT package_no FROM ast_device WHERE sn='SN-B'",String.class));
+        // 行内"先插后更"折叠进插入值（无二次 UPDATE），版本与 overlay 锚点一致记 1；
+        // SN-B 后续行再叠一次有效更新（deviceShipment），版本按次数累进到 2。
+        assertEquals(1,jdbc.queryForObject("SELECT version FROM ast_device WHERE sn='SN-A'",Integer.class));
+        assertEquals(2,jdbc.queryForObject("SELECT version FROM ast_device WHERE sn='SN-B'",Integer.class));
+    }
     @Test void changedImmutableEventConflictsAndDoesNotCreateAnotherDevice() {
         var d=definition(2);apply(d,row(d,"1",barcode("SN1")));
         assertEquals("CONFLICT",apply(d,row(d,"1",barcode("SN2"))).getFirst().action());

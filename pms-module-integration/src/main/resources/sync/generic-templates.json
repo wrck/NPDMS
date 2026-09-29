@@ -908,11 +908,11 @@
       "overlapSeconds": 0,
       "retryCount": 0,
       "retryIntervalSeconds": 60,
-      "maxRows": 2000,
+      "maxRows": 5000,
       "maxBytes": 67108864,
       "readStrategy": "STREAMING_CURSOR",
-      "fetchSize": 2000,
-      "chunkSize": 500,
+      "fetchSize": 5000,
+      "chunkSize": 5000,
       "restartPolicy": "RESTART_ALL",
       "queryTimeoutSeconds": 0,
       "sources": [
@@ -1015,156 +1015,20 @@
                   "target": "source_payload",
                   "source": "$ROW",
                   "conversion": "JSON"
-                }
-              ],
-              "lookups": [
+                },
                 {
-                  "table": "com_sales_order_line",
-                  "match": {
-                    "order_no": "@orderNumber",
-                    "line_no": "@lineNum",
-                    "item_code": "@item"
-                  },
-                  "outputs": {
-                    "order_line_id": "id"
-                  },
-                  "onMissing": "RETAIN"
-                }
-              ]
-            },
-            {
-              "name": "secondaryMaster",
-              "table": "ast_device",
-              "keys": [
-                "sn"
-              ],
-              "mode": "UPSERT",
-              "nullPolicy": "IGNORE",
-              "updateColumns": [
-                "product_code",
-                "source_updated_at"
-              ],
-              "whenField": "barcode2",
-              "newerBy": "source_updated_at",
-              "mappings": [
-                {
-                  "target": "sn",
-                  "source": "barcode2",
+                  "target": "order_no",
+                  "source": "orderNumber",
                   "conversion": "DIRECT"
                 },
                 {
-                  "target": "product_code",
-                  "source": "item2",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "source_system",
-                  "source": "$SOURCE_SYSTEM",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "source_key",
-                  "source": "barcode2",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "source_updated_at",
-                  "source": "updateTime",
-                  "conversion": "DATETIME"
-                }
-              ],
-              "lookups": []
-            },
-            {
-              "name": "deviceMaster",
-              "table": "ast_device",
-              "keys": [
-                "sn"
-              ],
-              "mode": "UPSERT",
-              "nullPolicy": "IGNORE",
-              "updateColumns": [
-                "product_code",
-                "internal_serial_no",
-                "source_updated_at"
-              ],
-              "whenField": null,
-              "newerBy": "source_updated_at",
-              "mappings": [
-                {
-                  "target": "sn",
-                  "source": "barcode",
+                  "target": "line_no",
+                  "source": "lineNum",
                   "conversion": "DIRECT"
                 },
                 {
                   "target": "product_code",
                   "source": "item",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "internal_serial_no",
-                  "source": "com_barcode",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "source_system",
-                  "source": "$SOURCE_SYSTEM",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "source_key",
-                  "source": "barcode",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "source_updated_at",
-                  "source": "updateTime",
-                  "conversion": "DATETIME"
-                }
-              ],
-              "lookups": []
-            },
-            {
-              "name": "deviceShipment",
-              "table": "ast_device",
-              "keys": [
-                "sn"
-              ],
-              "mode": "UPDATE_ONLY",
-              "nullPolicy": "IGNORE",
-              "updateColumns": [
-                "shipment_time",
-                "package_no",
-                "contract_no",
-                "shipment_record_id",
-                "secondary_sn",
-                "secondary_item"
-              ],
-              "newerBy": "shipment_time",
-              "mappings": [
-                {
-                  "target": "sn",
-                  "source": "barcode",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "shipment_time",
-                  "source": "shipment_time",
-                  "conversion": "DATETIME"
-                },
-                {
-                  "target": "package_no",
-                  "source": "pack_id",
-                  "conversion": "STRING"
-                },
-                {
-                  "target": "contract_no",
-                  "source": "contract_no",
-                  "conversion": "DIRECT"
-                },
-                {
-                  "target": "shipment_record_id",
-                  "source": "$event.id",
                   "conversion": "DIRECT"
                 },
                 {
@@ -1176,10 +1040,38 @@
                   "target": "secondary_item",
                   "source": "item2",
                   "conversion": "DIRECT"
+                },
+                {
+                  "target": "internal_serial_no",
+                  "source": "com_barcode",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "is_rma",
+                  "source": "isRMA",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "profit_center",
+                  "source": "profitCenter",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "sole_agent_suffix",
+                  "source": "soleAgentSuffix",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "sync_time",
+                  "source": "syncTime",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "uuid",
+                  "source": "uuid",
+                  "conversion": "DIRECT"
                 }
-              ],
-              "lookups": [],
-              "tieBreaker": "shipment_record_id"
+              ]
             }
           ],
           "issueField": null,
@@ -1250,9 +1142,18 @@
                   "target": "source_version",
                   "source": "updatetime",
                   "conversion": "STRING"
+                },
+                {
+                  "target": "source_item",
+                  "source": "item1",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "target_item",
+                  "source": "item2",
+                  "conversion": "DIRECT"
                 }
-              ],
-              "lookups": []
+              ]
             }
           ],
           "issueField": null,

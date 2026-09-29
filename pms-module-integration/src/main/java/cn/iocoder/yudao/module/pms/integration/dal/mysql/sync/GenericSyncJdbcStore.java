@@ -55,24 +55,141 @@ public class GenericSyncJdbcStore {
         return jdbc.queryForList("SELECT * FROM " + identifier(table.table()) + " WHERE " + where
                 + " LIMIT 2" + (query.lock() ? " FOR UPDATE" : ""), args.toArray());
     }
-    public void insert(GenericTargetCatalog.Table table, Map<String,Object> values) {
-        values.keySet().forEach(column -> requireWriteColumn(table,column));
-        String columns = String.join(",", values.keySet().stream().map(GenericTargetCatalog::identifier).toList());
-        jdbc.update("INSERT INTO " + identifier(table.table()) + " (" + columns + ") VALUES ("
-                + String.join(",", Collections.nCopies(values.size(), "?")) + ")", values.values().toArray());
+    /** 行内列形状一致的键集合一次往返取回全部现存行（不过滤删除行）；键元组较多时分段执行。
+     * 组内恒定列提升为等值、仅一列变化时改写为 IN；多列变化用派生表 JOIN 逐键索引探测，避免 OR 析取链的劣化计划。 */
+    public List<Map<String,Object>> findByKeys(GenericTargetCatalog.Table table, List<Map<String,Object>> keys, boolean lock) {
+        if (keys.isEmpty()) return List.of();
+        var sample = keys.getFirst();
+        sample.keySet().forEach(column -> requireColumn(table,column));
+        Map<String,Object> fixed = new LinkedHashMap<>();
+        List<String> varying = new ArrayList<>();
+        for (var column : sample.keySet()) {
+            Object first = sample.get(column);
+            boolean constant = keys.stream().allMatch(key -> Objects.equals(key.get(column),first));
+            if (constant) fixed.put(column,first); else varying.add(column);
+        }
+        List<Map<String,Object>> all = new ArrayList<>();
+        for (int start = 0; start < keys.size(); start += KEY_FETCH_BATCH) {
+            var page = keys.subList(start, Math.min(start + KEY_FETCH_BATCH, keys.size()));
+            for (var key : page)
+                if (!key.keySet().equals(sample.keySet())) throw new IllegalArgumentException("批量取数键形状不一致");
+            List<Object> args = new ArrayList<>();
+            StringJoiner where = new StringJoiner(" AND ");
+            if (table.tenantColumn() != null) { where.add(identifier(table.tenantColumn()) + " = ?"); args.add(TenantContextHolder.getRequiredTenantId()); }
+            fixed.forEach((column,value) -> {
+                requireColumn(table,column); where.add(identifier(column) + " = ?"); args.add(value);
+            });
+            if (varying.size() == 1) {
+                String column = varying.getFirst();
+                requireColumn(table,column);
+                where.add(identifier(column) + " IN (" + String.join(",", Collections.nCopies(page.size(), "?")) + ")");
+                for (var key : page) args.add(key.get(column));
+                all.addAll(jdbc.queryForList("SELECT * FROM " + identifier(table.table()) + " WHERE " + where
+                        + (lock ? " FOR UPDATE" : ""), args.toArray()));
+            } else if (varying.size() > 1) {
+                StringJoiner branches = new StringJoiner(" UNION ALL ");
+                List<Object> branchArgs = new ArrayList<>();
+                for (int index = 0; index < page.size(); index++) {
+                    var key = page.get(index);
+                    for (var column : varying) branchArgs.add(key.get(column));
+                    branches.add("SELECT " + String.join(",", index == 0
+                            ? varying.stream().map(GenericTargetCatalog::identifier).map(alias -> "? AS " + alias).toList()
+                            : Collections.nCopies(varying.size(), "?")) + " FROM dual");
+                }
+                StringJoiner on = new StringJoiner(" AND ");
+                for (var column : varying) on.add("t." + identifier(column) + " = req." + identifier(column));
+                StringJoiner joinWhere = new StringJoiner(" AND ");
+                if (table.tenantColumn() != null) { joinWhere.add("t." + identifier(table.tenantColumn()) + " = ?"); branchArgs.add(TenantContextHolder.getRequiredTenantId()); }
+                fixed.forEach((column,value) -> { joinWhere.add("t." + identifier(column) + " = ?"); branchArgs.add(value); });
+                all.addAll(jdbc.queryForList("SELECT t.* FROM " + identifier(table.table()) + " t JOIN ("
+                        + branches + ") req ON " + on + " WHERE " + joinWhere
+                        + (lock ? " FOR UPDATE" : ""), branchArgs.toArray()));
+            } else {
+                all.addAll(jdbc.queryForList("SELECT * FROM " + identifier(table.table()) + " WHERE " + where
+                        + (lock ? " FOR UPDATE" : ""), args.toArray()));
+            }
+        }
+        return all;
     }
-    public void update(GenericTargetCatalog.Table table, Map<String,Object> before, Map<String,Object> values) {
-        if (values.isEmpty()) return;
-        List<Object> args = new ArrayList<>(values.values());
-        var set = new StringJoiner(",");
-        values.keySet().forEach(column -> {requireWriteColumn(table,column);set.add(identifier(column) + " = ?");});
-        if (table.versioned()) set.add("version = version + 1");
-        String where = "id = ? AND " + identifier(table.tenantColumn()) + " = ?";
-        args.add(before.get("id"));args.add(TenantContextHolder.getRequiredTenantId());
-        if (table.deletedColumn() != null) where += " AND " + identifier(table.deletedColumn()) + " = 0";
-        if (table.versioned()) {where += " AND version = ?";args.add(before.get("version"));}
-        if (jdbc.update("UPDATE " + identifier(table.table()) + " SET " + set + " WHERE " + where,args.toArray()) != 1)
-            throw new IllegalStateException("目标记录版本变化，当前分块已回滚");
+    private static final int KEY_FETCH_BATCH = 500;
+    /** 行内列顺序与首行完全一致的批次合并为多值语句，减少全量装载时的逐行往返；语句行数取任务配置的 chunkSize。 */
+    public void insertBatch(GenericTargetCatalog.Table table, List<Map<String,Object>> rows, int chunkSize) {
+        if (rows.isEmpty()) return;
+        int size = chunkSize > 0 ? chunkSize : INSERT_BATCH_SIZE;
+        rows.getFirst().keySet().forEach(column -> requireWriteColumn(table,column));
+        List<Object[]> args = rows.stream().map(row -> {
+            if (!row.keySet().equals(rows.getFirst().keySet())) throw new IllegalArgumentException("批量插入列签名不一致");
+            return row.values().toArray();
+        }).toList();
+        for (int start = 0; start < args.size(); start += size) {
+            var page = args.subList(start, Math.min(start + size, args.size()));
+            jdbc.update(insertSql(table, rows.getFirst().keySet(), page.size()),
+                    page.stream().flatMap(java.util.Arrays::stream).toArray());
+        }
+    }
+    private static final int INSERT_BATCH_SIZE = 1000;
+    private String insertSql(GenericTargetCatalog.Table table, Set<String> columns, int rowCount) {
+        return "INSERT INTO " + identifier(table.table()) + " ("
+                + String.join(",", columns.stream().map(GenericTargetCatalog::identifier).toList())
+                + ") VALUES " + String.join(",", Collections.nCopies(rowCount,
+                        "(" + String.join(",", Collections.nCopies(columns.size(), "?")) + ")"));
+    }
+    public record BatchUpdate(GenericTargetCatalog.Table table, Map<String,Object> before, Map<String,Object> values, int bumps) {}
+    /** 同行更新链已合并（before 为链首锚点）且目标行互不重叠的批量更新：按列签名分页，
+     * 逐行锚定 (id,version) 的 CASE 更新保证任一行版本不符即匹配数不足并回滚整块。 */
+    public void updateBatch(GenericTargetCatalog.Table table, List<BatchUpdate> ops) {
+        if (ops.isEmpty()) return;
+        Map<String,List<BatchUpdate>> groups = new LinkedHashMap<>();
+        for (var op : ops) {
+            op.values().keySet().forEach(column -> requireWriteColumn(table,column));
+            groups.computeIfAbsent(String.join(",", op.values().keySet()), key -> new ArrayList<>()).add(op);
+        }
+        for (var entry : groups.entrySet()) {
+            var list = entry.getValue();
+            List<String> columns = new ArrayList<>(list.getFirst().values().keySet());
+            for (int start = 0; start < list.size(); start += UPDATE_BATCH_SIZE) {
+                var page = list.subList(start, Math.min(start + UPDATE_BATCH_SIZE, list.size()));
+                List<Object> setArgs = new ArrayList<>();
+                StringBuilder set = new StringBuilder();
+                for (var column : columns) {
+                    if (set.length() > 0) set.append(',');
+                    set.append(identifier(column)).append(" = CASE `id`");
+                    for (var op : page) {
+                        set.append(" WHEN ? THEN ?");
+                        setArgs.add(op.before().get("id"));
+                        setArgs.add(op.values().get(column));
+                    }
+                    set.append(" ELSE ").append(identifier(column)).append(" END");
+                }
+                if (table.versioned()) {
+                    set.append(", version = CASE `id`");
+                    for (var op : page) {
+                        set.append(" WHEN ? THEN ?");
+                        setArgs.add(op.before().get("id"));
+                        setArgs.add(((Number) op.before().get("version")).intValue() + op.bumps());
+                    }
+                    set.append(" ELSE version END");
+                }
+                // 目标行在预取时已 FOR UPDATE 锁定（或为本分块插入），版本不可能被并发改变；
+                // 匹配数不足即说明行缺失或被删除，回滚整块。
+                List<Object> whereArgs = new ArrayList<>();
+                whereArgs.add(TenantContextHolder.getRequiredTenantId());
+                StringBuilder where = new StringBuilder(identifier(table.tenantColumn()) + " = ?");
+                if (table.deletedColumn() != null) where.append(" AND ").append(identifier(table.deletedColumn())).append(" = 0");
+                where.append(" AND ").append(identifier("id")).append(" IN (")
+                        .append(String.join(",", Collections.nCopies(page.size(), "?"))).append(")");
+                for (var op : page) whereArgs.add(op.before().get("id"));
+                if (jdbc.update("UPDATE " + identifier(table.table()) + " SET " + set + " WHERE " + where,
+                        concat(setArgs, whereArgs)) != page.size())
+                    throw new IllegalStateException("目标记录版本变化，当前分块已回滚");
+            }
+        }
+    }
+    private static final int UPDATE_BATCH_SIZE = 100;
+    private static Object[] concat(List<Object> left, List<Object> right) {
+        List<Object> all = new ArrayList<>(left.size() + right.size());
+        all.addAll(left);all.addAll(right);
+        return all.toArray();
     }
     private static void requireColumn(GenericTargetCatalog.Table table,String column) {
         if (!table.columns().contains(column) && !"id".equals(column)) throw new IllegalArgumentException("未开放字段: " + column);

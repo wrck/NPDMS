@@ -21,6 +21,7 @@ public class SyncRunService {
     private final SyncTaskMapper tasks;
     private final SyncRunMapper runs;
     private final SyncBindingMapper bindings;
+    private final cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore jdbcStore;
     private final SyncConnectionService connections;
     private final MysqlSyncReader reader;
     private final SpringJdbcStreamingReader streamingReader;
@@ -30,6 +31,12 @@ public class SyncRunService {
     private final RedissonClient redisson;
     private final PlatformTransactionManager transactionManager;
     private final org.springframework.beans.factory.ObjectProvider<SyncBatchLauncher> launcher;
+    /** 绑定行的批量直插载体；列集仅覆盖本服务写入的字段，值全部参数绑定。 */
+    private static final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog.Table BINDING_TABLE =
+            new cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog.Table(
+                    "int_sync_binding","同步绑定","INT_SYNC",true,false,
+                    List.of("task_id","object_key","source_object","source_key","target_id","target_shared","fields_json","last_run_id"),
+                    List.of(),List.of(List.of("id")),Map.of(),null,"tenant_id","deleted",false,List.of());
     public record Start(Long taskId,Integer expectedVersion,String requestKey,boolean preview,
                         boolean full,boolean adoptExisting,Long retryOf,boolean confirmPreparation) {}
 
@@ -266,6 +273,8 @@ public class SyncRunService {
             });
             if(!root.getPreview())refreshCache(runId);
         } catch(Exception ex) {
+            Throwable cause=ex;while(cause.getCause()!=null&&cause.getCause()!=cause)cause=cause.getCause();
+            log.error("Data sync run={} failed: {}:: {}",runId,ex.getClass().getSimpleName(),cause.toString(),ex);
             tx().executeWithoutResult(status->{
                 var failure=required(runId);
                 if(!Set.of("SUCCESS","PREVIEW_READY").contains(failure.getStatus())) {
@@ -282,7 +291,9 @@ public class SyncRunService {
         var snapshot=new MysqlSyncReader.Snapshot(chunk.upper(),List.of(
                 new MysqlSyncReader.SourceRows(chunk.object(),chunk.sourceObject(),chunk.rows())),chunk.bytes());
         String correlation=runId+":s"+chunk.sourceIndex()+":c"+chunk.sequence();
+        var timing=new org.springframework.util.StopWatch();
         tx().executeWithoutResult(status->{
+            timing.start("runLock");
             var current=required(runId);
             var t=taskService.locked(task.getId());
             if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
@@ -290,27 +301,41 @@ public class SyncRunService {
             var state=current.getPagingJson()==null?SyncStreamingState.start(chunk.upper()):
                     JsonUtils.parseObject(current.getPagingJson(),SyncStreamingState.class);
             if(state.sourceIndex()!=chunk.sourceIndex())throw new IllegalStateException("流式来源断点与当前游标不一致");
+            timing.stop();timing.start("bindingsLoad");
             var bindingRows=loadPageBindingRows(task.getId(),d,snapshot);
             var existing=bindingFacts(bindingRows);
+            timing.stop();timing.start("transform");
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
             var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
             // Stage, target writes, reconciliation, bindings and checkpoint advance are one atomic chunk transaction.
+            timing.stop();timing.start("evidenceStage");
             var evidence=evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
+            timing.stop();timing.start("apply");
             var changes=current.getPreview()?adapter.preview(batch):adapter.apply(batch);
             if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
                 throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
             verifyPrimaryKeys(batch,changes);
             var finalChanges=markStale(changes,stale);
+            timing.stop();timing.start("bindingsWrite");
             if(!current.getPreview())persistBindings(t,d,finalChanges,runId,bindingRows);
+            timing.stop();timing.start("evidenceComplete");
             evidenceService.complete(runId,d,evidence,adapter.descriptor(),
                     current.getPreview()?List.of():finalChanges,false);
+            timing.stop();timing.start("checkpoint");
             state=state.committed(chunk.lastKey(),chunk.rows().size());
             current.setPagingJson(JsonUtils.toJsonString(state)).setSourceUpper(chunk.upper())
                     .setReadCount(current.getReadCount()+chunk.rows().size())
                     .setStatus(current.getPreview()?"VALIDATING":"APPLYING");
-            mergeSummary(current,finalChanges);appendResultSample(current,finalChanges,d.maxRows());runs.updateById(current);
+            mergeSummary(current,finalChanges);
+            // 全量复制不累积整批变更样本：样本随 maxRows 增长会把运行行拖到 MB 级，每块整行重写拖垮吞吐；预览保留完整样本。
+            appendResultSample(current,finalChanges,current.getPreview()?d.maxRows():50);
+            runs.updateById(current);
+            timing.stop();
         });
+        if(chunk.sequence()%20==0)log.info("Data sync run={} source={} chunk={} rows={} phasesMs={}",
+                runId,chunk.sourceIndex(),chunk.sequence(),chunk.rows().size(),
+                java.util.Arrays.stream(timing.getTaskInfo()).map(x->x.getTaskName()+":"+x.getTimeMillis()).toList());
     }
 
     private void advanceStreamingSource(Long runId,SyncDefinition d,SpringJdbcStreamingReader.StreamChunk chunk) {
@@ -376,6 +401,8 @@ public class SyncRunService {
                 tasks.updateById(t);
             });
         } catch(Exception ex) {
+            Throwable pageCause=ex;while(pageCause.getCause()!=null&&pageCause.getCause()!=pageCause)pageCause=pageCause.getCause();
+            log.error("Data sync page run={} failed: {}:: {}",runId,ex.getClass().getSimpleName(),pageCause.toString(),ex);
             tx().executeWithoutResult(s->{var r=required(runId);r.setStatus("FAILED").setErrorMessage(safeError(ex)).setFinishedAt(LocalDateTime.now());runs.updateById(r);failTask(r,d);});
             throw ex;
         } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
@@ -430,8 +457,7 @@ public class SyncRunService {
         }
     }
     private void persistBindings(SyncTaskDO task,SyncDefinition d,List<DataSyncAdapter.Change> changes,Long runId,
-                                 List<SyncBindingDO> bindingRows) {
-        boolean targetShared=validator.adapter(d).sharesTargetAcrossSources();
+                                 List<SyncBindingDO> bindingRows) {        boolean targetShared=validator.adapter(d).sharesTargetAcrossSources();
         Map<String,SyncBindingDO> existing=new HashMap<>();
         // All binding writers hold the same adapter lock; reuse this chunk's protected snapshot.
         bindingRows.forEach(b->existing.put(b.getObjectKey()+":"+b.getSourceKey(),b));
@@ -454,7 +480,23 @@ public class SyncRunService {
             if(fresh) {b.setCreator("data_sync");b.setUpdater("data_sync");created.add(b);}
             else {b.setUpdater("data_sync");b.setUpdateTime(LocalDateTime.now());updated.add(b);}
         }
-        if(!created.isEmpty())bindings.insertBatch(created,1000);
+        if(!created.isEmpty()) {
+            // 全量装载每块数千行，多值语句直插比逐行 batch 绑定少一个量级的参数绑定开销；显式派号保持 ASSIGN_ID 语义。
+            created.forEach(b->b.setId(com.baomidou.mybatisplus.core.toolkit.IdWorker.getId())
+                    .setCreateTime(LocalDateTime.now()).setUpdateTime(LocalDateTime.now()));
+            List<Map<String,Object>> rows=created.stream().<Map<String,Object>>map(b->{
+                Map<String,Object> row=new LinkedHashMap<>();
+                row.put("id",b.getId());row.put("tenant_id",b.getTenantId());row.put("task_id",b.getTaskId());
+                row.put("object_key",b.getObjectKey());row.put("source_object",b.getSourceObject());
+                row.put("source_key",b.getSourceKey());row.put("target_id",b.getTargetId());
+                row.put("target_shared",b.getTargetShared());row.put("fields_json",b.getFieldsJson());
+                row.put("last_run_id",b.getLastRunId());row.put("creator",b.getCreator());
+                row.put("updater",b.getUpdater());row.put("create_time",b.getCreateTime());
+                row.put("update_time",b.getUpdateTime());row.put("deleted",false);
+                return row;
+            }).toList();
+            jdbcStore.insertBatch(BINDING_TABLE,rows,d.effectiveChunkSize());
+        }
         if(!updated.isEmpty())bindings.updateBatch(updated,1000);
         for(int start=0;start<unchanged.size();start+=1000)
             bindings.updateLastRun(new SyncQueries.BindingRun(task.getTenantId(),task.getId(),runId,

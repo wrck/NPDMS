@@ -107,6 +107,7 @@ public class GenericSyncEngine {
             Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas=new HashMap<>();
             for(var source:definition.sources())for(var step:source.targets())schemas.computeIfAbsent(step.table(),name->store.columns(catalog.required(name)));
             Map<String,Map<String,Object>> overlay=new HashMap<>();
+            prefillOverlay(definition,batch,overlay,apply);
             List<Mutation> mutations=new ArrayList<>();List<Change> changes=new ArrayList<>();
             for(var row:batch.rows()) {
                 var source=definition.sources().stream().filter(s->s.object().equals(row.object())).findFirst().orElseThrow();
@@ -183,8 +184,17 @@ public class GenericSyncEngine {
                             if(!delta.isEmpty()) {
                                 delta.put("updater","data_sync");delta.put("update_time",LocalDateTime.now());
                                 store.validateValues(schemas.get(table.table()),delta,false);
-                                rowWrites.add(new Mutation(table,old,delta));next.putAll(delta);
-                                if(table.versioned())next.put("version",((Number)old.get("version")).intValue()+1);
+                                // 行内"先插后更同一新行"：old 即本行先序步骤插入的行（同一实例），把增量并入插入值即可，
+                                // 不产生 UPDATE 往返；后续行经 overlay 的更新仍走正常更新链。
+                                boolean freshInsert=false;
+                                for(var write:rowWrites) if(write.before()==null && write.values()==old) {freshInsert=true;break;}
+                                int anchor=table.versioned()?((Number)old.get("version")).intValue():0;
+                                if(freshInsert) {
+                                    old.putAll(delta);
+                                    if(table.versioned())old.put("version",anchor+1);
+                                } else rowWrites.add(new Mutation(table,old,delta));
+                                next.putAll(delta);
+                                if(table.versioned())next.put("version",anchor+1);
                                 if(!"CREATED".equals(action))action="UPDATED";
                             }
                         }
@@ -211,15 +221,108 @@ public class GenericSyncEngine {
                 }
             }
             if(apply && changes.stream().noneMatch(c->"CONFLICT".equals(c.action()))) {
+                // 插入目标无外键且主键已预生成，彼此独立；按表+列签名合并为多值语句，保持首现顺序。
+                // 行内"先插后更"已在收集时折叠进插入；跨行的同行更新链合并（列值以后到者为准，版本按次数累进），
+                // 再按列签名 CASE 批量执行，保持逐行乐观版本校验。
+                Map<String,List<Map<String,Object>>> insertGroups=new LinkedHashMap<>();
+                Map<String,GenericTargetCatalog.Table> insertTables=new HashMap<>();
                 for(var mutation:mutations) {
-                    if(mutation.before()==null)store.insert(mutation.table(),mutation.values());else store.update(mutation.table(),mutation.before(),mutation.values());
+                    if(mutation.before()!=null)continue;
+                    String signature=mutation.table().table()+":"+String.join(",",mutation.values().keySet());
+                    insertGroups.computeIfAbsent(signature,key->new ArrayList<>()).add(mutation.values());
+                    insertTables.putIfAbsent(signature,mutation.table());
                 }
+                insertGroups.forEach((signature,rows)->store.insertBatch(insertTables.get(signature),rows,definition.effectiveChunkSize()));
+                // 同行更新链合并（列值以后到者为准，版本按次数累进），再按列签名 CASE 批量执行，保持逐行乐观版本校验。
+                Map<String,GenericSyncJdbcStore.BatchUpdate> merged=new LinkedHashMap<>();
+                Map<String,Integer> bumps=new HashMap<>();
+                for(var mutation:mutations) {
+                    if(mutation.before()==null)continue;
+                    String key=mutation.table().table()+":"+mutation.before().get("id");
+                    var existing=merged.get(key);
+                    if(existing==null) {
+                        merged.put(key,new GenericSyncJdbcStore.BatchUpdate(mutation.table(),mutation.before(),new LinkedHashMap<>(),0));
+                        bumps.put(key,0);
+                    }
+                    merged.get(key).values().putAll(mutation.values());
+                    bumps.merge(key,1,Integer::sum);
+                }
+                Map<String,List<GenericSyncJdbcStore.BatchUpdate>> updateGroups=new LinkedHashMap<>();
+                merged.forEach((key,op)->{
+                    var withBumps=new GenericSyncJdbcStore.BatchUpdate(op.table(),op.before(),op.values(),bumps.get(key));
+                    updateGroups.computeIfAbsent(op.table().table(),t->new ArrayList<>()).add(withBumps);
+                });
+                updateGroups.forEach((tableKey,ops)->store.updateBatch(ops.getFirst().table(),ops));
                 if (!mutations.isEmpty()) events.publishEvent(new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged(
                         tenant, mutations.stream().map(m -> new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged.Target(
                                 m.table().table(),m.before()==null ? Map.of() : m.before(),m.values())).toList()));
             }
             return changes;
         }
+    }
+    /** 分块开始前按业务键一次性预取现存目标行（含“确认不存在”），消除全量装载时每行的逐键往返。
+     * 仅预取可直接由来源字段求值的键；键含关联输出或缺失来源字段时回退到逐行查找，语义不变。 */
+    private void prefillOverlay(SyncDefinition definition, DataSyncAdapter.Batch batch, Map<String,Map<String,Object>> overlay, boolean lock) {
+        Map<String,List<Map<String,Object>>> groups=new LinkedHashMap<>();
+        Map<String,GenericTargetCatalog.Table> tables=new HashMap<>();
+        Map<String,Set<String>> groupColumns=new HashMap<>();
+        for(var row:batch.rows()) {
+            var source=definition.sources().stream().filter(s->s.object().equals(row.object())).findFirst().orElse(null);
+            if(source==null)continue;
+            Map<String,Object> variables=new HashMap<>(row.fields());
+            variables.put("$SOURCE_KEY",row.sourceKey());variables.put("$SOURCE_SYSTEM",definition.sourceSystem());
+            for(var step:source.targets()) {
+                if(step.whenField()!=null && !present(variables.get(step.whenField())))continue;
+                var table=catalog.required(step.table());
+                Map<String,Object> keys=new LinkedHashMap<>();
+                for(var mapping:step.mappings()) {
+                    if(!step.keys().contains(mapping.target()))continue;
+                    if(!"CONSTANT".equals(mapping.conversion()) && !variables.containsKey(mapping.source())){keys=null;break;}
+                    Object value="CONSTANT".equals(mapping.conversion())?mapping.constant():variables.get(mapping.source());
+                    if(value==null)value=mapping.defaultValue();
+                    value=convert(value,mapping);
+                    if(!present(value)){keys=null;break;}
+                    keys.put(mapping.target(),value);
+                }
+                if(keys==null || keys.size()!=step.keys().size())continue;
+                String signature=table.table()+":"+String.join(",",new TreeSet<>(keys.keySet()));
+                tables.putIfAbsent(signature,table);
+                groupColumns.putIfAbsent(signature,keys.keySet());
+                groups.computeIfAbsent(signature,g->new ArrayList<>()).add(keys);
+            }
+        }
+        for(var entry:groups.entrySet()) {
+            var table=tables.get(entry.getKey());
+            var columns=groupColumns.get(entry.getKey());
+            Map<String,Map<String,Object>> fetched=new HashMap<>();
+            Set<String> ambiguous=new HashSet<>();
+            for(var existing:store.findByKeys(table,entry.getValue(),lock)) {
+                String token=keyToken(columns,existing);
+                if(fetched.containsKey(token))ambiguous.add(token);
+                fetched.put(token,existing);
+            }
+            for(var keys:entry.getValue()) {
+                if(ambiguous.contains(keyToken(columns,keys)))continue;
+                overlay.put(cacheKey(table,keys),fetched.get(keyToken(columns,keys)));
+            }
+        }
+    }
+    private static String keyToken(Set<String> columns,Map<String,Object> row) {
+        StringBuilder token=new StringBuilder();
+        for(var column:columns)token.append(column).append('=').append(canonical(row.get(column))).append('|');
+        return token.toString();
+    }
+    private static String canonical(Object value) {
+        if(value==null)return "";
+        if(value instanceof java.sql.Timestamp t)return t.toLocalDateTime().toString();
+        if(value instanceof java.sql.Date d)return d.toLocalDate().toString();
+        if(value instanceof java.sql.Time t)return t.toString();
+        if(value instanceof Number)return new BigDecimal(value.toString()).stripTrailingZeros().toPlainString();
+        // 对齐 MySQL CI 排序规则与 VARCHAR 尾部空格判等；非 ASCII 折叠差异仍会以唯一键冲突响亮失败
+        String text=value.toString();
+        int end=text.length();
+        while(end>0 && text.charAt(end-1)==' ')end--;
+        return text.substring(0,end).toLowerCase(Locale.ROOT);
     }
     private Map<String,Object> find(GenericTargetCatalog.Table table,Map<String,Object> values,Map<String,Map<String,Object>> overlay,boolean lock) {
         String key=cacheKey(table,values);if(overlay.containsKey(key))return overlay.get(key);

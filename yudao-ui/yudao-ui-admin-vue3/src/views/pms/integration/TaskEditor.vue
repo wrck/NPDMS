@@ -203,7 +203,7 @@
             <el-alert
               type="info"
               :closable="false"
-              title="流式模式每个来源 SQL 正常执行只打开一次 ResultSet，边读边按 Chunk 提交；Fetch Size 只控制来源拉取，Chunk Size 控制目标事务。SQL 超时为 0 时使用驱动默认/不主动限制。CHECKPOINT_KEY 仅在恢复时追加 sourceKey > 已提交断点。"
+              title="流式模式每个来源 SQL 正常执行只打开一次 ResultSet，边读边按 Chunk 提交；Fetch Size 只控制来源拉取，Chunk Size 控制目标事务及多值批插语句行数。SQL 超时为 0 时使用驱动默认/不主动限制。CHECKPOINT_KEY 仅在恢复时追加 sourceKey > 已提交断点。"
             />
           </template>
           <template v-else-if="draft.definition.readStrategy === 'KEYSET_PAGING'">
