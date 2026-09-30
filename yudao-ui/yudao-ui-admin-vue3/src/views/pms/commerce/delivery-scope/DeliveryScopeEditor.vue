@@ -24,6 +24,15 @@
         <el-descriptions-item label="交付范围水位">{{ deliveryScopeVersion }}</el-descriptions-item>
       </el-descriptions>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
+        <el-form-item label="订单号" prop="orderNoFilter">
+          <el-input
+            v-model="form.orderNoFilter"
+            :disabled="mode === 'adjust'"
+            clearable
+            placeholder="输入订单号筛选，如 SO058302"
+            @change="loadOrderLines"
+          />
+        </el-form-item>
         <el-form-item label="订单行" prop="orderLineId">
           <el-select
             v-model="form.orderLineId"
@@ -159,6 +168,7 @@ const previewResult = ref<DeliveryScopePreviewResult>()
 const formRef = ref<FormInstance>()
 const intents = createCommerceIntentStore()
 const form = reactive({
+  orderNoFilter: '',
   orderLineId: undefined as number | undefined,
   quantity: undefined as number | undefined,
   serialText: '',
@@ -176,13 +186,23 @@ watch(form, () => {
 })
 
 const loadOrderLines = async () => {
-  const data = await CommerceApi.getSalesOrderLinePage({ pageNo: 1, pageSize: 200 })
+  const data = await CommerceApi.getSalesOrderLinePage({
+    pageNo: 1,
+    pageSize: 200,
+    orderNo: form.orderNoFilter.trim() || undefined
+  })
   orderLines.value = data.list
 }
 const openAssign = async () => {
   mode.value = 'assign'
   currentScope.value = undefined
-  Object.assign(form, { orderLineId: undefined, quantity: undefined, serialText: '', reason: '' })
+  Object.assign(form, {
+    orderNoFilter: '',
+    orderLineId: undefined,
+    quantity: undefined,
+    serialText: '',
+    reason: ''
+  })
   previewResult.value = undefined
   visible.value = true
   if (props.projectContext) await loadOrderLines()
@@ -191,6 +211,7 @@ const openAdjust = async (scope: DeliveryScopeRespVO) => {
   mode.value = 'adjust'
   currentScope.value = scope
   Object.assign(form, {
+    orderNoFilter: '',
     orderLineId: scope.orderLineId,
     quantity: scope.allocatedQuantity,
     serialText: scope.details
