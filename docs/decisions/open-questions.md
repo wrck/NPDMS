@@ -29,7 +29,7 @@
 
 ### Q-TASK-BUSINESS-AUTO-LINK-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决归属口径；Owner 接入契约落字与跨会话分工仍须执行，见 Resolution 2026-09-30）
 - Requirement IDs: PM-03、PM-11
 - Area: 任务业务记录自动归属
 - Question: 2026-09-14需求方要求取消手动建立/解除关联并直接展示业务操作页；同项目存在多条业务记录时，哪些记录自动归属当前任务并进入完成判定？
@@ -39,6 +39,7 @@
 - Decision owner: 需求方；PROJ与相应业务Owner落实契约
 - Resolution: 2026-09-14需求方已确认统一方向：所有业务模块共用“业务完成→自动关联对应任务→按任务完成规则自动完成”，无需人工建立/解除关联或点击完成任务。此确认不是同项目全部记录无差别纳入；具体任务/业务范围解析及各Owner接入契约仍须统一落字，暂不关闭本问题。
 - Implementation coordination: 本任务11:21后只读复核发现，上一轮结束后同工作树已出现其他来源的`TaskBusinessObjectProvider.lockCompletionFact`、`ProjectTaskBusinessService.lockCompletionFacts`、`ProjectTaskLifecycleService.completeFromBusinessResult`及需求分析Outbox接线（核心文件修改时间11:15～11:19）。现有自动完成仍读取已保存活动关联，且本轮检索仅发现需求分析实现无人值守完成事实接口，不等于统一能力已交付。master相关DU未定位到本增量的当前写入责任；须先明确接管/分工，不能并行改写同一接口或重复建设。
+- Resolution 2026-09-30: 需求方裁决——采用A并附加纳入资格限定：同项目同类业务记录中"已确认或审批通过、归档通过"的记录全部纳入任务业务范围与完成判定（统一业务模型应有统一的业务定义），完成事实取最新完成的记录；草稿、已撤销等未定格记录不纳入。既有关系与完成历史不自动重写。各业务Owner接入契约仍须按此口径统一落字，跨会话并行实现的接管/分工按Implementation coordination执行，属实施协调不改变本语义裁决。
 
 ## Phase 2历史资料承载决策
 
@@ -657,13 +658,14 @@
 
 ### Q-FCOM-002
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决：A 回退即关闭解锁）
 - Requirement IDs: COM-01、ACC-03、PM-10
 - Area: 退出/回退验收阶段后的范围绑定关闭或解锁
 - Question: 退出或回退验收阶段时，既有AcceptanceScopeBinding的关闭和解锁规则仍待业务明确。
 - Blocking scope: 仅退出/回退时的绑定关闭或解锁设计；确认前不得自动写effective_to、关闭、解锁或改写既有绑定。阶段进入绑定与验收阶段内新版本绑定规则继续有效，不阻断报告版本、满意度或当前范围的既有正向路径。
 - Evidence: 当前统一F-COM-001规格BR-FCOM001-005及第13节；ADR-0038/0039，恢复原有窄问题登记，不新增业务Gate。
 - Business decision required: 是。
+- Resolution: 需求方2026-09-30裁决采用A——退出或回退验收阶段即关闭既有AcceptanceScopeBinding并解锁（落effective_to至回退时点、解除资源绑定锁定）；回退路径的关闭与解锁写入自此获得授权实现，原"确认前不得自动写"限制针对本裁决情形解除；阶段进入绑定与验收阶段内新版本绑定正向规则不变。Decision date: 2026-09-30。
 
 ## CUT/IMP来源裁决补登
 
@@ -1052,12 +1054,13 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-TPL-FLOW-20260922-002
 
-- Status: BLOCKED_BY_SPEC（仅限可选 S6 扩展）
+- Status: RESOLVED（需求方 2026-09-30 裁决：不扩展，维持 S0～S5）
 - Requirement IDs: PM-03 / F-PROJ-009；正常项目闭环。
 - Question: 原图六页止于验收交维，是否另行补充既有 S6 项目闭环？当前会话已提出可选问题，尚未获得需求方答复。
 - Implementation boundary: 当前按图配置 S0～S5；S5 终点不等于项目自动关闭。未配置额外闭环审批、归档或回款阈值；此问题只阻止超出原图的 S6 扩展，不阻止已确认部分的配置。
 - Decision owner: 需求方。
 - Evidence: [配置与验证记录](../generated/2026-09-22-visio-delivery-template/README.md)。
+- Resolution: 需求方2026-09-30裁决不扩展S6，模板阶段域维持S0～S5，不新增闭环审批、归档或回款阈值配置。Decision date: 2026-09-30。
 
 ### Q-TPL-FLOW-20260922-003 — 工前判断并回原工勘来源
 
@@ -1070,7 +1073,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-TPL-FLOW-20260922-004 — S4 割接任务完成依据运行时不可达
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决：以最新模板过渡方案为准结案，历史项目不回刷）
 - Requirement IDs: PM-03 / F-PROJ-009（模板规则已配置）；F-CUT-002（taskv2 入口未注册生产 Bean）
 - Area: 交付模板 S4「割接上线」（DEPLOY_CUTOVER）完成事实的产生入口
 - Question: rev6 模板（revision 993009900031）已把 `DEPLOY_CUTOVER_DONE` 冻结为 `BUSINESS_FACT(CUTOVER_COMPLETED)`，但当前运行系统没有任何合法入口能产生该事实——rev6 项目（含手工 NULL 项目）全部卡死在 S4，无法推进 S5。这是配置与运行时能力不匹配的接入边界缺口，如何处置？
@@ -1092,6 +1095,8 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 2026-09-24 验收续记（不改变本问题状态）：rev7 起模板为 DEPLOY_CUTOVER 配置门禁 BPM 引用，部署过渡流程定义 `PMS_DELIVERY_CUTOVER_APPROVAL`（描述明示"割接完成外接接入前，审批通过即视为割接完成；后续替换为割接系统业务事实"）。验收项目 992203060028（直签）与 992203060032（渠道）均按"BPM 审批通过 → 事实 APPROVED → 任务完成 → S5 激活"走通，未绕过状态机或直写业务事实；正式处置（taskv2 生产入口注册或规则语义裁决）仍待需求方，过渡定义替换为真实割接业务事实前本问题保持 BLOCKED_BY_SPEC。证据见 [发布与全链验收记录](../generated/2026-09-22-visio-delivery-template/acceptance/README.md)。
 
 2026-09-26 纯界面驱动复核（不改变本问题状态）：fresh 库（npdms_domain_test）rev10 模板项目 PJT2026000001 在"全部操作限于项目详情界面、不用脚本推进"的约束下复核本边界。S4 前五任务（DEPLOY_COORDINATE/ARRIVAL/HARDWARE/CONFIG/JOINT）全部经任务办理抽屉界面完成；DEPLOY_CUTOVER 确认无任何合法界面发起入口：①任务办理抽屉审批面板对 formType=20（业务表单）定义按设计拒绝渲染发起表单（`TaskApprovalForm.load` 拦截，提示"该审批使用原模块业务表单，请通过业务页面绑定办理"；自 9141716e2 起存在）；②rev10 模板 DEPLOY_CUTOVER 绑定仅 APPROVAL、无业务视图快照（工作台 businessView=null），项目详情内"割接上线 5.5"视图渲染 taskv2 界面但其 REST 生产 Bean 按契约测试刻意未注册，实测 `GET/POST /admin-api/api/v1/pms/cutover-tasks*` 仍全部 404；③旧版 `POST /admin-api/pms/cut-task/create` 维持退役，不承接新流程；④BPM 手工发起 `PMS_DELIVERY_CUTOVER_APPROVAL`（BPMN 无启动表单、节点 candidateStrategy=35 发起人自选）无法携带 `pmsTaskProjectId/pmsTaskId/pmsTaskExecutionId/pmsTaskContractId` 等身份变量，实例与任务作用域必然 IDENTITY_MISMATCH→UNKNOWN，不能作为完成依据。结论：在界面约束下 S4→S5 为当前模板已知阻塞点（选项 C 形态），项目停于 S4（5/6 任务 DONE）；不采用脚本/API 直推审批，正式处置仍待需求方。证据见 [2026-09-26 复制模板闭环验证记录](../generated/2026-09-26-visio-copy-closure/README.md)。
+
+2026-09-30 查证与结案（需求方当前会话裁决）：最新模板修订 rev3（id 993009900015，template 993009900011，2026-09-30 00:51 发布）中 `DEPLOY_CUTOVER_DONE` 规则名为"割接审批通过即完成"，表达式 `CONSTANT true`，任务绑定 `pms-cutover-done-approval` 审批流——不再冻结 `BUSINESS_FACT(CUTOVER_COMPLETED)`，S4 经审批通过正常闭环；模板描述自述为过渡方案（"当前为割接完成外接接入前的临时依据，后续将替换为割接系统业务事实（CUTOVER_COMPLETED）"），定义快照缺口清单仍登记 `task:DEPLOY_CUTOVER` 缺业务完成事实；taskv2 REST 五个 Controller（Task/Plan/Approval/Checklist/Closure）经查证仍无 `@RestController/@Component`，未注册生产 Bean。需求方裁决采用过渡方案为准结案（选项 B 形态的当前落点），历史项目不回刷；"替换为割接系统业务事实 CUTOVER_COMPLETED + taskv2 REST 生产入口注册"登记为同一割接系统 Owner 的后续待办，不再作为本问题阻塞项。
 
 ### Q-TPL-FLOW-20260922-005 — 满意度结果来源投影与业务文档收集的 CURRENT 归属竞态
 
@@ -1172,7 +1177,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-LIST-FILTER-20260924-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决：按推荐默认落地）
 - Requirement IDs: 项目管理→项目列表（新链 `/pms/projects/page`）；本次界面整治项，未关联独立 Feature 编号
 - Area: 项目列表筛选维度口径
 - Question: 用户2026-09-24要求项目列表增加筛选维度：项目编号、项目名称、合同号、办事处、销售人员、项目状态、实施状态、流程状态、发货状态、重点项目级别、服务经理、项目经理、创建时间&闭环时间&刷新时间、实施方式、产品型号、所属公司、代理商/服务商、序列号、维保状态。其中"实施状态、流程状态、发货状态"三个维度在现链无已定义字段或派生口径，"维保状态"取值域未受控，如何定义？
@@ -1184,6 +1189,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: 前三个维度不渲染筛选控件；维保状态按原文等值文本过滤临时实现（设备列表页同为原文展示），取值域待规格定义。
 - Blocking scope: 仅阻止上述四个维度的最终口径；不阻断其余可解析维度的实现（项目编号/名称/状态/实施方式/项目经理/合同号/办事处/所属公司/销售人员/服务经理/重点项目级别/创建&闭环&刷新时间/产品型号/序列号/代理商服务商）。
 - Decision owner: 需求方
+- Resolution: 需求方2026-09-30裁决按推荐技术默认落地：实施状态、流程状态、发货状态三维度不渲染筛选控件（派生口径待规格定义后再纳入）；维保状态按`ast_device.warranty_status`原文等值文本过滤，取值域维持CRM同步原文展示，不臆造字典。其余已定义维度照常实现。Decision date: 2026-09-30。
 
 ### Q-SYNC-DEVICE-20260928-001 — 设备序列号同步任务的设备侧三步去留
 
@@ -1202,7 +1208,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-MIG-V331-20260929-001 — V331 交付件绑定修复迁移不支持全新空库构建
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决：迁出主链）
 - Requirement IDs: F-PROJ-009（V331__fproj009_deliverable_binding_restore.sql 为该需求的历史数据修复）；本次发现于"项目创建取值(合同单入口)"V361 验证环境搭建
 - Area: 数据库迁移 / 全新环境供给
 - Question: V331 是按生产库实况捕获快照生成的一次性外科修复迁移（restore_fproj009_deliverable_binding.py），其 before-guard 逐行比对 six DRAFT 模板 designer_document 的修复前状态；全新空库按 V1..V361 顺序构建时，guard 前置查询返回空/不一致，迁移在 V331 失败，导致全新环境（含 CI、新同事本地、演示环境）无法用完整迁移链初始化。
@@ -1213,12 +1219,13 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: 若需求方确认 V331 仅面向特定既有环境，则把它改为条件执行（guard 不满足时跳过并留审计记录）或迁出主迁移链（移入一次性运维脚本目录+登记执行环境清单）；两者都会改动已执行环境的 flyway_schema_history 语义，需要明确决策。
 - Blocking scope: 仅阻止"单一迁移链支持全新空库构建"这一能力；不阻断本机既有库、工作区库的升级，也不阻断当前 V361 业务验证（本地验证库已可构建）。
 - Decision owner: 需求方（涉及迁移历史治理，非单一代码决定）。
+- Resolution: 需求方2026-09-30裁决迁出主链——V331移入一次性运维脚本目录并登记已执行环境清单，主迁移链恢复全新空库可构建；已执行库的`flyway_schema_history`V331记录保留不动，文件迁出后的missing-migration处理随迁出实施一并配置。迁出实施（目录、清单、迁移链验证）为后续工程工作。Decision date: 2026-09-30。
 
 ## 施工计划批次再审批与已完成任务历史链接的解析口径（2026-09-29 S2 工作区 OWNER_FACT_UNAVAILABLE）
 
 ### Q-TASKBIZ-20260929-001
 
-- Status: BLOCKED_BY_SPEC（读路径显示缺陷已按技术默认修复并验证；门槛关系待裁决）
+- Status: RESOLVED（需求方 2026-09-30 裁决：A 维持现状为最终口径）
 - Requirement IDs: PLN-01/04（阶段施工计划 3.1）；PM-01（任务工作区业务内嵌）
 - Area: 施工计划批次生命周期 × 任务业务链接（proj_task_business_link 冻结 object_id）的解析口径
 - Question: 项目进入 S3 后，经 3.1「阶段施工计划」页面再次创建并审批新批次（2026-09-29 项目 992004000014 批次 12 于 15:58 生效，S2 已于 10:41 完成）——该再审批路径当前无阶段门槛校验。由此：(a) S2 关闭后是否允许不经门槛重开即再审批新批次？(b) 允许时，已完成 S2 任务的冻结链接（批次 11）在新批次引入不同工期基线后，其完成事实（CONSTRUCTION_PLAN_APPROVED）按历史批次评估可能转 false，工作区应展示历史真相还是当前基线结论？
@@ -1231,11 +1238,12 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: A 为当前已实现口径；若需求方认为 S2 后再审批应受控，则 B，需补充规格定义重开与变更流程。
 - Blocking scope: 仅阻止 (a)(b) 的最终裁决；不阻断读路径显示修复（已落地）与其他独立工作。
 - Decision owner: 需求方；PLN Owner、工程实施 Owner 参与影响分析
+- Resolution: 需求方2026-09-30裁决采用A为最终口径：(a) 3.1再审批不受阶段门槛限制，S2关闭后允许不经门槛重开即再审批新批次；(b) 已完成任务冻结链接按链接id只读回放历史批次（展示历史真相），锁路径维持仅当前生效批次语义。2026-09-29已落地的读路径修复即为该口径实现，测试6/6通过，无需额外实现。Decision date: 2026-09-30。
 ## 全库命名统一中设备型号字段族的归属口径（2026-09-29 产品/物料双读法全库统一裁决外溢）
 
 ### Q-NAMING-20260929-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决：A 保留现名）
 - Requirement IDs: 无独立 Feature 编号；衍生自 2026-09-29 "全库所有同含义的字段，都用统一的命名" 裁决（V378/V379 产品/物料双读法统一）
 - Area: 数据库字段命名规范 × 设备维度快照字段
 - Question: 产品/物料双读法规范名已定为 `product_code`/`product_name`/`product_model`/`product_desc`（V378/V379 已统一订单行、交付范围、到货行、领料、外采）。设备维度记录上的型号快照列——`imp_eng_risk.device_model`（设备型号）、`kno_announcement_check.device_model`（设备型号）、`plt_authorization.device_model`（设备型号）、`plt_collection_template.device_model`（无注释）、`pms_equipment_retired.model`（设备型号）——是否视为与 `product_model` 同含义一并更名？
@@ -1247,4 +1255,5 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: A（V379 未动这些列，仅登记）；若裁决为 B/C，另出迁移版本执行。
 - Blocking scope: 仅阻止这 5 列的最终命名；不阻断已完成的四表统一（V379）与相关代码链。
 - Decision owner: 需求方
+- Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
 
