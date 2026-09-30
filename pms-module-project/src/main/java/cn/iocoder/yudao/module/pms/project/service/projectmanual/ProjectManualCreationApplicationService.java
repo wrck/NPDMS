@@ -87,6 +87,8 @@ public class ProjectManualCreationApplicationService {
     private PreparationInitializationApi preparationInitializationApi;
     @Resource
     private CustomerQueryApi customerQueryApi;
+    @Resource
+    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi commerceSourceApi;
 
     /** 根项目入口解析已选择客户；子项目统一由带父范围授权的拆分应用层创建。 */
     public ManualProjectCreateResult createWithSelectedCustomer(ManualProjectCreateCommand command, Actor actor) {
@@ -179,6 +181,7 @@ public class ProjectManualCreationApplicationService {
             managerCandidateValidator.validate(command.serviceManagerUserId(), company.getId(),
                     department.getId(), department.getCode());
         }
+        var commerceResolution = command.contractId() == null ? null : resolveCommerceSource(command, actor);
         command.draft().setTenantId(actor.tenantId());
         assignOrganization(command.draft(), company, department);
         command.draft().setLocationResolutionStatus(projectSiteService.validateLocationScope(
@@ -187,6 +190,10 @@ public class ProjectManualCreationApplicationService {
                 ? projectAttributeResolutionService.resolveInitial(command.draft(),
                         command.templateRevisionId(), command.candidateWatermark())
                 : null;
+        if (commerceResolution != null) {
+            // CRM权威字段在模板匹配后写入：不影响手工模板匹配口径（重大级别由服务端按CRM执行单落库）。
+            applyCommerceSource(command.draft(), commerceResolution);
+        }
         ProjectMasterDO project = matchDecision == null
                 ? projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
                         command.templateRevisionId(), command.candidateWatermark(), command.serviceManagerUserId())
@@ -194,6 +201,12 @@ public class ProjectManualCreationApplicationService {
                         matchDecision, command.serviceManagerUserId());
         if (project.getParentId() == null) {
             projectTreeProjectionService.publish(project.getId(), 1L, "PROJECT_CREATE:" + project.getId());
+        }
+        if (commerceResolution != null) {
+            commerceSourceApi.bindProjectCommerceSource(
+                    new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
+                            actor.tenantId(), project.getId(), command.contractId(), actor.actorId(),
+                            command.idempotencyKey()));
         }
         projectSiteService.bindSites(project.getId(), command.sites());
         initializePreparationIfConfigured(project, actor);
@@ -218,6 +231,34 @@ public class ProjectManualCreationApplicationService {
                 instances.getMilestones().size(), instances.getDeliverables().size(), instances.getGates().size(),
                 command.serviceManagerUserId() != null, matchDecision == null ? null : matchDecision.matchResult(),
                 matchDecision == null ? null : matchDecision.decisionMode(), matchOperationId);
+    }
+
+    /** 合同主档链只读解析：校验合同可见性与手工登记合同号一致性（ADR-0022 trim+大小写不敏感比较）。 */
+    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution
+            resolveCommerceSource(ManualProjectCreateCommand command, Actor actor) {
+        var resolution = commerceSourceApi.resolveCreationSource(
+                new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
+                        actor.tenantId(), command.contractId(), actor.actorId()));
+        String manualContractNo = command.draft().getContractNo();
+        if (manualContractNo != null && !manualContractNo.isBlank() && resolution.contractNo() != null
+                && !manualContractNo.trim().equalsIgnoreCase(resolution.contractNo().trim())) {
+            throw new IllegalArgumentException("合同主档与手工登记合同号不一致");
+        }
+        return resolution;
+    }
+
+    private void applyCommerceSource(ProjectMasterDO draft,
+            cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution source) {
+        draft.setCustomerProjectName(source.customerProjectName());
+        draft.setMajorProjectLevel(source.majorProjectLevel());
+        draft.setMarketCode(source.marketCode());
+        draft.setMarketName(source.marketName());
+        draft.setSystemCode(source.systemCode());
+        draft.setSystemName(source.systemName());
+        draft.setExpendCode(source.expendCode());
+        draft.setExpendName(source.expendName());
+        draft.setIndustryCode(source.industryCode());
+        draft.setIndustryName(source.industryName());
     }
 
     private void initializePreparationIfConfigured(ProjectMasterDO project, Actor actor) {

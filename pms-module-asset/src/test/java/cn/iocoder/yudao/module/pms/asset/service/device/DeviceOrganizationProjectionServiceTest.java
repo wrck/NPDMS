@@ -17,15 +17,20 @@ class DeviceOrganizationProjectionServiceTest {
         var service=new DeviceOrganizationProjectionService(mapper,source);
         var device=new DeviceDO();device.setId(8L);device.setCompanyId(1L);device.setDepartmentId(2L);
         device.setOrganizationSource("CONTRACT");device.setOrganizationUpdatedAt(LocalDateTime.now());
-        when(mapper.selectBatchForUpdate(any())).thenReturn(List.of(device));
-        when(source.resolveSource(eq(1L),any())).thenReturn(Map.of(8L,new DeviceOrganizationRespVO(null,null,null,null,null,"UNRESOLVED")));
-        when(mapper.updateOrganization(any())).thenReturn(1);
-        assertEquals(1,service.rebuildPage(1L,0).updated());
-        verify(mapper).updateOrganization(new DeviceOrganizationUpdate(1L,8L,null,null,null,null,null,"UNRESOLVED"));
+        var device9=new DeviceDO();device9.setId(9L);device9.setCompanyId(1L);device9.setDepartmentId(2L);
+        device9.setOrganizationSource("CONTRACT");device9.setOrganizationUpdatedAt(LocalDateTime.now());
+        when(mapper.selectBatchForUpdate(any())).thenReturn(List.of(device,device9));
+        when(source.resolveSource(eq(1L),any())).thenReturn(Map.of(8L,new DeviceOrganizationRespVO(null,null,null,null,null,"UNRESOLVED"),
+                9L,new DeviceOrganizationRespVO(null,null,null,null,null,"UNRESOLVED")));
+        when(mapper.updateOrganizationBatch(any(),any())).thenReturn(2);
+        assertEquals(2,service.rebuildPage(1L,0).updated());
+        // 同一归属事实合并为一次 IN 批量更新
+        verify(mapper).updateOrganizationBatch(new DeviceOrganizationUpdate(1L,null,null,null,null,null,null,"UNRESOLVED"),List.of(8L,9L));
         device.setCompanyId(null);device.setDepartmentId(null);device.setOrganizationSource("UNRESOLVED");
+        device9.setCompanyId(null);device9.setDepartmentId(null);device9.setOrganizationSource("UNRESOLVED");
         clearInvocations(mapper);
         assertEquals(0,service.rebuildPage(1L,0).updated());
-        verify(mapper,never()).updateOrganization(any());
+        verify(mapper,never()).updateOrganizationBatch(any(),any());
     }
 
     @Test void ownerUnavailableAbortsRebuildRatherThanPersistingUnknownFacts() {
@@ -34,7 +39,7 @@ class DeviceOrganizationProjectionServiceTest {
         when(mapper.selectBatchForUpdate(any())).thenReturn(List.of(device));
         when(source.resolveSource(eq(1L),any())).thenThrow(new IllegalStateException("Owner unavailable"));
         assertThrows(IllegalStateException.class,()->new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0));
-        verify(mapper,never()).updateOrganization(any());
+        verify(mapper,never()).updateOrganizationBatch(any(),any());
     }
 
     @Test void projectOwnershipOverridesContractAndClearsMissingProjectOwnership() {

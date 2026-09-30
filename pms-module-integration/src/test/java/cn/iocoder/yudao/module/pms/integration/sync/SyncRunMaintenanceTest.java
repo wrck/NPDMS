@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO;
 import cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncTaskDO;
 import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper;
+import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore;
 import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper;
 import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncTaskMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -26,6 +27,7 @@ class SyncRunMaintenanceTest {
     private final SyncTaskMapper tasks=mock(SyncTaskMapper.class);
     private final SyncRunMapper runs=mock(SyncRunMapper.class);
     private final SyncBindingMapper bindings=mock(SyncBindingMapper.class);
+    private final GenericSyncJdbcStore jdbcStore=mock(GenericSyncJdbcStore.class);
     private final SyncConnectionService connections=mock(SyncConnectionService.class);
     private final MysqlSyncReader reader=mock(MysqlSyncReader.class);
     private final SpringJdbcStreamingReader streamingReader=mock(SpringJdbcStreamingReader.class);
@@ -45,7 +47,7 @@ class SyncRunMaintenanceTest {
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(lock.tryLock()).thenReturn(true);
         when(launcher.getObject()).thenReturn(batchLauncher);
-        service=new SyncRunService(taskService,tasks,runs,bindings,connections,reader,streamingReader,fieldMapper,
+        service=new SyncRunService(taskService,tasks,runs,bindings,jdbcStore,connections,reader,streamingReader,fieldMapper,
                 validator,evidenceService,redisson,new ResourcelessTransactionManager(),launcher);
     }
 

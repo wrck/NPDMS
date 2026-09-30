@@ -7,7 +7,7 @@ import { managementApi } from '@/api/management'
 import { createRequest } from '@/management/use-request'
 import type { ManagementSettings } from '@/types/management'
 const { data, loading, error, run } = createRequest<ManagementSettings>()
-const labels = { scheduleEnabled: '到期通知调度', callbackEnabled: '回调', masterDataEnabled: '主数据集成', telnetEnabled: 'Telnet', credentialStorageAvailable: '凭据存储可用' }
+const labels = { scheduleEnabled: '到期通知调度', callbackEnabled: '回调', masterDataEnabled: '主数据集成', telnetEnabled: 'Telnet', serialEnabled: '串口', credentialStorageAvailable: '凭据存储可用' }
 const load = () => run(managementApi.settings)
 onMounted(load)
 </script>

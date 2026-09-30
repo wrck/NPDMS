@@ -55,7 +55,9 @@ public interface ParseTaskRepository {
             String resultConsumerId,
             URI resultDestination,
             Instant createdAt,
-            String requestedReleaseId) {
+            String requestedReleaseId,
+            String externalRequestId,
+            String activityType) {
         public SubmitRequest {
             contextSnapshot = contextSnapshot == null ? Map.of() : Map.copyOf(contextSnapshot);
         }
@@ -66,7 +68,18 @@ public interface ParseTaskRepository {
                 Map<String, Object> contextSnapshot, String sourceResultId, String resultConsumerId,
                 URI resultDestination, Instant createdAt) {
             this(taskId, requestId, callerNamespace, logType, releaseId, coordinate, inputFormat, inputRef,
-                    contextSnapshot, sourceResultId, resultConsumerId, resultDestination, createdAt, releaseId);
+                    contextSnapshot, sourceResultId, resultConsumerId, resultDestination, createdAt, releaseId,
+                    null, null);
+        }
+
+        /** Collection-derived submissions pin the release and carry the originating business request. */
+        public SubmitRequest(String taskId, String requestId, String callerNamespace, String logType,
+                String releaseId, ParserCoordinate coordinate, String inputFormat, String inputRef,
+                Map<String, Object> contextSnapshot, String sourceResultId, String resultConsumerId,
+                URI resultDestination, Instant createdAt, String requestedReleaseId) {
+            this(taskId, requestId, callerNamespace, logType, releaseId, coordinate, inputFormat, inputRef,
+                    contextSnapshot, sourceResultId, resultConsumerId, resultDestination, createdAt,
+                    requestedReleaseId, null, null);
         }
 
         public SubmissionIdentity identity() {

@@ -21,5 +21,19 @@ CREATE TABLE IF NOT EXISTS `ast_device_version` (
 ) ENGINE = InnoDB COMMENT = 'AST 设备档案版本历史（追加只读）';
 
 -- 配置日志表跟随设备档案迁移（新链 DeviceConfigurationLogQueryService 已按 ast_device 主体消费本表）
-RENAME TABLE `pms_equipment_config_log` TO `ast_device_config_log`;
-ALTER TABLE `ast_device_config_log` RENAME COLUMN `equipment_id` TO `device_id`;
+-- 本迁移只补本库仍缺失的表结构：V285 完整副本已自带改名，全新库重复执行会阻断迁移，故按实际缺失条件执行。
+SET @cfg_log_missing = (SELECT COUNT(*) = 0 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ast_device_config_log');
+SET @cfg_log_sql = IF(@cfg_log_missing,
+    'RENAME TABLE `pms_equipment_config_log` TO `ast_device_config_log`', 'SELECT 1');
+PREPARE cfg_log_stmt FROM @cfg_log_sql;
+EXECUTE cfg_log_stmt;
+DEALLOCATE PREPARE cfg_log_stmt;
+SET @cfg_log_col_missing = (SELECT COUNT(*) = 0 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ast_device_config_log'
+      AND COLUMN_NAME = 'device_id');
+SET @cfg_log_col_sql = IF(@cfg_log_col_missing,
+    'ALTER TABLE `ast_device_config_log` RENAME COLUMN `equipment_id` TO `device_id`', 'SELECT 1');
+PREPARE cfg_log_col_stmt FROM @cfg_log_col_sql;
+EXECUTE cfg_log_col_stmt;
+DEALLOCATE PREPARE cfg_log_col_stmt;

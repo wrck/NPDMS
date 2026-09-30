@@ -77,13 +77,32 @@ public class ContractController {
             return success(new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO(
                 detail.contracts().stream().map(c -> toResponse(c, sensitive)).toList(),
                 detail.orders().stream().map(o -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.Order(
-                    o.getId(), o.getOrderNo(), o.getCompanyName(), o.getOrderCreateTime())).toList(),
+                    o.getId(), o.getOrderNo(), o.getCompanyName(), o.getOrderCreateTime(),
+                    sensitive ? o.getOrderAmount() : null, sensitive ? o.getCurrencyCode() : null,
+                    o.getSalesType(), o.getCustomerRequiredTime(), o.getExecutionNo())).toList(),
                 detail.executionOrders().stream().map(e -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.ExecutionOrder(
                     e.getId(), e.getExecutionNo(), e.getSalesRepCode(), e.getSalesRepName(),
                     e.getMarketName(), e.getSystemName(), e.getExpendName(), e.getIndustryName(),
                     e.getDepartmentName(), e.getCompanyName(), e.getCustomerProjectName(), sensitive ? e.getFinalCustomerName() : null,
                     sensitive ? e.getAgentName() : null, e.getProjectManagerName(), e.getServiceTypeName(), e.getChannelName(),
-                    e.getSubmitTime(), e.getSourceSystem(), e.getSourceSyncTime())).toList()));
+                    e.getSubmitTime(), e.getSourceSystem(), e.getSourceSyncTime(),
+                    e.getProjectCode(), e.getProjectName(), sensitive ? e.getProjectAmount() : null,
+                    e.getMajorProjectLevel(), e.getProjectType(), e.getMarketCode(), e.getSystemCode(),
+                    e.getExpendCode(), e.getIndustryCode())).toList()));
+        });
+    }
+
+    @GetMapping("/{id}/creation-source")
+    @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
+    public CommonResult<cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO> creationSource(
+            @PathVariable Long id) {
+        return withTenant(() -> {
+            Long userId = currentUserId();
+            boolean sensitiveReadable = canReadSensitive(userId);
+            var detail = accessService.getCreationSource(currentTenantId(), userId,
+                    UUID.randomUUID().toString(), id);
+            return success(cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO.from(
+                    detail, sensitiveReadable));
         });
     }
 
@@ -126,7 +145,8 @@ public class ContractController {
                 value.getContractNo(), sensitiveReadable ? value.getContractType() : null,
                 sensitiveReadable ? value.getCustomerCode() : null,
                 sensitiveReadable ? value.getCustomerName() : null,
-                value.getContractName(), sensitiveReadable ? value.getCurrencyCode() : null, value.getSourceVersion(),
+                value.getContractName(), sensitiveReadable ? value.getContractAmount() : null,
+                sensitiveReadable ? value.getCurrencyCode() : null, value.getSourceVersion(),
                 value.getSourceUpdatedAt(), value.getStatus(), value.getVersion());
     }
 

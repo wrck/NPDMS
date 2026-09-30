@@ -199,39 +199,6 @@
             <span class="panel-title"><Icon icon="ep:document" /> 基本信息</span>
           </div>
           <ProjectBaseInfo v-if="detail?.id" :project="detail" />
-
-          <!-- Demo 1.1 产品清单信息表（来源：交付范围明细 + 设备档案已登记序列号） -->
-          <div class="panel-header" style="margin-top: 16px">
-            <span class="panel-title"><Icon icon="ep:box" /> 产品清单信息</span>
-          </div>
-          <el-table :data="productRows" size="small" border data-testid="project-product-list">
-            <el-table-column type="index" label="序号" width="60" />
-            <el-table-column prop="productCode" label="产品编码" min-width="140" />
-            <el-table-column prop="model" label="产品型号" min-width="120" />
-            <el-table-column prop="qty" label="项目数量" width="90" align="center" />
-            <el-table-column min-width="110" align="center">
-              <template #header>
-                <span>发货数量</span>
-                <el-tooltip content="以设备档案（1.1.1 序列号详情）中该产品型号已登记序列号数计" placement="top">
-                  <Icon icon="ep:question-filled" class="ml-2px align-middle" />
-                </el-tooltip>
-              </template>
-              <template #default="{ row }">{{ row.snCount }}</template>
-            </el-table-column>
-            <el-table-column label="未发货数量" width="100" align="center">
-              <template #default="{ row }">{{ Math.max(0, row.qty - row.snCount) }}</template>
-            </el-table-column>
-            <el-table-column label="序列号详情" width="110" align="center">
-              <template #default="{ row }">
-                <el-button link type="primary" :disabled="!row.snCount" @click="switchTab('sn-result')">
-                  {{ row.snCount ? '查看' : '暂无' }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <p v-if="!productRows.length" class="pending-hint">
-            交付范围暂无产品明细（需 pms:commerce:scope:query 权限与交付范围数据）。
-          </p>
         </ContentWrap>
 
         <!-- ============ 项目概览：客户信息（与 pms-inheritance/project-detail 同一组件） ============ -->
@@ -608,8 +575,8 @@ import CompletionCertificateWorkbench from '@/views/pms/acceptance/completion-ce
 import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
-import { getDeliveryScopePage } from '@/api/pms/commerce'
+import * as DeviceApi from '@/api/pms/asset/device'
+import { getDeliveryScopePage, getSalesOrderLinePage } from '@/api/pms/commerce'
 import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
@@ -692,7 +659,7 @@ const overviewSteps: { key: string; label: string; icon: string; pending?: boole
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
-  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:commerce:scope:query'] },
+  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' },
   { key: 'scope', label: '实施范围', icon: 'ep:location', pending: true },
@@ -705,38 +672,120 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
   value ? getDictLabel(dict!, value) : '不限'
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
-// ============ 交付模块表格（与 pms-inheritance/project-detail 同一 DeliveryModuleTable，配置同口径） ============
-// 设备清单 = 订单信息（交付范围明细展平，无独立明细 API，内存分页）；序列号详情 = ast_device 按项目过滤
+// ============ 交付模块表格（与 pms-inheritance/project-detail 同一 DeliveryModuleTable） ============
+// 设备清单 = 产品清单信息：交付范围明细（序列号级→项目数量、订单行引用）× ERP 订单行（订单号/发货/未发货数量）
+// × 产品设备清单 ast_device（产品身份/设备台数）按产品聚合。交付范围明细与订单行均不带产品编码，
+// 产品身份经 ast_device 按序列号解析；订单行数量按 订单号+行号 归集到产品。逐台明细见「序列号详情」页签
 const deliveryModules: Record<string, DeliveryModuleConfig> = {
   equipment: {
     label: '设备清单',
     icon: 'ep:cpu',
     load: async (pid, pageNo, pageSize) => {
-      const res = await getDeliveryScopePage({ projectId: pid, pageNo: 1, pageSize: 200, includeHistory: false })
-      const rows = (res.list || []).flatMap((scope: any) => {
-        const base = { orderNo: scope.orderNo, lineNo: scope.lineNo, itemCode: scope.itemCode }
-        const details = scope.details || []
-        if (!details.length) {
-          return [{ ...base, productCode: '', deviceTypeCode: '', allocatedQuantity: scope.allocatedQuantity, status: scope.scopeStatus }]
+      const [scopeRes, devicePage] = await Promise.all([
+        getDeliveryScopePage({ projectId: pid, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
+        DeviceApi.getDevicePage({ projectId: pid, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
+      ])
+      // 产品身份解析：ast_device 按序列号 → 产品编码/型号/名称
+      const snProduct = new Map<string, { productCode: string; productModel: string; productName: string }>()
+      for (const d of devicePage.list || []) {
+        const sn = String(d.sn ?? '').trim()
+        if (sn) {
+          snProduct.set(sn, {
+            productCode: String(d.productCode ?? '').trim(),
+            productModel: String(d.productModel ?? '').trim(),
+            productName: String(d.productName ?? '').trim()
+          })
         }
-        return details.map((d: any) => ({
-          ...base,
-          productCode: d.productCode || '',
-          deviceTypeCode: d.deviceTypeCode || '',
-          allocatedQuantity: d.allocatedQuantity,
-          status: d.status || scope.scopeStatus
-        }))
+      }
+      const grouped = new Map<string, {
+        productModel: string; productName: string
+        orderNos: Set<string>; lines: Set<string>
+        projectQty: number; deviceCount: number
+      }>()
+      const ensure = (key: string) => {
+        const cur = grouped.get(key) || { productModel: '', productName: '', orderNos: new Set<string>(), lines: new Set<string>(), projectQty: 0, deviceCount: 0 }
+        grouped.set(key, cur)
+        return cur
+      }
+      for (const scope of scopeRes.list || []) {
+        for (const d of scope.details || []) {
+          const product = snProduct.get(String(d.serialNo ?? '').trim())
+          const key = product?.productCode || String(d.productCode ?? '').trim() || '—'
+          const cur = ensure(key)
+          if (product) {
+            if (!cur.productModel) cur.productModel = product.productModel
+            if (!cur.productName) cur.productName = product.productName
+          }
+          cur.projectQty += Number(d.allocatedQuantity || 0)
+          if (scope.orderNo) cur.orderNos.add(String(scope.orderNo).trim())
+          if (scope.orderNo && scope.lineNo) cur.lines.add(`${String(scope.orderNo).trim()}|${String(scope.lineNo).trim()}`)
+        }
+      }
+      for (const d of devicePage.list || []) {
+        const key = String(d.productCode ?? '').trim() || String(d.productModel ?? '').trim() || '—'
+        const cur = ensure(key)
+        if (!cur.productModel) cur.productModel = String(d.productModel ?? '').trim()
+        if (!cur.productName) cur.productName = String(d.productName ?? '').trim()
+        cur.deviceCount += 1
+      }
+      // 订单行数量（ERP 订单数据）：按 订单号+行号 匹配后归集到产品
+      const orderNos = new Set<string>()
+      grouped.forEach((cur) => cur.orderNos.forEach((o) => orderNos.add(o)))
+      const lineQty = new Map<string, { deliveredQty: number; openQty: number }>()
+      await Promise.all(
+        [...orderNos].map((orderNo) =>
+          getSalesOrderLinePage({ orderNo, pageNo: 1, pageSize: 200 })
+            .then((res: any) => {
+              for (const l of res.list || []) {
+                lineQty.set(`${String(l.orderNo).trim()}|${String(l.lineNo).trim()}`, {
+                  deliveredQty: Number(l.deliveredQty || 0),
+                  openQty: Number(l.openQty || 0)
+                })
+              }
+            })
+            .catch(() => undefined)
+        )
+      )
+      const rows = [...grouped.entries()].map(([key, cur]) => {
+        let deliveredQty = 0
+        let openQty = 0
+        cur.lines.forEach((lk) => {
+          const q = lineQty.get(lk)
+          if (q) {
+            deliveredQty += q.deliveredQty
+            openQty += q.openQty
+          }
+        })
+        return {
+          productCode: key,
+          productModel: cur.productModel,
+          productName: cur.productName,
+          orderNo: [...cur.orderNos].join('、'),
+          projectQty: cur.projectQty,
+          deliveredQty,
+          openQty,
+          deviceCount: cur.deviceCount
+        }
       })
-      return { list: rows.slice((pageNo - 1) * pageSize, pageNo * pageSize), total: rows.length }
+      return {
+        list: rows.slice((pageNo - 1) * pageSize, pageNo * pageSize).map((r, i) => ({ ...r, no: (pageNo - 1) * pageSize + i + 1 })),
+        total: rows.length
+      }
     },
     columns: [
-      { prop: 'orderNo', label: '订单号', minWidth: 160 },
-      { prop: 'lineNo', label: '行号', width: 140 },
-      { prop: 'itemCode', label: '物料编码', minWidth: 150 },
-      { prop: 'productCode', label: '产品编码', minWidth: 140 },
-      { prop: 'deviceTypeCode', label: '设备类型', width: 120 },
-      { prop: 'allocatedQuantity', label: '数量', width: 90 },
-      { prop: 'status', label: '状态', width: 110 }
+      { prop: 'no', label: '序号', width: 60 },
+      { prop: 'productCode', label: '产品编码', minWidth: 120 },
+      { prop: 'productModel', label: '产品型号', minWidth: 140 },
+      { prop: 'productName', label: '产品名称', minWidth: 200 },
+      { prop: 'orderNo', label: '订单号', minWidth: 140 },
+      { prop: 'projectQty', label: '项目数量', width: 90 },
+      { prop: 'deliveredQty', label: '发货数量', width: 90 },
+      { prop: 'openQty', label: '未发货数量', width: 100 },
+      { prop: 'deviceCount', label: '设备数量', width: 90 }
+    ],
+    // 该产品的逐台序列号与运维明细在「序列号详情」页签
+    actions: [
+      { label: '序列号详情', type: 'primary', run: async () => { await switchTab('sn-result') } }
     ]
   }
 }
@@ -772,42 +821,6 @@ const loadPrimaryContact = async () => {
   } catch { primaryContactPending.value = true }
 }
 const handleContactsChanged = async () => { await Promise.all([loadDetail(), loadPrimaryContact()]) }
-
-// ============ Demo 1.1 产品清单（交付范围明细 × 设备档案已登记序列号） ============
-interface ProductRow { productCode: string; model: string; qty: number; snCount: number }
-const productRows = ref<ProductRow[]>([])
-const loadProductRows = async () => {
-  const id = Number(route.query.projectId)
-  if (!id || !checkPermi(['pms:commerce:scope:query'])) {
-    productRows.value = []
-    return
-  }
-  try {
-    const scope = await getDeliveryScopePage({ projectId: id, pageNo: 1, pageSize: 200, includeHistory: false })
-    const grouped = new Map<string, ProductRow>()
-    for (const s of scope.list || []) {
-      for (const d of s.details || []) {
-        const model = d.deviceTypeCode || ''
-        const key = d.productCode || model || '—'
-        const cur = grouped.get(key) || { productCode: d.productCode || '', model, qty: 0, snCount: 0 }
-        cur.qty += Number(d.allocatedQuantity || 0)
-        grouped.set(key, cur)
-      }
-    }
-    if (checkPermi(['pms:device:query'])) {
-      const devicePage = await DeviceArchiveApi.getDeviceArchivePage({ projectId: id, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
-      const snCount = new Map<string, number>()
-      for (const d of devicePage.list || []) {
-        const key = d.productModel || '—'
-        snCount.set(key, (snCount.get(key) || 0) + 1)
-      }
-      for (const row of grouped.values()) row.snCount = snCount.get(row.model) || 0
-    }
-    productRows.value = [...grouped.values()]
-  } catch {
-    productRows.value = []
-  }
-}
 
 // ============ 实例视图 ============
 const instTasks = (code: string) => instances.value?.tasks.filter((t) => t.stageCode === code) || []
@@ -951,7 +964,7 @@ const loadRiskCount = async () => {
 const loadAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount(), loadProductRows()])
+    await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount()])
     stageTreeToken.value++
     // 深链直达阶段和任务页签时实例尚未就绪，首帧补选必然空转；
     // 在实例加载完成后回填默认选中，避免中栏空白、侧栏完成条件以空 stageCode 请求门禁报错

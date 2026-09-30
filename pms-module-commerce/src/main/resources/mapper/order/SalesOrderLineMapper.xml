@@ -102,4 +102,12 @@
         ORDER BY id ASC
         FOR UPDATE
     </select>
+    <select id="selectDistinctRealExecutionNos" resultType="java.lang.String">
+        SELECT DISTINCT l.real_execution_no FROM com_sales_order_line l
+        WHERE l.tenant_id = #{query.tenantId} AND l.deleted = 0
+          AND l.real_execution_no IS NOT NULL
+          AND l.order_id IN
+          <foreach collection="query.orderIds" item="orderId" open="(" separator="," close=")">#{orderId}</foreach>
+        ORDER BY l.real_execution_no
+    </select>
 </mapper>

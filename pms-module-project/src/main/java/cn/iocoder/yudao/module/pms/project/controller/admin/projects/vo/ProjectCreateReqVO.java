@@ -33,6 +33,10 @@ public class ProjectCreateReqVO {
     @Schema(description = "手工登记合同号", example = "HT-2026-001")
     private String contractNo;
 
+    @Schema(description = "合同主档ID（传值时服务端按合同→订单→执行单链取CRM权威值并绑定关系）", example = "910101")
+    @Positive(message = "合同主档ID无效")
+    private Long contractId;
+
     @Schema(description = "下单办事处所属公司稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "下单办事处所属公司不能为空")
     private Long orderOfficeCompanyId;

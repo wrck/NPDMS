@@ -249,6 +249,45 @@ class ExternalCollectionHttpTest {
         assertExecutedOnce(body);
     }
 
+    @Test
+    void collectionDerivedParseTasksCarryAndQueryTheInitiatingBusinessRequest() throws Exception {
+        String namespace = unique("business-ref");
+        String token = owner(namespace);
+        ObjectNode body = submission(namespace, false);
+        body.remove("semanticParsing");
+        String platformTaskId = unique("npdms-task");
+        body.put("externalRequestId", platformTaskId).put("activityType", "HTTP_COLLECTION");
+        String id = acceptedId(send("POST", submitPath(false), token, platformTaskId, body), false);
+        awaitSuccess(genericPath(id), namespace, token);
+
+        long deadline = System.nanoTime() + Duration.ofSeconds(15).toNanos();
+        JsonNode results = json.createArrayNode();
+        do {
+            var response = send("GET", "/api/v1/npdms/collections/" + platformTaskId
+                    + "/semantic-results?namespace=" + namespace, token, null, null);
+            assertStatus(200, response);
+            results = json.readTree(response.body());
+            if (!results.isEmpty() && "SUCCEEDED".equals(results.get(0).path("state").asText())) break;
+            Thread.sleep(50);
+        } while (System.nanoTime() < deadline);
+        assertEquals(1, results.size(), results.toString());
+        assertEquals("collection-http-release", results.get(0).path("releaseId").asText());
+        assertEquals(platformTaskId, results.get(0).path("result").path("contextSnapshot")
+                .path("externalRequestId").asText(), results.toString());
+        assertEquals("HTTP_COLLECTION", results.get(0).path("result").path("contextSnapshot")
+                .path("activityType").asText(), results.toString());
+
+        String parserToken = signedToken("parser-client", "parser:task:read",
+                Map.of("client_namespace", namespace), JWT_KEYS);
+        var filtered = send("GET", "/api/v1/parse-tasks?externalRequestId=" + platformTaskId, parserToken, null, null);
+        assertStatus(200, filtered);
+        JsonNode tasks = json.readTree(filtered.body());
+        assertEquals(1, tasks.size(), filtered.body());
+        assertEquals(platformTaskId, tasks.get(0).path("externalRequestId").asText(), filtered.body());
+        assertEquals("HTTP_COLLECTION", tasks.get(0).path("activityType").asText(), filtered.body());
+        assertExecutedOnce(body);
+    }
+
     @ParameterizedTest(name = "idempotency conflicts; project route = {0}")
     @ValueSource(booleans = {false, true})
     void changedScriptBodyOrSubjectCannotReuseAnIdempotencyKey(boolean project) throws Exception {

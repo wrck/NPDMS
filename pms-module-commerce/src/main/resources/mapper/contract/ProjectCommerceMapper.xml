@@ -1,25 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper">
-    <sql id="currentRelation">
-        r.tenant_id = #{query.tenantId} AND r.project_id = #{query.projectId}
-        AND r.deleted = 0 AND r.status = 'ACTIVE'
-        AND (r.effective_from IS NULL OR r.effective_from &lt;= CURRENT_TIMESTAMP)
-        AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP)
-    </sql>
     <select id="selectContracts" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
         SELECT DISTINCT c.* FROM com_contract c
-        JOIN com_project_contract_relation r ON r.tenant_id = c.tenant_id AND r.contract_id = c.id
-        WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0 AND <include refid="currentRelation"/>
+        WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0
+          AND (
+          EXISTS (SELECT 1 FROM com_project_contract_relation r
+                  WHERE r.tenant_id = c.tenant_id AND r.contract_id = c.id
+                    AND r.project_id = #{query.projectId}
+                    AND r.deleted = 0 AND r.status = 'ACTIVE'
+                    AND (r.effective_from IS NULL OR r.effective_from &lt;= CURRENT_TIMESTAMP)
+                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP))
+          OR EXISTS (SELECT 1 FROM com_delivery_scope s
+                  JOIN com_sales_order_line l ON l.tenant_id = s.tenant_id AND l.id = s.order_line_id AND l.deleted = 0
+                  JOIN com_sales_order o ON o.tenant_id = l.tenant_id AND o.id = l.order_id AND o.deleted = 0
+                  WHERE s.tenant_id = c.tenant_id AND s.project_id = #{query.projectId}
+                    AND s.deleted = 0 AND s.scope_status = 'ACTIVE' AND s.effective_to IS NULL
+                    AND o.contract_no IS NOT NULL
+                    AND CAST(o.contract_no AS BINARY) = CAST(c.contract_no AS BINARY)
+                    AND CAST(o.company_code AS BINARY) = CAST(c.company_code AS BINARY))
+          OR EXISTS (SELECT 1 FROM com_delivery_scope s2
+                  JOIN com_sales_order_line l2 ON l2.tenant_id = s2.tenant_id AND l2.id = s2.order_line_id AND l2.deleted = 0
+                  JOIN com_sales_order o2 ON o2.tenant_id = l2.tenant_id AND o2.id = l2.order_id AND o2.deleted = 0
+                  JOIN com_order_contract_relation oc ON oc.tenant_id = o2.tenant_id AND oc.order_id = o2.id
+                    AND oc.contract_id = c.id AND oc.deleted = 0
+                    AND oc.effective_from &lt;= CURRENT_TIMESTAMP
+                    AND (oc.effective_to IS NULL OR oc.effective_to &gt; CURRENT_TIMESTAMP)
+                  WHERE s2.tenant_id = c.tenant_id AND s2.project_id = #{query.projectId}
+                    AND s2.deleted = 0 AND s2.scope_status = 'ACTIVE' AND s2.effective_to IS NULL)
+          )
         ORDER BY c.contract_no, c.id
     </select>
     <select id="selectOrders" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
         SELECT DISTINCT o.* FROM com_sales_order o
-        JOIN com_order_contract_relation oc ON oc.tenant_id = o.tenant_id AND oc.order_id = o.id AND oc.deleted = 0
-          AND oc.effective_from &lt;= CURRENT_TIMESTAMP
-          AND (oc.effective_to IS NULL OR oc.effective_to &gt; CURRENT_TIMESTAMP)
-        JOIN com_project_contract_relation r ON r.tenant_id = oc.tenant_id AND r.contract_id = oc.contract_id
-        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0 AND <include refid="currentRelation"/>
+        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0
+          AND (
+          EXISTS (SELECT 1 FROM com_project_contract_relation r
+                  JOIN com_contract c ON c.tenant_id = r.tenant_id AND c.id = r.contract_id AND c.deleted = 0
+                  WHERE r.tenant_id = #{query.tenantId} AND r.project_id = #{query.projectId}
+                    AND r.deleted = 0 AND r.status = 'ACTIVE'
+                    AND (r.effective_from IS NULL OR r.effective_from &lt;= CURRENT_TIMESTAMP)
+                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP)
+                    AND o.contract_no IS NOT NULL
+                    AND CAST(o.contract_no AS BINARY) = CAST(c.contract_no AS BINARY)
+                    AND CAST(o.company_code AS BINARY) = CAST(c.company_code AS BINARY))
+          OR EXISTS (SELECT 1 FROM com_project_contract_relation r2
+                  JOIN com_order_contract_relation oc ON oc.tenant_id = r2.tenant_id
+                    AND oc.contract_id = r2.contract_id AND oc.deleted = 0
+                    AND oc.effective_from &lt;= CURRENT_TIMESTAMP
+                    AND (oc.effective_to IS NULL OR oc.effective_to &gt; CURRENT_TIMESTAMP)
+                  WHERE r2.tenant_id = #{query.tenantId} AND r2.project_id = #{query.projectId}
+                    AND r2.deleted = 0 AND r2.status = 'ACTIVE'
+                    AND (r2.effective_from IS NULL OR r2.effective_from &lt;= CURRENT_TIMESTAMP)
+                    AND (r2.effective_to IS NULL OR r2.effective_to &gt; CURRENT_TIMESTAMP)
+                    AND oc.order_id = o.id)
+          OR EXISTS (SELECT 1 FROM com_delivery_scope s3
+                  JOIN com_sales_order_line l3 ON l3.tenant_id = s3.tenant_id AND l3.id = s3.order_line_id AND l3.deleted = 0
+                  WHERE s3.tenant_id = o.tenant_id AND s3.project_id = #{query.projectId}
+                    AND s3.deleted = 0 AND s3.scope_status = 'ACTIVE' AND s3.effective_to IS NULL
+                    AND l3.order_id = o.id)
+          )
         ORDER BY o.order_create_time, o.id
     </select>
     <select id="selectExecutionOrders" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO">

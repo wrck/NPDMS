@@ -27,7 +27,7 @@ const selectedRelease = computed<ParserOption | undefined>(() =>
 const summary = computed(() => {
   if (selection.value.mode === 'DISABLED') return '本次不解析'
   if (selection.value.mode === 'RELEASE') return selectedRelease.value?.displayName ?? '指定版本'
-  return options.value?.defaultAvailable ? '自动解析' : '保留原始输出'
+  return options.value?.defaultAvailable ? '结构化解析' : '保留原始输出'
 })
 const compatibilityExample = computed(() => script.value.parserType === 'NONE'
   ? undefined
@@ -70,6 +70,13 @@ watch(() => selection.value.mode, (mode) => {
 })
 
 onMounted(loadOptions)
+
+async function ensureOptions(): Promise<ParserSelectionOptions | undefined> {
+  if (!options.value && !loading.value && !loadError.value) await loadOptions()
+  return options.value
+}
+
+defineExpose({ ensureOptions })
 </script>
 
 <template>
@@ -108,12 +115,12 @@ onMounted(loadOptions)
         <el-button size="small" :loading="loading" @click="loadOptions">重试加载解析版本</el-button>
       </template>
       <el-alert v-else-if="options && !options.automaticEnabled"
-        title="未启用自动解析，可选已发布版本" type="info" :closable="false" show-icon />
+        title="未启用结构化解析，可选已发布版本" type="info" :closable="false" show-icon />
       <el-alert v-else-if="selection.mode === 'AUTO' && options && !options.defaultAvailable"
-        title="未配置默认解析版本" type="warning" :closable="false" show-icon />
+        title="暂无已激活的结构化解析版本" type="warning" :closable="false" show-icon />
       <p v-else class="parser-sidebar__hint">
         {{ selection.mode === 'AUTO'
-          ? '按默认版本解析，不丢原始输出'
+          ? '使用已激活版本做结构化解析，不丢原始输出'
           : selection.mode === 'RELEASE'
             ? '固定使用所选版本'
             : '仅执行采集，不生成结构化结果' }}

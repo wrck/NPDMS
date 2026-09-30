@@ -1,0 +1,9 @@
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_baud_rate INTEGER;
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_data_bits INTEGER;
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_parity VARCHAR(16);
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_stop_bits INTEGER;
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_flow_control VARCHAR(16);
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_login_prompt VARCHAR(500);
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_password_prompt VARCHAR(500);
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_command_prompt VARCHAR(500);
+ALTER TABLE device_ops_saved_connection ADD COLUMN serial_line_ending VARCHAR(16);

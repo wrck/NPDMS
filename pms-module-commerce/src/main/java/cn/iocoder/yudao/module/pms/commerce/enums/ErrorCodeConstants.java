@@ -14,4 +14,11 @@ public interface ErrorCodeConstants {
             new ErrorCode(1_016_001_003, "DEPENDENCY_UNAVAILABLE：交付范围依赖事实不可用（{}）");
     ErrorCode COMMERCE_SCOPE_LINE_INVALID =
             new ErrorCode(1_016_001_004, "设备清单行无效或不属于当前项目");
+
+    ErrorCode COMMERCE_CONTRACT_ALREADY_BOUND =
+            new ErrorCode(1_016_002_000, "该合同已关联其他项目，不能重复创建项目");
+    ErrorCode COMMERCE_EXECUTION_ORDER_ALREADY_BOUND =
+            new ErrorCode(1_016_002_001, "执行单【{}】已关联其他项目，请转人工核对");
+    ErrorCode COMMERCE_CREATION_SOURCE_CONTRACT_NOT_FOUND =
+            new ErrorCode(1_016_002_002, "合同主档不存在或不在当前公司范围内");
 }

@@ -36,7 +36,9 @@ final class CollectionRequestFingerprint {
         var result = values("protocol", connection.protocol(), "host", connection.host(), "port", connection.port(),
                 "username", connection.username(), "authenticationType", connection.authenticationType(),
                 "executionMode", connection.executionMode(), "hostKeyFingerprint", connection.hostKeyFingerprint(),
-                "telnetPrompts", connection.telnetPrompts(), "connectTimeoutSeconds", connection.connectTimeoutSeconds(),
+                "telnetPrompts", connection.telnetPrompts(),
+                "serialParams", connection.serialParams(), "serialPrompts", connection.serialPrompts(),
+                "connectTimeoutSeconds", connection.connectTimeoutSeconds(),
                 "credentialNamespace", connection.credentialNamespace(), "savedConnectionId", connection.savedConnectionId(),
                 "credentialId", connection.credentialId());
         if (connection.savedConnectionVersion() != null) result.put("savedConnectionVersion", connection.savedConnectionVersion());

@@ -178,6 +178,8 @@ public class CollectionController {
                          @Size(max = 500) String username, @Size(max = 1000) String hostKeyFingerprint,
                          @Size(max = 100) String authenticationType, @Size(max = 100) String executionMode,
                          @Valid ConnectionRequestMapper.TelnetPrompts telnetPrompts,
+                         @Valid ConnectionRequestMapper.SerialParams serialParams,
+                         @Valid ConnectionRequestMapper.SerialPrompts serialPrompts,
                          Long connectTimeoutSeconds,
                          @Size(max = 100) String credentialNamespace,
                          @Size(max = 36) String savedConnectionId,
@@ -222,10 +224,14 @@ public class CollectionController {
                 if (protocol == ConnectionProtocol.TELNET && execution != CommandExecutionPort.ExecutionMode.SHELL) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "TELNET requires SHELL execution mode");
                 }
+                if (protocol == ConnectionProtocol.SERIAL && execution != CommandExecutionPort.ExecutionMode.SHELL) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SERIAL requires SHELL execution mode");
+                }
             }
             return new ConnectionRequestMapper.Connection(protocol, host, port, username, authentication,
-                    execution, hostKeyFingerprint, telnetPrompts, connectTimeoutSeconds, credentialNamespace,
-                    savedConnectionId, credentialId, password, privateKey, passphrase);
+                    execution, hostKeyFingerprint, telnetPrompts, serialParams, serialPrompts,
+                    connectTimeoutSeconds, credentialNamespace,
+                    savedConnectionId, credentialId, password, privateKey, passphrase, null);
         }
 
         void clear() {

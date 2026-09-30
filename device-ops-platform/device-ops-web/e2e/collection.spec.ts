@@ -180,7 +180,8 @@ test('completes registered and direct collection journeys without leaking creden
           oidcClientId: clientId,
           oidcScope:
             'openid profile device-ops:projects:read device-ops:devices:read device-ops:collections:execute device-ops:collections:read',
-          apiBaseUrl: '/api/v1'
+          apiBaseUrl: '/api/v1',
+          serialEnabled: false
         }
       })
       return

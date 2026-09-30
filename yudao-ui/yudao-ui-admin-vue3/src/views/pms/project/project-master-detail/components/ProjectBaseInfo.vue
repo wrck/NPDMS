@@ -19,6 +19,7 @@
           <dl class="fact-grid">
             <div class="fact"><dt>签约公司</dt><dd>{{ contract.companyName || contract.companyCode || '—' }}</dd></div>
             <div class="fact"><dt>合同客户</dt><dd>{{ contract.customerName || '—' }}</dd></div>
+            <div class="fact"><dt>合同金额</dt><dd>{{ amount(contract.contractAmount, contract.currencyCode) }}</dd></div>
             <div class="fact"><dt>币种</dt><dd>{{ contract.currencyCode || '—' }}</dd></div>
           </dl>
         </div>
@@ -27,12 +28,16 @@
           <dl class="fact-grid">
             <div class="fact"><dt>订单创建时间</dt><dd>{{ time(order.orderCreateTime) }}</dd></div>
             <div class="fact"><dt>下单公司</dt><dd>{{ order.companyName || '—' }}</dd></div>
+            <div class="fact"><dt>订单金额</dt><dd>{{ amount(order.orderAmount, order.currencyCode) }}</dd></div>
+            <div class="fact"><dt>销售类型</dt><dd>{{ order.salesType || '—' }}</dd></div>
+            <div class="fact"><dt>客户要求时间</dt><dd>{{ time(order.customerRequiredTime) }}</dd></div>
+            <div class="fact"><dt>主执行单号</dt><dd>{{ order.executionNo || '—' }}</dd></div>
           </dl>
         </div>
         <div v-for="order in commerce?.executionOrders || []" :key="order.id" class="source-record">
           <div class="record-heading"><el-tag type="info" effect="plain">执行单</el-tag><strong>{{ order.executionNo }}</strong></div>
           <dl class="fact-grid">
-            <div v-for="field in executionFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ order[field.key] || '—' }}</dd></div>
+            <div v-for="field in executionFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ field.dict ? label(order[field.key], field.dict) : order[field.key] || '—' }}</dd></div>
             <div class="fact"><dt>提交时间</dt><dd>{{ time(order.submitTime) }}</dd></div>
             <div class="fact"><dt>同步时间</dt><dd>{{ time(order.sourceSyncTime) }}</dd></div>
           </dl>
@@ -62,8 +67,8 @@ import { getMemberPage, type MemberRecord } from '@/api/pms/project/unified-memb
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 interface CommerceOverview {
-  contracts: { id: number; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerName?: string; currencyCode?: string }[]
-  orders: { id: number; orderNo: string; companyName?: string; orderCreateTime?: string }[]
+  contracts: { id: number; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerName?: string; currencyCode?: string; contractAmount?: number | null }[]
+  orders: { id: number; orderNo: string; companyName?: string; orderCreateTime?: string; orderAmount?: number | null; currencyCode?: string; salesType?: string; customerRequiredTime?: string; executionNo?: string }[]
   executionOrders: ({ id: number; executionNo: string } & Record<string, any>)[]
 }
 const commerce = ref<CommerceOverview>()
@@ -74,6 +79,7 @@ const memberError = ref(false)
 const canReadCommerce = computed(() => checkPermi(['pms:commerce:contract:query']))
 const label = (value: string | null | undefined, dict: DICT_TYPE) => value ? getDictLabel(dict, value) || value : '—'
 const time = (value: any) => value ? formatDate(value) : '—'
+const amount = (value?: number | null, currency?: string) => value == null ? '—' : `${currency || ''} ${value}`.trim()
 const names = (roles: string[], exclude?: number) => members.value.filter(m => roles.includes(m.memberRole) && m.userId !== exclude).map(m => m.memberName || m.employeeNo).filter(Boolean).join('、') || (memberError.value ? '人员信息加载失败' : '—')
 const party = (role: string) => props.project.parties?.filter(p => p.role === role).map(p => p.name || p.code).filter(Boolean).join('、') || '—'
 interface FactField { label: string; value?: string | null; wide?: boolean }
@@ -89,8 +95,8 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
     { title: '项目档案', fields: [
       { label: '项目编码', value: p.projectCode }, { label: '项目名称', value: p.projectName },
       { label: '客户项目名称', value: p.customerProjectName },
-      { label: '项目类别 / 签约方式', value: label(p.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) },
-      { label: '项目类型', value: label(p.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) },
+      { label: '签约方式', value: label(p.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) },
+      { label: '项目类别', value: label(p.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) },
       { label: '实施方式', value: label(p.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) },
       { label: '重大项目级别', value: label(p.majorProjectLevel, DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL) },
       { label: '业务层级', value: p.businessLevelName || p.businessLevelCode },
@@ -121,14 +127,18 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
     ] }
   ]
 })
-const executionFields = [
+const executionFields: { key: string; label: string; dict?: DICT_TYPE }[] = [
   { key: 'salesRepName', label: '销售代表' }, { key: 'departmentName', label: '办事处' },
   { key: 'marketName', label: '市场' }, { key: 'systemName', label: '系统' },
   { key: 'expendName', label: '拓展' }, { key: 'industryName', label: '行业' },
   { key: 'companyName', label: '所属公司' }, { key: 'customerProjectName', label: '客户项目名称' },
   { key: 'finalCustomerName', label: '最终客户单位' }, { key: 'agentName', label: '下单代理商' },
   { key: 'projectManagerName', label: '执行单项目经理' }, { key: 'serviceTypeName', label: '服务类型' },
-  { key: 'channelName', label: '渠道' }
+  { key: 'channelName', label: '渠道' },
+  { key: 'projectCode', label: 'CRM项目编码' }, { key: 'projectName', label: 'CRM项目名称' },
+  { key: 'projectAmount', label: '项目金额' },
+  { key: 'majorProjectLevel', label: '重大项目级别', dict: DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL },
+  { key: 'projectType', label: '项目类型', dict: DICT_TYPE.PMS_PROJECT_TYPE }
 ]
 let requestId = 0
 const load = async () => {

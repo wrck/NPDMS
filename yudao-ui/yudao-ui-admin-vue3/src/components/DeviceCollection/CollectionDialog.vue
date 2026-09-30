@@ -244,6 +244,81 @@
       class="mt-16px"
       @current-change="refresh()"
     />
+    <div v-if="semanticExecutionId" class="mt-16px">
+      <div class="flex items-center justify-between mb-8px"
+        ><strong>结构化解析结果</strong
+        ><el-button link type="primary" :loading="semanticLoading" @click="loadSemantic(semanticExecutionId)"
+          >刷新解析</el-button
+        ></div
+      >
+      <el-alert
+        v-if="semanticError && !semanticRows.length && !semanticLoading"
+        title="解析结果查询失败，请点击“刷新解析”重试。"
+        type="warning"
+        :closable="false"
+        class="mb-8px"
+      />
+      <el-alert
+        v-else-if="!semanticRows.length && !semanticLoading"
+        title="本次下发没有结构化解析记录：可能未启用结构化解析、无已激活解析版本，或该任务不适用解析。"
+        type="info"
+        :closable="false"
+        class="mb-8px"
+      />
+      <el-table v-else v-loading="semanticLoading" :data="semanticRows" size="small">
+        <el-table-column type="expand">
+          <template #default="{ row }">
+            <div class="px-24px">
+              <p
+                v-if="!observationRows(row).length"
+                class="text-[var(--el-text-color-secondary)]"
+                >暂无命令块解析明细</p
+              >
+              <ul v-else class="list-none p-0 m-0 flex flex-col gap-6px">
+                <li
+                  v-for="(obs, index) in observationRows(row)"
+                  :key="index"
+                  class="flex items-center gap-8px flex-wrap"
+                >
+                  <code class="max-w-420px truncate" :title="semanticCommand(row, obs)">{{
+                    semanticCommand(row, obs)
+                  }}</code>
+                  <el-tag size="small" :type="obsType(obs.status)">{{ obs.status }}</el-tag>
+                  <span
+                    v-if="obs.confidence != null"
+                    class="text-xs text-[var(--el-text-color-secondary)]"
+                    >置信 {{ Math.round(obs.confidence * 100) }}%</span
+                  >
+                  <span
+                    v-for="warning in obs.warnings || []"
+                    :key="warning"
+                    class="text-xs text-[var(--el-color-warning)]"
+                    >{{ warning }}</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="targetId" label="目标" width="80" />
+        <el-table-column label="解析状态" min-width="180">
+          <template #default="{ row }">
+            <el-tag size="small" :type="semanticStateType(row.state)">{{
+              semanticStateText(row.state)
+            }}</el-tag>
+            <div v-if="row.waitReason" class="text-xs text-[var(--el-color-danger)] mt-4px">
+              {{ row.waitReason }}
+            </div>
+          </template></el-table-column
+        >
+        <el-table-column label="解析版本" min-width="120"
+          ><template #default="{ row }">{{ row.coordinate?.releaseVersion || '—' }}</template
+        ></el-table-column>
+        <el-table-column label="命令块" min-width="120"
+          ><template #default="{ row }">{{ observationSummary(row) }}</template
+        ></el-table-column>
+      </el-table>
+    </div>
     <template #footer><el-button @click="visible = false">关闭</el-button></template>
   </Dialog>
   <Dialog v-model="logVisible" title="设备执行日志" width="min(1080px, 96vw)" @closed="clearLog">
@@ -300,6 +375,60 @@ const rows = ref<Api.Execution[]>([])
 const hasPendingTask = computed(() => !!trackedRequestKey.value || rows.value.some(isRunning))
 const total = ref(0)
 const pageNo = ref(1)
+const semanticRows = ref<Api.SemanticResult[]>([])
+const semanticExecutionId = ref<Api.Id>()
+const semanticLoading = ref(false)
+const semanticError = ref(false)
+const semanticCommandLines = ref<string[]>([])
+let semanticGeneration = 0
+const observationRows = (row: Api.SemanticResult) => row.result?.semanticResult?.observations || []
+const observationSummary = (row: Api.SemanticResult) => {
+  const rows = observationRows(row)
+  if (!rows.length) return '—'
+  return `${rows.filter((item) => item.status === 'OBSERVED').length}/${rows.length} 命中`
+}
+const semanticCommand = (row: Api.SemanticResult, obs: Api.SemanticObservation) =>
+  semanticCommandLines.value[obs.commandIndex - 1] || `命令 #${obs.commandIndex}`
+const semanticStateText = (state: string) =>
+  ({ SUCCEEDED: '解析成功', FAILED: '解析失败', CANCELLED: '已取消' })[state] ?? '解析中'
+const semanticStateType = (state: string): 'success' | 'danger' | 'warning' | 'info' =>
+  state === 'SUCCEEDED' ? 'success' : state === 'FAILED' ? 'danger' : state === 'CANCELLED' ? 'info' : 'warning'
+const obsType = (status: string): 'success' | 'danger' | 'warning' | 'info' =>
+  status === 'OBSERVED'
+    ? 'success'
+    : ['EXECUTION_FAILED', 'SOURCE_CORRUPTED'].includes(status)
+      ? 'danger'
+      : ['UNPARSED', 'NO_DATA', 'PARTIAL'].includes(status)
+        ? 'warning'
+        : 'info'
+const stopSemantic = () => {
+  semanticGeneration++
+  semanticRows.value = []
+  semanticExecutionId.value = undefined
+  semanticError.value = false
+  semanticCommandLines.value = []
+}
+const loadSemantic = async (executionId: Api.Id, attempts = 0) => {
+  const generation = ++semanticGeneration
+  semanticLoading.value = attempts === 0
+  semanticError.value = false
+  try {
+    const data = await Api.semanticResults(props.entry, objectId.value, executionId)
+    if (generation !== semanticGeneration || !visible.value) return
+    semanticRows.value = data
+    // 采集终态时解析任务可能尚未挂接；空结果短暂重试后再判定为无解析记录。
+    const parsing = data.some((item) => !['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(item.state))
+    if ((parsing || !data.length) && visible.value && autoRefresh.value && attempts < 5) {
+      setTimeout(() => {
+        if (generation === semanticGeneration && visible.value) void loadSemantic(executionId, attempts + 1)
+      }, 2000)
+    }
+  } catch {
+    if (generation === semanticGeneration) semanticError.value = true
+  } finally {
+    if (generation === semanticGeneration) semanticLoading.value = false
+  }
+}
 const logVisible = ref(false)
 const logLoading = ref(false)
 const logText = ref('')
@@ -386,7 +515,7 @@ watch(
   }
 )
 watch(credentialMode, () => {
-  form.password = ''
+  // 切换认证方式只重置保存连接选择；本次密码在当前窗口内保留，避免重复输入。
   form.credentialId = undefined
 })
 const clearSecret = () => {
@@ -422,6 +551,7 @@ watch(visible, (value) => {
     clearSecret()
     stopRefresh()
     refreshGeneration++
+    stopSemantic()
     logVisible.value = false
     clearLog()
   }
@@ -430,6 +560,7 @@ onBeforeUnmount(() => {
   clearSecret()
   stopRefresh()
   refreshGeneration++
+  stopSemantic()
   logVisible.value = false
   clearLog()
 })
@@ -453,6 +584,7 @@ const open = async (id: Api.Id) => {
   requestKey.value = ''
   trackedRequestKey.value = ''
   submissionUncertain.value = false
+  stopSemantic()
   autoRefresh.value = true
   pageNo.value = 1
   rows.value = []
@@ -482,7 +614,13 @@ const refresh = async (silent = false) => {
         rows.value = [tracked, ...data.list.filter((row) => row.id !== tracked.id)].slice(0, 10)
         total.value = Math.max(data.total, rows.value.length)
       }
-      if (!isRunning(tracked)) trackedRequestKey.value = ''
+      if (!isRunning(tracked)) {
+        trackedRequestKey.value = ''
+        // 任务到达终态后立即同步拉取本次下发的结构化解析结果与报错。
+        semanticExecutionId.value = tracked.id
+        semanticCommandLines.value = (tracked.commandText || '').split('\n').filter(Boolean)
+        void loadSemantic(tracked.id)
+      }
     }
   } finally {
     if (generation === refreshGeneration) {
@@ -547,10 +685,10 @@ const submit = async () => {
       })
     } else {
       trackedRequestKey.value = ''
-      message.error('下发未完成，请查看提示及执行历史；重试前请重新填写本次密码')
+      message.error('下发未完成，请查看提示及执行历史；请核对后重新下发')
     }
   } finally {
-    form.password = ''
+    // 本次密码保留在当前窗口，便于连续下发；关闭对话框时才随 clearSecret 清空。
     busy.value = false
   }
 }
@@ -675,7 +813,6 @@ const tagType = (row: Api.Execution): 'success' | 'danger' | 'warning' | 'info' 
 const retry = async (row: Api.Execution) => {
   source.value = await Api.context(props.entry, objectId.value)
   if (!source.value.canExecute) return
-  form.password = ''
   form.deviceId = props.entry === 'center' ? row.task.deviceId : source.value.deviceId
   form.protocol = row.task.protocol
   form.host = row.task.host

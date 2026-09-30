@@ -55,7 +55,8 @@ public record CommerceAuthorityImportBatchReqVO(
             @Size(max = 32) String currencyCode,
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
             @NotNull LocalDateTime sourceUpdatedAt,
-            String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime) {
+            String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime,
+            @Size(max = 64) String contractNo, @Size(max = 64) String executionNo) {
         public SalesOrderRecord(
             String sourceRecordKey,
             String expectedPreviousSourceVersion,
@@ -69,7 +70,7 @@ public record CommerceAuthorityImportBatchReqVO(
             String currencyCode,
             CommerceSourceLifecycleStatus lifecycleStatus,
             LocalDateTime sourceUpdatedAt) {
-            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null, null);
         }
 
     }

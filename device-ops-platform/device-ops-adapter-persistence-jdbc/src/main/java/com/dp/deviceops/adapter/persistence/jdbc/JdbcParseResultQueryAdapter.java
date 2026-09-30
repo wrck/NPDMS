@@ -46,6 +46,15 @@ public final class JdbcParseResultQueryAdapter implements ParseResultQueryPort {
     }
 
     @Override
+    public List<ParseTask> listTasksByExternalRequest(String callerNamespace, String externalRequestId, int limit) {
+        return jdbc.sql("select * from device_ops_parse_task where caller_namespace=:namespace "
+                        + "and external_request_id=:request order by task_id limit :limit")
+                .param("namespace", callerNamespace).param("request", externalRequestId).param("limit", limit)
+                .query(this::mapTask).list().stream()
+                .filter(task -> callerNamespace.equals(task.callerNamespace())).toList();
+    }
+
+    @Override
     public List<ParseTaskResult> listTaskResultsByRequestPrefix(String callerNamespace, String requestPrefix) {
         return jdbc.sql("""
                 select t.*,r.result_id as joined_result_id,r.release_id as result_release_id,
@@ -59,21 +68,42 @@ public final class JdbcParseResultQueryAdapter implements ParseResultQueryPort {
                 order by t.request_id
                 """)
                 .param("namespace", callerNamespace).param("prefix", requestPrefix + "%")
-                .query((resultSet, row) -> {
-                    if (!callerNamespace.equals(resultSet.getString("caller_namespace"))) {
-                        return null;
-                    }
-                    ParseTask task = mapTask(resultSet, row);
-                    String resultId = resultSet.getString("joined_result_id");
-                    ParseResultEnvelope result = resultId == null ? null : new ParseResultEnvelope(resultId,
-                            task.taskId(), resultSet.getString("result_release_id"),
-                            json.decode(resultSet.getString("result_coordinate_json"), ParserCoordinate.class),
-                            json.decode(resultSet.getString("result_context_json"), MAP),
-                            resultSet.getString("result_source_result_id"),
-                            json.decode(resultSet.getString("result_content"), SemanticParseResult.class),
-                            ParserJdbcJson.instant(resultSet.getObject("result_created_at")));
-                    return new ParseTaskResult(task, result);
-                }).list().stream().filter(Objects::nonNull).toList();
+                .query(taskResultMapper(callerNamespace)).list().stream().filter(Objects::nonNull).toList();
+    }
+
+    @Override
+    public List<ParseTaskResult> listTaskResultsByExternalRequest(String callerNamespace, String externalRequestId) {
+        return jdbc.sql("""
+                select t.*,r.result_id as joined_result_id,r.release_id as result_release_id,
+                       r.coordinate_json as result_coordinate_json,r.context_json as result_context_json,
+                       r.source_result_id as result_source_result_id,r.created_at as result_created_at,
+                       p.content as result_content
+                from device_ops_parse_task t
+                left join device_ops_parse_result r on r.task_id=t.task_id
+                left join device_ops_parser_payload p on p.payload_id=r.structured_output_payload_id
+                where t.caller_namespace=:namespace and t.external_request_id=:request
+                order by t.request_id
+                """)
+                .param("namespace", callerNamespace).param("request", externalRequestId)
+                .query(taskResultMapper(callerNamespace)).list().stream().filter(Objects::nonNull).toList();
+    }
+
+    private org.springframework.jdbc.core.RowMapper<ParseTaskResult> taskResultMapper(String callerNamespace) {
+        return (resultSet, row) -> {
+            if (!callerNamespace.equals(resultSet.getString("caller_namespace"))) {
+                return null;
+            }
+            ParseTask task = mapTask(resultSet, row);
+            String resultId = resultSet.getString("joined_result_id");
+            ParseResultEnvelope result = resultId == null ? null : new ParseResultEnvelope(resultId,
+                    task.taskId(), resultSet.getString("result_release_id"),
+                    json.decode(resultSet.getString("result_coordinate_json"), ParserCoordinate.class),
+                    json.decode(resultSet.getString("result_context_json"), MAP),
+                    resultSet.getString("result_source_result_id"),
+                    json.decode(resultSet.getString("result_content"), SemanticParseResult.class),
+                    ParserJdbcJson.instant(resultSet.getObject("result_created_at")));
+            return new ParseTaskResult(task, result);
+        };
     }
 
     @Override
@@ -114,6 +144,7 @@ public final class JdbcParseResultQueryAdapter implements ParseResultQueryPort {
                 ParserJdbcJson.instant(resultSet.getObject("next_attempt_at")), resultSet.getString("lease_owner"),
                 resultSet.getLong("lease_generation"), ParserJdbcJson.instant(resultSet.getObject("lease_expires_at")),
                 resultSet.getString("result_id"), ParserJdbcJson.instant(resultSet.getObject("created_at")),
-                ParserJdbcJson.instant(resultSet.getObject("updated_at")));
+                ParserJdbcJson.instant(resultSet.getObject("updated_at")),
+                resultSet.getString("external_request_id"), resultSet.getString("activity_type"));
     }
 }

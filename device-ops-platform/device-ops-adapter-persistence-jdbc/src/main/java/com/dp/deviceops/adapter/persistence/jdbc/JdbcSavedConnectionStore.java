@@ -202,13 +202,19 @@ public final class JdbcSavedConnectionStore implements SavedConnectionStore {
                         String credentialId, long version, Instant now) {
         CommandExecutionPort.ConnectionSpec connection = draft.connection();
         CommandExecutionPort.TelnetPrompts prompts = connection.telnetPrompts();
+        CommandExecutionPort.SerialParams serial = connection.serialParams();
+        CommandExecutionPort.SerialPrompts serialPrompts = connection.serialPrompts();
         jdbc.sql("INSERT INTO device_ops_saved_connection (connection_id, owner_id, namespace, display_name, description, "
                         + "protocol, host, port, username, authentication_type, execution_mode, expected_host_key_fingerprint, "
                         + "telnet_login_prompt, telnet_password_prompt, telnet_command_prompt, telnet_line_ending, "
+                        + "serial_baud_rate, serial_data_bits, serial_parity, serial_stop_bits, serial_flow_control, "
+                        + "serial_login_prompt, serial_password_prompt, serial_command_prompt, serial_line_ending, "
                         + "connect_timeout_millis, credential_id, version, created_at, updated_at) "
                         + "VALUES (:id, :ownerId, :namespace, :displayName, :description, :protocol, :host, :port, :username, "
                         + ":authenticationType, :executionMode, :fingerprint, :loginPrompt, :passwordPrompt, :commandPrompt, "
-                        + ":lineEnding, :connectTimeoutMillis, :credentialId, :version, :createdAt, :updatedAt)")
+                        + ":lineEnding, :serialBaudRate, :serialDataBits, :serialParity, :serialStopBits, :serialFlowControl, "
+                        + ":serialLoginPrompt, :serialPasswordPrompt, :serialCommandPrompt, :serialLineEnding, "
+                        + ":connectTimeoutMillis, :credentialId, :version, :createdAt, :updatedAt)")
                 .param("id", id).param("ownerId", ownerId).param("namespace", namespace)
                 .param("displayName", draft.displayName()).param("description", draft.description())
                 .param("protocol", connection.protocol().name()).param("host", connection.host()).param("port", connection.port())
@@ -219,6 +225,15 @@ public final class JdbcSavedConnectionStore implements SavedConnectionStore {
                 .param("passwordPrompt", prompts == null ? null : prompts.password())
                 .param("commandPrompt", prompts == null ? null : prompts.command())
                 .param("lineEnding", prompts == null ? null : prompts.lineEnding().name())
+                .param("serialBaudRate", serial == null ? null : serial.baudRate())
+                .param("serialDataBits", serial == null ? null : serial.dataBits())
+                .param("serialParity", serial == null ? null : serial.parity().name())
+                .param("serialStopBits", serial == null ? null : serial.stopBits())
+                .param("serialFlowControl", serial == null ? null : serial.flowControl().name())
+                .param("serialLoginPrompt", serialPrompts == null ? null : serialPrompts.login())
+                .param("serialPasswordPrompt", serialPrompts == null ? null : serialPrompts.password())
+                .param("serialCommandPrompt", serialPrompts == null ? null : serialPrompts.command())
+                .param("serialLineEnding", serialPrompts == null ? null : serialPrompts.lineEnding().name())
                 .param("connectTimeoutMillis", connection.connectTimeout().toMillis())
                 .param("credentialId", credentialId).param("version", version).param("createdAt", now).param("updatedAt", now)
                 .update();
@@ -228,11 +243,17 @@ public final class JdbcSavedConnectionStore implements SavedConnectionStore {
                                  SavedConnectionDraft draft, Instant now) {
         CommandExecutionPort.ConnectionSpec connection = draft.connection();
         CommandExecutionPort.TelnetPrompts prompts = connection.telnetPrompts();
+        CommandExecutionPort.SerialParams serial = connection.serialParams();
+        CommandExecutionPort.SerialPrompts serialPrompts = connection.serialPrompts();
         return jdbc.sql("UPDATE device_ops_saved_connection SET display_name=:displayName, description=:description, "
                         + "protocol=:protocol, host=:host, port=:port, username=:username, authentication_type=:authenticationType, "
                         + "execution_mode=:executionMode, expected_host_key_fingerprint=:fingerprint, "
                         + "telnet_login_prompt=:loginPrompt, telnet_password_prompt=:passwordPrompt, "
                         + "telnet_command_prompt=:commandPrompt, telnet_line_ending=:lineEnding, "
+                        + "serial_baud_rate=:serialBaudRate, serial_data_bits=:serialDataBits, serial_parity=:serialParity, "
+                        + "serial_stop_bits=:serialStopBits, serial_flow_control=:serialFlowControl, "
+                        + "serial_login_prompt=:serialLoginPrompt, serial_password_prompt=:serialPasswordPrompt, "
+                        + "serial_command_prompt=:serialCommandPrompt, serial_line_ending=:serialLineEnding, "
                         + "connect_timeout_millis=:connectTimeoutMillis, version=version+1, updated_at=:updatedAt "
                         + "WHERE owner_id=:ownerId AND namespace=:namespace AND connection_id=:id AND version=:version")
                 .param("displayName", draft.displayName()).param("description", draft.description())
@@ -244,6 +265,15 @@ public final class JdbcSavedConnectionStore implements SavedConnectionStore {
                 .param("passwordPrompt", prompts == null ? null : prompts.password())
                 .param("commandPrompt", prompts == null ? null : prompts.command())
                 .param("lineEnding", prompts == null ? null : prompts.lineEnding().name())
+                .param("serialBaudRate", serial == null ? null : serial.baudRate())
+                .param("serialDataBits", serial == null ? null : serial.dataBits())
+                .param("serialParity", serial == null ? null : serial.parity().name())
+                .param("serialStopBits", serial == null ? null : serial.stopBits())
+                .param("serialFlowControl", serial == null ? null : serial.flowControl().name())
+                .param("serialLoginPrompt", serialPrompts == null ? null : serialPrompts.login())
+                .param("serialPasswordPrompt", serialPrompts == null ? null : serialPrompts.password())
+                .param("serialCommandPrompt", serialPrompts == null ? null : serialPrompts.command())
+                .param("serialLineEnding", serialPrompts == null ? null : serialPrompts.lineEnding().name())
                 .param("connectTimeoutMillis", connection.connectTimeout().toMillis()).param("updatedAt", now)
                 .param("ownerId", ownerId).param("namespace", namespace).param("id", id).param("version", expectedVersion)
                 .update();
@@ -254,11 +284,20 @@ public final class JdbcSavedConnectionStore implements SavedConnectionStore {
                 : new CommandExecutionPort.TelnetPrompts(rs.getString("telnet_login_prompt"),
                 rs.getString("telnet_password_prompt"), rs.getString("telnet_command_prompt"),
                 CommandExecutionPort.TelnetLineEnding.valueOf(rs.getString("telnet_line_ending")));
+        CommandExecutionPort.SerialParams serial = rs.getString("serial_parity") == null ? null
+                : new CommandExecutionPort.SerialParams(rs.getInt("serial_baud_rate"), rs.getInt("serial_data_bits"),
+                CommandExecutionPort.SerialParity.valueOf(rs.getString("serial_parity")),
+                rs.getInt("serial_stop_bits"),
+                CommandExecutionPort.SerialFlowControl.valueOf(rs.getString("serial_flow_control")));
+        CommandExecutionPort.SerialPrompts serialPrompts = rs.getString("serial_login_prompt") == null ? null
+                : new CommandExecutionPort.SerialPrompts(rs.getString("serial_login_prompt"),
+                rs.getString("serial_password_prompt"), rs.getString("serial_command_prompt"),
+                CommandExecutionPort.TelnetLineEnding.valueOf(rs.getString("serial_line_ending")));
         CommandExecutionPort.ConnectionSpec connection = new CommandExecutionPort.ConnectionSpec(
                 ConnectionProtocol.valueOf(rs.getString("protocol")), rs.getString("host"), rs.getInt("port"),
                 rs.getString("username"), CommandExecutionPort.AuthenticationType.valueOf(rs.getString("authentication_type")),
                 CommandExecutionPort.ExecutionMode.valueOf(rs.getString("execution_mode")),
-                rs.getString("expected_host_key_fingerprint"), prompts,
+                rs.getString("expected_host_key_fingerprint"), prompts, serial, serialPrompts,
                 Duration.ofMillis(rs.getLong("connect_timeout_millis")));
         return new ConnectionRow(new SavedConnection(rs.getString("connection_id"), rs.getString("namespace"),
                 rs.getString("display_name"), rs.getString("description"), connection, true, rs.getLong("version"),
@@ -273,8 +312,10 @@ public final class JdbcSavedConnectionStore implements SavedConnectionStore {
     private static String selectSql() {
         return "SELECT connection_id, namespace, display_name, description, protocol, host, port, username, "
                 + "authentication_type, execution_mode, expected_host_key_fingerprint, telnet_login_prompt, "
-                + "telnet_password_prompt, telnet_command_prompt, telnet_line_ending, connect_timeout_millis, "
-                + "credential_id, version, created_at, updated_at FROM device_ops_saved_connection";
+                + "telnet_password_prompt, telnet_command_prompt, telnet_line_ending, "
+                + "serial_baud_rate, serial_data_bits, serial_parity, serial_stop_bits, serial_flow_control, "
+                + "serial_login_prompt, serial_password_prompt, serial_command_prompt, serial_line_ending, "
+                + "connect_timeout_millis, credential_id, version, created_at, updated_at FROM device_ops_saved_connection";
     }
 
     private static String requireText(String value, String field) {

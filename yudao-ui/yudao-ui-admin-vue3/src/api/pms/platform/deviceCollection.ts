@@ -128,6 +128,31 @@ export const cancel = (entry: Entry, id: Id, execution: Id) =>
   request.post<boolean>({ url: `${source(entry, id)}/executions/${execution}/cancel` })
 export const download = (entry: Entry, id: Id, execution: Id) =>
   request.post<string>({ url: `${source(entry, id)}/executions/${execution}/download` })
+/** DAC 结构化解析记录透传，字段跟随 DAC 版本；此处只约束 NPDMS 展示所需的最小集。 */
+export interface SemanticObservation {
+  commandIndex: number
+  blockRole?: string
+  status: string
+  confidence?: number
+  warnings?: string[]
+}
+export interface SemanticResult {
+  targetId: number
+  taskId: string
+  state: string
+  waitReason?: string
+  coordinate?: { releaseVersion?: string; logType?: string }
+  result?: {
+    semanticResult?: {
+      observations?: SemanticObservation[]
+      profileSelection?: { profileId?: string; warnings?: string[] }
+    }
+  }
+}
+export const semanticResults = (entry: Entry, id: Id, execution: Id) =>
+  request.get<SemanticResult[]>({
+    url: `${source(entry, id)}/executions/${execution}/semantic-results`
+  })
 export interface BusinessLog {
   id: Id
   executionId: Id

@@ -31,6 +31,9 @@ public class DeviceArchiveRespVO {
     @Schema(description = "设备型号", example = "GW-100")
     private String productModel;
 
+    @Schema(description = "产品名称", example = "DPtech FW1000-GM-X 双电源AC主机")
+    private String productName;
+
     @Schema(description = "设备状态", example = "IN_STOCK")
     private String status;
 

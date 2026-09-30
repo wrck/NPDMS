@@ -29,7 +29,9 @@ public record ParseTask(
         Instant leaseExpiresAt,
         String resultId,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        String externalRequestId,
+        String activityType) {
 
     public ParseTask {
         taskId = ModelSupport.requireText(taskId, "taskId");
@@ -70,5 +72,7 @@ public record ParseTask(
         if (updatedAt.isBefore(createdAt)) {
             throw new IllegalArgumentException("updatedAt must not precede createdAt");
         }
+        externalRequestId = ModelSupport.optionalText(externalRequestId, "externalRequestId");
+        activityType = ModelSupport.optionalText(activityType, "activityType");
     }
 }

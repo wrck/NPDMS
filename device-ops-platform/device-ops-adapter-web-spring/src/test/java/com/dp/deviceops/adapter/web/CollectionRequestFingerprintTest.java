@@ -27,18 +27,48 @@ class CollectionRequestFingerprintTest {
         var method = fingerprints.getDeclaredMethod("generic", String.class, GenericCollectionController.Request.class);
         var request = request("secret", "show version", Map.of());
         var saved = new ConnectionRequestMapper.Connection(null, null, null, null, null, null,
-                null, null, null, null, "saved-1", null, null, null, null);
+                null, null, null, null, null, null, "saved-1", null, null, null, null, null);
         var savedRequest = new GenericCollectionController.Request(request.namespace(), request.context(), saved,
                 request.script(), request.externalRequestId(), request.activityType(), request.callbackUrl(),
                 request.commandTimeoutSeconds(), request.parseTimeoutSeconds(), request.leaseGraceSeconds(), request.semanticParsing());
         assertNotEquals(method.invoke(null, "service", request), method.invoke(null, "service", savedRequest));
     }
 
+    @Test
+    void serialConnectionFingerprintDistinguishesSerialParameters() throws Exception {
+        Class<?> fingerprints = Class.forName("com.dp.deviceops.adapter.web.CollectionRequestFingerprint");
+        var method = fingerprints.getDeclaredMethod("generic", String.class, GenericCollectionController.Request.class);
+        var request = request("secret", "show version", Map.of());
+        var slower = new ConnectionRequestMapper.Connection(ConnectionProtocol.SERIAL, "COM3", 0, "operator",
+                CommandExecutionPort.AuthenticationType.PASSWORD, CommandExecutionPort.ExecutionMode.SHELL,
+                null, null, new ConnectionRequestMapper.SerialParams(9600, 8,
+                CommandExecutionPort.SerialParity.NONE, 1, CommandExecutionPort.SerialFlowControl.NONE),
+                new ConnectionRequestMapper.SerialPrompts("(?i)(login|username)\\s*:\\s*$",
+                        "(?i)password\\s*:\\s*$", "[>#\\$]\\s*$", CommandExecutionPort.TelnetLineEnding.AUTO),
+                10L, null, null, null, "secret".toCharArray(), null, null, null);
+        var faster = new ConnectionRequestMapper.Connection(ConnectionProtocol.SERIAL, "COM3", 0, "operator",
+                CommandExecutionPort.AuthenticationType.PASSWORD, CommandExecutionPort.ExecutionMode.SHELL,
+                null, null, new ConnectionRequestMapper.SerialParams(115200, 8,
+                CommandExecutionPort.SerialParity.NONE, 1, CommandExecutionPort.SerialFlowControl.NONE),
+                new ConnectionRequestMapper.SerialPrompts("(?i)(login|username)\\s*:\\s*$",
+                        "(?i)password\\s*:\\s*$", "[>#\\$]\\s*$", CommandExecutionPort.TelnetLineEnding.AUTO),
+                10L, null, null, null, "secret".toCharArray(), null, null, null);
+        var slowerRequest = new GenericCollectionController.Request(request.namespace(), request.context(), slower,
+                request.script(), request.externalRequestId(), request.activityType(), request.callbackUrl(),
+                request.commandTimeoutSeconds(), request.parseTimeoutSeconds(), request.leaseGraceSeconds(),
+                request.semanticParsing());
+        var fasterRequest = new GenericCollectionController.Request(request.namespace(), request.context(), faster,
+                request.script(), request.externalRequestId(), request.activityType(), request.callbackUrl(),
+                request.commandTimeoutSeconds(), request.parseTimeoutSeconds(), request.leaseGraceSeconds(),
+                request.semanticParsing());
+        assertNotEquals(method.invoke(null, "service", slowerRequest), method.invoke(null, "service", fasterRequest));
+    }
+
     private GenericCollectionController.Request request(String password, String command, Map<String, String> extensions) {
         var connection = new ConnectionRequestMapper.Connection(ConnectionProtocol.SSH2, "10.0.0.10", 22, "operator",
                 CommandExecutionPort.AuthenticationType.PASSWORD, CommandExecutionPort.ExecutionMode.EXEC,
-                "SHA256:fixture", null, 10L, null, null, null,
-                password == null ? null : password.toCharArray(), null, null);
+                "SHA256:fixture", null, null, null, 10L, null, null, null,
+                password == null ? null : password.toCharArray(), null, null, null);
         var script = new GenericCollectionController.Script("ADHOC_INLINE", "external", "1", command,
                 "0".repeat(64), "EXECUTION_ONLY", "NONE", null);
         return new GenericCollectionController.Request("owned", new GenericCollectionController.Context(null, null, extensions),

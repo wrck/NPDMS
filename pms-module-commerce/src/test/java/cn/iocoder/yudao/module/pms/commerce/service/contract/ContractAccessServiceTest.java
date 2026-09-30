@@ -36,13 +36,14 @@ class ContractAccessServiceTest {
     @Mock private SalesOrderMapper orderMapper;
     @Mock private SalesOrderLineMapper lineMapper;
     @Mock private ProjectContractRelationMapper projectRelationMapper;
+    @Mock private cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper executionOrderMapper;
     @Mock private OperationAuditApi operationAuditApi;
     private ContractAccessService service;
 
     @BeforeEach
     void setUp() {
         service = new ContractAccessService(organizationScopeApi, projectScopeApi, contractMapper,
-                orderMapper, lineMapper, projectRelationMapper, operationAuditApi);
+                orderMapper, lineMapper, projectRelationMapper, executionOrderMapper, operationAuditApi);
     }
 
     @Test
@@ -195,6 +196,67 @@ class ContractAccessServiceTest {
         assertTrue(service.pageSalesOrders(1L, 7L, "trace", new ContractAccessService.SalesOrderSearch(
                 null, null, null, null, null, 0, 20)).getList().isEmpty());
         verifyNoInteractions(orderMapper);
+    }
+
+    @Test
+    void creationSourceResolvesFullChainWithinCompanyScope() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 1)));
+        ContractDO contract = new ContractDO();
+        contract.setId(99L);
+        contract.setContractNo("CT-1");
+        contract.setCompanyCode("C01");
+        when(contractMapper.selectDetailByCompanyScope(any())).thenReturn(contract);
+        SalesOrderDO order = new SalesOrderDO();
+        order.setId(201L);
+        order.setExecutionNo("EX-1");
+        when(orderMapper.selectCreationOrdersByContract(any())).thenReturn(List.of(order));
+        when(executionOrderMapper.selectActiveByExecutionNos(any())).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO()));
+        when(lineMapper.selectDistinctRealExecutionNos(any())).thenReturn(List.of("EX-2"));
+
+        ContractAccessService.CreationSourceDetail detail = service.getCreationSource(1L, 7L, "trace", 99L);
+
+        assertSame(contract, detail.contract());
+        assertEquals(1, detail.orders().size());
+        assertEquals(1, detail.executionOrders().size());
+        assertEquals(List.of("EX-2"), detail.lineExecutionNos());
+        ArgumentCaptor<cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery> orderCaptor =
+                ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery.class);
+        verify(orderMapper).selectCreationOrdersByContract(orderCaptor.capture());
+        assertEquals("CT-1", orderCaptor.getValue().contractNo());
+        assertEquals("C01", orderCaptor.getValue().companyCode());
+        verify(executionOrderMapper).selectActiveByExecutionNos(
+                argThat(query -> List.of("EX-1").equals(query.executionNos())));
+        verify(lineMapper).selectDistinctRealExecutionNos(
+                argThat(query -> List.of(201L).equals(query.orderIds())));
+    }
+
+    @Test
+    void creationSourceRejectsContractOutsideScopeBeforeReadingChain() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 1)));
+        when(contractMapper.selectDetailByCompanyScope(any())).thenReturn(null);
+
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getCreationSource(1L, 7L, "trace", 99L));
+        verifyNoInteractions(orderMapper, executionOrderMapper, lineMapper);
+    }
+
+    @Test
+    void creationSourceWithoutOrdersSkipsExecutionAndLineQueries() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 1)));
+        ContractDO contract = new ContractDO();
+        contract.setId(99L);
+        contract.setContractNo("CT-1");
+        contract.setCompanyCode("C01");
+        when(contractMapper.selectDetailByCompanyScope(any())).thenReturn(contract);
+        when(orderMapper.selectCreationOrdersByContract(any())).thenReturn(List.of());
+
+        ContractAccessService.CreationSourceDetail detail = service.getCreationSource(1L, 7L, "trace", 99L);
+
+        assertEquals(List.of(), detail.orders());
+        assertEquals(List.of(), detail.executionOrders());
+        assertEquals(List.of(), detail.lineExecutionNos());
+        verifyNoInteractions(executionOrderMapper, lineMapper);
     }
 
     static UserCompanyDepartmentScopeRespDTO scope(Long id, String companyCode, Integer version) {

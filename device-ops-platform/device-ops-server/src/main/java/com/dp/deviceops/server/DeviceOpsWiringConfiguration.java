@@ -1,6 +1,8 @@
 package com.dp.deviceops.server;
 
 import com.dp.deviceops.adapter.persistence.jdbc.*;
+import com.dp.deviceops.adapter.serial.JdkSerialPortEnumerator;
+import com.dp.deviceops.adapter.serial.SerialCommandExecutionAdapter;
 import com.dp.deviceops.adapter.ssh.mina.MinaCommandExecutionAdapter;
 import com.dp.deviceops.adapter.telnet.TelnetCommandExecutionAdapter;
 import com.dp.deviceops.adapter.web.CollectionOutputStreamService;
@@ -187,6 +189,15 @@ public class DeviceOpsWiringConfiguration {
                 properties.getEventChunkBytes(),
                 properties.getMaxPages());
     }
+    // Deliberately no RemoteEndpointPolicy: its DNS-based host validation rejects COM port names.
+    @Bean ProtocolCommandExecutionAdapter serialCommandExecutionAdapter(SerialProperties properties) {
+        return new SerialCommandExecutionAdapter(
+                properties.isEnabled(),
+                properties.getMaxOutputBytes(),
+                properties.getEventChunkBytes(),
+                properties.getMaxPages());
+    }
+    @Bean JdkSerialPortEnumerator jdkSerialPortEnumerator() { return new JdkSerialPortEnumerator(); }
     @Bean CommandExecutionPort commandExecutionPort(List<ProtocolCommandExecutionAdapter> adapters) {
         return new ProtocolCommandExecutionRouter(adapters);
     }

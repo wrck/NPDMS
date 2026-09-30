@@ -36,6 +36,8 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         List<Field> head = new ArrayList<>(common);
         for (String name : List.of("customerCode", "customerName", "salesType", "sourceProjectName", "orderComment",
                 "orderCreateTime", "customerRequiredTime")) head.add(field(name, name, false));
+        head.add(field("contractNo", "主合同号", false));
+        head.add(field("executionNo", "主执行单号", false));
         List<Field> line = new ArrayList<>(common);
         line.add(field("migrationParentExists", "来源父订单预检通过", false));
         line.add(field("lineNo", "行号", true));
@@ -133,7 +135,8 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     var fact = new CommerceSalesOrderFact(targetKey, old == null ? null : old.getSourceVersion(),
                             version, company, number, type, text(row, "customerCode"), text(row, "customerName"),
                             null, null, lifecycle, time, text(row, "salesType"), text(row, "sourceProjectName"),
-                            text(row, "orderComment"), time(row, "orderCreateTime"), time(row, "customerRequiredTime"));
+                            text(row, "orderComment"), time(row, "orderCreateTime"), time(row, "customerRequiredTime"),
+                            text(row, "contractNo"), text(row, "executionNo"));
                     var previous = incomingOrders.get(targetKey);
                     if (previous != null && !canonicalizer.orderPayload(previous).equals(canonicalizer.orderPayload(fact))) {
                         throw new IllegalArgumentException("同一批次订单主档字段冲突");

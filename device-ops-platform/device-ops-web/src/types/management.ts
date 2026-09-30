@@ -12,7 +12,7 @@ export interface ScriptContent { namespace: string; scriptKey: string; version: 
 export interface ManagementSettings {
   platformName: string; apiVersion: string; readOnly: true; authMode: 'local' | 'oauth2'; localDebug: boolean
   subject: string; allNamespaces: boolean; namespaces: string[]; projects: string[]; scopes: string[]; maxParserInputBytes: number
-  capabilities: { scheduleEnabled: boolean; callbackEnabled: boolean; masterDataEnabled: boolean; telnetEnabled: boolean; credentialStorageAvailable: boolean }
+  capabilities: { scheduleEnabled: boolean; callbackEnabled: boolean; masterDataEnabled: boolean; telnetEnabled: boolean; serialEnabled: boolean; credentialStorageAvailable: boolean }
 }
 export interface LogType { logType: string; displayName: string; description: string | null; createdAt: string; updatedAt: string }
 export interface ReleaseValidation { releaseId: string; draftRevision: number; passed: boolean; caseCount: number; failures: { caseId: string; errorCode: string; message: string }[]; validatedAt: string }

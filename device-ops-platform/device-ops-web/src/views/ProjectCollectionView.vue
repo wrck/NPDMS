@@ -31,6 +31,7 @@ const props = defineProps<{
 
 const targetRef = ref<InstanceType<typeof TargetSelector>>()
 const taskPanelRef = ref<InstanceType<typeof CollectionTaskPanel>>()
+const parserRef = ref<InstanceType<typeof ParserSidebar>>()
 const formError = ref('')
 const commandCollapsed = ref(false)
 const parserCollapsed = ref(false)
@@ -103,7 +104,7 @@ function createCollectionTarget(
       credentialNamespace: connection.credentialNamespace
     }
   }
-  if (connection.protocol === 'TELNET') {
+  if (connection.protocol === 'TELNET' || connection.protocol === 'SERIAL') {
     return {
       ...context,
       ...structuredClone(connection),
@@ -119,6 +120,15 @@ function createCollectionTarget(
 async function submit() {
   formError.value = ''
   try {
+    if (semanticParser.value.mode === 'AUTO') {
+      const options = await parserRef.value?.ensureOptions?.()
+      if (options && !options.defaultAvailable) {
+        throw new Error(
+          '结构化解析无法生效：当前没有已激活的结构化解析版本，本次下发将只有原始输出。' +
+          '请先在解析控制台发布并激活版本，或改用“指定版本 / 不解析”后再下发。'
+        )
+      }
+    }
     const selection = targetRef.value?.buildSelection()
     if (!selection) throw new Error('连接组件尚未就绪。')
     const scriptSnapshot = { ...script.value }
@@ -180,10 +190,6 @@ async function submit() {
   }
 }
 
-function clearCredentials() {
-  targetRef.value?.clearCredentials()
-}
-
 function syncParserCollapse(event: MediaQueryList | MediaQueryListEvent) {
   parserCollapsed.value = event.matches
 }
@@ -243,7 +249,7 @@ onBeforeUnmount(() => {
 })
 
 onBeforeRouteLeave(() => {
-  clearCredentials()
+  // 凭据保留在当前窗口内（仅切换连接上下文或关闭窗口时清除），离开路由只停止轮询。
   taskPanelRef.value?.stopPolling()
 })
 </script>
@@ -313,6 +319,7 @@ onBeforeRouteLeave(() => {
       </el-col>
       <el-col :xs="24" :lg="5" class="workbench-parser">
         <ParserSidebar
+          ref="parserRef"
           v-model="script"
           v-model:selection="semanticParser"
           :collapsed="parserCollapsed"

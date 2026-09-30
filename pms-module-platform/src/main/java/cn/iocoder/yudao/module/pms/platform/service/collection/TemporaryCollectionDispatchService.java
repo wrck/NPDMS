@@ -64,6 +64,13 @@ public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.modu
                 command.username(), null, "DEVICE_OPS", command.traceId()), command.connectionId(), command.connectionVersion());
     }
 
+    @Override
+    public java.util.List<java.util.Map<String, Object>> semanticResults(Long tenantId, String platformTaskId) {
+        if (!java.util.Objects.equals(tenantId, cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())
+                || blank(platformTaskId)) throw new IllegalArgumentException("解析结果查询参数不完整");
+        return gatewayApi.semanticResults(platformTaskId);
+    }
+
     private DeviceOpsDispatchResult dispatchResolved(TemporaryDispatchCommand command, String connectionId, Long connectionVersion) {
         char[] secret = command == null ? null : command.temporarySecret();
         try {

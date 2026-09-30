@@ -88,15 +88,17 @@ public final class JdbcParseTaskRepository implements ParseTaskRepository {
             ParserCoordinate coordinate = request.coordinate();
             jdbc.sql("""
                     insert into device_ops_parse_task(
-                      task_id,request_id,caller_namespace,log_type,release_id,release_version,engine_version,
-                      rule_version,projection_version,extension_id,extension_version,input_format,input_payload_id,
-                      context_json,source_result_id,result_consumer_id,result_destination,state,attempt_count,
-                      next_attempt_at,lease_generation,created_at,updated_at,requested_release_id,requested_release_recorded)
-                    values(:task,:request,:namespace,:type,:release,:releaseVersion,:engine,:rule,:projection,
-                      :extensionId,:extensionVersion,:format,:input,:context,:source,:consumer,:destination,
-                      'QUEUED',0,:created,0,:created,:created,:requestedRelease,true)
+                      task_id,request_id,caller_namespace,external_request_id,activity_type,log_type,release_id,
+                      release_version,engine_version,rule_version,projection_version,extension_id,extension_version,
+                      input_format,input_payload_id,context_json,source_result_id,result_consumer_id,result_destination,
+                      state,attempt_count,next_attempt_at,lease_generation,created_at,updated_at,
+                      requested_release_id,requested_release_recorded)
+                    values(:task,:request,:namespace,:externalRequest,:activityType,:type,:release,:releaseVersion,
+                      :engine,:rule,:projection,:extensionId,:extensionVersion,:format,:input,:context,:source,
+                      :consumer,:destination,'QUEUED',0,:created,0,:created,:created,:requestedRelease,true)
                     """).param("task", request.taskId()).param("request", request.requestId())
-                    .param("namespace", request.callerNamespace()).param("type", request.logType())
+                    .param("namespace", request.callerNamespace()).param("externalRequest", request.externalRequestId())
+                    .param("activityType", request.activityType()).param("type", request.logType())
                     .param("release", request.releaseId()).param("releaseVersion", coordinate.releaseVersion())
                     .param("engine", coordinate.engineVersion()).param("rule", coordinate.ruleVersion())
                     .param("projection", coordinate.projectionVersion()).param("extensionId", coordinate.extensionId())

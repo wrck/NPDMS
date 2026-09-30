@@ -76,13 +76,14 @@ export interface ProjectMasterVO {
   createTime?: Date
 }
 
-/** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目） */
+/** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目；contractId 非空时服务端按合同链取CRM权威值并绑定） */
 export interface ProjectCreateReqVO {
   projectName: string
   parentId?: number
   customerCode?: string
   customerName?: string
   contractNo?: string
+  contractId?: number
   orderOfficeCompanyId: number
   orderOfficeDepartmentId: number
   sites?: ProjectSiteReqVO[]

@@ -384,6 +384,8 @@ public class CommerceAuthorityIngestService {
         row.setStatus(fact.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE ? "ENABLED" : "DISABLED");
         source(row, command, fact.sourceKey(), fact.sourceVersion(), fact.lifecycleStatus(), fact.sourceUpdatedAt());
         row.setSalesType(fact.salesType());
+        row.setContractNo(fact.contractNo());
+        row.setExecutionNo(fact.executionNo());
         row.setSourceProjectName(fact.sourceProjectName());
         row.setOrderComment(fact.orderComment());
         row.setOrderCreateTime(fact.orderCreateTime());

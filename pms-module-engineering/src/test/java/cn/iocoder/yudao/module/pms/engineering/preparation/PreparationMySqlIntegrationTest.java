@@ -395,7 +395,7 @@ class PreparationMySqlIntegrationTest {
         String key = "it-fsol002-project-" + UUID.randomUUID();
         return new ManualProjectCreateCommand(draft, 1L, 1L, java.util.List.of(),
                 match.getMatched().getTemplateRevisionId(), match.getCandidateWatermark(),
-                null, key, sha256(key));
+                null, null, key, sha256(key));
     }
 
     private void insertFileFacts(Long itemId, long artifactId, long actorId) {

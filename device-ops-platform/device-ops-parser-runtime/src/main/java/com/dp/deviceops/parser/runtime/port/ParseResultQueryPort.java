@@ -11,7 +11,11 @@ public interface ParseResultQueryPort {
 
     List<ParseTask> listTasks(String callerNamespace, int limit, String afterTaskId);
 
+    List<ParseTask> listTasksByExternalRequest(String callerNamespace, String externalRequestId, int limit);
+
     List<ParseTaskResult> listTaskResultsByRequestPrefix(String callerNamespace, String requestPrefix);
+
+    List<ParseTaskResult> listTaskResultsByExternalRequest(String callerNamespace, String externalRequestId);
 
     Optional<ParseResultEnvelope> findResult(String callerNamespace, String resultId);
 

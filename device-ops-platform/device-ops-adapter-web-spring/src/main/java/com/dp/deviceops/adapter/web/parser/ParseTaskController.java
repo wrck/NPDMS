@@ -97,7 +97,11 @@ public class ParseTaskController {
     @PreAuthorize("hasAuthority('SCOPE_parser:task:read')")
     public List<ParseTask> listTasks(@AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "limit", defaultValue = "50") @Min(1) @Max(200) int limit,
-            @RequestParam(name = "afterTaskId", required = false) String afterTaskId) {
+            @RequestParam(name = "afterTaskId", required = false) String afterTaskId,
+            @RequestParam(name = "externalRequestId", required = false) @Size(max = 200) String externalRequestId) {
+        if (externalRequestId != null && !externalRequestId.isBlank()) {
+            return queries.listTasksByExternalRequest(namespace(jwt), externalRequestId, limit);
+        }
         return queries.listTasks(namespace(jwt), limit, afterTaskId);
     }
 

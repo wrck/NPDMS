@@ -8,6 +8,7 @@ export interface RuntimeConfig {
   apiBaseUrl?: string
   projectClaim?: string
   telnetEnabled: boolean
+  serialEnabled: boolean
 }
 
 let runtimeConfigPromise: Promise<RuntimeConfig> | undefined

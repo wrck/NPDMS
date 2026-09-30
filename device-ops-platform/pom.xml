@@ -65,6 +65,7 @@
         <module>device-ops-parser-runtime</module>
         <module>device-ops-adapter-ssh-mina</module>
         <module>device-ops-adapter-telnet</module>
+        <module>device-ops-adapter-serial</module>
         <module>device-ops-adapter-persistence-jdbc</module>
         <module>device-ops-adapter-web-spring</module>
         <module>device-ops-server</module>

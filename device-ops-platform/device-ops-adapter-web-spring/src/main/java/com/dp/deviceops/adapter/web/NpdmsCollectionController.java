@@ -27,6 +27,7 @@ public class NpdmsCollectionController {
     private final KeyedCollectionDispatcher dispatcher;
     private final CallbackOutboxPort callbacks;
     private final GenericCollectionController collections;
+    private final com.dp.deviceops.adapter.web.parser.CollectionSemanticResultController semanticResults;
     private final String requestSigningKey;
     @org.springframework.beans.factory.annotation.Autowired
     private com.dp.deviceops.core.port.SavedConnectionStore savedConnections;
@@ -34,6 +35,7 @@ public class NpdmsCollectionController {
     public NpdmsCollectionController(CollectionRepository repository, CollectionQueryPort queries,
                                     ProjectClaimAuthorizer authorizer, KeyedCollectionDispatcher dispatcher,
                                     CallbackOutboxPort callbacks, GenericCollectionController collections,
+                                    com.dp.deviceops.adapter.web.parser.CollectionSemanticResultController semanticResults,
                                     @Value("${device-ops.npdms.request-signing-key:}") String requestSigningKey) {
         this.repository = repository;
         this.queries = queries;
@@ -41,6 +43,7 @@ public class NpdmsCollectionController {
         this.dispatcher = dispatcher;
         this.callbacks = callbacks;
         this.collections = collections;
+        this.semanticResults = semanticResults;
         this.requestSigningKey = requestSigningKey;
     }
 
@@ -125,6 +128,16 @@ public class NpdmsCollectionController {
         task.projectKey().ifPresent(project -> authorizer.require(jwt, project));
         return queries.find(namespace, task.taskId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /** Structured parse records of the collection initiated by this platform task, keyed by the initiating business object. */
+    @GetMapping("/{platformTaskId}/semantic-results")
+    @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:read')")
+    public java.util.List<com.dp.deviceops.adapter.web.parser.CollectionSemanticResultController.CollectionSemanticResult>
+    semanticResults(@AuthenticationPrincipal Jwt jwt, @PathVariable("platformTaskId") String platformTaskId,
+                    @RequestParam("namespace") String namespace) {
+        var task = get(jwt, platformTaskId, namespace);
+        return semanticResults.list(jwt, task.collectionId(), namespace);
     }
 
     @PostMapping("/{platformTaskId}/cancellations")

@@ -153,6 +153,8 @@
     ],
     "updateColumns": [
       "currency_name",
+      "contract_amount",
+      "currency_code",
       "contract_create_time",
       "project_name",
       "project_code",
@@ -199,6 +201,8 @@
     "columns": [
       "sn",
       "product_code",
+      "product_model",
+      "product_name",
       "internal_serial_no",
       "secondary_sn",
       "secondary_item",
@@ -212,6 +216,8 @@
     ],
     "updateColumns": [
       "product_code",
+      "product_model",
+      "product_name",
       "internal_serial_no",
       "shipment_time",
       "package_no",
@@ -258,9 +264,32 @@
       "source_system",
       "source_key",
       "source_version",
-      "source_updated_at"
+      "source_updated_at",
+      "order_no",
+      "line_no",
+      "product_code",
+      "secondary_sn",
+      "secondary_item",
+      "internal_serial_no",
+      "is_rma",
+      "profit_center",
+      "sole_agent_suffix",
+      "sync_time",
+      "uuid"
     ],
-    "updateColumns": [],
+    "updateColumns": [
+      "order_no",
+      "line_no",
+      "product_code",
+      "secondary_sn",
+      "secondary_item",
+      "internal_serial_no",
+      "is_rma",
+      "profit_center",
+      "sole_agent_suffix",
+      "sync_time",
+      "uuid"
+    ],
     "keys": [
       [
         "source_system",
@@ -277,7 +306,18 @@
     "immutableIgnoreColumns": [
       "source_payload",
       "source_updated_at",
-      "source_version"
+      "source_version",
+      "order_no",
+      "line_no",
+      "product_code",
+      "secondary_sn",
+      "secondary_item",
+      "internal_serial_no",
+      "is_rma",
+      "profit_center",
+      "sole_agent_suffix",
+      "sync_time",
+      "uuid"
     ]
   },
   {
@@ -295,9 +335,14 @@
       "effective_to",
       "source_system",
       "source_key",
-      "source_version"
+      "source_version",
+      "source_item",
+      "target_item"
     ],
-    "updateColumns": [],
+    "updateColumns": [
+      "source_item",
+      "target_item"
+    ],
     "keys": [
       [
         "source_system",
@@ -310,7 +355,9 @@
     "deletedColumn": "deleted",
     "versioned": true,
     "immutableIgnoreColumns": [
-      "source_version"
+      "source_version",
+      "source_item",
+      "target_item"
     ]
   },
   {

@@ -88,6 +88,8 @@ public final class ConnectionRequestMapper {
                     requireProtocol(request), requireHost(request), requirePort(request), requireUsername(request),
                     requireAuthenticationType(request), requireExecutionMode(request),
                     request.hostKeyFingerprint(), request.telnetPrompts() == null ? null : request.telnetPrompts().toCore(),
+                    request.serialParams() == null ? null : request.serialParams().toCore(),
+                    request.serialPrompts() == null ? null : request.serialPrompts().toCore(),
                     Duration.ofSeconds(requireConnectTimeout(request)));
         } catch (IllegalArgumentException | NullPointerException exception) {
             throw new ResponseStatusException(BAD_REQUEST, exception.getMessage());
@@ -102,7 +104,8 @@ public final class ConnectionRequestMapper {
         if (request.protocol() != null || request.host() != null || request.port() != null || request.username() != null
                 || request.authenticationType() != null || request.executionMode() != null
                 || request.hostKeyFingerprint() != null
-                || request.telnetPrompts() != null || request.connectTimeoutSeconds() != null
+                || request.telnetPrompts() != null || request.serialParams() != null || request.serialPrompts() != null
+                || request.connectTimeoutSeconds() != null
                 || request.credentialId() != null || request.password() != null || request.privateKey() != null
                 || request.passphrase() != null) {
             throw new ResponseStatusException(BAD_REQUEST,
@@ -155,6 +158,12 @@ public final class ConnectionRequestMapper {
     }
 
     private static int requirePort(Connection request) {
+        if (request.protocol() == ConnectionProtocol.SERIAL) {
+            if (request.port() == null || request.port() != 0) {
+                throw new ResponseStatusException(BAD_REQUEST, "port must be 0 for a serial connection");
+            }
+            return request.port();
+        }
         if (request.port() == null || request.port() < 1 || request.port() > 65535) {
             throw new ResponseStatusException(BAD_REQUEST, "port must be between 1 and 65535 for a direct connection");
         }
@@ -221,6 +230,8 @@ public final class ConnectionRequestMapper {
             CommandExecutionPort.ExecutionMode executionMode,
             @Size(max = 1000) String hostKeyFingerprint,
             @Valid TelnetPrompts telnetPrompts,
+            @Valid SerialParams serialParams,
+            @Valid SerialPrompts serialPrompts,
             Long connectTimeoutSeconds,
             @Size(max = 100) String credentialNamespace,
             @Size(max = 36) String savedConnectionId,
@@ -235,7 +246,8 @@ public final class ConnectionRequestMapper {
                           String credentialNamespace, String savedConnectionId, String credentialId,
                           char[] password, char[] privateKey, char[] passphrase) {
             this(protocol, host, port, username, authenticationType, executionMode, hostKeyFingerprint, telnetPrompts,
-                    connectTimeoutSeconds, credentialNamespace, savedConnectionId, credentialId, password, privateKey, passphrase, null);
+                    null, null, connectTimeoutSeconds, credentialNamespace, savedConnectionId, credentialId,
+                    password, privateKey, passphrase, null);
         }
         public Connection(ConnectionProtocol protocol, String host, int port, String username,
                           CommandExecutionPort.AuthenticationType authenticationType,
@@ -243,8 +255,8 @@ public final class ConnectionRequestMapper {
                           long connectTimeoutSeconds, char[] password, char[] privateKey,
                           char[] passphrase) {
             this(protocol, host, port, username, authenticationType, CommandExecutionPort.ExecutionMode.SHELL,
-                    hostKeyFingerprint, telnetPrompts,
-                    connectTimeoutSeconds, null, null, null, password, privateKey, passphrase);
+                    hostKeyFingerprint, telnetPrompts, null, null,
+                    connectTimeoutSeconds, null, null, null, password, privateKey, passphrase, null);
         }
 
         public void clearCredentials() {
@@ -264,6 +276,24 @@ public final class ConnectionRequestMapper {
 
         CommandExecutionPort.TelnetPrompts toCore() {
             return new CommandExecutionPort.TelnetPrompts(login, password, command, lineEnding);
+        }
+    }
+
+    public record SerialParams(Integer baudRate, Integer dataBits,
+                               CommandExecutionPort.SerialParity parity,
+                               Integer stopBits,
+                               CommandExecutionPort.SerialFlowControl flowControl) {
+        CommandExecutionPort.SerialParams toCore() {
+            return new CommandExecutionPort.SerialParams(baudRate, dataBits, parity, stopBits, flowControl);
+        }
+    }
+
+    public record SerialPrompts(@Size(max = 500) String login,
+                                @Size(max = 500) String password,
+                                @Size(max = 500) String command,
+                                CommandExecutionPort.TelnetLineEnding lineEnding) {
+        CommandExecutionPort.SerialPrompts toCore() {
+            return new CommandExecutionPort.SerialPrompts(login, password, command, lineEnding);
         }
     }
 
