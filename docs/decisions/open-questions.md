@@ -1082,3 +1082,18 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: 前三个维度不渲染筛选控件；维保状态按原文等值文本过滤临时实现（设备列表页同为原文展示），取值域待规格定义。
 - Blocking scope: 仅阻止上述四个维度的最终口径；不阻断其余可解析维度的实现（项目编号/名称/状态/实施方式/项目经理/合同号/办事处/所属公司/销售人员/服务经理/重点项目级别/创建&闭环&刷新时间/产品型号/序列号/代理商服务商）。
 - Decision owner: 需求方
+
+### Q-SYNC-DEVICE-20260928-001 — 设备序列号同步任务的设备侧三步去留
+
+- Status: RESOLVED（需求方 2026-09-28 当前会话裁决："直接纯复制，当前的速度太慢了"）
+- Requirement IDs: DPPMS 迁移·设备序列号同步（int_sync_task 2102825819916980226）
+- Area: 同步任务范围口径
+- Question: 任务定义含三个更早存在的 ast_device 侧步骤——deviceMaster（主档 product_code/internal_serial_no 维护）、secondaryMaster（barcode2 附加SN建档）、deviceShipment（该SN最新发货投影 shipment_record_id/shipment_time/package_no/contract_no/secondary_sn/secondary_item）。用户 2026-09-28 质询"为啥还在这双写"，即该任务是否应只写两张承接表（ast_device_shipment/ast_device_relationship），设备侧步骤摘除或另立任务。
+- Evidence:
+  - event 步已是纯复制（updateColumns=[]、无 lookup、源字段直填），27 行×23 列抽查全一致。
+  - `DeviceQueryMapper.xml` 设备列表直接 SELECT d.shipment_time/package_no/contract_no/shipment_record_id，为 deviceShipment 投影的消费方。
+  - 2026-09-28 全清复制删除 64.6 万 data_sync 行后设备旧 shipment_record_id 全部悬空，deviceShipment 是唯一重建机制（运行中 10 分钟内更新 14.4 万台，全库 893,518 台设备、876,594 台挂引用）。
+  - 吞吐对比：含设备更新综合 ~630/s；纯承接表单表 ~1000/s。
+- Decision: 摘除 deviceMaster/secondaryMaster/deviceShipment 三步，任务与 device-sn 模板均改为只写两张承接表（ast_device_shipment/ast_device_relationship）。设备列表的发货投影列（shipment_record_id/shipment_time/package_no/contract_no）自本次裁决起不再由该任务维护，存量悬空引用与后续维护去向由需求方另行安排。
+- Blocking scope: 仅阻止设备侧三步的长期去留；不阻断本次全清复制与承接表正确性验证。
+- Decision owner: 需求方。

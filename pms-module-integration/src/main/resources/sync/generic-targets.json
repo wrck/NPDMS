@@ -201,6 +201,8 @@
     "columns": [
       "sn",
       "product_code",
+      "product_model",
+      "product_name",
       "internal_serial_no",
       "secondary_sn",
       "secondary_item",
@@ -214,6 +216,8 @@
     ],
     "updateColumns": [
       "product_code",
+      "product_model",
+      "product_name",
       "internal_serial_no",
       "shipment_time",
       "package_no",
