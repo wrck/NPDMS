@@ -41,6 +41,7 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
     private final SalesOrderMapper orderMapper;
     private final SalesOrderLineMapper lineMapper;
     private final ProjectContractRelationMapper projectRelationMapper;
+    private final cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper executionOrderMapper;
     private final OperationAuditApi operationAuditApi;
 
     @Override
@@ -153,6 +154,40 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
 
     public record ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
         List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {}
+
+    /**
+     * 合同主档单入口的项目创建取值解析：合同 → 订单（主导列业务键直连，排退货）→ 执行单（主执行单号直连）。
+     * 访问范围与合同详情一致（ADR-0038 公司范围）；空范围拒绝。
+     */
+    public CreationSourceDetail getCreationSource(Long tenantId, Long subjectUserId, String correlationId,
+                                                  Long contractId) {
+        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
+        if (scope.empty()) throw inaccessible();
+        ContractDO contract = contractMapper.selectDetailByCompanyScope(
+                new ContractDetailScopeQuery(tenantId, contractId, scope.companyCodes(), scope.projectIds()));
+        if (contract == null) throw inaccessible();
+        List<SalesOrderDO> orders = orderMapper.selectCreationOrdersByContract(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery(
+                        tenantId, contractId, contract.getContractNo(), contract.getCompanyCode()));
+        List<String> executionNos = orders.stream().map(SalesOrderDO::getExecutionNo)
+                .filter(value -> value != null && !value.isBlank()).distinct().toList();
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executions =
+                executionNos.isEmpty() ? List.of()
+                        : executionOrderMapper.selectActiveByExecutionNos(
+                                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.query.ExecutionNoListQuery(
+                                        tenantId, executionNos));
+        List<String> lineExecutionNos = orders.isEmpty() ? List.of()
+                : lineMapper.selectDistinctRealExecutionNos(
+                        new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.OrderLineExecutionNoQuery(
+                                tenantId, orders.stream().map(SalesOrderDO::getId).toList()));
+        return new CreationSourceDetail(contract, orders == null ? List.of() : List.copyOf(orders),
+                executions == null ? List.of() : List.copyOf(executions),
+                lineExecutionNos == null ? List.of() : List.copyOf(lineExecutionNos));
+    }
+
+    public record CreationSourceDetail(ContractDO contract, List<SalesOrderDO> orders,
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
+        List<String> lineExecutionNos) {}
 
     private List<UserCompanyDepartmentScopeRespDTO> currentScopes(
             Long tenantId, Long subjectUserId, String correlationId) {

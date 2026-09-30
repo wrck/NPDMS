@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.common.query.AuthoritySourceLockQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineCompanyScopeQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.OrderLineExecutionNoQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineIdsQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -17,4 +18,5 @@ public interface SalesOrderLineMapper extends BaseMapperX<SalesOrderLineDO> {
     Long selectCountByCompanyScope(@Param("query") SalesOrderLineCompanyScopeQuery query);
     List<SalesOrderLineDO> selectByIds(@Param("query") SalesOrderLineIdsQuery query);
     List<SalesOrderLineDO> selectByIdsForUpdate(@Param("query") SalesOrderLineIdsQuery query);
+    List<String> selectDistinctRealExecutionNos(@Param("query") OrderLineExecutionNoQuery query);
 }
