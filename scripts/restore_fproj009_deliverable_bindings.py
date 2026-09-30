@@ -26,7 +26,8 @@ from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "sql/migrations/V331__fproj009_deliverable_binding_restore.sql"
+# Q-MIG-V331-20260929-001 裁决迁出主链：生成物落 sql/oneoff/，不再进入 sql/migrations。
+OUTPUT = ROOT / "sql/oneoff/V331__fproj009_deliverable_binding_restore.sql"
 SOURCE = "fproj009-deliverable-restore-20260920"
 TIME = "2026-09-20 00:00:00"
 NEW_ID_MIN = 993009300000

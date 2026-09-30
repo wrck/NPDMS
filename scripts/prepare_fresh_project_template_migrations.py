@@ -14,7 +14,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "sql/migrations"
 OUTPUT = ROOT / ".run/fresh-project-migrations"
-OMIT = {54, 55, 56, 59, 61, 62, 73, 75, 79, 162, 207, 208, 209, 331}
+OMIT = {54, 55, 56, 59, 61, 62, 73, 75, 79, 162, 207, 208, 209}
 FILTER = {72, 74, 100, 105, 161}
 GUARD = """-- Fresh lineage only. Refuse to attach it to an existing installation.
 DELIMITER $$

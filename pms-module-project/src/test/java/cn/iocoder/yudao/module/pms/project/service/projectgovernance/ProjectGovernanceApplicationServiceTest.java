@@ -3,6 +3,9 @@ package cn.iocoder.yudao.module.pms.project.service.projectgovernance;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.AcceptanceScopeBindingApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseCommand;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseResult;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -74,6 +77,7 @@ class ProjectGovernanceApplicationServiceTest {
     private ProjectTreeVersionMapper treeVersionMapper;
     private ProjectStageSnapshotMapper snapshotMapper;
     private ProjectStageSnapshotRepository snapshotRepository;
+    private AcceptanceScopeBindingApi acceptanceScopeBindingApi;
     private ProjectGovernanceApplicationService service;
     private AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts;
 
@@ -89,9 +93,12 @@ class ProjectGovernanceApplicationServiceTest {
         treeVersionMapper = mock(ProjectTreeVersionMapper.class);
         snapshotMapper = mock(ProjectStageSnapshotMapper.class);
         snapshotRepository = mock(ProjectStageSnapshotRepository.class);
+        acceptanceScopeBindingApi = mock(AcceptanceScopeBindingApi.class);
+        when(acceptanceScopeBindingApi.closeProjectBindings(any()))
+                .thenReturn(new AcceptanceScopeBindingCloseResult(0, true));
         service = new ProjectGovernanceApplicationService(commandExecutionApi, permissionApi,
                 treeScopeService, guardService, projectMapper, memberMapper, treeVersionMapper,
-                snapshotMapper, snapshotRepository);
+                snapshotMapper, snapshotRepository, acceptanceScopeBindingApi);
         successFacts = new AtomicReference<>();
         org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
                 mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
@@ -121,6 +128,20 @@ class ProjectGovernanceApplicationServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void shouldCloseAcceptanceScopeBindingsOnRollback() {
+        service.rollback(command("f".repeat(64)), actor());
+
+        ArgumentCaptor<AcceptanceScopeBindingCloseCommand> close =
+                ArgumentCaptor.forClass(AcceptanceScopeBindingCloseCommand.class);
+        verify(acceptanceScopeBindingApi).closeProjectBindings(close.capture());
+        assertEquals(TENANT_ID, close.getValue().tenantId());
+        assertEquals(PROJECT_ID, close.getValue().projectId());
+        ArgumentCaptor<ProjectStageSnapshotDO> snapshot = ArgumentCaptor.forClass(ProjectStageSnapshotDO.class);
+        verify(snapshotRepository).append(snapshot.capture());
+        assertEquals(snapshot.getValue().getOperationId(), close.getValue().operationId());
     }
 
     @Test

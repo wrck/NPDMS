@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeAcceptanc
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeVersionFact;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.AcceptanceScopeBindingApi;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.AcceptanceScopeGuardApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseCommand;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseResult;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingFact;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingResult;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeGuardOutcome;
@@ -16,6 +18,7 @@ import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.EffectiveScop
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancescope.AcceptanceScopeBindingDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.query.AcceptanceScopeBindingIdentityQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.query.AcceptanceScopeCurrentQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.query.AcceptanceScopeProjectActiveQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.repository.acceptancescope.AcceptanceScopeBindingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -73,6 +76,25 @@ public class AcceptanceScopeBindingService implements AcceptanceScopeBindingApi,
                 TRIGGER_SCOPE_EFFECTIVE);
         return new AcceptanceScopeBindingResult(outcome.replayed(), outcome.fact().acceptanceFactVersion(),
                 List.of(outcome.fact()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public AcceptanceScopeBindingCloseResult closeProjectBindings(AcceptanceScopeBindingCloseCommand command) {
+        validateCloseCommand(command);
+        List<AcceptanceScopeBindingDO> active = bindingRepository.selectActiveByProjectForUpdate(
+                new AcceptanceScopeProjectActiveQuery(command.tenantId(), command.projectId()));
+        if (active.isEmpty()) {
+            return new AcceptanceScopeBindingCloseResult(0, true);
+        }
+        LocalDateTime closedAt = LocalDateTime.now();
+        for (AcceptanceScopeBindingDO row : active) {
+            row.setEffectiveTo(closedAt);
+            if (bindingRepository.close(row) != 1) {
+                throw exception(ACC_ACCEPTANCE_SCOPE_BINDING_CONFLICT);
+            }
+        }
+        return new AcceptanceScopeBindingCloseResult(active.size(), false);
     }
 
     @Override
@@ -161,6 +183,13 @@ public class AcceptanceScopeBindingService implements AcceptanceScopeBindingApi,
         if (command == null || !validTenant(command.tenantId()) || !positive(command.projectId())
                 || !positive(command.projectStageSnapshotId()) || !positive(command.deliveryScopeId())
                 || !positive(command.scopeAllocationVersion()) || blank(command.operationId())) {
+            throw exception(ACC_ACCEPTANCE_SCOPE_REQUEST_INVALID);
+        }
+    }
+
+    private void validateCloseCommand(AcceptanceScopeBindingCloseCommand command) {
+        if (command == null || !validTenant(command.tenantId()) || !positive(command.projectId())
+                || blank(command.operationId())) {
             throw exception(ACC_ACCEPTANCE_SCOPE_REQUEST_INVALID);
         }
     }
