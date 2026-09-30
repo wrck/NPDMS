@@ -2,6 +2,7 @@
   <section v-loading="loading" aria-label="待审方案冻结正文">
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-form v-else-if="solution" :model="solution" label-position="top">
+      <SolutionDocMetaForm v-model="solution" :read-only="true" />
       <SolutionChapterForm v-model="solution" :read-only="true" />
     </el-form>
   </section>
@@ -10,6 +11,7 @@
 import { ref, watch } from 'vue'
 import request from '@/config/axios'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
+import SolutionDocMetaForm from './SolutionDocMetaForm.vue'
 import SolutionChapterForm from './SolutionReviewChapterForm.vue'
 const props = defineProps<{ id: string }>()
 const solution = ref<SolutionVO>(), loading = ref(false), error = ref('')

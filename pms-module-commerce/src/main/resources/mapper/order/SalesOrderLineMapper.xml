@@ -38,7 +38,6 @@
         <if test="query.orderType != null and query.orderType != ''">AND l.order_type = #{query.orderType}</if>
         <if test="query.orderNo != null and query.orderNo != ''">AND l.order_no = #{query.orderNo}</if>
         <if test="query.lineNo != null and query.lineNo != ''">AND l.line_no = #{query.lineNo}</if>
-        <if test="query.itemCode != null and query.itemCode != ''">AND l.item_code = #{query.itemCode}</if>
         <if test="query.productCode != null and query.productCode != ''">AND l.product_code = #{query.productCode}</if>
         <if test="query.quantityStatus != null and query.quantityStatus != ''">AND l.quantity_status = #{query.quantityStatus}</if>
         <if test="query.status != null and query.status != ''">AND l.status = #{query.status}</if>
@@ -84,7 +83,6 @@
         <if test="query.orderType != null and query.orderType != ''">AND l.order_type = #{query.orderType}</if>
         <if test="query.orderNo != null and query.orderNo != ''">AND l.order_no = #{query.orderNo}</if>
         <if test="query.lineNo != null and query.lineNo != ''">AND l.line_no = #{query.lineNo}</if>
-        <if test="query.itemCode != null and query.itemCode != ''">AND l.item_code = #{query.itemCode}</if>
         <if test="query.productCode != null and query.productCode != ''">AND l.product_code = #{query.productCode}</if>
         <if test="query.quantityStatus != null and query.quantityStatus != ''">AND l.quantity_status = #{query.quantityStatus}</if>
         <if test="query.status != null and query.status != ''">AND l.status = #{query.status}</if>

@@ -173,7 +173,9 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SolutionApi from '@/api/pms/engineering/solution'
 import type { SolutionApproveVO, SolutionVO } from '@/api/pms/engineering/solution'
 import * as ProjectApi from '@/api/pms/project/projects'
+import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import { checkPermi } from '@/utils/permission'
+import { buildRecordName } from '../recordNaming'
 import { formatDate } from '@/utils/formatTime'
 import SolutionChapterForm from './SolutionChapterForm.vue'
 
@@ -201,24 +203,34 @@ const rules = {
   name: [{ required: true, message: '请输入方案名称' }]
 }
 
-// 新建草稿时方案名称自动带入“项目名称+实施方案”；编辑中或用户已改名称时不覆盖
+// 新建草稿时方案名称按“项目编码_项目名称_实施方案_(版本标签|年月日时分秒)”自动生成；编辑中或用户已改名称时不覆盖
 const lastAutoName = ref('')
+const projectInfoCache = new Map<number, ProjectMasterVO>()
 const autoFillName = async (projectId: number | string) => {
   const pid = Number(projectId)
   if (!pid || pid <= 0 || form.value.id) return
   if (form.value.name && form.value.name !== lastAutoName.value) return
-  try {
-    const project = await ProjectApi.getProject(pid)
-    const name = project?.projectName ? `${project.projectName}实施方案` : ''
-    if (!name || Number(form.value.projectId) !== pid || form.value.id) return
-    if (form.value.name && form.value.name !== lastAutoName.value) return
-    form.value.name = name
-    lastAutoName.value = name
-  } catch {
-    // 项目名称获取失败时保持手输
+  let project = projectInfoCache.get(pid)
+  if (!project) {
+    try {
+      project = await ProjectApi.getProject(pid)
+      projectInfoCache.set(pid, project)
+    } catch {
+      return // 项目信息获取失败时保持手输
+    }
   }
+  if (Number(form.value.projectId) !== pid || form.value.id) return
+  if (form.value.name && form.value.name !== lastAutoName.value) return
+  form.value.name = buildRecordName({
+    projectCode: project.projectCode,
+    projectName: project.projectName,
+    typeLabel: '实施方案',
+    version: form.value.versionLabel
+  })
+  lastAutoName.value = form.value.name
 }
 watch(() => form.value.projectId, pid => { autoFillName(pid) })
+watch(() => form.value.versionLabel, () => { autoFillName(form.value.projectId) })
 
 const approveVisible = ref(false)
 const approveAction = ref<'approve' | 'reject'>('approve')

@@ -126,7 +126,7 @@ class MaterialExchangeSerialServiceTest {
     @Test void savesScopeLineUsingServerOrderFacts() {
         when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
                 .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
-                        "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN)));
+                        "设备一", "SWITCH", "交换机", BigDecimal.TEN)));
         var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
         first.setQuantity(BigDecimal.valueOf(2)); first.setItemCode("FORGED-ITEM");
         var request = request(); request.setSerials(List.of(first)); request.setQuantity(BigDecimal.valueOf(2));
@@ -149,7 +149,7 @@ class MaterialExchangeSerialServiceTest {
                 new SelectedProjectDevice(1L, "REAL-1", "设备一", "P1", "M1", "C1")));
         when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
                 .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
-                        "设备一", "P-ITEM-1", null, null, BigDecimal.TEN)));
+                        "设备一", null, null, BigDecimal.TEN)));
         var legacy = new MaterialExchangeSerialVO(); legacy.setDeviceId(1L);
         var scope = new MaterialExchangeSerialVO(); scope.setScopeDetailId(7L);
         var request = request(); request.setSerials(List.of(scope, legacy));
@@ -172,9 +172,9 @@ class MaterialExchangeSerialServiceTest {
         when(scopeLines.validateSelection(10L, List.of(
                 DeliveryScopeLineRef.ofDetail(7L), DeliveryScopeLineRef.ofDetail(8L),
                 DeliveryScopeLineRef.ofDetail(9L)))).thenReturn(List.of(
-                new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1", "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN),
-                new DeliveryScopeLineFact(8L, 60L, "SO-1", "10", "ITEM-1", "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN),
-                new DeliveryScopeLineFact(9L, 60L, "SO-1", "10", "ITEM-2", "设备二", "P-ITEM-2", "AR", "路由器", BigDecimal.TEN)));
+                new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1", "设备一", "SWITCH", "交换机", BigDecimal.TEN),
+                new DeliveryScopeLineFact(8L, 60L, "SO-1", "10", "ITEM-1", "设备一", "SWITCH", "交换机", BigDecimal.TEN),
+                new DeliveryScopeLineFact(9L, 60L, "SO-1", "10", "ITEM-2", "设备二", "AR", "路由器", BigDecimal.TEN)));
         var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
         var second = new MaterialExchangeSerialVO(); second.setScopeDetailId(8L);
         var third = new MaterialExchangeSerialVO(); third.setScopeDetailId(9L);
@@ -194,7 +194,7 @@ class MaterialExchangeSerialServiceTest {
     @Test void rejectsInactiveExchangeProduct() {
         when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
                 .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
-                        "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN)));
+                        "设备一", "SWITCH", "交换机", BigDecimal.TEN)));
         var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
         first.setQuantity(BigDecimal.valueOf(1)); first.setProductId(404L);
         when(products.getActiveProductSnapshots(List.of(404L))).thenReturn(List.of());
@@ -207,7 +207,7 @@ class MaterialExchangeSerialServiceTest {
     @Test void writesServerSideExchangeProductSnapshot() {
         when(scopeLines.validateSelection(10L, List.of(DeliveryScopeLineRef.ofDetail(7L))))
                 .thenReturn(List.of(new DeliveryScopeLineFact(7L, 60L, "SO-1", "10", "ITEM-1",
-                        "设备一", "P-ITEM-1", "SWITCH", "交换机", BigDecimal.TEN)));
+                        "设备一", "SWITCH", "交换机", BigDecimal.TEN)));
         var first = new MaterialExchangeSerialVO(); first.setScopeDetailId(7L);
         first.setQuantity(BigDecimal.valueOf(1)); first.setProductId(11L);
         when(products.getActiveProductSnapshots(List.of(11L))).thenReturn(List.of(

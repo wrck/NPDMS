@@ -116,8 +116,8 @@ public class DeliveryScopeController {
                 detail.getDeviceTypeCode(), detail.getDeviceTypeName(), detail.getAllocatedQty(),
                 detail.getDetailStatus())).toList();
         return new DeliveryScopeRespVO(scope.getId(), scope.getProjectId(), scope.getProjectCode(),
-                scope.getOrderLineId(), scope.getOrderNo(), scope.getLineNo(), scope.getItemCode(),
-                scope.getItemDesc(), scope.getAllocatedQty(), scope.getScopeStatus(), scope.getAllocationVersion(),
+                scope.getOrderLineId(), scope.getOrderNo(), scope.getLineNo(), scope.getProductCode(),
+                scope.getProductDesc(), scope.getAllocatedQty(), scope.getScopeStatus(), scope.getAllocationVersion(),
                 scope.getAllocationSource(), scope.getChangeReason(), scope.getDepartmentId(),
                 scope.getDepartmentCode(), scope.getDepartmentName(), scope.getDepartmentVersion(),
                 scope.getEffectiveFrom(), scope.getEffectiveTo(), scope.getVersion(), details);

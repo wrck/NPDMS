@@ -1,14 +1,14 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificatePageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface CompletionCertificateMapper extends BaseMapperX<CompletionCertificateDO> {
+public interface CompletionCertificateMapper extends ProjectScopedCodeMapper<CompletionCertificateDO> {
 
     default PageResult<CompletionCertificateDO> selectPage(CompletionCertificatePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<CompletionCertificateDO>()

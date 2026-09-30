@@ -37,7 +37,7 @@ class StagePlanApprovalCompletionProviderTest {
         row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3L); row.setStatus(2);
         row.setDurationRevisionId(20L); row.setEffectiveAt(java.time.LocalDateTime.now()); row.setBpmProcessInstanceId("bpm-approved");
         plan.setId(19L); plan.setProjectId(9L); plan.setTenantId(1L); plan.setVersion(1L); plan.setCurrentDurationRevisionId(20L);
-        when(mapper.current(any())).thenReturn(row); when(plans.selectByProjectId(1L,9L)).thenReturn(plan);
+        when(mapper.current(any())).thenReturn(row); when(mapper.byId(any())).thenReturn(row); when(plans.selectByProjectId(1L,9L)).thenReturn(plan);
         when(plans.selectForUpdate(any())).thenReturn(plan);
 
     }
@@ -60,6 +60,17 @@ class StagePlanApprovalCompletionProviderTest {
     @Test void supersededBatchCannotBeReused() {
         row.setId(43L);
         assertThrows(IllegalArgumentException.class, this::completed);
+    }
+
+    @Test void readOnlyInspectResolvesTheLinkedBatchEvenAfterSupersession() {
+        SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(7L).setTenantId(1L), new MockHttpServletRequest());
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);
+        var current = new StagePlanBatchDO();
+        current.setId(43L); current.setTenantId(1L); current.setProjectId(9L); current.setVersion(9L); current.setStatus(2);
+        current.setDurationRevisionId(20L); current.setEffectiveAt(java.time.LocalDateTime.now()); current.setBpmProcessInstanceId("bpm-new");
+        when(mapper.current(any())).thenReturn(current);
+        assertEquals("42", provider.inspect(context, "42").objectId());
     }
 
     @Test void foreignProjectTenantAndStaleExecutionAreRejected() {

@@ -7,11 +7,11 @@ export interface ExternalProcurementVO {
   code: string
   name: string
   procurementType?: string
-  materialName: string
-  materialCode?: string
+  productName: string
+  productCode?: string
   specification?: string
   brand?: string
-  model?: string
+  productModel?: string
   quantity: number
   unit?: string
   unitPrice?: number

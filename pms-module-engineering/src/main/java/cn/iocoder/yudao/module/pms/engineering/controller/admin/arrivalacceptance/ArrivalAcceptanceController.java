@@ -330,7 +330,7 @@ public class ArrivalAcceptanceController {
     private static ArrivalAcceptanceRespVO.Line line(ArrivalAcceptanceViews.ArrivalLineData value) {
         return new ArrivalAcceptanceRespVO.Line(value.id(), value.lineNo(), value.lineRevision(),
                 value.scopeType(), value.deviceId(), value.deviceAssignmentVersion(), value.orderLineId(),
-                value.productCode(), value.modelCode(), value.expectedQuantity(), value.acceptedQuantity(),
+                value.productCode(), value.productModel(), value.expectedQuantity(), value.acceptedQuantity(),
                 value.unitCode(), value.status(), value.version());
     }
 
@@ -404,7 +404,7 @@ public class ArrivalAcceptanceController {
         return "ORDER_MODEL_QUANTITY".equals(current.scopeType())
                 && Objects.equals(quantity.orderLineId(), current.orderLineId())
                 && Objects.equals(normalizeNullable(quantity.productCode()), current.productCode())
-                && Objects.equals(normalizeNullable(quantity.modelCode()), current.modelCode())
+                && Objects.equals(normalizeNullable(quantity.productModel()), current.productModel())
                 && Objects.equals(quantity.unitCode(), current.unitCode());
     }
 
@@ -418,7 +418,7 @@ public class ArrivalAcceptanceController {
         var quantity = (ArrivalAcceptanceReqVO.QuantityDraftLine) value;
         requireDiscriminator("ORDER_MODEL_QUANTITY", quantity.scopeType());
         return new ArrivalAcceptanceCommands.QuantityDraftLine(quantity.lineId(), quantity.expectedLineVersion(),
-                quantity.orderLineId(), quantity.productCode(), quantity.modelCode(),
+                quantity.orderLineId(), quantity.productCode(), quantity.productModel(),
                 quantity.acceptedQuantity(), quantity.unitCode());
     }
 
@@ -431,7 +431,7 @@ public class ArrivalAcceptanceController {
         var quantity = (ArrivalAcceptanceReqVO.QuantityScope) value;
         requireDiscriminator("ORDER_MODEL_QUANTITY", quantity.scopeType());
         return new ArrivalDifferenceScopeCodec.QuantityScope(quantity.orderLineId(), quantity.productCode(),
-                quantity.modelCode(), quantity.quantity(), quantity.unitCode());
+                quantity.productModel(), quantity.quantity(), quantity.unitCode());
     }
 
     private static ArrivalAcceptanceRespVO.Scope scope(ArrivalDifferenceScopeCodec.Scope value) {
@@ -441,7 +441,7 @@ public class ArrivalAcceptanceController {
         }
         var quantity = (ArrivalDifferenceScopeCodec.QuantityScope) value;
         return new ArrivalAcceptanceRespVO.QuantityScope("ORDER_MODEL_QUANTITY", quantity.orderLineId(),
-                quantity.productCode(), quantity.modelCode(), quantity.quantity(), quantity.unitCode());
+                quantity.productCode(), quantity.productModel(), quantity.quantity(), quantity.unitCode());
     }
 
     private static ArrivalAcceptanceCommands.Resolution resolution(ArrivalAcceptanceReqVO.Resolution value) {

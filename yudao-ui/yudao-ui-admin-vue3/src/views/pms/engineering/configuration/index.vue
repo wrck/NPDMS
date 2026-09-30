@@ -24,7 +24,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-configuration:create']"
+        <el-button v-if="!readonly" type="primary" @click="openForm()" v-hasPermi="['pms:imp-configuration:create']"
           ><Icon icon="ep:plus" />新增配置</el-button
         >
       </el-form-item>
@@ -45,12 +45,12 @@
         <template #default="{ row }">
           <el-button link type="primary" @click="collectionRef?.open(row.id)" v-hasPermi="['pms:imp-configuration:query']">手工命令 / 日志</el-button>
           <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-configuration:query']"
-            >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
+            >{{ editableRecord(row) && !readonly ? '编辑' : '查看' }}</el-button
           >
           <el-button
             link
             type="success"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'start')"
             v-hasPermi="['pms:imp-configuration:update']"
             >开始调试</el-button
@@ -58,7 +58,7 @@
           <el-button
             link
             type="success"
-            v-if="row.status === 1"
+            v-if="!readonly && row.status === 1"
             @click="handleAction(row, 'complete')"
             v-hasPermi="['pms:imp-configuration:update']"
             >完成调试</el-button
@@ -66,12 +66,12 @@
           <el-button
             link
             type="warning"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
             v-hasPermi="['pms:imp-configuration:update']"
             >标记异常</el-button
           >
-          <el-button v-if="row.status !== 2" link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-configuration:delete']"
+          <el-button v-if="!readonly && row.status !== 2" link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-configuration:delete']"
             >删除</el-button
           >
         </template>
@@ -156,7 +156,7 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngConfiguration' })
-const props = defineProps<{ projectId?: number }>()
+const props = defineProps<{ projectId?: number; /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
@@ -168,7 +168,7 @@ const formRef = ref()
 type ConfigurationForm = Omit<ConfigurationVO, 'debugTime'> & { debugTime?: string | number | null }
 const form = ref<ConfigurationForm>({ projectId: 0, status: 0 })
 const editableRecord = (row: Pick<ConfigurationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
-const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-configuration:create']))
+const readOnly = computed(() => !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-configuration:create'])))
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },

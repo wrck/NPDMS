@@ -1,15 +1,13 @@
 package cn.iocoder.yudao.module.pms.engineering.service;
 
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
-import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectCodeQueryApi;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectScopedCodes;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 工程实施域操作记录编码生成器。
@@ -49,36 +47,22 @@ public class EngineeringRecordCodeGenerator {
     private ProjectCodeQueryApi projectCodeQueryApi;
 
     /**
-     * 生成项目内唯一的下一条记录编码。
-     *
-     * @param projectId       项目编号
-     * @param typeCode        记录类型码
-     * @param mapper          记录表 Mapper
-     * @param projectIdGetter 项目编号字段
-     * @param codeGetter      编码字段
-     * @param <T>             记录 DO 类型
-     * @return "{项目编码}-{类型码}-###" 编码
-     */
-    public <T> String next(Long projectId, String typeCode, BaseMapperX<T> mapper,
-                           SFunction<T, Long> projectIdGetter, SFunction<T, String> codeGetter) {
-        String projectCode = projectCodeQueryApi.getProjectCode(projectId);
-        List<String> existing = mapper.selectList(new LambdaQueryWrapperX<T>().eq(projectIdGetter, projectId))
-                .stream().map(codeGetter).filter(Objects::nonNull).toList();
-        return ProjectScopedCodes.next(projectCode, typeCode, existing);
-    }
-
-    /**
      * 生成下一条记录编码，并把调用方已确认占用的编码并入既有全集。
      * <p>
-     * 软删除行与并发候选在唯一键 (project_id, code) 上仍然生效但本查询不可见，
-     * 插入冲突时调用方把失败候选作为 exclude 传入，序号让位到下一条。
+     * 唯一键 (project_id, code) 不含 deleted 列，软删除行仍占用编码但常规查询不可见；
+     * 推号必须基于含软删除在内的全部既有编码，插入冲突时调用方把失败候选作为 exclude 传入让位。
+     *
+     * @param projectId    项目编号
+     * @param typeCode     记录类型码
+     * @param mapper       记录表 Mapper
+     * @param excludeCodes 已确认占用的编码（并发冲突让位）
+     * @param <T>          记录 DO 类型
+     * @return "{项目编码}-{类型码}-###" 编码
      */
-    public <T> String next(Long projectId, String typeCode, BaseMapperX<T> mapper,
-                           SFunction<T, Long> projectIdGetter, SFunction<T, String> codeGetter,
+    public <T> String next(Long projectId, String typeCode, ProjectScopedCodeMapper<T> mapper,
                            String... excludeCodes) {
         String projectCode = projectCodeQueryApi.getProjectCode(projectId);
-        List<String> existing = new java.util.ArrayList<>(mapper.selectList(new LambdaQueryWrapperX<T>().eq(projectIdGetter, projectId))
-                .stream().map(codeGetter).filter(Objects::nonNull).toList());
+        List<String> existing = new ArrayList<>(mapper.selectRecordCodesIncludeDeleted(projectId));
         for (String exclude : excludeCodes) {
             if (exclude != null && !exclude.isBlank()) {
                 existing.add(exclude);

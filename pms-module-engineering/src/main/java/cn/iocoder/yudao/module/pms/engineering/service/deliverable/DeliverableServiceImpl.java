@@ -114,7 +114,9 @@ public class DeliverableServiceImpl implements DeliverableService {
                 ? EngStatusEnum.DELIVERABLE_VOID : EngStatusEnum.DELIVERABLE_ARCHIVED);
         item.setArchivedTime(material.createTime());
         item.setSourceType(solution || training ? material.businessObjectType() : material.ownerModule());
-        item.setSourceId(material.businessObjectId() != null
+        // businessObjectId 仅实体式登记（solution/training/ACC 报告）为纯数字；
+        // 模板冻结链登记的是复合身份串（type|objectId|resultId|formedAt），不可解析为 Long
+        item.setSourceId(material.businessObjectId() != null && material.businessObjectId().matches("\\d+")
                 ? Long.valueOf(material.businessObjectId()) : material.entityId());
         item.setRemark(PlatformDeliveryMaterialApi.STATUS_WITHDRAWN.equals(material.status())
                 ? "材料已撤回" : null);

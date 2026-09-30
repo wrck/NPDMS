@@ -20,7 +20,7 @@ class ConfigurationLocalLifecycleTest {
     private ConfigurationDO row;
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "configurationMapper", mapper);
-        doReturn("PROJ-CFG-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        doReturn("PROJ-CFG-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new ConfigurationDO(); row.setId(1L); row.setProjectId(7L); row.setCode("CFG-TEST"); row.setStatus(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);

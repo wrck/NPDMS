@@ -477,7 +477,7 @@ public class ArrivalAcceptanceCommandService {
         ArrivalAcceptanceCommands.QuantityDraftLine quantity =
                 (ArrivalAcceptanceCommands.QuantityDraftLine) requested;
         return new ArrivalAcceptanceCommands.QuantityDraftLine(copied.getId(), copied.getVersion(),
-                quantity.orderLineId(), quantity.productCode(), quantity.modelCode(),
+                quantity.orderLineId(), quantity.productCode(), quantity.productModel(),
                 quantity.acceptedQuantity(), quantity.unitCode());
     }
 
@@ -634,7 +634,7 @@ public class ArrivalAcceptanceCommandService {
         java.math.BigDecimal remaining = quantity.quantity().subtract(supplement.quantity());
         ArrivalDifferenceScopeCodec.Scope remainingScope = remaining.signum() == 0 ? null
                 : new ArrivalDifferenceScopeCodec.QuantityScope(quantity.orderLineId(), quantity.productCode(),
-                        quantity.modelCode(), remaining, quantity.unitCode());
+                        quantity.productModel(), remaining, quantity.unitCode());
         return new SupplementOutcome(appended, remainingScope);
     }
 
@@ -688,7 +688,7 @@ public class ArrivalAcceptanceCommandService {
             DeliveryScopePort.AssignedLine fact = frozen.lines().stream()
                     .filter(value -> value.orderLineId().equals(quantity.orderLineId())
                             && Objects.equals(value.productCode(), quantity.productCode())
-                            && Objects.equals(value.modelCode(), quantity.modelCode())
+                            && Objects.equals(value.productModel(), quantity.productModel())
                             && value.unitCode().equals(quantity.unitCode()) && value.serialNumbers().isEmpty())
                     .findFirst().orElseThrow(() -> new IllegalArgumentException("quantity is outside frozen scope"));
             if (quantity.acceptedQuantity().compareTo(fact.assignedQuantity()) > 0) {
@@ -697,7 +697,7 @@ public class ArrivalAcceptanceCommandService {
             line.setScopeType("ORDER_MODEL_QUANTITY");
             line.setOrderLineId(quantity.orderLineId());
             line.setProductCode(quantity.productCode());
-            line.setModelCode(quantity.modelCode());
+            line.setProductModel(quantity.productModel());
             line.setExpectedQuantity(fact.assignedQuantity());
             line.setAcceptedQuantity(quantity.acceptedQuantity());
             line.setUnit(quantity.unitCode());
@@ -873,7 +873,7 @@ public class ArrivalAcceptanceCommandService {
             if (!"ORDER_MODEL_QUANTITY".equals(line.getScopeType())
                     || !quantity.orderLineId().equals(line.getOrderLineId())
                     || !Objects.equals(quantity.productCode(), line.getProductCode())
-                    || !Objects.equals(quantity.modelCode(), line.getModelCode())
+                    || !Objects.equals(quantity.productModel(), line.getProductModel())
                     || !quantity.unitCode().equals(line.getUnit())
                     || quantity.quantity().compareTo(line.getExpectedQuantity()) > 0) {
                 throw new IllegalArgumentException("difference quantity is outside line");
@@ -938,7 +938,7 @@ public class ArrivalAcceptanceCommandService {
                     && "ORDER_MODEL_QUANTITY".equals(line.getScopeType())
                     && quantity.orderLineId().equals(line.getOrderLineId())
                     && Objects.equals(quantity.productCode(), line.getProductCode())
-                    && Objects.equals(quantity.modelCode(), line.getModelCode())
+                    && Objects.equals(quantity.productModel(), line.getProductModel())
                     && quantity.unitCode().equals(line.getUnit())) {
                 covered = covered.add(quantity.quantity());
             }
@@ -963,7 +963,7 @@ public class ArrivalAcceptanceCommandService {
                                                 ArrivalDifferenceScopeCodec.QuantityScope right) {
         return left.orderLineId().equals(right.orderLineId())
                 && Objects.equals(left.productCode(), right.productCode())
-                && Objects.equals(left.modelCode(), right.modelCode())
+                && Objects.equals(left.productModel(), right.productModel())
                 && left.unitCode().equals(right.unitCode());
     }
 
@@ -986,7 +986,7 @@ public class ArrivalAcceptanceCommandService {
         return "ORDER_MODEL_QUANTITY".equals(line.getScopeType())
                 && quantity.orderLineId().equals(line.getOrderLineId())
                 && Objects.equals(quantity.productCode(), line.getProductCode())
-                && Objects.equals(quantity.modelCode(), line.getModelCode())
+                && Objects.equals(quantity.productModel(), line.getProductModel())
                 && quantity.unitCode().equals(line.getUnit());
     }
 

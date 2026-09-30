@@ -45,8 +45,7 @@ public class ResourceReadyServiceImpl implements ResourceReadyService {
         // 转换并写入，初始状态为未就绪；编码由系统按项目编码自动生成
         ResourceReadyDO entity = BeanUtils.toBean(createReqVO, ResourceReadyDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.RESOURCE, resourceReadyMapper,
-                ResourceReadyDO::getProjectId, ResourceReadyDO::getCode));
+                EngineeringRecordCodeGenerator.RESOURCE, resourceReadyMapper));
         entity.setReadyStatus(EngStatusEnum.RESOURCE_NOT_READY);
         resourceReadyMapper.insert(entity);
         return entity.getId();

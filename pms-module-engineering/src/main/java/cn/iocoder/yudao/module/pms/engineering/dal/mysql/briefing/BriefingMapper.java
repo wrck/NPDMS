@@ -1,14 +1,14 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.BriefingDO;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface BriefingMapper extends BaseMapperX<BriefingDO> {
+public interface BriefingMapper extends ProjectScopedCodeMapper<BriefingDO> {
 
     default PageResult<BriefingDO> selectPage(BriefingPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<BriefingDO>()

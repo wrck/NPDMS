@@ -9,10 +9,10 @@
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" :disabled="!canWrite">
       <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
-        title="默认按工勘登记的项目结束日期锁定结束并倒排开始；可切换计算口径手工填写起止。自然日包含首尾两天；此处不会回写项目结束日期。" />
+        title="默认按工期结束日期锁定结束并倒排开始（初始取工勘要求日期，切换起止日期口径后可修改结束日期再倒排）。自然日包含首尾两天；此处不会回写项目结束日期。" />
       <el-form-item v-if="project.projectEndDate" label="计算口径">
         <el-radio-group v-model="surveyEntryMode" @change="onSurveyEntryModeChange">
-          <el-radio-button value="SURVEY_BACKWARD">按工勘倒排</el-radio-button>
+          <el-radio-button value="SURVEY_BACKWARD">按工期倒排</el-radio-button>
           <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
           <el-radio-button value="DURATION_FROM_START">起点 + 天数</el-radio-button>
         </el-radio-group>
@@ -24,8 +24,8 @@
         </el-radio-group>
       </el-form-item>
       <div v-if="project.projectEndDate" class="date-grid">
-        <el-form-item v-if="surveyEntryMode === 'SURVEY_BACKWARD'" label="工勘结束日期">
-          <el-input :model-value="project.projectEndDate" readonly />
+        <el-form-item v-if="surveyEntryMode === 'SURVEY_BACKWARD'" label="工期结束日期">
+          <el-input :model-value="form.endDate || project.projectEndDate" readonly />
         </el-form-item>
         <template v-if="surveyEntryMode === 'SURVEY_BACKWARD'">
           <el-form-item label="自然日天数" prop="durationDays">
@@ -177,7 +177,7 @@ const plan = ref<ConstructionPlanVO>()
 const draft = ref<ConstructionPlanChangeVO>()
 const original = ref<FormModel>()
 type SurveyEntryMode = 'SURVEY_BACKWARD' | 'DATE_RANGE' | 'DURATION_FROM_START'
-// 登记工勘结束日期时的录入口径：默认保留结束锁定+天数倒排，另放开两种已批准口径手工填写
+// 有工勘结束日期时的录入口径：默认保留结束锁定+天数倒排（锚点为当前工期结束日期），另放开两种已批准口径手工填写
 const surveyEntryMode = ref<SurveyEntryMode>('SURVEY_BACKWARD')
 const title = computed(() =>
   mode.value === 'INITIAL'
@@ -208,8 +208,10 @@ watch(
     if (surveyEntryMode.value !== 'SURVEY_BACKWARD') return
     // Reuse the existing date-range revision and approval workflow after calculating its interval.
     form.calculationBasis = 'DATE_RANGE'
-    form.endDate = props.project.projectEndDate
-    form.startDate = backwardDuration(props.project.projectEndDate, form.durationDays)
+    // 倒排锚点取当前工期结束日期：变更草稿或用户在起止口径改过的结束日期保持不变，未设置时才回退工勘要求日期。
+    const anchor = form.endDate || props.project.projectEndDate
+    form.endDate = anchor
+    form.startDate = backwardDuration(anchor, form.durationDays)
   },
   { flush: 'sync' }
 )

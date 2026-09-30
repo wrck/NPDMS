@@ -28,7 +28,7 @@ import java.util.*;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 
-/** Independent SOL commands; the existing ordinary-review service and its routes remain intact. */
+/** Independent SOL commands; the single submit entry starts one BPM flow whose branch gateway routes by the frozen review level. */
 @Service @RequiredArgsConstructor
 public class SolutionTieredReviewService {
     private final SolutionMapper solutions;
@@ -45,8 +45,7 @@ public class SolutionTieredReviewService {
     public record Start(@jakarta.validation.constraints.NotNull Long projectId,
                         @jakarta.validation.constraints.NotNull Long solutionId,
                         @jakarta.validation.constraints.NotNull Integer expectedVersion,
-                        @jakarta.validation.constraints.NotBlank String processDefinitionId,
-                        @jakarta.validation.constraints.NotEmpty Map<String, @jakarta.validation.constraints.NotNull Long> candidates) { }
+                        @jakarta.validation.constraints.NotBlank String processDefinitionId) { }
     public record Selection(@jakarta.validation.constraints.NotNull Long projectId,
                             @jakarta.validation.constraints.NotNull Long solutionId) { }
 
@@ -77,16 +76,15 @@ public class SolutionTieredReviewService {
         if (existing != null) {
             if (Objects.equals(existing.getSubmittedBy(), actor) && "RUNNING".equals(existing.getStatus())
                     && Objects.equals(existing.getRequestVersion(), command.expectedVersion() == null ? null : command.expectedVersion().longValue())
-                    && Objects.equals(existing.getProcessDefinitionId(), command.processDefinitionId())
-                    && Objects.equals(JsonUtils.parseTree(existing.getCandidatesJson()), JsonUtils.parseTree(JsonUtils.toJsonString(command.candidates())))) return existing;
+                    && Objects.equals(existing.getProcessDefinitionId(), command.processDefinitionId())) return existing;
             throw new IllegalArgumentException("此方案已提交分级审批；请查看结果或从终态创建新版本");
         }
         Long expectedVersion = command.expectedVersion() == null ? null : command.expectedVersion().longValue();
         if (!Objects.equals(solution.getVersion(), expectedVersion) || !Set.of(0, 1, 2).contains(solution.getStatus()))
-            throw new IllegalArgumentException("只能提交当前未批准的重大方案版本");
+            throw new IllegalArgumentException("只能提交当前未审批通过的方案版本");
         Integer previousLevel = solution.getReviewLevel();
-        policies.freeze(solution, 1);
-        if (!Integer.valueOf(1).equals(solution.getReviewLevel())) throw new IllegalArgumentException("本方案不适用分级审核");
+        // 唯一提交入口：冻结本次审核判定（普通或重大），流程内网关按该级别分支，界面与提交动作不再区分级别
+        policies.freeze(solution);
         if (solution.getStatus() == 2 && !Objects.equals(previousLevel, solution.getReviewLevel())) update(solution);
         // Move through the same submitted/reviewing lifecycle; never reset a terminal solution to a draft.
         if (solution.getStatus() == 0) {
@@ -100,18 +98,19 @@ public class SolutionTieredReviewService {
             solution.setStatus(2); update(solution);
         }
         String businessKey = "SOL_REVIEW:" + TenantContextHolder.getRequiredTenantId() + ":" + solution.getId();
+        var started = bpm.start(new SolutionReviewBpmApi.Start(TenantContextHolder.getRequiredTenantId(), actor,
+                solution.getProjectId(), businessKey, command.processDefinitionId(), solution.getReviewLevel()));
+        // 候选人由 BPM 按节点职责解析（项目服务经理、工程管理部复审授权持有人），落库为审批路由审计
         var review = new SolutionReviewDO();
         review.setProjectId(solution.getProjectId()); review.setSolutionId(solution.getId());
         review.setSourceVersion(solution.getVersion()); review.setBusinessKey(businessKey);
         review.setRequestVersion(command.expectedVersion() == null ? null : command.expectedVersion().longValue());
         review.setProcessDefinitionId(command.processDefinitionId());
-        review.setCandidatesJson(JsonUtils.toJsonString(command.candidates()));
+        review.setProcessInstanceId(started.instanceId());
+        review.setCandidatesJson(JsonUtils.toJsonString(started.candidates()));
         review.setStatus("RUNNING"); review.setVersion(0); review.setSubmittedBy(actor); review.setSubmittedAt(LocalDateTime.now());
         reviews.insert(review);
-        var started = bpm.start(new SolutionReviewBpmApi.Start(TenantContextHolder.getRequiredTenantId(), actor,
-                solution.getProjectId(), businessKey, command.processDefinitionId(), command.candidates()));
-        review.setProcessInstanceId(started.instanceId());
-        if (!Objects.equals(started.definitionId(), command.processDefinitionId()) || reviews.updateById(review) != 1)
+        if (!Objects.equals(started.definitionId(), command.processDefinitionId()))
             throw new IllegalStateException("审批定义或方案审批版本已变化");
         changed(solution, actor);
         return review;

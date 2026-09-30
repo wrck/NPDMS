@@ -77,13 +77,15 @@ public class DeliveryScopeLineFactService implements DeliveryScopeLineFactApi {
             if (line.scopeDetailId() != null) {
                 DeliveryScopeDetailDO detail = details.get(line.scopeDetailId());
                 DeliveryScopeDO scope = scopes.get(detail.getDeliveryScopeId());
+                String productCode = nonblank(detail.getProductCode()) ? detail.getProductCode()
+                        : scope.getProductCode();
                 return new DeliveryScopeLineFact(detail.getId(), scope.getId(), scope.getOrderNo(),
-                        scope.getLineNo(), scope.getItemCode(), detail.getProductName(), detail.getProductCode(),
+                        scope.getLineNo(), productCode, detail.getProductName(),
                         detail.getDeviceTypeCode(), detail.getDeviceTypeName(), detail.getAllocatedQty());
             }
             DeliveryScopeDO scope = scopes.get(line.scopeId());
             return new DeliveryScopeLineFact(null, scope.getId(), scope.getOrderNo(), scope.getLineNo(),
-                    scope.getItemCode(), scope.getItemDesc(), null, null, null, scope.getAllocatedQty());
+                    scope.getProductCode(), scope.getProductDesc(), null, null, scope.getAllocatedQty());
         }).toList();
     }
 
@@ -92,6 +94,10 @@ public class DeliveryScopeLineFactService implements DeliveryScopeLineFactApi {
         return (line.scopeDetailId() == null) == (line.scopeId() == null)
                 || line.scopeDetailId() != null && line.scopeDetailId() <= 0
                 || line.scopeId() != null && line.scopeId() <= 0;
+    }
+
+    private static boolean nonblank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String refKey(DeliveryScopeLineRef line) {

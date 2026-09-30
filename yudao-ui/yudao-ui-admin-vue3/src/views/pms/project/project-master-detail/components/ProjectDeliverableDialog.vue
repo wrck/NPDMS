@@ -91,7 +91,7 @@ const uploadKey = (referenceKey: string) => ({
   purposeCode: detail.value?.code ?? '', referenceKey
 })
 const clearAttempt = () => { attempt = undefined }
-const typeLabel = (type: { resultType: string }) => ({ SURVEY_CONFIRMED: '工勘确认成果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析成果', REPORT_EFFECTIVE: '生效验收报告' }[type.resultType] || type.resultType)
+const typeLabel = (type: { resultType: string }) => ({ SURVEY_CONFIRMED: '工勘确认成果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析成果', IMPLEMENTATION_PLAN_APPROVED: '批准方案成果', REPORT_EFFECTIVE: '生效验收报告' }[type.resultType] || type.resultType)
 const statusLabel = (status: string) => ({ ACCEPTED: '已满足', CONFIRMED: '已确认' }[status] || '待满足')
 const sourceLabel = (sourceType: string) =>
   ({ UPLOAD: '文件提交', BUSINESS_DOCUMENT: '业务文档自动归集', BUSINESS_RESULT: '业务成果关联', AUTO_PROJECTION: '业务单据投影' }[sourceType] || sourceType)

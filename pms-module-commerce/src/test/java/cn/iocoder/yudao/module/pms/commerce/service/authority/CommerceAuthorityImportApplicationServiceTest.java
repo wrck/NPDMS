@@ -126,7 +126,7 @@ class CommerceAuthorityImportApplicationServiceTest {
                 null, null, null, null, CommerceSourceLifecycleStatus.ACTIVE, sourceTime);
         CommerceOrderLineFact line = new CommerceOrderLineFact(
                 "LINE-A", null, "2", "ORDER-1", "LINE-AVAILABLE", "ITEM-SECRET", "设备",
-                "F-COM001-PRODUCT-A", null, new BigDecimal("50"), new BigDecimal(openQuantity),
+                "F-COM001-PRODUCT-A", new BigDecimal("50"), new BigDecimal(openQuantity),
                 BigDecimal.ZERO, "SET", 0, "CONFIRMED", CommerceSourceLifecycleStatus.ACTIVE, sourceTime);
         return new CommerceAuthorityBatchCommand(tenantId, eventId, "batch-1", "ERP", "wm-1",
                 List.of(), List.of(order), List.of(line), List.of(), sourceTime, "corr-1");

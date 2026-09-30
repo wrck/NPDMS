@@ -84,8 +84,7 @@ public class BriefingServiceImpl implements BriefingService {
         // 2. 转换并写入，初始状态为草稿；编号由系统按项目编码自动生成
         BriefingDO entity = BeanUtils.toBean(createReqVO, BriefingDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.BRIEFING, briefingMapper,
-                BriefingDO::getProjectId, BriefingDO::getCode));
+                EngineeringRecordCodeGenerator.BRIEFING, briefingMapper));
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
             entity.setVersion(0L);

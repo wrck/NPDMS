@@ -60,8 +60,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         // 插入；编码由系统按项目编码自动生成
         CompletionCertificateDO entity = BeanUtils.toBean(createReqVO, CompletionCertificateDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                AcceptanceRecordCodeGenerator.COMPLETION_CERTIFICATE, completionCertificateMapper,
-                CompletionCertificateDO::getProjectId, CompletionCertificateDO::getCode));
+                AcceptanceRecordCodeGenerator.COMPLETION_CERTIFICATE, completionCertificateMapper));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }

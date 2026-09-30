@@ -82,8 +82,7 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         // 插入；编码由系统按项目编码自动生成
         AcceptanceDO entity = BeanUtils.toBean(createReqVO, AcceptanceDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                AcceptanceRecordCodeGenerator.ACCEPTANCE, acceptanceMapper,
-                AcceptanceDO::getProjectId, AcceptanceDO::getCode));
+                AcceptanceRecordCodeGenerator.ACCEPTANCE, acceptanceMapper));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }

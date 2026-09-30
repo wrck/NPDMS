@@ -31,8 +31,8 @@ public class DeliveryScopeDO extends BaseBusinessEntity {
     private String orderType;
     private String orderNo;
     private String lineNo;
-    private String itemCode;
-    private String itemDesc;
+    private String productCode;
+    private String productDesc;
     private BigDecimal allocatedQty;
     private String scopeStatus;
     private Long allocationVersion;

@@ -42,8 +42,7 @@ public class IssueServiceImpl implements IssueService {
     public Long createIssue(IssueSaveReqVO createReqVO) {
         IssueDO entity = BeanUtils.toBean(createReqVO, IssueDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.ISSUE, issueMapper,
-                IssueDO::getProjectId, IssueDO::getCode));
+                EngineeringRecordCodeGenerator.ISSUE, issueMapper));
         entity.setStatus(EngStatusEnum.ISSUE_OPEN);
         issueMapper.insert(entity);
         return entity.getId();

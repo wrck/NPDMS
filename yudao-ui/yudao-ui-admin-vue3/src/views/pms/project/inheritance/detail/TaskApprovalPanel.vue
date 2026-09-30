@@ -17,7 +17,8 @@ import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { executeTaskAction, type TaskApprovalSubmission, type TaskWorkbench } from '@/api/pms/project/task-workbench'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import TaskApprovalForm from './TaskApprovalForm.vue'
-const props = defineProps<{ workbench: TaskWorkbench }>()
+const props = defineProps<{ workbench: TaskWorkbench
+  /** 所属阶段未进入（准入未满足）：审批状态照常展示，办理表单（任务办理操作）不渲染 */ readonly?: boolean }>()
 const emit = defineEmits<{ changed: [] }>()
 const router = useRouter()
 const formRef = ref<InstanceType<typeof TaskApprovalForm>>()
@@ -26,6 +27,7 @@ const intent = createSubmissionIdempotencyState()
 const formKey = computed(() => JSON.stringify([props.workbench.task.taskId, props.workbench.executionContractId,
   props.workbench.contractVersion, props.workbench.approval?.executionId, props.workbench.approval?.current.processInstanceId]))
 const action = computed(() => {
+  if (props.readonly) return undefined
   const w = props.workbench, fact = w.approval?.current
   if (w.bindingType !== 'APPROVAL' || w.recoverableError || !fact || fact.outcome === 'UNKNOWN' || w.task.version == null) return undefined
   if (fact.status === 'NOT_STARTED' && w.allowedActions.includes('START')) return 'START'

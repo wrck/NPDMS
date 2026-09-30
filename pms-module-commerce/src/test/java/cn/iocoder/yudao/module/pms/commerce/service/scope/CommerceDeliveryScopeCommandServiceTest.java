@@ -470,9 +470,8 @@ class CommerceDeliveryScopeCommandServiceTest {
         line.setOrderType("NORMAL");
         line.setOrderNo("SO-1");
         line.setLineNo("10");
-        line.setItemCode("ITEM-1");
-        line.setItemDesc("设备");
         line.setProductCode("ERP-PRODUCT-1");
+        line.setProductDesc("设备");
         line.setOrderQty(new BigDecimal("100"));
         line.setUnitCode("EA");
         line.setUnitScale(0);

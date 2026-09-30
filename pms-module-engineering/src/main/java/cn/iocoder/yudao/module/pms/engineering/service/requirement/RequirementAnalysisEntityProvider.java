@@ -186,7 +186,6 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         }
         var frozen = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), ref.revisionId()));
         record("REQUIREMENT_ANALYSIS_FREEZE", frozen, actor);
-        events.formed(frozen.getProjectId(), "RequirementAnalysis", frozen.getId(), actor.userId(), actor.correlationId());
         return frozen.revisionMetadata();
     }
 
@@ -245,6 +244,8 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
                 revision.getVersion(), actor.userId().toString())) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         var active = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revision.getId()));
         record("REQUIREMENT_ANALYSIS_ACTIVATE", active, actor);
+        // 形成边界在生效标记落库之后记录：归集消费者以形成事件的观测快照判定现行性，冻结未生效的快照会死锁归集。
+        events.formed(active.getProjectId(), "RequirementAnalysis", active.getId(), actor.userId(), actor.correlationId());
         events.changed(active.getProjectId(), "RequirementAnalysis", active.getId(), actor.userId(), actor.correlationId());
         return active.revisionMetadata();
     }

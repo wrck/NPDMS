@@ -46,7 +46,7 @@ class SolutionTieredReviewServiceTest {
     SolutionReviewDO stored;
     private final SolutionTieredReviewService.Selection selection = new SolutionTieredReviewService.Selection(9L, 42L);
     private SolutionTieredReviewService.Start command(int version) {
-        return new SolutionTieredReviewService.Start(9L,42L,version,"definition-1", Map.of("manager",8L,"engineering",10L));
+        return new SolutionTieredReviewService.Start(9L,42L,version,"definition-1");
     }
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
@@ -64,7 +64,8 @@ class SolutionTieredReviewServiceTest {
         when(reviews.updateById(any(SolutionReviewDO.class))).thenReturn(1);
         when(reviews.selectById(100L)).thenAnswer(call -> stored);
         when(solutions.updateById(any(SolutionDO.class))).thenAnswer(call -> { solution.setVersion(solution.getVersion()+1); return 1; });
-        when(bpm.start(any())).thenReturn(new SolutionReviewBpmApi.Started("instance-1","definition-1"));
+        when(bpm.start(any())).thenReturn(new SolutionReviewBpmApi.Started("instance-1","definition-1",
+                Map.of("serviceManagerReview",8L,"engineeringManagementReview",10L)));
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
     private void result(String status) {
@@ -75,6 +76,8 @@ class SolutionTieredReviewServiceTest {
     @Test void freezesVersionAndIdenticalSubmissionReplaysWithoutSecondProcess() {
         var request = command(0); service.start(request);
         assertEquals(2, solution.getStatus()); assertEquals(2, stored.getSourceVersion()); assertEquals(0, stored.getRequestVersion());
+        // BPM 解析出的审批路由（节点→审批人）落库为审计，不再来自提交人手工指定
+        assertTrue(stored.getCandidatesJson().contains("serviceManagerReview"));
         assertSame(stored, service.start(request)); verify(bpm,times(1)).start(any());
         assertThrows(IllegalArgumentException.class, () -> service.start(command(9)));
     }
@@ -129,5 +132,19 @@ class SolutionTieredReviewServiceTest {
         assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
         when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
         assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
+    @Test void ordinarySolutionsTakeTheSameSubmitEntryAndCarryFrozenLevel() {
+        solution.setReviewLevel(0);
+        service.start(command(0));
+        assertEquals(2, solution.getStatus());
+        var started = ArgumentCaptor.forClass(SolutionReviewBpmApi.Start.class);
+        verify(bpm).start(started.capture());
+        assertEquals(0, started.getValue().reviewLevel());
+    }
+    @Test void missingPolicyDecisionBlocksSubmitBeforeProcessStart() {
+        doThrow(new IllegalArgumentException("项目审核判定依据缺失或规则冲突，请由工程管理部补齐来源及规则")).when(policies).freeze(solution);
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
+        verify(bpm, never()).start(any());
+        verify(reviews, never()).insert(any(SolutionReviewDO.class));
     }
 }

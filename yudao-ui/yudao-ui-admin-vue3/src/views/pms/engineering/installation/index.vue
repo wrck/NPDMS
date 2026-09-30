@@ -24,7 +24,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-installation:create']"
+        <el-button v-if="!readonly" type="primary" @click="openForm()" v-hasPermi="['pms:imp-installation:create']"
           ><Icon icon="ep:plus" />新增安装</el-button
         >
       </el-form-item>
@@ -63,12 +63,12 @@
             type="primary"
             @click="openForm(row)"
             v-hasPermi="['pms:imp-installation:query']"
-            >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
+            >{{ editableRecord(row) && !readonly ? '编辑' : '查看' }}</el-button
           >
           <el-button
             link
             type="success"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'start')"
             v-hasPermi="['pms:imp-installation:update']"
             >开始安装</el-button
@@ -76,7 +76,7 @@
           <el-button
             link
             type="success"
-            v-if="row.status === 1"
+            v-if="!readonly && row.status === 1"
             @click="handleAction(row, 'complete')"
             v-hasPermi="['pms:imp-installation:update']"
             >完成安装</el-button
@@ -84,7 +84,7 @@
           <el-button
             link
             type="warning"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
             v-hasPermi="['pms:imp-installation:update']"
             >标记异常</el-button
@@ -92,7 +92,7 @@
           <el-button
             link
             type="danger"
-            v-if="row.status !== 2"
+            v-if="!readonly && row.status !== 2"
             @click="remove(row)"
             v-hasPermi="['pms:imp-installation:delete']"
             >删除</el-button
@@ -196,7 +196,7 @@ import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import { checkPermi } from '@/utils/permission'
 
 defineOptions({ name: 'PmsEngInstallation' })
-const props = defineProps<{ projectId?: number }>()
+const props = defineProps<{ projectId?: number; /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
 const message = useMessage()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -210,7 +210,7 @@ const formRef = ref()
 type InstallationForm = Omit<InstallationVO, 'installTime'> & { installTime?: string | number | null }
 const form = ref<InstallationForm>({ projectId: 0, status: 0 })
 const editableRecord = (row: Pick<InstallationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-installation:update'])
-const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-installation:create']))
+const readOnly = computed(() => !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-installation:create'])))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   installLocation: [{ required: true, message: '请填写安装位置（站点）' }],

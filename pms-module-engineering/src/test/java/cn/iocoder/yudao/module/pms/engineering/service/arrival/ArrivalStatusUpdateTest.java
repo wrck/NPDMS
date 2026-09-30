@@ -22,7 +22,7 @@ class ArrivalStatusUpdateTest {
 
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "arrivalMapper", mapper);
-        doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);

@@ -601,7 +601,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         row.setProjectScopeVersion(7L);
         row.setDeliveryScopeVersion(8L);
         row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20,\"assignedQuantity\":1," +
-                "\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\",\"modelCode\":\"MODEL-1\"," +
+                "\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\",\"productModel\":\"MODEL-1\"," +
                 "\"serialNumbers\":[\"SN-1\"]}],\"devices\":[{\"deviceId\":11," +
                 "\"serialNumber\":\"SN-1\",\"currentProjectId\":100," +
                 "\"projectAssignmentVersion\":9}]}");
@@ -611,7 +611,7 @@ class ArrivalAcceptanceApplicationServiceTest {
     private static ArrivalAcceptanceDO draftTwoDevices() {
         ArrivalAcceptanceDO row = draft();
         row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20,\"assignedQuantity\":2," +
-                "\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\",\"modelCode\":\"MODEL-1\"," +
+                "\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\",\"productModel\":\"MODEL-1\"," +
                 "\"serialNumbers\":[\"SN-1\",\"SN-2\"]}],\"devices\":[{\"deviceId\":11," +
                 "\"serialNumber\":\"SN-1\",\"currentProjectId\":100,\"projectAssignmentVersion\":9}," +
                 "{\"deviceId\":12,\"serialNumber\":\"SN-2\",\"currentProjectId\":100," +
@@ -623,7 +623,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         ArrivalAcceptanceDO row = draft();
         row.setExpectedScopeSnapshot("{\"deliveryLines\":[{\"orderLineId\":20," +
                 "\"assignedQuantity\":5,\"unitCode\":\"台\",\"productCode\":\"PRODUCT-1\"," +
-                "\"modelCode\":\"MODEL-1\",\"serialNumbers\":[]}],\"devices\":[]}");
+                "\"productModel\":\"MODEL-1\",\"serialNumbers\":[]}],\"devices\":[]}");
         return row;
     }
 
@@ -688,7 +688,7 @@ class ArrivalAcceptanceApplicationServiceTest {
         row.setScopeType("ORDER_MODEL_QUANTITY");
         row.setOrderLineId(20L);
         row.setProductCode("PRODUCT-1");
-        row.setModelCode("MODEL-1");
+        row.setProductModel("MODEL-1");
         row.setAcceptedQuantity(quantity);
         row.setUnit("台");
         row.setStatus("ACCEPTED");

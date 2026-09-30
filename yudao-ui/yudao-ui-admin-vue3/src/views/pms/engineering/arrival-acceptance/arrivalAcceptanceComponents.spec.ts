@@ -118,7 +118,7 @@ const quantityDifference = {
     scopeType: 'ORDER_MODEL_QUANTITY' as const,
     orderLineId: 11,
     productCode: 'P-1',
-    modelCode: null,
+    productModel: null,
     quantity: 5,
     unitCode: '台'
   },

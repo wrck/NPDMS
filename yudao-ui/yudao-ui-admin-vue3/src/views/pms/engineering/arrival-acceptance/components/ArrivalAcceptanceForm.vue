@@ -149,7 +149,7 @@ const toDraftLine = (line: ArrivalDetail['currentLines'][number]): ArrivalDraftL
         expectedLineVersion: line.version,
         orderLineId: line.orderLineId!,
         productCode: line.productCode,
-        modelCode: line.modelCode,
+        productModel: line.productModel,
         acceptedQuantity: line.acceptedQuantity || 0,
         unitCode: line.unitCode || ''
       }

@@ -82,8 +82,7 @@ public class TrainingServiceImpl implements TrainingService {
         validateTrainingTypes(createReqVO.getTrainingTypes());
         TrainingDO entity = BeanUtils.toBean(createReqVO, TrainingDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.TRAINING, trainingMapper,
-                TrainingDO::getProjectId, TrainingDO::getCode));
+                EngineeringRecordCodeGenerator.TRAINING, trainingMapper));
         entity.setTrainingTypes(String.join(",", createReqVO.getTrainingTypes()));
         Long trainerUserId = createReqVO.getTrainerUserId() != null
                 ? createReqVO.getTrainerUserId() : SecurityFrameworkUtils.getLoginUserId();

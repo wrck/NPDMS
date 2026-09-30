@@ -433,8 +433,8 @@ public class CommerceDeliveryScopeCommandService {
         scope.setOrderType(line.getOrderType());
         scope.setOrderNo(line.getOrderNo());
         scope.setLineNo(line.getLineNo());
-        scope.setItemCode(line.getItemCode());
-        scope.setItemDesc(line.getItemDesc());
+        scope.setProductCode(line.getProductCode());
+        scope.setProductDesc(line.getProductDesc());
         scope.setAllocatedQty(quantity);
         scope.setScopeStatus("ACTIVE");
         scope.setAllocationVersion(version);

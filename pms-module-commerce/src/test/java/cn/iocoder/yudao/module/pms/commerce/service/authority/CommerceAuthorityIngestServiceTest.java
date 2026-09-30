@@ -257,7 +257,7 @@ class CommerceAuthorityIngestServiceTest {
 
         CommerceOrderLineFact incoming = line("L-1", "V1", "V2", "O-1", "5");
         if (!"DECREASE".equals(scenario)) {
-            incoming = new CommerceOrderLineFact("L-1", "V1", "V2", "O-1", "10", null, null, null, null,
+            incoming = new CommerceOrderLineFact("L-1", "V1", "V2", "O-1", "10", null, null, null,
                     new BigDecimal("RETURN".equals(scenario) ? "-4" : "12"), BigDecimal.ZERO, BigDecimal.ZERO,
                     null, 0, "PENDING_AUTHORITY", "RETURN".equals(scenario)
                     ? CommerceSourceLifecycleStatus.RETURNED : CommerceSourceLifecycleStatus.ACTIVE,
@@ -297,12 +297,12 @@ class CommerceAuthorityIngestServiceTest {
         return new CommerceSalesOrderFact(key, previous, version, "ACME", "ON-1", "NORMAL",
                 "CU-1", "Customer", new BigDecimal("100"), "CNY",
                 CommerceSourceLifecycleStatus.ACTIVE, time(),
-                "01", "源项目名", null, time(), time(), contractNo, executionNo);
+                "01", "源项目名", null, time(), time(), null, contractNo, executionNo);
     }
 
     private CommerceOrderLineFact line(String key, String previous, String version,
                                        String orderKey, String quantity) {
-        return new CommerceOrderLineFact(key, previous, version, orderKey, "10", "ITEM-1", null,
+        return new CommerceOrderLineFact(key, previous, version, orderKey, "10", "ITEM-1",
                 new BigDecimal(quantity), "PCS", CommerceSourceLifecycleStatus.ACTIVE, time());
     }
 
@@ -349,7 +349,7 @@ class CommerceAuthorityIngestServiceTest {
     private SalesOrderLineDO lineRow(Long orderId, String key, String version, String quantity) {
         SalesOrderLineDO row = new SalesOrderLineDO();
         row.setId(301L); row.setTenantId(1L); row.setOrderId(orderId); row.setSourceSystem("ERP");
-        row.setSourceKey(key); row.setSourceVersion(version); row.setLineCode("10"); row.setItemCode("ITEM-1");
+        row.setSourceKey(key); row.setSourceVersion(version); row.setLineCode("10"); row.setProductCode("ITEM-1");
         row.setQuantity(new BigDecimal(quantity)); row.setUnitCode("PCS"); row.setSourceLifecycleStatus("ACTIVE");
         row.setSourceUpdatedAt(time()); row.setVersion(0);
         return row;

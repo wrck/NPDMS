@@ -32,8 +32,8 @@ export const loadSurveyActionContext = async (
   // AST deviceId is not a legacy equipmentId. Carry real product data and SN, never interchange IDs.
   return {
     ...base,
-    materialName: device.productName || '',
-    materialCode: device.productCode || '',
+    productName: device.productName || '',
+    productCode: device.productCode || '',
     specification: device.productModel || '',
     reason: item.reason,
     remark: `${base.remark}；设备SN：${device.sn}`

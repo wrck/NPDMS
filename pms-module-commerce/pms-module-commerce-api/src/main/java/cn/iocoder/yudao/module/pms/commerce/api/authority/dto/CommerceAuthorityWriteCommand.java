@@ -28,8 +28,8 @@ public record CommerceAuthorityWriteCommand(
 
     public record SalesOrderLineSourceRecord(
             String sourceSystem, String sourceRecordKey, String sourceVersion,
-            String orderSourceRecordKey, String lineNo, String itemCode, String itemDescription,
-            String productCode,
+            String orderSourceRecordKey, String lineNo, String productCode, String productDesc,
+            String productModel,
             BigDecimal orderQuantity, BigDecimal openQuantity, BigDecimal deliveredQuantity,
             String unitCode, Integer unitScale, String quantityStatus,
             String status, LocalDateTime sourceUpdatedAt) {

@@ -14,9 +14,10 @@ public interface SolutionReviewBpmApi {
 
     record Node(String key, String name, String responsibility) { }
     record Definition(String id, String key, List<Node> nodes) { }
+    /** Candidates are resolved by BPM from node responsibility (project service manager, engineering review grant), not supplied by the caller. */
     record Start(Long tenantId, Long actorId, Long projectId, String businessKey,
-                 String definitionId, Map<String, Long> candidates) { }
-    record Started(String instanceId, String definitionId) { }
+                 String definitionId, int reviewLevel) { }
+    record Started(String instanceId, String definitionId, Map<String, Long> candidates) { }
     record Review(String nodeKey, Long userId, String decision, String reason, LocalDateTime time) { }
     record Result(String instanceId, String definitionId, String businessKey, String status, List<Review> reviews) { }
 }

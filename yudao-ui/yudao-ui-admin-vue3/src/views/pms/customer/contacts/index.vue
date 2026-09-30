@@ -169,7 +169,8 @@ import ContactHistoryDialog from './ContactHistoryDialog.vue'
 import { getIntDictOptions } from '@/utils/dict'
 
 defineOptions({ name: 'PmsCustomerContactsWorkbench' })
-const props = withDefaults(defineProps<{ projectId?: number; showCustomerFilter?: boolean; showSectionHeader?: boolean }>(), {
+const props = withDefaults(defineProps<{ projectId?: number; showCustomerFilter?: boolean; showSectionHeader?: boolean
+  /** 内嵌于未进入阶段的任务工作区时强制只读：业务写操作禁用，查看照常 */ readonly?: boolean }>(), {
   showCustomerFilter: true,
   showSectionHeader: false
 })
@@ -191,7 +192,7 @@ const contactRowClassName = ({ row }: { row: ContactVO }) =>
 const customerCodes = ref<Record<number, string>>({})
 const customerId = computed(() => props.projectId ? context.value?.project.customerId : query.customerId)
 const customerEnabled = computed(() => context.value?.customerStatus === 'ENABLED')
-const canEdit = computed(() => props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read']))
+const canEdit = computed(() => !props.readonly && (props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read'])))
 const form = ref<ContactVO>({ name: '', status: 0, primaryFlag: false })
 const formRef = ref()
 const historyRef = ref<InstanceType<typeof ContactHistoryDialog>>()

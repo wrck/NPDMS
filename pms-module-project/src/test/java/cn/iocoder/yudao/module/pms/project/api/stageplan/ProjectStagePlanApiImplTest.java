@@ -81,7 +81,8 @@ class ProjectStagePlanApiImplTest {
         // 验收日不直接充当结束，而是与规则建议比对（建议晚于计划验收时间报错）；
         // 未覆盖规则的阶段回退阶段实例既有建议
         first.setSuggestedEndTime(LocalDate.of(2026, 1, 8).atStartOfDay());
-        project.setProjectEndDate(LocalDate.of(2026, 1, 10));
+        // 工期要求锚固定取本版工期结束（end=2026-01-10），不取工勘要求结束日期（此处故意给不同值 01-05）
+        project.setProjectEndDate(LocalDate.of(2026, 1, 5));
         when(rules.selectActiveRules(any())).thenReturn(List.of(
                 rule("A", "DIRECT_SIGN", "DURATION_REQUIRE", null, 0, -14),
                 rule("B", null, "PMS_IMPORTED", null, 0, 0)));
@@ -97,6 +98,14 @@ class ProjectStagePlanApiImplTest {
         project.setProjectEndDate(null);
         when(rules.selectActiveRules(any())).thenReturn(List.of(rule("A", "DIRECT_SIGN", "DURATION_REQUIRE", null, 0, -14)));
         var result = api.calculateSchedule(1L,7L,start,end);
+        assertEquals(LocalDate.of(2025, 12, 27), result.stages().getFirst().planEndTime());
+    }
+    @Test void adviceEarlierThanSuggestedStartDoesNotPrefillInvertedStageStart() {
+        // 建议最迟完成（按工期结束倒排）早于历史建议起始时，计划开始预填为空，不得产出倒挂区间
+        first.setSuggestedStartTime(LocalDate.of(2026, 1, 1).atStartOfDay());
+        when(rules.selectActiveRules(any())).thenReturn(List.of(rule("A", "DIRECT_SIGN", "DURATION_REQUIRE", null, 0, -14)));
+        var result = api.calculateSchedule(1L,7L,start,end);
+        assertNull(result.stages().getFirst().planStartTime());
         assertEquals(LocalDate.of(2025, 12, 27), result.stages().getFirst().planEndTime());
     }
     private cn.iocoder.yudao.module.pms.project.dal.dataobject.projectschedule.StageSuggestionRuleDO rule(

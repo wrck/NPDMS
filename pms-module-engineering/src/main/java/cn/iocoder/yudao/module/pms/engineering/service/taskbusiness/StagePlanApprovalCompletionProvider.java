@@ -127,7 +127,11 @@ public class StagePlanApprovalCompletionProvider implements TaskBusinessObjectPr
         var plan = plans.selectByProjectId(tenant, project);
         if (lock && plan != null) plan = plans.selectForUpdate(
                 new cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanLockQuery(tenant, plan.getId()));
-        var row = mapper.current(new StagePlanCompletionQuery(tenant, project, lock));
+        // 读路径按任务冻结链接的批次 id 解析（对齐 Solution owner 事实），被后续批次顶替的历史链接仍可只读回放；
+        // 锁路径仅当前生效批次可作完成依据（supersededBatchCannotBeReused）
+        var row = lock
+                ? mapper.current(new StagePlanCompletionQuery(tenant, project, null, true))
+                : mapper.byId(new StagePlanCompletionQuery(tenant, project, id, false));
         if (row == null || !Objects.equals(row.getTenantId(), tenant) || !Objects.equals(row.getProjectId(), project)
                 || !Objects.equals(row.getId(), id)) throw unavailable();
         boolean completed = Integer.valueOf(2).equals(row.getStatus()) && row.getEffectiveAt() != null
@@ -140,7 +144,7 @@ public class StagePlanApprovalCompletionProvider implements TaskBusinessObjectPr
     }
     private List<Snapshot> page(Long tenant, Long project, Long after, int size) {
         if (after != null) return List.of();
-        var row = mapper.current(new StagePlanCompletionQuery(tenant, project, false));
+        var row = mapper.current(new StagePlanCompletionQuery(tenant, project, null, false));
         return row == null ? List.of() : List.of(load(tenant, project, row.getId(), false));
     }
 }

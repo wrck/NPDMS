@@ -19,15 +19,16 @@ class CommerceErpSourceContractTest {
                     "event", "batch", source, "watermark", List.of(), List.of(order), List.of(), List.of(), TIME, "correlation"));
         }
     }
-    @Test void doesNotInventProductCodeFromLegacyItemCode() {
-        var line = new CommerceOrderLineFact("L1", null, "1", "O1", "1", "ITEM", "MODEL",
+    @Test void legacyCtorMapsItemIdentityIntoProductCode() {
+        var line = new CommerceOrderLineFact("L1", null, "1", "O1", "1", "ITEM",
                 BigDecimal.ONE, "SET", CommerceSourceLifecycleStatus.ACTIVE, TIME);
-        assertEquals("ITEM", line.itemCode());
-        assertNull(line.productCode());
+        assertEquals("ITEM", line.productCode());
+        assertNull(line.productDesc());
+        assertNull(line.productModel());
     }
     @Test void rejectsQuantityBeyondDeclaredUnitScale() {
         assertThrows(CommerceAuthorityIngestException.class, () -> new CommerceOrderLineFact("L1", null, "1", "O1",
-                "1", "ITEM", "Description", "PRODUCT", "MODEL", new BigDecimal("1.5"), null, null,
+                "1", "ITEM", "Description", "PRODUCT", new BigDecimal("1.5"), null, null,
                 "SET", 0, "CONFIRMED", CommerceSourceLifecycleStatus.ACTIVE, TIME));
     }
 }

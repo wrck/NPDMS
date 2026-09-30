@@ -25,6 +25,11 @@ final class CommerceAuthorityContractRules {
         return value == null ? null : text(value, maxLength, field);
     }
 
+    /** 原样透传字段（如customInfo）：空白归一为null，其余不裁剪、不截断、不校验。 */
+    static String passthrough(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
     static String version(String value, String field) {
         return text(value, 64, field);
     }

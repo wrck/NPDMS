@@ -390,6 +390,7 @@ public class CommerceAuthorityIngestService {
         row.setOrderComment(fact.orderComment());
         row.setOrderCreateTime(fact.orderCreateTime());
         row.setCustomerRequiredTime(fact.customerRequiredTime());
+        row.setCustomInfo(fact.customInfo());
     }
 
     private void copyOrderLine(SalesOrderLineDO row, CommerceAuthorityBatchCommand command,
@@ -404,10 +405,10 @@ public class CommerceAuthorityIngestService {
         row.setOrderType(order.getOrderType());
         row.setOrderNo(order.getOrderNo());
         row.setLineCode(fact.lineCode());
-        row.setItemCode(fact.itemCode());
-        row.setItemDesc(fact.itemDescription());
         row.setProductCode(fact.productCode());
-        row.setModelCode(fact.modelCode());
+        row.setProductModel(fact.productModel());
+        row.setProductDesc(fact.productDesc());
+        row.setCustomInfo(fact.customInfo());
         row.setQuantity(fact.orderQuantity());
         row.setOpenQty(fact.openQuantity());
         row.setDeliveredQty(fact.deliveredQuantity());
@@ -498,7 +499,7 @@ public class CommerceAuthorityIngestService {
             conflict.setOrderType(active.getOrderType());
             conflict.setOrderNo(active.getOrderNo());
             conflict.setLineNo(active.getLineNo());
-            conflict.setItemCode(active.getItemCode());
+            conflict.setProductCode(active.getProductCode());
             conflict.setAllocatedQty(active.getAllocatedQty());
             conflict.setScopeStatus("CONFLICT_FROZEN");
             conflict.setAllocationVersion(active.getAllocationVersion() + 1);

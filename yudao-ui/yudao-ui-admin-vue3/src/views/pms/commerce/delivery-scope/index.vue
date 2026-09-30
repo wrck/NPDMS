@@ -63,7 +63,7 @@
       >
         <el-table-column prop="orderNo" label="订单号" min-width="150" fixed="left" />
         <el-table-column prop="lineNo" label="行号" min-width="80" />
-        <el-table-column prop="itemCode" label="物料编码" min-width="130" />
+        <el-table-column prop="productCode" label="产品编码" min-width="130" />
         <el-table-column prop="allocatedQuantity" label="分配数量" min-width="105" />
         <el-table-column prop="scopeStatus" label="状态" min-width="110" />
         <el-table-column prop="allocationVersion" label="分配版本" min-width="100" />

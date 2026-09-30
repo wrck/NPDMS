@@ -6,16 +6,17 @@
     <el-alert v-if="!error && !context?.recoverableError && context?.bindingType === 'STAGE_NATIVE'" type="info" :closable="false"
       title="本阶段使用原生办理；按阶段自身的完成与门禁规则判定，不挂载外部业务页面。" />
     <BusinessViewHost v-if="context?.businessView" ref="hostRef" :registration="context.businessView"
-      :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode }" :allowed-actions="error || loading ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly"
+      :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode }" :allowed-actions="error || loading || readonly ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly || !!readonly"
       @changed="handleChanged" @dirty-change="emit('dirty-change', $event)" />
     <StageApprovalPanel v-if="context?.bindingType === 'APPROVAL'" ref="approvalRef" :workbench="context"
-      :disabled="!!error || loading" @changed="handleChanged" />
+      :disabled="!!error || loading || !!readonly" @changed="handleChanged" />
     <el-card v-if="context?.bindingType === 'PAGE'" shadow="never" class="stage-page-card">
       <template #header>页面办理</template>
       <p class="stage-page-hint">本阶段通过专用页面办理业务；路由为模板冻结的入口，仅用于跳转，不产生阶段完成事实。</p>
-      <!-- 跳转入口收口到工作区底部吸附操作栏（businessActionBar 协议）；无操作栏的独立渲染原地保留 -->
+      <!-- 跳转入口收口到工作区底部吸附操作栏（businessActionBar 协议）；无操作栏的独立渲染原地保留；
+           未进入阶段不渲染跳转入口（业务操作禁用） -->
       <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-        <el-button type="primary" :disabled="!!error || loading || !context.routePath" @click="openPage">打开页面</el-button>
+        <el-button v-if="!readonly" type="primary" :disabled="!!error || loading || !context.routePath" @click="openPage">打开页面</el-button>
       </Teleport>
       <span v-if="context.routePath" class="stage-page-route">{{ context.routePath }}</span>
     </el-card>
@@ -29,7 +30,8 @@ import StageApprovalPanel from './StageApprovalPanel.vue'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 import { getStageBusinessContext, type StageBusinessContext } from '@/api/pms/project/stage-business'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
-const props = defineProps<{ project: ProjectMasterVO; stageCode: string }>()
+const props = defineProps<{ project: ProjectMasterVO; stageCode: string
+  /** 未进入阶段（准入未满足）：界面照常渲染，业务操作（视图写操作/跳转/发起）入口隐藏 */ readonly?: boolean }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [boolean]; binding: [bindingType?: string] }>()
 const { barTarget } = useBusinessActionBar()
 const context = ref<StageBusinessContext>()

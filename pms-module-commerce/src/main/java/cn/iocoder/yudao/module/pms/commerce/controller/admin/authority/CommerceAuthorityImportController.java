@@ -65,17 +65,17 @@ public class CommerceAuthorityImportController {
                         value.orderNo(), value.orderType(), value.customerCode(), value.customerName(),
                         value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt(),
                         value.salesType(), value.sourceProjectName(), value.orderComment(),
-                        value.orderCreateTime(), value.customerRequiredTime(),
+                        value.orderCreateTime(), value.customerRequiredTime(), value.customInfo(),
                         value.contractNo(), value.executionNo()))
                 .toList();
         List<CommerceOrderLineFact> lines = safe(request.salesOrderLines()).stream()
                 .map(value -> new CommerceOrderLineFact(value.sourceRecordKey(),
                         value.expectedPreviousSourceVersion(), value.sourceVersion(), value.orderSourceRecordKey(),
-                        value.lineNo(), value.itemCode(), value.itemDescription(), value.productCode(),
-                        value.modelCode(), value.orderQuantity(), value.openQuantity(), value.deliveredQuantity(),
+                        value.lineNo(), value.productCode(), value.productDesc(), value.productModel(),
+                        value.orderQuantity(), value.openQuantity(), value.deliveredQuantity(),
                         value.unitCode(), value.unitScale(), value.quantityStatus(), value.lifecycleStatus(),
                         value.sourceUpdatedAt(), value.lineType(), value.bundleCode(), value.profitCenter(),
-                        value.realExecutionNo(), value.warrantyMonth()))
+                        value.realExecutionNo(), value.warrantyMonth(), value.customInfo()))
                 .toList();
         List<CommerceOrderContractRelationFact> relations = safe(request.orderContractRelations()).stream()
                 .map(value -> new CommerceOrderContractRelationFact(value.salesOrderSourceKey(),

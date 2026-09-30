@@ -12,6 +12,8 @@ public interface ExplicitPermissionMapper {
 
     boolean existsExplicitPermission(@Param("query") ExplicitPermissionQuery query);
 
+    List<Long> listUsersWithPermission(@Param("query") ExplicitPermissionQuery query);
+
     Long selectActiveUserForUpdate(@Param("query") ExplicitPermissionQuery query);
 
     List<Long> selectRoleIdsForUpdate(@Param("query") ExplicitPermissionQuery query);

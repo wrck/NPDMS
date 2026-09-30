@@ -582,7 +582,7 @@ class ArrivalAcceptanceCommandServiceTest {
         line.setScopeType("ORDER_MODEL_QUANTITY");
         line.setOrderLineId(200L);
         line.setProductCode("P-1");
-        line.setModelCode("M-1");
+        line.setProductModel("M-1");
         line.setExpectedQuantity(new BigDecimal("5"));
         line.setAcceptedQuantity(new BigDecimal("2"));
         line.setUnit("台");

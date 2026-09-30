@@ -52,7 +52,7 @@ class DeliveryScopeLineFactServiceTest {
         assertEquals(7L, fact.scopeDetailId());
         assertEquals(60L, fact.scopeId());
         assertEquals("SO-60", fact.orderNo());
-        assertEquals("ITEM-60", fact.itemCode());
+        assertEquals("P-1", fact.productCode());
         assertEquals("设备一", fact.productName());
         assertEquals("SWITCH", fact.deviceTypeCode());
         assertEquals(BigDecimal.TEN, fact.allocatedQuantity());
@@ -105,8 +105,8 @@ class DeliveryScopeLineFactServiceTest {
     private DeliveryScopeDO scope(Long id, Long projectId) {
         DeliveryScopeDO scope = new DeliveryScopeDO();
         scope.setId(id); scope.setProjectId(projectId);
-        scope.setOrderNo("SO-" + id); scope.setLineNo("10"); scope.setItemCode("ITEM-" + id);
-        scope.setItemDesc("订单行描述"); scope.setAllocatedQty(BigDecimal.TEN);
+        scope.setOrderNo("SO-" + id); scope.setLineNo("10"); scope.setProductCode("ITEM-" + id);
+        scope.setProductDesc("订单行描述"); scope.setAllocatedQty(BigDecimal.TEN);
         return scope;
     }
 

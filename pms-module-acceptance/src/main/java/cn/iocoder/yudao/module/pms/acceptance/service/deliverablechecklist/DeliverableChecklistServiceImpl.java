@@ -60,8 +60,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         // 插入；编码由系统按项目编码自动生成
         DeliverableChecklistDO entity = BeanUtils.toBean(createReqVO, DeliverableChecklistDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                AcceptanceRecordCodeGenerator.DELIVERABLE_CHECKLIST, deliverableChecklistMapper,
-                DeliverableChecklistDO::getProjectId, DeliverableChecklistDO::getCode));
+                AcceptanceRecordCodeGenerator.DELIVERABLE_CHECKLIST, deliverableChecklistMapper));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }

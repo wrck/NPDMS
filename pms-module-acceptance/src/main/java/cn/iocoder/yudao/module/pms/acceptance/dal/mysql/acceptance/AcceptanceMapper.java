@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.acceptance.vo.AcceptancePageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AcceptanceDO;
@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 @Deprecated(since = "F-ACC-001", forRemoval = false)
-public interface AcceptanceMapper extends BaseMapperX<AcceptanceDO> {
+public interface AcceptanceMapper extends ProjectScopedCodeMapper<AcceptanceDO> {
 
     default PageResult<AcceptanceDO> selectPage(AcceptancePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<AcceptanceDO>()

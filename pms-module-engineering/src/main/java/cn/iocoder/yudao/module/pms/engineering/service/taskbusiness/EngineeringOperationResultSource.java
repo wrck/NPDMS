@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementRevisionQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.OwnerOperationResultSource;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationResult;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,11 @@ import java.util.Objects;
 public class EngineeringOperationResultSource implements OwnerOperationResultSource {
     private final ObjectProvider<SiteSurveyEntityMapper> surveys;
     private final ObjectProvider<RequirementAnalysisMapper> requirements;
-    @Override public boolean supports(String aggregate) { return "SiteSurvey".equals(aggregate) || "RequirementAnalysis".equals(aggregate); }
+    private final ObjectProvider<SolutionMapper> solutions;
+    @Override public boolean supports(String aggregate) {
+        return "SiteSurvey".equals(aggregate) || "RequirementAnalysis".equals(aggregate)
+                || "ImplementationSolution".equals(aggregate);
+    }
     @Override public ProjectOperationResult current(Long tenant, Long project, String aggregate, Long objectId) {
         if (!Objects.equals(tenant,TenantContextHolder.getRequiredTenantId()) || project == null || objectId == null)
             throw new IllegalArgumentException("OWNER_RESULT_CONTEXT_INVALID");
@@ -45,6 +50,24 @@ public class EngineeringOperationResultSource implements OwnerOperationResultSou
             return new ProjectOperationResult("SOL","REQUIREMENT_ANALYSIS",objectId.toString(),objectId.toString(),row.getVersion(),
                     "SOL:REQUIREMENT_ANALYSIS_REVISION:" + objectId + ":" + row.getVersion() + ":" + row.getRevisionState(),
                     "FROZEN".equals(row.getRevisionState()) ? "REQUIREMENT_ANALYSIS_COMPLETED" : "REQUIREMENT_ANALYSIS_DRAFT_SAVED",null,false);
+        }
+        if ("ImplementationSolution".equals(aggregate)) {
+            var row = solutions.getObject().selectById(objectId);
+            if (row == null || Boolean.TRUE.equals(row.getDeleted())) return null;
+            if (!Objects.equals(row.getTenantId(),tenant) || !Objects.equals(row.getProjectId(),project)
+                    || row.getVersion() == null || row.getStatus() == null || row.getStatus() < 0 || row.getStatus() > 6)
+                throw new IllegalArgumentException("OWNER_RESULT_IDENTITY_INVALID");
+            String code = switch (row.getStatus()) {
+                case 1 -> "IMPLEMENTATION_PLAN_SUBMITTED";
+                case 2 -> "IMPLEMENTATION_PLAN_REVIEWING";
+                case 3 -> "IMPLEMENTATION_PLAN_APPROVED";
+                case 4 -> "IMPLEMENTATION_PLAN_REJECTED";
+                case 5 -> "IMPLEMENTATION_PLAN_WITHDRAWN";
+                case 6 -> "IMPLEMENTATION_PLAN_TERMINATED";
+                default -> "IMPLEMENTATION_PLAN_DRAFT_SAVED";
+            };
+            return new ProjectOperationResult("SOL","IMPLEMENTATION_SOLUTION",objectId.toString(),null,row.getVersion(),
+                    "SOL:IMPLEMENTATION_SOLUTION:" + objectId + ":" + row.getVersion() + ":" + row.getStatus(),code,null,false);
         }
         return null;
     }

@@ -52,8 +52,7 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
         // 插入；编码由系统按项目编码自动生成
         ArchiveDocumentDO entity = BeanUtils.toBean(createReqVO, ArchiveDocumentDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                AcceptanceRecordCodeGenerator.ARCHIVE_DOCUMENT, archiveDocumentMapper,
-                ArchiveDocumentDO::getProjectId, ArchiveDocumentDO::getCode));
+                AcceptanceRecordCodeGenerator.ARCHIVE_DOCUMENT, archiveDocumentMapper));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }

@@ -12,7 +12,7 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
                                      CommerceSourceLifecycleStatus lifecycleStatus,
                                      LocalDateTime sourceUpdatedAt,
                                      String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime,
-                                     String contractNo, String executionNo) {
+                                     String customInfo, String contractNo, String executionNo) {
 
     public CommerceSalesOrderFact(String sourceKey, String expectedPreviousSourceVersion,
                                      String sourceVersion, String companyCode, String orderNo,
@@ -20,7 +20,17 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
                                      BigDecimal amount, String currencyCode,
                                      CommerceSourceLifecycleStatus lifecycleStatus,
                                      LocalDateTime sourceUpdatedAt) {
-        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null, null);
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null, null, null);
+    }
+
+    public CommerceSalesOrderFact(String sourceKey, String expectedPreviousSourceVersion,
+                                     String sourceVersion, String companyCode, String orderNo,
+                                     String orderType, String customerCode, String customerName,
+                                     BigDecimal amount, String currencyCode,
+                                     CommerceSourceLifecycleStatus lifecycleStatus,
+                                     LocalDateTime sourceUpdatedAt,
+                                     String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime) {
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, salesType, sourceProjectName, orderComment, orderCreateTime, customerRequiredTime, null, null, null);
     }
 
     public CommerceSalesOrderFact {
@@ -40,6 +50,8 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
         salesType = optionalText(salesType, 32, "salesType");
         sourceProjectName = optionalText(sourceProjectName, 512, "sourceProjectName");
         orderComment = optionalText(orderComment, 2048, "orderComment");
+        // customInfo 为来源自定义载荷原样透传：不截断、不参与Owner载荷裁决（见 AuthorityPayloadCanonicalizer）。
+        customInfo = passthrough(customInfo);
         sourceUpdatedAt = time(sourceUpdatedAt, "sourceUpdatedAt");
         contractNo = optionalText(contractNo, 64, "contractNo");
         executionNo = optionalText(executionNo, 64, "executionNo");

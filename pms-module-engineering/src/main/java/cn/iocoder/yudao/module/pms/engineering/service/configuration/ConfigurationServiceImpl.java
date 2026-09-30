@@ -48,8 +48,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         }
         ConfigurationDO configuration = BeanUtils.toBean(createReqVO, ConfigurationDO.class);
         configuration.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.CONFIGURATION, configurationMapper,
-                ConfigurationDO::getProjectId, ConfigurationDO::getCode));
+                EngineeringRecordCodeGenerator.CONFIGURATION, configurationMapper));
         configuration.setStatus(0); // 状态只由现有动作接口推进
         if (configuration.getVersion() == null) {
             configuration.setVersion(0L);

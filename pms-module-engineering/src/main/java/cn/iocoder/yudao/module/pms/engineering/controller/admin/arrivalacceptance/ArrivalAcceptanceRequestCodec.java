@@ -86,7 +86,7 @@ final class ArrivalAcceptanceRequestCodec {
             exact(node, Set.of("scopeType", "lineId", "expectedLineVersion", "deviceId", "received"));
         } else if ("ORDER_MODEL_QUANTITY".equals(type)) {
             exact(node, Set.of("scopeType", "lineId", "expectedLineVersion", "orderLineId", "productCode",
-                    "modelCode", "acceptedQuantity", "unitCode"));
+                    "productModel", "acceptedQuantity", "unitCode"));
         } else {
             throw new IllegalArgumentException("unknown line scopeType");
         }
@@ -97,7 +97,7 @@ final class ArrivalAcceptanceRequestCodec {
         if ("DEVICE".equals(type)) {
             exact(node, Set.of("scopeType", "deviceId"));
         } else if ("ORDER_MODEL_QUANTITY".equals(type)) {
-            exact(node, Set.of("scopeType", "orderLineId", "productCode", "modelCode", "quantity", "unitCode"));
+            exact(node, Set.of("scopeType", "orderLineId", "productCode", "productModel", "quantity", "unitCode"));
         } else {
             throw new IllegalArgumentException("unknown scopeType");
         }

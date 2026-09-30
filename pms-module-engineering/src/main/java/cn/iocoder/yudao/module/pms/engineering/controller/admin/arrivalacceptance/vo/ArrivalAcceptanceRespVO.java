@@ -39,7 +39,7 @@ public final class ArrivalAcceptanceRespVO {
 
     public record Line(Long id, Integer lineNo, Integer lineRevision, String scopeType,
                        Long deviceId, Long deviceAssignmentVersion, Long orderLineId,
-                       String productCode, String modelCode, BigDecimal expectedQuantity,
+                       String productCode, String productModel, BigDecimal expectedQuantity,
                        BigDecimal acceptedQuantity, String unitCode, String status, Integer version) {
     }
 
@@ -59,7 +59,7 @@ public final class ArrivalAcceptanceRespVO {
     }
 
     public record QuantityScope(String scopeType, Long orderLineId, String productCode,
-                                String modelCode, BigDecimal quantity, String unitCode) implements Scope {
+                                String productModel, BigDecimal quantity, String unitCode) implements Scope {
     }
 
     public record Evidence(Long evidenceId, Integer currentRevision, Long artifactId,

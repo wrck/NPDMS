@@ -15,6 +15,7 @@ public final class ArrivalDifferenceScopeCodec {
     public static final String DEVICE = "DEVICE";
     public static final String ORDER_MODEL_QUANTITY = "ORDER_MODEL_QUANTITY";
     private static final Set<String> DEVICE_KEYS = Set.of("scopeType", "deviceId");
+    /** scope_snapshot 为持久化历史：JSON 键沿用旧字段名 "modelCode"，组件名已统一为 productModel。 */
     private static final Set<String> QUANTITY_KEYS = Set.of(
             "scopeType", "orderLineId", "productCode", "modelCode", "quantity", "unitCode");
 
@@ -50,8 +51,8 @@ public final class ArrivalDifferenceScopeCodec {
             value.put("orderLineId", quantity.orderLineId());
             if (quantity.productCode() == null) value.putNull("productCode");
             else value.put("productCode", quantity.productCode());
-            if (quantity.modelCode() == null) value.putNull("modelCode");
-            else value.put("modelCode", quantity.modelCode());
+            if (quantity.productModel() == null) value.putNull("modelCode");
+            else value.put("modelCode", quantity.productModel());
             value.put("quantity", quantity.quantity());
             value.put("unitCode", quantity.unitCode());
             return JsonUtils.toJsonString(value);
@@ -114,13 +115,13 @@ public final class ArrivalDifferenceScopeCodec {
         }
     }
 
-    public record QuantityScope(Long orderLineId, String productCode, String modelCode,
+    public record QuantityScope(Long orderLineId, String productCode, String productModel,
                                 BigDecimal quantity, String unitCode) implements Scope {
         public QuantityScope {
             productCode = normalizeNullable(productCode);
-            modelCode = normalizeNullable(modelCode);
+            productModel = normalizeNullable(productModel);
             unitCode = normalizeRequired(unitCode);
-            if (orderLineId == null || orderLineId <= 0 || productCode == null && modelCode == null
+            if (orderLineId == null || orderLineId <= 0 || productCode == null && productModel == null
                     || quantity == null || quantity.signum() <= 0) throw invalid();
         }
 

@@ -47,4 +47,12 @@
         </if>
         ORDER BY id ASC LIMIT #{query.limit}
     </select>
+
+    <!-- 记录编码全集（含软删除行）：唯一键 (project_id, code) 不含 deleted，推号必须看见被占用编码 -->
+    <select id="selectRecordCodesIncludeDeleted" resultType="java.lang.String">
+        SELECT code
+        FROM sol_site_survey
+        WHERE project_id = #{projectId}
+          AND code IS NOT NULL
+    </select>
 </mapper>

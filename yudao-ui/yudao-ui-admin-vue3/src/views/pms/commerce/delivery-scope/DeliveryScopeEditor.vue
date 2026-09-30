@@ -45,7 +45,7 @@
               v-for="line in orderLines"
               :key="line.id"
               :value="line.id"
-              :label="`${line.orderNo}/${line.lineNo} · ${line.itemCode} · 可用 ${line.openQty} ${line.unitCode}`"
+              :label="`${line.orderNo}/${line.lineNo} · ${line.productCode} · 可用 ${line.openQty} ${line.unitCode}`"
             />
           </el-select>
         </el-form-item>

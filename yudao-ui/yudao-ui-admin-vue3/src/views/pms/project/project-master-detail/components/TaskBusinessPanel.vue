@@ -25,7 +25,8 @@
         type="info"
         :closable="false"
       />
-      <section v-if="artifacts.length" class="artifact-sources" aria-label="来源交付件">
+      <!-- 来源交付件等业务视图首判定完成（内容挂载或明确报错）后再出现，避免先于内容渲染又被推走的跳变 -->
+      <section v-if="artifacts.length && hostSettled" class="artifact-sources" aria-label="来源交付件">
         <h4>来源交付件</h4>
         <p>以下引用来自关联业务的有效版本，文件下载和归档仍由原业务权限控制。</p>
         <ul
@@ -70,6 +71,8 @@ const context = ref<TaskBusinessContext>()
 const project = ref<Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }>()
 const registration = ref<BusinessViewRegistrationVO>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
+// 业务视图宿主的首判定完成状态（expose 的 viewSettled）：宿主未挂载或执行检查中视为未就绪
+const hostSettled = computed(() => hostRef.value?.viewSettled === true)
 const loading = ref(false), dirty = ref(false)
 const selectedObject = ref<string>()
 const error = ref('')
@@ -90,9 +93,10 @@ const viewReadonly = computed(() =>
     !sameTask(context.value?.taskId, props.taskId))
 )
 // Owner pages enforce each row's state. Automatic links can lag behind a saved draft.
+// 只读（未进入阶段/已完成/执行不允许）只保留 QUERY：视图照常渲染，写操作由 Owner 页面隐藏
 const ownerActions = computed(() => {
-  if (viewReadonly.value) return []
   const actions = context.value?.ownerActions || []
+  if (viewReadonly.value) return actions.includes('QUERY') ? ['QUERY'] : []
   const record = context.value?.links.find((row) => row.objectId === selectedObject.value)
   if (!actions.includes('QUERY')) return []
   return [...new Set([

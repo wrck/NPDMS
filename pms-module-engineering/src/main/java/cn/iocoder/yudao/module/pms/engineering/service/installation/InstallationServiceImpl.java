@@ -53,8 +53,7 @@ public class InstallationServiceImpl implements InstallationService {
         }
         InstallationDO installation = BeanUtils.toBean(createReqVO, InstallationDO.class);
         installation.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.INSTALLATION, installationMapper,
-                InstallationDO::getProjectId, InstallationDO::getCode));
+                EngineeringRecordCodeGenerator.INSTALLATION, installationMapper));
         installation.setStatus(0); // 状态只能通过动作接口流转
         if (installation.getInstallTime() == null) {
             installation.setInstallTime(LocalDateTime.now()); // 界面不录入安装时间，统一取提交时间

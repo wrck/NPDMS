@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.training;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.training.vo.TrainingPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingDO;
@@ -13,7 +13,7 @@ import java.util.List;
  * 现场培训记录 Mapper（ACC-01）
  */
 @Mapper
-public interface TrainingMapper extends BaseMapperX<TrainingDO> {
+public interface TrainingMapper extends ProjectScopedCodeMapper<TrainingDO> {
 
     default PageResult<TrainingDO> selectPage(TrainingPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<TrainingDO>()

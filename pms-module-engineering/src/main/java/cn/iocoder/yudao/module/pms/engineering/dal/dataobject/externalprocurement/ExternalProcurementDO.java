@@ -37,13 +37,13 @@ public class ExternalProcurementDO extends BaseBusinessEntity {
      */
     private String procurementType;
     /**
-     * 物料名称
+     * 产品名称/物料名称
      */
-    private String materialName;
+    private String productName;
     /**
-     * 物料编码
+     * 产品编码/物料编码
      */
-    private String materialCode;
+    private String productCode;
     /**
      * 规格型号描述
      */
@@ -53,9 +53,9 @@ public class ExternalProcurementDO extends BaseBusinessEntity {
      */
     private String brand;
     /**
-     * 型号
+     * 产品型号/物料型号
      */
-    private String model;
+    private String productModel;
     /**
      * 数量
      */

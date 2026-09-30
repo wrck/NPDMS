@@ -1213,3 +1213,38 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: 若需求方确认 V331 仅面向特定既有环境，则把它改为条件执行（guard 不满足时跳过并留审计记录）或迁出主迁移链（移入一次性运维脚本目录+登记执行环境清单）；两者都会改动已执行环境的 flyway_schema_history 语义，需要明确决策。
 - Blocking scope: 仅阻止"单一迁移链支持全新空库构建"这一能力；不阻断本机既有库、工作区库的升级，也不阻断当前 V361 业务验证（本地验证库已可构建）。
 - Decision owner: 需求方（涉及迁移历史治理，非单一代码决定）。
+
+## 施工计划批次再审批与已完成任务历史链接的解析口径（2026-09-29 S2 工作区 OWNER_FACT_UNAVAILABLE）
+
+### Q-TASKBIZ-20260929-001
+
+- Status: BLOCKED_BY_SPEC（读路径显示缺陷已按技术默认修复并验证；门槛关系待裁决）
+- Requirement IDs: PLN-01/04（阶段施工计划 3.1）；PM-01（任务工作区业务内嵌）
+- Area: 施工计划批次生命周期 × 任务业务链接（proj_task_business_link 冻结 object_id）的解析口径
+- Question: 项目进入 S3 后，经 3.1「阶段施工计划」页面再次创建并审批新批次（2026-09-29 项目 992004000014 批次 12 于 15:58 生效，S2 已于 10:41 完成）——该再审批路径当前无阶段门槛校验。由此：(a) S2 关闭后是否允许不经门槛重开即再审批新批次？(b) 允许时，已完成 S2 任务的冻结链接（批次 11）在新批次引入不同工期基线后，其完成事实（CONSTRUCTION_PLAN_APPROVED）按历史批次评估可能转 false，工作区应展示历史真相还是当前基线结论？
+- Evidence:
+  - `StagePlanApprovalCompletionProvider.load` 原实现仅解析 `mapper.current`（最新生效批次）并要求等于链接 id，被顶替后抛原始 IllegalArgumentException，被 `ProjectTaskBusinessService.getContext` 吞为 OWNER_FACT_UNAVAILABLE，S2 工作区执行区整体不可用（2026-09-29 浏览器实测 + API 复现：task 2104517608604786693 链接批次 11，current 返回批次 12）。
+  - 同构 `SolutionApprovalCompletionProvider` 读路径按链接 id 直接解析，历史方案链接不因新增方案失效——StagePlan provider 原实现偏离该契约。
+  - 既有测试 `supersededBatchCannotBeReused` 钉住锁路径语义：完成依据锁定仅接受当前生效批次，防止用被顶替批次完成门禁。
+- Applied technical default（已落实，2026-09-29）: 读路径（inspect）改为按链接 id 解析（`StagePlanCompletionMapper.byId`，保持 deleted=0 且 status=2 的"审批批次"资格），被顶替批次可只读回放；锁路径（lockCompletionFact/lockStageCompletionFact/lockAndRevalidate）维持仅当前生效批次语义不变。测试 6/6 通过（新增 readOnlyInspectResolvesTheLinkedBatchEvenAfterSupersession）。
+- Options: A. 维持现状（3.1 再审批不受阶段门槛限制，历史链接只读回放）；B. S2 完成后再审批新批次须重开 S2 门槛/走变更流程（需定义重开机制）；C. 再审批允许但完成后自动把进行中/已完成任务的链接迁移到新批次（违反链接不可变历史，不建议）。
+- Recommended technical default: A 为当前已实现口径；若需求方认为 S2 后再审批应受控，则 B，需补充规格定义重开与变更流程。
+- Blocking scope: 仅阻止 (a)(b) 的最终裁决；不阻断读路径显示修复（已落地）与其他独立工作。
+- Decision owner: 需求方；PLN Owner、工程实施 Owner 参与影响分析
+## 全库命名统一中设备型号字段族的归属口径（2026-09-29 产品/物料双读法全库统一裁决外溢）
+
+### Q-NAMING-20260929-001
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: 无独立 Feature 编号；衍生自 2026-09-29 "全库所有同含义的字段，都用统一的命名" 裁决（V378/V379 产品/物料双读法统一）
+- Area: 数据库字段命名规范 × 设备维度快照字段
+- Question: 产品/物料双读法规范名已定为 `product_code`/`product_name`/`product_model`/`product_desc`（V378/V379 已统一订单行、交付范围、到货行、领料、外采）。设备维度记录上的型号快照列——`imp_eng_risk.device_model`（设备型号）、`kno_announcement_check.device_model`（设备型号）、`plt_authorization.device_model`（设备型号）、`plt_collection_template.device_model`（无注释）、`pms_equipment_retired.model`（设备型号）——是否视为与 `product_model` 同含义一并更名？
+- Evidence:
+  - 设备主档 `ast_device` 已用规范名（`product_code`/`product_name`/`product_model`/`product_desc`），即设备的产品型号在主档即 `product_model`。
+  - 上述 5 列均挂在业务记录上且与同表其他设备维度字段成族（如 risk 的设备关联字段族），只更名 `device_model` 一列会破坏同表字段族命名一致性；全部更名则波及 4 个模块的 DO/VO/前端。
+  - 裁决原文只定义了产品/物料双读法，未提及"设备"读法；`imp_eng_material_exchange_serial.item_code` 先例表明同表不同事实可保留差异命名。
+- Options: A. 保留 `device_model`/`model`（设备维度字段族命名，与产品/物料身份区分）；B. 全部更名 `product_model`（与 `ast_device` 主档对齐，接受字段族内命名不一致）；C. 更名且同步重命名同表设备字段族（`device_*`→`product_*`，波及面最大）。
+- Recommended technical default: A（V379 未动这些列，仅登记）；若裁决为 B/C，另出迁移版本执行。
+- Blocking scope: 仅阻止这 5 列的最终命名；不阻断已完成的四表统一（V379）与相关代码链。
+- Decision owner: 需求方
+

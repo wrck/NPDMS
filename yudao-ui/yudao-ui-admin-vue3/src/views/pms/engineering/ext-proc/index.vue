@@ -70,7 +70,7 @@
           <dict-tag :type="DICT_TYPE.PMS_EXT_PROC_TYPE" :value="row.procurementType" />
         </template>
       </el-table-column>
-      <el-table-column prop="materialName" label="物料名称" min-width="140" />
+      <el-table-column prop="productName" label="产品名称/物料名称" min-width="140" />
       <el-table-column prop="specification" label="规格型号" min-width="140" />
       <el-table-column label="数量" width="110">
         <template #default="{ row }">
@@ -188,13 +188,13 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="物料名称" prop="materialName">
-            <el-input v-model="form.materialName" />
+          <el-form-item label="产品名称/物料名称" prop="productName">
+            <el-input v-model="form.productName" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="物料编码" prop="materialCode">
-            <el-input v-model="form.materialCode" />
+          <el-form-item label="产品编码/物料编码" prop="productCode">
+            <el-input v-model="form.productCode" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -206,7 +206,7 @@
           <el-form-item label="品牌" prop="brand"><el-input v-model="form.brand" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="型号" prop="model"><el-input v-model="form.model" /></el-form-item>
+          <el-form-item label="产品型号/物料型号" prop="productModel"><el-input v-model="form.productModel" /></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="数量" prop="quantity">
@@ -339,11 +339,11 @@
       <el-descriptions-item label="类型">
         <dict-tag :type="DICT_TYPE.PMS_EXT_PROC_TYPE" :value="current.procurementType ?? ''" />
       </el-descriptions-item>
-      <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
-      <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
+      <el-descriptions-item label="产品名称/物料名称">{{ current.productName }}</el-descriptions-item>
+      <el-descriptions-item label="产品编码/物料编码">{{ current.productCode }}</el-descriptions-item>
       <el-descriptions-item label="规格型号">{{ current.specification }}</el-descriptions-item>
       <el-descriptions-item label="品牌">{{ current.brand }}</el-descriptions-item>
-      <el-descriptions-item label="型号">{{ current.model }}</el-descriptions-item>
+      <el-descriptions-item label="产品型号/物料型号">{{ current.productModel }}</el-descriptions-item>
       <el-descriptions-item label="数量">{{ current.quantity }} {{ current.unit }}</el-descriptions-item>
       <el-descriptions-item label="单价">{{ current.unitPrice }}</el-descriptions-item>
       <el-descriptions-item label="总价">{{ current.totalPrice }}
@@ -461,11 +461,11 @@ const form = reactive<ExternalProcurementVO>({
   code: '',
   name: '',
   procurementType: 'GOODS',
-  materialName: '',
-  materialCode: '',
+  productName: '',
+  productCode: '',
   specification: '',
   brand: '',
-  model: '',
+  productModel: '',
   quantity: undefined!,
   unit: '个',
   unitPrice: undefined,
@@ -487,7 +487,7 @@ const rules = {
   code: [{ required: true, message: '请输入单号' }],
   name: [{ required: true, message: '请输入名称' }],
   procurementType: [{ required: true, message: '请选择类型' }],
-  materialName: [{ required: true, message: '请输入物料名称' }],
+  productName: [{ required: true, message: '请输入产品名称/物料名称' }],
   quantity: [{ required: true, message: '请输入数量' }],
   applicantUserId: [{ required: true, message: '请选择申请人' }],
   applyTime: [{ required: true, message: '请选择申请时间' }]
@@ -503,11 +503,11 @@ const openCreate = () => {
     code: '',
     name: '',
     procurementType: 'GOODS',
-    materialName: '',
-    materialCode: '',
+    productName: '',
+    productCode: '',
     specification: '',
     brand: '',
-    model: '',
+    productModel: '',
     quantity: undefined,
     unit: '个',
     unitPrice: undefined,

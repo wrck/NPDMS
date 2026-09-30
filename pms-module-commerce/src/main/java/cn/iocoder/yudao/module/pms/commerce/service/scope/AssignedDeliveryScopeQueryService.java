@@ -89,10 +89,10 @@ public class AssignedDeliveryScopeQueryService {
             throw corrupted("delivery scope references an unavailable order-line owner");
         }
         String productCode = nonblank(detail.getProductCode()) ? detail.getProductCode() : line.getProductCode();
-        String modelCode = nonblank(detail.getDeviceTypeCode()) ? detail.getDeviceTypeCode() : line.getModelCode();
+        String productModel = detail.getDeviceTypeCode();
         List<String> serials = nonblank(detail.getSerialNo()) ? List.of(detail.getSerialNo()) : List.of();
         return new AssignedDeliveryScopeLine(scope.getId(), detail.getId(), scope.getOrderLineId(),
-                detail.getAllocatedQty(), line.getUnitCode(), productCode, modelCode, serials);
+                detail.getAllocatedQty(), line.getUnitCode(), productCode, productModel, serials);
     }
 
     private Long trustedTenantId(Long projectId) {

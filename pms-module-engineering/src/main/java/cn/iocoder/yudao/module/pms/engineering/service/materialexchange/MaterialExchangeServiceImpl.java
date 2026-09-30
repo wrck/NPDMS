@@ -353,7 +353,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     private String joinedProductCode(List<ExchangeLine> lines) {
         String joined = lines.stream().map(line -> line.scopeFact)
                 .filter(Objects::nonNull)
-                .map(DeliveryScopeLineFact::itemCode)
+                .map(DeliveryScopeLineFact::productCode)
                 .filter(code -> code != null && !code.isBlank())
                 .distinct()
                 .collect(Collectors.joining(","));
@@ -373,7 +373,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
                 row.setScopeId(fact.scopeId());
                 row.setOrderNo(fact.orderNo());
                 row.setLineNo(fact.lineNo());
-                row.setItemCode(fact.itemCode());
+                row.setItemCode(fact.productCode());
                 row.setProductName(fact.productName());
                 row.setProductCode(fact.productCode());
                 row.setDeviceTypeCode(fact.deviceTypeCode());

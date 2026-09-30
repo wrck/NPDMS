@@ -24,7 +24,7 @@ public class ArrivalLineDO extends TenantBaseDO {
     private Long deviceAssignmentVersion;
     private Long orderLineId;
     private String productCode;
-    private String modelCode;
+    private String productModel;
     private BigDecimal expectedQuantity;
     private BigDecimal acceptedQuantity;
     private String unit;

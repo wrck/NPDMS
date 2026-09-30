@@ -30,7 +30,7 @@ export type ArrivalScope =
       scopeType: 'ORDER_MODEL_QUANTITY'
       orderLineId: WireLong
       productCode: string | null
-      modelCode: string | null
+      productModel: string | null
       quantity: number
       unitCode: string
     }
@@ -49,7 +49,7 @@ export type ArrivalDraftLine =
       expectedLineVersion: number | null
       orderLineId: WireLong
       productCode: string | null
-      modelCode: string | null
+      productModel: string | null
       acceptedQuantity: number
       unitCode: string
     }
@@ -77,7 +77,7 @@ export interface ArrivalLine {
   deviceAssignmentVersion: WireLong | null
   orderLineId: WireLong | null
   productCode: string | null
-  modelCode: string | null
+  productModel: string | null
   expectedQuantity: number | null
   acceptedQuantity: number | null
   unitCode: string | null

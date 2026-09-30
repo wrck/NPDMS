@@ -1,102 +1,51 @@
 <template>
   <div class="solution-chapter-form">
-    <el-alert
-      title="按项目交付 Demo 4.1 编写实施方案组织：第 1~8 章为方案内容，前序阶段（需求分析 2.3、团队 1.2、产品清单 1.1、施工计划 3.1、序列号 1.1.1）可通过“引用/同步”带入正文；底部为页面功能按钮（保存草稿/生成方案/下载方案/提交审核），不是方案内容章节。"
-      type="info"
-      :closable="false"
-      class="mb-12px"
-    />
+    <!-- 视图级操作（保存/提交为编写动作）收口到工作区底部吸附操作栏（businessActionBar 协议）；
+         登记客户文档的版本正文即客户文档，九章编写动作（生成/下载）不再出现；
+         独立弹窗与审核详情无操作栏提供方，原地渲染 -->
+    <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="emit('save')">保存草稿</el-button>
+      <el-button v-if="!readOnly && !customerDocUrl" @click="generateFromSources">生成方案（引用前序数据）</el-button>
+      <el-button v-if="!customerDocUrl" @click="downloadSolution">下载方案</el-button>
+      <el-button v-if="!readOnly" type="warning" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
+    </Teleport>
 
-    <!-- 基础信息 -->
-    <section class="chapter">
-      <div class="chapter-title">0. 方案基础信息</div>
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="方案名称" prop="name"><el-input v-model="form.name" :disabled="readOnly || !!form.id" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <!-- 任务完成链仅认可 IMPLEMENTATION（SolutionCompletionMapper/SolutionReviewMapper 固定值）；扩充值域须先经规格裁决 -->
-          <el-form-item label="方案类型" prop="solutionType"><el-select v-model="form.solutionType" class="!w-full" :disabled="readOnly"><el-option label="实施方案" value="IMPLEMENTATION" /></el-select></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="版本标签" prop="versionLabel"><el-input v-model="form.versionLabel" :disabled="readOnly" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="审核级别" prop="reviewLevel">
-            <el-select v-model="form.reviewLevel" class="!w-full" :disabled="readOnly || reviewLevelReadOnly">
-              <el-option
-                v-for="dict in getIntDictOptions(DICT_TYPE.PMS_REVIEW_LEVEL)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="客户方案">
-            <el-radio-group v-model="meta.hasCustomerPlan" :disabled="readOnly">
-              <el-radio value="yes">已有客户方案</el-radio>
-              <el-radio value="no">无</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col v-if="meta.hasCustomerPlan === 'yes'" :span="12">
-          <el-form-item label="上传方案文件">
-            <UploadFile v-model="meta.customerPlanUrl" :disabled="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col v-if="meta.hasCustomerPlan === 'yes'" :span="24">
-          <el-button disabled title="客户方案系统识别未接入，请下载后人工核对再录入正文">提交系统识别</el-button>
-        </el-col>
-      </el-row>
+    <!-- 客户方案文档：登记客户文档的版本正文即该文档，直接内嵌展示且不再渲染九章手工文本；
+         文件端点以 attachment 下发，直接内嵌 src 会被浏览器拦为下载，故经取流转 Blob 预览 -->
+    <section v-if="customerDocUrl" class="customer-doc">
+      <div class="customer-doc-head">
+        <span class="customer-doc-title">客户方案文档</span>
+        <el-link type="primary" :href="customerDocUrl" target="_blank">下载/查看文件</el-link>
+      </div>
+      <iframe
+        v-if="customerDocPreviewSrc"
+        :src="customerDocPreviewSrc"
+        class="customer-doc-frame"
+        title="客户方案文档预览"
+      ></iframe>
+      <div v-else-if="customerDocPreviewable" class="customer-doc-fallback">客户文档预览加载中，若长时间未显示请通过「下载/查看文件」打开。</div>
+      <div v-else class="customer-doc-fallback">
+        该文档格式（doc/xls/ppt）浏览器不支持内嵌预览，请通过「下载/查看文件」打开查看。
+      </div>
     </section>
 
+    <template v-if="!customerDocUrl">
     <!-- 第1章 项目概述 -->
     <section class="chapter">
       <div class="chapter-title">1. 项目概述</div>
-      <div class="ref-block">
-        <div class="ref-head">
-          <span>1.1 项目背景（引用 2.3 需求分析）</span>
-          <el-button link type="primary" :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">引用到正文</el-button>
-        </div>
-        <div class="ref-body">{{ reqBackground ? stripHtml(reqBackground) : '需求分析暂无项目背景' }}</div>
-      </div>
       <el-form-item label="1.1 项目背景" label-width="140px">
-        <Editor v-model="form.background" height="180px" :readonly="readOnly" />
-      </el-form-item>
-      <div class="ref-block">
-        <div class="ref-head">
-          <span>1.2 项目目标（引用 2.3 需求分析）</span>
-          <el-button link type="primary" :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">引用到正文</el-button>
+        <div class="editor-block">
+          <Editor v-model="form.background" height="180px" :readonly="readOnly" />
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">从 2.3 需求分析引用</el-button>
         </div>
-        <div class="ref-body">{{ reqObjective ? stripHtml(reqObjective) : '需求分析暂无项目目标' }}</div>
-      </div>
+      </el-form-item>
       <el-form-item label="1.2 项目目标" label-width="140px">
-        <Editor v-model="form.target" height="180px" :readonly="readOnly" />
+        <div class="editor-block">
+          <Editor v-model="form.target" height="180px" :readonly="readOnly" />
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">从 2.3 需求分析引用</el-button>
+        </div>
       </el-form-item>
 
-      <div class="ref-block">
-        <div class="ref-head">
-          <span>1.3 项目团队（汇总项目成员与客户联系人）</span>
-          <el-button link type="primary" :disabled="readOnly || !teamRefRows.length" @click="tables.team = memberRows()">引用到正文</el-button>
-        </div>
-        <el-table :data="teamRefRows" size="small" border max-height="240">
-          <el-table-column label="角色" width="150">
-            <template #default="{ row }">{{ row.role }}</template>
-          </el-table-column>
-          <el-table-column label="姓名" width="120">
-            <template #default="{ row }">{{ row.name || '—' }}</template>
-          </el-table-column>
-          <el-table-column label="联系方式" width="150">
-            <template #default="{ row }">{{ row.contact || '—' }}</template>
-          </el-table-column>
-          <el-table-column label="备注" min-width="140">
-            <template #default="{ row }">{{ row.remark || '—' }}</template>
-          </el-table-column>
-        </el-table>
-        <el-empty v-if="!teamRefRows.length" description="暂无团队成员" :image-size="50" />
-      </div>
       <el-form-item label="1.3 项目团队" label-width="140px">
         <div class="table-editor">
           <el-table :data="tables.team" size="small" border>
@@ -109,21 +58,10 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.team.push({ role: '', name: '', contact: '', remark: '' })">添加成员</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !teamRefRows.length" @click="tables.team = memberRows()">从项目成员与客户联系人引用</el-button>
         </div>
       </el-form-item>
 
-      <div class="ref-block">
-        <div class="ref-head">
-          <span>1.4 项目清单（调用 1.1 产品信息清单）</span>
-          <el-button link type="primary" :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">引用到正文</el-button>
-        </div>
-        <el-table :data="scopeRows" size="small" border max-height="200">
-          <el-table-column prop="productCode" label="产品编码" min-width="130" />
-          <el-table-column prop="deviceTypeCode" label="产品型号" min-width="110" />
-          <el-table-column prop="allocatedQuantity" label="数量" width="80" />
-        </el-table>
-        <el-empty v-if="!scopeRows.length" description="交付范围暂无产品明细" :image-size="50" />
-      </div>
       <el-form-item label="1.4 项目清单" label-width="140px">
         <div class="table-editor">
           <el-table :data="tables.inventory" size="small" border>
@@ -140,22 +78,10 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.inventory.push(emptyInventoryRow())">添加行</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">从 1.1 产品信息清单引用</el-button>
         </div>
       </el-form-item>
 
-      <div class="ref-block">
-        <div class="ref-head">
-          <span>1.5 项目进度计划（调用 3.1 施工计划）</span>
-          <el-button link type="primary" :disabled="readOnly || !stagePlanItems.length" @click="tables.plan = stagePlanRows()">引用到正文</el-button>
-        </div>
-        <el-table :data="stagePlanItems" size="small" border max-height="200">
-          <el-table-column prop="phaseName" label="项目阶段" min-width="110" />
-          <el-table-column prop="planStart" label="计划开始" min-width="140" />
-          <el-table-column prop="planEnd" label="计划结束" min-width="140" />
-          <el-table-column prop="remark" label="备注" min-width="120" />
-        </el-table>
-        <el-empty v-if="!stagePlanItems.length" description="暂无阶段施工计划批次" :image-size="50" />
-      </div>
       <el-form-item label="1.5 进度计划" label-width="140px">
         <div class="table-editor">
           <el-table :data="tables.plan" size="small" border>
@@ -169,6 +95,7 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.plan.push({ stage: '', start: '', end: '', suggest: '', remark: '' })">添加行</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !stagePlanItems.length" @click="tables.plan = stagePlanRows()">从 3.1 施工计划引用</el-button>
         </div>
       </el-form-item>
     </section>
@@ -419,22 +346,12 @@
         <p>官网：http://www.dptech.com，提供产品资料与知识库查询。</p>
       </div>
     </section>
-
-    <!-- 操作按钮（Demo 4.1 第9章：页面功能，非方案内容章节） -->
-    <section class="function-bar">
-      <div class="function-buttons">
-        <el-button type="primary" :disabled="readOnly" :loading="saving" @click="emit('save')">保存草稿</el-button>
-        <el-button :disabled="readOnly" @click="generateFromSources">生成方案（引用前序数据）</el-button>
-        <el-button :disabled="readOnly" @click="downloadSolution">下载方案</el-button>
-        <el-button type="warning" :disabled="readOnly" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
-      </div>
-      <p class="function-desc">提交审核后，服务经理进行审核，重大项目自动推送总部复审；审核通过则阶段完成，可下载实施方案。下载方案导出当前 1~8 章内容为 HTML 文件。</p>
-    </section>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import * as ProjectsApi from '@/api/pms/project/projects'
@@ -442,13 +359,15 @@ import * as ContactApi from '@/api/pms/customer/contacts'
 import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import { getDeliveryScopePage } from '@/api/pms/commerce'
-import { DICT_TYPE, getDictLabel, getIntDictOptions } from '@/utils/dict'
+import { DICT_TYPE, getDictLabel } from '@/utils/dict'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 defineOptions({ name: 'SolutionChapterForm' })
 
-const props = defineProps<{ readOnly: boolean; saving?: boolean; reviewLevelReadOnly?: boolean }>()
+const props = defineProps<{ readOnly: boolean; saving?: boolean }>()
 const emit = defineEmits<{ save: []; submitReview: [] }>()
 const form = defineModel<SolutionVO>({ required: true })
+const { barTarget } = useBusinessActionBar()
 
 // ---------- JSON 信封映射说明 ----------
 // 九章正文映射到既有 sol_solution 文本列（后端未拆列前的序列化边界，后续拆列仅需调整此处）：
@@ -568,9 +487,9 @@ const tables = reactive({
 })
 const scripts = reactive({ network: '', businessModule: '', ha: '', full: '' })
 const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '' })
+// hasCustomerPlan/customerPlanUrl 两键归方案信息组件（SolutionDocMetaForm）读写；
+// customerPlanUrl 本组件仅读取，用于正文区直接展示客户文档
 const meta = reactive({
-  hasCustomerPlan: '',
-  customerPlanUrl: '',
   hardwareInvolved: '',
   softwareDebug: '',
   trainingPurpose: '',
@@ -605,8 +524,6 @@ const syncFromForm = () => {
   scripts.ha = String(scriptObj['ha'] ?? '')
   scripts.full = String(scriptObj['full'] ?? '')
   const metaObj = parseObject(form.value.remark)
-  meta.hasCustomerPlan = String(metaObj['hasCustomerPlan'] ?? '')
-  meta.customerPlanUrl = String(metaObj['customerPlanUrl'] ?? '')
   meta.hardwareInvolved = String(metaObj['hardwareInvolved'] ?? '')
   meta.softwareDebug = String(metaObj['softwareDebug'] ?? '')
   meta.trainingPurpose = String(metaObj['trainingPurpose'] ?? '')
@@ -651,7 +568,8 @@ watch(scripts, () => { form.value.script = JSON.stringify(scripts) }, { deep: tr
 watch(
   [meta, archiveModule, () => tables.business],
   () => {
-    form.value.remark = JSON.stringify({ ...meta, archive: archiveModule.value, business: tables.business })
+    // 共享信封 merge-at-write：只覆盖本组件拥有的键，保留方案信息组件的 hasCustomerPlan/customerPlanUrl
+    form.value.remark = JSON.stringify({ ...parseObject(form.value.remark), ...meta, archive: archiveModule.value, business: tables.business })
   },
   { deep: true }
 )
@@ -662,10 +580,68 @@ watch(
   { immediate: true }
 )
 
-onMounted(async () => {
-  if (props.readOnly) return
+// 客户文档直显：读取信封中的 customerPlanUrl（仅读，不写回）。监听 remark 而非仅在 id 变化时同步，
+// 覆盖新增弹窗确定后（id 不变）客户方案登记即时生效的场景
+const customerDocUrl = ref('')
+watch(
+  () => String(parseObject(form.value.remark)['customerPlanUrl'] ?? ''),
+  (url) => { customerDocUrl.value = url },
+  { immediate: true }
+)
+// 浏览器可内嵌预览的格式；doc/xls/ppt 无法内嵌渲染，保留显式下载入口
+const customerDocPreviewable = computed(() => /\.(pdf|txt)(\?|#|$)/i.test(customerDocUrl.value))
+// 文件端点以 attachment 下发（iframe 直挂 src 会被浏览器拦为下载），优先取字节转 Blob 内嵌。
+// 与后端存储类型无关：平台文件端点（/admin-api/...）按当前 API 基址重写 origin（登记域名可能失效），
+// 其余存储按原始地址取流；全部取流失败回退原始地址内嵌（对象存储等内联下发的直链）
+const customerDocPreviewSrc = ref('')
+const customerDocLoadSeq = ref(0)
+let customerDocBlobUrl = ''
+const releaseCustomerDocBlob = () => {
+  if (customerDocBlobUrl) {
+    URL.revokeObjectURL(customerDocBlobUrl)
+    customerDocBlobUrl = ''
+  }
+}
+watch(
+  [customerDocUrl, customerDocPreviewable],
+  ([url, previewable]) => {
+    const seq = ++customerDocLoadSeq.value
+    releaseCustomerDocBlob()
+    customerDocPreviewSrc.value = ''
+    if (!url || !previewable) return
+    const candidates = [url]
+    const pathIndex = url.indexOf('/admin-api/')
+    if (pathIndex >= 0) candidates.unshift(import.meta.env.VITE_BASE_URL + url.slice(pathIndex))
+    const tryFetch = (index: number): void => {
+      if (seq !== customerDocLoadSeq.value) return
+      if (index >= candidates.length) {
+        customerDocPreviewSrc.value = url
+        return
+      }
+      fetch(candidates[index])
+        .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(String(res.status)))))
+        .then((blob) => {
+          if (seq !== customerDocLoadSeq.value) return
+          customerDocBlobUrl = URL.createObjectURL(blob)
+          customerDocPreviewSrc.value = customerDocBlobUrl
+        })
+        .catch(() => tryFetch(index + 1))
+    }
+    tryFetch(0)
+  },
+  { immediate: true }
+)
+onBeforeUnmount(() => {
+  customerDocLoadSeq.value++
+  releaseCustomerDocBlob()
+})
+
+// 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
+let referencesProjectId = 0
+const loadReferences = async () => {
   const projectId = form.value.projectId
-  if (!projectId) return
+  if (props.readOnly || !projectId || referencesProjectId === projectId) return
+  referencesProjectId = projectId
   const [overview, memberList, scopePage, planPage, devicePage, contactPage] = await Promise.all([
     RequirementAnalysisApi.getCurrent(projectId).catch(() => null),
     ProjectsApi.getProjectMembers(projectId).catch(() => []),
@@ -686,7 +662,8 @@ onMounted(async () => {
   )
   stagePlanItems.value = (planPage as any).list?.[0]?.items || []
   devices.value = ((devicePage as any).list || []) as DeviceArchiveApi.DeviceArchiveVO[]
-})
+}
+watch(() => [props.readOnly, form.value.projectId], () => { loadReferences() }, { immediate: true })
 
 // ---------- 生成方案（引用前序数据，只填空字段） ----------
 const generateFromSources = () => {
@@ -811,12 +788,7 @@ const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', templat
 </script>
 
 <style lang="scss" scoped>
-.solution-chapter-form {
-  max-height: 62vh;
-  padding-right: 4px;
-  overflow-y: auto;
-}
-
+/* 正文不设最大高度、不建内嵌滚动容器，随工作区页面自然伸展，仅保留页面级滚动 */
 .chapter {
   padding: 12px 0 4px;
   margin-bottom: 8px;
@@ -866,6 +838,10 @@ const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', templat
   width: 100%;
 }
 
+.editor-block {
+  width: 100%;
+}
+
 .script-input {
   :deep(textarea) {
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
@@ -880,20 +856,44 @@ const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', templat
   margin-top: 4px;
 }
 
-.function-bar {
-  padding: 12px 0 4px;
+/* 无操作栏提供方时的原地回退（台账编辑弹窗/审核详情）：按钮与首章之间留距；收口进操作栏后不命中 */
+.solution-chapter-form > .el-button {
+  margin: 0 0 10px;
 }
 
-.function-buttons {
+/* 客户方案文档直显区：正文顶部对照来源，宽幅内嵌预览 */
+.customer-doc {
+  margin-bottom: 12px;
+}
+
+.customer-doc-head {
   display: flex;
+  align-items: center;
   gap: 10px;
+  margin-bottom: 6px;
 }
 
-.function-desc {
-  margin: 8px 0 0;
+.customer-doc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.customer-doc-frame {
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  background: var(--el-fill-color-lighter);
+}
+
+.customer-doc-fallback {
+  padding: 14px 12px;
   font-size: 12.5px;
-  line-height: 1.6;
   color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border: 1px dashed var(--el-border-color);
+  border-radius: 4px;
 }
 
 .doc-content {

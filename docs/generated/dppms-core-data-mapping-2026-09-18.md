@@ -257,7 +257,7 @@ dppms侧为CRM组合目录的同步副本，9列全量对齐目标主档；执�
 | `syncTime` | `source_sync_time` | 直接 |
 | `contractNo` | `com_order_contract_relation.contract_id` | 关系（不固化在订单头） |
 | `orderExecNumber` | `com_order_execution_relation.execution_id` | 关系 |
-| `customInfo` | `source_payload` | 载荷 |
+| `customInfo` | `source_payload` + `com_sales_order.custom_info` | 载荷 + 原样同步（2026-09-29裁决，V378） |
 
 实库`com_sales_order`另有`source_record_key`、`source_version`、`order_amount`、`currency_code`、`authority_status`、`source_lifecycle_status`、`source_updated_at`等列，由商务权威接收API填充，无dppms直接来源。
 
@@ -269,7 +269,7 @@ dppms侧为CRM组合目录的同步副本，9列全量对齐目标主档；执�
 | `orderNumber` | `order_id`（关系）+ `order_no`（快照） | 关系+直接 |
 | `lineNum` | `line_no` | 直接 |
 | `lineType` | `line_type` | 直接 |
-| `itemCode` / `itemDesc` | `item_code` / `item_desc` | 直接 |
+| `itemCode` / `itemDesc` | `product_code` / `product_desc` | 直接（2026-09-29裁决更名，V378） |
 | `orderQuantity` / `openQuantity` | `order_qty` / `open_qty`；`delivered_qty` = `orderQuantity - openQuantity` | 直接 |
 | `bundleCode` | `bundle_code` | 直接 |
 | `warrantyMonth` | `warranty_month` | 直接 |
@@ -278,13 +278,17 @@ dppms侧为CRM组合目录的同步副本，9列全量对齐目标主档；执�
 | `realOrderExecNumber` | `real_execution_no` + 尝试写`com_order_line_execution_relation` | 直接+关系 |
 | `source` | `source_system` | 直接 |
 | `syncTime` | `source_sync_time` | 直接 |
-| `customInfo` | `source_payload` | 载荷 |
+| `customInfo` | `source_payload` + `com_sales_order_line.custom_info` | 载荷 + 原样同步（2026-09-29裁决，V378） |
 
-规则：退货行允许负数量，不做无条件非负约束；`delivered_qty`只与ERP行数量对账，不与SN数量对账；订单行先经订单业务键定位`order_id`。实库`com_sales_order_line`另有无dppms来源的增强列：`model_code`、`product_id`/`product_code`、`unit_code`/`unit_scale`/`quantity_status`（计量单位缺失时`PENDING_AUTHORITY`，见2026-09-14 DPPMS订单模板）、`source_lifecycle_status`等。
+规则：退货行允许负数量，不做无条件非负约束；`delivered_qty`只与ERP行数量对账，不与SN数量对账；订单行先经订单业务键定位`order_id`。实库`com_sales_order_line`另有无dppms来源的增强列：`product_id`、`product_model`、`unit_code`/`unit_scale`/`quantity_status`（计量单位缺失时`PENDING_AUTHORITY`，见2026-09-14 DPPMS订单模板）、`source_lifecycle_status`等。
+
+2026-09-29裁决（V378）：订单行三对重复字段按对应关系直接更名规范化（产品/物料双读法）：`item_code`→`product_code`（产品编码/物料编码；`product_code`已存在（V161），先以COALESCE合并其缺失值，再移除`item_code`及其索引）、`item_desc`→`product_desc`（产品描述/物料描述）、`model_code`→`product_model`（产品型号/物料型号）。产品规范命名为`product_code`产品编码/物料编码、`product_name`产品名称/物料名称、`product_model`产品型号/物料型号、`product_desc`产品描述/物料描述（产品主档与范围明细快照已按此命名），订单行不再保留独立的物料身份列。`customInfo`由"仅存迁移证据"改为原样同步至`custom_info`（JSON NULL，空白归一为NULL，不截断、不参与同版本载荷裁决）；历史已迁移订单不回填，待来源`syncTime`变化按UPSERT落值。
+
+2026-09-29裁决（V379，全库统一）：用户裁决"全库所有同含义的字段，都用统一的命名"，按上述产品/物料双读法规范名对业务表同含义列一并更名（数据原样保留）：`com_delivery_scope.item_code/item_desc`→`product_code/product_desc`（索引`idx_scope_item`→`idx_scope_product`，列集不变）；`imp_arrival_line.model_code`→`product_model`；`imp_eng_material_requisition.material_code/material_name`→`product_code/product_name`；`imp_eng_external_procurement.material_code/material_name/model`→`product_code/product_name/product_model`。保留非同含义列：领料/外采`specification`（规格/规格型号，与型号不同属性）、`imp_eng_material_exchange_serial.item_code`（同表`product_code`为换货产品快照，两个不同业务事实，09-24规格保留）、`cut_*`/`sol_preparation_*`审批项/工勘项字段、`bpm_process_definition_info.simple_model`（设计器模型JSON）、外部来源表`pm_*_from_erp`源列与`fcom001_v70_*`历史表；设备维度`device_model`字段族（`imp_eng_risk`/`kno_announcement_check`/`plt_authorization`/`plt_collection_template`/`pms_equipment_retired`）因"设备型号"与产品/物料双读法口径存在歧义登记open-questions（Q-NAMING-20260929-001），待裁决。
 
 ### 3.3 实施范围 `pm_project_product_line`（353,030行）→ `com_delivery_scope`
 
-与执行单/订单域直接相关的分配关系：`projectId`→`project_id`（关系）；`orderNumber`+`lineNum`→`order_line_id`/`order_no`/`line_no`（须`orderNumber+lineNum+itemCode`唯一命中ERP订单行）；`itemCode`/`itemName`→`item_code`/`item_desc`；`projectQuantity`→`allocated_qty`；`contractNo`、`orderQuantity`、`deliverQuantity`、`openQuantity`只进载荷（不设`legacy_*`列）。0/N命中或缺键只写`PENDING_MAPPING`问题不写正式范围；唯一命中多项目且缺分配量为`PENDING_QUANTITY`，不参与统计。
+与执行单/订单域直接相关的分配关系：`projectId`→`project_id`（关系）；`orderNumber`+`lineNum`→`order_line_id`/`order_no`/`line_no`（须`orderNumber+lineNum+itemCode`唯一命中ERP订单行）；`itemCode`/`itemName`→`product_code`/`product_desc`（V379 落列更名后；ERP 来源键 `itemCode` 为来源系统命名不更名）；`projectQuantity`→`allocated_qty`；`contractNo`、`orderQuantity`、`deliverQuantity`、`openQuantity`只进载荷（不设`legacy_*`列）。0/N命中或缺键只写`PENDING_MAPPING`问题不写正式范围；唯一命中多项目且缺分配量为`PENDING_QUANTITY`，不参与统计。
 
 ## 4. 设备装箱单、发货记录与设备档案
 

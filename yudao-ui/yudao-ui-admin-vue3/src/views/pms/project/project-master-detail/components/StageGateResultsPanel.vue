@@ -52,7 +52,7 @@
             <span class="deliverable-name">{{ row.name }}</span>
             <span class="deliverable-code">{{ row.code }}</span>
             <dict-tag v-if="row.status" :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="row.status" />
-            <el-button v-if="row.id" link type="primary" @click="openDeliverable(row.id!)">提交与查看</el-button>
+            <el-button v-if="row.id && !stagePending" link type="primary" @click="openDeliverable(row.id!)">提交与查看</el-button>
           </div>
         </div>
         <template v-if="taskDeliverables">
@@ -63,13 +63,14 @@
               <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
               <span class="deliverable-name">{{ item.name }}</span>
               <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
-              <el-button v-if="item.id" link type="primary" @click="openDeliverable(item.id)">提交与查看</el-button>
+              <el-button v-if="item.id && !stagePending" link type="primary" @click="openDeliverable(item.id)">提交与查看</el-button>
             </div>
           </div>
         </template>
       </template>
 
-      <!-- 审批：按当前计划冻结的流程版本办理；发起/办理入口由 StageGateProcessPanel 按权限呈现 -->
+      <!-- 审批：按当前计划冻结的流程版本办理；发起/办理入口由 StageGateProcessPanel 按权限呈现，
+           未进入阶段的准入审批发起照常放开（可用性由后端 canStart 决定） -->
       <template v-if="approvalRefs.length">
         <div class="section-title">审批</div>
         <StageGateProcessPanel v-for="reference in approvalRefs" :key="reference.gateReferenceId" ref="processPanels"
@@ -107,6 +108,11 @@ const props = withDefaults(defineProps<{
   taskDeliverables?: ProjectInstancesVO['deliverables']
 }>(), { title: '阶段门禁条件' })
 const emit = defineEmits<{ changed: [] }>()
+// 未进入阶段（PENDING，准入未满足）：提交与查看为业务办理入口不渲染；
+// 门禁结果、审批状态与审批发起入口照常展示（发起可用性由后端 canStart 决定）
+const stagePending = computed(
+  () => props.instances?.stages.find(stage => stage.stageCode === props.stageCode)?.status === 'PENDING'
+)
 const processPanels = ref<InstanceType<typeof StageGateProcessPanel>[]>([])
 const editingId = ref<number | string>()
 const workbench = ref<StageGateWorkbench>()

@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.deliverablechecklist.vo.DeliverableChecklistPageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.deliverablechecklist.DeliverableChecklistDO;
@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
 
 @Mapper
-public interface DeliverableChecklistMapper extends BaseMapperX<DeliverableChecklistDO> {
+public interface DeliverableChecklistMapper extends ProjectScopedCodeMapper<DeliverableChecklistDO> {
 
     default PageResult<DeliverableChecklistDO> selectPage(DeliverableChecklistPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DeliverableChecklistDO>()

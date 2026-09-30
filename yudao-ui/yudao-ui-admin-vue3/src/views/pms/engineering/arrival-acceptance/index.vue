@@ -333,7 +333,7 @@ const detailLines = computed<ArrivalDraftLine[]>(() =>
           expectedLineVersion: line.version,
           orderLineId: line.orderLineId!,
           productCode: line.productCode,
-          modelCode: line.modelCode,
+          productModel: line.productModel,
           acceptedQuantity: line.acceptedQuantity || 0,
           unitCode: line.unitCode || ''
         }
@@ -575,7 +575,7 @@ const openRaise = () => {
 const lineLabel = (line: ArrivalLine) =>
   line.scopeType === 'DEVICE'
     ? `设备 ${line.deviceId}`
-    : `订单行 ${line.orderLineId} · ${line.productCode || line.modelCode || '未命名型号'}`
+    : `订单行 ${line.orderLineId} · ${line.productCode || line.productModel || '未命名型号'}`
 const scopeOf = (line: ArrivalLine): ArrivalApi.ArrivalScope =>
   line.scopeType === 'DEVICE'
     ? { scopeType: 'DEVICE', deviceId: line.deviceId! }
@@ -583,7 +583,7 @@ const scopeOf = (line: ArrivalLine): ArrivalApi.ArrivalScope =>
         scopeType: 'ORDER_MODEL_QUANTITY',
         orderLineId: line.orderLineId!,
         productCode: line.productCode,
-        modelCode: line.modelCode,
+        productModel: line.productModel,
         quantity: raiseForm.quantity,
         unitCode: line.unitCode || ''
       }

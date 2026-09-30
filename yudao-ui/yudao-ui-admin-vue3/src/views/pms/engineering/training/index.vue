@@ -24,7 +24,7 @@
       <el-form-item>
         <el-button v-hasPermi="['pms:dynamic-form-template:query']" @click="printTemplateManager?.open()">打印模板配置</el-button>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-training:create']"
+        <el-button v-if="!readonly" type="primary" @click="openForm()" v-hasPermi="['pms:imp-training:create']"
           ><Icon icon="ep:plus" />新建培训记录</el-button
         >
       </el-form-item>
@@ -67,7 +67,7 @@
           <el-button
             link
             type="primary"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="openForm(row)"
             v-hasPermi="['pms:imp-training:update']"
             >编辑</el-button
@@ -75,7 +75,7 @@
           <el-button
             link
             type="success"
-            v-if="row.status === 0 || row.status === 1"
+            v-if="!readonly && (row.status === 0 || row.status === 1)"
             @click="issue(row)"
             v-hasPermi="['pms:imp-training:issue']"
             >{{ row.status === 1 ? '重新外发' : '推送至客户' }}</el-button
@@ -84,7 +84,7 @@
           <el-button
             link
             type="warning"
-            v-if="row.status === 0 || row.status === 1"
+            v-if="!readonly && (row.status === 0 || row.status === 1)"
             @click="voidRow(row)"
             v-hasPermi="['pms:imp-training:update']"
             >作废</el-button
@@ -92,7 +92,7 @@
           <el-button
             link
             type="danger"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="remove(row)"
             v-hasPermi="['pms:imp-training:delete']"
             >删除</el-button
@@ -323,7 +323,7 @@ import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
 defineOptions({ name: 'PmsImpTraining' })
 
 // 项目详情页嵌入模式：传入 project-id 固定项目并隐藏项目选择；独立路由页行为不变
-const props = defineProps<{ projectId?: number }>()
+const props = defineProps<{ projectId?: number; /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
 
 const message = useMessage()
 const route = useRoute()

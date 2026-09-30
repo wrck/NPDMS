@@ -54,7 +54,7 @@ class CommerceAuthorityWriteServiceTest {
         verify(ingestApi).ingestBatch(batch.capture());
         assertEquals("ERP", batch.getValue().sourceSystem());
         assertEquals("v1", batch.getValue().salesOrders().getFirst().expectedPreviousSourceVersion());
-        assertEquals("ERP-PRODUCT-1", batch.getValue().orderLines().getFirst().productCode());
+        assertEquals("ITEM-1", batch.getValue().orderLines().getFirst().productCode());
         assertEquals(new BigDecimal("100"), batch.getValue().orderLines().getFirst().openQuantity());
     }
 

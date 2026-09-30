@@ -46,8 +46,7 @@ public class JointTestServiceImpl implements JointTestService {
         }
         JointTestDO entity = BeanUtils.toBean(createReqVO, JointTestDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.JOINT_TEST, jointTestMapper,
-                JointTestDO::getProjectId, JointTestDO::getCode));
+                EngineeringRecordCodeGenerator.JOINT_TEST, jointTestMapper));
         entity.setStatus(EngStatusEnum.JOINT_TEST_PENDING);
         jointTestMapper.insert(entity);
         return entity.getId();

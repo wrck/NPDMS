@@ -139,7 +139,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import dayjs from 'dayjs'
-import type { StagePlanItemVO, StagePlanTaskVO } from '@/api/pms/engineering/stage-plan'
+import type {
+  StagePlanBatchVO,
+  StagePlanItemVO,
+  StagePlanTaskVO
+} from '@/api/pms/engineering/stage-plan'
 import {
   buildScheduleRows,
   scheduleRowIssue,
@@ -151,15 +155,29 @@ import {
 const props = defineProps<{
   items: StagePlanItemVO[]
   tasks: StagePlanTaskVO[]
+  plan?: StagePlanBatchVO
   editable: boolean
   navigationDisabled: boolean
   overdueByStage?: Record<number, number>
-  acceptanceByStage: Record<string, string>
 }>()
 const emit = defineEmits<{ 'open-task': [task: StagePlanTaskVO] }>()
 const view = ref('dates'),
   keyword = ref('')
 const rows = computed(() => buildScheduleRows(props.items, props.tasks, keyword.value))
+// 推算带入的各阶段计划验收时间（展示用）；安排检查中的验收判定见 stageItemIssue
+const acceptanceByStage = computed<Record<string, string>>(() => {
+  let input: { stages?: { stageCode?: string; acceptanceTime?: string }[] }
+  try {
+    input = JSON.parse(props.plan?.inputSnapshot || '{}')
+  } catch {
+    input = {}
+  }
+  return Object.fromEntries(
+    (input.stages || [])
+      .filter((stage) => stage.acceptanceTime && stage.stageCode)
+      .map((stage) => [stage.stageCode!, stage.acceptanceTime!])
+  )
+})
 // 阶段展开状态由 collapsedKeys 受控保持：面板刷新重建行数据后，未折叠的阶段仍保持展开。
 const collapsedKeys = ref<Set<string>>(new Set())
 const expandedKeys = computed(() =>
@@ -176,13 +194,7 @@ const onExpandChange = (row: ScheduleRow) => {
 }
 const range = computed(() => scheduleRange(props.items, props.tasks))
 const issue = (row: ScheduleRow) =>
-  (row.kind === 'stage' &&
-  row.value.planEnd &&
-  props.acceptanceByStage[row.stage.phaseCode!] &&
-  row.value.planEnd > props.acceptanceByStage[row.stage.phaseCode!].slice(0, 10)
-    ? '晚于计划验收日期'
-    : '') ||
-  scheduleRowIssue(row) ||
+  scheduleRowIssue(row, props.plan) ||
   (row.kind === 'stage' && props.overdueByStage?.[row.stage.phaseId!]
     ? `超期 ${props.overdueByStage[row.stage.phaseId!]} 天`
     : '')

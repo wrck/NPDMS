@@ -102,7 +102,7 @@ class StagePlanBatchServiceTest {
                 new ProjectStagePlanApi.TaskPlan(21L, null, "S1", "设备安装", 1,
                         LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 4)))));
         var failure = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
-        assertTrue(failure.getMessage().contains("计划验收时间"));
+        assertEquals("阶段计划日期无效：任务 设备安装 须安排在所属阶段内且不晚于计划验收时间", failure.getMessage());
         verifyNoInteractions(processInstanceApi);
     }
 
@@ -269,7 +269,34 @@ class StagePlanBatchServiceTest {
                 item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
                 item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 4), LocalDate.of(2026, 1, 10))));
         ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
-        assertTrue(ex.getMessage().contains("不得早于"));
+        // 逐字钉住提交校验文案（错误码前缀 + 明细）：前端安排检查/提交预检按明细同文提示（schedulePresentation.spec 镜像断言）
+        assertEquals("阶段计划日期无效：硬件实施 计划开始不得早于前一阶段【到货签收】计划结束", ex.getMessage());
+        verifyNoInteractions(processInstanceApi);
+    }
+
+    @Test
+    void stageSequenceRejectsInvertedAndOutOfWindowDates() {
+        batch.setCalculatedStart(LocalDate.of(2026, 1, 1));
+        batch.setCalculatedEnd(LocalDate.of(2026, 1, 11));
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "到货签收", 1, null, null, LocalDate.of(2025, 12, 30), LocalDate.of(2026, 1, 5))));
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertEquals("阶段计划日期无效：到货签收 计划时间超出工期基线窗口（2026-01-01 ~ 2026-01-11）", ex.getMessage());
+        verifyNoInteractions(processInstanceApi);
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 1))));
+        ServiceException inverted = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertEquals("阶段计划日期无效：到货签收 计划结束时间早于计划开始时间", inverted.getMessage());
+    }
+
+    @Test
+    void stageEndingAfterItsPlannedAcceptanceRejected() {
+        // 阶段验收时间来自推算输入快照；阶段结束晚于它提交即拒，文案与前端一致
+        batch.setInputSnapshot("{\"stages\":[{\"stageId\":1,\"stageCode\":\"S1\",\"acceptanceTime\":\"2026-01-10T00:00:00\"}]}");
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
+                item(1L, "验收交维", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 15))));
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertEquals("阶段计划日期无效：验收交维 计划结束不得晚于计划验收时间", ex.getMessage());
         verifyNoInteractions(processInstanceApi);
     }
 

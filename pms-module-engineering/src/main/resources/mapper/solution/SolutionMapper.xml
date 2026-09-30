@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper">
+
+    <!-- 记录编码全集（含软删除行）：唯一键 (project_id, code) 不含 deleted，推号必须看见被占用编码 -->
+    <select id="selectRecordCodesIncludeDeleted" resultType="java.lang.String">
+        SELECT code
+        FROM sol_eng_solution
+        WHERE project_id = #{projectId}
+          AND code IS NOT NULL
+    </select>
+
+    <!-- 实施方案成果锁读：审批通过（状态 3）是唯一有效结果事实，身份三元组精确命中 -->
+    <select id="selectResultForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO">
+        SELECT * FROM sol_eng_solution
+        WHERE id = #{query.solutionId} AND tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId} AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <!-- 业务成果清单：已批准方案按 ID 升序有界分页；空 objectIds 显式返回空 -->
+    <select id="selectResultInventory" resultType="java.lang.String">
+        SELECT id FROM sol_eng_solution
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0
+          AND status = 3 AND approved_time IS NOT NULL AND baseline_version IS NOT NULL
+        <if test="query.afterId != null">AND id &gt; #{query.afterId}</if>
+        <if test="query.objectIds != null">
+            <choose>
+                <when test="query.objectIds.size() > 0">
+                    AND id IN <foreach collection="query.objectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND 1=0</otherwise>
+            </choose>
+        </if>
+        ORDER BY id ASC LIMIT #{query.limit}
+    </select>
+</mapper>

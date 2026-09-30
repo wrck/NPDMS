@@ -30,6 +30,7 @@
             order_comment = #{row.orderComment},
             order_create_time = #{row.orderCreateTime},
             customer_required_time = #{row.customerRequiredTime},
+            custom_info = #{row.customInfo},
             source_version = #{row.sourceVersion}, source_updated_at = #{row.sourceUpdatedAt},
             source_sync_time = #{row.syncedAt}, status = #{row.status}, version = version + 1,
             updater = #{row.updater}, update_time = #{row.updateTime}

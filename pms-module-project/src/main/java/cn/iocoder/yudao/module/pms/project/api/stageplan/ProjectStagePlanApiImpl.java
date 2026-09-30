@@ -114,9 +114,9 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
                                 rule.getOffsetMonths(), rule.getOffsetDays(), Boolean.TRUE.equals(rule.getEnabled())))
                         .toList(),
                 project.getSigningMethod(),
-                // 工期要求锚点：工勘要求结束日期（Demo 工前准备带入）未登记时回退计划域本版工期（倒排截止）；
-                // 无验收带入或参照断链时该锚同样是兜底锚
-                project.getProjectEndDate() != null ? project.getProjectEndDate() : end);
+                // 工期要求锚点：本版工期倒排截止（工期结束日期）。倒排固定按工期结束日期计算，
+                // 不取工勘要求结束日期；无验收带入或参照断链时该锚同样是兜底锚
+                end);
         // Demo 3.1：各阶段计划起止为逐行直接输入；不再按工期占比分配
         var inputStages = new java.util.ArrayList<java.util.Map<String, Object>>();
         var planDates = new java.util.ArrayList<StagePlanDate>();
@@ -142,7 +142,10 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
             if (deadline != null && adviceEnd != null && adviceEnd.isAfter(deadline))
                 throw new IllegalArgumentException(stage.getCode() + " 计划结束晚于计划验收时间，请调整工期配置");
             planDates.add(new StagePlanDate(stage.getId(),
-                    stage.getSuggestedStartTime() == null ? null : stage.getSuggestedStartTime().toLocalDate(), adviceEnd));
+                    // 建议最迟完成早于建议起始时不预填开始日期：锚点改按工期结束日期倒排后，
+                    // 历史建议起始可能与新建议倒挂，写 null 交给用户补填而不是产出倒挂区间
+                    stage.getSuggestedStartTime() == null || (adviceEnd != null && adviceEnd.isBefore(stage.getSuggestedStartTime().toLocalDate()))
+                            ? null : stage.getSuggestedStartTime().toLocalDate(), adviceEnd));
         }
         var inputs = new java.util.LinkedHashMap<String, Object>();
         inputs.put("sourcePlanVersionId", plan.getId()); inputs.put("signingMethod", project.getSigningMethod());

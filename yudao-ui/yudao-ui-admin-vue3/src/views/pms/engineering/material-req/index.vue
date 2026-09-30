@@ -70,8 +70,8 @@
           <dict-tag :type="DICT_TYPE.PMS_MATERIAL_REQ_TYPE" :value="row.requisitionType" />
         </template>
       </el-table-column>
-      <el-table-column prop="materialCode" label="物料编码" width="140" />
-      <el-table-column prop="materialName" label="物料名称" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="productCode" label="产品编码/物料编码" width="140" />
+      <el-table-column prop="productName" label="产品名称/物料名称" min-width="140" show-overflow-tooltip />
       <el-table-column prop="specification" label="规格" width="120" show-overflow-tooltip />
       <el-table-column label="数量" width="110">
         <template #default="{ row }">
@@ -195,10 +195,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="物料名称" prop="materialName"><el-input v-model="form.materialName" /></el-form-item>
+          <el-form-item label="产品名称/物料名称" prop="productName"><el-input v-model="form.productName" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="物料编码" prop="materialCode"><el-input v-model="form.materialCode" /></el-form-item>
+          <el-form-item label="产品编码/物料编码" prop="productCode"><el-input v-model="form.productCode" /></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="规格型号" prop="specification"><el-input v-model="form.specification" /></el-form-item>
@@ -307,8 +307,8 @@
         <dict-tag :type="DICT_TYPE.PMS_MATERIAL_REQ_TYPE" :value="current.requisitionType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="关联设备">{{ current.equipmentId }}</el-descriptions-item>
-      <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
-      <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
+      <el-descriptions-item label="产品名称/物料名称">{{ current.productName }}</el-descriptions-item>
+      <el-descriptions-item label="产品编码/物料编码">{{ current.productCode }}</el-descriptions-item>
       <el-descriptions-item label="规格型号">{{ current.specification }}</el-descriptions-item>
       <el-descriptions-item label="数量">{{ current.quantity }} {{ current.unit }}</el-descriptions-item>
       <el-descriptions-item label="需求日期">{{ current.neededDate }}</el-descriptions-item>
@@ -420,8 +420,8 @@ const form = reactive<MaterialRequisitionVO>({
   name: '',
   requisitionType: 'SPARE',
   equipmentId: undefined,
-  materialName: '',
-  materialCode: '',
+  productName: '',
+  productCode: '',
   specification: '',
   quantity: undefined!,
   unit: '个',
@@ -440,7 +440,7 @@ const rules = {
   code: [{ required: true, message: '请输入单号' }],
   name: [{ required: true, message: '请输入名称' }],
   requisitionType: [{ required: true, message: '请选择类型' }],
-  materialName: [{ required: true, message: '请输入物料名称' }],
+  productName: [{ required: true, message: '请输入产品名称/物料名称' }],
   quantity: [{ required: true, message: '请输入数量' }],
   applicantUserId: [{ required: true, message: '请选择申请人' }],
   applyTime: [{ required: true, message: '请选择申请时间' }]
@@ -457,8 +457,8 @@ const openCreate = () => {
     name: '',
     requisitionType: 'SPARE',
     equipmentId: undefined,
-    materialName: '',
-    materialCode: '',
+    productName: '',
+    productCode: '',
     specification: '',
     quantity: undefined,
     unit: '个',

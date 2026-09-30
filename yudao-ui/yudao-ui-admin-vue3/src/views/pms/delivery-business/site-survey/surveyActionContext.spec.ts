@@ -17,7 +17,7 @@ describe('survey shortcuts preserve real source identities', () => {
     vi.mocked(getSiteSurvey).mockResolvedValue({ id: 1, projectId: 7, code: 'SS', name: '工勘', status: 0, businessValues: { materialMatches: false, selectedMaterials: [{ deviceId: 9, sn: 'SN1', reason: '接口不匹配' }] } })
     vi.mocked(getDevice).mockResolvedValue({ summary: { deviceId: 9, projectId: 7, sn: 'SN1', productCode: 'SOURCE-P1', productName: '来源产品' } } as any)
     const result = await loadSurveyActionContext(1, 'exchange', 'SN1')
-    expect(result).toMatchObject({ materialCode: 'SOURCE-P1', materialName: '来源产品', reason: '接口不匹配' })
+    expect(result).toMatchObject({ productCode: 'SOURCE-P1', productName: '来源产品', reason: '接口不匹配' })
     expect(result).not.toHaveProperty('equipmentId')
     vi.mocked(getDevice).mockResolvedValue({ summary: { deviceId: 9, projectId: 8, sn: 'SN1' } } as any)
     await expect(loadSurveyActionContext(1, 'exchange', 'SN1')).rejects.toThrow('设备项目归属已变化')

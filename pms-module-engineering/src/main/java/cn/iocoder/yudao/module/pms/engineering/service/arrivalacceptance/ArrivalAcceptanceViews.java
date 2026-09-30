@@ -60,7 +60,7 @@ public final class ArrivalAcceptanceViews {
 
     public record ArrivalLineData(Long id, Integer lineNo, Integer lineRevision, String scopeType,
                                   Long deviceId, Long deviceAssignmentVersion, Long orderLineId,
-                                  String productCode, String modelCode, BigDecimal expectedQuantity,
+                                  String productCode, String productModel, BigDecimal expectedQuantity,
                                   BigDecimal acceptedQuantity, String unitCode, String status,
                                   Integer version) {
     }

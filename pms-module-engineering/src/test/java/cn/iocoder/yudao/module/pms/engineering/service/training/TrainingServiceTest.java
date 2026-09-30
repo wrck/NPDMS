@@ -47,7 +47,7 @@ class TrainingServiceTest {
         ReflectionTestUtils.setField(service, "deliveryMaterialApi", deliveryMaterialApi);
         ReflectionTestUtils.setField(service, "adminUserApi", adminUserApi);
         ReflectionTestUtils.setField(service, "fileApi", fileApi);
-        doReturn("PROJ-JF-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        doReturn("PROJ-JF-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new TrainingDO();
         row.setId(1L);

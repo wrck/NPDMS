@@ -32,6 +32,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -218,9 +219,19 @@ class ExplicitPermissionApiImplTest {
                 () -> transaction.execute(s -> api.lockAndCheck(1L, 101L, PERMISSION)));
     }
 
+    @Test
+    void listsEveryCurrentGrantHolderOrdered() {
+        jdbc.update("INSERT INTO system_users(id, username, nickname, status, tenant_id) VALUES (102, 'explicit-test-2', 'test2', 0, 1)");
+        jdbc.update("INSERT INTO system_user_role(id, user_id, role_id, tenant_id) VALUES (303, 102, 201, 1)");
+        assertEquals(List.of(101L, 102L), api.listUsersWithPermission(1L, PERMISSION));
+        jdbc.update("UPDATE system_users SET status = 1 WHERE id = 102");
+        assertEquals(List.of(101L), api.listUsersWithPermission(1L, PERMISSION));
+    }
+
     private void assertBoth(boolean expected, String permission) {
         assertEquals(expected, api.hasExplicitPermission(1L, 101L, permission));
         assertEquals(expected, Boolean.TRUE.equals(transaction.execute(s -> api.lockAndCheck(1L, 101L, permission))));
+        assertEquals(expected ? List.of(101L) : List.of(), api.listUsersWithPermission(1L, permission));
     }
 
     @Configuration(proxyBeanMethods = false)

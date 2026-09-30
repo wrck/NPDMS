@@ -34,29 +34,30 @@ public class SolutionReviewBpmGuard {
     private final ProjectParticipantFactApi participants;
     private final ExplicitPermissionApi permissions;
     private final AdminUserApi users;
-    private final ThreadLocal<SolutionReviewBpmApi.Start> authorized = new ThreadLocal<>();
+    private record Authorized(SolutionReviewBpmApi.Start command, Map<String, Long> candidates) { }
+    private final ThreadLocal<Authorized> authorized = new ThreadLocal<>();
 
-    <T> T starting(SolutionReviewBpmApi.Start command, Supplier<T> action) {
+    <T> T starting(SolutionReviewBpmApi.Start command, Map<String, Long> candidates, Supplier<T> action) {
         if (authorized.get() != null) throw new IllegalStateException("Nested solution review");
-        authorized.set(command);
+        authorized.set(new Authorized(command, Map.copyOf(candidates)));
         try { return action.get(); } finally { authorized.remove(); }
     }
 
     public void freeze(DelegateExecution execution) {
-        var command = authorized.get();
-        if (command == null || !Objects.equals(command.tenantId().toString(), execution.getTenantId())
-                || !Objects.equals(command.businessKey(), execution.getProcessInstanceBusinessKey())
-                || !Objects.equals(command.definitionId(), execution.getProcessDefinitionId()))
+        var frozen = authorized.get();
+        if (frozen == null || !Objects.equals(frozen.command().tenantId().toString(), execution.getTenantId())
+                || !Objects.equals(frozen.command().businessKey(), execution.getProcessInstanceBusinessKey())
+                || !Objects.equals(frozen.command().definitionId(), execution.getProcessDefinitionId()))
             throw new IllegalStateException("方案审核必须从已授权方案入口发起");
-        runtime.addUserIdentityLink(execution.getProcessInstanceId(), command.actorId().toString(), PREFIX + "starter");
-        runtime.addUserIdentityLink(execution.getProcessInstanceId(), command.projectId().toString(), PREFIX + "project");
-        command.candidates().forEach((key, user) -> runtime.addUserIdentityLink(
+        runtime.addUserIdentityLink(execution.getProcessInstanceId(), frozen.command().actorId().toString(), PREFIX + "starter");
+        runtime.addUserIdentityLink(execution.getProcessInstanceId(), frozen.command().projectId().toString(), PREFIX + "project");
+        frozen.candidates().forEach((key, user) -> runtime.addUserIdentityLink(
                 execution.getProcessInstanceId(), user.toString(), PREFIX + key));
     }
 
-    void authorize(Long tenant, Long actor, Long project, String responsibility, Long starter) {
+    void authorize(Long tenant, Long actor, Long project, String responsibility) {
         requireTenant(tenant);
-        if (actor == null || Objects.equals(actor, starter)) throw new IllegalArgumentException("申请人不能审批自己的方案");
+        if (actor == null) throw new IllegalArgumentException("审批人无效");
         users.validateUser(actor);
         var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
         if (visible == null || !visible.fullProjectIds().contains(project)) throw new IllegalArgumentException("审批人没有项目范围");
@@ -94,8 +95,28 @@ public class SolutionReviewBpmGuard {
             throw new IllegalStateException("缺少真实 BPM 审批决定");
         if (deciding) {
             var element = repository.getBpmnModel(task.getProcessDefinitionId()).getFlowElement(task.getTaskDefinitionKey());
-            authorize(tenant, candidate, frozen.apply("project"), SolutionReviewBpmService.responsibility(element), frozen.apply("starter"));
+            authorize(tenant, candidate, frozen.apply("project"), SolutionReviewBpmService.responsibility(element));
         }
+    }
+
+    /** 服务经理节点默认审批人：本项目当前唯一有效服务经理；缺失、多人或兼任冲突均拒绝提交。 */
+    long resolveServiceManager(Long tenant, Long project) {
+        requireTenant(tenant);
+        try {
+            return participants.inspect(new ProjectParticipantFactQuery(project, null,
+                    ProjectMemberRoles.SERVICE_CODES, LocalDateTime.now())).userId();
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException failure) {
+            throw new IllegalArgumentException("本项目未配置唯一有效服务经理，无法提交审批");
+        }
+    }
+
+    /** 工程管理部节点默认审批人：major-review 显式授权的唯一持有人；未配置或多人均拒绝提交。 */
+    long resolveEngineeringReviewer(Long tenant) {
+        requireTenant(tenant);
+        var holders = permissions.listUsersWithPermission(tenant, SolutionReviewBpmApi.ENGINEERING_REVIEW_PERMISSION);
+        if (holders.isEmpty()) throw new IllegalArgumentException("工程管理部方案复审授权未配置持有人，请先在权限管理中授予");
+        if (holders.size() > 1) throw new IllegalArgumentException("工程管理部方案复审授权存在多名持有人，无法确定默认复审人");
+        return holders.getFirst();
     }
 
     static void requireTenant(Long tenant) {

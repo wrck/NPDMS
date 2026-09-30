@@ -184,12 +184,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as RequirementApi from '@/api/pms/engineering/requirement'
 import type { RequirementVO } from '@/api/pms/engineering/requirement'
 import * as ProjectApi from '@/api/pms/project/projects'
+import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { buildRecordName } from '../recordNaming'
 
 defineOptions({ name: 'PmsEngRequirement' })
 const message = useMessage()
@@ -215,6 +217,37 @@ const rules = {
   name: [{ required: true, message: '请输入需求名称' }],
   requirementType: [{ required: true, message: '请选择需求类型' }]
 }
+
+// 新建记录名称规范：项目编码_项目名称_需求类型_年月日时分秒（需求无版本标签）；用户改过名称后不再覆盖
+const projectInfo = ref<ProjectMasterVO>()
+const lastAutoName = ref('')
+watch(
+  () => form.projectId,
+  async (pid) => {
+    const id = Number(pid)
+    if (!id || id <= 0 || form.id) return
+    try {
+      const project = await ProjectApi.getProject(id)
+      if (Number(form.projectId) === id && !form.id) projectInfo.value = project
+    } catch {
+      // 项目信息获取失败时保持手输名称
+    }
+  }
+)
+watch([projectInfo, () => form.requirementType], () => {
+  if (form.id || !projectInfo.value) return
+  if (form.name && form.name !== lastAutoName.value) return
+  const typeLabel =
+    getStrDictOptions(DICT_TYPE.PMS_REQUIREMENT_TYPE).find(option => option.value === form.requirementType)?.label ??
+    form.requirementType
+  form.name = buildRecordName({
+    projectCode: projectInfo.value.projectCode,
+    projectName: projectInfo.value.projectName,
+    typeLabel,
+    version: undefined
+  })
+  lastAutoName.value = form.name
+})
 
 const load = async () => {
   loading.value = true

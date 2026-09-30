@@ -9,6 +9,13 @@ package cn.iocoder.yudao.module.system.api.permission;
 public interface ExplicitPermissionApi {
 
     /**
+     * 查询启用、未删除且同租户、经真实角色—菜单授权链持有该权限码的用户ID，升序返回。
+     * 权限码区分大小写、精确匹配；超级管理员同样必须具有真实显式授权。
+     * 缺失/非法参数或租户上下文不一致返回空列表；普通查询不防止检查后的并发撤权。
+     */
+    java.util.List<Long> listUsersWithPermission(Long tenantId, String permission);
+
+    /**
      * 查询启用、未删除且同租户的用户及真实角色—菜单授权链。
      * 权限码区分大小写、精确匹配；菜单隐藏不影响授权。
      * 超级管理员也必须具有真实显式授权。缺失/非法参数或租户上下文不一致返回 false，

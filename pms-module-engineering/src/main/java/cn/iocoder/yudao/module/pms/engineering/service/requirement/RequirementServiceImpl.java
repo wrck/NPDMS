@@ -37,8 +37,7 @@ public class RequirementServiceImpl implements RequirementService {
         validateInterfaceType(createReqVO.getRequirementType());
         RequirementDO requirement = BeanUtils.toBean(createReqVO, RequirementDO.class);
         requirement.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.REQUIREMENT, requirementMapper,
-                RequirementDO::getProjectId, RequirementDO::getCode));
+                EngineeringRecordCodeGenerator.REQUIREMENT, requirementMapper));
         if (requirement.getStatus() == null) {
             requirement.setStatus(0); // 草稿
         }

@@ -56,7 +56,7 @@ public record CommerceAuthorityImportBatchReqVO(
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
             @NotNull LocalDateTime sourceUpdatedAt,
             String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime,
-            @Size(max = 64) String contractNo, @Size(max = 64) String executionNo) {
+            String customInfo, @Size(max = 64) String contractNo, @Size(max = 64) String executionNo) {
         public SalesOrderRecord(
             String sourceRecordKey,
             String expectedPreviousSourceVersion,
@@ -70,7 +70,7 @@ public record CommerceAuthorityImportBatchReqVO(
             String currencyCode,
             CommerceSourceLifecycleStatus lifecycleStatus,
             LocalDateTime sourceUpdatedAt) {
-            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null, null);
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null, null, null);
         }
 
     }
@@ -81,10 +81,9 @@ public record CommerceAuthorityImportBatchReqVO(
             @NotBlank @Size(max = 64) String sourceVersion,
             @NotBlank @Size(max = 128) String orderSourceRecordKey,
             @NotBlank @Size(max = 32) String lineNo,
-            @Size(max = 64) String itemCode,
-            @Size(max = 512) String itemDescription,
             @Size(max = 64) String productCode,
-            @Size(max = 64) String modelCode,
+            @Size(max = 512) String productDesc,
+            @Size(max = 64) String productModel,
             @PositiveOrZero BigDecimal orderQuantity,
             @PositiveOrZero BigDecimal openQuantity,
             @PositiveOrZero BigDecimal deliveredQuantity,
@@ -93,17 +92,17 @@ public record CommerceAuthorityImportBatchReqVO(
             @NotBlank @Size(max = 32) String quantityStatus,
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
             @NotNull LocalDateTime sourceUpdatedAt,
-            String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth) {
+            String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth,
+            String customInfo) {
         public SalesOrderLineRecord(
             String sourceRecordKey,
             String expectedPreviousSourceVersion,
             String sourceVersion,
             String orderSourceRecordKey,
             String lineNo,
-            String itemCode,
-            String itemDescription,
             String productCode,
-            String modelCode,
+            String productDesc,
+            String productModel,
             BigDecimal orderQuantity,
             BigDecimal openQuantity,
             BigDecimal deliveredQuantity,
@@ -112,7 +111,7 @@ public record CommerceAuthorityImportBatchReqVO(
             String quantityStatus,
             CommerceSourceLifecycleStatus lifecycleStatus,
             LocalDateTime sourceUpdatedAt) {
-            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, orderSourceRecordKey, lineNo, itemCode, itemDescription, productCode, modelCode, orderQuantity, openQuantity, deliveredQuantity, unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, orderSourceRecordKey, lineNo, productCode, productDesc, productModel, orderQuantity, openQuantity, deliveredQuantity, unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null);
         }
 
     }

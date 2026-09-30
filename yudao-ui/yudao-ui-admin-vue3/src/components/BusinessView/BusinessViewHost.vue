@@ -28,6 +28,8 @@
     </el-alert>
     <component :is="resolved.component" v-else-if="operation.mode.value !== 'CHECKING'" :key="`${activeKey}:${retryNo}`" ref="contentRef" v-bind="resolved.props"
       @changed="ownerChanged" @dirty-change="setDirty" />
+    <!-- 执行能力检查中不裸露空白框架：单次加载占位，避免框架→默认页→最终内容多次跳变 -->
+    <div v-else v-loading="true" class="business-view-loading" />
   </section>
 </template>
 <script setup lang="ts">
@@ -60,6 +62,9 @@ const ownerChanged = () => { emit('changed'); void operation.refresh(true) }
 // 脏标记必须随之复位，否则切换与重新装载会被永久阻断。
 const contentMounted = computed(() => !loadError.value && !resolved.value.error && operation.mode.value !== 'CHECKING')
 watch(contentMounted, (mounted) => { if (!mounted) setDirty(false) })
+// 首判定是否完成（内容挂载或明确报错）：宿主用它对齐外围区块（如来源交付件）的出现时机，
+// 避免交付件先于业务内容渲染造成布局跳变
+const viewSettled = computed(() => contentMounted.value || !!loadError.value || !!resolved.value.error)
 let leaving: Promise<boolean> | undefined
 const requestLeave = (): Promise<boolean> => {
   if (operation.client.value?.isBusy()) return Promise.resolve(false)
@@ -107,8 +112,13 @@ const retry = async () => {
 }
 onErrorCaptured(() => { loadError.value = '业务组件暂不可用；请先确认已提交操作的结果，再重试装载。'; return false })
 onBeforeRouteLeave(requestLeave)
-defineExpose({ requestLeave, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain() })
+defineExpose({ requestLeave, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain(), viewSettled })
 </script>
 <style scoped>
 .business-view-host { min-width: 0; }
+/* v-loading 掩罩绝对定位：宿主需自 relative，转圈才落在占位区内 */
+.business-view-loading {
+  position: relative;
+  min-height: 200px;
+}
 </style>

@@ -78,7 +78,6 @@ export interface SalesOrderLinePageReqVO extends PageParam {
   orderType?: string
   orderNo?: string
   lineNo?: string
-  itemCode?: string
   productCode?: string
   quantityStatus?: string
   status?: string
@@ -93,9 +92,7 @@ export interface SalesOrderLineRespVO {
   orderType: string
   orderNo: string
   lineNo: string
-  itemCode: string
-  itemDesc?: string
-  productCode?: string
+  productCode: string
   orderQty: number
   openQty: number
   deliveredQty: number
@@ -125,8 +122,8 @@ export interface DeliveryScopeRespVO {
   orderLineId: number
   orderNo: string
   lineNo: string
-  itemCode: string
-  itemDesc?: string
+  productCode: string
+  productDesc?: string
   allocatedQuantity: number
   scopeStatus: string
   allocationVersion: number

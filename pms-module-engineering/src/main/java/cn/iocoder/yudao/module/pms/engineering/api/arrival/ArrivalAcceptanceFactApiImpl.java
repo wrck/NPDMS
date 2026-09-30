@@ -374,7 +374,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
 
     private static ArrivalQuantityScopeFact quantityFact(ArrivalLineDO line) {
         return new ArrivalQuantityScopeFact(line.getOrderLineId(), line.getProductCode(),
-                line.getModelCode(), line.getAcceptedQuantity(), line.getUnit());
+                line.getProductModel(), line.getAcceptedQuantity(), line.getUnit());
     }
 
     private static ArrivalFactCalculator.DeviceExemption deviceExemption(
@@ -390,7 +390,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             ArrivalDifferenceDO difference, ArrivalDifferenceScopeCodec.QuantityScope quantity) {
         return new ArrivalFactCalculator.QuantityExemption(
                 difference.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(quantity.orderLineId(),
-                quantity.productCode(), quantity.modelCode(), quantity.quantity(), quantity.unitCode()),
+                quantity.productCode(), quantity.productModel(), quantity.quantity(), quantity.unitCode()),
                 difference.getReason(), difference.getRiskDescription(), difference.getApprovedBy(),
                 difference.getApprovedAt(), difference.getEvidenceId(), difference.getEvidenceRevision(),
                 difference.getExemptionExpiresAt());
@@ -422,7 +422,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             }
             if (line.serialNumbers().isEmpty()) {
                 QuantityKey key = new QuantityKey(line.orderLineId(), line.productCode(),
-                        line.modelCode(), line.unitCode());
+                        line.productModel(), line.unitCode());
                 if (quantities.put(key, line.assignedQuantity()) != null) {
                     throw new IllegalStateException("assigned delivery quantity is duplicated");
                 }
@@ -535,16 +535,16 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             List<ArrivalFactCalculator.QuantityExemption> quantityExemptions) {
     }
 
-    private record QuantityKey(Long orderLineId, String productCode, String modelCode,
+    private record QuantityKey(Long orderLineId, String productCode, String productModel,
                                String unitCode) implements Comparable<QuantityKey> {
 
         private static QuantityKey from(ArrivalQuantityScopeFact scope) {
             return new QuantityKey(scope.orderLineId(), scope.productCode(),
-                    scope.modelCode(), scope.unitCode());
+                    scope.productModel(), scope.unitCode());
         }
 
         private ArrivalQuantityScopeFact scope(BigDecimal quantity) {
-            return new ArrivalQuantityScopeFact(orderLineId, productCode, modelCode, quantity, unitCode);
+            return new ArrivalQuantityScopeFact(orderLineId, productCode, productModel, quantity, unitCode);
         }
 
         @Override
@@ -553,7 +553,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             if (compared != 0) return compared;
             compared = compareNullable(productCode, other.productCode);
             if (compared != 0) return compared;
-            compared = compareNullable(modelCode, other.modelCode);
+            compared = compareNullable(productModel, other.productModel);
             if (compared != 0) return compared;
             return unitCode.compareTo(other.unitCode);
         }

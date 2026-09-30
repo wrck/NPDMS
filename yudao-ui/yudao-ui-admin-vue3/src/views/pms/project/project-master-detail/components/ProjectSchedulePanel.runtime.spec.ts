@@ -217,6 +217,8 @@ it('prevents approval when a task remains outside its stage and keeps approved v
   const app = render()
   try {
     await flush()
+    // 提交检查先要求调整原因，再校验阶段区间与任务安排
+    app.state.batch.remark = '现场协调调整'
     app.state.batch.tasks[0].planEnd = '2026-11-01'
     app.state.saved = JSON.stringify(app.state.batch)
     app.state.approverId = 9
@@ -225,6 +227,22 @@ it('prevents approval when a task remains outside its stage and keeps approved v
     expect(feedback.warning).toHaveBeenCalledWith(expect.stringContaining('超出所属阶段'))
     await app.state.selectBatch(7)
     expect(app.state.editable).toBe(false)
+  } finally {
+    app.app.unmount()
+  }
+})
+
+it('auto-fits violating task dates into the stage window when stage dates change', async () => {
+  const app = render()
+  try {
+    await flush()
+    // 任务日期落在阶段区间之外（整体早于区间），阶段计划时间更新后应立即自动适配进区间并保持天数
+    app.state.batch.tasks[0].planStart = '2026-09-01'
+    app.state.batch.tasks[0].planEnd = '2026-09-08'
+    app.state.batch.items[0].planStart = '2026-10-05'
+    await flush()
+    expect(app.state.batch.tasks[0].planStart).toBe('2026-10-05')
+    expect(app.state.batch.tasks[0].planEnd).toBe('2026-10-12')
   } finally {
     app.app.unmount()
   }

@@ -112,7 +112,7 @@ const routes = computed(() => Object.values(businessPageRoutes).filter(route => 
   && route.entityType === props.binding?.targetObjectType && route.componentKey === props.binding?.componentKey))
 const sourceKey = (item: { ownerContext: string; entityType: string; resultType: string }) => JSON.stringify([item.ownerContext, item.entityType, item.resultType])
 const source = (item: ExecutionSubscription) => results.value.find(candidate => sourceKey(candidate) === sourceKey(item))
-const resultNames: Record<string, string> = { SURVEY_CONFIRMED: '工勘确认结果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析完成结果', REPORT_VERSION_PUBLISHED: '验收报告发布结果' }
+const resultNames: Record<string, string> = { SURVEY_CONFIRMED: '工勘确认结果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析完成结果', IMPLEMENTATION_PLAN_APPROVED: '实施方案批准结果', REPORT_VERSION_PUBLISHED: '验收报告发布结果' }
 const resultLabel = (item: { entityType: string; resultType: string }) => resultNames[item.resultType] ?? `${item.entityType} · ${item.resultType}`
 const operationLabel = (code?: string) => operations.value.find(item => item.operationCode === code)?.label ?? code ?? '权限对应动作'
 // 多源watch逐值比较：父组件以新对象字面量传入结构相同的binding时不得重置已加载目录。

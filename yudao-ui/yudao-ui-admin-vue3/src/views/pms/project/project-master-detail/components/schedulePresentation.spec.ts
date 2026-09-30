@@ -3,6 +3,8 @@ import {
   shortPlan,
   deadlineHint,
   taskPlanIssue,
+  stageItemIssue,
+  fitTaskPlanIntoStage,
   buildScheduleRows,
   scheduleRange,
   timelineBar,
@@ -54,6 +56,99 @@ describe('施工计划展示与安排检查', () => {
         },
         stage
       )
+    ).toBe('')
+  })
+  it('阶段区间更新时把越界任务平移回区间并保持天数，超长收紧、无窗口与倒挂窗口不动', () => {
+    const stage = { planStart: '2026-07-01', planEnd: '2026-07-31' }
+    const make = (planStart: string, planEnd: string) => ({
+      taskId: 1,
+      stageCode: 'S1',
+      name: '任务',
+      version: 1,
+      planStart,
+      planEnd
+    })
+    // 结束越界：平移到区间尾并保持天数
+    const late = make('2026-09-01', '2026-09-08')
+    expect(fitTaskPlanIntoStage(late, stage)).toBe(true)
+    expect(late.planStart).toBe('2026-07-24')
+    expect(late.planEnd).toBe('2026-07-31')
+    // 整体早于区间：平移到区间头并保持天数
+    const early = make('2026-05-25', '2026-05-29')
+    expect(fitTaskPlanIntoStage(early, stage)).toBe(true)
+    expect(early.planStart).toBe('2026-07-01')
+    expect(early.planEnd).toBe('2026-07-05')
+    // 跨越且超长：收紧为整个区间
+    const spanning = make('2026-06-20', '2026-08-10')
+    expect(fitTaskPlanIntoStage(spanning, stage)).toBe(true)
+    expect(spanning.planStart).toBe('2026-07-01')
+    expect(spanning.planEnd).toBe('2026-07-31')
+    // 区间内任务、未安排、阶段无日期、倒挂窗口均不动
+    const inside = make('2026-07-02', '2026-07-04')
+    expect(fitTaskPlanIntoStage(inside, stage)).toBe(false)
+    expect(inside.planStart).toBe('2026-07-02')
+    expect(fitTaskPlanIntoStage({ ...make('2026-07-02', '2026-07-04'), planStart: undefined!, planEnd: undefined! }, stage)).toBe(false)
+    expect(fitTaskPlanIntoStage(make('2026-07-02', '2026-07-04'), undefined!)).toBe(false)
+    expect(fitTaskPlanIntoStage(make('2026-07-02', '2026-07-04'), { planStart: '2026-07-31', planEnd: '2026-07-01' })).toBe(false)
+  })
+  it('阶段安排检查与后端提交校验同规则同文案：倒挂、基线窗口、串行边、计划验收', () => {
+    const stage = (planStart?: string, planEnd?: string) => ({
+      phaseId: 2,
+      phaseCode: 'S4',
+      phaseName: '实施部署',
+      planStart,
+      planEnd
+    })
+    const plan = {
+      baselineStart: '2026-04-05',
+      baselineEnd: '2026-10-31',
+      inputSnapshot: JSON.stringify({
+        serialEdges: [{ fromStageId: 1, toStageId: 2 }],
+        // 合同计划验收晚于工期结束是常态：实施应尽早完成，越早于验收越好
+        stages: [{ stageId: 2, stageCode: 'S4', acceptanceTime: '2026-12-02T00:00:00' }]
+      }),
+      items: [
+        { phaseId: 1, phaseCode: 'S2', phaseName: '施工计划制定与审批', planStart: '2026-09-08', planEnd: '2026-09-10' },
+        stage('2026-09-11', '2026-10-31')
+      ]
+    }
+    expect(stageItemIssue(stage('2026-09-11', '2026-10-31') as any, plan as any)).toBe('')
+    expect(stageItemIssue(stage() as any, plan as any)).toBe('待安排日期')
+    expect(stageItemIssue({ ...stage('2026-10-01') } as any, plan as any)).toBe('请同时填写开始和结束日期')
+    expect(stageItemIssue(stage('2026-10-10', '2026-10-01') as any, plan as any)).toBe(
+      '计划结束时间早于计划开始时间'
+    )
+    expect(stageItemIssue(stage('2026-04-01', '2026-05-01') as any, plan as any)).toBe(
+      '计划时间超出工期基线窗口（2026-04-05 ~ 2026-10-31）'
+    )
+    // 晚于工期结束但早于合同验收：只报基线窗口，不报验收（与后端先基线后验收的顺序一致）
+    expect(stageItemIssue(stage('2026-11-05', '2026-11-20') as any, plan as any)).toBe(
+      '计划时间超出工期基线窗口（2026-04-05 ~ 2026-10-31）'
+    )
+    // 串行边：开始早于前驱结束报后端同文案，当天衔接合法
+    expect(stageItemIssue(stage('2026-09-09', '2026-09-20') as any, plan as any)).toBe(
+      '计划开始不得早于前一阶段【施工计划制定与审批】计划结束'
+    )
+    expect(stageItemIssue(stage('2026-09-10', '2026-09-20') as any, plan as any)).toBe('')
+    // 前驱未排期时跳过串行边，不误报
+    const noPrev = { ...plan, items: [{ ...plan.items[0], planStart: undefined!, planEnd: undefined! }, stage('2026-09-09', '2026-09-20')] }
+    expect(stageItemIssue(stage('2026-09-09', '2026-09-20') as any, noPrev as any)).toBe('')
+    // 验收时间落在工期内（如阶段初验）时，晚于它才报验收；早于验收结束不报
+    const midAcceptance = {
+      ...plan,
+      inputSnapshot: JSON.stringify({
+        serialEdges: [{ fromStageId: 1, toStageId: 2 }],
+        stages: [{ stageId: 2, stageCode: 'S4', acceptanceTime: '2026-10-20T00:00:00' }]
+      })
+    }
+    expect(stageItemIssue(stage('2026-10-01', '2026-10-25') as any, midAcceptance as any)).toBe(
+      '计划结束不得晚于计划验收时间'
+    )
+    expect(stageItemIssue(stage('2026-10-01', '2026-10-20') as any, midAcceptance as any)).toBe('')
+    // 无快照或坏快照只做基础检查，不报次序与验收
+    expect(stageItemIssue(stage('2026-09-09', '2026-09-20') as any, undefined as any)).toBe('')
+    expect(
+      stageItemIssue(stage('2026-09-09', '2026-09-20') as any, { ...plan, inputSnapshot: '{bad' } as any)
     ).toBe('')
   })
   it('保留深层任务及筛选祖先，编辑命中原任务而非展示副本', () => {

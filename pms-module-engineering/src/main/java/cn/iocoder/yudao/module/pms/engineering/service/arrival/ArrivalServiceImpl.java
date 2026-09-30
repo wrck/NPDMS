@@ -43,8 +43,7 @@ public class ArrivalServiceImpl implements ArrivalService {
         }
         ArrivalDO arrival = BeanUtils.toBean(createReqVO, ArrivalDO.class);
         arrival.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.ARRIVAL, arrivalMapper,
-                ArrivalDO::getProjectId, ArrivalDO::getCode));
+                EngineeringRecordCodeGenerator.ARRIVAL, arrivalMapper));
         arrival.setStatus(0); // Only the sign command produces a signed record.
         arrival.setVersion(0L);
         if (arrival.getQuantity() == null) {

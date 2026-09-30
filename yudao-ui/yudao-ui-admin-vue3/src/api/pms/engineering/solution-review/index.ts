@@ -7,6 +7,6 @@ export interface ReviewPolicy { configured: boolean; reviewLevel: number | null;
 export const policy = (projectId: Id): Promise<ReviewPolicy> => request.get({ url: `${base}/policy`, params: { projectId } })
 export const definition = (): Promise<ReviewDefinition> => request.get({ url: `${base}/definition` })
 export const read = (projectId: Id, solutionId: Id): Promise<ReviewRecord | null> => request.get({ url: base, params: { projectId, solutionId } })
-export const start = (data: { projectId: Id; solutionId: Id; expectedVersion: number; processDefinitionId: string; candidates: Record<string, Id> }): Promise<ReviewRecord> => request.post({ url: base, data })
+export const start = (data: { projectId: Id; solutionId: Id; expectedVersion: number; processDefinitionId: string }): Promise<ReviewRecord> => request.post({ url: base, data })
 export const refresh = (projectId: Id, solutionId: Id): Promise<ReviewRecord> => request.post({ url: `${base}/refresh`, data: { projectId, solutionId } })
 export const revise = (projectId: Id, solutionId: Id): Promise<Id> => request.post({ url: `${base}/revise`, data: { projectId, solutionId } })

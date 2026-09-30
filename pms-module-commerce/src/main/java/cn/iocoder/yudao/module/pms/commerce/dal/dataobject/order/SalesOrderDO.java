@@ -38,6 +38,7 @@ public class SalesOrderDO extends BaseBusinessEntity {
     private String status;
     private LocalDateTime orderCreateTime;
     private LocalDateTime customerRequiredTime;
+    private String customInfo;
 
     public String getSourceKey() {
         return sourceRecordKey;

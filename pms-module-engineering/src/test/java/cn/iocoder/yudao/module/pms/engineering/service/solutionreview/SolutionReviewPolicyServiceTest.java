@@ -57,4 +57,22 @@ class SolutionReviewPolicyServiceTest {
         when(rules.lockAndEvaluate(any())).thenReturn(new ProjectFieldRuleApi.Evaluation(false,Map.of(),null));
         service.requireOrdinaryApproval(solution); service.freeze(solution,0); assertNull(stored);
     }
+    @Test void unifiedFreezeStoresEitherLevelAndReusesFrozenDecision() {
+        result("NOT_MATCHED", "MATCHED");
+        assertEquals(0, service.freeze(solution));
+        assertEquals(0, solution.getReviewLevel()); assertNotNull(stored);
+        result("MATCHED", "NOT_MATCHED");
+        assertEquals(0, service.freeze(solution));
+        verify(rules, times(1)).lockAndEvaluate(any());
+        verify(records, times(1)).insert(any(SolutionReviewPolicyDO.class));
+    }
+    @Test void unifiedFreezeFailsFastWithoutRecordWhenUndecidable() {
+        for (var outcomes : new String[][]{{"NOT_MATCHED","NOT_MATCHED"},{"MATCHED","MATCHED"}}) {
+            result(outcomes[0], outcomes[1]);
+            assertThrows(ServiceException.class, () -> service.freeze(solution));
+        }
+        when(rules.lockAndEvaluate(any())).thenReturn(new ProjectFieldRuleApi.Evaluation(false, Map.of(), null));
+        assertThrows(ServiceException.class, () -> service.freeze(solution));
+        assertNull(stored);
+    }
 }

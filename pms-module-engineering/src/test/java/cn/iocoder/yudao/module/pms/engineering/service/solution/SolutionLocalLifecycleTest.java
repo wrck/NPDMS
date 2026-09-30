@@ -29,7 +29,7 @@ class SolutionLocalLifecycleTest {
         ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "solutionMapper", mapper);
         ReflectionTestUtils.setField(service, "deliveryMaterialApi", deliveryMaterialApi);
-        doReturn("PROJ-FA-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.SOLUTION), any(), any(), any());
+        doReturn("PROJ-FA-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.SOLUTION), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new SolutionDO(); row.setId(1L); row.setProjectId(7L); row.setCode("SOL-TEST"); row.setStatus(0); row.setReviewLevel(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);

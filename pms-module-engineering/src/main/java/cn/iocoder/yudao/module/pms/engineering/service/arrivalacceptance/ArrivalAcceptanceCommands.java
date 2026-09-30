@@ -39,14 +39,14 @@ public final class ArrivalAcceptanceCommands {
     }
 
     public record QuantityDraftLine(Long lineId, Integer expectedLineVersion, Long orderLineId,
-                                    String productCode, String modelCode, BigDecimal acceptedQuantity,
+                                    String productCode, String productModel, BigDecimal acceptedQuantity,
                                     String unitCode) implements DraftLine {
         public QuantityDraftLine {
             requireLineIdentity(lineId, expectedLineVersion);
             productCode = normalizedNullable(productCode, 128);
-            modelCode = normalizedNullable(modelCode, 128);
+            productModel = normalizedNullable(productModel, 128);
             unitCode = normalized(unitCode, 32, "unitCode");
-            if (orderLineId == null || orderLineId <= 0 || productCode == null && modelCode == null
+            if (orderLineId == null || orderLineId <= 0 || productCode == null && productModel == null
                     || acceptedQuantity == null || acceptedQuantity.signum() < 0) {
                 throw new IllegalArgumentException("invalid quantity line");
             }

@@ -120,15 +120,49 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="附件地址" prop="attachmentUrl"><UploadFile v-model="form.attachmentUrl!" :disabled="readOnly" /></el-form-item>
-        </el-col>
-        <el-col :span="24">
           <el-form-item label="备注" prop="remark">
             <el-input v-model="form.remark" type="textarea" />
           </el-form-item>
         </el-col>
       </el-row>
     </el-form>
+    <section class="sign-document-section" aria-label="签收单附件">
+      <h4>签收单附件</h4>
+      <template v-if="form.id">
+        <PmsFileReferenceList
+          :key="`sign-slot-${slotEpoch}`"
+          owner-context="IMP"
+          object-type="ARRIVAL"
+          :object-id="String(form.id)"
+          purpose-code="ARRIVAL_SIGN_DOCUMENT"
+          reference-key="arrival-sign-document"
+          :artifact-id="signSlot?.artifactId"
+          :editable="!readOnly"
+          @loaded="onSignDocumentLoaded"
+          @detached="onSignDocumentDetached"
+        />
+        <PmsFileUploader
+          v-if="!readOnly"
+          owner-context="IMP"
+          object-type="ARRIVAL"
+          :object-id="String(form.id)"
+          purpose-code="ARRIVAL_SIGN_DOCUMENT"
+          reference-key="arrival-sign-document"
+          category-code="ARRIVAL_SIGN_DOCUMENT"
+          :artifact-id="signSlot?.artifactId"
+          :expected-reference-version="signSlot?.referenceVersion"
+          accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx"
+          @completed="onSignDocumentUploaded"
+        />
+        <div v-if="legacyAttachments.length" class="legacy-links">
+          <span>历史附件：</span>
+          <a v-for="url in legacyAttachments" :key="url" :href="url" target="_blank" rel="noopener"
+            >查看附件</a
+          >
+        </div>
+      </template>
+      <span v-else class="slot-hint">保存后可上传签收单附件，自动归入交付清单</span>
+    </section>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
@@ -144,6 +178,9 @@ import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import type { ArrivalVO } from '@/api/pms/engineering/arrival'
 import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
+import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
+import type { FileSelection } from '@/components/PmsFileArtifact'
+import type { FileArtifactVO } from '@/api/pms/platform/file'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
@@ -163,6 +200,26 @@ const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !c
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   arrivalTime: [{ required: true, message: '请选择到货时间' }]
+}
+// 槽位只保留挂接事实：completion 先给最小事实驱动列表重载，@loaded 再精化为当前版本。
+const signSlot = ref<{ artifactId?: number; referenceVersion?: number }>()
+const slotEpoch = ref(0)
+const legacyAttachments = computed(() =>
+  (form.value.attachmentUrl ?? '')
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0)
+)
+const onSignDocumentLoaded = (artifact: FileArtifactVO) => {
+  signSlot.value = { artifactId: artifact.artifactId, referenceVersion: artifact.reference.referenceVersion }
+}
+const onSignDocumentUploaded = (selection: FileSelection) => {
+  signSlot.value = { artifactId: selection.artifactId }
+  slotEpoch.value += 1
+}
+const onSignDocumentDetached = () => {
+  signSlot.value = undefined
+  slotEpoch.value += 1
 }
 
 const load = async () => {
@@ -194,6 +251,8 @@ const openForm = (row?: ArrivalVO) => {
       // records with NULL evidence must still use this API's string contract.
       attachmentUrl: row?.attachmentUrl ?? ''
   }
+  signSlot.value = undefined
+  slotEpoch.value += 1
   formVisible.value = true
 }
 const save = async () => {
@@ -204,9 +263,19 @@ const save = async () => {
     // Match the existing TimestampLocalDateTimeDeserializer contract, not a
     // formatted date string that would be interpreted as an invalid timestamp.
     const data: ArrivalVO = { ...form.value, arrivalTime: form.value.arrivalTime == null || form.value.arrivalTime === '' ? undefined : Number(form.value.arrivalTime) }
-    data.id ? await ArrivalApi.updateArrival(data) : await ArrivalApi.createArrival(data)
-    message.success('保存成功')
-    formVisible.value = false
+    if (data.id) {
+      await ArrivalApi.updateArrival(data)
+      message.success('保存成功')
+      formVisible.value = false
+    } else {
+      // 新建后留在表单内切换为可编辑态：签收单附件挂接依赖已保存的记录 ID。
+      const createdId = await ArrivalApi.createArrival(data)
+      form.value.id = createdId
+      form.value.version = 0
+      message.success(
+        checkPermi(['pms:imp-arrival:update']) ? '保存成功，可上传签收单附件' : '保存成功'
+      )
+    }
     await load()
   } finally {
     saving.value = false
@@ -229,3 +298,29 @@ const handleAction = async (row: ArrivalVO, action: 'sign' | 'markAbnormal') => 
 }
 onMounted(load)
 </script>
+<style scoped lang="scss">
+.sign-document-section {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+
+  h4 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .legacy-links {
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: var(--el-text-color-secondary);
+  }
+
+  .slot-hint {
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+  }
+}
+</style>

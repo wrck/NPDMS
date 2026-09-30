@@ -132,6 +132,24 @@ it('uses the survey project deadline to derive the submitted initial date range'
   expect(view.props.project.projectEndDate).toBe('2026-12-31')
 })
 
+it('re-runs backward calculation from the custom duration end date instead of the survey deadline', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().surveyEntryMode = 'DATE_RANGE'
+  view.state().onSurveyEntryModeChange()
+  Object.assign(view.state().form, { startDate: '2026-11-02', endDate: '2026-11-15' })
+  view.state().surveyEntryMode = 'SURVEY_BACKWARD'
+  view.state().onSurveyEntryModeChange()
+  view.state().form.durationDays = 14
+  await flush()
+  expect(view.state().form.endDate).toBe('2026-11-15')
+  expect(view.state().form.startDate).toBe('2026-11-02')
+  expect(view.state().durationPayload()).toEqual({ calculationBasis: 'DATE_RANGE', startDate: '2026-11-02', endDate: '2026-11-15' })
+})
+
 it('allows direct start/end entry for a survey project after switching off the backward basis', async () => {
   const view = render(Drawer)
   view.props.project.projectEndDate = '2026-12-31'

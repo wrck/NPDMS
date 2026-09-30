@@ -25,7 +25,7 @@ public final class DppmsOrderSyncTemplate {
         String groupKeys="source,compCode,"+type+",orderNumber"+(line?",lineNum":"");
         String fields=line
                 ? "itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo"
-                : "orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType,contractNo,orderExecNumber";
+                : "orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType,customInfo,contractNo,orderExecNumber";
         String join="r.source <=> g.source AND r.compCode <=> g.compCode AND r."+type+" <=> g."+type
                 +" AND r.orderNumber <=> g.orderNumber"+(line?" AND r.lineNum <=> g.lineNum":"");
         String parent=line?",EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode "
@@ -43,16 +43,18 @@ public final class DppmsOrderSyncTemplate {
         mappings.add(map("sourceUpdatedAt","migrationVersion"));mappings.add(map("migrationIssue","migrationIssue"));
         if(line) {
             mappings.add(map("migrationParentExists","migrationParentExists"));
-            for(String[] pair:List.of(new String[]{"lineNo","lineNum"},new String[]{"itemCode","itemCode"},
-                    new String[]{"itemDescription","itemDesc"},new String[]{"orderQuantity","orderQuantity"},
+            for(String[] pair:List.of(new String[]{"lineNo","lineNum"},new String[]{"productCode","itemCode"},
+                    new String[]{"productDesc","itemDesc"},new String[]{"orderQuantity","orderQuantity"},
                     new String[]{"openQuantity","openQuantity"},new String[]{"bundleCode","bundleCode"},
                     new String[]{"warrantyMonth","warrantyMonth"},new String[]{"profitCenter","profitCenter"},
-                    new String[]{"realExecutionNo","realOrderExecNumber"}))mappings.add(map(pair[0],pair[1]));
+                    new String[]{"realExecutionNo","realOrderExecNumber"},
+                    new String[]{"customInfo","customInfo"}))mappings.add(map(pair[0],pair[1]));
         } else {
             for(String[] pair:List.of(new String[]{"customerCode","customerCode"},new String[]{"customerName","customerName"},
                     new String[]{"salesType","salesType"},new String[]{"sourceProjectName","projectName"},
                     new String[]{"orderComment","orderComment"},new String[]{"orderCreateTime","orderCreateTime"},
                     new String[]{"customerRequiredTime","customerRequireTime"},
+                    new String[]{"customInfo","customInfo"},
                     new String[]{"contractNo","contractNo"},new String[]{"executionNo","orderExecNumber"}))mappings.add(map(pair[0],pair[1]));
         }
         return SyncDefinition.Source.builder().object(line?"LINE":"ORDER").sourceObject(table)

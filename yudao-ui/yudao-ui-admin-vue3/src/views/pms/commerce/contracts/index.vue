@@ -111,8 +111,7 @@
             empty-text="该订单没有订单行"
           >
             <el-table-column prop="lineNo" label="行号" min-width="90" />
-            <el-table-column prop="itemCode" label="物料编码" min-width="140" />
-            <el-table-column prop="productCode" label="ERP 产品编码" min-width="150">
+            <el-table-column prop="productCode" label="产品编码" min-width="150">
               <template #default="{ row }">{{ row.productCode || '未提供' }}</template>
             </el-table-column>
             <el-table-column prop="orderQty" label="订单数量" min-width="110" />

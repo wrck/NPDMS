@@ -14,7 +14,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-arrival:create']"
+        <el-button v-if="!readonly" type="primary" @click="openForm()" v-hasPermi="['pms:imp-arrival:create']"
           ><Icon icon="ep:plus" />登记到货</el-button
         >
       </el-form-item>
@@ -34,12 +34,12 @@
       <el-table-column label="操作" width="300" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-arrival:query']"
-            >{{ editableRecord(row) ? '编辑' : '查看' }}</el-button
+            >{{ editableRecord(row) && !readonly ? '编辑' : '查看' }}</el-button
           >
           <el-button
             link
             type="success"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'sign')"
             v-hasPermi="['pms:imp-arrival:update']"
             >签收</el-button
@@ -47,12 +47,12 @@
           <el-button
             link
             type="warning"
-            v-if="row.status === 0"
+            v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
             v-hasPermi="['pms:imp-arrival:update']"
             >标记异常</el-button
           >
-          <el-button v-if="row.status !== 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-arrival:delete']"
+          <el-button v-if="!readonly && row.status !== 1" link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-arrival:delete']"
             >删除</el-button
           >
         </template>
@@ -104,7 +104,7 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 
 defineOptions({ name: 'ProjectArrivalReceiptPanel' })
-const props = defineProps<{ projectId: number }>()
+const props = defineProps<{ projectId: number; /** 任务所属阶段未进入时由工作区强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
 const userStore = useUserStore()
 const message = useMessage()
 const loading = ref(false)
@@ -117,7 +117,7 @@ const formRef = ref()
 type ArrivalForm = Omit<ArrivalVO, 'arrivalTime'> & { arrivalTime?: string | number | null }
 const form = ref<ArrivalForm>({ projectId: props.projectId, code: '', status: 0 })
 const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:imp-arrival:update'])
-const readOnly = computed(() => form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create']))
+const readOnly = computed(() => !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])))
 const rules = {
   attachmentUrl: [{ required: true, message: '请上传交付件' }]
 }

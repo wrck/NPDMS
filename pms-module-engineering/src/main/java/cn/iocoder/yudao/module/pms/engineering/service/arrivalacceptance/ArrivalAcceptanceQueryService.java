@@ -202,7 +202,7 @@ public class ArrivalAcceptanceQueryService {
     private static ArrivalAcceptanceViews.ArrivalLineData line(ArrivalLineDO line) {
         return new ArrivalAcceptanceViews.ArrivalLineData(line.getId(), line.getLineNo(), line.getLineRevision(),
                 line.getScopeType(), line.getDeviceId(), line.getDeviceAssignmentVersion(), line.getOrderLineId(),
-                line.getProductCode(), line.getModelCode(), line.getExpectedQuantity(), line.getAcceptedQuantity(),
+                line.getProductCode(), line.getProductModel(), line.getExpectedQuantity(), line.getAcceptedQuantity(),
                 line.getUnit(), line.getStatus(), line.getVersion());
     }
 

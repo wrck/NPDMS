@@ -130,8 +130,7 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
         if (scope.empty()) return PageResult.empty();
         SalesOrderLineCompanyScopeQuery query = new SalesOrderLineCompanyScopeQuery(tenantId,
                 scope.companyCodes(), scope.projectIds(), criteria.orderId(), criteria.companyCode(),
-                criteria.orderType(), criteria.orderNo(), criteria.lineNo(), criteria.itemCode(),
-                criteria.productCode(), criteria.quantityStatus(), criteria.status(),
+                criteria.orderType(), criteria.orderNo(), criteria.lineNo(), criteria.productCode(), criteria.quantityStatus(), criteria.status(),
                 checkedOffset(criteria.offset()), checkedLimit(criteria.limit()));
         long total = lineMapper.selectCountByCompanyScope(query);
         return total == 0L ? PageResult.empty() : new PageResult<>(lineMapper.selectByCompanyScope(query), total);
@@ -252,7 +251,7 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
     }
 
     public record SalesOrderLineSearch(Long orderId, String companyCode, String orderType, String orderNo,
-                                       String lineNo, String itemCode, String productCode,
+                                       String lineNo, String productCode,
                                        String quantityStatus, String status, int offset, int limit) {
     }
 

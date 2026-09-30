@@ -54,8 +54,7 @@ public class SiteSurveyEntityServiceImpl implements SiteSurveyEntityService {
         writeAccess.lock(createReqVO.getProjectId(), "pms:sol-site-survey:create", createReqVO.getExecution(), "SOL.SITE_SURVEY.CREATE", null);
         SiteSurveyEntityDO survey = BeanUtils.toBean(createReqVO, SiteSurveyEntityDO.class);
         survey.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.SITE_SURVEY, siteSurveyEntityMapper,
-                SiteSurveyEntityDO::getProjectId, SiteSurveyEntityDO::getCode));
+                EngineeringRecordCodeGenerator.SITE_SURVEY, siteSurveyEntityMapper));
         survey.setId(null);
         survey.setTenantId(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId());
         survey.setStatus(0);

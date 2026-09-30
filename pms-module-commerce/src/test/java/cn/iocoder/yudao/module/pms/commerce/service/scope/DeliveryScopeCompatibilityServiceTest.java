@@ -261,9 +261,8 @@ class DeliveryScopeCompatibilityServiceTest {
         line.setOrderType("NORMAL");
         line.setOrderNo("SO-1");
         line.setLineNo("10");
-        line.setItemCode("ITEM-1");
-        line.setItemDesc("设备");
         line.setProductCode(productCode);
+        line.setProductDesc("设备");
         line.setOrderQty(new BigDecimal("5"));
         line.setUnitCode("EA");
         line.setUnitScale(0);

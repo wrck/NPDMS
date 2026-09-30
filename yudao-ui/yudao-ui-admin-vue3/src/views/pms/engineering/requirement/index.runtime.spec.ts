@@ -1,12 +1,19 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, onMounted } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import Page from './index.vue'
 import { mount, passthrough, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const state = vi.hoisted(() => ({ row: { id: 1, requirementType: 'BUSINESS', status: 0, name: '旧记录' } }))
-vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getIntDictOptions: () => [], getStrDictOptions: () => [] }))
+const state = vi.hoisted(() => ({
+  row: { id: 1, requirementType: 'BUSINESS', status: 0, name: '旧记录' },
+  getProject: vi.fn()
+}))
+vi.mock('@/utils/dict', () => ({
+  DICT_TYPE: {},
+  getIntDictOptions: () => [],
+  getStrDictOptions: () => [{ label: '接口规划', value: 'INTERFACE' }]
+}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({}) }))
-vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn(), getProject: state.getProject }))
 vi.mock('@/api/pms/engineering/requirement', () => ({ getRequirementPage: vi.fn(async () => ({ list: [state.row], total: 1 })) }))
 const nodes = (node: TestNode): TestNode[] => [node, ...node.children.flatMap(nodes)]
 const click = async (root: TestNode, label: string) => {
@@ -18,9 +25,21 @@ const click = async (root: TestNode, label: string) => {
 const components = {
   ElTable: passthrough,
   ElTableColumn: defineComponent({ setup: (_, { slots }) => () => h('section', slots.default?.({ row: state.row })) }),
-  Dialog: defineComponent({ setup: (_, { slots }) => () => h('section', [slots.default?.(), slots.footer?.()]) }),
+  Dialog: defineComponent({
+    props: { modelValue: { type: Boolean, default: false } },
+    setup: (props, { slots }) => () => (props.modelValue ? h('section', [slots.default?.(), slots.footer?.()]) : null)
+  }),
   ElRow: passthrough, ElCol: passthrough, ElSelect: passthrough, ElOption: passthrough,
-  ElInput: passthrough, Editor: passthrough, PmsEntitySelect: passthrough
+  ElInput: passthrough, Editor: passthrough,
+  // 桩挂载即回填项目 123，模拟用户在项目选择器中选中项目
+  PmsEntitySelect: defineComponent({
+    props: { modelValue: { type: null, default: '' }, api: { type: null, default: undefined } },
+    emits: ['update:modelValue'],
+    setup(_, { emit }) {
+      onMounted(() => emit('update:modelValue', 123))
+      return () => h('div')
+    }
+  })
 }
 describe('legacy requirement entry', () => {
   it('keeps BUSINESS read-only, including rich text editors', async () => {
@@ -45,6 +64,18 @@ describe('legacy requirement entry', () => {
     expect(form).toBeDefined()
     expect((form?.props?.model as any)?.id).toBeUndefined()
     expect(nodes(page.root).filter(n => n.type === 'button').map(textOf)).toContain('保存')
+    page.app.unmount()
+  })
+  it('新增接口规划选中项目后按规范自动生成名称', async () => {
+    state.row.requirementType = 'INTERFACE'
+    state.getProject.mockResolvedValue({ projectCode: 'PJT-TEST-001', projectName: '测试项目' })
+    const page = mount(Page, {}, components)
+    await nextTick(); await nextTick()
+    await click(page.root, '新增接口规划')
+    await vi.waitFor(() => {
+      const form = nodes(page.root).find(n => (n.props?.model as any)?.requirementType === 'INTERFACE')
+      expect((form?.props?.model as any)?.name).toMatch(/^PJT-TEST-001_测试项目_接口规划_\d{14}$/)
+    })
     page.app.unmount()
   })
 })

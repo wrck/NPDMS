@@ -6,7 +6,7 @@ import java.util.List;
 
 public record DeliveryScopeRespVO(
         Long id, Long projectId, String projectCode, Long orderLineId, String orderNo, String lineNo,
-        String itemCode, String itemDesc, BigDecimal allocatedQuantity, String scopeStatus, Long allocationVersion,
+        String productCode, String productDesc, BigDecimal allocatedQuantity, String scopeStatus, Long allocationVersion,
         String allocationSource, String changeReason, Long departmentId, String departmentCode,
         String departmentName, Integer departmentVersion, LocalDateTime effectiveFrom,
         LocalDateTime effectiveTo, Long version, List<Detail> details) {

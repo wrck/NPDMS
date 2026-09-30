@@ -764,9 +764,9 @@ PLT共享`EntityPresentationApi.list(Query(target, actor, categoryCode))`基于�
 
 ### 实施方案分级复审接入（2026-09-22，SCH-05 / F-PROJ-009）
 
-新增 `/api/v1/pms/solution-reviews`：GET 按 projectId、solutionId 读取版本关联；POST 按 expectedVersion、processDefinitionId 和以实际 taskDefinitionKey 为键的 candidates 提交。GET `/definition` 返回部署定义和职责元数据；POST `/refresh` 回源重验 BPM 终态；POST `/revise` 从终态复制新的方案草稿。查询使用方案 query 权限与项目范围；写入使用相应 create/update 权限、当前项目经理资格和租户，旧接口不能修改正在分级审批的对象。重复同版本、同定义、同候选人的请求返回同一在审记录，冲突请求拒绝。
+新增 `/api/v1/pms/solution-reviews`：GET 按 projectId、solutionId 读取版本关联；POST 按 expectedVersion、processDefinitionId 提交，审批人由系统按节点职责自动解析（服务经理节点取本项目唯一有效服务经理，工程管理部节点取 `pms:sol-solution:major-review` 显式授权的唯一持有人），提交人不再指定候选人，且不排除申请人本人。GET `/definition` 返回部署定义和职责元数据；POST `/refresh` 回源重验 BPM 终态；POST `/revise` 从终态复制新的方案草稿。查询使用方案 query 权限与项目范围；写入使用相应 create/update 权限、当前项目经理资格和租户，旧接口不能修改正在分级审批的对象。重复同版本、同定义的请求返回同一在审记录，冲突请求拒绝；解析结果（节点→审批人）随在审记录落库供审计。
 
-SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取历史，BPM 原创建、权限、任务处理与历史不改写。初审候选人重验项目服务经理关系；工程管理部复审须独立显式权限 `pms:sol-solution:major-review` 及项目范围，申请人不得自审。定义和完整任务 key、职责均来自模型；候选人通过 BPM identity links 冻结，任务操作前重新校验。只有真实结束且所需人工审核历史完整才返回批准；结果在 BPM 原事务内经受信事件由 SOL CAS 形成批准基线及交付件，不直接推进项目阶段。
+SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取历史，BPM 原创建、权限、任务处理与历史不改写。初审候选人重验项目服务经理关系；工程管理部复审须独立显式权限 `pms:sol-solution:major-review` 及项目范围。定义和完整任务 key、职责均来自模型；候选人通过 BPM identity links 冻结，任务操作前重新校验。只有真实结束且所需人工审核历史完整才返回批准；结果在 BPM 原事务内经受信事件由 SOL CAS 形成批准基线及交付件，不直接推进项目阶段。
 
 ### 项目工前确认历史（2026-09-22，F-PROJ-009 更正）
 

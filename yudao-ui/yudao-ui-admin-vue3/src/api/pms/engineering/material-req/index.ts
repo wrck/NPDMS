@@ -8,8 +8,8 @@ export interface MaterialRequisitionVO {
   name: string
   requisitionType?: string
   equipmentId?: number
-  materialName: string
-  materialCode?: string
+  productName: string
+  productCode?: string
   specification?: string
   quantity: number
   unit?: string

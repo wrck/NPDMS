@@ -139,11 +139,11 @@
       />
       <SchedulePlanningTable
         :items="batch.items"
-        :tasks="batch.tasks || []"
-        :editable="editable && !acting"
+        :tasks="batch.tasks"
+        :plan="batch"
+        :editable="editable"
         :navigation-disabled="dirty || acting"
         :overdue-by-stage="overdueByStage"
-        :acceptance-by-stage="acceptanceByStage"
         @open-task="openTask"
       />
       <el-form v-if="editable" label-position="top" class="adjustment-form">
@@ -267,7 +267,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { shortPlan, deadlineHint, taskPlanIssue, compareSchedules } from './schedulePresentation'
+import { shortPlan, deadlineHint, taskPlanIssue, stageItemIssue, fitTaskPlanIntoStage, compareSchedules } from './schedulePresentation'
 import { useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
@@ -364,16 +364,6 @@ const calculationInput = computed(() => {
     return {}
   }
 })
-const acceptanceByStage = computed<Record<string, string>>(() =>
-  Object.fromEntries(
-    (calculationInput.value.stages || [])
-      .filter((stage: { acceptanceTime?: string }) => stage.acceptanceTime)
-      .map((stage: { stageCode: string; acceptanceTime: string }) => [
-        stage.stageCode,
-        stage.acceptanceTime
-      ])
-  )
-)
 const statusLabels: Record<number, string> = { 0: '草稿', 1: '审批中', 2: '已生效', 3: '已驳回' }
 const statusLabel = (status?: number) => statusLabels[status ?? -1] || '未知状态'
 const versionLabel = (value: PlanApi.StagePlanBatchVO) =>
@@ -405,8 +395,9 @@ const apply = (value: PlanApi.StagePlanBatchVO) => {
   selectedId.value = value.id
   saved.value = JSON.stringify(value)
 }
-// 任务计划日期为空时默认沿用所属阶段日期，避免逐项重复填写；默认回填不计为用户调整。
-// 生效与审批中的计划（status 1/2）按原样展示，不回填。
+// 任务计划日期为空时默认沿用所属阶段日期，避免逐项重复填写；阶段计划时间更新时，
+// 不满足阶段区间的任务自动调整进区间（尽量平移保持天数，超长收紧为整个区间）。
+// 默认回填与自动调整不计为用户调整。生效与审批中的计划（status 1/2）按原样展示，不回填。
 watch(
   () =>
     batch.value && (batch.value.status === 0 || batch.value.status === 3) && editable.value
@@ -420,12 +411,15 @@ watch(
     const wasDirty = JSON.stringify(value) !== saved.value
     let changed = false
     for (const task of value.tasks || []) {
-      if (task.planStart && task.planEnd) continue
       const stage = value.items.find((item) => item.phaseCode === task.stageCode)
       if (!stage?.planStart || !stage.planEnd) continue
-      if (!task.planStart) task.planStart = stage.planStart
-      if (!task.planEnd) task.planEnd = stage.planEnd
-      changed = true
+      if (!task.planStart || !task.planEnd) {
+        if (!task.planStart) task.planStart = stage.planStart
+        if (!task.planEnd) task.planEnd = stage.planEnd
+        changed = true
+        continue
+      }
+      if (fitTaskPlanIntoStage(task, stage)) changed = true
     }
     if (changed && !wasDirty) saved.value = JSON.stringify(value)
   }
@@ -623,21 +617,15 @@ const save = async () => {
   )
 }
 // 保存不做校验，避免填写中的计划日期丢失；完整性检查集中在提交审核时进行。
-// 阶段次序是否合法由后端按模板冻结路径准入约束判定（串行边允许当天衔接，并行分支允许重叠）。
+// 提交预检与安排检查列同一套规则，文案与后端提交校验一致，提交前即提示不等审批退回；
+// 阶段次序按模板冻结路径准入约束判定（串行边允许当天衔接，并行分支允许重叠）。
 const submit = async () => {
   const value = batch.value
   if (!value || !approverId.value || dirty.value) return
-  if (!value.remark?.trim()) return message.warning('请填写调整原因')
+  if (!value.remark?.trim()) return message.warning('提交审核前请填写调整原因')
   for (const item of value.items) {
-    if (!item.planStart || !item.planEnd)
-      return message.warning('请填写全部阶段的计划起止日期')
-    if (item.planEnd < item.planStart)
-      return message.warning(`${item.phaseName || '阶段'}计划结束不能早于计划开始`)
-    if (
-      (value.baselineStart && item.planStart < value.baselineStart) ||
-      (value.baselineEnd && item.planEnd > value.baselineEnd)
-    )
-      return message.warning('阶段日期不能超出本版本工期')
+    const issue = stageItemIssue(item, value)
+    if (issue) return message.warning(`${item.phaseName || '阶段'} ${issue}`)
   }
   if (taskIssues.value.length)
     return message.warning(`${taskIssues.value[0].task.name}：${taskIssues.value[0].issue}`)

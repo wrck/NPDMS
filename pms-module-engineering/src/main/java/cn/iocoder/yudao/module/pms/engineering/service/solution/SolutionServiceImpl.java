@@ -70,8 +70,7 @@ public class SolutionServiceImpl implements SolutionService {
         org.springframework.dao.DuplicateKeyException lastConflict = null;
         for (int attempt = 0; attempt < 3; attempt++) {
             solution.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
-                    EngineeringRecordCodeGenerator.SOLUTION, solutionMapper,
-                    SolutionDO::getProjectId, SolutionDO::getCode, failedCode));
+                    EngineeringRecordCodeGenerator.SOLUTION, solutionMapper, failedCode));
             try {
                 solutionMapper.insert(solution);
                 completionChanged(solution);
@@ -192,8 +191,7 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionDO solution = new SolutionDO();
         solution.setProjectId(reqVO.getProjectId());
         solution.setCode(recordCodeGenerator.next(reqVO.getProjectId(),
-                EngineeringRecordCodeGenerator.SOLUTION, solutionMapper,
-                SolutionDO::getProjectId, SolutionDO::getCode));
+                EngineeringRecordCodeGenerator.SOLUTION, solutionMapper));
         solution.setName(reqVO.getSolutionName() != null ? reqVO.getSolutionName() : solution.getCode());
         solution.setSolutionType("IMPLEMENTATION");
         solution.setReviewLevel(0);

@@ -32,11 +32,11 @@ public class MaterialRequisitionRespVO {
     @Schema(description = "关联设备编号", example = "1024")
     private Long equipmentId;
 
-    @Schema(description = "物料名称", example = "10G 光模块")
-    private String materialName;
+    @Schema(description = "产品名称/物料名称", example = "10G 光模块")
+    private String productName;
 
-    @Schema(description = "物料编码", example = "MAT-001")
-    private String materialCode;
+    @Schema(description = "产品编码/物料编码", example = "MAT-001")
+    private String productCode;
 
     @Schema(description = "规格型号", example = "SFP+ 10G LR")
     private String specification;

@@ -23,6 +23,30 @@ public class SolutionReviewPolicyService {
 
     public Policy preview(Long projectId) { return policy(evaluate(projectId, false)); }
 
+    /**
+     * 统一提交入口的判定冻结：评估结果无论是普通还是重大都写入记录并回填方案级别；
+     * 判定缺失或规则冲突直接失败，不允许审核级别未知时进入审批流（网关无法路由）。
+     */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public int freeze(SolutionDO solution) {
+        var stored = stored(solution);
+        if (stored != null) {
+            if (stored.getReviewLevel() == null) throw exception(SOLUTION_REVIEW_POLICY_INVALID, "此方案缺少提交时的审核判定，请复制为新版本后重新提交");
+            solution.setReviewLevel(stored.getReviewLevel());
+            return stored.getReviewLevel();
+        }
+        var decision = policy(evaluate(solution.getProjectId(), true));
+        if (!decision.configured() || decision.reviewLevel() == null)
+            throw exception(SOLUTION_REVIEW_POLICY_INVALID,
+                    decision.reason() != null ? decision.reason() : "项目审核判定依据缺失，请由工程管理部补齐来源及规则");
+        var record = new SolutionReviewPolicyDO();
+        record.setProjectId(solution.getProjectId()); record.setSolutionId(solution.getId());
+        record.setSourceVersion(solution.getVersion()); record.setReviewLevel(decision.reviewLevel()); record.setEvidenceJson(decision.evidenceJson());
+        records.insert(record);
+        solution.setReviewLevel(decision.reviewLevel());
+        return decision.reviewLevel();
+    }
+
     /** Caller holds the SOL object lock; the decision is inserted in the same submission transaction. */
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void freeze(SolutionDO solution, int requiredLevel) {
@@ -59,7 +83,7 @@ public class SolutionReviewPolicyService {
     }
     private void requireLevel(Integer actual, int expected) {
         if (!Objects.equals(actual, expected)) throw exception(SOLUTION_REVIEW_POLICY_INVALID, expected == 0
-                ? "项目规则要求工程管理部复审，请使用分级审核入口" : "项目规则适用普通审核，请使用普通审核入口");
+                ? "项目规则要求工程管理部复审，不能按普通方案重复提交" : "项目规则适用普通审核，不能按重大方案重复提交");
     }
     private Policy policy(ProjectFieldRuleApi.Evaluation result) {
         if (result == null) throw exception(SOLUTION_REVIEW_POLICY_INVALID, "审核适用规则不可用");

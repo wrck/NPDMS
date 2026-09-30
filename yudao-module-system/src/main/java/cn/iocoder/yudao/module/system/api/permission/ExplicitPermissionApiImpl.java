@@ -26,6 +26,17 @@ public class ExplicitPermissionApiImpl implements ExplicitPermissionApi {
     }
 
     @Override
+    public List<Long> listUsersWithPermission(Long tenantId, String permission) {
+        if (tenantId == null || tenantId < 0 || !tenantId.equals(TenantContextHolder.getTenantId())
+                || permission == null || permission.isBlank() || permission.length() > 100) {
+            return List.of();
+        }
+        return explicitPermissionMapper.listUsersWithPermission(ExplicitPermissionQuery.builder()
+                .tenantId(tenantId).permission(permission)
+                .enabledStatus(CommonStatusEnum.ENABLE.getStatus()).build());
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean lockAndCheck(Long tenantId, Long userId, String permission) {
         if (!validContext(tenantId, userId, permission)) {

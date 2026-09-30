@@ -41,7 +41,7 @@ class InstallationLocationServiceTest {
         ReflectionTestUtils.setField(service, "installationMapper", mapper);
         ReflectionTestUtils.setField(service, "locationFactService", locationFactService);
         ReflectionTestUtils.setField(service, "assetLocationApi", assetLocationApi);
-        lenient().doReturn("PROJ-AZ-001").when(recordCodeGenerator).next(any(), anyString(), any(), any(), any());
+        lenient().doReturn("PROJ-AZ-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         lenient().when(mapper.updateById(any(InstallationDO.class))).thenReturn(1);
     }

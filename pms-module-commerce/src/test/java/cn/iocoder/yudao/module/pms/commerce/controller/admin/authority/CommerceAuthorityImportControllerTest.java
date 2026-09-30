@@ -33,7 +33,7 @@ class CommerceAuthorityImportControllerTest {
                         "O-1", null, "2", "DPTECH-DEMO", "SO-1", "NORMAL",
                         null, null, null, null, CommerceSourceLifecycleStatus.ACTIVE, sourceTime)),
                 List.of(new CommerceAuthorityImportBatchReqVO.SalesOrderLineRecord(
-                        "L-1", null, "2", "O-1", "10", "ITEM-1", "设备", "PRODUCT-1", null,
+                        "L-1", null, "2", "O-1", "10", "ITEM-1", "设备", "PRODUCT-1",
                         BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "SET", 0,
                         "CONFIRMED", CommerceSourceLifecycleStatus.ACTIVE, sourceTime)), List.of());
 

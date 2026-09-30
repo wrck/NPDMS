@@ -7,10 +7,9 @@
     <el-empty v-if="!selection" description="请在左侧交付流程中选择阶段或任务" />
 
     <template v-else-if="selection.kind === 'stage'">
-      <!-- 设计稿 wb-head：阶段码徽标 + 名称 + 状态，元信息行（计划/进度/任务完成）为辅助层级 -->
+      <!-- 设计稿 wb-head：首行（名称 + 状态 + 超期 + 进度），元信息行（计划/实际/建议/任务完成/偏差）为辅助层级 -->
       <div class="panel-header stage-head">
         <div class="stage-head-row">
-          <span class="stage-code-chip">{{ selection.stageCode }}</span>
           <span class="stage-head-name">{{
             currentStage?.stageName || selection.stageCode
           }}</span>
@@ -19,12 +18,13 @@
             :type="DICT_TYPE.PMS_PROJECT_STAGE_STATUS"
             :value="currentStage.stageStatus"
           />
+          <span v-if="stageOverdueDays" class="stage-overdue-chip">超期 {{ stageOverdueDays }} 天</span>
+          <span v-if="stageProgress" class="stage-head-progress">进度 <b class="num">{{ stageProgress.percent }}%</b></span>
         </div>
         <div v-if="currentStage" class="stage-head-meta">
           <span>计划 <b class="num">{{ stageTime(stageDetails?.planStartTime) }} ~ {{ stageTime(stageDetails?.planEndTime) }}</b></span>
           <span v-if="stageDetails?.actualStartTime || stageDetails?.actualEndTime">实际 <b class="num">{{ stageTime(stageDetails?.actualStartTime) }} ~ {{ stageTime(stageDetails?.actualEndTime) }}</b></span>
           <span v-if="stageDetails?.suggestedStartTime || stageDetails?.suggestedEndTime">建议 <b class="num">{{ stageTime(stageDetails?.suggestedStartTime) }} ~ {{ stageTime(stageDetails?.suggestedEndTime) }}</b></span>
-          <span v-if="stageProgress">进度 <b class="num">{{ stageProgress.percent }}%</b></span>
           <span v-if="stageProgress">任务 <b class="num">{{ stageProgress.done }}/{{ stageProgress.total }}</b> 已完成</span>
           <span v-if="stageDetails?.deviationReason">偏差原因 {{ stageDetails.deviationReason }}</span>
         </div>
@@ -39,7 +39,7 @@
         <el-alert v-if="tasks.error.value" :title="tasks.error.value" type="error" :closable="false">
           <el-button link @click="tasks.retry">重试任务加载</el-button>
         </el-alert>
-        <!-- 列结构与 /pms/project-detail 的阶段任务表同口径：名称/编码/状态/进度/负责人；子任务列保留本页懒加载能力 -->
+        <!-- 列结构对齐 /pms/project-detail 的阶段任务表：名称/状态/进度/负责人（编码不展示）；子任务列保留本页懒加载能力 -->
         <el-table
           v-loading="tasks.loading.value"
           :data="stageTree"
@@ -51,7 +51,6 @@
           <el-table-column prop="name" label="任务名称" min-width="220" show-overflow-tooltip>
             <template #default="{ row }">{{ row.name || `#${row.taskId}` }}</template>
           </el-table-column>
-          <el-table-column prop="taskCode" label="编码" width="140" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <dict-tag :type="DICT_TYPE.PMS_PROJECT_TASK_STATUS" :value="row.status ?? ''" />
@@ -86,12 +85,13 @@ v-if="!tasks.childState(row.taskId)?.loaded || tasks.childState(row.taskId)?.cur
         <el-button v-if="tasks.hasMore.value && !tasks.error.value" :loading="tasks.loading.value" @click="tasks.more">加载更多任务</el-button>
       </template>
 
-      <!-- STAGE_NATIVE 阶段没有外部业务办理区：整节隐藏，阶段推进仍由底部操作栏承载 -->
+      <!-- STAGE_NATIVE 阶段没有外部业务办理区：整节隐藏，阶段推进仍由底部操作栏承载；
+           未进入阶段（准入未满足）界面照常渲染（后端对非激活阶段本就返回只读上下文），仅业务操作入口由 readonly 隐藏 -->
       <template v-if="!stageBusinessNative">
         <div class="section-title task-business-heading">
           <span>阶段业务办理</span>
         </div>
-        <StageBusinessPanel ref="stageBusinessRef" :project="project" :stage-code="selection.stageCode" @changed="handleStageBusinessChanged" @binding="stageBindingType = $event" />
+        <StageBusinessPanel ref="stageBusinessRef" :project="project" :stage-code="selection.stageCode" :readonly="stagePending" @changed="handleStageBusinessChanged" @binding="stageBindingType = $event" />
       </template>
 
       <StageGateResultsPanel
@@ -107,30 +107,29 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
             <span class="deliverable-name">{{ item.name }}</span>
             <span class="deliverable-code">{{ item.deliverableCode }}</span>
             <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
-            <el-button v-if="item.id" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
+            <el-button v-if="item.id && !stagePending" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
           </div>
         </div>
       </template>
     </template>
 
     <template v-else>
-      <!-- 与阶段工作台同一头部格式：编码章 + 名称 + 状态；负责人/计划/进度为元信息行。
+      <!-- 与阶段工作台同一头部格式：首行（名称 + 状态 + 超期 + 进度），元信息行（计划/实际/层级）为辅助层级。
            数据源为 headTask（工作台任务优先，切换期间用实例视图任务补位），加载全程格式不变 -->
       <div class="panel-header stage-head">
         <div class="stage-head-row">
-          <span v-if="headTask?.taskCode" class="stage-code-chip">{{ headTask.taskCode }}</span>
           <span class="stage-head-name">{{ headTask?.name || (selection?.taskId != null ? `#${selection.taskId}` : '') }}</span>
           <dict-tag
             v-if="headTask?.status"
             :type="DICT_TYPE.PMS_PROJECT_TASK_STATUS"
             :value="headTask.status"
           />
+          <span v-if="taskOverdueDays" class="stage-overdue-chip">超期 {{ taskOverdueDays }} 天</span>
+          <span class="stage-head-progress">进度 <b class="num">{{ headTask?.progress ?? 0 }}%</b></span>
         </div>
         <div v-if="headTask" class="stage-head-meta">
-          <span>负责人 <UserTag v-if="headTask.assigneeUserId" :user-id="headTask.assigneeUserId" /><span v-else>未指派</span></span>
           <span>计划 <b class="num">{{ stageTime(headTask.planStartTime) }} ~ {{ stageTime(headTask.planEndTime) }}</b></span>
-          <span v-if="headTask.actualStartTime || headTask.actualEndTime">实际 <b class="num">{{ stageTime(headTask.actualStartTime) }} ~ {{ stageTime(headTask.actualEndTime) }}</b></span>
-          <span>进度 <b class="num">{{ headTask.progress ?? 0 }}%</b></span>
+          <span v-if="headTask.actualStartTime || headTask.actualEndTime">实际 <b class="num">{{ actualTime(headTask.actualStartTime) }} ~ {{ actualTime(headTask.actualEndTime) }}</b></span>
           <span v-if="headTask.businessLevelCode">层级 {{ headTask.businessLevelCode }}</span>
         </div>
       </div>
@@ -143,8 +142,16 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
       />
 
       <!-- 任务办理区紧跟头部：业务办理是工作区主体，交付件清单依次其后；
-           TASK_NATIVE 通用任务没有办理区，任务操作直接使用底部操作栏 -->
-      <template v-if="workbench?.bindingType !== 'TASK_NATIVE'">
+           TASK_NATIVE 通用任务没有办理区，任务操作直接使用底部操作栏；
+           所属阶段未进入（准入未满足）时界面照常渲染，仅业务办理与状态操作按钮由 readonly 隐藏。
+           工作台未返回前渲染加载占位，不闪现「尚未取得业务绑定」兜底提示 -->
+      <template v-if="!workbench && !loadError">
+        <div class="section-title task-business-heading">
+          <span>任务业务办理</span>
+        </div>
+        <div v-loading="true" class="task-business-loading" />
+      </template>
+      <template v-else-if="workbench?.bindingType !== 'TASK_NATIVE'">
       <div class="section-title task-business-heading">
         <span>任务业务办理</span>
       </div>
@@ -155,13 +162,13 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
         :task-id="workbench.task.taskId"
         :task-version="workbench.task.version"
         :initial-project="project"
-        :readonly="['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
+        :readonly="taskPending || ['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
         @changed="handleBusinessChanged"
         @fact-version="handleBusinessFactChanged"
       />
       <TaskApprovalPanel
 v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
-        :key="`approval-${workbench.task.taskId}`" :workbench="workbench" @changed="handleBusinessChanged" />
+        :key="`approval-${workbench.task.taskId}`" :workbench="workbench" :readonly="taskPending" @changed="handleBusinessChanged" />
       <el-alert
         v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'"
         :type="subscriptionSatisfied ? 'success' : 'info'"
@@ -208,9 +215,10 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         </div>
       </el-alert>
       <template v-else-if="workbench?.bindingType === 'PAGE'">
+        <!-- 页面照常内嵌展示；未进入阶段时业务写操作由组件 readonly 隐藏 -->
         <template v-if="pageEmbed">
           <p class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
-          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" />
+          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending" />
         </template>
         <el-alert
           v-else
@@ -239,7 +247,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
             <span class="deliverable-name">{{ item.name }}</span>
             <span class="deliverable-code">{{ item.deliverableCode }}</span>
             <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
-            <el-button link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
+            <el-button v-if="!taskPending" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
           </div>
           <p class="deliverable-hint">文件或业务成果有效且模板条件满足时，自动满足交付要求。</p>
         </div>
@@ -249,7 +257,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
     <!-- 任务/阶段操作底部吸附栏（设计稿 exec-actions）：操作统一收口于工作区底部并吸附滚动容器底缘。
          业务操作区（左）：业务视图的视图级操作按钮——本节刷新入口在此渲染，业务组件经
          BUSINESS_ACTION_BAR_TARGET teleport 收口到这里；状态操作区（右）：任务=状态推进与资料编辑，
-         阶段=按冻结门禁推进（仅所选阶段即项目当前阶段时出现） -->
+         阶段=按冻结门禁推进（仅所选阶段即项目当前阶段且出口门禁全满足时出现） -->
     <div v-if="selection && showActionBar" class="flow-action-bar">
       <div v-if="businessBarVisible" ref="businessBarTarget" class="flow-bar-business">
         <template v-if="selection.kind === 'stage'">
@@ -262,23 +270,23 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新审批结果</el-button>
           <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新任务状态</el-button>
           <el-button v-if="workbench?.bindingType === 'PAGE' && pageEmbed" @click="reload">刷新工作区</el-button>
-          <el-button v-else-if="workbench?.bindingType === 'PAGE'" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
+          <el-button v-else-if="workbench?.bindingType === 'PAGE' && !taskPending" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
         </template>
       </div>
       <div class="flow-bar-spacer" />
       <template v-if="selection.kind === 'stage'">
         <el-alert v-if="advanceError" class="flow-bar-alert" :title="advanceError" type="error" :closable="false" show-icon />
         <p v-if="readiness" class="flow-bar-hint">{{ stageAdvanceHint }}</p>
+        <!-- 推进即进入下一阶段：下一阶段准入未满足（出口门禁未全满足）时不渲染按钮，仅保留门禁进度提示 -->
         <el-button
-          v-if="readiness?.nextStage"
+          v-if="readiness?.nextStage && readiness.currentStage === selection.stageCode && readiness.advanceAllowed"
           v-hasPermi="['pms:project:update']"
           type="primary"
           :loading="advancing"
-          :disabled="!readiness.advanceAllowed"
           @click="advanceStage"
         >推进至 {{ readiness.nextStage }}{{ nextStageName ? ` ${nextStageName}` : '' }}</el-button>
       </template>
-      <template v-else-if="workbench">
+      <template v-else-if="workbench && !taskPending">
         <TaskStateActions
           ref="stateActionsRef" :workbench="workbench" :business-bound="businessBound"
           :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged">
@@ -352,6 +360,15 @@ const stageTaskSectionVisible = computed(
   () => stageTree.value.length > 0 || tasks.loading.value || !!tasks.error.value
 )
 const stageDetails = computed(() => props.instances?.stages.find(stage => stage.stageCode === props.selection?.stageCode))
+// 未进入阶段（PENDING，准入尚未满足）：该阶段及其任务的界面照常渲染，
+// 仅隐藏业务操作与任务办理/提交/推进入口（阶段侧由后端只读上下文、任务侧由 readonly 强制）；
+// 门禁审批发起入口不受影响，由后端 canStart 决定
+const pendingStageCodes = computed(
+  () => new Set((props.instances?.stages || []).filter(stage => stage.status === 'PENDING').map(stage => stage.stageCode))
+)
+const stagePending = computed(
+  () => props.selection?.kind === 'stage' && pendingStageCodes.value.has(props.selection.stageCode)
+)
 // 阶段进度：DONE 任务比例（与推进轨/头部统计同口径；实例视图任务无 progress 字段），无任务时不展示
 const stageProgress = computed(() => {
   const stageCode = props.selection?.stageCode
@@ -361,7 +378,9 @@ const stageProgress = computed(() => {
   const done = list.filter((task) => task.status === 'DONE').length
   return { done, total: list.length, percent: Math.round((done / list.length) * 100) }
 })
-const stageTime = (value?: string) => value ? formatDate(value) : '—'
+// 头部元信息行：计划日期只展示到日（不带时分秒）；实际起止保留完整时间
+const stageTime = (value?: string) => value ? formatDate(value, 'YYYY-MM-DD') : '—'
+const actualTime = (value?: string) => value ? formatDate(value) : '—'
 // 设计稿「阶段交付件」：本阶段全部交付件（含任务归属），只读清单 + 提交入口
 const stageDeliverables = computed(() =>
   props.selection?.kind === 'stage'
@@ -372,11 +391,33 @@ const stageDeliverables = computed(() =>
 )
 const hasStageGates = computed(() => props.instances?.gates.some(gate => gate.stageCode === props.selection?.stageCode))
 const workbench = ref<TaskWorkbench>()
+// 任务维度复用同一未进入判定：导航快照缺 stageCode 时以工作台任务补位
+const taskPending = computed(() => {
+  if (props.selection?.kind !== 'task') return false
+  const code = props.selection.task?.stageCode ?? workbench.value?.task.stageCode
+  return !!code && pendingStageCodes.value.has(code)
+})
 // 明细切换期间头部用导航选中的任务快照即时填充：工作台未返回时不退回占位标题，避免两套格式跳变；
 // 导航快照（TaskNode）没有实际时间字段，实际起止此时隐藏，工作台返回后补齐
 const headTask = computed<TaskDetail | undefined>(
   () => workbench.value?.task ?? (props.selection?.task as TaskDetail | undefined)
 )
+// 超期天数：阶段与推进轨同口径（进行中且超过计划完成时间，向上取整，未开始不计）；
+// 任务按超期统计定义（未完成且超过计划完成时间，终态 DONE/CLOSED/CANCELLED 不计）
+const overdueDaysFrom = (planEndTime?: string) => {
+  if (!planEndTime) return 0
+  const days = Math.ceil((Date.now() - new Date(planEndTime).getTime()) / 86400000)
+  return days > 0 ? days : 0
+}
+const stageOverdueDays = computed(() => {
+  const stage = stageDetails.value
+  return stage && stage.status === 'ACTIVE' ? overdueDaysFrom(stage.planEndTime) : 0
+})
+const taskOverdueDays = computed(() => {
+  const task = headTask.value
+  if (!task || ['DONE', 'CLOSED', 'CANCELLED'].includes(task.status || '')) return 0
+  return overdueDaysFrom(task.planEndTime)
+})
 const loadError = ref('')
 const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
 const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()
@@ -446,23 +487,31 @@ const advanceStage = async () => {
   }
 }
 // 吸附操作栏显隐：任务视图随工作台就绪——业务绑定任务的业务操作与任务状态操作都在栏内承载；
-// 阶段视图在业务办理区存在（非 STAGE_NATIVE）或所选阶段即项目当前阶段（推进操作）时承载
+// 阶段视图在业务办理区存在（非 STAGE_NATIVE）或所选阶段即项目当前阶段且准入满足（推进操作）时承载；
+// 未进入阶段（PENDING）的阶段与任务界面照常渲染，栏内保留刷新入口，业务操作/状态操作/推进按钮不渲染
 const showActionBar = computed(() => {
   const selection = props.selection
   if (!selection) return false
   if (selection.kind === 'stage') {
     return !stageBusinessNative.value
-      || (!!readiness.value && readiness.value.currentStage === selection.stageCode)
+      || (!!readiness.value && readiness.value.currentStage === selection.stageCode && readiness.value.advanceAllowed)
   }
-  return !!workbench.value
+  if (!workbench.value) return false
+  if (businessBarVisible.value) return true
+  // 栏内只剩状态操作时：未进入阶段不渲染状态操作，整栏随之隐藏
+  return !taskPending.value
     && (workbench.value.bindingType !== 'TASK_NATIVE' || !!workbench.value.allowedActions?.length)
 })
-// 业务操作区显隐：与业务办理区的渲染条件一致（区在则操作在），避免渲染空操作区
+// 业务操作区显隐：与业务办理区的渲染条件一致（区在则操作在），且栏内确有按钮可渲染——
+// 未进入阶段的 PAGE 内嵌保留刷新工作区入口；无内嵌（仅跳转兜底）时不渲染操作区
 const businessBarVisible = computed(() => {
   const selection = props.selection
   if (!selection) return false
   if (selection.kind === 'stage') return !stageBusinessNative.value
-  return !!workbench.value && workbench.value.bindingType !== 'TASK_NATIVE'
+  if (!workbench.value || workbench.value.bindingType === 'TASK_NATIVE') return false
+  const type = workbench.value.bindingType
+  return businessBound.value || type === 'APPROVAL' || type === 'RESULT_SUBSCRIPTION'
+    || (type === 'PAGE' && (!!pageEmbed.value || !taskPending.value))
 })
 // 业务组件的视图级操作按钮经此挂载点 teleport 收口到底部操作栏（businessActionBar.ts 协议）
 const businessBarTarget = ref<HTMLElement>()
@@ -694,7 +743,7 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* 设计稿 wb-head：阶段码徽标 + 名称 + 状态；头部为两行（标题行 + 元信息行） */
+/* 设计稿 wb-head：首行（名称 + 状态 + 超期 + 进度）+ 元信息行，头部两行 */
 .stage-head {
   flex-direction: column;
   align-items: flex-start;
@@ -744,23 +793,31 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-.stage-code-chip {
-  flex: none;
-  padding: 2px 8px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border: 1px solid var(--el-color-primary-light-8);
-  border-radius: 4px;
-}
-
 .stage-head-name {
   font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+/* 超期徽标：与推进轨超期红标同观感（danger 浅底小章） */
+.stage-overdue-chip {
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 16px;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border-radius: 2px;
+}
+
+/* 首行进度：元信息观感（数值强调），与名称/状态拉开层级 */
+.stage-head-progress {
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+
+  b {
+    color: var(--el-text-color-primary);
+    font-weight: 600;
+  }
 }
 
 .task-business-heading {
@@ -769,6 +826,13 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* 工作台/业务上下文装载占位：单次过渡加载态，避免原生兜底页→业务框架→内容多次跳变 */
+.task-business-loading {
+  /* v-loading 掩罩绝对定位：宿主需自 relative，转圈才落在占位区内 */
+  position: relative;
+  min-height: 160px;
 }
 
 /* 订阅观察：紧凑表格 + 说明，全部只读 */

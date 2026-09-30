@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO;
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * PMS 现场工勘 Mapper（FR-ENG-001）。
  */
 @Mapper
-public interface SiteSurveyEntityMapper extends BaseMapperX<SiteSurveyEntityDO> {
+public interface SiteSurveyEntityMapper extends ProjectScopedCodeMapper<SiteSurveyEntityDO> {
     java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SurveyResultInventoryQuery query);
 

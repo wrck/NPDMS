@@ -35,14 +35,14 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 field("sourceUpdatedAt", "来源版本时间", true), field("migrationIssue", "来源预检问题", false));
         List<Field> head = new ArrayList<>(common);
         for (String name : List.of("customerCode", "customerName", "salesType", "sourceProjectName", "orderComment",
-                "orderCreateTime", "customerRequiredTime")) head.add(field(name, name, false));
+                "orderCreateTime", "customerRequiredTime", "customInfo")) head.add(field(name, name, false));
         head.add(field("contractNo", "主合同号", false));
         head.add(field("executionNo", "主执行单号", false));
         List<Field> line = new ArrayList<>(common);
         line.add(field("migrationParentExists", "来源父订单预检通过", false));
         line.add(field("lineNo", "行号", true));
-        for (String name : List.of("itemCode", "itemDescription", "orderQuantity", "openQuantity", "bundleCode",
-                "warrantyMonth", "profitCenter", "realExecutionNo", "unitCode")) line.add(field(name, name, false));
+        for (String name : List.of("productCode", "productDesc", "orderQuantity", "openQuantity", "bundleCode",
+                "warrantyMonth", "profitCenter", "realExecutionNo", "unitCode", "customInfo")) line.add(field(name, name, false));
         return new Descriptor(KEY, "DPPMS ERP销售订单与订单行",
                 List.of(new ObjectDescriptor("ORDER", "销售订单", head, "COM", "SalesOrder", "com_sales_order", false),
                         new ObjectDescriptor("LINE", "订单行", line, "COM", "OrderLine", "com_sales_order_line", false)),
@@ -136,7 +136,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                             version, company, number, type, text(row, "customerCode"), text(row, "customerName"),
                             null, null, lifecycle, time, text(row, "salesType"), text(row, "sourceProjectName"),
                             text(row, "orderComment"), time(row, "orderCreateTime"), time(row, "customerRequiredTime"),
-                            text(row, "contractNo"), text(row, "executionNo"));
+                            text(row, "customInfo"), text(row, "contractNo"), text(row, "executionNo"));
                     var previous = incomingOrders.get(targetKey);
                     if (previous != null && !canonicalizer.orderPayload(previous).equals(canonicalizer.orderPayload(fact))) {
                         throw new IllegalArgumentException("同一批次订单主档字段冲突");
@@ -161,11 +161,12 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     BigDecimal qty = decimal(row, "orderQuantity"), open = decimal(row, "openQuantity");
                     String unit = text(row, "unitCode");
                     var fact = new CommerceOrderLineFact(targetKey, old == null ? null : old.getSourceVersion(),
-                            version, parentKey, lineNo, text(row, "itemCode"), text(row, "itemDescription"), null, null,
+                            version, parentKey, lineNo, text(row, "productCode"), text(row, "productDesc"), null,
                             qty, open, qty == null || open == null ? null : qty.subtract(open), unit, 0,
                             unit == null || qty == null ? "PENDING_AUTHORITY" : "CONFIRMED", lifecycle, time,
                             type, text(row, "bundleCode"), text(row, "profitCenter"), text(row, "realExecutionNo"),
-                            decimal(row, "warrantyMonth") == null ? null : decimal(row, "warrantyMonth").intValueExact());
+                            decimal(row, "warrantyMonth") == null ? null : decimal(row, "warrantyMonth").intValueExact(),
+                            text(row, "customInfo"));
                     var previous = incomingLines.get(targetKey);
                     if (previous != null && !canonicalizer.linePayload(previous).equals(canonicalizer.linePayload(fact)))
                         throw new IllegalArgumentException("同一批次订单行字段冲突");

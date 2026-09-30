@@ -24,7 +24,8 @@
 - 两张源表均没有计量单位。订单行保留原始数量，单位为 `NULL`，标记 `PENDING_AUTHORITY`，并提示“计量单位缺失，保留为空并待核对”。确认数量仍要求单位完整。
 - 同一业务键内容冲突、缺少父订单等记录进入问题清单，不任意选一条覆盖，也不创建虚构父订单。
 - 使用同一业务键的最大 `syncTime` 作为规范化来源版本；原始行的全部字段仍保存在迁移证据中。
-- 合同号、执行号、`customInfo` 等未进入订单主档的原始字段保留在来源证据中；本模板不额外创建合同关系或项目关系。
+- 合同号、执行号等未进入订单主档的原始字段保留在来源证据中；本模板不额外创建合同关系或项目关系。
+- 2026-09-29 裁决：`customInfo` 由"仅存证据"改为原样同步至 `com_sales_order.custom_info` / `com_sales_order_line.custom_info`（JSON NULL，空白归一为 NULL，不截断、不参与同版本载荷裁决，V378）；历史已迁移订单不回填，待来源 `syncTime` 变化按 UPSERT 落值。订单行三对重复字段按对应关系直接更名规范化（产品/物料双读法）：`item_code`→`product_code`（产品编码/物料编码，先以 COALESCE 合并既有 `product_code` 缺失值再移除）、`item_desc`→`product_desc`（产品描述/物料描述）、`model_code`→`product_model`（产品型号/物料型号）；模板映射目标同步更名（ERP 源列 `itemCode`/`itemDesc` 保持不变），订单与订单行字段映射同步纳入 `customInfo`。
 - 加载策略为 `UPSERT`，来源缺失策略为 `RETAIN`；不清空业务表、不接管其他来源、不启用源主键覆盖目标主键。
 
 ## 自动分页
