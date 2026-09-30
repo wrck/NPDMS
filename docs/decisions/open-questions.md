@@ -1097,3 +1097,17 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Decision: 摘除 deviceMaster/secondaryMaster/deviceShipment 三步，任务与 device-sn 模板均改为只写两张承接表（ast_device_shipment/ast_device_relationship）。设备列表的发货投影列（shipment_record_id/shipment_time/package_no/contract_no）自本次裁决起不再由该任务维护，存量悬空引用与后续维护去向由需求方另行安排。
 - Blocking scope: 仅阻止设备侧三步的长期去留；不阻断本次全清复制与承接表正确性验证。
 - Decision owner: 需求方。
+
+### Q-MIG-V331-20260929-001 — V331 交付件绑定修复迁移不支持全新空库构建
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: F-PROJ-009（V331__fproj009_deliverable_binding_restore.sql 为该需求的历史数据修复）；本次发现于"项目创建取值(合同单入口)"V361 验证环境搭建
+- Area: 数据库迁移 / 全新环境供给
+- Question: V331 是按生产库实况捕获快照生成的一次性外科修复迁移（restore_fproj009_deliverable_binding.py），其 before-guard 逐行比对 six DRAFT 模板 designer_document 的修复前状态；全新空库按 V1..V361 顺序构建时，guard 前置查询返回空/不一致，迁移在 V331 失败，导致全新环境（含 CI、新同事本地、演示环境）无法用完整迁移链初始化。
+- Evidence:
+  - 新建 Docker 卷执行 `flyway migrate`（./sql/migrations 全量 301 个）在 V331 报 before-guard 失败；同一文件集在持有历史数据的既有卷上通过。
+  - V331 头部声明"只补本库仍缺失的表结构/修复指定环境数据"，未声明支持全新构建；V1..V330 无任何迁移产生其 guard 期望的 designer_document 状态。
+  - 当前本地验证库改用排除 V331 的过滤目录（.run/flyway-no-v331）构建成功到 V361；未修改任何迁移文件、未削弱 guard。
+- Recommended technical default: 若需求方确认 V331 仅面向特定既有环境，则把它改为条件执行（guard 不满足时跳过并留审计记录）或迁出主迁移链（移入一次性运维脚本目录+登记执行环境清单）；两者都会改动已执行环境的 flyway_schema_history 语义，需要明确决策。
+- Blocking scope: 仅阻止"单一迁移链支持全新空库构建"这一能力；不阻断本机既有库、工作区库的升级，也不阻断当前 V361 业务验证（本地验证库已可构建）。
+- Decision owner: 需求方（涉及迁移历史治理，非单一代码决定）。
