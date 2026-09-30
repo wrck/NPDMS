@@ -23,19 +23,21 @@ public class ManagementSettingsController {
     private final CallbackProperties callback;
     private final MasterDataHttpProperties masterData;
     private final TelnetProperties telnet;
+    private final SerialProperties serial;
     private final ParserControlProperties parser;
     private final CredentialStore credentials;
     private final String authMode;
 
     public ManagementSettingsController(ProjectClaimAuthorizer claims, ScheduleProperties schedule,
             CallbackProperties callback, MasterDataHttpProperties masterData, TelnetProperties telnet,
-            ParserControlProperties parser, CredentialStore credentials,
+            SerialProperties serial, ParserControlProperties parser, CredentialStore credentials,
             @Value("${device-ops.security.mode:oauth2}") String authMode) {
         this.claims = claims;
         this.schedule = schedule;
         this.callback = callback;
         this.masterData = masterData;
         this.telnet = telnet;
+        this.serial = serial;
         this.parser = parser;
         this.credentials = credentials;
         this.authMode = authMode;
@@ -49,11 +51,11 @@ public class ManagementSettingsController {
         return new Settings("Device Ops Platform", "v1", true, authMode, "local".equals(authMode),
                 claims.requireSubject(jwt), scope.namespaces(), scope.projects(), scope.allNamespaces(), scopes, parser.getMaxInputBytes(),
                 new Capabilities(schedule.isEnabled(), callback.isEnabled(), masterData.isEnabled(),
-                        telnet.isEnabled(), credentials.available()));
+                        telnet.isEnabled(), serial.isEnabled(), credentials.available()));
     }
     public record Settings(String platformName, String apiVersion, boolean readOnly, String authMode,
                            boolean localDebug, String subject, List<String> namespaces, List<String> projects,
                            boolean allNamespaces, List<String> scopes, int maxParserInputBytes, Capabilities capabilities) { }
     public record Capabilities(boolean scheduleEnabled, boolean callbackEnabled, boolean masterDataEnabled,
-                               boolean telnetEnabled, boolean credentialStorageAvailable) { }
+                               boolean telnetEnabled, boolean serialEnabled, boolean credentialStorageAvailable) { }
 }

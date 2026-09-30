@@ -1,4 +1,5 @@
 import type { SemanticParsingRequest } from '@/types/parser'
+import type { SerialParams, SerialPrompts } from '@/utils/serial-connection'
 
 export type CollectionStatus =
   | 'QUEUED'
@@ -36,7 +37,7 @@ export interface ScriptDraft {
   parserConfig: string
 }
 
-export type ConnectionProtocol = 'SSH2' | 'TELNET'
+export type ConnectionProtocol = 'SSH2' | 'TELNET' | 'SERIAL'
 export type ExecutionMode = 'EXEC' | 'SHELL'
 export type ConnectionSource = 'PROJECT_DEVICE' | 'QUICK' | 'RECENT'
 
@@ -86,6 +87,18 @@ export type TransientConnectionRequest = DirectConnectionFields &
         privateKey?: never
         passphrase?: never
       }
+    | {
+        protocol: 'SERIAL'
+        authenticationType: 'PASSWORD'
+        executionMode: 'SHELL'
+        hostKeyFingerprint?: never
+        telnetPrompts?: never
+        serialParams: SerialParams
+        serialPrompts: SerialPrompts
+        password: string
+        privateKey?: never
+        passphrase?: never
+      }
   )
 
 export type SavedConnectionWriteConnection = DirectConnectionFields &
@@ -120,6 +133,18 @@ export type SavedConnectionWriteConnection = DirectConnectionFields &
         privateKey?: never
         passphrase?: never
       }
+    | {
+        protocol: 'SERIAL'
+        authenticationType: 'PASSWORD'
+        executionMode: 'SHELL'
+        hostKeyFingerprint?: never
+        telnetPrompts?: never
+        serialParams: SerialParams
+        serialPrompts: SerialPrompts
+        password?: string
+        privateKey?: never
+        passphrase?: never
+      }
   )
 
 export interface SavedConnectionReference {
@@ -145,6 +170,8 @@ export type DirectCollectionTarget =
       DirectCollectionReferenceExclusion)
   | (Extract<TransientConnectionRequest, { protocol: 'TELNET' }> &
       DirectCollectionReferenceExclusion & { executionMode: 'SHELL' })
+  | (Extract<TransientConnectionRequest, { protocol: 'SERIAL' }> &
+      DirectCollectionReferenceExclusion)
 
 type SavedCollectionTarget = SavedConnectionReference & {
   executionMode?: never
@@ -155,6 +182,8 @@ type SavedCollectionTarget = SavedConnectionReference & {
   authenticationType?: never
   hostKeyFingerprint?: never
   telnetPrompts?: never
+  serialParams?: never
+  serialPrompts?: never
   connectTimeoutSeconds?: never
   password?: never
   privateKey?: never

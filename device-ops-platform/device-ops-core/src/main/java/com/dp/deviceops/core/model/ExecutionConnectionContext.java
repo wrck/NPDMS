@@ -25,7 +25,8 @@ public final class ExecutionConnectionContext implements AutoCloseable {
     public ConnectionProjection projection() {
         return new ConnectionProjection(connection.protocol(), connection.host(), connection.port(), connection.username(),
                 connection.authenticationType(), connection.executionMode(), connection.expectedHostKeyFingerprint(),
-                connection.telnetPrompts(), connection.connectTimeout());
+                connection.telnetPrompts(), connection.serialParams(), connection.serialPrompts(),
+                connection.connectTimeout());
     }
 
     public <T> T withCredentials(TransientCredential.CredentialOperation<T> operation) { return credential.withCredentials(operation); }
@@ -62,5 +63,7 @@ public final class ExecutionConnectionContext implements AutoCloseable {
                                        CommandExecutionPort.ExecutionMode executionMode,
                                        String expectedHostKeyFingerprint,
                                        CommandExecutionPort.TelnetPrompts telnetPrompts,
+                                       CommandExecutionPort.SerialParams serialParams,
+                                       CommandExecutionPort.SerialPrompts serialPrompts,
                                        Duration connectTimeout) { }
 }

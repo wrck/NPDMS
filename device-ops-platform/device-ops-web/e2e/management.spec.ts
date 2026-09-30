@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/v1/runtime-config', route => route.fulfill({ json: { authMode: 'local', apiBaseUrl: '/api/v1/', telnetEnabled: false } }))
+  await page.route('**/api/v1/runtime-config', route => route.fulfill({ json: { authMode: 'local', apiBaseUrl: '/api/v1/', telnetEnabled: false, serialEnabled: false } }))
   await page.route('**/api/v1/parser-runtime/status', route => route.fulfill({ status: 403, json: {} }))
 })
 

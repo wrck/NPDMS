@@ -20,7 +20,7 @@ function isRecentConnection(value: unknown): value is RecentConnection {
   if (!value || typeof value !== 'object') return false
   const item = value as Partial<RecentConnection>
   return (
-    (item.protocol === 'SSH2' || item.protocol === 'TELNET') &&
+    (item.protocol === 'SSH2' || item.protocol === 'TELNET' || item.protocol === 'SERIAL') &&
     typeof item.host === 'string' &&
     Number.isInteger(item.port) &&
     typeof item.username === 'string' &&

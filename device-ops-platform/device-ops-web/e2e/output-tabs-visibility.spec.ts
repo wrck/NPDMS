@@ -41,7 +41,7 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 1440, height: 900
         forbidden.push(route.request().url()); await route.abort(); return
       }
       if (!url.pathname.startsWith('/api/')) { await route.continue(); return }
-      if (url.pathname.endsWith('/runtime-config')) { await route.fulfill({ json: { oidcAuthority: authority, oidcClientId: 'device-ops-web', oidcScope: 'openid device-ops:collections:read', apiBaseUrl: '/api/v1' } }); return }
+      if (url.pathname.endsWith('/runtime-config')) { await route.fulfill({ json: { oidcAuthority: authority, oidcClientId: 'device-ops-web', oidcScope: 'openid device-ops:collections:read', apiBaseUrl: '/api/v1', serialEnabled: false } }); return }
       if (url.pathname.endsWith('/semantic-results')) { await route.fulfill({ json: [{ targetId: 1, taskId: 'history-task', state: 'SUCCEEDED', coordinate, result: { semanticResult } }] }); return }
       if (url.pathname.endsWith('/collections/layout-history')) { await route.fulfill({ json: details }); return }
       if (url.pathname.endsWith('/evidence')) { await route.fulfill({ status: 404, json: {} }); return }

@@ -4,6 +4,7 @@ import type {
   SavedConnectionWriteConnection,
   TelnetPrompts
 } from '@/types/collection'
+import type { SerialParams, SerialPrompts } from '@/utils/serial-connection'
 
 export interface SavedConnection {
   id: string
@@ -19,6 +20,8 @@ export interface SavedConnection {
     executionMode: 'EXEC' | 'SHELL'
     expectedHostKeyFingerprint: string | null
     telnetPrompts: TelnetPrompts | null
+    serialParams: SerialParams | null
+    serialPrompts: SerialPrompts | null
     connectTimeout: string | number
   }
   credentialSaved: boolean

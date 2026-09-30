@@ -162,7 +162,8 @@ public final class CollectionWorker {
             return new CommandExecutionPort.ConnectionSpec(
                     projection.protocol(), projection.host(), projection.port(), projection.username(),
                     projection.authenticationType(), projection.executionMode(),
-                    projection.expectedHostKeyFingerprint(), projection.telnetPrompts(), projection.connectTimeout());
+                    projection.expectedHostKeyFingerprint(), projection.telnetPrompts(),
+                    projection.serialParams(), projection.serialPrompts(), projection.connectTimeout());
         }
     }
     private record Evidence(String stdout, String stderr, Integer exitCode, boolean truncated, Map<String, String> facts, String outcome) {

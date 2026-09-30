@@ -60,7 +60,7 @@ class CollectionBoundaryTest {
                 new ProjectClaimAuthorizer(), mock(CollectionOutputStreamService.class));
         char[] secret = "not-persisted".toCharArray();
         var saved = new ConnectionRequestMapper.Connection(null, null, null, null, null, null,
-                null, null, null, null, "saved-connection", null, secret, null, null);
+                null, null, null, null, null, null, "saved-connection", null, secret, null, null, null);
         var request = new GenericCollectionController.Request("owned", null, saved,
                 new GenericCollectionController.Script("ADHOC_INLINE", "script", "1", "show version", "0".repeat(64),
                         "EXECUTION_ONLY", "NONE", null), null, null, null, 30, 5, 10, null);

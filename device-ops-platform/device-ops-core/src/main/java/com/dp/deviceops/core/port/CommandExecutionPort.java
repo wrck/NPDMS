@@ -80,6 +80,64 @@ public interface CommandExecutionPort {
         LF
     }
 
+    enum SerialParity {
+        NONE,
+        EVEN,
+        ODD,
+        MARK,
+        SPACE
+    }
+
+    enum SerialFlowControl {
+        NONE,
+        RTS_CTS,
+        XON_XOFF
+    }
+
+    record SerialParams(int baudRate, int dataBits, SerialParity parity, int stopBits,
+                        SerialFlowControl flowControl) {
+
+        public SerialParams {
+            if (baudRate < 1) {
+                throw new IllegalArgumentException("baudRate must be positive");
+            }
+            if (dataBits < 5 || dataBits > 8) {
+                throw new IllegalArgumentException("dataBits must be between 5 and 8");
+            }
+            parity = Objects.requireNonNull(parity, "parity");
+            if (stopBits != 1 && stopBits != 2) {
+                throw new IllegalArgumentException("stopBits must be 1 or 2");
+            }
+            flowControl = Objects.requireNonNull(flowControl, "flowControl");
+        }
+
+        public static SerialParams defaults() {
+            return new SerialParams(9600, 8, SerialParity.NONE, 1, SerialFlowControl.NONE);
+        }
+    }
+
+    record SerialPrompts(String login, String password, String command, TelnetLineEnding lineEnding) {
+
+        public SerialPrompts {
+            login = requireRegex(login, "login");
+            password = requireRegex(password, "password");
+            command = requireRegex(command, "command");
+            lineEnding = lineEnding == null ? TelnetLineEnding.AUTO : lineEnding;
+        }
+
+        public SerialPrompts(String login, String password, String command) {
+            this(login, password, command, TelnetLineEnding.AUTO);
+        }
+
+        public static SerialPrompts defaults() {
+            return new SerialPrompts(
+                    "(?i)(login|username)\\s*:\\s*$",
+                    "(?i)password\\s*:\\s*$",
+                    "[>#\\$]\\s*$",
+                    TelnetLineEnding.AUTO);
+        }
+    }
+
     record ConnectionSpec(
             ConnectionProtocol protocol,
             String host,
@@ -89,42 +147,80 @@ public interface CommandExecutionPort {
             ExecutionMode executionMode,
             String expectedHostKeyFingerprint,
             TelnetPrompts telnetPrompts,
+            SerialParams serialParams,
+            SerialPrompts serialPrompts,
             Duration connectTimeout) {
 
         public ConnectionSpec {
             protocol = Objects.requireNonNull(protocol, "protocol");
             host = requireText(host, "host");
-            if (port < 1 || port > 65_535) {
-                throw new IllegalArgumentException("port is invalid");
-            }
             username = requireText(username, "username");
             authenticationType = Objects.requireNonNull(authenticationType, "authenticationType");
             executionMode = Objects.requireNonNull(executionMode, "executionMode");
             connectTimeout = requirePositive(connectTimeout, "connectTimeout");
-            if (protocol == ConnectionProtocol.SSH2) {
-                expectedHostKeyFingerprint = expectedHostKeyFingerprint == null
-                        || expectedHostKeyFingerprint.isBlank()
-                        ? null : expectedHostKeyFingerprint.strip();
-            } else {
+            if (protocol == ConnectionProtocol.SERIAL) {
+                if (port != 0) {
+                    throw new IllegalArgumentException("SERIAL requires port 0");
+                }
                 if (authenticationType != AuthenticationType.PASSWORD) {
-                    throw new IllegalArgumentException("TELNET requires password authentication");
+                    throw new IllegalArgumentException("SERIAL requires password authentication");
                 }
                 if (executionMode != ExecutionMode.SHELL) {
-                    throw new IllegalArgumentException("TELNET requires shell execution mode");
+                    throw new IllegalArgumentException("SERIAL requires shell execution mode");
                 }
                 if (expectedHostKeyFingerprint != null && !expectedHostKeyFingerprint.isBlank()) {
-                    throw new IllegalArgumentException("TELNET does not use a host key fingerprint");
+                    throw new IllegalArgumentException("SERIAL does not use a host key fingerprint");
+                }
+                if (telnetPrompts != null) {
+                    throw new IllegalArgumentException("SERIAL does not use Telnet prompts");
+                }
+                if (serialParams == null) {
+                    throw new IllegalArgumentException("serialParams is required");
+                }
+                if (serialPrompts == null) {
+                    throw new IllegalArgumentException("serialPrompts is required");
                 }
                 expectedHostKeyFingerprint = null;
-                telnetPrompts = Objects.requireNonNull(telnetPrompts, "telnetPrompts");
+            } else {
+                if (port < 1 || port > 65_535) {
+                    throw new IllegalArgumentException("port is invalid");
+                }
+                if (serialParams != null || serialPrompts != null) {
+                    throw new IllegalArgumentException(protocol + " does not use serial connection fields");
+                }
+                if (protocol == ConnectionProtocol.SSH2) {
+                    expectedHostKeyFingerprint = expectedHostKeyFingerprint == null
+                            || expectedHostKeyFingerprint.isBlank()
+                            ? null : expectedHostKeyFingerprint.strip();
+                } else {
+                    if (authenticationType != AuthenticationType.PASSWORD) {
+                        throw new IllegalArgumentException("TELNET requires password authentication");
+                    }
+                    if (executionMode != ExecutionMode.SHELL) {
+                        throw new IllegalArgumentException("TELNET requires shell execution mode");
+                    }
+                    if (expectedHostKeyFingerprint != null && !expectedHostKeyFingerprint.isBlank()) {
+                        throw new IllegalArgumentException("TELNET does not use a host key fingerprint");
+                    }
+                    expectedHostKeyFingerprint = null;
+                    telnetPrompts = Objects.requireNonNull(telnetPrompts, "telnetPrompts");
+                }
             }
+        }
+
+        public ConnectionSpec(ConnectionProtocol protocol, String host, int port, String username,
+                              AuthenticationType authenticationType, ExecutionMode executionMode,
+                              String expectedHostKeyFingerprint, TelnetPrompts telnetPrompts,
+                              Duration connectTimeout) {
+            this(protocol, host, port, username, authenticationType, executionMode,
+                    expectedHostKeyFingerprint, telnetPrompts, null, null, connectTimeout);
         }
 
         public ConnectionSpec(String host, int port, String username, AuthenticationType authenticationType,
                               ExecutionMode executionMode, String expectedHostKeyFingerprint,
                               Duration connectTimeout) {
             this(ConnectionProtocol.SSH2, host, port, username, authenticationType, executionMode,
-                    expectedHostKeyFingerprint, null, connectTimeout);
+                    expectedHostKeyFingerprint, null, null, null, connectTimeout);
         }
     }
 

@@ -104,7 +104,7 @@ function createCollectionTarget(
       credentialNamespace: connection.credentialNamespace
     }
   }
-  if (connection.protocol === 'TELNET') {
+  if (connection.protocol === 'TELNET' || connection.protocol === 'SERIAL') {
     return {
       ...context,
       ...structuredClone(connection),

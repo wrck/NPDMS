@@ -11,7 +11,19 @@ import {
   type SavedConnectionWriteRequest
 } from '@/api/saved-connections'
 import { testConnection, type ConnectionTestResult } from '@/api/device-ops'
+import { listSerialPorts } from '@/api/serial-ports'
 import { loadRuntimeConfig } from '@/config/runtime'
+import {
+  DEFAULT_SERIAL_PARAMS,
+  DEFAULT_SERIAL_PROMPTS,
+  SERIAL_BAUD_RATES,
+  SERIAL_FLOW_CONTROL_OPTIONS,
+  SERIAL_PARITY_OPTIONS,
+  SERIAL_STOP_BIT_OPTIONS,
+  validateSerialConnection,
+  type SerialParams,
+  type SerialPrompts
+} from '@/utils/serial-connection'
 import type { RecentConnection } from '@/stores/recent-connections'
 import type {
   ConnectionProtocol,
@@ -28,6 +40,11 @@ const props = withDefaults(defineProps<{ credentialNamespace?: string }>(), {
 
 const protocol = ref<ConnectionProtocol>('SSH2')
 const telnetEnabled = ref(false)
+const serialEnabled = ref(false)
+const serialPortNames = ref<string[]>([])
+const serialComPort = ref('')
+const serialParams = reactive<SerialParams>({ ...DEFAULT_SERIAL_PARAMS })
+const serialPrompts = reactive<SerialPrompts>({ ...DEFAULT_SERIAL_PROMPTS })
 const authenticationType = ref<'PASSWORD' | 'PRIVATE_KEY'>('PASSWORD')
 const executionMode = ref<ExecutionMode>('SHELL')
 const password = ref('')
@@ -64,7 +81,7 @@ const telnetPrompts = reactive({
 })
 
 const effectiveAuthenticationType = computed<'PASSWORD' | 'PRIVATE_KEY'>(() =>
-  protocol.value === 'TELNET' ? 'PASSWORD' : authenticationType.value
+  protocol.value === 'SSH2' ? authenticationType.value : 'PASSWORD'
 )
 const hasSensitiveInput = computed(
   () => Boolean(password.value || privateKey.value || passphrase.value)
@@ -75,10 +92,10 @@ const savedConnectionDirty = computed(
     (savedBaseline.value !== savedFormSignature() || hasSensitiveInput.value)
 )
 const savedConnectionsByProtocol = computed(() =>
-  (['SSH2', 'TELNET'] as const)
+  (['SSH2', 'TELNET', 'SERIAL'] as const)
     .map((savedProtocol) => ({
       protocol: savedProtocol,
-      label: savedProtocol === 'SSH2' ? 'SSH2 连接' : 'Telnet 连接',
+      label: savedProtocol === 'SSH2' ? 'SSH2 连接' : savedProtocol === 'TELNET' ? 'Telnet 连接' : '串口连接',
       connections: savedConnections.value.filter(
         (connection) => connection.connection.protocol === savedProtocol
       )
@@ -92,8 +109,9 @@ watch(protocol, (current, previous) => {
   if (!suppressProtocolPortDefault) {
     if (current === 'TELNET' && previous === 'SSH2' && endpoint.port === 22) endpoint.port = 23
     if (current === 'SSH2' && previous === 'TELNET' && endpoint.port === 23) endpoint.port = 22
+    if (current === 'SERIAL') endpoint.port = 0
   }
-  if (current === 'TELNET') executionMode.value = 'SHELL'
+  if (current !== 'SSH2') executionMode.value = 'SHELL'
   clearTestState()
 }, { flush: 'sync' })
 
@@ -154,6 +172,25 @@ function directConnectionFields() {
   if (protocol.value === 'TELNET' && !telnetEnabled.value) {
     throw new Error('当前部署未启用 Telnet。')
   }
+  if (protocol.value === 'SERIAL' && !serialEnabled.value) {
+    throw new Error('当前部署未启用串口。')
+  }
+  if (protocol.value === 'SERIAL') {
+    const host = serialComPort.value.trim() || endpoint.host.trim()
+    const serialErrors = validateSerialConnection({
+      host,
+      port: 0,
+      serialParams: { ...serialParams },
+      serialPrompts: { ...serialPrompts }
+    })
+    if (serialErrors.length) throw new Error(serialErrors[0])
+    return {
+      host,
+      port: 0,
+      username: requireValue(endpoint.username, '请输入用户名。'),
+      connectTimeoutSeconds: connectTimeoutSeconds.value
+    }
+  }
   return {
     host: requireValue(endpoint.host, '请输入 IP 或主机名。'),
     port: endpoint.port,
@@ -171,6 +208,19 @@ function currentTelnetPrompts() {
   }
 }
 
+function currentSerialParams(): SerialParams {
+  return { ...serialParams }
+}
+
+function currentSerialPrompts(): SerialPrompts {
+  return {
+    login: requireValue(serialPrompts.login, '请输入登录名提示符。'),
+    password: requireValue(serialPrompts.password, '请输入密码提示符。'),
+    command: requireValue(serialPrompts.command, '请输入命令提示符。'),
+    lineEnding: serialPrompts.lineEnding
+  }
+}
+
 function optionalHostKeyFingerprint() {
   const fingerprint = endpoint.hostKeyFingerprint.trim()
   return fingerprint ? { hostKeyFingerprint: fingerprint } : {}
@@ -185,6 +235,17 @@ function buildDirectConnection(): TransientConnectionRequest {
       authenticationType: 'PASSWORD',
       executionMode: 'SHELL',
       telnetPrompts: currentTelnetPrompts(),
+      password: requireValue(password.value, '请输入本次连接使用的密码。')
+    }
+  }
+  if (protocol.value === 'SERIAL') {
+    return {
+      ...fields,
+      protocol: 'SERIAL',
+      authenticationType: 'PASSWORD',
+      executionMode: 'SHELL',
+      serialParams: currentSerialParams(),
+      serialPrompts: currentSerialPrompts(),
       password: requireValue(password.value, '请输入本次连接使用的密码。')
     }
   }
@@ -219,6 +280,19 @@ function buildSavedConnectionWrite(): SavedConnectionWriteConnection {
       authenticationType: 'PASSWORD',
       executionMode: 'SHELL',
       telnetPrompts: currentTelnetPrompts(),
+      ...(password.value || credentialRequired
+        ? { password: requireValue(password.value, '请输入本次连接使用的密码。') }
+        : {})
+    }
+  }
+  if (protocol.value === 'SERIAL') {
+    return {
+      ...fields,
+      protocol: 'SERIAL',
+      authenticationType: 'PASSWORD',
+      executionMode: 'SHELL',
+      serialParams: currentSerialParams(),
+      serialPrompts: currentSerialPrompts(),
       ...(password.value || credentialRequired
         ? { password: requireValue(password.value, '请输入本次连接使用的密码。') }
         : {})
@@ -268,14 +342,16 @@ function savedFormSignature(): string {
     displayName: displayName.value.trim(),
     description: description.value.trim(),
     protocol: protocol.value,
-    host: endpoint.host.trim(),
+    host: protocol.value === 'SERIAL' ? serialComPort.value.trim() || endpoint.host.trim() : endpoint.host.trim(),
     port: endpoint.port,
     username: endpoint.username.trim(),
     authenticationType: effectiveAuthenticationType.value,
-    executionMode: protocol.value === 'TELNET' ? 'SHELL' : executionMode.value,
+    executionMode: protocol.value === 'TELNET' || protocol.value === 'SERIAL' ? 'SHELL' : executionMode.value,
     connectTimeoutSeconds: connectTimeoutSeconds.value,
     hostKeyFingerprint: endpoint.hostKeyFingerprint.trim(),
-    telnetPrompts: protocol.value === 'TELNET' ? { ...telnetPrompts } : undefined
+    telnetPrompts: protocol.value === 'TELNET' ? { ...telnetPrompts } : undefined,
+    serialParams: protocol.value === 'SERIAL' ? { ...serialParams } : undefined,
+    serialPrompts: protocol.value === 'SERIAL' ? { ...serialPrompts } : undefined
   })
 }
 
@@ -301,6 +377,9 @@ function applySavedConnection(saved: SavedConnection) {
   endpoint.hostKeyFingerprint = saved.connection.expectedHostKeyFingerprint ?? ''
   connectTimeoutSeconds.value = durationSeconds(saved.connection.connectTimeout)
   if (saved.connection.telnetPrompts) Object.assign(telnetPrompts, saved.connection.telnetPrompts)
+  if (saved.connection.serialParams) Object.assign(serialParams, saved.connection.serialParams)
+  if (saved.connection.serialPrompts) Object.assign(serialPrompts, saved.connection.serialPrompts)
+  if (saved.connection.protocol === 'SERIAL') serialComPort.value = saved.connection.host
   clearCredentials()
   savedBaseline.value = savedFormSignature()
   clearTestState()
@@ -363,7 +442,12 @@ function startNewSavedConnection() {
   displayName.value = ''
   description.value = ''
   endpoint.host = ''
-  endpoint.port = protocol.value === 'TELNET' ? 23 : 22
+  endpoint.port = protocol.value === 'TELNET' ? 23 : protocol.value === 'SERIAL' ? 0 : 22
+  if (protocol.value === 'SERIAL') {
+    serialComPort.value = ''
+    Object.assign(serialParams, DEFAULT_SERIAL_PARAMS)
+    Object.assign(serialPrompts, DEFAULT_SERIAL_PROMPTS)
+  }
   endpoint.username = ''
   endpoint.hostKeyFingerprint = ''
   clearCredentials()
@@ -419,7 +503,7 @@ async function removeActiveSavedConnection() {
 function describeRecent(deviceLabel?: string): RecentConnection {
   return {
     protocol: protocol.value,
-    host: endpoint.host.trim(),
+    host: (protocol.value === 'SERIAL' ? serialComPort.value : endpoint.host).trim(),
     port: endpoint.port,
     username: endpoint.username.trim(),
     ...(protocol.value === 'SSH2' && endpoint.hostKeyFingerprint.trim()
@@ -431,7 +515,10 @@ function describeRecent(deviceLabel?: string): RecentConnection {
 }
 
 function connectionLabel(): string {
-  return activeSavedConnection.value?.displayName || endpoint.host.trim()
+  return (
+    activeSavedConnection.value?.displayName ||
+    (protocol.value === 'SERIAL' ? serialComPort.value : endpoint.host).trim()
+  )
 }
 
 async function runTest() {
@@ -463,6 +550,7 @@ function applyRecent(item: RecentConnection) {
   selectedSavedConnectionId.value = ''
   setLoadedProtocolAndPort(item.protocol, item.port)
   endpoint.host = item.host
+  if (item.protocol === 'SERIAL') serialComPort.value = item.host
   endpoint.username = item.username
   endpoint.hostKeyFingerprint = item.hostKeyFingerprint ?? ''
   executionMode.value = 'SHELL'
@@ -473,7 +561,18 @@ function applyRecent(item: RecentConnection) {
 defineExpose({ applyRecent, buildConnection, clearCredentials, connectionLabel, describeRecent })
 
 onMounted(async () => {
-  telnetEnabled.value = (await loadRuntimeConfig()).telnetEnabled
+  const runtime = await loadRuntimeConfig()
+  telnetEnabled.value = runtime.telnetEnabled
+  serialEnabled.value = runtime.serialEnabled
+  if (runtime.serialEnabled) {
+    listSerialPorts()
+      .then((names) => {
+        serialPortNames.value = names
+      })
+      .catch(() => {
+        serialPortNames.value = []
+      })
+  }
   await loadSavedConnections()
 })
 onBeforeUnmount(() => {
@@ -491,8 +590,12 @@ onBeforeUnmount(() => {
       <el-radio-group v-model="protocol" size="small" aria-label="连接协议">
         <el-radio-button value="SSH2">SSH2</el-radio-button>
         <el-radio-button value="TELNET" :disabled="!telnetEnabled">Telnet</el-radio-button>
+        <el-radio-button value="SERIAL" :disabled="!serialEnabled">串口</el-radio-button>
       </el-radio-group>
-      <small v-if="!telnetEnabled" class="connection-helper">Telnet 未由当前部署启用</small>
+      <small
+        v-if="!telnetEnabled || !serialEnabled"
+        class="connection-helper"
+      >{{ [!telnetEnabled ? 'Telnet 未由当前部署启用' : '', !serialEnabled ? '串口未由当前部署启用' : ''].filter(Boolean).join('；') }}</small>
     </div>
     <el-radio-group v-model="connectionMode" size="small" aria-label="连接使用方式">
       <el-radio-button value="TRANSIENT">临时连接</el-radio-button>
@@ -503,6 +606,13 @@ onBeforeUnmount(() => {
   <el-alert
     v-if="protocol === 'TELNET'"
     title="Telnet 明文传输，仅限受控网络"
+    type="warning"
+    :closable="false"
+    show-icon
+  />
+  <el-alert
+    v-if="protocol === 'SERIAL'"
+    title="串口明文传输，仅限受控网络"
     type="warning"
     :closable="false"
     show-icon
@@ -533,7 +643,9 @@ onBeforeUnmount(() => {
             <el-option
               v-for="connection in group.connections"
               :key="connection.id"
-              :label="`${connection.displayName} · ${connection.connection.username}@${connection.connection.host}:${connection.connection.port}`"
+              :label="connection.connection.protocol === 'SERIAL'
+                ? `${connection.displayName} · ${connection.connection.username}@${connection.connection.host}`
+                : `${connection.displayName} · ${connection.connection.username}@${connection.connection.host}:${connection.connection.port}`"
               :value="connection.id"
             />
           </el-option-group>
@@ -580,10 +692,27 @@ onBeforeUnmount(() => {
           <el-input v-model="description" maxlength="2000" autocomplete="off" />
         </el-form-item>
       </template>
-      <el-form-item label="IP / 主机名">
-        <el-input v-model="endpoint.host" autocomplete="off" placeholder="192.0.2.10" />
+      <el-form-item :label="protocol === 'SERIAL' ? 'COM 口' : 'IP / 主机名'">
+        <el-input
+          v-if="protocol === 'SERIAL'"
+          v-model="serialComPort"
+          autocomplete="off"
+          placeholder="COM3"
+          aria-label="串口名称"
+        />
+        <el-input v-else v-model="endpoint.host" autocomplete="off" placeholder="192.0.2.10" />
+        <el-select
+          v-if="protocol === 'SERIAL' && serialPortNames.length"
+          :model-value="serialComPort"
+          class="connection-form__serial-select"
+          aria-label="本机串口列表"
+          placeholder="选择串口"
+          @update:model-value="serialComPort = String($event)"
+        >
+          <el-option v-for="name in serialPortNames" :key="name" :label="name" :value="name" />
+        </el-select>
       </el-form-item>
-      <el-form-item label="端口">
+      <el-form-item v-if="protocol !== 'SERIAL'" label="端口">
         <el-input-number v-model="endpoint.port" :min="1" :max="65535" controls-position="right" />
       </el-form-item>
     </el-form>
@@ -636,6 +765,45 @@ onBeforeUnmount(() => {
           留空不校验设备身份
         </small>
       </el-form-item>
+      <template v-else-if="protocol === 'SERIAL'">
+        <el-form-item label="波特率">
+          <el-select v-model="serialParams.baudRate" aria-label="波特率">
+            <el-option v-for="rate in SERIAL_BAUD_RATES" :key="rate" :label="String(rate)" :value="rate" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="数据位">
+          <el-select v-model="serialParams.dataBits" aria-label="数据位">
+            <el-option label="8" :value="8" />
+            <el-option label="7" :value="7" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="校验">
+          <el-select v-model="serialParams.parity" aria-label="校验">
+            <el-option v-for="option in SERIAL_PARITY_OPTIONS" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="停止位">
+          <el-select v-model="serialParams.stopBits" aria-label="停止位">
+            <el-option v-for="option in SERIAL_STOP_BIT_OPTIONS" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="流控">
+          <el-select v-model="serialParams.flowControl" aria-label="流控">
+            <el-option v-for="option in SERIAL_FLOW_CONTROL_OPTIONS" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="输入换行方式">
+          <el-select v-model="serialPrompts.lineEnding" aria-label="串口输入换行方式">
+            <el-option label="自动（终端回车）" value="AUTO" />
+            <el-option label="CRLF" value="CRLF" />
+            <el-option label="CR" value="CR" />
+            <el-option label="LF" value="LF" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="登录名提示符"><el-input v-model="serialPrompts.login" class="command-input" autocomplete="off" /></el-form-item>
+        <el-form-item label="密码提示符"><el-input v-model="serialPrompts.password" class="command-input" autocomplete="off" /></el-form-item>
+        <el-form-item label="命令提示符" class="form-grid__wide"><el-input v-model="serialPrompts.command" class="command-input" autocomplete="off" /></el-form-item>
+      </template>
       <template v-else>
         <el-form-item label="输入换行方式">
           <el-select v-model="telnetPrompts.lineEnding" aria-label="Telnet 输入换行方式">
@@ -679,6 +847,7 @@ onBeforeUnmount(() => {
 .connection-form--basic { display: grid; grid-template-columns: minmax(0, 1fr) 5.5rem; gap: 0 0.75rem; }
 .connection-form--authentication { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .connection-form__wide { grid-column: 1 / -1; }
+.connection-form__serial-select { width: 10rem; flex: 0 0 auto; margin-left: 0.5rem; }
 .advanced-settings { margin: 0.625rem 0; padding: 0.625rem; border: 1px solid var(--el-border-color); border-radius: var(--el-border-radius-base); background: var(--el-fill-color-lighter); }
 .saved-connections { margin: 0.5rem 0; padding: 0.625rem; border: 1px solid var(--el-border-color); border-radius: var(--el-border-radius-base); background: var(--el-bg-color); }
 .saved-connections__heading, .saved-connections__controls { display: flex; align-items: center; gap: 0.5rem; }
