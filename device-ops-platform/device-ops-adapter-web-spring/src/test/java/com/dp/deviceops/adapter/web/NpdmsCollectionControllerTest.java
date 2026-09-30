@@ -1,6 +1,7 @@
 package com.dp.deviceops.adapter.web;
 
 import com.dp.deviceops.adapter.web.concurrency.KeyedCollectionDispatcher;
+import com.dp.deviceops.adapter.web.parser.CollectionSemanticResultController;
 import com.dp.deviceops.adapter.web.security.ProjectClaimAuthorizer;
 import com.dp.deviceops.core.port.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,7 +22,8 @@ class NpdmsCollectionControllerTest {
         var repo = mock(CollectionRepository.class);
         var dispatcher = mock(KeyedCollectionDispatcher.class);
         var tested = new NpdmsCollectionController(repo, mock(CollectionQueryPort.class), new ProjectClaimAuthorizer(),
-                dispatcher, mock(CallbackOutboxPort.class), submissions, KEY);
+                dispatcher, mock(CallbackOutboxPort.class), submissions,
+                mock(CollectionSemanticResultController.class), KEY);
         var caller = Jwt.withTokenValue("test").header("alg", "none").subject("npdms")
                 .claim("device_ops_namespaces", java.util.List.of("npdms-7"))
                 .claim("device_ops_projects", java.util.List.of("*")).build();
@@ -47,7 +49,8 @@ class NpdmsCollectionControllerTest {
     private final GenericCollectionController submissions = mock(GenericCollectionController.class);
     private final NpdmsCollectionController controller = new NpdmsCollectionController(
             mock(CollectionRepository.class), mock(CollectionQueryPort.class), new ProjectClaimAuthorizer(),
-            mock(KeyedCollectionDispatcher.class), mock(CallbackOutboxPort.class), submissions, KEY);
+            mock(KeyedCollectionDispatcher.class), mock(CallbackOutboxPort.class), submissions,
+            mock(CollectionSemanticResultController.class), KEY);
 
     @Test void authenticatedGrantDelegatesToExistingExecutionAndClearsSecrets() throws Exception {
         var request = request();

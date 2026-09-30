@@ -54,7 +54,8 @@ public class CollectionSemanticResultController {
                 .toList();
     }
 
-    private static long targetId(String requestId) {
+    /** Extracts the target id from a collection parser request id ("collection:<id>:target:<targetId>"). */
+    public static long targetId(String requestId) {
         int separator = requestId.lastIndexOf(':');
         if (separator < 0 || separator == requestId.length() - 1) {
             throw new IllegalStateException("collection parser request id has no target id");

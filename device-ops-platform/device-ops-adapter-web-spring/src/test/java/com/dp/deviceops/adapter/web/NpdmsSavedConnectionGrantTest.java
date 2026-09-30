@@ -19,7 +19,7 @@ class NpdmsSavedConnectionGrantTest {
     final String key="test-only-request-signing-key-32-bytes";
     SavedConnectionStore store=mock(SavedConnectionStore.class);
     GenericCollectionController submissions=mock(GenericCollectionController.class);
-    NpdmsCollectionController controller=new NpdmsCollectionController(mock(CollectionRepository.class),mock(CollectionQueryPort.class),new ProjectClaimAuthorizer(),mock(KeyedCollectionDispatcher.class),mock(CallbackOutboxPort.class),submissions,key);
+    NpdmsCollectionController controller=new NpdmsCollectionController(mock(CollectionRepository.class),mock(CollectionQueryPort.class),new ProjectClaimAuthorizer(),mock(KeyedCollectionDispatcher.class),mock(CallbackOutboxPort.class),submissions,mock(com.dp.deviceops.adapter.web.parser.CollectionSemanticResultController.class),key);
     SavedConnection saved;
     @BeforeEach void setup(){
         saved=new SavedConnection("saved-1","npdms-7","test",null,new CommandExecutionPort.ConnectionSpec(ConnectionProtocol.SSH2,"device.example",22,"operator",CommandExecutionPort.AuthenticationType.PASSWORD,CommandExecutionPort.ExecutionMode.SHELL,null,null,Duration.ofSeconds(10)),true,4,Instant.now(),Instant.now());
