@@ -24,6 +24,8 @@
             order_amount = #{row.orderAmount}, currency_code = #{row.currencyCode},
             authority_status = #{row.authorityStatus}, source_lifecycle_status = #{row.sourceLifecycleStatus},
             sales_type = #{row.salesType},
+            contract_no = #{row.contractNo},
+            execution_no = #{row.executionNo},
             source_project_name = #{row.sourceProjectName},
             order_comment = #{row.orderComment},
             order_create_time = #{row.orderCreateTime},

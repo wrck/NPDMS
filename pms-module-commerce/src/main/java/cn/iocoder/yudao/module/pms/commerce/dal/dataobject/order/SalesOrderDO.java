@@ -26,6 +26,8 @@ public class SalesOrderDO extends TenantBaseDO {
     private String orderType;
     private String orderNo;
     private String salesType;
+    private String contractNo;
+    private String executionNo;
     private Long customerId;
     private String customerCode;
     private String customerName;

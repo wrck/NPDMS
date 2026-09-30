@@ -153,6 +153,8 @@
     ],
     "updateColumns": [
       "currency_name",
+      "contract_amount",
+      "currency_code",
       "contract_create_time",
       "project_name",
       "project_code",

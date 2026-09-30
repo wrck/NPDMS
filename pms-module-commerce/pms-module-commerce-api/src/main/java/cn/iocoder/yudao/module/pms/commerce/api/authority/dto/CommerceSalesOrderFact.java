@@ -11,7 +11,8 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
                                      BigDecimal amount, String currencyCode,
                                      CommerceSourceLifecycleStatus lifecycleStatus,
                                      LocalDateTime sourceUpdatedAt,
-                                     String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime) {
+                                     String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime,
+                                     String contractNo, String executionNo) {
 
     public CommerceSalesOrderFact(String sourceKey, String expectedPreviousSourceVersion,
                                      String sourceVersion, String companyCode, String orderNo,
@@ -19,7 +20,7 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
                                      BigDecimal amount, String currencyCode,
                                      CommerceSourceLifecycleStatus lifecycleStatus,
                                      LocalDateTime sourceUpdatedAt) {
-        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType, customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null, null);
     }
 
     public CommerceSalesOrderFact {
@@ -40,5 +41,7 @@ public record CommerceSalesOrderFact(String sourceKey, String expectedPreviousSo
         sourceProjectName = optionalText(sourceProjectName, 512, "sourceProjectName");
         orderComment = optionalText(orderComment, 2048, "orderComment");
         sourceUpdatedAt = time(sourceUpdatedAt, "sourceUpdatedAt");
+        contractNo = optionalText(contractNo, 64, "contractNo");
+        executionNo = optionalText(executionNo, 64, "executionNo");
     }
 }

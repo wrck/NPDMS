@@ -25,7 +25,7 @@ public final class DppmsOrderSyncTemplate {
         String groupKeys="source,compCode,"+type+",orderNumber"+(line?",lineNum":"");
         String fields=line
                 ? "itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo"
-                : "orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType";
+                : "orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType,contractNo,orderExecNumber";
         String join="r.source <=> g.source AND r.compCode <=> g.compCode AND r."+type+" <=> g."+type
                 +" AND r.orderNumber <=> g.orderNumber"+(line?" AND r.lineNum <=> g.lineNum":"");
         String parent=line?",EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode "
@@ -52,7 +52,8 @@ public final class DppmsOrderSyncTemplate {
             for(String[] pair:List.of(new String[]{"customerCode","customerCode"},new String[]{"customerName","customerName"},
                     new String[]{"salesType","salesType"},new String[]{"sourceProjectName","projectName"},
                     new String[]{"orderComment","orderComment"},new String[]{"orderCreateTime","orderCreateTime"},
-                    new String[]{"customerRequiredTime","customerRequireTime"}))mappings.add(map(pair[0],pair[1]));
+                    new String[]{"customerRequiredTime","customerRequireTime"},
+                    new String[]{"contractNo","contractNo"},new String[]{"executionNo","orderExecNumber"}))mappings.add(map(pair[0],pair[1]));
         }
         return SyncDefinition.Source.builder().object(line?"LINE":"ORDER").sourceObject(table)
                 .readMode("SQL").sql(sql).parameters(Map.of()).columns(List.of()).filters(List.of())

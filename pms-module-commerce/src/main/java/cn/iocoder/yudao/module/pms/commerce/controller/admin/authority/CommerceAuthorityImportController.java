@@ -65,7 +65,8 @@ public class CommerceAuthorityImportController {
                         value.orderNo(), value.orderType(), value.customerCode(), value.customerName(),
                         value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt(),
                         value.salesType(), value.sourceProjectName(), value.orderComment(),
-                        value.orderCreateTime(), value.customerRequiredTime()))
+                        value.orderCreateTime(), value.customerRequiredTime(),
+                        value.contractNo(), value.executionNo()))
                 .toList();
         List<CommerceOrderLineFact> lines = safe(request.salesOrderLines()).stream()
                 .map(value -> new CommerceOrderLineFact(value.sourceRecordKey(),
