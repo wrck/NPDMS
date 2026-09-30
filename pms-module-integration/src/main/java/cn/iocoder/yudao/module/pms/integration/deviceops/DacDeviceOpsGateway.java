@@ -198,6 +198,30 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
         return true;
     }
 
+    @Override
+    public List<Map<String, Object>> semanticResults(String platformTaskId) {
+        if (isBlank(platformTaskId)) {
+            throw new IllegalArgumentException("DAC 查询参数不完整");
+        }
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.exchange(taskUri(platformTaskId, "/semantic-results"), HttpMethod.GET,
+                    new HttpEntity<>(headers(null)), String.class);
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound missing) {
+            // 任务尚未下发或 DAC 无此发起对象：没有可解析的记录，返回空而非扩大为错误。
+            return List.of();
+        } catch (org.springframework.web.client.HttpClientErrorException.Gone cancelled) {
+            // 下发前已取消的采集没有解析记录。
+            return List.of();
+        }
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new IllegalStateException("DAC_SEMANTIC_RESULTS_UNEXPECTED_STATUS_" + response.getStatusCode().value());
+        }
+        List<Map<String, Object>> results =
+                JsonUtils.parseObject(response.getBody(), new tools.jackson.core.type.TypeReference<>() {});
+        return results == null ? List.of() : results;
+    }
+
     private java.net.URI taskUri(String taskId, String suffix) {
         return org.springframework.web.util.UriComponentsBuilder.fromUriString(properties.getBaseUrl())
                 .path("/api/v1/npdms/collections/{id}" + suffix)

@@ -141,6 +141,11 @@ public class CollectionApplicationService implements CollectionApplicationApi {
         var task=task(required(entry,id,executionId));
         var source=source(entry).authorize(tenant(),actor,id,Long.valueOf(task.deviceId()),READ,null);checkBinding(source,task);return logs.download(tenant(),actor,task.platformTaskId());
     }
+    @Override public List<Map<String,Object>> semanticResults(String entry,Long id,Long actor,Long executionId) {
+        var task=task(required(entry,id,executionId));
+        var source=source(entry).authorize(tenant(),actor,id,Long.valueOf(task.deviceId()),READ,null);checkBinding(source,task);
+        return dispatch().semanticResults(tenant(),task.platformTaskId());
+    }
     private CollectionRequestDO required(String entry,Long id,Long executionId){var r=requests.selectById(executionId);if(r==null||!tenant().equals(r.getTenantId())||!entry.equals(r.getEntry())||!id.equals(r.getObjectId()))throw new CollectionOperationException("执行记录不存在");return r;}
     private CollectionTaskDTO task(CollectionRequestDO r){var t=tasks.getTask(tenant(),r.getPlatformTaskId());if(t==null||!r.getObjectId().toString().equals(t.sourceObjectId()))throw new CollectionOperationException("采集任务绑定异常");return t;}
     private void checkBinding(CollectionSourceAdapter.Source s,CollectionTaskDTO t){if(!s.projectId().toString().equals(t.projectId())||!s.sourceContext().equals(t.sourceContext())||!s.sourceObjectType().equals(t.sourceObjectType())||s.deviceId()==null||!s.deviceId().toString().equals(t.deviceId()))throw new CollectionOperationException("业务记录的项目或设备已变化，不能操作原采集结果");}
