@@ -50,7 +50,9 @@ public class ExternalParserOpenApiConfiguration {
                     HttpMethod.GET, new OperationDocumentation(
                             "List parse tasks for the caller",
                             READ_ACCESS + " Returns a cursor-based page; limit defaults to 50 and must be "
-                                    + "between 1 and 200. Use afterTaskId to continue from the previous page.",
+                                    + "between 1 and 200. Use afterTaskId to continue from the previous page. "
+                                    + "Supply externalRequestId to list only the tasks derived from the collection "
+                                    + "submission that carried that business request identifier.",
                             Map.of("200", "Parse tasks in the caller namespace; the list may be empty.",
                                     "400", "Invalid limit or pagination parameters."))),
             TASK, Map.of(HttpMethod.GET, new OperationDocumentation(

@@ -203,7 +203,8 @@ final class RuntimeServiceTestFixture implements ParserReleaseRepository, ParseT
                 request.logType(), request.releaseId(), request.coordinate(), request.inputFormat(),
                 request.inputRef(), request.contextSnapshot(), request.sourceResultId(),
                 request.resultConsumerId(), request.resultDestination(), ParseTaskState.QUEUED,
-                null, 0, request.createdAt(), null, 0, null, null, request.createdAt(), request.createdAt());
+                null, 0, request.createdAt(), null, 0, null, null, request.createdAt(), request.createdAt(),
+                request.externalRequestId(), request.activityType());
         tasks.put(task.taskId(), task);
         submissions.put(task.taskId(), request.identity());
         return outcome(task);
@@ -242,6 +243,13 @@ final class RuntimeServiceTestFixture implements ParserReleaseRepository, ParseT
     }
 
     @Override
+    public List<ParseTask> listTasksByExternalRequest(String callerNamespace, String externalRequestId, int limit) {
+        return tasks.values().stream().filter(task -> task.callerNamespace().equals(callerNamespace))
+                .filter(task -> externalRequestId.equals(task.externalRequestId()))
+                .limit(limit).toList();
+    }
+
+    @Override
     public Optional<ParseResultEnvelope> findResult(String callerNamespace, String resultId) {
         return Optional.ofNullable(results.get(resultId)).filter(result ->
                 findTask(callerNamespace, result.taskId()).isPresent());
@@ -252,6 +260,16 @@ final class RuntimeServiceTestFixture implements ParserReleaseRepository, ParseT
         return tasks.values().stream()
                 .filter(task -> task.callerNamespace().equals(callerNamespace))
                 .filter(task -> task.requestId().startsWith(requestPrefix))
+                .map(task -> new ParseTaskResult(task,
+                        task.resultId() == null ? null : results.get(task.resultId())))
+                .toList();
+    }
+
+    @Override
+    public List<ParseTaskResult> listTaskResultsByExternalRequest(String callerNamespace, String externalRequestId) {
+        return tasks.values().stream()
+                .filter(task -> task.callerNamespace().equals(callerNamespace))
+                .filter(task -> externalRequestId.equals(task.externalRequestId()))
                 .map(task -> new ParseTaskResult(task,
                         task.resultId() == null ? null : results.get(task.resultId())))
                 .toList();

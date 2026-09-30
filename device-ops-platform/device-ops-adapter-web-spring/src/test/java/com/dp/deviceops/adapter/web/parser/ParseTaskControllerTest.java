@@ -91,7 +91,7 @@ class ParseTaskControllerTest {
         Jwt anonymousClient = new Jwt("token", Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
                 Map.of("alg", "none"), Map.of("scope", "parser:task:read"));
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
-                () -> controller.listTasks(anonymousClient, 50, null));
+                () -> controller.listTasks(anonymousClient, 50, null, null));
     }
 
     @Test
@@ -102,7 +102,8 @@ class ParseTaskControllerTest {
         var coordinate = new ParserCoordinate("show-tech", "1.0.0", "1.0.0", "1.0.0", "1.0.0", null, null);
         var queued = new com.dp.deviceops.parser.runtime.model.ParseTask("task-1", "key", "ns", "show-tech",
                 "release-1", coordinate, "line-log/v1", "payload-1", Map.of(), null, null, null,
-                ParseTaskState.QUEUED, null, 0, Instant.EPOCH, null, 0, null, null, Instant.EPOCH, Instant.EPOCH);
+                ParseTaskState.QUEUED, null, 0, Instant.EPOCH, null, 0, null, null, Instant.EPOCH, Instant.EPOCH,
+                null, null);
         when(queries.findTask("ns", "task-1")).thenReturn(java.util.Optional.of(queued));
         ParserRuntimeError error = assertThrows(ParserRuntimeError.class,
                 () -> controller.getTaskResult(jwt("subject", "ns"), "task-1"));

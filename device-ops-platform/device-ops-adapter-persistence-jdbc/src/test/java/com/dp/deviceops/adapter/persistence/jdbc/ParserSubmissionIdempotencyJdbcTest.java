@@ -181,6 +181,32 @@ class ParserSubmissionIdempotencyJdbcTest {
     }
 
     @Test
+    void parseTasksPersistAndQueryTheInitiatingBusinessRequest() throws Exception {
+        Fixture fixture = fixture();
+        JdbcParseResultQueryAdapter queries = new JdbcParseResultQueryAdapter(fixture.jdbc, new ObjectMapper());
+        fixture.tasks.submit(new SubmitRequest("task-1", "collection:c1:target:1", "npdp", "show-tech",
+                "release-1", ParserRegistryPersistenceTest.coordinate("1.0.0"), "command-output-block/v1",
+                "input-1", Map.of(), null, null, null, NOW, "release-1", "npdms-task-1", "HTTP_COLLECTION"));
+        fixture.tasks.submit(request("task-2", "npdp", "release-1", "command-output-block/v1",
+                "input-1", Map.of(), null, null));
+
+        var task = queries.findTask("npdp", "task-1").orElseThrow();
+        assertEquals("npdms-task-1", task.externalRequestId());
+        assertEquals("HTTP_COLLECTION", task.activityType());
+        assertEquals(List.of("task-1"), queries.listTasksByExternalRequest("npdp", "npdms-task-1", 50)
+                .stream().map(com.dp.deviceops.parser.runtime.model.ParseTask::taskId).toList());
+        assertTrue(queries.listTasksByExternalRequest("npdp", "npdms-task-2", 50).isEmpty(),
+                "standalone tasks without a business reference must not match");
+        var pending = queries.listTaskResultsByExternalRequest("npdp", "npdms-task-1");
+        assertEquals(1, pending.size());
+        assertNull(pending.getFirst().result(), "task without a completed result joins with a null result");
+
+        var standalone = queries.findTask("npdp", "task-2").orElseThrow();
+        assertNull(standalone.externalRequestId());
+        assertNull(standalone.activityType());
+    }
+
+    @Test
     void concurrentSubmissionsInsideRepeatableReadTransactionsReplayTheCommittedWinner() throws Exception {
         Fixture fixture = fixture();
         CyclicBarrier barrier = new CyclicBarrier(2);

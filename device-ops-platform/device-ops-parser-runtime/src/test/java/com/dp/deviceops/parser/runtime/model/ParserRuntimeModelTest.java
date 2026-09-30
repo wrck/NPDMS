@@ -86,7 +86,7 @@ class ParserRuntimeModelTest {
         return new ParseTask("task-1", "request-1", "standalone", "device-show-tech",
                 "release-1", coordinate(), "command-output-block/v1", "payload-1", context,
                 null, null, null, state, waitReason, 0, null, leaseOwner, leaseGeneration,
-                leaseExpiresAt, state == ParseTaskState.SUCCEEDED ? "result-1" : null, NOW, NOW);
+                leaseExpiresAt, state == ParseTaskState.SUCCEEDED ? "result-1" : null, NOW, NOW, null, null);
     }
 
     private static ParserCoordinate coordinate() {

@@ -46,7 +46,8 @@ public final class JdbcCollectionParserTaskAppender {
     public void append(long targetId, CollectionStatus terminalStatus) {
         if (terminalStatus == CollectionStatus.CANCELLED) return;
         List<Map<String, Object>> requests = jdbc.sql("""
-                select c.task_id,c.namespace,c.project_key,t.device_key,t.vendor,t.model,
+                select c.task_id,c.namespace,c.project_key,c.external_request_id,c.activity_type,
+                       t.device_key,t.vendor,t.model,
                        p.log_type,p.release_id,p.input_format,p.result_consumer_id,p.result_destination,
                        r.coordinate_json
                 from device_ops_collection_target t
@@ -87,6 +88,8 @@ public final class JdbcCollectionParserTaskAppender {
         putIfPresent(context, "deviceKey", request.get("DEVICE_KEY"));
         putIfPresent(context, "deviceVendor", request.get("VENDOR"));
         putIfPresent(context, "deviceModel", request.get("MODEL"));
+        putIfPresent(context, "externalRequestId", request.get("EXTERNAL_REQUEST_ID"));
+        putIfPresent(context, "activityType", request.get("ACTIVITY_TYPE"));
 
         String payloadId;
         try {
@@ -103,7 +106,9 @@ public final class JdbcCollectionParserTaskAppender {
                 namespace, (String) request.get("LOG_TYPE"), (String) request.get("RELEASE_ID"), coordinate,
                 (String) request.get("INPUT_FORMAT"), payloadId, context, null,
                 (String) request.get("RESULT_CONSUMER_ID"),
-                destination == null ? null : URI.create(destination), clock.instant()));
+                destination == null ? null : URI.create(destination), clock.instant(),
+                (String) request.get("RELEASE_ID"), (String) request.get("EXTERNAL_REQUEST_ID"),
+                (String) request.get("ACTIVITY_TYPE")));
     }
 
     private ParserCoordinate decodeCoordinate(String value) {
