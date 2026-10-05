@@ -47,7 +47,7 @@ public class CompletionCertificateDO extends BaseBusinessEntity {
      */
     private LocalDate completionDate;
     /**
-     * 客户确认人
+     * 客户确认人。客户确认是客户单位的外部人员（非系统用户），不落系统 user_id，保持 NULL。
      */
     private Long customerConfirmUserId;
     /**
@@ -71,6 +71,66 @@ public class CompletionCertificateDO extends BaseBusinessEntity {
      */
     private String attachmentUrl;
     /**
+     * 工程服务类型
+     */
+    private String serviceType;
+    /**
+     * 迪普工程师用户编号
+     */
+    private Long engineerUserId;
+    /**
+     * 迪普工程师姓名（快照）
+     */
+    private String engineerName;
+    /**
+     * 工程师联系方式
+     */
+    private String engineerContact;
+    /**
+     * 客户单位
+     */
+    private String customerUnit;
+    /**
+     * 合同号
+     */
+    private String contractNo;
+    /**
+     * 完成到货验收：是/否/不涉及
+     */
+    private String itemArrival;
+    /**
+     * 完成安装调试：是/否/不涉及
+     */
+    private String itemInstall;
+    /**
+     * 完成割接：是/否/不涉及
+     */
+    private String itemCutover;
+    /**
+     * 完成培训：是/否/不涉及
+     */
+    private String itemTraining;
+    /**
+     * 完成文档交付：是/否/不涉及
+     */
+    private String itemDocs;
+    /**
+     * 甲方签章图片地址
+     */
+    private String customerSignUrl;
+    /**
+     * 甲方签章日期
+     */
+    private LocalDate customerSignDate;
+    /**
+     * 服务方签章图片地址
+     */
+    private String vendorSignUrl;
+    /**
+     * 服务方签章日期
+     */
+    private LocalDate vendorSignDate;
+    /**
      * 状态 0草稿 1待客户确认 2客户已确认 3已归档 4已驳回
      */
     private Integer status;
@@ -78,8 +138,5 @@ public class CompletionCertificateDO extends BaseBusinessEntity {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
 
 }

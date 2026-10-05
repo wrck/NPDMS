@@ -4,6 +4,9 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificatePageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateSaveReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDeviceDO;
+
+import java.util.List;
 
 /**
  * 电子完工证明 Service 接口
@@ -47,6 +50,14 @@ public interface CompletionCertificateService {
      * @return 电子完工证明
      */
     CompletionCertificateDO getCompletionCertificate(Long id);
+
+    /**
+     * 获得电子完工证明的设备明细
+     *
+     * @param certificateId 完工证明编号
+     * @return 设备明细列表
+     */
+    List<CompletionCertificateDeviceDO> getCompletionCertificateDevices(Long certificateId);
 
     /**
      * 提交（0草稿 → 1待客户确认）

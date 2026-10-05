@@ -12,9 +12,6 @@
           class="!w-180px"
         />
       </el-form-item>
-      <el-form-item label="证明名称" prop="name">
-        <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
-      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-140px">
           <el-option
@@ -35,15 +32,9 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="name" label="证明名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="code" label="编号" min-width="140" />
       <el-table-column prop="customerId" label="客户编号" width="100" />
-      <el-table-column prop="certificateNo" label="证书编号" min-width="140" />
-      <el-table-column prop="signedDate" label="签署日期" width="120" />
-      <el-table-column prop="satisfactionScore" label="满意度" width="90">
-        <template #default="{ row }">
-          <el-rate v-model="row.satisfactionScore" disabled size="small" />
-        </template>
-      </el-table-column>
+      <el-table-column prop="completionDate" label="完工时间" width="120" />
       <el-table-column prop="status" label="状态" width="120">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_COMPLETION_CERT_STATUS" :value="row.status" />
@@ -113,108 +104,122 @@
               query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
+              @change="onProjectChange"
             />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="证明名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        </el-col>
-        <el-col v-if="!props.projectId" :span="12">
-          <el-form-item label="客户" prop="customerId">
-            <PmsEntitySelect
-              v-model="form.customerId"
-              :api="CustomerApi.getCustomerPage"
-              :label-field="['code', 'name']"
-              value-field="id"
-              query-field="name"
-              placeholder="请选择客户"
-            />
+          <el-form-item label="编号" prop="code">
+            <el-input v-model="form.code" disabled placeholder="保存后按统一规则自动生成" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="证书编号" prop="certificateNo"><el-input v-model="form.certificateNo" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="签署日期" prop="signedDate">
-            <el-date-picker v-model="form.signedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
+          <el-form-item label="客户单位" prop="customerUnit">
+            <el-input v-model="form.customerUnit" placeholder="选择项目后自动带入，可修改" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="工程服务类型" prop="certServiceType">
-            <el-radio-group v-model="form.certServiceType">
+          <el-form-item label="合同号" prop="contractNo">
+            <el-input v-model="form.contractNo" placeholder="选择项目后自动带入，可修改" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="工程服务类型" prop="serviceType">
+            <el-radio-group v-model="form.serviceType">
               <el-radio value="工程实施">工程实施</el-radio>
               <el-radio value="工程督导">工程督导</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="迪普工程师" prop="certEngineer">
-            <el-input v-model="form.certEngineer" placeholder="填表人带入，可修改" />
+          <el-form-item label="完工时间" prop="completionDate">
+            <el-date-picker v-model="form.completionDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="联系方式" prop="certContact">
-            <el-input v-model="form.certContact" placeholder="项目干系人信息带入，可修改" />
+          <el-form-item label="迪普工程师" prop="engineerName">
+            <PmsEntitySelect
+              v-model="form.engineerName"
+              :api="UserApi.getUserPage"
+              label-field="nickname"
+              value-field="nickname"
+              query-field="nickname"
+              placeholder="默认当前用户，可修改"
+              @change="onEngineerChange"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="满意度评分" prop="satisfactionScore">
-            <el-rate v-model="form.satisfactionScore" :max="5" />
+          <el-form-item label="联系方式" prop="engineerContact">
+            <el-input v-model="form.engineerContact" placeholder="选择工程师后自动带入，可修改" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="工程服务内容" prop="certItems">
+          <el-form-item label="工程服务内容" prop="itemArrival">
             <div class="cert-service-items">
-              <div v-for="item in certServiceItems" :key="item.key" class="cert-service-row">
+              <div v-for="item in certServiceItems" :key="item.field" class="cert-service-row">
                 <span class="cert-service-label">{{ item.label }}</span>
-                <el-radio-group v-model="form.certItems![item.key]">
+                <el-radio-group v-model="form[item.field]">
                   <el-radio value="是">是</el-radio>
                   <el-radio value="否">否</el-radio>
                   <el-radio value="不涉及">不涉及</el-radio>
                 </el-radio-group>
               </div>
-              <el-input
-                v-model="form.certItems!.deviceSummary"
-                type="textarea"
-                :rows="2"
-                placeholder="⑥ 设备类型和数量：填写本次工程涉及的设备类型和数量"
+            </div>
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="设备类型和数量" prop="devices">
+            <div class="device-table">
+              <div class="device-row device-header">
+                <span>设备类型</span>
+                <span>设备型号</span>
+                <span>数量</span>
+                <span></span>
+              </div>
+              <div v-for="(device, index) in deviceRows" :key="index" class="device-row">
+                <el-input v-model="device.deviceType" placeholder="设备类型" />
+                <el-input v-model="device.deviceModel" placeholder="设备型号" />
+                <el-input-number v-model="device.quantity" :min="1" controls-position="right" class="!w-full" />
+                <el-button link type="danger" @click="deviceRows.splice(index, 1)">删除</el-button>
+              </div>
+              <el-button link type="primary" @click="addDeviceRow">
+                <Icon icon="ep:plus" />添加一行
+              </el-button>
+              <div class="device-tip">选择项目后按项目设备明细自动填充，可调整</div>
+            </div>
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="甲方签章" prop="customerSignUrl">
+            <div class="sign-block">
+              <div class="sign-pad-area">
+                <SignaturePad v-model="customerSignDataUrl" :form-create-inject="signatureInject" />
+              </div>
+              <el-date-picker
+                v-model="form.customerSignDate"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="签章日期"
+                class="!w-160px"
               />
             </div>
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="客户意见" prop="customerOpinion">
-            <Editor v-model="form.customerOpinion" :height="300" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="签章附件" prop="signatureUrl">
-            <UploadImg v-model="form.signatureUrl" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="甲方签章日期" prop="certCustomerSignDate">
-            <el-date-picker v-model="form.certCustomerSignDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="服务方签章" prop="certVendorSignUrl">
-            <UploadImg v-model="form.certVendorSignUrl" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="服务方签章日期" prop="certVendorSignDate">
-            <el-date-picker v-model="form.certVendorSignDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="证明附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl!" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" />
+          <el-form-item label="服务方签章" prop="vendorSignUrl">
+            <div class="sign-block">
+              <div class="sign-pad-area">
+                <SignaturePad v-model="vendorSignDataUrl" :form-create-inject="signatureInject" />
+              </div>
+              <el-date-picker
+                v-model="form.vendorSignDate"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="签章日期"
+                class="!w-160px"
+              />
+            </div>
           </el-form-item>
         </el-col>
       </el-row>
@@ -230,14 +235,20 @@
 import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
+import { useUserStore } from '@/store/modules/user'
 import * as CompletionCertificateApi from '@/api/pms/acceptance/completion-certificate'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as CustomerApi from '@/api/pms/customer'
+import * as UserApi from '@/api/system/user'
+import * as DeviceApi from '@/api/pms/asset/device'
+import * as FileApi from '@/api/infra/file'
+import { SignaturePad } from '@/components/FormCreate'
+import { signaturePngFile } from '@/components/FormCreate/src/customerConfirmation'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 
 defineOptions({ name: 'PmsCompletionCertificate' })
 const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
+const userStore = useUserStore()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<CompletionCertificateVO[]>([])
@@ -246,72 +257,114 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: props.projectId as number | undefined,
-  name: '',
   status: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-// Demo 6.2 完工证明补充字段：随记录 remark 以 JSON 信封保存（既有备注文本降级为 note 键保留），
-// 既有 VO 列（名称/编号/日期/签章图/客户意见等）绑定不变；后续拆列仅需调整本序列化边界。
-interface CompletionCertExtra {
-  serviceType: string
-  engineer: string
-  contact: string
-  items: Record<string, string>
-  customerSignDate: string
-  vendorSignUrl: string
-  vendorSignDate: string
-  note: string
+// 签章复用培训客户确认/满意度问卷的 form-create signaturePad 手写控件：
+// 控件值为 PNG dataURL，保存时经 signaturePngFile 转 File 走既有文件上传链路，实体列落文件 URL。
+const customerSignDataUrl = ref('')
+const vendorSignDataUrl = ref('')
+const signatureInject = {
+  t: (key: string) =>
+    (
+      {
+        signaturePadTip: '点击添加手写签章',
+        signaturePadTitle: '请在虚线框内书写',
+        reset: '重置',
+        ok: '确定'
+      } as Record<string, string>
+    )[key] ?? key
+}
+// 表单字段即实体列（V386 起完工证明附加字段实体化、设备明细子表），支持统计取数。
+// 历史记录的 remark/content JSON 信封仅在实体列全空时读取回显，编辑保存后落实体列。
+interface CompletionCertEnvelope {
+  serviceType?: string
+  engineer?: string
+  engineerUserId?: number
+  contact?: string
+  customerUnit?: string
+  contractNo?: string
+  items?: Record<string, string>
+  devices?: { type?: string; model?: string; qty?: number }[]
+  customerSignDate?: string
+  customerSignUrl?: string
+  vendorSignDate?: string
+  vendorSignUrl?: string
+}
+interface CertDeviceRow {
+  deviceType: string
+  deviceModel: string
+  quantity: number
 }
 const certServiceItems = [
-  { key: 'i1', label: '① 完成到货验收' },
-  { key: 'i2', label: '② 完成设备硬件安装和软件调测' },
-  { key: 'i3', label: '③ 完成业务上线/割接且业务测试正常' },
-  { key: 'i4', label: '④ 完成产品维护现场讲解和培训' },
-  { key: 'i5', label: '⑤ 工程文档、帐号密码已移交并协助修改' }
+  { field: 'itemArrival', label: '① 完成到货验收' },
+  { field: 'itemInstall', label: '② 完成设备硬件安装和软件调测' },
+  { field: 'itemCutover', label: '③ 完成业务上线/割接且业务测试正常' },
+  { field: 'itemTraining', label: '④ 完成产品维护现场讲解和培训' },
+  { field: 'itemDocs', label: '⑤ 工程文档、帐号密码已移交并协助修改' }
 ] as const
-const emptyCertItems = (): Record<string, string> => ({ i1: '', i2: '', i3: '', i4: '', i5: '', deviceSummary: '' })
-const form = reactive<CompletionCertificateVO & { certServiceType?: string; certEngineer?: string; certContact?: string; certItems?: Record<string, string>; certCustomerSignDate?: string; certVendorSignUrl?: string; certVendorSignDate?: string }>({
+const deviceRows = ref<CertDeviceRow[]>([])
+const projectNameCache = ref('')
+const form = reactive<CompletionCertificateVO>({
   projectId: props.projectId as number,
   name: '',
-  certItems: emptyCertItems()
+  code: '',
+  itemArrival: '',
+  itemInstall: '',
+  itemCutover: '',
+  itemTraining: '',
+  itemDocs: '',
+  content: '',
+  remark: ''
 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  name: [{ required: true, message: '请输入证明名称' }],
-  certServiceType: [{ required: true, message: '请选择工程服务类型' }]
+  serviceType: [{ required: true, message: '请选择工程服务类型' }]
 }
-const parseCertRemark = (raw: string | undefined | null): Partial<CompletionCertExtra> => {
+const parseCertEnvelope = (raw: string | undefined | null): CompletionCertEnvelope | null => {
   try {
     const v = raw ? JSON.parse(raw) : null
-    return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null
   } catch {
-    // 历史纯文本备注降级为 note
-    return { note: raw || '' }
+    return null
   }
 }
-const syncCertExtra = (raw: string | undefined | null) => {
-  const parsed = parseCertRemark(raw)
-  form.certServiceType = String(parsed['serviceType'] ?? '')
-  form.certEngineer = String(parsed['engineer'] ?? '')
-  form.certContact = String(parsed['contact'] ?? '')
-  form.certItems = { ...emptyCertItems(), ...((parsed['items'] as Record<string, string>) ?? {}) }
-  form.certCustomerSignDate = String(parsed['customerSignDate'] ?? '')
-  form.certVendorSignUrl = String(parsed['vendorSignUrl'] ?? '')
-  form.certVendorSignDate = String(parsed['vendorSignDate'] ?? '')
-  form.remark = String(parsed['note'] ?? '')
-}
-const writeCertExtra = () => {
-  form.remark = JSON.stringify({
-    serviceType: form.certServiceType ?? '',
-    engineer: form.certEngineer ?? '',
-    contact: form.certContact ?? '',
-    items: form.certItems ?? emptyCertItems(),
-    customerSignDate: form.certCustomerSignDate ?? '',
-    vendorSignUrl: form.certVendorSignUrl ?? '',
-    vendorSignDate: form.certVendorSignDate ?? '',
-    note: form.remark ?? ''
+// 旧记录（信封在 remark 或 content）读取兼容：实体列全空时按信封回显
+const applyLegacyEnvelope = () => {
+  const hasEntityData =
+    form.serviceType ||
+    form.engineerName ||
+    form.engineerContact ||
+    form.customerUnit ||
+    form.contractNo ||
+    certServiceItems.some(({ field }) => form[field]) ||
+    deviceRows.value.length ||
+    form.customerSignUrl ||
+    form.vendorSignUrl
+  if (hasEntityData) return
+  const envelope = parseCertEnvelope(form.content) ?? parseCertEnvelope(form.remark)
+  if (!envelope) return
+  form.serviceType = envelope.serviceType ?? ''
+  form.engineerName = envelope.engineer ?? ''
+  form.engineerUserId = envelope.engineerUserId
+  form.engineerContact = envelope.contact ?? ''
+  form.customerUnit = envelope.customerUnit ?? ''
+  form.contractNo = envelope.contractNo ?? ''
+  const legacyItems = envelope.items ?? {}
+  const legacyKeys = ['i1', 'i2', 'i3', 'i4', 'i5'] as const
+  certServiceItems.forEach(({ field }, index) => {
+    form[field] = legacyItems[legacyKeys[index]] ?? ''
   })
+  deviceRows.value = (envelope.devices ?? []).map((d) => ({
+    deviceType: String(d?.type ?? ''),
+    deviceModel: String(d?.model ?? ''),
+    quantity: Number(d?.qty ?? 1) || 1
+  }))
+  form.customerSignDate = envelope.customerSignDate ?? ''
+  customerSignDataUrl.value = envelope.customerSignUrl ?? ''
+  form.vendorSignDate = envelope.vendorSignDate ?? ''
+  vendorSignDataUrl.value = envelope.vendorSignUrl ?? ''
 }
 
 const load = async () => {
@@ -324,19 +377,100 @@ const load = async () => {
     loading.value = false
   }
 }
-const openForm = (row?: CompletionCertificateVO) => {
+// 按项目设备明细聚合成子表行：产品名+型号相同的设备计数为数量
+const fillDevicesFromProject = async (projectId: number) => {
+  const data = await DeviceApi.getDevicePage({ projectId, pageNo: 1, pageSize: 100 })
+  const grouped = new Map<string, CertDeviceRow>()
+  for (const device of data.list ?? []) {
+    const type = device.productName ?? ''
+    const model = device.productModel ?? ''
+    const key = `${type}|${model}`
+    const row = grouped.get(key) ?? { deviceType: type, deviceModel: model, quantity: 0 }
+    row.quantity += 1
+    grouped.set(key, row)
+  }
+  deviceRows.value = grouped.size
+    ? [...grouped.values()].sort(
+        (a, b) => a.deviceType.localeCompare(b.deviceType) || a.deviceModel.localeCompare(b.deviceModel)
+      )
+    : [{ deviceType: '', deviceModel: '', quantity: 1 }]
+}
+const resolveProject = async (projectId?: number) => {
+  if (!projectId) return
+  const project = await ProjectApi.getProject(projectId)
+  projectNameCache.value = project.projectName ?? ''
+  form.customerUnit = form.customerUnit || project.customerName || ''
+  if (!form.contractNo) {
+    form.contractNo = project.contractNo ?? ''
+    if (!form.contractNo) {
+      // 项目未挂合同时按设备明细的合同号兜底
+      const data = await DeviceApi.getDevicePage({ projectId, pageNo: 1, pageSize: 100 })
+      const contractNos = new Set((data.list ?? []).map((d) => d.contractNo).filter(Boolean))
+      if (contractNos.size === 1) form.contractNo = [...contractNos][0]
+    }
+  }
+  if (!deviceRows.value.length) await fillDevicesFromProject(projectId)
+}
+const prefillCurrentEngineer = async () => {
+  try {
+    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const current = data.list?.find((user: any) => user.id === userStore.user.id)
+    if (current) {
+      form.engineerName = current.nickname
+      form.engineerUserId = current.id
+      form.engineerContact = current.mobile ?? ''
+    }
+  } catch {
+    // 用户分页不可见时留给用户手填
+  }
+}
+const onProjectChange = (projectId?: number) => {
+  projectNameCache.value = ''
+  form.customerUnit = ''
+  form.contractNo = ''
+  deviceRows.value = []
+  resolveProject(projectId)
+}
+const onEngineerChange = (_nickname: string, selected?: any) => {
+  form.engineerUserId = selected?.id
+  form.engineerContact = selected?.mobile ?? ''
+}
+// 手写控件值为 dataURL 时转文件上传；编辑回显的文件 URL 原样保留
+const uploadSignature = async (value: string): Promise<string> => {
+  if (!value) return ''
+  if (!value.startsWith('data:image/png;base64,')) return value
+  const res = await FileApi.updateFile({ file: signaturePngFile(value) })
+  return res.data
+}
+const addDeviceRow = () => deviceRows.value.push({ deviceType: '', deviceModel: '', quantity: 1 })
+const openForm = async (row?: CompletionCertificateVO) => {
+  // 重置为全新表单基准，再叠加编辑数据
   Object.assign(
     form,
     {
       id: undefined,
       projectId: (props.projectId ?? undefined) as number,
       name: '',
+      code: '',
       customerId: undefined,
-      certificateNo: '',
-      signedDate: '',
-      satisfactionScore: 5,
-      customerOpinion: '',
-      signatureUrl: '',
+      completionDate: '',
+      serviceType: '',
+      engineerUserId: undefined,
+      engineerName: '',
+      engineerContact: '',
+      customerUnit: '',
+      contractNo: '',
+      itemArrival: '',
+      itemInstall: '',
+      itemCutover: '',
+      itemTraining: '',
+      itemDocs: '',
+      customerSignDate: '',
+      customerSignUrl: '',
+      vendorSignDate: '',
+      vendorSignUrl: '',
+      devices: [],
+      content: '',
       attachmentUrl: '',
       status: 0,
       remark: '',
@@ -344,14 +478,44 @@ const openForm = (row?: CompletionCertificateVO) => {
     },
     row || {}
   )
-  syncCertExtra(row?.remark ?? form.remark ?? '')
+  customerSignDataUrl.value = ''
+  vendorSignDataUrl.value = ''
+  projectNameCache.value = ''
+  deviceRows.value = []
   formVisible.value = true
+  if (form.id) {
+    // 设备明细子表随详情返回，编辑时拉全量数据再套旧信封兼容
+    const detail = await CompletionCertificateApi.getCompletionCertificate(form.id)
+    Object.assign(form, detail)
+    deviceRows.value = (detail.devices ?? []).map((d) => ({
+      deviceType: d.deviceType ?? '',
+      deviceModel: d.deviceModel ?? '',
+      quantity: d.quantity ?? 1
+    }))
+    // 签章控件值为 dataURL/文件 URL，编辑时从实体列回种，未重新签名则原样保留
+    customerSignDataUrl.value = form.customerSignUrl ?? ''
+    vendorSignDataUrl.value = form.vendorSignUrl ?? ''
+    applyLegacyEnvelope()
+    if (form.projectId) resolveProject(form.projectId)
+  } else {
+    prefillCurrentEngineer()
+    if (props.projectId) resolveProject(props.projectId)
+  }
 }
 const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    writeCertExtra()
+    // 证明名称即项目名称，随项目带入，不再单独填写
+    if (!form.name && (projectNameCache.value || form.projectId)) {
+      if (!projectNameCache.value && form.projectId) {
+        projectNameCache.value = (await ProjectApi.getProject(form.projectId)).projectName ?? ''
+      }
+      form.name = projectNameCache.value
+    }
+    form.devices = deviceRows.value
+    form.customerSignUrl = await uploadSignature(customerSignDataUrl.value)
+    form.vendorSignUrl = await uploadSignature(vendorSignDataUrl.value)
     form.id
       ? await CompletionCertificateApi.updateCompletionCertificate(form)
       : await CompletionCertificateApi.createCompletionCertificate(form)
@@ -377,7 +541,7 @@ const handleAction = async (
     | 'archiveCompletionCertificate',
   actionText: string
 ) => {
-  await message.confirm(`确认${actionText}完工证明【${row.name}】？`)
+  await message.confirm(`确认${actionText}完工证明【${row.code || row.name}】？`)
   await (CompletionCertificateApi as any)[action](row.id!)
   message.success(`${actionText}成功`)
   await load()
@@ -403,6 +567,41 @@ onMounted(load)
     min-width: 0;
     font-size: 13px;
     color: var(--el-text-color-regular);
+  }
+}
+
+.device-table {
+  width: 100%;
+
+  .device-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 120px 48px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+
+    &.device-header {
+      margin-bottom: 2px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  .device-tip {
+    font-size: 12px;
+    color: var(--el-text-color-placeholder);
+  }
+}
+
+.sign-block {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+
+  .sign-pad-area {
+    flex: 1;
+    min-width: 0;
   }
 }
 </style>
