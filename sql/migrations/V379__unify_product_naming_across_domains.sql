@@ -21,9 +21,20 @@ ALTER TABLE `com_delivery_scope`
     COMMENT '产品描述/物料描述';
 ALTER TABLE `com_delivery_scope`
   ADD INDEX `idx_scope_product` (`tenant_id`, `product_code`, `scope_status`, `project_id`);
+ALTER TABLE `imp_arrival_line` DROP CHECK `chk_imp_arrival_line_scope`;
 ALTER TABLE `imp_arrival_line`
   CHANGE COLUMN `model_code` `product_model` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
     COMMENT '产品型号/物料型号（原model_code）';
+-- CHECK 约束不随列更名自动更新（MySQL 会拒绝更名被约束引用的列），按原条款以新列名重建：
+ALTER TABLE `imp_arrival_line`
+  ADD CONSTRAINT `chk_imp_arrival_line_scope` CHECK (
+    (`scope_type` = 'DEVICE'
+      AND `device_id` IS NOT NULL AND `device_assignment_version` IS NOT NULL
+      AND `order_line_id` IS NULL)
+    OR (`scope_type` = 'ORDER_MODEL_QUANTITY'
+      AND `device_id` IS NULL AND `order_line_id` IS NOT NULL
+      AND (`product_code` IS NOT NULL OR `product_model` IS NOT NULL))
+  );
 ALTER TABLE `imp_eng_material_requisition`
   CHANGE COLUMN `material_code` `product_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
     COMMENT '产品编码/物料编码',
