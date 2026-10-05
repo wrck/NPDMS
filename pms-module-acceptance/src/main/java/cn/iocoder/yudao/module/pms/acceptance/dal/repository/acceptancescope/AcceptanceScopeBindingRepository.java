@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancescope.Acc
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.AcceptanceScopeBindingMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.query.AcceptanceScopeBindingIdentityQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.query.AcceptanceScopeCurrentQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancescope.query.AcceptanceScopeProjectActiveQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -25,6 +26,16 @@ public class AcceptanceScopeBindingRepository {
     public List<AcceptanceScopeBindingDO> selectCurrentByScopeForUpdate(AcceptanceScopeCurrentQuery query) {
         requireTrustedTenant(query.tenantId());
         return mapper.selectCurrentByScopeForUpdate(query);
+    }
+
+    public List<AcceptanceScopeBindingDO> selectActiveByProjectForUpdate(AcceptanceScopeProjectActiveQuery query) {
+        requireTrustedTenant(query.tenantId());
+        return mapper.selectActiveByProjectForUpdate(query);
+    }
+
+    public int close(AcceptanceScopeBindingDO binding) {
+        requireTrustedTenant(binding.getTenantId());
+        return mapper.updateById(binding);
     }
 
     public int append(AcceptanceScopeBindingDO binding) {

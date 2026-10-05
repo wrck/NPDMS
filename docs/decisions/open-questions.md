@@ -40,6 +40,7 @@
 - Resolution: 2026-09-14需求方已确认统一方向：所有业务模块共用“业务完成→自动关联对应任务→按任务完成规则自动完成”，无需人工建立/解除关联或点击完成任务。此确认不是同项目全部记录无差别纳入；具体任务/业务范围解析及各Owner接入契约仍须统一落字，暂不关闭本问题。
 - Implementation coordination: 本任务11:21后只读复核发现，上一轮结束后同工作树已出现其他来源的`TaskBusinessObjectProvider.lockCompletionFact`、`ProjectTaskBusinessService.lockCompletionFacts`、`ProjectTaskLifecycleService.completeFromBusinessResult`及需求分析Outbox接线（核心文件修改时间11:15～11:19）。现有自动完成仍读取已保存活动关联，且本轮检索仅发现需求分析实现无人值守完成事实接口，不等于统一能力已交付。master相关DU未定位到本增量的当前写入责任；须先明确接管/分工，不能并行改写同一接口或重复建设。
 - Resolution 2026-09-30: 需求方裁决——采用A并附加纳入资格限定：同项目同类业务记录中"已确认或审批通过、归档通过"的记录全部纳入任务业务范围与完成判定（统一业务模型应有统一的业务定义），完成事实取最新完成的记录；草稿、已撤销等未定格记录不纳入。既有关系与完成历史不自动重写。各业务Owner接入契约仍须按此口径统一落字，跨会话并行实现的接管/分工按Implementation coordination执行，属实施协调不改变本语义裁决。
+- 现状核对 2026-09-30（只读，不改共享接口；契约已落字 docs/design/04a-template-compilation-runtime.md §17）：自动归属唯一写入路径为 `ProjectTaskBusinessAssociationService.reconcile` 按 `associationCandidates` 分页同步。各 Owner 候选口径与裁决差异——SOL 工勘 `SiteSurveyEntityMapper.selectAssociationPage` status IN (0,1,3) 含草稿(0)；SOL 实施方案 `SolutionCompletionMapper.page` status NOT IN (5,6) 含未审批通过状态；ACC 验收报告按项目+类型全量、CUT cut_task 全量，均未按状态限定；PLN 阶段计划仅 status=2 生效批次（符合）。"完成事实取最新完成的记录"当前实现为逐活动关联读取并按规则聚合，未实现最新完成记录选取。以上差异为实施缺口，按 Implementation coordination 的接管/分工处理，本语义裁决不再变更。
 
 ## Phase 2历史资料承载决策
 
@@ -666,6 +667,7 @@
 - Evidence: 当前统一F-COM-001规格BR-FCOM001-005及第13节；ADR-0038/0039，恢复原有窄问题登记，不新增业务Gate。
 - Business decision required: 是。
 - Resolution: 需求方2026-09-30裁决采用A——退出或回退验收阶段即关闭既有AcceptanceScopeBinding并解锁（落effective_to至回退时点、解除资源绑定锁定）；回退路径的关闭与解锁写入自此获得授权实现，原"确认前不得自动写"限制针对本裁决情形解除；阶段进入绑定与验收阶段内新版本绑定正向规则不变。Decision date: 2026-09-30。
+- Implementation 2026-09-30: 已实现回退路径关闭解锁——`AcceptanceScopeBindingApi.closeProjectBindings`（新增命令/结果 DTO，MANDATORY 事务，逐条落 effective_to 至调用时点，无活跃锁幂等返回）；权威回退路径 `ProjectGovernanceApplicationService.rollbackOnce` 在同事务调用（operationId 与阶段快照一致）。V385 放开 V160 的 `chk_acceptance_scope_effective`（binding_status 仍恒 LOCKED，活跃判定不变）。既有治理动作审批流 `approveGovernanceAction` 无任何调用方，未接线。
 
 ## CUT/IMP来源裁决补登
 
@@ -1220,6 +1222,22 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Blocking scope: 仅阻止"单一迁移链支持全新空库构建"这一能力；不阻断本机既有库、工作区库的升级，也不阻断当前 V361 业务验证（本地验证库已可构建）。
 - Decision owner: 需求方（涉及迁移历史治理，非单一代码决定）。
 - Resolution: 需求方2026-09-30裁决迁出主链——V331移入一次性运维脚本目录并登记已执行环境清单，主迁移链恢复全新空库可构建；已执行库的`flyway_schema_history`V331记录保留不动，文件迁出后的missing-migration处理随迁出实施一并配置。迁出实施（目录、清单、迁移链验证）为后续工程工作。Decision date: 2026-09-30。
+- Implementation 2026-09-30: 迁出已执行——V331移入`sql/oneoff/`（README登记compose主库与fresh库两环境success=1及重放方式）；compose.yaml migrate服务加`FLYWAY_IGNORE_MIGRATION_PATTERNS: "*:missing"`；fresh lineage构建脚本移除331豁免并再生成（326文件含V384/V385）。主链空库构建验证（compose同版mysql:8.4+collation参数）：V1～V373全部成功，V331缺位不再阻断；构建现止于V374的既有跨表collation冲突，见下方新登记Q-MIG-COLLATION-20260930-001，与本次迁出无关（V331无DDL，不参与该比较）。
+
+### Q-MIG-COLLATION-20260930-001 — 主链全新空库构建在 V374 因跨表 collation 混用失败（迁出 V331 验证时发现）
+
+- Status: OPEN（BLOCKED_BY_SPEC：统一到哪个 collation 与整链对齐策略需需求方/DBA裁决）
+- Requirement IDs: 无单一代码归属；发现于 Q-MIG-V331-20260929-001 迁出实施的"主迁移链验证"
+- Area: 数据库迁移 / 全新空库构建 / 字符集治理
+- Question: 主迁移链在 compose 同版 mysql:8.4.10（--collation-server=utf8mb4_unicode_ci）全新空库构建时，V1～V373 全部成功，V374 p06r 统一交付数据迁移的 INSERT…SELECT 跨表 JOIN 报 1267 Illegal mix of collations (utf8mb4_unicode_ci,IMPLICIT) 和 (utf8mb4_0900_ai_ci,IMPLICIT)。根源是链内建表语句的 collation 声明不一致：`DEFAULT CHARSET=utf8mb4` 不带 COLLATE（如 V166 acc_* 族）在 MySQL 8 落 charset 默认 utf8mb4_0900_ai_ci，不带 charset（如 V361 plt_delivery_* 族）落库默认 unicode_ci，V92 plt_file_reference 显式 unicode_ci；V374 的 acc_*×plt_file_reference/plt_delivery_* 比较触发混用。
+- Evidence:
+  - 2026-09-30 临时容器复现：全链 flyway migrate 于 V374 失败；同机实测 `CREATE TABLE … DEFAULT CHARSET=utf8mb4`（无 COLLATE）→ utf8mb4_0900_ai_ci，与库默认 unicode_ci 无关。
+  - compose 主库（npdms_domain_test）447 张有 collation 的表 0 张 0900_ai_ci（历史成因未深究），故既有库不受影响、V374 在主库曾成功；fresh 库从未执行过 V372～V374，其下次升级到该区间将同样失败。
+  - V166/V374 均已在既有库执行（success=1），按"不重写历史迁移文件"约束不能就地修补；collation 对齐迁移若编号新于 V374，全新构建仍会在 V374 先行失败（前向修复无法解锁链中段）。
+- Options: A. 以既有主库为基准统一 utf8mb4_unicode_ci：新增插入在 V373 与 V374 之间的编号（如 V373.5）COLLATE 对齐迁移，既有主库无需执行（已统一）、fresh 构建按序执行后 V374 可通过；B. 统一到 utf8mb4_0900_ai_ci（方向相反，需同步处理 V92 显式 unicode_ci 与库默认），影响面更大；C. 只改 V374 语句加 COLLATE——需重写已执行迁移文件，违反迁移不可变约束，不可行。
+- Recommended technical default: A（与既有库实况一致，既有库零动作）。
+- Blocking scope: 阻断"单一主链支持全新空库构建"最终达成与 fresh lineage 后续升级到 V372～V374 区间；不阻断既有库日常升级、不回退 Q-MIG-V331-20260929-001 的迁出结论。
+- Decision owner: 需求方（涉及整链字符集治理基线）。
 
 ## 施工计划批次再审批与已完成任务历史链接的解析口径（2026-09-29 S2 工作区 OWNER_FACT_UNAVAILABLE）
 

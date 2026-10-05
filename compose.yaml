@@ -72,6 +72,9 @@ services:
       FLYWAY_CONNECT_RETRIES: "60"
       FLYWAY_CLEAN_DISABLED: "true"
       FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      # V331 已按 Q-MIG-V331-20260929-001 裁决迁出主链（sql/oneoff/）；已执行库的
+      # flyway_schema_history 记录保留，这里容忍"历史有记录、目录无文件"。
+      FLYWAY_IGNORE_MIGRATION_PATTERNS: "*:missing"
       FLYWAY_LOCATIONS: filesystem:/flyway/sql
     command: ["migrate"]
     volumes:

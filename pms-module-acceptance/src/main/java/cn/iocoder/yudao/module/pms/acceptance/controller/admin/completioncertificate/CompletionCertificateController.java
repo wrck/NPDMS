@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertif
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateDeviceRespVO;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificatePageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateRespVO;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateSaveReqVO;
@@ -71,7 +72,13 @@ public class CompletionCertificateController {
     @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:query')")
     public CommonResult<CompletionCertificateRespVO> get(@RequestParam("id") Long id) {
         CompletionCertificateDO entity = completionCertificateService.getCompletionCertificate(id);
-        return success(BeanUtils.toBean(entity, CompletionCertificateRespVO.class));
+        CompletionCertificateRespVO respVO = BeanUtils.toBean(entity, CompletionCertificateRespVO.class);
+        if (respVO != null) {
+            respVO.setDevices(BeanUtils.toBean(
+                    completionCertificateService.getCompletionCertificateDevices(id),
+                    CompletionCertificateDeviceRespVO.class));
+        }
+        return success(respVO);
     }
 
     @PutMapping("/submit")

@@ -4,6 +4,8 @@ import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.AcceptanceScopeBindingApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseCommand;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -77,6 +79,7 @@ public class ProjectGovernanceApplicationService {
     private final ProjectTreeVersionMapper treeVersionMapper;
     private final ProjectStageSnapshotMapper snapshotMapper;
     private final ProjectStageSnapshotRepository snapshotRepository;
+    private final AcceptanceScopeBindingApi acceptanceScopeBindingApi;
 
     public GovernanceActionResult rollback(RollbackProjectCommand command,
                                            ProjectGovernanceGuardService.Actor actor) {
@@ -421,6 +424,9 @@ public class ProjectGovernanceApplicationService {
         }
 
         String operationId = UUID.randomUUID().toString();
+        // 回退即关闭既有验收范围锁定并解锁交付范围收缩（Q-FCOM-002 裁决），与状态回退同事务
+        acceptanceScopeBindingApi.closeProjectBindings(new AcceptanceScopeBindingCloseCommand(
+                actor.tenantId(), project.getId(), operationId));
         ProjectStageSnapshotDO snapshot = rollbackSnapshot(command, actor, project, verified,
                 operationId, operatedAt);
         if (snapshotRepository.append(snapshot) != 1 || snapshot.getId() == null) {

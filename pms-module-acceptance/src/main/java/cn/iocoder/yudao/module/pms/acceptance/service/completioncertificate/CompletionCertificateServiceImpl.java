@@ -2,16 +2,22 @@ package cn.iocoder.yudao.module.pms.acceptance.service.completioncertificate;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateDeviceSaveReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificatePageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificateSaveReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDeviceDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateDeviceMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -53,9 +59,12 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     @Resource
     private CompletionCertificateMapper completionCertificateMapper;
     @Resource
+    private CompletionCertificateDeviceMapper completionCertificateDeviceMapper;
+    @Resource
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createCompletionCertificate(CompletionCertificateSaveReqVO createReqVO) {
         // 插入；编码由系统按项目编码自动生成
         CompletionCertificateDO entity = BeanUtils.toBean(createReqVO, CompletionCertificateDO.class);
@@ -65,10 +74,12 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
             entity.setStatus(STATUS_DRAFT);
         }
         completionCertificateMapper.insert(entity);
+        insertCertificateDevices(entity.getId(), createReqVO.getDevices());
         return entity.getId();
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateCompletionCertificate(CompletionCertificateSaveReqVO updateReqVO) {
         CompletionCertificateDO existing = validateExists(updateReqVO.getId());
         // 仅草稿态允许修改核心字段（编码由系统生成不可改）
@@ -79,9 +90,13 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         completionCertificateMapper.updateById(updateObj);
+        // 设备明细整存整取：按新列表重建
+        completionCertificateDeviceMapper.deleteByCertificateId(existing.getId());
+        insertCertificateDevices(existing.getId(), updateReqVO.getDevices());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteCompletionCertificate(Long id) {
         CompletionCertificateDO existing = validateExists(id);
         // 仅草稿或已驳回状态允许删除
@@ -89,6 +104,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
+        completionCertificateDeviceMapper.deleteByCertificateId(id);
         completionCertificateMapper.deleteById(id);
     }
 
@@ -100,6 +116,26 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     @Override
     public CompletionCertificateDO getCompletionCertificate(Long id) {
         return completionCertificateMapper.selectById(id);
+    }
+
+    @Override
+    public List<CompletionCertificateDeviceDO> getCompletionCertificateDevices(Long certificateId) {
+        return completionCertificateDeviceMapper.selectListByCertificateId(certificateId);
+    }
+
+    private void insertCertificateDevices(Long certificateId, List<CompletionCertificateDeviceSaveReqVO> devices) {
+        if (devices == null || devices.isEmpty()) {
+            return;
+        }
+        List<CompletionCertificateDeviceDO> deviceEntities = new ArrayList<>(devices.size());
+        for (int i = 0; i < devices.size(); i++) {
+            CompletionCertificateDeviceSaveReqVO deviceReqVO = devices.get(i);
+            CompletionCertificateDeviceDO device = BeanUtils.toBean(deviceReqVO, CompletionCertificateDeviceDO.class);
+            device.setCertificateId(certificateId);
+            device.setSort(i);
+            deviceEntities.add(device);
+        }
+        completionCertificateDeviceMapper.insertBatch(deviceEntities);
     }
 
     @Override

@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeAcceptanceLockApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeVersionFact;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseCommand;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseResult;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingResult;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeGuardOutcome;
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeGuardQuery;
@@ -24,10 +26,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -144,11 +148,72 @@ class AcceptanceScopeBindingServiceTest {
     }
 
     @Test
+    void shouldCloseAllActiveBindingsOfProjectWithEffectiveTo() {
+        LocalDateTime before = LocalDateTime.now().minusSeconds(5);
+        AcceptanceScopeBindingDO first = binding(301L, 4L, "PROJECT_STAGE_ENTRY");
+        AcceptanceScopeBindingDO second = binding(302L, 7L, "SCOPE_VERSION_EFFECTIVE");
+        second.setId(902L);
+        when(bindingRepository.selectActiveByProjectForUpdate(any()))
+                .thenReturn(List.of(first, second));
+        when(bindingRepository.close(any())).thenReturn(1);
+
+        AcceptanceScopeBindingCloseResult result = service.closeProjectBindings(
+                new AcceptanceScopeBindingCloseCommand(TENANT_ID, PROJECT_ID, "GOV-ACT-1"));
+
+        LocalDateTime after = LocalDateTime.now().plusSeconds(5);
+        assertFalse(result.replayed());
+        assertEquals(2, result.closedBindings());
+        ArgumentCaptor<AcceptanceScopeBindingDO> rows = ArgumentCaptor.forClass(AcceptanceScopeBindingDO.class);
+        verify(bindingRepository, org.mockito.Mockito.times(2)).close(rows.capture());
+        rows.getAllValues().forEach(row -> {
+            assertEquals("LOCKED", row.getBindingStatus());
+            assertNotNull(row.getEffectiveTo());
+            assertFalse(row.getEffectiveTo().isBefore(before));
+            assertFalse(row.getEffectiveTo().isAfter(after));
+            assertEquals(PROJECT_ID, row.getProjectId());
+        });
+    }
+
+    @Test
+    void shouldReplayCloseWhenProjectHasNoActiveBinding() {
+        when(bindingRepository.selectActiveByProjectForUpdate(any())).thenReturn(List.of());
+
+        AcceptanceScopeBindingCloseResult result = service.closeProjectBindings(
+                new AcceptanceScopeBindingCloseCommand(TENANT_ID, PROJECT_ID, "GOV-ACT-2"));
+
+        assertTrue(result.replayed());
+        assertEquals(0, result.closedBindings());
+        verify(bindingRepository, never()).close(any());
+    }
+
+    @Test
+    void shouldRejectInvalidCloseCommandWithoutTouchingRepository() {
+        assertThrows(RuntimeException.class, () -> service.closeProjectBindings(
+                new AcceptanceScopeBindingCloseCommand(TENANT_ID, PROJECT_ID, " ")));
+        assertThrows(RuntimeException.class, () -> service.closeProjectBindings(
+                new AcceptanceScopeBindingCloseCommand(TENANT_ID, 0L, "GOV-ACT-3")));
+        assertThrows(RuntimeException.class, () -> service.closeProjectBindings(
+                new AcceptanceScopeBindingCloseCommand(99L, PROJECT_ID, "GOV-ACT-4")));
+        verify(bindingRepository, never()).selectActiveByProjectForUpdate(any());
+    }
+
+    @Test
+    void shouldFailClosedWhenCloseUpdateMissesRow() {
+        when(bindingRepository.selectActiveByProjectForUpdate(any()))
+                .thenReturn(List.of(binding(301L, 4L, "PROJECT_STAGE_ENTRY")));
+        when(bindingRepository.close(any())).thenReturn(0);
+
+        assertThrows(RuntimeException.class, () -> service.closeProjectBindings(
+                new AcceptanceScopeBindingCloseCommand(TENANT_ID, PROJECT_ID, "GOV-ACT-5")));
+    }
+
+    @Test
     void shouldRequireMandatoryCallerTransactionForAllProviderMethods() throws Exception {
-        for (String method : List.of("bindForStageEntry", "bindEffectiveScope", "checkReduction")) {
+        for (String method : List.of("bindForStageEntry", "bindEffectiveScope", "checkReduction", "closeProjectBindings")) {
             Class<?> argumentType = switch (method) {
                 case "bindForStageEntry" -> AcceptanceStageEntryBindingCommand.class;
                 case "bindEffectiveScope" -> EffectiveScopeBindingCommand.class;
+                case "closeProjectBindings" -> AcceptanceScopeBindingCloseCommand.class;
                 default -> AcceptanceScopeGuardQuery.class;
             };
             Transactional transactional = AcceptanceScopeBindingService.class

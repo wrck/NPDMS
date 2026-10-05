@@ -1,5 +1,12 @@
 import request from '@/config/axios'
 
+export interface CompletionCertificateDeviceVO {
+  id?: number
+  deviceType?: string
+  deviceModel?: string
+  quantity: number
+}
+
 export interface CompletionCertificateVO {
   id?: number
   projectId: number
@@ -7,10 +14,24 @@ export interface CompletionCertificateVO {
   name: string
   customerId?: number
   certificateNo?: string
-  signedDate?: Date
-  satisfactionScore?: number
-  customerOpinion?: string
-  signatureUrl?: string
+  completionDate?: string
+  serviceType?: string
+  engineerUserId?: number
+  engineerName?: string
+  engineerContact?: string
+  customerUnit?: string
+  contractNo?: string
+  itemArrival?: string
+  itemInstall?: string
+  itemCutover?: string
+  itemTraining?: string
+  itemDocs?: string
+  customerSignUrl?: string
+  customerSignDate?: string
+  vendorSignUrl?: string
+  vendorSignDate?: string
+  devices?: CompletionCertificateDeviceVO[]
+  content?: string
   attachmentUrl?: string
   status?: number
   remark?: string
