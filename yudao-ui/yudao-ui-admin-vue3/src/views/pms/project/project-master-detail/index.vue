@@ -83,11 +83,6 @@
         </div>
 
         <div class="rail-stage">
-          <div class="rail-stage-title">全流程业务</div>
-          <BusinessFlowNav :groups="businessFlowGroups" :active="activeTab" @select="switchTab" />
-        </div>
-
-        <div class="rail-stage">
           <div class="rail-stage-title">阶段和任务</div>
           <button
             class="rail-item"
@@ -129,6 +124,11 @@
               />
             </div>
           </template>
+        </div>
+
+        <div class="rail-stage">
+          <div class="rail-stage-title">全流程业务</div>
+          <BusinessFlowNav :groups="businessFlowGroups" :active="activeTab" @select="switchTab" />
         </div>
 
         <div class="rail-stage">
@@ -662,10 +662,8 @@ const overviewSteps: { key: string; label: string; icon: string; pending?: boole
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' },
-  { key: 'scope', label: '实施范围', icon: 'ep:location', pending: true },
-  { key: 'attributes', label: '属性判定', icon: 'ep:edit' },
-  { key: 'match-history', label: '匹配历史', icon: 'ep:clock' },
-  { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' }
+  { key: 'scope', label: '实施范围', icon: 'ep:location', pending: true }
+  // 属性判定/匹配历史/生命周期实例三项按需求方 2026-09-30 要求从概览导航隐藏；对应内容面板保留，深链回退基本信息
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>

@@ -88,10 +88,8 @@
         </if>
     </sql>
 
-    <sql id="customerSummaryConditions">
-        FROM ast_device d
-        WHERE d.tenant_id = #{query.tenantId}
-          AND d.deleted = b'0'
+    <!-- 客户维度可见性的项目侧条件，两个汇总分支共用；调用方保证 visibleProjectIds 非空 -->
+    <sql id="customerSummaryProjectVisibility">
           AND (
               d.project_id IN
               <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
@@ -111,34 +109,55 @@
                     AND pr.deleted = b'0'
               )
           )
-          AND (
-              d.customer_id = #{query.customerId}
-              OR EXISTS (
-                  SELECT 1
-                  FROM ast_device_customer_relationship r
-                  WHERE r.tenant_id = d.tenant_id
-                    AND r.device_sn = d.sn
-                    AND r.customer_id = #{query.customerId}
-                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
-                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
-                    AND r.deleted = b'0'
-              )
-          )
+    </sql>
+
+    <!-- 分支一：设备直挂该客户，走 idx_ast_device_customer 索引驱动，避免全租户扫描 -->
+    <sql id="customerSummaryDirectBranch">
+        SELECT d.id, d.sn, d.name, d.status
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND d.customer_id = #{query.customerId}
+        <include refid="customerSummaryProjectVisibility"/>
+    </sql>
+
+    <!-- 分支二：经客户关系表挂接的设备；按 customer_id 条件与分支一互斥，UNION ALL 不重不漏 -->
+    <sql id="customerSummaryRelationshipBranch">
+        SELECT d.id, d.sn, d.name, d.status
+        FROM ast_device d
+        JOIN (
+            SELECT DISTINCT device_sn
+            FROM ast_device_customer_relationship
+            WHERE tenant_id = #{query.tenantId}
+              AND deleted = b'0'
+              AND customer_id = #{query.customerId}
+              AND effective_from &lt;= CURRENT_TIMESTAMP(3)
+              AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
+        ) cr ON cr.device_sn = d.sn
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND (d.customer_id IS NULL OR d.customer_id &lt;&gt; #{query.customerId})
+        <include refid="customerSummaryProjectVisibility"/>
     </sql>
 
     <select id="selectCustomerSummaryList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
-        SELECT d.id,
-               d.sn,
-               d.name,
-               d.status
-        <include refid="customerSummaryConditions"/>
-        ORDER BY d.id DESC
+        SELECT u.id, u.sn, u.name, u.status
+        FROM (
+            <include refid="customerSummaryDirectBranch"/>
+            UNION ALL
+            <include refid="customerSummaryRelationshipBranch"/>
+        ) u
+        ORDER BY u.id DESC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
 
     <select id="selectCustomerSummaryCount" resultType="long">
         SELECT COUNT(*)
-        <include refid="customerSummaryConditions"/>
+        FROM (
+            <include refid="customerSummaryDirectBranch"/>
+            UNION ALL
+            <include refid="customerSummaryRelationshipBranch"/>
+        ) u
     </select>
 
     <select id="selectVisibleArchiveList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
