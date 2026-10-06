@@ -412,6 +412,10 @@
     "sha256": "36d3ac567d0ce9fd93d8a83a79a3b66d33212e58f2f1ab24bd2c5aeeeef07424"
   },
   {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/NativeGeneratedFileService.java",
+    "sha256": "474f1746c1729826222c86beeeb3ccccd548b6fd505ead5a79c2adfc519e1c6b"
+  },
+  {
     "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliveryMaterialMapper.xml",
     "sha256": "95e412e1414a040ac40cb9c416871e9c99abcea23587cab97f94c0fc0c21699c"
   },

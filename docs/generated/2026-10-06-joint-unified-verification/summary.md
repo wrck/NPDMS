@@ -14,7 +14,7 @@
 | 最终普通 Tomcat | 启动 + 21 请求通过 | 普通 JAR，无测试类路径、security mock 关闭；实际密码登录、OAuth2/Redis、过滤链、角色/菜单、Owner 范围、原生 CAS、重放/GET 回执及撤销 Owner 后拒绝。仅隔离 V373 + 部分失败 V374 schema。 |
 | 原始全链 Flyway | 失败，原样保留 | V374 第 72 行，MySQL 1267 排序规则冲突。未改历史 SQL、repair、跳版本或手动补后续版本。不能以独立 V398 通过代替全链迁移。 |
 
-这些运行相互重叠，不能相加；浏览器单独运行也不改写 package 的三个 SKIP。最终逐类/逐例结果见 [backend-current.json](backend-current.json)，202 个交付/测试源文件 SHA256 见 [source-files.json](source-files.json)，最终 package 对应的原始 200 文件快照见 [package-source-files.json](package-source-files.json)。普通 JAR SHA256 为 `bc3698e1de84da325bb7173c363fea2ae99c464bacf060d02b2efb9709ada873`，四个关键公共服务 class 与当前 target 字节一致，运行 JAR 未带 Mockito/JUnit/Testcontainers。
+这些运行相互重叠，不能相加；浏览器单独运行也不改写 package 的三个 SKIP。最终逐类/逐例结果见 [backend-current.json](backend-current.json)，203 个交付/测试源文件 SHA256 见 [source-files.json](source-files.json)，最终 package 对应的201 文件源码快照见 [package-source-files.json](package-source-files.json)。普通 JAR SHA256 为 `bc3698e1de84da325bb7173c363fea2ae99c464bacf060d02b2efb9709ada873`，四个关键公共服务 class 与当前 target 字节一致，运行 JAR 未带 Mockito/JUnit/Testcontainers。
 
 本轮修复七个源文件中的两个生产公共服务。`DeliveryFulfillmentService.associate` 要求调用方事务，在同一材料行锁下重查 tenant/project/ACTIVE，拒绝旧 ACTIVE 对象；关联和撤回的双向先后竞争、同时竞争、关联/外层撤回回滚及 tenant 负例均保留。`NativeGeneratedFileService.requestDownload` 在实际 Owner 锁后锁当前材料，检查归属、ACTIVE、FILE 和冻结 artifact/version/digest，再签发下载票据。合并基线的两个真实失败反例及修复后结果见 [negative-cases.json](negative-cases.json)。资产下载服务保持原生检查点的原字节，其原生单测在当前联合选择集中通过。
 
