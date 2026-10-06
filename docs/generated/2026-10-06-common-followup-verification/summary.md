@@ -28,7 +28,7 @@
 - 最小下一段公共接入是为已有明确projectId与原生权限证据的IMP/configuration、IMP/jointTest复用OwnerProjectReadScopePolicy，验证越项目/越租户/只读角色及写入继续拒绝；不复制每Owner策略、不开放租户泛读、不顺带开放旧模型写入。
 - 3个读取失败分别依赖未运行的V379产品列重命名（materialRequisition/externalProcurement）与V386完工证书字段；不降低Mapper投影或断言来掩盖V374阻断。
 - 项目1002的旧阶段没有冻结合同/版本来源。本公共活动不制造STAGE_NATIVE合同、不放宽唯一合同断言，不实施项目创建/详情/历史迁移。若要恢复这些旧项目重评，需要独立历史迁移授权和可追溯的冻结执行快照/Owner映射；本轮异步链路仍非ready。
-- V374同时混用业务列unicode_ci与0900_ai_ci，单一连接默认无法使两个原比较都相容。只提供[只读预检](v374-readonly-preflight.sql)及[实测](v374-preflight.log)。更晚的前向迁移无法消除先发生的V374失败；修订历史迁移/repair/skip、真实数据迁移与部署仍未授权。
+- V374同时混用业务列unicode_ci与0900_ai_ci，单一连接默认无法使两个原比较都相容。只提供[只读预检](v374-readonly-preflight.sql)及[实测](v374-preflight.txt)。更晚的前向迁移无法消除先发生的V374失败；修订历史迁移/repair/skip、真实数据迁移与部署仍未授权。
 - KNO增量继续hold；四禁改路径不变或不存在；资产生成下载生产服务、公共NativeGeneratedFileService锁后材料检查及全局上传完成路径未覆盖/改造。完整后端/前端回归、两个JUnit浏览器条件入口、真实ClamAV/外部存储/设备HTTP未运行，见[清单](not-run.json)。
 
 失败/跳过不删：三UI红例、父级读取Bean红例、迁移错误、fixture启动/缓存失败及浏览器等待超时见[failure-evidence.json](failure-evidence.json)。原始日志/XML留在忽略目录，只有hash/摘要提交。所有专用Compose与Tomcat已清理，共享13306 MySQL与16379 Redis的原容器保持运行，见[清理](cleanup.json)。

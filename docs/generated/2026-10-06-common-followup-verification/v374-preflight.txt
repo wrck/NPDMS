@@ -1,0 +1,10 @@
+mysql_version	server_collation	connection_collation	implicit_utf8mb4_collation
+8.4.11	utf8mb4_unicode_ci	utf8mb4_unicode_ci	utf8mb4_0900_ai_ci
+TABLE_NAME	COLUMN_NAME	COLLATION_NAME
+acc_project_deliverable	deliverable_code	utf8mb4_0900_ai_ci
+plt_delivery_material	business_object_id	utf8mb4_unicode_ci
+json_table_code_collation	json_table_code_coercibility	cast_collation	cast_coercibility
+utf8mb4_unicode_ci	2	utf8mb4_unicode_ci	2
+version	success
+373	1
+374	0
