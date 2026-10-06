@@ -7,6 +7,12 @@ import java.util.List;
  * 写入统一模型 plt_delivery_material 的唯一入口；模块间不得直接写平台交付表。
  */
 public interface PlatformDeliveryMaterialApi {
+    /** Current authenticated Owner write access is rechecked even on replay; history anchors stay immutable. */
+    default MaterialWithdrawal withdrawMaterial(Long materialId, Long expectedVersion, String idempotencyKey, String reason) {
+        throw new UnsupportedOperationException("Public material CAS withdrawal unavailable");
+    }
+
+    record MaterialWithdrawal(Long materialId, Long version, String status) { }
     /** Explicit native upload attachment: preserve actual source identity and enabled catalog, without a requirement. */
     default Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
         throw new UnsupportedOperationException("Native uploaded delivery file registration unavailable");
@@ -57,6 +63,15 @@ public interface PlatformDeliveryMaterialApi {
                                 Integer fileVersionNo, String fileSha256, String fileName,
                                 String businessObjectType, String businessObjectId, Long businessRevisionNo,
                                 String title, String sourceKind, String status, String archiveStatus,
-                                String creator, java.time.LocalDateTime createTime) {
+                                String creator, java.time.LocalDateTime createTime, Long version) {
+        public DeliveryMaterialView(Long id, String ownerModule, String entityType, Long entityId, String typeCode,
+                String materialKind, Long requirementId, Long projectId, Long fileArtifactId, Integer fileVersionNo,
+                String fileSha256, String fileName, String businessObjectType, String businessObjectId,
+                Long businessRevisionNo, String title, String sourceKind, String status, String archiveStatus,
+                String creator, java.time.LocalDateTime createTime) {
+            this(id, ownerModule, entityType, entityId, typeCode, materialKind, requirementId, projectId,
+                    fileArtifactId, fileVersionNo, fileSha256, fileName, businessObjectType, businessObjectId,
+                    businessRevisionNo, title, sourceKind, status, archiveStatus, creator, createTime, null);
+        }
     }
 }

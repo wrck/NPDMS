@@ -7,6 +7,9 @@ import { inspectOperationCapabilities } from '@/api/pms/project/execution-operat
 import { mount, textOf, findByTestId, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const owner = vi.hoisted(() => ({ mounts: 0, allowLeave: false }))
+// This host suite mounts only the survey adapter; other catalog pages own their browser/store fixtures.
+vi.mock('./ProjectMembersBusinessView.vue', () => ({ default: { render: () => null } }))
+vi.mock('./OwnerCompletionEntry.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', async () => {
   const { defineComponent, h, ref } = await import('vue')
   return { default: defineComponent({
@@ -23,6 +26,8 @@ vi.mock('@/views/pms/delivery-business/site-survey/index.vue', async () => {
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/engineering/solution-reviewed/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning: vi.fn() }) }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))

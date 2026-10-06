@@ -21,6 +21,7 @@ import java.util.List;
 
 @Mapper
 public interface DeliveryMaterialMapper extends BaseMapperX<DeliveryMaterialDO> {
+    int withdrawIfVersion(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialWithdrawalQuery query);
     int assignSourceIdentityIfMissing(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceIdentityAssignment query);
 
 

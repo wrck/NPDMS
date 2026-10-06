@@ -32,7 +32,7 @@ public class FileUploadInitReqVO {
     private String categoryCode;
     @NotNull @Positive
     private Long declaredSizeBytes;
-    @NotBlank @Size(max = 128)
+    @Size(max = 128)
     private String declaredMediaType;
     @Size(max = 64)
     private String clientSha256;

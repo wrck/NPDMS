@@ -16,7 +16,7 @@
       <div class="el-upload__text">拖放文件到这里，或<em>点击选择</em></div>
       <template #tip>
         <div class="upload-tip">
-          单文件不超过 50MB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
+          单文件不超过 50MiB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
         </div>
       </template>
     </el-upload>
@@ -41,7 +41,7 @@ import { generateUUID } from '@/utils'
 import type { UploadFile, UploadInstance } from 'element-plus'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as FileApi from '@/api/pms/platform/file'
-import type { FileBusinessKey } from '@/api/pms/platform/file'
+import type { FileBusinessKey, FileId } from '@/api/pms/platform/file'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileSelection } from './types'
 import { resolveFileUploadMode } from './useFileSlotState'
@@ -49,7 +49,7 @@ import { resolveFileUploadMode } from './useFileSlotState'
 const props = withDefaults(
   defineProps<
     FileBusinessKey & {
-      artifactId?: number
+      artifactId?: FileId
       expectedReferenceVersion?: number
       categoryCode: string
       accept?: string
@@ -105,7 +105,7 @@ const submit = async () => {
   const file = selectedFile.value
   if (!file) return
   if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
-    return message.error('文件大小必须在 50MB 以内')
+    return message.error('文件大小必须在 50MiB 以内')
   }
   busy.value = true
   progress.value = 0

@@ -98,15 +98,45 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
         String[] owner = parseOwnerObjectId(query.objectId());
         var validators = uploadValidators.stream().filter(v -> owner[0].equals(v.ownerModule()) && v.supportsEntityType(owner[1])).toList();
         if (validators.size() > 1) throw DeliveryOwnerAccess.denied();
-        // Owner identity selects template semantics even if its code collides with the type catalog.
+        // Existing native purposes keep their frozen semantics even when a catalog code collides.
         if (validators.size() == 1) {
-            return validators.getFirst().validateUpload(query.tenantId(), query.actorUserId(), owner[1], owner[2],
-                    query.purposeCode(), query.requiredAction(), lock, expectedScopeVersion);
+            var validator = validators.getFirst();
+            var kind = validator.purposeKind(owner[1], query.purposeCode());
+            if (kind == DeliveryMaterialUploadPolicyValidator.PurposeKind.NATIVE_FROZEN) {
+                return requireAllowed(validator.validateUpload(query.tenantId(), query.actorUserId(), owner[1], owner[2],
+                        query.purposeCode(), query.requiredAction(), lock, expectedScopeVersion));
+            }
+            if (kind != DeliveryMaterialUploadPolicyValidator.PurposeKind.CATALOG) throw DeliveryOwnerAccess.denied();
+            var authorized = requireAllowed(validator.validateCatalogUpload(query.tenantId(), query.actorUserId(),
+                    owner[1], owner[2], query.purposeCode(), query.requiredAction(), lock, expectedScopeVersion));
+            var catalog = catalogPolicy(query, lock, authorized.scopeVersion());
+            var categories = new java.util.HashSet<>(authorized.allowedCategoryCodes());
+            categories.retainAll(catalog.allowedCategoryCodes());
+            var media = new java.util.HashSet<>(authorized.allowedMediaTypes().stream()
+                    .map(DeliveryFilePolicyProvider::mediaType).toList());
+            media.retainAll(catalog.allowedMediaTypes());
+            if (categories.isEmpty() || media.isEmpty()) throw DeliveryOwnerAccess.denied();
+            return new FileBusinessObjectPolicyFact(true, authorized.scopeVersion(), authorized.referenceMutability(),
+                    authorized.cardinality(), Set.copyOf(categories), Set.copyOf(media),
+                    Math.min(authorized.maxSizeBytes(), catalog.maxSizeBytes()), authorized.sensitivityCode());
         }
         if (ownerAccess == null) throw DeliveryOwnerAccess.denied();
         boolean write = FileActionCodes.UPLOAD.equals(query.requiredAction()) || FileActionCodes.REFERENCE.equals(query.requiredAction());
         Long scope = ownerAccess.require(query.tenantId(),query.actorUserId(),owner[0],owner[1],Long.valueOf(owner[2]),
                 query.purposeCode(),write,lock,expectedScopeVersion);
+        return catalogPolicy(query, lock, scope);
+    }
+
+    private static FileBusinessObjectPolicyFact requireAllowed(FileBusinessObjectPolicyFact fact) {
+        if (fact == null || !fact.allowed() || fact.scopeVersion() == null || fact.scopeVersion() < 0
+                || fact.allowedCategoryCodes() == null || fact.allowedCategoryCodes().isEmpty()
+                || fact.allowedMediaTypes() == null || fact.allowedMediaTypes().isEmpty()
+                || fact.maxSizeBytes() == null || fact.maxSizeBytes() <= 0) throw DeliveryOwnerAccess.denied();
+        return fact;
+    }
+
+    private FileBusinessObjectPolicyFact catalogPolicy(FileBusinessObjectPolicyQuery query, boolean lock, Long scope) {
+        boolean write = FileActionCodes.UPLOAD.equals(query.requiredAction()) || FileActionCodes.REFERENCE.equals(query.requiredAction());
         DeliveryTypeDO type = write ? (lock ? catalogService.lockEnabledType(query.purposeCode()) : catalogService.requireEnabledType(query.purposeCode())) : catalogService.requireType(query.purposeCode());
         return new FileBusinessObjectPolicyFact(true, scope, "IMMUTABLE", "MULTIPLE",
                 Set.of(type.getCategory()), catalogService.allowedMedia(type).stream().map(DeliveryFilePolicyProvider::mediaType)
@@ -115,7 +145,7 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
     }
 
     private static String mediaType(String value) {
-        return switch(value.toLowerCase(java.util.Locale.ROOT)) {
+        return switch(value.trim().toLowerCase(java.util.Locale.ROOT)) {
             case "pdf" -> "application/pdf";
             case "html", "htm" -> "text/html";
             case "jpeg", "jpg" -> "image/jpeg";
@@ -127,7 +157,7 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
             case "ppt" -> "application/vnd.ms-powerpoint";
             case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
             case "txt" -> "text/plain";
-            default -> value;
+            default -> value.trim().toLowerCase(java.util.Locale.ROOT);
         };
     }
 

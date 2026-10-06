@@ -1,0 +1,274 @@
+[
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyBusinessApplicationService.java",
+    "sha256": "a764b646bcf61c31d9614b91e961e1aa50f65a05c5403197fc3d7309d676fc04"
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/framework/DeclaredBusinessRuntimePersistenceTest.java",
+    "sha256": "83628387b363468e54161056dcff86b0bada5239c43205f4c7c1a9c4bcd5a75e"
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/SiteSurveyBusinessModelPersistenceTest.java",
+    "sha256": "71c7013808b31ab8c18edb08b70b390f3f2b035bed34eff9406980820da31fb1"
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/SiteSurveyPublicOperationPermissionTest.java",
+    "sha256": "ff3f9318864c9f7f3d826358b07afa97db9c989e6763ee5e70a906027871cd70"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/DeliveryMaterialUploadPolicyValidator.java",
+    "sha256": "4435dd791683873850622bebbf5476376c1bde2e23d08a0b1d3b64cd8c4637e1"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/PlatformDeliveryMaterialApi.java",
+    "sha256": "b21605528f276a263d1e1b6c98cb83eac54cc52ca624e0372ea8965e217176a7"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntityIdentityResolver.java",
+    "sha256": "eed77cafafbc247e7a42c0d2a560ddd5501de76e5933066cdcea80e800f99243"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessOperationDispatcher.java",
+    "sha256": "cbb240d4fdb4f5564e13c87407be77c16baa67bc1f086385d69bd9d60e24d176"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/DefaultBusinessApplicationService.java",
+    "sha256": "67a596e50bc659c5c27f71e8125f6428ed3a182e2ccbbac2755369d508a675c7"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/test/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntityIdentityResolverTest.java",
+    "sha256": "87a01c5bcc66a13f7602eb5ff775a75f3a905042bce7154bc07f50e99871b758"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/test/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessOperationDispatcherRecoveryTest.java",
+    "sha256": "f3340ad4e83db5c1dbd3c2bf16cf5a1a622ff3651993ac737d2f16e289443d26"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/file/FileArtifactController.java",
+    "sha256": "0fa379b49e63f1c06c87ab8a72e0b255d0e215391279a9c9bc7150ca5f87a3d9"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/file/vo/FileUploadInitReqVO.java",
+    "sha256": "b3ca25090f65ed9dd078dd611a39b726565ef047878a340a565a23681855b103"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/delivery/DeliveryMaterialDO.java",
+    "sha256": "808ec70cbe916590bd4d3b86e7dfc95635991db6843aad8d6cdaa9cb0a4f6ba2"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/DeliveryMaterialMapper.java",
+    "sha256": "673144013344688b6ca3806faa5168b83fdf70836a0f7b830c6e42044a39df3b"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryMaterialWithdrawalQuery.java",
+    "sha256": "1f0ec4940739478dade90ec46eda85bfbf0b5761a9a1e1190a2ce935ae4ead4d"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java",
+    "sha256": "7bc13fcaf306be198a1dcf7792c554815740ed7cb6847ef6d55784eb83c93b86"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFilePolicyProvider.java",
+    "sha256": "64aafe93fbdeb3b9d2f4d7284059aee231d86619db5c4b894e4496af580405fe"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialWithdrawalService.java",
+    "sha256": "014ae65dee711ac97dfdc567d34fac1931f1741b152baf67d87e72ebb95068ce"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/PlatformDeliveryMaterialApiImpl.java",
+    "sha256": "01f60d00654c46f017a500851f7653b6490aa772f2d8b9e09319f2b5a3bd5ffb"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileContentPolicyService.java",
+    "sha256": "1a9109519c6ae361b0537dbe101d4f88e346be4f23526575afdc93f0979862c7"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileQueryService.java",
+    "sha256": "3f6d3e6f6203c37ac56a2e7c2beb9914edd900edcddb627cac5bc69a6fa41a51"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileUploadApplicationService.java",
+    "sha256": "36d3ac567d0ce9fd93d8a83a79a3b66d33212e58f2f1ab24bd2c5aeeeef07424"
+  },
+  {
+    "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliveryMaterialMapper.xml",
+    "sha256": "95e412e1414a040ac40cb9c416871e9c99abcea23587cab97f94c0fc0c21699c"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileContentValidationTest.java",
+    "sha256": "e0baa73ee98ec3cc09fc50211349c4ad401f46d89e3283c2ee01d3652ddbc6a5"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileContractAndMapperTest.java",
+    "sha256": "0dac892569e8f3c85a55d74d9723d75997a56d5da9df963e50c4faf6a5b89563"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileReferenceDiscoveryMySqlIntegrationTest.java",
+    "sha256": "e8dc86e7511706119ae0d3059d6513bc8d68742168a8f4dcc496c0926d1faf96"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileReferenceDiscoveryPersistenceTest.java",
+    "sha256": "ae1d9b6eb81cc3d89f01688980ccc8c75efa64c12800ff67709b9bef200ed5cc"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridgeSpringContextTest.java",
+    "sha256": "3556a1e459640a34d2952170438525fc94e4b167592c5183e138d4d03f31553d"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFilePolicyProviderAuthorizationTest.java",
+    "sha256": "adea060cbc93881e309fd79b8cc718b876fa0cf0331e30ccc63b8f7dc1945801"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialWithdrawalMySqlIntegrationTest.java",
+    "sha256": "3bfbc7e803c6ce3e930fff6fb6708b72221e51b6d86d262659c591dc89c34359"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialWithdrawalPersistenceTest.java",
+    "sha256": "6130724d84c453fb1ad33408a99733aeb846c623d668216ad6b9e66dac064e45"
+  },
+  {
+    "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityCapabilityCopyTest.java",
+    "sha256": "656e4cdef367ac0e8d3d3ed69139dee4475f57716c8eb6104fbd1fc38e7114b9"
+  },
+  {
+    "path": "sql/migrations/V398__delivery_material_version.sql",
+    "sha256": "1daf43f4194afe40bbbd1d935a909de7394acc964cf3b3f0e46ed904de9b2b6d"
+  },
+  {
+    "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/api/permission/ExplicitPermissionApiImplTest.java",
+    "sha256": "f6de85a7b482e5ecb665b181a2dd5bac4319d015512841ff961ef388639acf07"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/construction-plan/index.ts",
+    "sha256": "697c970f832eb984d64e3ce200d9ab9bdd68acc1d144b0e3e14730c93f67d3e5"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/delivery/index.ts",
+    "sha256": "3c19cb68da716be67b4f6796e31e2b7a8a70d7626b0b69a94eaf7779a844eee2"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/dynamic-form/index.ts",
+    "sha256": "2a325e5bf280dedcb6b95e6970ae355d32182d5aa7f73715f4de0fffda0ff2f8"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/file/fileId.runtime.spec.ts",
+    "sha256": "ecdb8e2cd9b5cc175573cb92a98c3482a54f37fdc9596ccef52fb1d3eebe9326"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/file/index.ts",
+    "sha256": "3308a1c07dfdc936157bbb8aeb9cbc48aae284e191f51aa5b2e93c10a180532a"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/presentationHost.runtime.spec.ts",
+    "sha256": "9fee620a1a1a0c5d28779f7208a071cd23d2a2c0db9d004578efe053530c2499"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeliveryArtifact/DeliveryUploader.vue",
+    "sha256": "705b6cb5049237ea58e598bed6c43dd37899a1691f8497353cba625c355520a3"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeliveryArtifact/uploadDeliveryFile.ts",
+    "sha256": "5ccbd64b80c349f5c808f37c8e40392ed776291d00a80d05d9ec57e65197a821"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts",
+    "sha256": "c5598e6d163e86fda09e6baeba7a5d8820d28d80ebe357c9b182d70e017ebccc"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileReferenceList.vue",
+    "sha256": "56b4856506d8af0ab0295b618b5935b76bf7cc09d40cd938efcb10e8db9daab9"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileUploader.vue",
+    "sha256": "331241edbabd391812b149b266595d55506aaa8a009d25fa1c4f25d5d0682cce"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileVersionDrawer.vue",
+    "sha256": "dfd82679c1def54e600d0ccafd9b2c80847f3a2edae9682f32b64da3a700a4cf"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/types.ts",
+    "sha256": "2c0f006a4e2d82477afb520c309c67d9b735efe2a5c67f8a5fdcaebec6ad8833"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/useFileSlotState.ts",
+    "sha256": "4acb3dbcd6df8b861a352206a034fdf446f5c7af396a9b7c7a7e1093365ed529"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/durationChangeFormState.ts",
+    "sha256": "0de2da4fa64c412d29893dade01f1cb930a388bc93633d36e30a05e292f3a58e"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/Fixture.vue",
+    "sha256": "d4b1f8aaf4195fc9f668bbf83241d9f6a20b0d373736e92d3c7549f67579e567"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/InactivePanel.vue",
+    "sha256": "692f557569cd4949781efc264b8bfa6c9a821594a9ac6b36656f58d306d325bf"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/README.md",
+    "sha256": "2b1f2b375c84c22886de0d6cdebe966f823ed23982e21e3069597d42256d0886"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/auth.ts",
+    "sha256": "d0b45d5e5cbdb0920f3a31aedb6e036a7acd6ddeff62a512da63c70aae227db1"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/config.mjs",
+    "sha256": "cd8f0904169c2d0e6693661678d94689cca2cdf299b3fd45bdfa36832bca23ee"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/index.html",
+    "sha256": "8caa3721d39176bb8eabb2c9cf77d121f7b828dcb94a2780dd353b4524e9991e"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/main.ts",
+    "sha256": "5701b12c7b047cad4dc41167ead4758a28858ac7fefe13f7949e826d4081036e"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/nativeViews.ts",
+    "sha256": "fc5c4c78e2214aa31aeab75a890160acde87e880fbe94fedac7a810f4a156060"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/request.ts",
+    "sha256": "3607c3f849577184a3a32cea66718389ac0ea495e4ab1b166d96557cd27fa9cf"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/declared-business-browser/verify.mjs",
+    "sha256": "7c9e50a9353dde44e84f15a8355911ee7587c5d49fd4fbfc0db251fd46b4eb2c"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/Fixture.vue",
+    "sha256": "0655ede7fe7f0d1ee9dd4d4d6bd9f93251d494601dc9e66a2940e735361264ee"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/README.md",
+    "sha256": "4d395c0588b40ad9b973fab85affe67e2655c1ec7343b584c7b977e2494a1991"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/index.html",
+    "sha256": "a21ae88b664969396b5cf7b63022833b4dfd843b110a4d1c37d72de1b2deac35"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/main.ts",
+    "sha256": "5546885d22cbffe83cd2debe434492dbfea1aa9ed16e2e0503ecc0052bd7a631"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/message.ts",
+    "sha256": "da9f988af9b363809dc62dd7ab24de3cbec56d537428b1446eefbd8ae3e2d8ce"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/request.ts",
+    "sha256": "4fc67ca06859a2c177923c0171c6d05881e7bfadf99478f324f1f88649c2c85b"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/tests/file-reference-browser/verify.mjs",
+    "sha256": "f58a8ec4af8483e2dce7c7fa585f759bb7c90f32e91e8c89e26f273294b33e74"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/vitest.pms-file.config.ts",
+    "sha256": "2ce6f0db6224aa6590898855803cddeaa7815e993c8549b131ddc88f984a4467"
+  }
+]

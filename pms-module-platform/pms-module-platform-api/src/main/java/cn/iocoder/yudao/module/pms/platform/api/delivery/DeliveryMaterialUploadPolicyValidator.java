@@ -12,6 +12,19 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
  */
 public interface DeliveryMaterialUploadPolicyValidator {
 
+    enum PurposeKind { NATIVE_FROZEN, CATALOG }
+
+    /** Existing Owners retain native purpose semantics, including codes also present in the catalog. */
+    default PurposeKind purposeKind(String entityType, String purposeCode) { return PurposeKind.NATIVE_FROZEN; }
+
+    /** Explicit catalog admission must authorize the actual Owner and return its own file limits. */
+    default FileBusinessObjectPolicyFact validateCatalogUpload(Long tenantId, Long actorUserId,
+            String entityType, String entityId, String purposeCode, String action,
+            boolean lock, Long expectedScopeVersion) {
+        throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException(
+                "DELIVERY_ACCESS_DENIED", "Owner未声明目录文件用途授权");
+    }
+
     /** Delivery actions are separate from uploading a file: withdrawal need not allow UPLOAD. */
     default Long requireDeliveryAccess(Long tenantId, Long actorUserId, String entityType,
             String entityId, String purposeCode, boolean write, boolean lock, Long expectedScopeVersion) {

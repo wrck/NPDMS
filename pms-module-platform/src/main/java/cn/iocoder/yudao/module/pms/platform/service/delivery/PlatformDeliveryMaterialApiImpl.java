@@ -19,6 +19,12 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
 
     private final DeliveryMaterialService materialService;
     private final DeliveryMaterialMapper materialMapper;
+    private final DeliveryMaterialWithdrawalService withdrawalService;
+
+    @Override
+    public MaterialWithdrawal withdrawMaterial(Long materialId, Long expectedVersion, String idempotencyKey, String reason) {
+        return withdrawalService.withdraw(materialId, expectedVersion, idempotencyKey, reason);
+    }
 
     @Override
     public Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
@@ -72,6 +78,6 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
                 row.getFileArtifactId(), row.getFileVersionNo(), row.getFileSha256(), row.getFileName(),
                 row.getBusinessObjectType(), row.getBusinessObjectId(), row.getBusinessRevisionNo(),
                 row.getTitle(), row.getSourceKind(), row.getStatus(), row.getArchiveStatus(),
-                row.getCreator(), row.getCreateTime());
+                row.getCreator(), row.getCreateTime(), row.getVersion());
     }
 }

@@ -1,0 +1,2804 @@
+[
+  {
+    "class": "cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.other.BpmTaskCandidateExpressionStrategyTest",
+    "name": "testCalculateUsersByTask",
+    "status": "SKIP",
+    "reason": "class cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.other.BpmTaskCandidateExpressionStrategyTest is @Disabled"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.other.BpmTaskCandidateExpressionStrategyTest",
+    "name": "testCalculateUsersByActivity",
+    "status": "SKIP",
+    "reason": "class cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.other.BpmTaskCandidateExpressionStrategyTest is @Disabled"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidateGroupStrategyTest",
+    "name": "testCalculateUsers",
+    "status": "SKIP",
+    "reason": "class cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidateGroupStrategyTest is @Disabled"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidatePostStrategyTest",
+    "name": "testCalculateUsers",
+    "status": "SKIP",
+    "reason": "class cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidatePostStrategyTest is @Disabled"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidateRoleStrategyTest",
+    "name": "testCalculateUsers",
+    "status": "SKIP",
+    "reason": "class cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidateRoleStrategyTest is @Disabled"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidateUserStrategyTest",
+    "name": "test",
+    "status": "SKIP",
+    "reason": "class cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.strategy.user.BpmTaskCandidateUserStrategyTest is @Disabled"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptMySqlIntegrationTest",
+    "name": "replaysAccessesAndDeletesTheFrozenStorageAfterMasterSwitch",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptMySqlIntegrationTest",
+    "name": "rejectsDuplicateCrossConfigReceiptsWithoutChoosingOne",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceDeliverableBindingMySqlTest",
+    "name": "migrationDoesNotInferHistoryAndOwnerQueriesReadTheFrozenInstance",
+    "status": "SKIP",
+    "reason": "System property [pms.acceptance.binding.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.Facc001ApplicationMySqlIntegrationTest",
+    "name": "incompletePublishRollsBackIdempotencyAndOutbox",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.Facc001ApplicationMySqlIntegrationTest",
+    "name": "publishReplaceReplayAndRevokePreserveImmutableHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.api.customer.AssetCustomerDeviceSummaryMySqlTest",
+    "name": "mergesCurrentProjectionAndEffectiveRelationshipsWithoutDuplicates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.api.customer.AssetCustomerDeviceSummaryMySqlTest",
+    "name": "returnsAvailableEmptyPageWhenCustomerHasNoCurrentOrEffectiveRelationship",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.api.device.DeviceScopeFactApiMySqlTest",
+    "name": "lockRevalidationHoldsTheDeviceRowUntilOuterTransactionCompletes",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.api.device.DeviceScopeFactApiMySqlTest",
+    "name": "resolvesOwnerFactsAndFailsClosedForStatusProjectAndTenant",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.api.device.DeviceScopeFactApiMySqlTest",
+    "name": "lockRevalidationReturnsStaleAndRejectsChangedSerialIdentity",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.dal.producttype.DeviceCurrentProductTypeMapperMySqlTest",
+    "name": "selectsCurrentProjectionAndEffectiveRelationshipsWithResolutionStates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.dal.producttype.DeviceCurrentProductTypeMapperMySqlTest",
+    "name": "selectsProductTypesByTenantAndCodes",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.dal.producttype.DeviceCurrentProductTypeMapperMySqlTest",
+    "name": "locksSourceMappingByStableTenantSourceKey",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.location.LocationMySqlIntegrationTest",
+    "name": "representativeLocationDataPreservesV18Invariants",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.location.LocationMySqlIntegrationTest",
+    "name": "locationWritesRollbackAsOneMySqlTransaction",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.assembly.DeviceAssemblyLocationConcurrencyMySqlTest",
+    "name": "concurrentReverseAssembliesMustNotCreateCycle",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.assembly.DeviceAssemblyLocationConcurrencyMySqlTest",
+    "name": "concurrentLocationsFromSameDeviceVersionHaveOneSuccessAndNoProjectionDrift",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceAssignmentConcurrencyMySqlTest",
+    "name": "concurrentRepeatedProjectionEventHasOneAppliedResult",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceAssignmentConcurrencyMySqlTest",
+    "name": "concurrentProjectAssignmentsFromSameVersionHaveOneCompleteSuccessFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceAssignmentConcurrencyMySqlTest",
+    "name": "concurrentOutOfOrderProjectionKeepsNewestAssignmentVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceAssignmentConcurrencyMySqlTest",
+    "name": "repeatedProjectionEventUsesPersistedEventId",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeConcurrencyMySqlTest",
+    "name": "concurrentDeviceUpdatesLeaveAtMostOneCurrentReference",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeConcurrencyMySqlTest",
+    "name": "concurrentSameIdempotencyKeyHasOneNewDecision",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeConcurrencyMySqlTest",
+    "name": "concurrentSameStableCodeAllowsAtMostOneFirstInsert",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeConcurrencyMySqlTest",
+    "name": "concurrentSameSourceDifferentTargetKeepsOneMappingAndRecordsConflict",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "staleSourceDoesNotOverwriteLastSuccessfulFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "crossTenantDeviceRollsBackPreparedProductTypeAndMapping",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "sourceFailureKeepsLastSuccessfulValuesAndTimestamp",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "schemaConstraintsReserveSoftDeletedCodeAndKeepOneCurrentDeviceReference",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "rejectedConflictRollsBackBusinessTransactionAndCommitsConflictEvidence",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "sourceFailureAuditFailureRollsBackFailedStatus",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "authorizedDeviceProjectionOnlyReturnsVisibleProjectDevice",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "disabledProductTypeRemainsQueryableButIsNotEnabledForNewConsumption",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "controlledImportCreatesCopyMappingAndCurrentReferenceAndReplaysWithoutDuplicates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.asset.service.producttype.AssetProductTypeImportMySqlIntegrationTest",
+    "name": "successAuditFailureRollsBackAllImportAndIdempotencyFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityCandidateMySqlTest",
+    "name": "concurrentMatchAndRejectPersistOneImmutableDecision",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityCandidateMySqlTest",
+    "name": "rejectsNonNormalizedCompanyBeforePlatformReservation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityCandidateMySqlTest",
+    "name": "createsListsAndMatchesExistingConfirmedOwnerWithoutMutation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityCandidateMySqlTest",
+    "name": "rejectsCrossCompanyBeforePlatformReservation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityIngestMySqlTest",
+    "name": "atomicBatchSupportsObjectReplay",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityIngestMySqlTest",
+    "name": "quantityDecreaseCreatesConflictHistoryAndProjectWatermark",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityIngestMySqlTest",
+    "name": "predecessorConflictRollsBackEarlierObject",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityIngestMySqlTest",
+    "name": "concurrentDifferentSuccessorsAllowOnlyOnePredecessorCas",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityIngestMySqlTest",
+    "name": "preservesDesignatedErpSourceFieldsAndDetectsSameVersionChanges",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.DppmsOrderSyncAdapterMySqlTest",
+    "name": "normalSalesRejectNegativeButAcceptPositiveQuantities",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.DppmsOrderSyncAdapterMySqlTest",
+    "name": "issuesAreIsolatedAndTenantCannotSeeAnotherTenantsParent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.DppmsOrderSyncAdapterMySqlTest",
+    "name": "signedReturnUnknownUnitPersistsReplaysAndLaterConfirmsUnit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.DppmsOrderSyncAdapterMySqlTest",
+    "name": "deletedIdentityAndConflictingRowsNeverRecreateOrPartiallyWrite",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.DppmsOrderSyncAdapterMySqlTest",
+    "name": "applyRequiresAnOuterTransaction",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.authority.DppmsOrderSyncAdapterMySqlTest",
+    "name": "staleAndSameVersionChangesCannotOverwriteAcceptedFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.scope.Fcom001ApplicationMySqlIntegrationTest",
+    "name": "assignPersistsOneCurrentVersionAndReplaysIdempotently",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.scope.Fcom001ApplicationMySqlIntegrationTest",
+    "name": "concurrentAssignmentHasExactlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.commerce.service.scope.Fcom001ApplicationMySqlIntegrationTest",
+    "name": "outboxFailureRollsBackScopeAndDetail",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerCommandMySqlTest",
+    "name": "concurrentUpdatesFromSameVersionHaveOneSuccess",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerCommandMySqlTest",
+    "name": "tenantCodeIsUniqueButOtherTenantMayReuseCode",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerCommandMySqlTest",
+    "name": "softDeleteDoesNotReleaseCustomerCode",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerCommandMySqlTest",
+    "name": "currentCrmMappingIsUniqueWithinTenant",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerLifecycleMySqlTest",
+    "name": "concurrentDeletesFromSameVersionHaveOneSuccess",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerLifecycleMySqlTest",
+    "name": "disableUpdatesActiveRowWithoutSoftDeletingIt",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerLifecycleMySqlTest",
+    "name": "restorePreservesOriginalIdentity",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerLifecycleMySqlTest",
+    "name": "referenceRowLockSerializesConcurrentLifecycleUpdate",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.query.CustomerScopeSqlMySqlTest",
+    "name": "classificationCasUpdateRequiresCurrentVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.query.CustomerScopeSqlMySqlTest",
+    "name": "detailUsesTheSameUnflattenedSliceSemantics",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.query.CustomerScopeSqlMySqlTest",
+    "name": "deletedFilterReturnsOnlyAuthorizedDeletedCustomers",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.query.CustomerScopeSqlMySqlTest",
+    "name": "exactCodeLookupPreservesTenantAndVisibleScope",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.query.CustomerScopeSqlMySqlTest",
+    "name": "keepsDimensionsAndedWithinEachSliceAndSlicesOred",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalPositiveLoopMySqlTest",
+    "name": "fullFileUploadReachesP6WithoutTemplateChildrenInFrozenContent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalPositiveLoopMySqlTest",
+    "name": "externalDueRowsAreClaimedOnceAcrossConcurrentWorkers",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalPositiveLoopMySqlTest",
+    "name": "rejectedRevisionIsImmutableAndReplacementStartsNewApproval",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalPositiveLoopMySqlTest",
+    "name": "allGradesReachP6WithRealCutPlatformAndMysql(String, int)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverFullFlowPositiveLoopMySqlTest",
+    "name": "completesOneTaskFromP1ThroughP6ArchiveWithControlledOwnerFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverLeadTimeExternalNotificationPositiveLoopMySqlTest",
+    "name": "nonApplicableGradesStillCloseExternalNotificationLoopWithoutLeadTimeSnapshot(String, int)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverLeadTimeExternalNotificationPositiveLoopMySqlTest",
+    "name": "closesLeadTimeAndControlledExternalNotificationLoop(String, int, LocalDateTime, int, boolean)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistPositiveLoopMySqlTest",
+    "name": "completesP3GenerateDirectManualAndSubmitIntoP4WithRealTransactionAndMyBatis",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistPositiveLoopMySqlTest",
+    "name": "createsReadsCopiesAndPublishesNavigationRuleThroughConfigurationApplicationService",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationMySqlTest",
+    "name": "collectionCallbackAndManualFallbackPersistPositiveClosureFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationMySqlTest",
+    "name": "submitsSuccessfulClosureAndPublishesCompletion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationMySqlTest",
+    "name": "createSaveReplayPersistsRootAttachmentsAndPlatformFactsAtomically",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationMySqlTest",
+    "name": "retriesSameIntentAfterLocalProjectionFailureWithoutCreatingSecondExternalTask",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationMySqlTest",
+    "name": "submitsFailedClosureWithoutCompletionEvent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationMySqlTest",
+    "name": "callbackFailureCanBeCompletedByOneManualResult",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosurePositiveLoopMySqlTest",
+    "name": "completesP6DraftCollectionFilesAndSuccessArchiveInOneRealStack",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.closure.migration.LegacyCutoverClosureReconciliationMySqlTest",
+    "name": "completesValidLegacyStepAsRetainedWithoutCreatingClosure",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.dashboard.CutoverDashboardPositiveLoopMySqlTest",
+    "name": "aggregatesOverlappingAuthorizedKpisWithoutMutatingCutFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationMySqlTest",
+    "name": "approvedContactPatchKeepsApprovedBodyAndPersistsAuditFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationMySqlTest",
+    "name": "rejectedApprovalCreatesSavedReplacementAndNewPendingApprovalAtomically",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationMySqlTest",
+    "name": "simpleDPositiveLoopPersistsOnlyOperationAndRollbackBeforeSubmission",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationMySqlTest",
+    "name": "createSaveReplayKeepsRootChildrenAndPlatformFactsAtomic",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationMySqlTest",
+    "name": "fullFilePositiveLoopFreezesFileFactWithoutOnlineChildren",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationMySqlTest",
+    "name": "standardDownloadSubmitAndSourceInvalidationKeepPlanTaskHistoryAndPlatformFactsConsistent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.plan.migration.LegacyCutoverPlanReconciliationMySqlTest",
+    "name": "completesStagedSourceIntoLegacyRootStepsAndPlatformMapping",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskPositiveLoopMySqlTest",
+    "name": "completesSelfCreatedP1P2AssessmentDIntoP4WithRealTransactionAndMyBatis",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskPositiveLoopMySqlTest",
+    "name": "completesSelfCreatedP1P2AssessmentAIntoP3WithRealTransactionAndMyBatis",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.api.arrival.ArrivalAcceptanceFactApiMySqlTest",
+    "name": "inspectDoesNotWriteAuditOrSecondCompletionTable",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.api.arrival.ArrivalAcceptanceFactApiMySqlTest",
+    "name": "concurrentReopenMakesPreviouslyInspectedVersionStale",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.api.arrival.ArrivalAcceptanceFactApiMySqlTest",
+    "name": "proxiedReadOnlyApiMakesOldFactVersionStaleAfterNewConfirmation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.arrivalacceptance.ArrivalAcceptanceApplicationMySqlTest",
+    "name": "ineligibleProjectAndMismatchedRuntimeTenantHaveZeroCommandSideEffects",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.arrivalacceptance.ArrivalAcceptanceApplicationMySqlTest",
+    "name": "ownerFailureRollsBackPlatformClaimAndLeavesCandidateUnchanged",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.arrivalacceptance.ArrivalAcceptanceApplicationMySqlTest",
+    "name": "legacyArrivalTableAndControllerContractRemainUnchanged",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.arrivalacceptance.ArrivalAcceptanceApplicationMySqlTest",
+    "name": "callbackOutOfOrderDuplicateAndArchiveRecoveryAreIdempotent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.arrivalacceptance.ArrivalAcceptanceApplicationMySqlTest",
+    "name": "fullApplicationLifecyclePersistsFiveTableFactOutboxAndReplay",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.arrivalacceptance.ArrivalAcceptanceConcurrencyMySqlTest",
+    "name": "concurrentConfirmationProducesOneFactVersionOneEventAndOneSuccessAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "revisionFailureRollsBackPlanIdempotencyAndSuccessAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "realPartialPatchUpdatesOnlySubmittedFactsAndRecalculatesDuration",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "constructionPlanCommandsDoNotDoubleWriteLegacyScheduleOrChangeTables",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "differentPayloadForSameKeyIsRejectedWithoutSecondBusinessFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "changeDraftReplayAndConflictKeepOneCandidateAndOneChange",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "successAndReplayKeepOneBaselineIdempotencyAndAuditFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.ConstructionPlanMySqlIntegrationTest",
+    "name": "candidateInsertFailureRollsBackDraftAndIdempotency",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "missingProjectManageRollsBackBpmAndSol(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "missingSolPermissionRollsBackBpmAndSol(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "requiredEvidenceSubmissionAndTerminalResultFreezeRealPltFacts(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "realProjectFactsRejectStaleVersionThenAllowSubmission",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "concurrentTreePublishMakesFrozenScopeVersionConflictWithoutTerminalSideEffects",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "staleCurrentRoleRollsBackBpmAndSol(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "concurrentTerminalCommandsAllowOnlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "submitCreatesRealBpmWithStandardProjectVariableAndFrozenPendingFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "changedReferenceFactRollsBackBpmAndSolTerminalResult",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "concurrentSubmissionsAllowOnlyOnePendingApproval",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeBpmMySqlIntegrationTest",
+    "name": "legalTerminalCommandCommitsBpmSolPointersAndOneAudit(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "missingProjectManageRollsBackBpmAndSol(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "missingSolPermissionRollsBackBpmAndSol(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "requiredEvidenceSubmissionAndTerminalResultFreezeRealPltFacts(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "realProjectFactsRejectStaleVersionThenAllowSubmission",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "concurrentTreePublishMakesFrozenScopeVersionConflictWithoutTerminalSideEffects",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "staleCurrentRoleRollsBackBpmAndSol(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "concurrentTerminalCommandsAllowOnlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "submitCreatesRealBpmWithStandardProjectVariableAndFrozenPendingFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "changedReferenceFactRollsBackBpmAndSolTerminalResult",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "concurrentSubmissionsAllowOnlyOnePendingApproval",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.constructionplan.DurationChangeCustomerEvidenceEndToEndTest",
+    "name": "legalTerminalCommandCommitsBpmSolPointersAndOneAudit(Command)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalDeleteMySqlTest",
+    "name": "deleteRespectsConcurrentSigningVersionTenantAndLogicalDeletion",
+    "status": "SKIP",
+    "reason": "System property [arrival.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapperTest",
+    "name": "shouldLockLatestRevisionAndPageByRevisionNumberAndId",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapperTest",
+    "name": "shouldKeepOneRootAndCasCompletePlanPointers",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapperTest",
+    "name": "shouldPageChangesByCreatedTimeAndId",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapperTest",
+    "name": "shouldKeepUniqueCandidateAndProcessAndCasChange",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "changedFileFactExpiresReadySnapshotWithoutInspectWritesAndAppendsNotReady",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "approvedWaiverExpiresReadySnapshotWithoutInspectWritesAndAppendsOneNotReadySnapshot",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "changedProjectScopeExpiresReadySnapshotAndExplicitEvaluateFreezesNewScope",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "outerProjectTransactionCommitsProjectSolAndPlatformFactsTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "approverRoleChangeBeforeDecisionKeepsWaiverPendingAndBlockerNotReady",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "providerFailuresPersistErrorAndPreserveLastSuccess",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "concurrentEvaluateHasOneWinnerAndOneSnapshot",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "confirmedNoSourcePreparationEvaluatesReadyAndSameVectorReplaysSnapshot",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "readinessInspectCannotReadOtherTenantAndRemainsReadOnly",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "patchFreezesRealPltFileFactAndRejectsStaleVersionWithoutWrites",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "submitConfirmAndReturnKeepOneCurrentBusinessVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "pendingWaiverWithdrawalNeverMakesBlockerReady",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "changedSourceFactExpiresReadySnapshotAndEvaluateAppendsNotReady",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationInitializationMySqlIntegrationTest",
+    "name": "failureAfterSolWriteRollsBackProjectSolAndPlatformFactsTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationMySqlIntegrationTest",
+    "name": "publicProjectCreationInitializesPreparationAndReplaysWithoutDuplicates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationMySqlIntegrationTest",
+    "name": "publicPreparationChainSubmitsConfirmsAndEvaluatesReady",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.preparation.PreparationMySqlIntegrationTest",
+    "name": "initializedPreparationSupportsAssignmentFormAndRealFileFactFreeze",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisApplicationMySqlIntegrationTest",
+    "name": "secondEventFailureRollsBackSolInstanceReferencesIdempotencyAuditAndOutbox",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisApplicationMySqlIntegrationTest",
+    "name": "v104RejectsNullInstanceIdForDraftPre04Root",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisApplicationMySqlIntegrationTest",
+    "name": "cloneCreatesNEventsAndSameIntentReplayAddsNothing",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisApplicationMySqlIntegrationTest",
+    "name": "v105KeepsFixedFourDimensionNoMatchBehavior",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisApplicationMySqlIntegrationTest",
+    "name": "concurrentApplicationCompletionHasOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisEntityDataMigrationIntegrationTest",
+    "name": "migrationPreservesLegacySourceAndMapperOnlyWritesDraftEntityData",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisMySqlIntegrationTest",
+    "name": "failedCompletionRollsBackEffectivePointerChange",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisMySqlIntegrationTest",
+    "name": "concurrentCompletionHasExactlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisMySqlIntegrationTest",
+    "name": "sectionAndRootCasEachAdvanceOnlyOnce",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisMySqlIntegrationTest",
+    "name": "completionSwitchesEffectivePointerWithoutMutatingHistoricalContent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.requirement.RequirementAnalysisMySqlIntegrationTest",
+    "name": "enforcesOneDraftAndOneEffectiveVersionPerProject",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceSuccessorMySqlTest",
+    "name": "productionPlatformNewPersistsCompletedIdempotencyAndAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceSuccessorMySqlTest",
+    "name": "invalidSuccessFactsRollBackSuccessorAndPlatformReservationTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceSuccessorMySqlTest",
+    "name": "concurrentSuccessorsAllowOnlyOneDirectChild",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceSuccessorMySqlTest",
+    "name": "failedCommandTransactionRollsBackInsertedSuccessor",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationLocationMySqlIntegrationTest",
+    "name": "installMoveAndRemoveLocationRollbackTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationOptimisticLockMySqlIntegrationTest",
+    "name": "mybatisOptimisticLockerRejectsStaleInstallationUpdate",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisImportMySqlIntegrationTest",
+    "name": "importEveryLegacyObjectAndRetryWithoutOverwritingSourcesOrCreatingDuplicateReferences",
+    "status": "SKIP",
+    "reason": "System property [entityCapabilityMigration] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "springDiscoversRealOwnerAndTransactionalProviders",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "completeFrozenReplayAndStaleSaveDoNotProduceAdditionalEvents",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "replayConflictAndRevokedPermissionPreservePersistedFacts",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "eventFailureRollsBackFreezeActivationExtensionsLedgerAuditAndOutbox",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "extensionAndBodyFailuresRollBackAllTables",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "mismatchedControlledOperationObjectOrNodeRejectsBeforeLedgerReservation",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "concurrentSavesWithOneVersionHaveOneWinner",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "concurrentSaveAndCompleteWithOneVersionHaveOneWinner",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "originalPlatformApiReadsTheSamePersistentNativeReceipt",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisMysqlIsolatedTest",
+    "name": "originalMysqlDDLRetainsJsonUniqueForeignKeyAndCheckConstraints",
+    "status": "SKIP",
+    "reason": "System property [npdms.ra.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyImportMySqlIntegrationTest",
+    "name": "importAndRetryEveryExistingSurveyWithExactContentReconciliation",
+    "status": "SKIP",
+    "reason": "System property [entityCapabilityMigration] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "realSpringDiscoversOwnerAndSavesFixedExtensionsAndChildrenWithoutTemplates",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "commonReadKeepsActualProjectMetadataBodyChildrenExtensionsAndBasis",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "replayIgnoresNestedObjectKeyOrderAndEntryPresentation",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "publicOutboxFailureRollsBackFixedExtensionsChildrenReceiptAuditAndBothEventFamilies",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "staleBasisAndForgedProjectRejectWithoutPersistentEffects",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "sixOperationsKeepOriginalStatesAndDeleteReportsActualNewVersion",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "saveConfirmAndDeleteReplayReturnOriginalReceiptsAfterStateChanged",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "taskAndStageFramesRejectAnotherOperationObjectOrNodeBeforeAnyLedgerSQL",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "changedIntentRevokedPermissionsAndScopeCannotReadStoredReceipt",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "concurrentSavesWithOneBasisHaveOneWinner",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "adapterCarriesExactReceiptAndOuterKeyAcrossAllSixCommandsInBothNodeKinds",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "nativeCompatibilityEntryUsesOneLedgerAndRejectsKeyedActionWithoutPinnedBasis",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "invalidExtensionsRollBackFixedColumnsLedgerAndAlreadyAppendedDomainOutbox",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "ordinaryRolePermissionMappingAndSecuredPublicOwnerEntry",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyMysqlIsolatedTest",
+    "name": "originalMigrationRejectsForgedStatusDuplicateSerialAndGeneratedIdentityIsExact",
+    "status": "SKIP",
+    "reason": "System property [npdms.survey.mysql.optIn] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncPagingMySqlTest",
+    "name": "emptySourceCompletesAndUnsupportedKeysOrByteOverflowFail",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncPagingMySqlTest",
+    "name": "actualDppmsTemplatePagesSyntheticTablesAndVerifiesSourceParents",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncPagingMySqlTest",
+    "name": "exactPageBoundaryDoesNotRequireAnExtraEmptyRead",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncPagingMySqlTest",
+    "name": "sparseIdsUseConfiguredPageSizeAndExcludeRowsAboveCapturedUpperBound",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncReaderIntegrationTest",
+    "name": "boundedSourceReadFailsInsteadOfReturningTruncatedSnapshot",
+    "status": "SKIP",
+    "reason": "Environment variable [SYNC_SOURCE_PASSWORD] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncReaderIntegrationTest",
+    "name": "regressingSourceClockCannotMoveCheckpointBackwards",
+    "status": "SKIP",
+    "reason": "Environment variable [SYNC_SOURCE_PASSWORD] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncReaderIntegrationTest",
+    "name": "customSqlReadsAndBindsWithoutChangingTheSource",
+    "status": "SKIP",
+    "reason": "Environment variable [SYNC_SOURCE_PASSWORD] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncReaderIntegrationTest",
+    "name": "completeEmptySelectionIsDifferentFromAReadFailure",
+    "status": "SKIP",
+    "reason": "Environment variable [SYNC_SOURCE_PASSWORD] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncReaderIntegrationTest",
+    "name": "incrementalWindowIsAppliedOutsideConfiguredSqlAndUsesStableKeyOrdering",
+    "status": "SKIP",
+    "reason": "Environment variable [SYNC_SOURCE_PASSWORD] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.MysqlSyncReaderIntegrationTest",
+    "name": "readsBothEhrTablesAsOneSnapshotAndConvertsFields",
+    "status": "SKIP",
+    "reason": "Environment variable [SYNC_SOURCE_PASSWORD] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.businessview.application.BusinessViewMySqlIntegrationTest",
+    "name": "auditInsertFailureRollsBackPublishedRowAndSuccessReservation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.businessview.application.BusinessViewMySqlIntegrationTest",
+    "name": "simultaneousSameExpectedVersionHasExactlyOneSuccessfulPublisher",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.businessview.application.BusinessViewMySqlIntegrationTest",
+    "name": "auditInsertFailureDuringCreationLeavesNoRegistrationOrIdempotentSuccess",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.businessview.application.BusinessViewMySqlIntegrationTest",
+    "name": "realLifecycleReplayIsolationAndRowCas",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.businessview.application.BusinessViewMySqlIntegrationTest",
+    "name": "internalBatchRequiresTransactionAndKeepsInputOrderAfterStableLocks",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "evidenceFailureRollsBackWorkOnTheSameMyBatisSpringTransaction",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "templateOwnerAdvertisesOnlySupportedGenericMaterialActions",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "withdrawalResponseFailureRollsBackMaterialAndOutbox",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "deniedOwnerNeverReadsMaterialsOrEvidence",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "queryOnlyPermissionNeverAdvertisesWrites",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "deniedWithdrawalDoesNotChangeMaterialOrAppendOutbox",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "ordinaryOwnerRetainsGenericSubmissionAndConfirmationActions",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "fileWithdrawalAndResponseEvidenceCommitTogether",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "deniedMethodPermissionNeverReadsMaterialsOrEvidence",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "proxiedControllerReadsRealNativeFileIdentityInOneTransaction",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerSpringTransactionMySqlTest",
+    "name": "mandatoryEvidenceStillRejectsCallsWithoutOuterTransaction",
+    "status": "SKIP",
+    "reason": "System property [delivery.controller.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.dynamicform.DynamicFormApplicationMySqlIntegrationTest",
+    "name": "concurrentPublishAndInstancePatchEachHaveExactlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.dynamicform.DynamicFormApplicationMySqlIntegrationTest",
+    "name": "completeLifecycleUsesRealApplicationTransactionsAndFrozenFileFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.dynamicform.DynamicFormApplicationMySqlIntegrationTest",
+    "name": "idempotencyConstraintsAndRejectedCommandsLeaveNoPartialSuccessFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.dynamicform.DynamicFormApplicationMySqlIntegrationTest",
+    "name": "tenantPermissionAndCreatorBoundariesFailClosed",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileContentValidationTest",
+    "name": "realClamAvRejectsEicar",
+    "status": "SKIP",
+    "reason": "Environment variable [NPDMS_CLAMAV_IT] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "logicallyDeletesOnlyUnreferencedDraft",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "rejectsDraftDeleteWhenAnyReferenceExists",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "rejectsDraftDeleteWhenAuthorizedKeyDoesNotOwnArtifact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "invalidatesThenRestoresWithoutChangingContentDigest",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "archivesOnceAcrossConcurrentDifferentIdempotencyKeys",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "detachesAndReplaysWithoutDuplicateEvent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "rejectsDetachWhenBusinessReferenceIsImmutable",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "rejectsAvailabilityChangeWhenAuthorizedKeyBelongsToAnotherArtifact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileLifecycleMySqlIntegrationTest",
+    "name": "rejectsDifferentPayloadForTheSameIdempotencyKey",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileMapperMySqlIntegrationTest",
+    "name": "locksTenantFactsAndAppliesOnlyMatchingCasUpdates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileMapperMySqlIntegrationTest",
+    "name": "selectsOnlyTheExactReferenceSlotAndUsesStableCursors",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileQueryAndAccessMySqlIntegrationTest",
+    "name": "rejectsAccessWhenFunctionalPermissionChanges",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileQueryAndAccessMySqlIntegrationTest",
+    "name": "queriesExactSlotAndStableVersionPagesWithoutInfraLocation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileQueryAndAccessMySqlIntegrationTest",
+    "name": "returnsNoCrossTenantMetadata",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileQueryAndAccessMySqlIntegrationTest",
+    "name": "rejectsUnavailableVersionWithoutSuccessfulGrant",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileQueryAndAccessMySqlIntegrationTest",
+    "name": "returnsEmptyQueriesWhenBusinessScopeIsDenied",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileQueryAndAccessMySqlIntegrationTest",
+    "name": "createsShortLivedGrantAndAuditsWithoutUrlOrPlainToken",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadCompensationMySqlIntegrationTest",
+    "name": "reusesTheRollbackReceiptThenDeletesOnlyAfterFinalTermination",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadCompensationMySqlIntegrationTest",
+    "name": "refusesToDeleteAReceiptReferencedByACommittedVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadMySqlIntegrationTest",
+    "name": "addsImmutableVersionsAndAllowsOnlyOneConcurrentReferenceCas",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadMySqlIntegrationTest",
+    "name": "persistsSkippedScanFactAndRejectsUnknownStatus",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadMySqlIntegrationTest",
+    "name": "commitsAndReplaysFirstUploadWithOneAuditAndTwoEvents",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadMySqlIntegrationTest",
+    "name": "rebindsDetachedStableSlotWithoutCreatingAnotherReference",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "revokeVersionConflictKeepsCurrentFactUnchanged",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "databaseRejectsEmptyEffectiveInterval",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "lifecycleHonorsEffectiveWindowAndRetainsRevokedHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "concurrentDuplicateGrantCreatesOnlyOneCurrentFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "idempotentReplayReturnsOriginalAndDifferentDigestConflicts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "pageFiltersCurrentAndHistoricalFactsWithStableOrder",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantMySqlTest",
+    "name": "expiredCurrentFactIsClosedBeforeNewGrantUsesSameKey",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredBusinessRuntimePersistenceTest",
+    "name": "browserUsesGenericApiAndMySql",
+    "status": "SKIP",
+    "reason": "System property [npdms.declared.browser] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+    "name": "browserRealLoginFormAndRefreshRecovery",
+    "status": "SKIP",
+    "reason": "System property [npdms.declared.browserLogin] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionCallbackMySqlTest",
+    "name": "concurrentCallbackIdProducesSingleProjectionAndOutbox",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionCallbackMySqlTest",
+    "name": "concurrentConsumptionProducesSingleFactAndCompletionEvents",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionCallbackMySqlTest",
+    "name": "persistsCallbackTaskBatchAndOutboxAtomically",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionCallbackMySqlTest",
+    "name": "callbackTerminalPublishesResultAndCompleted",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionCallbackMySqlTest",
+    "name": "sequenceGapMarksReconciliationWithoutCreatingFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionTaskMySqlTest",
+    "name": "sameIdempotencyKeyWithDifferentDigestConflicts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.CollectionTaskMySqlTest",
+    "name": "concurrentSameBatchReplaysSinglePersistedBatch",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.DeviceCredentialMySqlTest",
+    "name": "persistsCiphertextAndRequiresExactGrantForResolution",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.RedisCredentialTokenStoreTest",
+    "name": "storesProtectedSecretInsteadOfRecoverableEncoding",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.collection.RedisCredentialTokenStoreTest",
+    "name": "concurrentConsumptionHasExactlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFulfillmentMySqlTest",
+    "name": "migrationPreservesHistoryAndScopedWithdrawalDoesNotWithdrawSharedMaterial",
+    "status": "SKIP",
+    "reason": "System property [delivery.fulfillment.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.migration.PlatformMigrationEvidenceMySqlTest",
+    "name": "concurrentClaimsNeverReturnTheSameBatch",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.migration.PlatformMigrationEvidenceMySqlTest",
+    "name": "bulkSourcesAndMappingsPreserveReplayRollbackAndImmutableFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.migration.PlatformMigrationEvidenceMySqlTest",
+    "name": "completesLifecycleWithReplayAuditAndAppendOnlyIssueClosure",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.migration.PlatformMigrationEvidenceMySqlTest",
+    "name": "largeSourcePagesRemainAtomicAcrossInsertPackets",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.migration.PlatformMigrationEvidenceMySqlTest",
+    "name": "outerFailureRollsBackClaimClassificationAndPlatformFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.migration.PlatformMigrationEvidenceMySqlTest",
+    "name": "claimRequiresCallerTransactionAndLeavesStagedBatchUntouched",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessApplicationServiceMySqlTest",
+    "name": "rejectsDifferentPayloadUnderSameIdempotencyKey",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessApplicationServiceMySqlTest",
+    "name": "doesNotAutoOpenUndeclaredOrNonDefaultOperations",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessApplicationServiceMySqlTest",
+    "name": "replaysSameIntentReturningOriginalReceipt",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessApplicationServiceMySqlTest",
+    "name": "createsEntityThroughDispatcherWithoutSpecializedService",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessApplicationServiceMySqlTest",
+    "name": "rejectsStaleConcurrencyBasis",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessApplicationServiceMySqlTest",
+    "name": "savesWithCurrentConcurrencyBasisAndIncrementsVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessEntityAccessMySqlTest",
+    "name": "enumeratesRelationMembersByJoinField",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessEntityAccessMySqlTest",
+    "name": "readsCurrentEntitiesOfDifferentStructures",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessEntityAccessMySqlTest",
+    "name": "pagesWithFilterAndKeysetCursor",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessEntityAccessMySqlTest",
+    "name": "reportsUnavailableForMissingAndForeignTenant",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessEntityAccessMySqlTest",
+    "name": "readsSpecifiedRevisionWithRevisionIdentity",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.support.it.DefaultBusinessEntityAccessMySqlTest",
+    "name": "returnsEmptyForEmptyInFilter",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.api.systemqualification.ProjectSystemQualificationFactApiMySqlTest",
+    "name": "holdsRootProjectAndTreeLocksUntilOuterTransactionCompletes",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.api.systemqualification.ProjectSystemQualificationFactApiMySqlTest",
+    "name": "readsCurrentManagerProjectAndTreeVersionsWithoutFrozenExpectations",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectStageExecutionMapperAcceptanceTest",
+    "name": "currentActiveAndEndedStageContextsKeepExactTenantPlanContractAndRoundIdentity",
+    "status": "SKIP",
+    "reason": "System property [pms.stage.fixture.projectId] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "contractAndOwnershipFiltersMatch",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "agentServiceProviderKeywordMatchesCurrentPartyOnly",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "blankStatusKeepsActiveAndClosedRows",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "timeRangesUseLeftClosedRightOpen",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "closureStatusMatchesLifecycleWithoutStage",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "emptyPermissionSetReturnsEmptyPageWithoutQuery",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectManualMapperSelectPageMySqlTest",
+    "name": "stageStatusFiltersCurrentStageWithActiveLifecycle",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectParticipantFactMapperTest",
+    "name": "shouldHoldProjectLockUntilFactTransactionCompletes",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectParticipantFactMapperTest",
+    "name": "managersShareRolePermissionsWhilePrimaryLookupStaysStable",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectParticipantFactMapperTest",
+    "name": "shouldUseCurrentServerTimeForLockQuery",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectParticipantFactMapperTest",
+    "name": "shouldSelectOnlyPrimaryFactsEffectiveAtSnapshotAndFailClosedForEmptyRoles",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectParticipantFactMapperTest",
+    "name": "shouldLockCurrentPrimaryFactAndObserveLatestProjectVersionAndRole",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapperTest",
+    "name": "onlyStartedUnfinishedDescendantsBlockCompletionAndAutomaticAssociationsDoNotStartWork",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapperTest",
+    "name": "shouldAppendCompletionEvaluationOncePerIdempotencyKey",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapperTest",
+    "name": "shouldPersistLifecycleTimesProgressAndExposeCurrentGovernanceTruth",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapperTest",
+    "name": "shouldKeepOneCurrentAssignmentAndNeverReactivateHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapperTest",
+    "name": "shouldLockAndAssignTaskWithVersionAndStatusCas",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskDependencyMapperTest",
+    "name": "shouldFindTransitivePathAndExposeCycleGuardFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskDependencyMapperTest",
+    "name": "shouldRejectSelfUnknownTypeAndCrossProjectDependency",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskExecutionMapperAcceptanceTest",
+    "name": "readsTheRealBindingAndActiveRoundWithoutLegacyAssetIds",
+    "status": "SKIP",
+    "reason": "System property [pms.execution.fixture.projectId] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldApplyStageBeforeTheStableCursorLimit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldApplyClosureMoveAndKeepCasIndependent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldResolveAssigneeBodyAndAncestorPlaceholdersWithoutCrossTenantLeakage",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldQueryDepthThirtyTreeInFiveModesWithStableCursor",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldPersistNewTaskPathsAndApplyTaskCasUpdates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldBatchAllAncestorsBeyondPageLimitAndDeduplicateMultipleMatches",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldReturnEmptyForEmptyScopeAndRejectCrossTenantFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldLockProjectSourceTargetAndSubtreeAndDetectCycle",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldRollbackAdjacencyClosureAndWatermarkTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapperTest",
+    "name": "shouldDetectCycleFromLockedCurrentFactsAfterRepeatableReadSnapshotBecomesStale",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapperTest",
+    "name": "locksTheProjectTaskAndItsCurrentExecutionContract",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapperTest",
+    "name": "selectsOnlyTheExactCurrentPreparationContractAndExposesAmbiguity",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingTaskLookupMySqlTest",
+    "name": "sameOwnerTargetsStayTaskScopedAcrossContractRenewalAndTenantBoundaries",
+    "status": "SKIP",
+    "reason": "System property [pms.work-binding.task.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapperTest",
+    "name": "shouldReadPublishedDefinitionAndRequireFrozenTransition",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapperTest",
+    "name": "shouldRejectMissingCoreUnknownRoleAndUnknownCondition",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapperTest",
+    "name": "shouldPublishValidDraftOnceUnderConcurrency",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectAttributeCorrectionMySqlIntegrationTest",
+    "name": "trustedSourceCorrectionChangesOnlyCrmOwnerFieldsWithoutReinstantiation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectAttributeCorrectionMySqlIntegrationTest",
+    "name": "historyInsertFailureRollsBackAttributeVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectAttributeCorrectionMySqlIntegrationTest",
+    "name": "concurrentAdjustmentsWithSameVersionCommitExactlyOneHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectAttributeCorrectionMySqlIntegrationTest",
+    "name": "adjustmentAppendsHistoryWithoutChangingFrozenOrInstantiatedFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCustomerReferenceSqlMySqlTest",
+    "name": "ignoresAutomaticEmptyInstancesButProtectsActualContentAndOtherTenants",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectGovernancePersistenceMySqlIntegrationTest",
+    "name": "concurrentReopenConsumersHaveOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectGovernancePersistenceMySqlIntegrationTest",
+    "name": "concurrentRollbackCasHasOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectGovernancePersistenceMySqlIntegrationTest",
+    "name": "appendRejectsSnapshotFromAnotherTenantWithoutSideEffects",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectGovernancePersistenceMySqlIntegrationTest",
+    "name": "failedRollbackTransactionLeavesNoSuccessfulSideEffects",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectGovernancePersistenceMySqlIntegrationTest",
+    "name": "casIntervalsHistoryAndReopenConsumptionUseRealMySql",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationConcurrencyMySqlIntegrationTest",
+    "name": "sameKeyAndDigestCreatesOneProjectAndReplaysOneResult",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationConcurrencyMySqlIntegrationTest",
+    "name": "sameKeyAndDifferentDigestCreatesOneProjectAndReturnsOneConflict",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationMySqlIntegrationTest",
+    "name": "creationWithContractChainBindsRelationAndAppliesCrmAuthoritativeFields",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationMySqlIntegrationTest",
+    "name": "contractAlreadyBoundToAnotherProjectIsRejectedAndCreationRollsBack",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationMySqlIntegrationTest",
+    "name": "commerceRelationInsertFailureRollsBackWholeCreation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationMySqlIntegrationTest",
+    "name": "everyFailurePointRollsBackAllFacts(FailurePoint)",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationMySqlIntegrationTest",
+    "name": "successfulRootCreationPublishesInitialTreeProjection",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationMySqlIntegrationTest",
+    "name": "contractChainCreationReplayDoesNotDuplicateBind",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerAssignmentMySqlIntegrationTest",
+    "name": "outboxRetryIsDueOnlyAfterCasScheduledTimeAndThenCompletes",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerAssignmentMySqlIntegrationTest",
+    "name": "sameVersionHasSingleWinnerAndPrimaryIntervalsMeetAtOneBoundary",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerAssignmentMySqlIntegrationTest",
+    "name": "assignmentStatusRequiresBothProjectManagerAndPrimaryServiceManager",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "currentStageCompletionEntryAdvancesAtomicallyAndRetainsEvaluationEvidence",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "entryOwnerBlocksAdvanceUsingTargetStageIdentity",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "snapshotFailureRollsBackStageGateAndProjectUpdates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "advancesS0ToS4ByFrozenEdgeWithOneAtomicFactSet",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "terminalDoesNotCloseProjectOrPublishAnotherAdvance",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "historicalProjectWithoutFrozenGraphIsRejected",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "s0WithoutTasksCannotAdvanceUntilBothRealPrimaryResponsibilitiesExist",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "ownerFailureAndVersionDriftWriteNothing",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStageAdvanceMySqlIntegrationTest",
+    "name": "unknownConditionBlocksDefaultWithoutWritingFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "replayIsStableEvenAfterUserDisabledAndChangedPayloadConflicts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "disabledOrForeignUserCannotProduceMembership",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "addEditRemoveAndRejoinKeepOldSnapshotsAndReturnScopedHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "directoryFiltersDisabledDeletedAndForeignUsersWithoutCompanyScopeRows",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "rejectsDuplicateButAllowsSamePersonInDifferentRolesAndProtectsManagers",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "concurrentCommandsWithSameProjectVersionHaveOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.OrdinaryProjectMemberMySqlTest",
+    "name": "departmentReadFailureRollsBackClosedIntervalAndIdempotencyReservation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "authorizationLifecycleAndVersionFailuresLeaveFactsUnchanged",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "replayIsStableAndNoopDoesNotAdvanceVersionOrPublishChangedEvent",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "jointServiceQualificationAndVersionRejectionsPreserveBothRoles",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "invalidProjectManagerRollsBackAlreadyWrittenServiceManagerAndItsOutbox",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "outboxFailureRollsBackMembersProjectionAuditAndIdempotency",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "currentManagersKeepOneSnapshotWhileAnotherTransactionChangesPrimary",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "concurrentCommandsWithSameVersionHaveOnlyOneWinner",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "jointAssignmentCommitsBothRolesAndReplaysWithoutMoreHistoryOrEvents",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "jointRetainsOriginalAuthorizationUntilBothChangesComplete",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "rejectsMissingQualificationAndInvalidPrimaryWithoutWrites",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerMemberMySqlTest",
+    "name": "addsMultipleManagersAndChangesPrimaryWithoutRewritingMembershipHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectGateRuleTransactionMySqlTest",
+    "name": "gateStatusAndAuditRollbackTogetherAndRetryDoesNotDuplicateThePass",
+    "status": "SKIP",
+    "reason": "System property [pms.gate.plan.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationMySqlTest",
+    "name": "productionSqlMovesTheVersionAtomicallyAndRollbackPreservesTheBrowserFixture",
+    "status": "SKIP",
+    "reason": "System property [pms.plan.activation.fixture] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanGateMySqlTest",
+    "name": "referenceHistoryAndResultInvalidationCommitOrRollbackTogether",
+    "status": "SKIP",
+    "reason": "System property [pms.gate.plan.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanMilestoneMySqlTest",
+    "name": "definitionSwapPreservesAchievedResultsAndRollsBackWithPlanFailure",
+    "status": "SKIP",
+    "reason": "System property [pms.milestone.plan.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanProjectionMySqlTest",
+    "name": "activeCodeMigrationAndProjectionSqlPreserveHistoryWorkAndTenantBoundaries",
+    "status": "SKIP",
+    "reason": "System property [pms.plan.projection.mysql] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectprogress.ProjectProgressSnapshotMySqlTest",
+    "name": "latestFactQueryReturnsOneCurrentFactPerDirectChild",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeAuthorizationMySqlTest",
+    "name": "viewGrantDoesNotProvideManageAction",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeAuthorizationMySqlTest",
+    "name": "descendantGrantExpandsThenRevocationImmediatelyShrinksScope",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeAuthorizationMySqlTest",
+    "name": "managerRoleDoesNotAutomaticallyGrantDescendantsOrSiblingSummary",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeAuthorizationMySqlTest",
+    "name": "expiredGrantAndEmptyActorNeverExpandToTenantData",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeAuthorizationMySqlTest",
+    "name": "moveUsesLatestCompleteTreeAndDoesNotCopyAnchorGrant",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectsplit.ProjectSplitMySqlIntegrationTest",
+    "name": "outboxFailureRollsBackSplitTreeAndCompletionPoint",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMoveConcurrencyMySqlTest",
+    "name": "concurrentMovesFromSameVersionHaveOneSuccessFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMoveConcurrencyMySqlTest",
+    "name": "lockedScopeSerializesTreePublishAndExposesNewVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMoveConcurrencyMySqlTest",
+    "name": "parentProjectionUsesRequestedVersionAndEmptyOrForeignSelectionsStayEmpty",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMoveConcurrencyMySqlTest",
+    "name": "recordedProgressReadsLatestLeafAndSnapshotWithoutComputingOrLeakingHiddenDescendants",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "emptyBusinessGroupCannotCompleteEvenWhenAllQuantifierWouldBeVacuouslyTrue",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "ownerFailureRollsBackReservationAndDoesNotWriteRelationship",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "concurrentDifferentKeysForSameObjectCannotCreateTwoActiveRelationships",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "sameKeyDifferentPayloadConflictsAndPreservesFirstResult",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "linkAdditionAndRemovalBothInvalidateExpectedAggregateVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "crossProjectOwnerReferenceIsRejectedAndReservationRollsBack",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "crossTenantOwnerReferenceIsRejectedAndReservationRollsBack",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "ownerMandatoryPropagationRejectsOutsideTransaction",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "crossTenantTaskAndXmlScopeRejectWithoutLeakingLinks",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "ownerVersionChangedByAnotherConnectionBetweenInspectAndLockRejects",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "auditInsertFailureRollsBackLinkTaskCasSuccessAuditAndReservation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "unlinkKeepsOriginalIntervalAndRelinkAppendsNewHistory",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "concurrentSameIntentReplaysOnceAndOwnerRowLockContendsOnDistinctMysqlConnections",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessMySqlIntegrationTest",
+    "name": "sameKeyReplayReturnsOriginalResultWithoutDuplicateRowsOrAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandMySqlIntegrationTest",
+    "name": "createReplaysSameKeyConflictsDifferentPayloadAndWritesOneSuccessFact",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandMySqlIntegrationTest",
+    "name": "dependencyCasFailureRollsBackDependencyAndReservationAndWritesRejectionAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandMySqlIntegrationTest",
+    "name": "createContractFailureRollsBackTaskPathContractTreeVersionAndReservation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleMySqlIntegrationTest",
+    "name": "progressFactConflictRollsBackTaskAndProjectVersions",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleMySqlIntegrationTest",
+    "name": "completeAndReplayKeepOneEvaluationAuditAndOutboxInTheCommandTransaction",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleMySqlIntegrationTest",
+    "name": "unassignedTeamMemberStartsOnceAndReplayPreservesTheFrozenRevision",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleMySqlIntegrationTest",
+    "name": "concurrentChildCommittedAfterOldReadViewBlocksCompletionWithCurrentFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleMySqlIntegrationTest",
+    "name": "progressUpdateCasAndWeightedFactCommitTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskMaintenanceMySqlTest",
+    "name": "responsibleHistoryAndTaskVersionRollbackTogether",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskMaintenanceMySqlTest",
+    "name": "ownerGetsOwnTaskAndAncestorVisibilityButDoesNotBecomeExecutor",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskMaintenanceMySqlTest",
+    "name": "longRichTextAndPlainHistoryAreDistinctAndTenantGuarded",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskOutboxDeliveryMySqlTest",
+    "name": "retriesWithTheSameEventIdAndStopsClaimingAfterDelivery",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskTreePerformanceTest",
+    "name": "keepsPermissionFilteredQueriesBelowTwoSecondsAtTheLockedScale",
+    "status": "SKIP",
+    "reason": "System property [fproj007.performance] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskWorkbenchMySqlTest",
+    "name": "readsTheSameArbitraryDepthTreeThroughAllFiveSupportedProjections",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.inspectionrule.InspectionRulePublicationMySqlIntegrationTest",
+    "name": "disableCommitsRevisionIdempotencyAndSuccessAuditAndReplaysWithoutDuplicateWrites",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.inspectionrule.InspectionRulePublicationMySqlIntegrationTest",
+    "name": "successAuditFailureRollsBackRevisionIdempotencyAndSuccessAuditButKeepsRejectionAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.inspectionrule.InspectionRulePublicationMySqlIntegrationTest",
+    "name": "reviewAndPublishCommitWithPlatformIdempotencyAndRejectNewReviewAfterPublication",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.inspectionrule.InspectionRulePublicationMySqlIntegrationTest",
+    "name": "idempotencyCompletionFailureRollsBackRevisionAndReservationWithoutSuccessAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.inspectionrule.InspectionRulePublicationMySqlIntegrationTest",
+    "name": "sameKeyDifferentPayloadKeepsCompletedBusinessStateAndWritesOnlyRejectionAudit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionMySqlIntegrationTest",
+    "name": "concurrentDraftsVerifiedAgainstSameCurrentRevisionAllowAtMostOneCommit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionMySqlIntegrationTest",
+    "name": "concurrentSaveAndPublishUseOneAggregateSnapshotWithoutMixedChildren",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionMySqlIntegrationTest",
+    "name": "publishWriteFailureRollsBackOldDisableAndAllSnapshotChanges",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionMySqlIntegrationTest",
+    "name": "latestExactDigestReviewControlsPublicationAndReviewClosesAfterPublish",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionMySqlIntegrationTest",
+    "name": "replacesCurrentRevisionAndRefreshesAuthoritativeSnapshotsInOneCommit",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRulePublicationTransactionMySqlIntegrationTest",
+    "name": "concurrentRejectedReviewHoldingAggregateLockBlocksPublication",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "copyProductTypeFailureRollsBackNewRevisionAndCopiedChildren",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "disablePublishedIfMatchChangesLifecycleOnceAndRejectsStaleVersion",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "saveDraftProductTypeFailureRollsBackCompleteRevisionAndBothChildCollections",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "duplicateStableIdentityDoesNotCreateOrphanRevision",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "concurrentSameDetectionIdCreatesAtMostOneStableIdentityAndRevision",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "concurrentSameRuleNameCreatesAtMostOneStableIdentityAndRevision",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "validationPerformsZeroWrites",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "staleIfMatchLeavesPersistedChildrenUnchanged",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleRevisionMySqlIntegrationTest",
+    "name": "createRevisionFailureRollsBackStableIdentity",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "matchesCompanyAndRoleOnOneRowAcrossDepartmentsWithoutDuplicates",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "rejectsInvalidArgumentsWithoutExpandingQueryScope",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "tenantInterceptorAndTenantJoinsRejectForeignFacts",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "excludesDisabledDeletedFutureAndExpiredAuthorizationAndUsers",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "rejectsUnavailableCompanyRatherThanReportingNoQualifiedUsers",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "preservesExistingDepartmentCandidateQuery",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "selectedUsersAndEmptySetUseTheSameRuleAndRevalidateRevocation",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.api.permission.CompanyRoleUserQueryMySqlIntegrationTest",
+    "name": "paginatesByUniqueUserIdAndSupportsKeywordWithoutLosingTotal",
+    "status": "SKIP",
+    "reason": "System property [skipITs] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "userDeletionCommitsUserRoleAndPostSql",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "adminUserFailureAfterAssociationReturnRetainsWarmRedis",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "roleDeletionCommitsBothRelationsAndEvictsBothCaches",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "productionPermissionReaderDeniesDisabledAndRevokedRolesAfterRedisEviction",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "roleDeletionClearsCurrentTenantMenuButPreservesOtherTenantMenu",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "userCleanupEvictsOnlyTargetUser",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "repeatedMenuRevocationMustDenyImmediatelyInProductionPermissionReader",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "failedRoleCleanupRollsBackFirstSqlAndRetainsCache",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "menuEvictionWaitsForCommitAndRollbackKeepsSqlAndRedis",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "batchCleanupFailureRollsBackEarlierUserAndRelations",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "committedKeysExistInRealRedisAndUserRevokeRemovesOnlyTarget",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "menuCleanupEvictsOnlyTargetMenu",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  },
+  {
+    "class": "cn.iocoder.yudao.module.system.service.permission.PermissionAssociationRedisProtectionTest",
+    "name": "userAssociationFailureRollsBackUserDeletion",
+    "status": "SKIP",
+    "reason": "System property [permission.association.redis] does not exist"
+  }
+]

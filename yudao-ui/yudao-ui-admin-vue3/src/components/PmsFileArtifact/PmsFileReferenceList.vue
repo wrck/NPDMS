@@ -66,7 +66,7 @@ import PmsFileVersionDrawer from './PmsFileVersionDrawer.vue'
 const props = withDefaults(
   defineProps<
     FileBusinessKey & {
-      artifactId?: number
+      artifactId?: FileApi.FileId
       versionNo?: number
       editable?: boolean
       ownerExecutionContext?: JsonObject
@@ -85,6 +85,7 @@ const errorText = ref('')
 const downloading = ref(false)
 const historyRef = ref<InstanceType<typeof PmsFileVersionDrawer>>()
 const detachAttempt = ref<{ signature: string; idempotencyKey: string }>()
+let loadSequence = 0
 const businessKey = computed<FileBusinessKey>(() => ({
   ownerContext: props.ownerContext,
   objectType: props.objectType,
@@ -94,17 +95,26 @@ const businessKey = computed<FileBusinessKey>(() => ({
 }))
 
 const load = async () => {
+  const sequence = ++loadSequence
+  const selectedKey = { ...businessKey.value }
+  const selectedArtifactId = props.artifactId
   artifact.value = undefined
   errorText.value = ''
-  if (!props.artifactId) return
+  if (!selectedKey.objectId || !selectedKey.referenceKey) { loading.value = false; return }
   loading.value = true
   try {
-    artifact.value = await FileApi.getArtifact(props.artifactId, businessKey.value)
-    emit('loaded', artifact.value)
+    const discovered = selectedArtifactId ? undefined : await FileApi.getReference(selectedKey)
+    if (sequence !== loadSequence) return
+    const id = selectedArtifactId || discovered?.artifactId
+    if (!id) return
+    const current = await FileApi.getArtifact(id, selectedKey)
+    if (sequence !== loadSequence) return
+    artifact.value = current || undefined
+    if (current) emit('loaded', current)
   } catch {
-    errorText.value = '文件事实已变化，请刷新业务页面后重试。'
+    if (sequence === loadSequence) errorText.value = '文件事实已变化，请刷新业务页面后重试。'
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 const openAccess = async (operation: FileAccessOperation) => {
@@ -175,13 +185,14 @@ const statusLabel = (status: string) =>
   ({ ACTIVE: '已绑定', DETACHED: '已解绑', ARCHIVED: '已归档' })[status] || status
 
 watch(
-  () => [props.artifactId, props.versionNo, props.objectId, props.referenceKey],
+  () => [props.artifactId, props.versionNo, props.ownerContext, props.objectType, props.objectId, props.purposeCode, props.referenceKey],
   () => {
     detachAttempt.value = undefined
     load()
   },
   { immediate: true }
 )
+onBeforeUnmount(() => { ++loadSequence })
 defineExpose({ refresh: load, detach })
 </script>
 

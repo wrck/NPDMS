@@ -1,0 +1,233 @@
+{
+  "generatedAtUtc": "2026-10-06T09:16:58.997656+00:00",
+  "sourceSnapshot": "wip-source-files.json",
+  "command": "source /workspace/toolchains/activate.sh; mvn -s /workspace/toolchains/maven-settings.xml -pl pms-module-platform -am test -Dtest=DeliveryMaterialWithdrawalPersistenceTest,DeliveryFilePolicyProviderAuthorizationTest,FileContentValidationTest,FileUploadInitializationServiceTest,DeclaredBusinessDeliveryBridgeSpringContextTest -Dsurefire.failIfNoSpecifiedTests=false",
+  "exitCode": 1,
+  "totals": {
+    "tests": 32,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 1,
+    "passed": 30
+  },
+  "suites": [
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.file.FileContentValidationTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "cases": [
+        {
+          "name": "clamAvAdapterUsesVersionAndInstreamProtocol",
+          "status": "PASS"
+        },
+        {
+          "name": "realClamAvRejectsEicar",
+          "status": "SKIP"
+        },
+        {
+          "name": "readsExactlyFiftyMegabytesWithinBound",
+          "status": "PASS"
+        },
+        {
+          "name": "missingMimeStillEnforcesPurposeAndExplicitMismatch",
+          "status": "PASS"
+        },
+        {
+          "name": "validatesSizeDigestMediaTypeAndPassedScan",
+          "status": "PASS"
+        },
+        {
+          "name": "unknownMimeCannotTrustExtensionOrAllowExecutableAndBinaryContent",
+          "status": "PASS"
+        },
+        {
+          "name": "skipsSecurityProviderWhenScanningIsDisabled",
+          "status": "PASS"
+        },
+        {
+          "name": "rejectsDigestMediaTypeAndScanFailures",
+          "status": "PASS"
+        },
+        {
+          "name": "clamAvAdapterRejectsInvalidVersionResponse",
+          "status": "PASS"
+        },
+        {
+          "name": "missingBrowserMimeAcceptsOnlyAuthorizedDetectedPlainText",
+          "status": "PASS"
+        },
+        {
+          "name": "clamAvAdapterRejectsNonCanonicalOkResponse",
+          "status": "PASS"
+        },
+        {
+          "name": "rejectsContentLargerThanFiftyMegabytesBeforeScan",
+          "status": "PASS"
+        }
+      ],
+      "xmlSha256": "70494a7f1d793ac95f3ec38ca75a7f8ee0af2b6700bc6595a41bbd4c288be8eb"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadInitializationServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "replaysCompletedInitializationWithoutReauthorizingCurrentScope",
+          "status": "PASS"
+        },
+        {
+          "name": "sendsSelectedExecutionToOwnerAndNeverStoresItInSessionOrAudit",
+          "status": "PASS"
+        },
+        {
+          "name": "rejectsDeclaredSizeAboveBusinessLimitWithoutSessionSideEffect",
+          "status": "PASS"
+        },
+        {
+          "name": "initializesTrustedSessionWithoutCreatingFileVersion",
+          "status": "PASS"
+        },
+        {
+          "name": "rejectsIdempotencyConflictWithoutSessionSideEffect",
+          "status": "PASS"
+        },
+        {
+          "name": "rejectsReplacementForImmutableReference",
+          "status": "PASS"
+        }
+      ],
+      "xmlSha256": "1680d73d919e9eaa5d5b84f454f3df3b4db054777c54b3e02093d0dc74baf8f2"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeclaredBusinessDeliveryBridgeSpringContextTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "declaredBridgeDoesNotMakeTheNativeFilePolicyGraphCircular",
+          "status": "PASS"
+        }
+      ],
+      "xmlSha256": "477a8f907e8ea0c4b05e77ddf8f0310168c45f6060bcc54422e25fe1e65d78c2"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProviderAuthorizationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "catalogPurposeOwnerDenialAndUnknownPurposeFailBeforeCatalogAndReadOnlyCannotWrite",
+          "status": "PASS"
+        },
+        {
+          "name": "existingExtensionCatalogProducesStrictUploadMimeTypes",
+          "status": "PASS"
+        },
+        {
+          "name": "catalogPurposeIntersectsOwnerLimitsAfterAuthorizationAndRevalidation",
+          "status": "PASS"
+        },
+        {
+          "name": "catalogCodeCollisionCannotBypassOwnerScope",
+          "status": "PASS"
+        },
+        {
+          "name": "nativeCatalogCollisionPreservesOriginalPolicyWithoutCatalogLookup",
+          "status": "PASS"
+        }
+      ],
+      "xmlSha256": "81397bcd2637e793c9fdbc097333021a3092c505c653e3ec34a1101bbc5b948e"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest",
+      "tests": 8,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "auditAndOutboxFailuresRollBackMaterialVersionAndLedgerAndAllowRetry",
+          "status": "PASS"
+        },
+        {
+          "name": "concurrentDifferentKeysHaveExactlyOneVersionWinner",
+          "status": "PASS"
+        },
+        {
+          "name": "missingPrincipalWrongTenantAndRolelessAreDeniedWithoutLedgerReservation",
+          "status": "PASS"
+        },
+        {
+          "name": "staleVersionTemplateArchiveAndExistingFulfillmentCannotWithdraw",
+          "status": "PASS"
+        },
+        {
+          "name": "withdrawalInsideOuterTransactionRollsBackWithItsCaller",
+          "status": "PASS"
+        },
+        {
+          "name": "currentOwnerAndOriginalPermissionAreRequiredBeforeCompletedReplay",
+          "status": "PASS"
+        },
+        {
+          "name": "casReplayPreservesAnchorsAndRecordsExactlyOneAuditAndDeliveryEvent",
+          "status": "PASS"
+        },
+        {
+          "name": "staleActiveMaterialCannotBeAssociatedAfterWithdrawal",
+          "status": "FAIL"
+        }
+      ],
+      "xmlSha256": "4b86a4366069351ee952cd0b6852ab5cb6bf9c083a43439e2f1635c8f10a7c5b"
+    }
+  ],
+  "failure": "DeliveryFulfillmentService.associate trusts an old ACTIVE material object after a completed withdrawal; missing material row lock/current status revalidation. Production service remains unchanged in this WIP.",
+  "skipped": "Real ClamAV integration not enabled; no pass implied",
+  "fixtures": "H2 MySQL mode; real Spring transactions/MyBatis XML/ledger/audit/outbox; explicit permission port and native non-project Owner are controlled fixtures; H2 XML converts bit literals only. Actual V398 applied to an existing fixture material, not a production DB.",
+  "notRun": [
+    "MySQL CAS/migration/concurrency suite",
+    "current full 42-module application package",
+    "current full Tomcat/production security chain",
+    "current Chromium declared form/file fixture",
+    "unknown MIME initialization HTTP and storage end-to-end",
+    "all native Owners/purpose integrations",
+    "full repository regression"
+  ],
+  "previousSnapshotResults": {
+    "backendSelected": "211 = 209 passed + 2 skipped; previous 51-file snapshot only",
+    "tomcat": "21 passed; previous JAR only",
+    "frontend": "27 passed; unchanged UI bytes, pre-current backend",
+    "chromium": "declared form/file slot passed; pre-current backend"
+  },
+  "logs": [
+    {
+      "path": ".run/cloud-20261006/public-three-mime-spi-red.log",
+      "sha256": "96a4c28c941dc0c5f19465d3476db24b19dfb68df6c1d82b344e6da5c13a5cfa"
+    },
+    {
+      "path": ".run/cloud-20261006/public-three-mime-spi-green-1.log",
+      "sha256": "d41d8dcced659a679dfbf694b386fd0fd698c1517cead194849442a24207512f"
+    },
+    {
+      "path": ".run/cloud-20261006/public-three-cas-association-red.log",
+      "sha256": "d9a289383fc4d293a6fc2a6abb5514e2065a3d04b8cb1ad536892528f9286b70"
+    },
+    {
+      "path": ".run/cloud-20261006/public-three-wip-current-tests-1.log",
+      "sha256": "bdf969969c2be68c6de6e5c665d26a74223a720b475b4c492472ee4f31194764"
+    },
+    {
+      "path": ".run/cloud-20261006/public-three-wip-current-tests-2.log",
+      "sha256": "bf26a76799192169567d2d5686d72dee476b12b6bd21afb387271d0749405b3a"
+    }
+  ]
+}

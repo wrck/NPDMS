@@ -195,6 +195,14 @@ public class DefaultBusinessApplicationService
         if (ref == null || !caller.tenantId().equals(ref.tenantId())
                 || !model.ownerModule().equals(ref.ownerModule()) || !model.entityType().equals(ref.entityType()))
             throw new BusinessContractException("ENTITY_IDENTITY_MISMATCH", "Receipt object identity does not match the operation");
+        requireReceiptOwnerAccess(caller,request,receipt);
+    }
+
+    /** Native Owners resolve current ownership with their existing identity/lifecycle policy. */
+    protected void requireReceiptOwnerAccess(ResolvedCaller caller, BusinessOperationRequest request,
+                                            BusinessOperationReceipt receipt) {
+        var model = descriptor(request);
+        var ref = receipt.entityRef();
         var row = cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.lock(
                 declaration(request), new cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredCurrentRowQuery(caller.tenantId(), ref.entityId()));
         if (row == null || !caller.tenantId().equals(row.getTenantId()))

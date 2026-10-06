@@ -1,7 +1,7 @@
 // 统一交付件公共客户端：类型目录、适用配置、要求实例、材料记录、提交台账。
 // 文件上传复用统一文件两段式客户端（api/pms/platform/file），本文件只做交付语义调用。
 import request from '@/config/axios'
-import type { FileBusinessKey } from '@/api/pms/platform/file'
+import type { FileBusinessKey, FileId } from '@/api/pms/platform/file'
 
 const baseUrl = '/api/v1/pms/delivery'
 
@@ -51,10 +51,10 @@ export interface DeliveryMaterialVO {
   typeCode: string
   fileName?: string
   title?: string
-  fileArtifactId?: number
+  fileArtifactId?: FileId
   fileVersionNo?: number
   fileSha256?: string
-  fileReferenceId?: number
+  fileReferenceId?: FileId
   sourceKind: string
   status: 'ACTIVE' | 'WITHDRAWN'
   createTime: string
@@ -123,7 +123,7 @@ export const listMaterials = (
   })
 
 export const registerMaterial = (
-  data: EntityOwnerParam & { typeCode: string; fileReferenceId: number; title?: string; sourceKind?: string }
+  data: EntityOwnerParam & { typeCode: string; fileReferenceId: FileId; title?: string; sourceKind?: string }
 ) => request.post<DeliveryMaterialVO>({ url: `${baseUrl}/materials`, data, silentError: true })
 
 export const withdrawMaterial = (materialId: number) =>

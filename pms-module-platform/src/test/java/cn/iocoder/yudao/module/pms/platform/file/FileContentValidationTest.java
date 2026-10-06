@@ -195,6 +195,47 @@ class FileContentValidationTest {
         assertEquals("MALWARE_FOUND", result.reasonCode());
     }
 
+    @Test void missingBrowserMimeAcceptsOnlyAuthorizedDetectedPlainText() {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        var textPolicy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE",
+                Set.of("CONFIG"), Set.of("text/plain"), 1024L, "INTERNAL");
+        byte[] text = "hostname switch-1\ninterface ethernet1\n description 中文\n".getBytes(StandardCharsets.UTF_8);
+        for (String name : List.of("switch.log", "switch.cfg", "switch.conf", "switch.txt")) {
+            for (String mime : new String[] {null, "", "application/octet-stream", "text/plain"}) {
+                var result = service.validate(command(text, name, mime, null, textPolicy));
+                assertEquals("text/plain", result.mediaType());
+                assertArrayEquals(text, result.content());
+            }
+        }
+    }
+
+    @Test void unknownMimeCannotTrustExtensionOrAllowExecutableAndBinaryContent() {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE",
+                Set.of("CONFIG"), Set.of("text/plain", "application/octet-stream"), 1024L, "INTERNAL");
+        byte[] executable = new byte[256]; executable[0] = 'M'; executable[1] = 'Z';
+        for (String name : List.of("fake.cfg", "fake.log", "fake.conf")) {
+            assertThrows(RuntimeException.class, () -> service.validate(command(executable, name,
+                    "application/octet-stream", null, policy)));
+            assertThrows(RuntimeException.class, () -> service.validate(command(PDF, name, "", null, policy)));
+        }
+        assertThrows(RuntimeException.class, () -> service.validate(command(new byte[] {0,1,2,3},
+                "raw.cfg", "application/octet-stream", null, policy)));
+        assertThrows(RuntimeException.class, () -> service.validate(command("echo run".getBytes(StandardCharsets.UTF_8),
+                "run.exe", "application/octet-stream", null, policy)));
+    }
+
+    @Test void missingMimeStillEnforcesPurposeAndExplicitMismatch() {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        byte[] text = "old text evidence\n".getBytes(StandardCharsets.UTF_8);
+        assertThrows(RuntimeException.class, () -> service.validate(command(text, "old.log", "", null, policy(1024L))));
+        var textPolicy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE",
+                Set.of("CONFIG"), Set.of("text/plain"), 1024L, "INTERNAL");
+        assertThrows(RuntimeException.class, () -> service.validate(command(text, "old.cfg", "application/pdf", null, textPolicy)));
+        assertThrows(RuntimeException.class, () -> service.validate(command(PDF, "evidence.png", "application/pdf", null, policy(1024L))));
+        assertEquals("text/plain", service.validate(command(text, "old.txt", "text/plain", null, textPolicy)).mediaType());
+    }
+
     private static void respondToVersion(Socket socket) throws IOException {
         try (socket) {
             byte[] command = socket.getInputStream().readNBytes(9);

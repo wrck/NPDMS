@@ -51,7 +51,7 @@ const narrow = useMediaQuery('(max-width: 767px)')
 const drawerSize = computed(() => (narrow.value ? '100%' : '720px'))
 const visible = ref(false)
 const loading = ref(false)
-const artifactId = ref<number>()
+const artifactId = ref<FileApi.FileId>()
 const key = ref<FileBusinessKey>()
 const items = ref<FileVersionVO[]>([])
 const cursor = ref<string>()
@@ -73,7 +73,7 @@ const load = async (append = false) => {
     loading.value = false
   }
 }
-const open = (id: number, businessKey: FileBusinessKey) => {
+const open = (id: FileApi.FileId, businessKey: FileBusinessKey) => {
   artifactId.value = id
   key.value = businessKey
   items.value = []

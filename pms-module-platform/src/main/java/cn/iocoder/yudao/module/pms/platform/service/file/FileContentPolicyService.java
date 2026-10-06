@@ -63,8 +63,7 @@ public class FileContentPolicyService {
     public ValidatedFileContent validateBounded(BoundedFileContentValidationCommand command) {
         if (command == null || command.content() == null || command.content().length == 0
                 || command.expectedFileName() == null || command.expectedFileName().isBlank()
-                || command.declaredSizeBytes() <= 0 || command.declaredMediaType() == null
-                || command.declaredMediaType().isBlank() || command.policy() == null
+                || command.declaredSizeBytes() <= 0 || command.policy() == null
                 || command.policy().maxSizeBytes() == null) {
             throw exception(FILE_COMMAND_INVALID);
         }
@@ -78,15 +77,18 @@ public class FileContentPolicyService {
             throw exception(FILE_COMMAND_INVALID);
         }
 
-        String declaredMediaType = normalizeMediaType(command.declaredMediaType());
+        String declaredMediaType = normalizeDeclaration(command.declaredMediaType());
         String detectedMediaType = normalizeMediaType(TIKA.detect(content));
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
         Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
                 .collect(Collectors.toUnmodifiableSet());
-        if (!allowedMediaTypes.contains(declaredMediaType)
+        boolean unknown = isUnknownDeclaration(declaredMediaType);
+        boolean safeText = supportsUnknownDeclaration(command.expectedFileName(), allowedMediaTypes)
+                && "text/plain".equals(detectedMediaType) && safeTextContent(content);
+        if (unknown ? !safeText : (!allowedMediaTypes.contains(declaredMediaType)
                 || !matchesDetectedMediaType(declaredMediaType, detectedMediaType)
-                || !declaredMediaType.equals(nameMediaType)) {
+                || !(declaredMediaType.equals(nameMediaType) || "text/plain".equals(declaredMediaType) && safeText))) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
         }
 
@@ -111,6 +113,33 @@ public class FileContentPolicyService {
     private static boolean matchesDetectedMediaType(String declaredMediaType, String detectedMediaType) {
         return declaredMediaType.equals(detectedMediaType)
                 || ("text/csv".equals(declaredMediaType) && "text/plain".equals(detectedMediaType));
+    }
+
+    /** Browser omissions are hints pending byte detection, never permission for arbitrary binary data. */
+    static String normalizeDeclaration(String value) {
+        return value == null || value.isBlank() ? "application/octet-stream" : normalizeMediaType(value);
+    }
+
+    static boolean isUnknownDeclaration(String value) {
+        return "application/octet-stream".equals(value);
+    }
+
+    static boolean supportsUnknownDeclaration(String fileName, Set<String> allowedMediaTypes) {
+        int dot = fileName == null ? -1 : fileName.lastIndexOf('.');
+        return dot >= 0 && Set.of("log", "cfg", "conf", "txt").contains(fileName.substring(dot + 1).toLowerCase(Locale.ROOT))
+                && allowedMediaTypes.contains("text/plain");
+    }
+
+    private static boolean safeTextContent(byte[] content) {
+        try {
+            var text = java.nio.charset.StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                    .decode(java.nio.ByteBuffer.wrap(content));
+            return text.chars().noneMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t');
+        } catch (java.nio.charset.CharacterCodingException invalidText) {
+            return false;
+        }
     }
 
     private FileSecurityScanResult scan(byte[] content, String fileName, String declaredMediaType,
@@ -141,8 +170,7 @@ public class FileContentPolicyService {
     private static void validateCommand(FileContentValidationCommand command) {
         if (command == null || command.file() == null || command.file().isEmpty()
                 || command.expectedFileName() == null || command.expectedFileName().isBlank()
-                || command.declaredSizeBytes() <= 0 || command.declaredMediaType() == null
-                || command.declaredMediaType().isBlank() || command.policy() == null
+                || command.declaredSizeBytes() <= 0 || command.policy() == null
                 || command.policy().maxSizeBytes() == null) {
             throw exception(FILE_COMMAND_INVALID);
         }

@@ -1,9 +1,9 @@
-import type { FileLifecycleResultVO } from '@/api/pms/platform/file'
+import type { FileId, FileLifecycleResultVO } from '@/api/pms/platform/file'
 
 export interface FileSelection {
-  artifactId: number
+  artifactId: FileId
   versionNo: number
-  referenceId: number
+  referenceId: FileId
   referenceKey: string
 }
 

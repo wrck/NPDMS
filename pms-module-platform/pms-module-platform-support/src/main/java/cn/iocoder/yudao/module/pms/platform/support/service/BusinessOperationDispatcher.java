@@ -59,7 +59,11 @@ public class BusinessOperationDispatcher {
     }
 
     public BusinessOperationReceipt recoverReceipt(String owner,String type,String operation,int version,String key) {
-        return capabilityService(owner,type).recoverReceipt(owner,type,operation,version,key);
+        persistence.require(owner,type);
+        var service=specialized.getOrDefault(owner+"/"+type,defaultService);
+        if(service instanceof DefaultBusinessApplicationService recovering)
+            return recovering.recoverReceipt(owner,type,operation,version,key);
+        throw new BusinessContractException("RECEIPT_RECOVERY_UNAVAILABLE","Owner has no public receipt recovery contract");
     }
 
     @SuppressWarnings("unchecked")
