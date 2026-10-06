@@ -1,0 +1,432 @@
+{
+  "checkpoint": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "overallAcceptance": "INCOMPLETE; six native attachment chains have scoped integration PASS, not whole-business E2E. See acceptance-matrix.md/handoff.md.",
+  "firstPackage": {
+    "sha256": "941b627189a07d7b52d8a9837da78ca7c7e1530f97d19cb942af95a80e3d3e7b",
+    "fileCount": 41,
+    "allFileHashesUnchanged": true,
+    "overlaps": [],
+    "notReuploaded": true
+  },
+  "backend": {
+    "classes": 9,
+    "totals": {
+      "tests": 109,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "suites": {
+      "cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeAttachmentDeliveryMySqlTest": {
+        "tests": 45,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/mysql-full-45.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.configuration.ConfigurationLocalLifecycleTest": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.jointtest.JointTestLocalLifecycleTest": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeReservedIntegrationTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeSerialServiceTest": {
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTest": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTransactionTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceRequestVersionContractTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/native-regression-final.log"
+      },
+      "cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadServiceTest": {
+        "tests": 23,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-stage2-20261006/asset-download-final.log"
+      }
+    },
+    "deduplication": "Latest success per class within stage2; browser-only rechecks not added; do not add to first245 without cross-package deduplication."
+  },
+  "frontend": {
+    "files": 5,
+    "tests": 31,
+    "passed": 31,
+    "log": ".run/native-delivery-stage2-20261006/native-ui-final.log",
+    "testFiles": [
+      "src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts",
+      "src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts",
+      "src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts",
+      "src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts",
+      "src/api/pms/engineering/requestTime.spec.ts"
+    ]
+  },
+  "browser": {
+    "passed": 6,
+    "pageErrors": 0,
+    "evidence": "native-six-browser.json",
+    "latestSourceVerifiedBy": "mysql-full-45.xml",
+    "actual": [
+      "Chromium",
+      "six actual native index.vue pages",
+      "PmsFileUploader/PmsFileReferenceList/DeliveryPanel",
+      "secured actual controllers",
+      "actual native services/platform file+material services",
+      "MySQL tenant+CAS transactions"
+    ],
+    "controlledPorts": [
+      "authenticated actor17/tenant7",
+      "permissions",
+      "project scope/lifecycle",
+      "device selection/archive fixture",
+      "technical byte storage"
+    ],
+    "notRun": [
+      "full application login",
+      "actual role/project tree",
+      "actual asset log writer/HTTP content download",
+      "external storage",
+      "Flyway/real migrations",
+      "CUT/new arrivalAcceptance production assembly"
+    ]
+  },
+  "sourceInventory": {
+    "directFilePolicyImplementations": 17,
+    "nativeRegistrationCallsites": 21,
+    "rawUploadFileCallsites": 7,
+    "rawUploadFileComponents": 5,
+    "oldSurveyCommandSymbols": 0
+  },
+  "protectedTargets": [
+    {
+      "target": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "status": "UNCHANGED",
+      "sha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49"
+    },
+    {
+      "target": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/index.vue",
+      "status": "UNCHANGED",
+      "sha256": "4eb1ea6fe47af3c835902648dc086158eecfe51c13bb2d34145d93d53c79ad7c"
+    },
+    {
+      "target": "api/delivery/DeliveryEntityAccessPolicy.java",
+      "status": "ABSENT_NO_CREATION"
+    },
+    {
+      "target": "service/sitesurvey/entity/SiteSurveyDeliveryAccessPolicy.java",
+      "status": "ABSENT_NO_CREATION"
+    }
+  ],
+  "prohibitedActionsPerformed": [],
+  "commands": {
+    "mysql": "source /workspace/toolchains/activate.sh\nNATIVE_DELIVERY_MAVEN_SETTINGS=/workspace/toolchains/maven-settings.xml bash scripts/tests/verify_native_delivery_stage2_mysql.sh",
+    "backend": "mvn -B -s /workspace/toolchains/maven-settings.xml -pl pms-module-engineering,pms-module-asset -am test -Dtest=ConfigurationLocalLifecycleTest,JointTestLocalLifecycleTest,MaterialExchangeReservedIntegrationTest,MaterialExchangeSerialServiceTest,OutsourceSurveyExecutionTest,OutsourceSurveyExecutionTransactionTest,OutsourceRequestVersionContractTest,DeviceConfigurationLogDownloadServiceTest -Dsurefire.failIfNoSpecifiedTests=false",
+    "assetLatest": "mvn -B -s /workspace/toolchains/maven-settings.xml -pl pms-module-asset -am test -Dtest=DeviceConfigurationLogDownloadServiceTest -Dsurefire.failIfNoSpecifiedTests=false",
+    "frontend": "node node_modules/vitest/vitest.mjs run --config vitest.pms-file.config.ts src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts src/api/pms/engineering/requestTime.spec.ts"
+  },
+  "logs": [
+    {
+      "path": ".run/native-delivery-stage2-20261006/mysql-full-45.log",
+      "sha256": "0ea094bc26edbd9f7d414e72cd956c40677f1219ddd1d8603d7a87eaafb84265",
+      "bytes": 169986,
+      "kind": "latest successful scoped evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/mysql-full-45.xml",
+      "sha256": "2054a76d4c9f20faf00122bf1eecdba1043dae38e4a1b102c45ed648715b2da2",
+      "bytes": 215022,
+      "kind": "latest successful scoped evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/isolated-runner-final.log",
+      "sha256": "cdcb0f295fcc12f1e9ee1b77ebe4dab0abb6ae8872cd78d90fa460425f2092c8",
+      "bytes": 1734,
+      "kind": "latest successful scoped evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/native-regression-final.log",
+      "sha256": "6de9a0460dd4a82edb93553f8a84b5291dafab568b219feb82b7dc222cf13282",
+      "bytes": 58666,
+      "kind": "latest successful scoped evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/asset-download-final.log",
+      "sha256": "313a9daafcafdd5f145b9e7682f0209336ea3d9a09787b324322cec25bab3162",
+      "bytes": 44607,
+      "kind": "latest successful scoped evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/native-ui-final.log",
+      "sha256": "7ec269f192cb1615be3b07e14532b96a38d7ae88f6e74df14fe987ac80ada59c",
+      "bytes": 425,
+      "kind": "latest successful scoped evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/mysql-attempt-fixture-count-failure.log",
+      "sha256": "5e392d78b70f934016649d10c43409bc1fa4bb719ada565cb0759a9d2b2a02bd",
+      "bytes": 82751,
+      "kind": "historical failure evidence"
+    },
+    {
+      "path": ".run/native-delivery-stage2-20261006/native-ui-existing.log",
+      "sha256": "aea67ffe0b39fcdf4f74afa07c97e928e55d2204997cf2077bb5b219406384d4",
+      "bytes": 7425,
+      "kind": "historical failure evidence"
+    }
+  ],
+  "sourceFileHashSnapshot": [
+    {
+      "path": "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/device/dto/NativeConfigurationFileLocator.java",
+      "sha256": "b5035628a75f84c6af0a4a001e738cb76d6ff0960bf2c1d5c8c639c66125ba6c"
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadService.java",
+      "sha256": "a3b820c96d2db51fcbcfc0aac855b7288afe8c81ec97d2c8cc7167015353604d"
+    },
+    {
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadServiceTest.java",
+      "sha256": "7924e2e79c4fd2080474c07d7bf40a01a1094a14043efc5505961259920aa1a4"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/attachment/query/NativeAttachmentOwnerLockQuery.java",
+      "sha256": "bfb9c9410d879d96baac46c142ac1002a52ffe1d2cebddaa770d71c3bc6f3df1"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/configuration/ConfigurationMapper.java",
+      "sha256": "8d451857e62abcab07da9e84ec4d4e57b68a04dce72b22b3921856cc7f5df9ad"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/externalprocurement/ExternalProcurementMapper.java",
+      "sha256": "cf83172e27c1656ed127e359ba36f29ab1f6dd4d6fa568d5ebf826101740c634"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/jointtest/JointTestMapper.java",
+      "sha256": "d643d8d0c3b4f1d0ec7d8f61018d0bcbc66353186b633bb98d3edfe1d23ccf4e"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/materialexchange/MaterialExchangeMapper.java",
+      "sha256": "f80080c7a703160d03401ebae2fa5c3b34298b2abf5d0a4c50a40d5cd95d2bfc"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/materialrequisition/MaterialRequisitionMapper.java",
+      "sha256": "462b1998e0847b8aca1c8dffc7a627e77604bf27687451a48900d222ea7e3152"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/outsource/OutsourceRequestMapper.java",
+      "sha256": "1995b5d02473082ec330f318029af5f63fb67e7fd82e93d0d2c39c7ef4472ce1"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/IMPNativeAttachmentDeliveryAccess.java",
+      "sha256": "9189ccb12662ee270217d9e958e4b62388b157e9a6cf832126b3a80a0382c8f8"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentAccess.java",
+      "sha256": "8d809a1ea62e7fbb8775dd14ae921f2dd293c49f7a43bef74979d06a6378c093"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentFilePolicy.java",
+      "sha256": "1fc3c95e9c75c4b1d3b0f2048b36c20d005c8497583264feb701de24db7f35de"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentKind.java",
+      "sha256": "b44104e40e562b721a148d07106338f2b0ea9982a1541be0db09a690274e83b6"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentOwners.java",
+      "sha256": "0358eda91ccc4d6acd05ba227d19552794f2220661e301eb78af8a4a7221407e"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentPolicyConfiguration.java",
+      "sha256": "8f841dc7b2269a4b8af95f3a223cefc5e8a39b423051922588873827e5b591ae"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentRegistration.java",
+      "sha256": "1886b0218236122bee035df40c898be09e6cac76d18090f37b12771276567b3c"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentSources.java",
+      "sha256": "d25e4814beba708ed3467398c1c6851e0d6e7291b9047094883fef3aab7c6991"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/RESNativeAttachmentDeliveryAccess.java",
+      "sha256": "a8b97fdbf90ce024eb06d81435da1f1718f3bce58d0fc0ed2961ec8abdaaa273"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/configuration/ConfigurationServiceImpl.java",
+      "sha256": "352728a1df91e1782d83eef747be16f33d133e46892c5e6d2642698251e9fe00"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/externalprocurement/ExternalProcurementServiceImpl.java",
+      "sha256": "a227fc05af7b71a49809ed5f003c20eb610f4c6d55e03cab72c1334194782450"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/jointtest/JointTestServiceImpl.java",
+      "sha256": "d6eb5ed372e0c1155b47d08c7df9b7bef821212664e6795b6f7ca41a3a591fab"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/materialexchange/MaterialExchangeServiceImpl.java",
+      "sha256": "7e9b6b605d08a1f82f6266846d4a5992a861acfd53e2e07dd994720dd246a735"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/materialrequisition/MaterialRequisitionServiceImpl.java",
+      "sha256": "1d532f5ba7a59b760c1fc412bb33372647f6a84c287bca2436af144167f46c4c"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceRequestServiceImpl.java",
+      "sha256": "acf16f7f033dc7ec6cbc45793152a17d769bff23600c4ef03e3ecc49a44eb008"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/configuration/ConfigurationMapper.xml",
+      "sha256": "353f972eed12ede71ba57c3bb4d8cffa3d7e8701f3d58c9ec1138e7e5eec256c"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/externalprocurement/ExternalProcurementMapper.xml",
+      "sha256": "1312c0fb5a5f42a60c4000ae95342dece00f38cfefe04b83cb64724817e4d75a"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/jointtest/JointTestMapper.xml",
+      "sha256": "7182588968db4a0de40be164c5df0faf9f0222d1fb57d1832d91914412a348f5"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/materialexchange/MaterialExchangeMapper.xml",
+      "sha256": "7a0c88dd4639358304f3f7761281a1afecea0b1ab1dda14a5038bda5130e8626"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/materialrequisition/MaterialRequisitionMapper.xml",
+      "sha256": "b6b450fc7f58752c4e8667fe1f42395d7e192ea714682301161fbfc89b5ba573"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/outsource/OutsourceRequestMapper.xml",
+      "sha256": "72a7675c141088de50a7c84e5397a0a0ae7f4f63d20c0555e138da23824333e3"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeAttachmentDeliveryMySqlTest.java",
+      "sha256": "de78e738dcc65c813b65f314c59859b97c82e48517dab996737bb183cb5acd7c"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/configuration/ConfigurationLocalLifecycleTest.java",
+      "sha256": "fe34870dd7ca909d550f0976c391db5d9553c986df789a25773719b9d84e5fa5"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/jointtest/JointTestLocalLifecycleTest.java",
+      "sha256": "f4778afe7c0b0b5aa6d84dd80f2866e6e8f4918757b037da6dabe6fa334daeb7"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/materialexchange/MaterialExchangeSerialServiceTest.java",
+      "sha256": "cd17696234d6df7402d380fe8e1527b1c232b26e4550e98d19a42c5e44dec563"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceRequestVersionContractTest.java",
+      "sha256": "b995fe1284a8ff51f870cc3393dc756c39c467319b8d3bd038b83b09b31c36f7"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceSurveyExecutionTest.java",
+      "sha256": "99dc9f6278726df09c4ddf7dcdfad5ea2bb17ed1585b15767166efa0332bc534"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceSurveyExecutionTransactionTest.java",
+      "sha256": "e4e01483fb4f6490f5e865696ae7673a6045b58d54afa9ac6bdbab3d834a9218"
+    },
+    {
+      "path": "scripts/tests/run_native_stage2_delivery_browser.py",
+      "sha256": "8a737e7705cbd06b75e5c8584ddaefed422c3d29f6833efa8aa2bbdbbeba0f46"
+    },
+    {
+      "path": "scripts/tests/verify_native_delivery_stage2_mysql.sh",
+      "sha256": "df8eca9bd9cac7e866c0255a6a635b55af5c33187ad4c9665cd9aac859b1a2cd"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requestTime.spec.ts",
+      "sha256": "a9641c8778adc2b31a9960308b8a247b5ac11188085cd4907ee78870d0053540"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requestTime.ts",
+      "sha256": "463a5490b11d876c07c2da3b1ee3275e207b97e1d9f9537c28a1919683ae1cd1"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts",
+      "sha256": "1d7171bbb40bcda110ff56b44d6e3f14f1f11f659d071cc0260617fc899b6e7a"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/NativeAttachments.vue",
+      "sha256": "84ad6c4aa668833830ca4c6f8c805eded7aa22f118411514621b11cc3377691c"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts",
+      "sha256": "20331c1f474bf115518b93dcf8e1977c3a78feba3d5d2b0daa8a0194a56b1d45"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/index.vue",
+      "sha256": "a53d5fe58bd63f8bf26d35d3c8e229b84c858e6e8f8b49a8237881516ac1e79b"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/ext-proc/index.vue",
+      "sha256": "ad2d455bb173804b6014753fa89ce40d833db0438b35043952281192d70e83d9"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/joint-test/index.vue",
+      "sha256": "c33e5c14fa603de3e30f8353bd0bb5ecbd363e709e5279bb96edbbb6d30c6ac9"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts",
+      "sha256": "9569ab748572228ddd4e3fcd324206fcd43444091b3c0974c6be0ec4cdae570c"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/material-exch/index.vue",
+      "sha256": "d8272b04485271b78f370ad563d8eff6bb9bd19f4295b8f569ffd75018c63d6f"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/material-req/index.vue",
+      "sha256": "c591e5e89e060f96be62fc77495625f91f7bfede772137c23910f8a05783e977"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/index.vue",
+      "sha256": "f9c15b6244bfe73dcfe85f9c8f4a1453524bbbba6bada5db13dbd8b9d514bb71"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts",
+      "sha256": "c3295c180fb11ad76204bb98c175ec533f1d5e5c8d3d46d321a0259acfd2850d"
+    }
+  ],
+  "remainingBlockerWitnessLevel": {
+    "businessWithdrawTerminate": "SOURCE_FINDING; actual public material withdrawal integration tested; native business withdrawal/terminate material invalidation NOTRUN/NOT_IMPLEMENTED",
+    "specialTextMime": "ACTUAL_NEGATIVE_MYSQL; unrecognized cfg octet rejected; safe shared recognizer assigned framework",
+    "unimplementedNative": "SOURCE_AUDIT; exact rows in acceptance-matrix.md",
+    "surveyAndTraining": "USER_DECISION/PROTECTED_TARGET boundary preserved"
+  }
+}

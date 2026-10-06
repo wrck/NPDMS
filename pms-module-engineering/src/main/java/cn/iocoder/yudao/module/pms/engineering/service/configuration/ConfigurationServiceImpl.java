@@ -4,11 +4,16 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.asset.api.device.DeviceConfigLogRecordApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceConfigLogRecordCommand;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.NativeConfigurationFileLocator;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.configuration.vo.ConfigurationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.configuration.vo.ConfigurationSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.ConfigurationMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentKind;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +33,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Service
 @Validated
 public class ConfigurationServiceImpl implements ConfigurationService {
+    @Resource
+    private NativeAttachmentRegistration attachments;
+
 
     @Resource
     private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
@@ -43,6 +51,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createConfiguration(ConfigurationSaveReqVO createReqVO) {
+        attachments.requireLegacyUnchanged(null,createReqVO.getConfigLogUrl());
         if (createReqVO.getEquipmentId() != null) {
             deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
         }
@@ -61,24 +70,28 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateConfiguration(ConfigurationSaveReqVO updateReqVO) {
-        ConfigurationDO existing = validateConfigurationExists(updateReqVO.getId());
+        ConfigurationDO existing = lockConfiguration(updateReqVO.getId());
         Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
         if (equipmentId != null) {
             deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
         }
         validateStatus(existing, 0, 1, 3);
         validateVersion(existing, updateReqVO.getVersion());
+        attachments.requireLegacyUnchanged(existing.getConfigLogUrl(),updateReqVO.getConfigLogUrl());
+        attachments.requireSameProject(NativeAttachmentKind.CONFIGURATION,existing.getId(),existing.getProjectId(),updateReqVO.getProjectId());
         ConfigurationDO update = BeanUtils.toBean(updateReqVO, ConfigurationDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
         updateRecord(update);
+        var registered=attachments.register(NativeAttachmentKind.CONFIGURATION,update.getId());
         archiveConfigLog(update, existing.getConfigLogUrl());
+        archiveNativeConfigLogs(update,registered);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteConfiguration(Long id) {
-        ConfigurationDO existing = validateConfigurationExists(id);
+        ConfigurationDO existing = lockConfiguration(id);
         validateStatus(existing, 0, 1, 3);
         configurationMapper.deleteById(id);
     }
@@ -96,7 +109,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void startConfiguration(Long id) {
-        ConfigurationDO configuration = validateConfigurationExists(id);
+        ConfigurationDO configuration = lockConfiguration(id);
         validateStatus(configuration, 0); // 待调试 → 进行中
         if (configuration.getDebugTime() == null) {
             configuration.setDebugTime(LocalDateTime.now());
@@ -107,15 +120,17 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void completeConfiguration(Long id) {
-        ConfigurationDO configuration = validateConfigurationExists(id);
+        ConfigurationDO configuration = lockConfiguration(id);
         validateStatus(configuration, 1); // 进行中 → 已完成
+        var registered=attachments.register(NativeAttachmentKind.CONFIGURATION,id);
+        archiveNativeConfigLogs(configuration,registered);
         updateStatus(configuration, 2);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markAbnormal(Long id) {
-        ConfigurationDO configuration = validateConfigurationExists(id);
+        ConfigurationDO configuration = lockConfiguration(id);
         validateStatus(configuration, 0); // 待调试 → 异常
         updateStatus(configuration, 3);
     }
@@ -131,6 +146,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         String configLogUrl = configuration.getConfigLogUrl();
         if (configLogUrl == null || configLogUrl.isBlank()
                 || configLogUrl.equals(previousConfigLogUrl)
+                || configLogUrl.contains("pms-native-config:")
                 || configuration.getEquipmentId() == null) {
             return;
         }
@@ -138,6 +154,18 @@ public class ConfigurationServiceImpl implements ConfigurationService {
                 configuration.getEquipmentId(), "MANUAL_UPLOAD", "PMS", null,
                 configLogUrl, null, "配置调试 " + configuration.getCode() + " 手动上传");
         deviceConfigLogRecordApi.recordConfigLog(command);
+    }
+
+    private void archiveNativeConfigLogs(ConfigurationDO configuration,
+            java.util.List<NativeAttachmentRegistration.Registered> registered) {
+        if(configuration.getEquipmentId()==null)return;
+        for(var material:registered){
+            if(!material.newlyRegistered())continue;
+            String locator=new NativeConfigurationFileLocator(configuration.getId(),material.materialId()).toString();
+            deviceConfigLogRecordApi.recordConfigLog(new DeviceConfigLogRecordCommand(
+                    configuration.getEquipmentId(),"MANUAL_UPLOAD","PMS",null,locator,material.file().sha256(),
+                    "配置调试 "+configuration.getCode()+" 手动上传"));
+        }
     }
 
     private ConfigurationDO validateConfigurationExists(Long id) {
@@ -173,4 +201,10 @@ public class ConfigurationServiceImpl implements ConfigurationService {
             throw exception(CONFIGURATION_VERSION_NOT_MATCH);
         }
     }
+    private ConfigurationDO lockConfiguration(Long id) {
+        var row=configurationMapper.selectAttachmentOwnerForUpdate(new NativeAttachmentOwnerLockQuery(TenantContextHolder.getRequiredTenantId(),id));
+        if(row==null)throw exception(CONFIGURATION_NOT_EXISTS);
+        return row;
+    }
+
 }

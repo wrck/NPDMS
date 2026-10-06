@@ -1,3 +1,5 @@
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'

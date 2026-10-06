@@ -56,6 +56,9 @@ class DeviceConfigurationLogDownloadServiceTest {
     @Mock private FileApi fileApi;
     @Mock private DeviceConfigurationFileContentClient contentClient;
     @Mock private DeviceAccessScopeService accessScopeService;
+    @Mock private cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi evidence;
+    @Mock private cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi nativeFiles;
+    @Mock private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials;
     private DeviceConfigurationLogDownloadService service;
 
     @BeforeEach
@@ -65,6 +68,9 @@ class DeviceConfigurationLogDownloadServiceTest {
                 deviceMapper, configurationLogMapper, grantMapper, permissionApi, fileApi, contentClient,
                 accessScopeService,
                 Clock.fixed(NOW, ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"nativeFiles",nativeFiles);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"evidence",evidence);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"materials",materials);
     }
 
     @AfterEach
@@ -269,6 +275,83 @@ class DeviceConfigurationLogDownloadServiceTest {
         DeviceConfigurationFileContentClient client = new DeviceConfigurationFileContentClient(httpClient);
 
         assertThrows(IllegalStateException.class, () -> client.open("https://signed.example/config.txt"));
+    }
+
+    private void nativeDownload(String locator,String status) {
+        allowDownload();var grant=grant(7L,NOW.plusSeconds(60),null);
+        when(grantMapper.selectByTokenDigest(service.digest("raw-token"))).thenReturn(grant);
+        when(deviceMapper.selectByTenantAndId(1L,8L)).thenReturn(device());
+        var log=configurationLog();log.setFileUrl(locator);when(configurationLogMapper.selectById(21L)).thenReturn(log);
+        when(grantMapper.consume(1L,grant.getTokenDigest(),7L,LocalDateTime.ofInstant(NOW,ZoneOffset.UTC))).thenReturn(1);
+        if(status!=null)when(materials.listByEntityAndType("IMP","configuration",9007199254740993L,"IMP.CONFIGURATION_LOG"))
+                .thenReturn(java.util.List.of(nativeMaterial(status)));
+    }
+    private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView nativeMaterial(String status) {
+        return new cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView(
+                        9007199254740995L,"IMP","configuration",9007199254740993L,"IMP.CONFIGURATION_LOG","FILE",null,20L,
+                        44L,1,"digest","config.txt",null,null,null,"config", "FILE_UPLOAD",status,"UNARCHIVED","7",null);
+    }
+    @Test void nativeLocatorPreservesLargeIdsAndUsesFileAuthorizationAfterDeviceAuthorization() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        when(evidence.inspectDocumentByArtifact(1L,44L,1)).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Document(33L,"IMP","configuration","9007199254740993","CONFIGURATION_LOG","slot",44L,1,"digest","config.txt",true));
+        when(evidence.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Fact(true,"valid",0,0,0));
+        when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenReturn("https://native.example/authorized");
+        when(contentClient.open("https://native.example/authorized")).thenReturn(new ByteArrayInputStream("config".getBytes()));
+        service.download(1L,7L,8L,"raw-token");verify(accessScopeService).assertVisible(1L,7L,8L);
+        verify(nativeFiles).requestDownload("IMP","configuration",9007199254740993L,9007199254740995L);
+        verify(fileApi,never()).presignGetUrl(any(),any());
+    }
+    @Test void withdrawnNativeMaterialCannotDowngradeToLegacyUrl() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","WITHDRAWN");
+        assertThrows(ServiceException.class,()->service.download(1L,7L,8L,"raw-token"));
+        verify(nativeFiles,never()).requestDownload(any(),any(),any(),any());verify(fileApi,never()).presignGetUrl(any(),any());verify(contentClient,never()).open(any());
+    }
+    @Test void replacedDetachedOrFilePermissionRevokedReferenceFailsWithoutUrlFallback() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenThrow(new IllegalStateException("file unavailable or access revoked"));
+        assertThrows(IllegalStateException.class,()->service.download(1L,7L,8L,"raw-token"));verify(fileApi,never()).presignGetUrl(any(),any());verify(contentClient,never()).open(any());
+    }
+    @Test void actualOldVersionLookupCannotSilentlyDownloadTheReplacement() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        when(evidence.inspectDocumentByArtifact(1L,44L,1)).thenReturn(null);
+        assertThrows(ServiceException.class,()->service.download(1L,7L,8L,"raw-token"));verify(contentClient,never()).open(any());verify(fileApi,never()).presignGetUrl(any(),any());
+    }
+    @Test void detachedReferenceCannotDownloadEvenWhenMaterialIsStillActive() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        when(evidence.inspectDocumentByArtifact(1L,44L,1)).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Document(33L,"IMP","configuration","9007199254740993","CONFIGURATION_LOG","slot",44L,1,"digest","config.txt",false));
+        assertThrows(ServiceException.class,()->service.download(1L,7L,8L,"raw-token"));verify(contentClient,never()).open(any());verify(fileApi,never()).presignGetUrl(any(),any());
+    }
+
+    @Test void materialWithdrawalDuringNativeAuthorizationCannotReturnContent() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        when(materials.listByEntityAndType("IMP","configuration",9007199254740993L,"IMP.CONFIGURATION_LOG"))
+                .thenReturn(java.util.List.of(nativeMaterial("ACTIVE"))).thenReturn(java.util.List.of(nativeMaterial("WITHDRAWN")));
+        when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenReturn("https://native.example/authorized");
+        assertThrows(ServiceException.class,()->service.download(1L,7L,8L,"raw-token"));
+        verify(evidence,never()).inspectDocumentByArtifact(any(),any(),any());
+        verify(contentClient,never()).open(any());verify(fileApi,never()).presignGetUrl(any(),any());
+    }
+
+    @Test void nativeOwnerAuthorizationPrecedesFrozenFileLocksAndTheContentOpen() {
+        nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenReturn("https://native.example/authorized");
+        when(evidence.inspectDocumentByArtifact(1L,44L,1)).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Document(33L,"IMP","configuration","9007199254740993","CONFIGURATION_LOG","slot",44L,1,"digest","config.txt",true));
+        when(evidence.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Fact(true,"valid",0,0,0));
+        when(contentClient.open("https://native.example/authorized")).thenReturn(new ByteArrayInputStream("config".getBytes()));
+        service.download(1L,7L,8L,"raw-token");
+        var ordered=org.mockito.Mockito.inOrder(nativeFiles,evidence,contentClient);
+        ordered.verify(nativeFiles).requestDownload("IMP","configuration",9007199254740993L,9007199254740995L);
+        ordered.verify(evidence).inspectDocumentByArtifact(1L,44L,1);
+        ordered.verify(evidence).lockAndRevalidate(any());ordered.verify(contentClient).open("https://native.example/authorized");
+    }
+
+    @Test void malformedNativeLocatorDoesNotBecomeALegacyUrl() {
+        nativeDownload("pms-native-config:v2:9007199254740993:9007199254740995",null);
+        assertThrows(ServiceException.class,()->service.download(1L,7L,8L,"raw-token"));verify(fileApi,never()).presignGetUrl(any(),any());
+    }
+    @Test void crossTenantDeviceRequestCannotReachNativeFileApi() {
+        assertThrows(ServiceException.class,()->service.download(2L,7L,8L,"raw-token"));
+        verify(nativeFiles,never()).requestDownload(any(),any(),any(),any());verify(fileApi,never()).presignGetUrl(any(),any());
     }
 
     private void allowDownload() {

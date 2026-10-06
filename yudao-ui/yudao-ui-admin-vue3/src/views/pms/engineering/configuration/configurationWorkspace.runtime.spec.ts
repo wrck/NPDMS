@@ -1,3 +1,4 @@
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Configuration from './index.vue'
@@ -77,16 +78,14 @@ it('rejects the unselected project sentinel while accepting actual project ident
   } finally { mounted.app.unmount() }
 })
 
-it('keeps the string upload contract when reopening a record with no log', async () => {
+it('keeps empty legacy attachment metadata when reopening a record with no log', async () => {
   const mounted = render()
   try {
     mounted.state.openForm({ id: 9, projectId: 1, code: 'CFG-NO-LOG', status: 0, version: 1, configLogUrl: null })
     await flush()
     const uploader = nodes(mounted.root, 'uploader')[0]
-    expect(uploader.props?.modelValue).toBe('')
-    const emitValue = uploader.props?.['onUpdate:modelValue'] as (value: string) => void
-    emitValue('local-log-url')
+    expect(uploader.props?.legacy).toBe('')
     await mounted.state.save()
-    expect(ConfigurationApi.updateConfiguration).toHaveBeenCalledWith(expect.objectContaining({ configLogUrl: 'local-log-url', status: 0, version: 1 }))
+    expect(ConfigurationApi.updateConfiguration).toHaveBeenCalledWith(expect.objectContaining({ configLogUrl: '', status: 0, version: 1 }))
   } finally { mounted.app.unmount() }
 })

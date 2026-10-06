@@ -12,13 +12,17 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.O
 
 /** Preserve the original intended numeric version contract and reject unsuccessful native mutations. */
 class OutsourceRequestVersionContractTest {
+    @org.junit.jupiter.api.AfterEach void clearNativeTenant() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+
     OutsourceRequestMapper mapper;
     OutsourceRequestServiceImpl service;
     @BeforeEach void setup() {
         mapper=mock(OutsourceRequestMapper.class);service=new OutsourceRequestServiceImpl();
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        ReflectionTestUtils.setField(service,"attachments",mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration.class));
         ReflectionTestUtils.setField(service,"outsourceRequestMapper",mapper);
         var row=new OutsourceRequestDO();row.setId(41L);row.setProjectId(7L);row.setCode("OS-41");row.setStatus(0);row.setVersion(5L);
-        when(mapper.selectById(41L)).thenReturn(row);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
         when(mapper.updateById(any(OutsourceRequestDO.class))).thenReturn(1);
         when(mapper.deleteById(41L)).thenReturn(1);
     }

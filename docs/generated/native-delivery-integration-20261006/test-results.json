@@ -1,0 +1,719 @@
+{
+  "overallAcceptance": "INCOMPLETE; six native attachment chains have scoped integration PASS, not whole-business E2E. See acceptance-matrix.md/handoff.md.",
+  "stage2": {
+    "backend": {
+      "classes": 9,
+      "tests": 109,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeAttachmentDeliveryMySqlTest",
+          "counts": {
+            "tests": 45,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "2054a76d4c9f20faf00122bf1eecdba1043dae38e4a1b102c45ed648715b2da2",
+          "cases": [
+            {
+              "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[1]",
+              "seconds": "3.596",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[2]",
+              "seconds": "0.73",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[3]",
+              "seconds": "0.609",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[4]",
+              "seconds": "0.608",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[5]",
+              "seconds": "0.514",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[6]",
+              "seconds": "0.614",
+              "status": "passed"
+            },
+            {
+              "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[1]",
+              "seconds": "0.553",
+              "status": "passed"
+            },
+            {
+              "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[2]",
+              "seconds": "0.543",
+              "status": "passed"
+            },
+            {
+              "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[3]",
+              "seconds": "0.548",
+              "status": "passed"
+            },
+            {
+              "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[4]",
+              "seconds": "0.577",
+              "status": "passed"
+            },
+            {
+              "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[5]",
+              "seconds": "0.549",
+              "status": "passed"
+            },
+            {
+              "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[6]",
+              "seconds": "0.478",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[1]",
+              "seconds": "1.018",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[2]",
+              "seconds": "0.662",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[3]",
+              "seconds": "0.673",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[4]",
+              "seconds": "0.646",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[5]",
+              "seconds": "0.534",
+              "status": "passed"
+            },
+            {
+              "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[6]",
+              "seconds": "0.575",
+              "status": "passed"
+            },
+            {
+              "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[1]",
+              "seconds": "0.595",
+              "status": "passed"
+            },
+            {
+              "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[2]",
+              "seconds": "0.533",
+              "status": "passed"
+            },
+            {
+              "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[3]",
+              "seconds": "0.569",
+              "status": "passed"
+            },
+            {
+              "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[4]",
+              "seconds": "0.536",
+              "status": "passed"
+            },
+            {
+              "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[5]",
+              "seconds": "0.568",
+              "status": "passed"
+            },
+            {
+              "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[6]",
+              "seconds": "0.58",
+              "status": "passed"
+            },
+            {
+              "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[1]",
+              "seconds": "0.632",
+              "status": "passed"
+            },
+            {
+              "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[2]",
+              "seconds": "0.567",
+              "status": "passed"
+            },
+            {
+              "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[3]",
+              "seconds": "0.578",
+              "status": "passed"
+            },
+            {
+              "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[4]",
+              "seconds": "0.62",
+              "status": "passed"
+            },
+            {
+              "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[5]",
+              "seconds": "0.68",
+              "status": "passed"
+            },
+            {
+              "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[6]",
+              "seconds": "0.627",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[1]",
+              "seconds": "0.486",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[2]",
+              "seconds": "0.467",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[3]",
+              "seconds": "0.513",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[4]",
+              "seconds": "0.467",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[5]",
+              "seconds": "0.448",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[6]",
+              "seconds": "0.458",
+              "status": "passed"
+            },
+            {
+              "name": "nativeChromiumSixPagesUploadCollectRetryWithdraw",
+              "seconds": "26.031",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[1]",
+              "seconds": "0.455",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[2]",
+              "seconds": "0.452",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[3]",
+              "seconds": "0.424",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[4]",
+              "seconds": "0.421",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[5]",
+              "seconds": "0.42",
+              "status": "passed"
+            },
+            {
+              "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[6]",
+              "seconds": "0.498",
+              "status": "passed"
+            },
+            {
+              "name": "nativeConfigurationArchiveIsIdempotentAndDevicePortFailureRollsBackOwnerAndMaterial",
+              "seconds": "0.522",
+              "status": "passed"
+            },
+            {
+              "name": "nativeUploadSizeAndUnrecognizedConfigMimeStayRejected",
+              "seconds": "0.41",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.configuration.ConfigurationLocalLifecycleTest",
+          "counts": {
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "4bdae80e235e12548db57a530339d75922f1bde99b0ec4c150cacd083c9383de",
+          "cases": [
+            {
+              "name": "completedRecordCannotBeEditedOrDeleted",
+              "seconds": "0.158",
+              "status": "passed"
+            },
+            {
+              "name": "failedUpdateCannotBeReportedAsSuccess",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "normalEditingCannotSetACompletedStateFromTheRequest",
+              "seconds": "0.057",
+              "status": "passed"
+            },
+            {
+              "name": "startAndCompleteLeaveVersionIncrementToMybatis",
+              "seconds": "0.004",
+              "status": "passed"
+            },
+            {
+              "name": "newConfigurationAlwaysStartsPending",
+              "seconds": "0.004",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.jointtest.JointTestLocalLifecycleTest",
+          "counts": {
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "b75c294f45b720518365a27a7c1205b21150ba130b9f0a68b985c3df9c45469b",
+          "cases": [
+            {
+              "name": "lostPassUpdateDoesNotReportSuccess",
+              "seconds": "0.01",
+              "status": "passed"
+            },
+            {
+              "name": "missingFailureReasonDoesNotWriteAResult",
+              "seconds": "0.009",
+              "status": "passed"
+            },
+            {
+              "name": "editingPreservesTheWorkflowStateAndRejectsAStaleVersion",
+              "seconds": "0.009",
+              "status": "passed"
+            },
+            {
+              "name": "failureRecordsItsReasonWithTheLoadedOptimisticVersion",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "failedResultCannotBePassedOrDeleted",
+              "seconds": "0.008",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeReservedIntegrationTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "bd0a725771b38969bd663520c2dfaca8f464f926fb64d12bdaa182934378ff1a",
+          "cases": [
+            {
+              "name": "reservedEndpointDoesNotSimulateSendingOrReceivingAnOrder",
+              "seconds": "0.008",
+              "status": "passed"
+            },
+            {
+              "name": "historicalCrmEvidenceIsNotRewrittenWhenIntegrationIsPaused",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "missingApplicationStillFailsWithoutAnyWrite",
+              "seconds": "0.002",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeSerialServiceTest",
+          "counts": {
+            "tests": 15,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "76593efd9e2a664a49d31fc75da9efab82c956d10e8b3afb59bcabe37c5c5019",
+          "cases": [
+            {
+              "name": "explicitEditReplacesChildrenAfterParentVersionCheck",
+              "seconds": "0.048",
+              "status": "passed"
+            },
+            {
+              "name": "mixedScopeAndLegacyRowsValidateBothProviders",
+              "seconds": "0.012",
+              "status": "passed"
+            },
+            {
+              "name": "optimisticWriteFailureCannotReplaceSerials",
+              "seconds": "0.004",
+              "status": "passed"
+            },
+            {
+              "name": "persistsPerRowExchangeQuantity",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "invalidSelectionNeverWritesApplicationOrChildren",
+              "seconds": "0.005",
+              "status": "passed"
+            },
+            {
+              "name": "rowWithoutAnyReferenceIsRejected",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "savesEverySelectedSerialUsingServerSnapshot",
+              "seconds": "0.004",
+              "status": "passed"
+            },
+            {
+              "name": "quantityMustMatchSerialQuantityTotal",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "rejectsInactiveExchangeProduct",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "completedApplicationCannotRewriteSnapshots",
+              "seconds": "0.001",
+              "status": "passed"
+            },
+            {
+              "name": "legacyClientOmittingChildrenPreservesExistingSnapshot",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "savesScopeLineUsingServerOrderFacts",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "staleVersionCannotReplaceSerials",
+              "seconds": "0.001",
+              "status": "passed"
+            },
+            {
+              "name": "joinsDistinctScopeItemCodesAndExitsLegacyFacts",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "writesServerSideExchangeProductSnapshot",
+              "seconds": "0.002",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTest",
+          "counts": {
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "5db21cae0c64f2a0a2c609f3befba143d67fb3c16876a84a799a3b31f512f4ab",
+          "cases": [
+            {
+              "name": "invalidExecutionFailurePropagatesToTheExistingCreationTransaction",
+              "seconds": "0.006",
+              "status": "passed"
+            },
+            {
+              "name": "creationPassesExactExecutionToSurveyAssociationAndDoesNotSubmitApproval",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "staleExecutionPreventsDeletionAndPreservesTheSourceRelationship",
+              "seconds": "0.018",
+              "status": "passed"
+            },
+            {
+              "name": "deletionRevalidatesTheSameExecutionBeforeRemovingTheRequest",
+              "seconds": "0.007",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTransactionTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "5797c0913e95b25e582194702ebc8972dc94cec6cf1e2b57be8acbff9726294c",
+          "cases": [
+            {
+              "name": "failedDeletionRestoresRelationshipChangedEarlierInTheSameTransaction",
+              "seconds": "0.398",
+              "status": "passed"
+            },
+            {
+              "name": "rejectedExecutionRollsBackInsertedRequestInsteadOfLeavingAnOrphan",
+              "seconds": "0.008",
+              "status": "passed"
+            },
+            {
+              "name": "successfulCreationAndDeletionCommitTheOwnerRelationshipTogether",
+              "seconds": "0.008",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceRequestVersionContractTest",
+          "counts": {
+            "tests": 6,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "00b5807824151729db39bd2bd53c9f08ab580108064ee3948543ca891554516a",
+          "cases": [
+            {
+              "name": "failedStateTransitionCannotReturnSuccess",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "staleVersionIsRejectedBeforeWriting",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "numericEqualIntegerInputAndLongEntityVersionAreTheSameVersion",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "failedDeletionCannotReturnSuccess",
+              "seconds": "0.001",
+              "status": "passed"
+            },
+            {
+              "name": "failedDraftUpdateCannotReturnSuccess",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "failedInsertCannotProduceAnObjectIdentity",
+              "seconds": "0.002",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadServiceTest",
+          "counts": {
+            "tests": 23,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "rawReportSha256": "5be3d1c4a442a3906ade46977f1a7cbbcaee39863227f69dcc9bc708d2d770d6",
+          "cases": [
+            {
+              "name": "withdrawnNativeMaterialCannotDowngradeToLegacyUrl",
+              "seconds": "1.305",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectLogThatDoesNotBelongToDevice",
+              "seconds": "0.008",
+              "status": "passed"
+            },
+            {
+              "name": "actualOldVersionLookupCannotSilentlyDownloadTheReplacement",
+              "seconds": "0.007",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectConcurrentSecondConsumption",
+              "seconds": "0.006",
+              "status": "passed"
+            },
+            {
+              "name": "malformedNativeLocatorDoesNotBecomeALegacyUrl",
+              "seconds": "0.004",
+              "status": "passed"
+            },
+            {
+              "name": "shouldDeclareProductionConstructorForSpringInjection",
+              "seconds": "0.005",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectUnsupportedFileProtocol",
+              "seconds": "0.039",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectGrantWithoutDownloadPermission",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectExpiredToken",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectPermissionRevocationAtDownloadTime",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "nativeLocatorPreservesLargeIdsAndUsesFileAuthorizationAfterDeviceAuthorization",
+              "seconds": "0.006",
+              "status": "passed"
+            },
+            {
+              "name": "shouldIssueUserBoundGrantWithDigestOnly",
+              "seconds": "0.006",
+              "status": "passed"
+            },
+            {
+              "name": "crossTenantDeviceRequestCannotReachNativeFileApi",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "replacedDetachedOrFilePermissionRevokedReferenceFailsWithoutUrlFallback",
+              "seconds": "0.005",
+              "status": "passed"
+            },
+            {
+              "name": "materialWithdrawalDuringNativeAuthorizationCannotReturnContent",
+              "seconds": "0.004",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectOversizedFileBeforeReturningStream",
+              "seconds": "0.045",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectGrantWhenDeviceIsInvisible",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "nativeOwnerAuthorizationPrecedesFrozenFileLocksAndTheContentOpen",
+              "seconds": "0.01",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectRepeatedConsumption",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectLogWithoutFile",
+              "seconds": "0.002",
+              "status": "passed"
+            },
+            {
+              "name": "shouldConsumeGrantOnceAndStreamThroughInternalPresignedUrl",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "shouldRejectForwardedTokenFromOtherUser",
+              "seconds": "0.003",
+              "status": "passed"
+            },
+            {
+              "name": "detachedReferenceCannotDownloadEvenWhenMaterialIsStillActive",
+              "seconds": "0.003",
+              "status": "passed"
+            }
+          ]
+        }
+      ]
+    },
+    "frontend": {
+      "files": 5,
+      "tests": 31,
+      "passed": 31,
+      "log": ".run/native-delivery-stage2-20261006/native-ui-final.log",
+      "testFiles": [
+        "src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts",
+        "src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts",
+        "src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts",
+        "src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts",
+        "src/api/pms/engineering/requestTime.spec.ts"
+      ]
+    },
+    "browser": {
+      "passed": 6,
+      "pageErrors": 0,
+      "evidence": "native-six-browser.json",
+      "latestSourceVerifiedBy": "mysql-full-45.xml",
+      "actual": [
+        "Chromium",
+        "six actual native index.vue pages",
+        "PmsFileUploader/PmsFileReferenceList/DeliveryPanel",
+        "secured actual controllers",
+        "actual native services/platform file+material services",
+        "MySQL tenant+CAS transactions"
+      ],
+      "controlledPorts": [
+        "authenticated actor17/tenant7",
+        "permissions",
+        "project scope/lifecycle",
+        "device selection/archive fixture",
+        "technical byte storage"
+      ],
+      "notRun": [
+        "full application login",
+        "actual role/project tree",
+        "actual asset log writer/HTTP content download",
+        "external storage",
+        "Flyway/real migrations",
+        "CUT/new arrivalAcceptance production assembly"
+      ]
+    }
+  },
+  "firstPackageEvidence": {
+    "backendClasses": 34,
+    "backendTests": 245,
+    "frontendFiles": 9,
+    "frontendTests": 62,
+    "verification": "../native-delivery-20261006/verification.json",
+    "historicalScopedResultsNotRerunInThisPublish": true,
+    "doNotAddPackageCountsWithoutCrossPackageDeduplication": true
+  },
+  "cleanEvidenceNotes": "Suite XML was reduced to exact names/counts/outcomes/duration/hash; runtime stdout/stacktraces, tokens, connection data and DB contents excluded. Browser JSON/screenshots contain dedicated test actor/project/material fixtures only."
+}

@@ -39,7 +39,11 @@
         </el-col>
         <el-col v-if="meta.hasCustomerPlan === 'yes'" :span="12">
           <el-form-item label="上传方案文件">
-            <UploadFile v-model="meta.customerPlanUrl" :disabled="readOnly" :file-size="50" />
+            <CustomerSolutionDocumentPicker v-model="pendingFiles" :readonly="readOnly" />
+            <el-button v-for="url in customerSolutionDocumentUrls(meta.customerPlanUrl)" :key="url"
+              link type="primary" @click="downloadCustomerSolutionDocument(url)">
+              {{ customerSolutionDocumentName(url) || '查看已保存方案文件' }}
+            </el-button>
           </el-form-item>
         </el-col>
         <el-col v-if="meta.hasCustomerPlan === 'yes'" :span="24">
@@ -403,6 +407,8 @@
 
 <script setup lang="ts">
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import CustomerSolutionDocumentPicker from '../solution-reviewed/CustomerSolutionDocumentPicker.vue'
+import { customerSolutionDocumentUrls, customerSolutionDocumentName, downloadCustomerSolutionDocument } from '../solution-reviewed/saveCustomerSolutionDocuments'
 import { ElMessage } from 'element-plus'
 import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
@@ -420,6 +426,7 @@ defineOptions({ name: 'SolutionChapterForm' })
 const props = defineProps<{ readOnly: boolean; saving?: boolean }>()
 const emit = defineEmits<{ save: []; submitReview: [] }>()
 const form = defineModel<SolutionVO>({ required: true })
+const pendingFiles = defineModel<File[]>('pendingFiles', { default: () => [] })
 
 // ---------- JSON 信封映射说明 ----------
 // 九章正文映射到既有 sol_solution 文本列（后端未拆列前的序列化边界，后续拆列仅需调整此处）：
