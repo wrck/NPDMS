@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface MaterialExchangeMapper extends BaseMapperX<MaterialExchangeDO> {
+    MaterialExchangeDO selectAttachmentOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery query);
+
 
     MaterialExchangeDO selectByIdForUpdate(@org.apache.ibatis.annotations.Param("id") Long id);
 

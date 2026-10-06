@@ -14,6 +14,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ConfigurationLocalLifecycleTest {
+    @org.junit.jupiter.api.BeforeEach void nativeAttachmentPorts() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"attachments",
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration.class));
+    }
+    @org.junit.jupiter.api.AfterEach void clearNativeTenant() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+
     private final ConfigurationMapper mapper = mock(ConfigurationMapper.class);
     private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final ConfigurationServiceImpl service = new ConfigurationServiceImpl();
@@ -23,7 +30,7 @@ class ConfigurationLocalLifecycleTest {
         doReturn("PROJ-CFG-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new ConfigurationDO(); row.setId(1L); row.setProjectId(7L); row.setCode("CFG-TEST"); row.setStatus(0); row.setVersion(6L);
-        when(mapper.selectById(1L)).thenReturn(row);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
     }
 
     @Test void startAndCompleteLeaveVersionIncrementToMybatis() {

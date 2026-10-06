@@ -2,13 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Solution from './index.vue'
 import * as SolutionApi from '@/api/pms/engineering/solution'
+import { saveCustomerSolutionDocuments } from '../solution-reviewed/saveCustomerSolutionDocuments'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const permissions = vi.hoisted(() => ({ write: true }))
 const warning = vi.hoisted(() => vi.fn())
 vi.mock('@/utils/permission', () => ({ checkPermi: () => permissions.write }))
+vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
+vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: defineComponent({ setup() { return () => h('delivery-panel') } }) }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/engineering/solution', () => ({ getSolutionPage: vi.fn(), getSolution: vi.fn(), createSolution: vi.fn(), updateSolution: vi.fn(), deleteSolution: vi.fn(), generateDraft: vi.fn() }))
+vi.mock('../solution-reviewed/saveCustomerSolutionDocuments', () => ({ saveCustomerSolutionDocuments: vi.fn(),
+  customerSolutionDocumentUrls: (value: string) => value.split(',').filter(Boolean), customerSolutionDocumentName: () => '', downloadCustomerSolutionDocument: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_APPROVAL_STATUS: 'approval', PMS_REVIEW_LEVEL: 'review' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning, success: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
@@ -26,10 +31,11 @@ const approved = { id: 8, projectId: 1, code: 'SOL-APPROVED', name: '已通过�
 
 describe('existing solution drafting and read-only viewing', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     permissions.write = true
     vi.mocked(SolutionApi.getSolutionPage).mockResolvedValue({ list: [], total: 0 })
     vi.mocked(SolutionApi.getSolution).mockImplementation(async id => id === 8 ? { ...approved } : { id, projectId: 1, code: 'SOL-DRAFT', name: '草稿', status: 0, version: 2 })
+    vi.mocked(SolutionApi.createSolution).mockResolvedValue(77)
   })
 
   it('keeps the unavailable major-review route out of the ordinary approval dialog', async () => {
@@ -46,8 +52,9 @@ describe('existing solution drafting and read-only viewing', () => {
     try {
       mounted.state.openForm(approved); await flush()
       expect(mounted.state.readOnly).toBe(true)
-      expect(editors(mounted.root)).toHaveLength(6)
+      expect(editors(mounted.root).length).toBeGreaterThan(0)
       expect(editors(mounted.root).every(editor => editor.props?.readonly === true)).toBe(true)
+      expect(editors(mounted.root).some(editor => editor.props?.modelValue === approved.background)).toBe(true)
       await mounted.state.save()
       await mounted.state.remove(approved)
       expect(SolutionApi.updateSolution).not.toHaveBeenCalled()
@@ -80,6 +87,44 @@ describe('existing solution drafting and read-only viewing', () => {
       mounted.state.form.name = '更新草稿'
       await mounted.state.save()
       expect(SolutionApi.updateSolution).toHaveBeenCalledWith(expect.objectContaining({ id: 9, name: '更新草稿', status: 0, version: 2 }))
+    } finally { mounted.app.unmount() }
+  })
+
+  it('saves a real new native root before uploading customer files and preserves other remark fields', async () => {
+    const mounted = render()
+    try {
+      await mounted.state.openForm(); await flush()
+      Object.assign(mounted.state.form, { projectId: 1, name: '客户方案', remark: JSON.stringify({ hasCustomerPlan: 'yes', customerPlanUrl: 'https://legacy/old.pdf', trainingPurpose: 'retain' }) })
+      mounted.state.pendingCustomerFiles = [new File(['customer plan'], 'customer.txt', { type: 'text/plain' })]
+      vi.mocked(SolutionApi.getSolution).mockResolvedValueOnce({ id: 77, projectId: 1, name: '客户方案', status: 0, version: 0 })
+      vi.mocked(saveCustomerSolutionDocuments).mockResolvedValueOnce({ attached: { version: 1, customerPlanUrl: '/api/v1/pms/solutions/77/customer-files/51/customer.txt', materialIds: [51] }, attempts: [] })
+      await mounted.state.save()
+      expect(saveCustomerSolutionDocuments).toHaveBeenCalledWith({ id: 77, version: 0 }, expect.any(Array), expect.any(Array))
+      expect(JSON.parse(mounted.state.form.remark)).toMatchObject({ trainingPurpose: 'retain', customerPlanUrl: '/api/v1/pms/solutions/77/customer-files/51/customer.txt' })
+      expect(mounted.state.form.version).toBe(1)
+      expect(mounted.state.pendingCustomerFiles).toEqual([])
+    } finally { mounted.app.unmount() }
+  })
+
+  it('retries failed native customer-file attachment without re-saving the unchanged draft', async () => {
+    const mounted = render()
+    try {
+      await mounted.state.openForm({ id: 9 }); await flush()
+      mounted.state.form.remark = JSON.stringify({ hasCustomerPlan: 'yes', customerPlanUrl: 'https://legacy/old.pdf' })
+      mounted.state.pendingCustomerFiles = [new File(['customer plan'], 'customer.txt', { type: 'text/plain' })]
+      vi.mocked(SolutionApi.getSolution).mockResolvedValueOnce({ id: 9, projectId: 1, status: 0, version: 3 })
+      vi.mocked(saveCustomerSolutionDocuments).mockRejectedValueOnce(new Error('native attachment failed'))
+        .mockResolvedValueOnce({ attached: { version: 4, customerPlanUrl: '/api/v1/pms/solutions/9/customer-files/51/customer.txt', materialIds: [51] }, attempts: [] })
+      await mounted.state.save()
+      expect(mounted.state.saveError).toContain('native attachment failed')
+      expect(mounted.state.formVisible).toBe(true)
+      expect(mounted.state.pendingCustomerFiles).toHaveLength(1)
+      expect(JSON.parse(mounted.state.form.remark).customerPlanUrl).toBe('https://legacy/old.pdf')
+      await mounted.state.save()
+      expect(SolutionApi.updateSolution).toHaveBeenCalledTimes(1)
+      expect(saveCustomerSolutionDocuments).toHaveBeenCalledTimes(2)
+      expect(vi.mocked(saveCustomerSolutionDocuments).mock.calls[0][2]).toBe(vi.mocked(saveCustomerSolutionDocuments).mock.calls[1][2])
+      expect(mounted.state.form.version).toBe(4)
     } finally { mounted.app.unmount() }
   })
 

@@ -2,6 +2,11 @@ package cn.iocoder.yudao.module.pms.asset.service.configurationlog;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.infra.api.file.FileApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.NativeConfigurationFileLocator;
+import cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
+import jakarta.annotation.Resource;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceDownloadGrantDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceConfigLogDO;
@@ -36,6 +41,9 @@ public class DeviceConfigurationLogDownloadService {
     private static final int GRANT_TTL_SECONDS = 300;
     private static final int PRESIGNED_URL_TTL_SECONDS = 60;
 
+    @Resource private NativeGeneratedFileApi nativeFiles;
+    @Resource private FileEvidenceApi evidence;
+    @Resource private PlatformDeliveryMaterialApi materials;
     private final DeviceMapper deviceMapper;
     private final DeviceConfigLogMapper configurationLogMapper;
     private final DeviceDownloadGrantMapper grantMapper;
@@ -122,10 +130,40 @@ public class DeviceConfigurationLogDownloadService {
         if (grantMapper.consume(tenantId, tokenDigest, userId, now) != 1) {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
         }
-        String internalUrl = fileApi.presignGetUrl(log.getFileUrl(), PRESIGNED_URL_TTL_SECONDS);
+        String internalUrl = resolveDownloadUrl(log);
         return new DeviceConfigurationFileContent(
                 "configuration-log-" + log.getId() + ".txt",
                 contentClient.open(internalUrl));
+    }
+
+    private String resolveDownloadUrl(DeviceConfigLogDO log) {
+        NativeConfigurationFileLocator locator;
+        try { locator=NativeConfigurationFileLocator.parse(log.getFileUrl()); }
+        catch (IllegalArgumentException invalid) { throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID); }
+        if(locator==null)return fileApi.presignGetUrl(log.getFileUrl(),PRESIGNED_URL_TTL_SECONDS);
+        var material=materials.listByEntityAndType("IMP","configuration",locator.configurationId(),"IMP.CONFIGURATION_LOG").stream()
+                .filter(row->locator.materialId().equals(row.id()) && "FILE".equals(row.materialKind())
+                        && PlatformDeliveryMaterialApi.STATUS_ACTIVE.equals(row.status())).findFirst().orElse(null);
+        if(material==null)throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
+        // Native download locks its actual Owner before file rows, matching native writes/withdrawals.
+        // Keep the URL internal until material state and frozen evidence are checked under that lock.
+        String internalUrl=nativeFiles.requestDownload("IMP","configuration",locator.configurationId(),locator.materialId());
+        boolean stillActive=materials.listByEntityAndType("IMP","configuration",locator.configurationId(),"IMP.CONFIGURATION_LOG").stream()
+                .anyMatch(row->locator.materialId().equals(row.id()) && "FILE".equals(row.materialKind())
+                        && PlatformDeliveryMaterialApi.STATUS_ACTIVE.equals(row.status())
+                        && java.util.Objects.equals(material.fileArtifactId(),row.fileArtifactId())
+                        && java.util.Objects.equals(material.fileVersionNo(),row.fileVersionNo())
+                        && java.util.Objects.equals(material.fileSha256(),row.fileSha256()));
+        if(!stillActive)throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
+        var document=evidence.inspectDocumentByArtifact(log.getTenantId(),material.fileArtifactId(),material.fileVersionNo());
+        if(document==null || !document.available() || !"IMP".equals(document.ownerContext())
+                || !"configuration".equals(document.objectType()) || !locator.configurationId().toString().equals(document.objectId())
+                || !"CONFIGURATION_LOG".equals(document.purposeCode()) || !java.util.Objects.equals(material.fileSha256(),document.sha256()))
+            throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
+        var fact=evidence.lockAndRevalidate(new FileEvidenceApi.Query(log.getTenantId(),material.fileArtifactId(),material.fileVersionNo(),
+                document.ownerContext(),document.objectType(),document.objectId(),document.purposeCode(),document.referenceKey(),material.fileSha256()));
+        if(fact==null || !fact.valid())throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
+        return internalUrl;
     }
 
     String digest(String token) {

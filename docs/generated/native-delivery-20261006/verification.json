@@ -1,0 +1,506 @@
+{
+  "checkpoint": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "overallAcceptance": "INCOMPLETE: explicit unimplemented native paths, protected targets/user decisions, parallel public contracts and full app E2E; see handoff.md",
+  "backend": {
+    "classes": 34,
+    "totals": {
+      "tests": 245,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "suites": {
+      "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceAuthorizationTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryRequirementServiceTest": {
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliverySourceReuseTest": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceTest": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.DeliverableChecklistNativeDeliveryTest": {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/checklist-native-tests.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.archivedocument.ArchiveDocumentNativeDeliveryTest": {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.AcceptanceResultDeliveryAccessTest": {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/checklist-native-tests.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccessTest": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalFilePolicyProviderTest": {
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryCommandTest": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalDeliveryRegistrationTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryAccessTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryEvidenceProviderTest": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFileBatchTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.training.TrainingServiceTest": {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.training.TrainingConfirmationGrantServiceTest": {
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.delivery.TrainingDeliveryEvidenceProviderTest": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.delivery.SolutionDeliveryEvidenceProviderTest": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/green-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadServiceTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProviderAuthorizationTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.completioncertificate.CompletionCertificateServiceTest": {
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionCustomerDocumentServiceTest": {
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewServiceTest": {
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGeneratedFilePolicyTest": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGenerateDocumentTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/supplemental-backend.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportCommandServiceTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/acceptance-native.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultDecisionServiceTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/acceptance-native.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseReservationServiceTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/acceptance-native.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseFilePolicyProviderTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/acceptance-native.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseSubmissionServiceTest": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/acceptance-native.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultFilePolicyProviderTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/acceptance-native.log"
+      },
+      "cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentTest": {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/checklist-native-tests.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryAccessTest": {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/checklist-native-tests.log"
+      },
+      "cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeArrivalDeliveryMySqlTest": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "log": ".run/native-delivery-20261006/mysql-browser.log"
+      }
+    },
+    "countingNote": "Latest successful class result across scoped runs; not one full reactor test run."
+  },
+  "frontend": {
+    "files": 9,
+    "tests": 62,
+    "failures": 0,
+    "log": ".run/native-delivery-20261006/final-ui.log",
+    "scope": "Native arrival/RA/solution/checklist + shared upload/delivery + training print components; not full tsc or application build."
+  },
+  "browser": {
+    "arrival": "PASS: actual SFC/controllers/method security/services + exclusive MySQL; authenticated fixture principal, deterministic permission/scope/project and technical storage ports; not full app login/boot/migration",
+    "solutionCustomer": "PASS: actual legacy solution SFC/helper and mocked HTTP ports; not backend/database/login E2E",
+    "checklist": "PASS: native checklist/file/delivery SFCs and secured production controllers/services + exclusive MySQL; deterministic actor/project/permission/storage ports; not full boot/login/migrations"
+  },
+  "isolation": {
+    "composeProject": "npdms-native-delivery-20261006",
+    "database": "native_delivery_verify",
+    "tmpfs": "/var/lib/mysql",
+    "port": 28461,
+    "existingContainerRefused": true,
+    "testContainerCleaned": true,
+    "sharedServicesUsed": false,
+    "realMigrationsRun": false
+  },
+  "protectedTargets": [
+    {
+      "target": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "unchanged": true,
+      "sha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49"
+    },
+    {
+      "target": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/index.vue",
+      "unchanged": true,
+      "sha256": "4eb1ea6fe47af3c835902648dc086158eecfe51c13bb2d34145d93d53c79ad7c"
+    },
+    {
+      "target": "DeliveryEntityAccessPolicy.java",
+      "unchanged": true,
+      "state": "absent at checkpoint; not created"
+    },
+    {
+      "target": "SiteSurveyDeliveryAccessPolicy.java",
+      "unchanged": true,
+      "state": "absent at checkpoint; not created"
+    }
+  ],
+  "publicFrameworkOrApiFilesChanged": false,
+  "globalUploadRegistrationHookImplemented": false,
+  "commitPushMergeDeploymentPerformed": false,
+  "sourceChanges": [
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/AcceptanceResultDeliveryAccess.java",
+      "sha256": "12cf7dc1f13c88ce7700494c71dc1f8faef484965ef17425075b2f2b2def354c"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentFilePolicy.java",
+      "sha256": "460d4e0dc7074bc50a94350a3f9174be87e72ecff1a614bf925ce45aece2b1ef"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentRegistration.java",
+      "sha256": "2c632dc80e12f2ba8119ef2a6d1ae99c88ad2d49a0ee8242a8065f983ee8367d"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentSources.java",
+      "sha256": "0e0e97b80733abb15994caaec547d14222632533c9128b8bd6928f426906a776"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistServiceImpl.java",
+      "sha256": "551484cbccaf7cee6edc90505195fb291823238dae2f32f5ec33f9747b653094"
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentTest.java",
+      "sha256": "cacb7b69bbd02a6ea765580e1c5ead11bcee5c8fde5ff94c38570840f742419c"
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistNativeDeliveryTest.java",
+      "sha256": "11381cae260682c9355243e5cab99755f80ee0aaedbe4ae79ac268970feab1e7"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistration.java",
+      "sha256": "e056499477c69998c4d7ae348868ea5c0407c1ba71ba200e527de768cacf3ce4"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProvider.java",
+      "sha256": "f73b87f842892cbb29845d99f741881eb2ceb928bb2f920b3bd6742c16d4e071"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalNativeDeliveryAccess.java",
+      "sha256": "f607ef560eb92e7dc2b6fe7155a754b08ab046654bb465114efffbf83078308e"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalServiceImpl.java",
+      "sha256": "8bc68909d51e32f65944cffc16244dc91d6710466b056ff6589db6a28e7b6be5"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistrationTest.java",
+      "sha256": "b6e529821cb113ced908bb274f22d8ce7e0fbb5213ffe8334e231cc1a14339bd"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProviderTest.java",
+      "sha256": "567f10e41a09fb486fb45f33d72fe6b1f0d88bf2aa8668069d7cfd2f646f818a"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalNativeDeliveryAccessTest.java",
+      "sha256": "eff1d04f3285ab982cd70b31e3e20cd9fbbc01bc3455553500f1f4e0ffacb2be"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalNativeDeliveryCommandTest.java",
+      "sha256": "c8edc0633eb5aaf6cc8658008f9353bc6190c7ec9da8c081e34a4eb87251f159"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeArrivalDeliveryMySqlTest.java",
+      "sha256": "e68cf0237ecfea0f904609b41426894ad170a936c0c5113f5bad364b966270c5"
+    },
+    {
+      "path": "scripts/tests/capture_native_delivery_inventory.py",
+      "sha256": "273980c1a97e22b89b8edf4a1118c7ce65207a983b7b7cd821c27215c1537820"
+    },
+    {
+      "path": "scripts/tests/run_native_arrival_delivery_browser.py",
+      "sha256": "4bdc076de327fc83e35b526c43646a51f63e94512c126f65c0472363d5f50b39"
+    },
+    {
+      "path": "scripts/tests/run_native_checklist_delivery_browser.py",
+      "sha256": "c792b37fd144117418e52fc3be460291a747ee3d06ff561ceb60ce6f27473960"
+    },
+    {
+      "path": "scripts/tests/run_native_solution_customer_browser.py",
+      "sha256": "9225b6841119f556e9f1fe0a4dd12648fe4e5291406fde6b5c7b9a20996eb5a0"
+    },
+    {
+      "path": "scripts/tests/verify_native_delivery_mysql.sh",
+      "sha256": "877f8ae5aba1baa5d8955994a4f08c3c91228dcd2e9b51761a2732ec78a95427"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/acceptance/deliverable-checklist/index.ts",
+      "sha256": "e8fc1c1783040e3f218e87aae56f8f30f8881166ff715e1e89b49aa38303b4f4"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/ChecklistAttachments.runtime.spec.ts",
+      "sha256": "5342370613836eb868b30be4224e4ad4f693d62918f4ebc2463d29435f0913bf"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/ChecklistAttachments.vue",
+      "sha256": "446e3f1128cc95c05787f68e74114eae01b60de4c53a150a34eca217a44e2808"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+      "sha256": "6ce49163d11d56132ad29406b14a5d62714281535cd7a4b895df8b872e5d83cc"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.runtime.spec.ts",
+      "sha256": "ceab59ba3c9c95d945938010e12706820a686c296c32d531a861d304541eebab"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue",
+      "sha256": "4d0b883e614ecdaf2ac14ff131daa574b28de2868fddb9212500e6ab9dfdbbce"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival/arrivalWorkspace.runtime.spec.ts",
+      "sha256": "08d43f8bf679392f03a70bd00da072ea3f6f0fe25265ca553d6aa64afbc9bc27"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival/index.vue",
+      "sha256": "aac1b7f8c0acf60d7849b00a5ab3834267dd07c67c8e30c40d7d1a7b0daf663d"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/SolutionChapterForm.vue",
+      "sha256": "0706bb217f8d8e085c4995857198659871195b2b045f8fc40b70ac373db6de42"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/index.vue",
+      "sha256": "4cf7acb1421881768638b62c5f10957723a7248f631da3709d25c7fa4f169891"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/solutionWorkspace.runtime.spec.ts",
+      "sha256": "bbec0d0f02a59bb1060e0e8cc107d7657dddf51eecba551fcb103147e06cc5a2"
+    }
+  ],
+  "logs": {
+    "green-backend.log": {
+      "path": ".run/native-delivery-20261006/green-backend.log",
+      "sha256": "a4b84707da1ecff675e480c2b641fcf9ded65c6f0d893437dd3c2020ed4f1866"
+    },
+    "supplemental-backend.log": {
+      "path": ".run/native-delivery-20261006/supplemental-backend.log",
+      "sha256": "9984859d19ade2e2193ecba26c67e19dc2cdf2297f9a851e95a49d4bb60d9597"
+    },
+    "acceptance-native.log": {
+      "path": ".run/native-delivery-20261006/acceptance-native.log",
+      "sha256": "e27920676f1c866fa54400fba7f254c6a71ec8dbcb3d685e3205aca7e2c201b3"
+    },
+    "checklist-native-tests.log": {
+      "path": ".run/native-delivery-20261006/checklist-native-tests.log",
+      "sha256": "fbff40f2b1cf249d8fe10e6a95fadbdf2d3e2769d22b6dab1c4a157bab97a705"
+    },
+    "mysql-browser.log": {
+      "path": ".run/native-delivery-20261006/mysql-browser.log",
+      "sha256": "fd64ae7e7667b629c41b8fdc24fcc02ecd1d8fd3dc8e898650702f8eadc4b5f4"
+    },
+    "final-ui.log": {
+      "path": ".run/native-delivery-20261006/final-ui.log",
+      "sha256": "ed1210faba48962412c8b824e9decdaec00ee18122a303c59d8292b7c386e524"
+    },
+    "checklist-ui.log": {
+      "path": ".run/native-delivery-20261006/checklist-ui.log",
+      "sha256": "79978683b4043c9508cb564912465420d53145ef490263ba6a6cca10d96140b7"
+    },
+    "withdraw-ui.log": {
+      "path": ".run/native-delivery-20261006/withdraw-ui.log",
+      "sha256": "d394a4a44ce0781c52e5d148cf0f9a2ea4b30982cbd8ff3de64ed396e97cf488"
+    },
+    "solution-browser.log": {
+      "path": ".run/native-delivery-20261006/solution-browser.log",
+      "sha256": "70a799c923598f39c193568660d564b71dfcf0f0b0f5241be56e117dcf4ffbd0"
+    },
+    "checklist-runner.log": {
+      "path": ".run/native-delivery-20261006/checklist-runner.log",
+      "sha256": "c9c478347352441f8118d520178525eb9be53980866922819b02752d979a7971"
+    },
+    "browser-process.log": {
+      "path": ".run/native-delivery-20261006/browser-process.log",
+      "sha256": "e5c1ea851e159f03870b42ce18d201a39a6de76f2b3615a572f4070db2ebd099"
+    },
+    "checklist-browser-process.log": {
+      "path": ".run/native-delivery-20261006/checklist-browser-process.log",
+      "sha256": "8fc3bcea571298d07f3fe0bbb4e302fd0f68330a7fd6d612de967d07c1583d4f"
+    }
+  },
+  "remaining": [
+    "Four protected targets and six Host DELIVERY declarations",
+    "Survey archived state3 decision",
+    "Historical no-grant training link reissue policy",
+    "13 raw UploadFile callsites in 11 components remain UNIMPLEMENTED_NATIVE or exact documented contract dependencies",
+    "Preparation and DurationChange source collection",
+    "Full production native route/role/storage/BPM/archive/download E2E",
+    "Parallel framework integration and optional source type seed coordination"
+  ],
+  "nativeIncrement": [
+    "Arrival native source auto-collection and scoped edit/delete permissions",
+    "Requirement-analysis root material ledger",
+    "Legacy customer solution public upload/native attach retry",
+    "Arrival obsolete-material public withdrawal with native Owner authorization and completion recovery",
+    "Checklist actual DTO/CAS alignment, native attachments and scoped withdrawal"
+  ],
+  "browserEvidence": [
+    "arrival-browser.json",
+    "arrival-browser.png",
+    "checklist-browser.json",
+    "checklist-browser.png",
+    "solution-customer-browser.json",
+    "solution-customer-browser.png"
+  ],
+  "nativeClientApiBindingAligned": true
+}

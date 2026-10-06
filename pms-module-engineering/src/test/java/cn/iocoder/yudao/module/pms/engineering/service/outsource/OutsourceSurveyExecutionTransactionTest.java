@@ -18,6 +18,7 @@ import static org.mockito.Mockito.*;
 
 /** Real Spring transaction + isolated H2 resource; does not load local profiles or business databases. */
 class OutsourceSurveyExecutionTransactionTest {
+
     JdbcTemplate jdbc;
     OutsourceRequestService service;
     final OutsourceRequestMapper mapper = mock(OutsourceRequestMapper.class);
@@ -29,7 +30,9 @@ class OutsourceSurveyExecutionTransactionTest {
         jdbc.execute("CREATE TABLE request_fixture(id BIGINT PRIMARY KEY)");
         jdbc.execute("CREATE TABLE survey_fixture(id BIGINT PRIMARY KEY, request_id BIGINT)");
         jdbc.update("INSERT INTO survey_fixture VALUES(51,NULL)");
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
         var target = new OutsourceRequestServiceImpl();
+        ReflectionTestUtils.setField(target,"attachments",mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration.class));
         ReflectionTestUtils.setField(target,"outsourceRequestMapper",mapper);
         ReflectionTestUtils.setField(target,"siteSurveyService",surveys);
         var proxy = new ProxyFactory(target);
@@ -44,9 +47,9 @@ class OutsourceSurveyExecutionTransactionTest {
                 .when(surveys).releaseDeletedOutsourceRequest(51L,41L,null);
         when(mapper.deleteById(41L)).thenAnswer(call -> jdbc.update("DELETE FROM request_fixture WHERE id=41"));
         var row = new OutsourceRequestDO(); row.setId(41L); row.setTriggerSource("SITE_SURVEY"); row.setTriggerRefId(51L); row.setStatus(0);
-        when(mapper.selectById(41L)).thenReturn(row);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
     }
-    @AfterEach void close() { jdbc.execute("SHUTDOWN"); }
+    @AfterEach void close() { jdbc.execute("SHUTDOWN"); cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     void create() {
         var request = new OutsourceRequestSaveReqVO(); request.setProjectId(9L); request.setTriggerSource("SITE_SURVEY"); request.setTriggerRefId(51L);
         service.createOutsourceRequest(request);

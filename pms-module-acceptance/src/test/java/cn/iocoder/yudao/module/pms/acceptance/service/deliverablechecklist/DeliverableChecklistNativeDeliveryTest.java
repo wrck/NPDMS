@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMateria
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import org.junit.jupiter.api.*;import org.springframework.test.util.ReflectionTestUtils;import static org.mockito.Mockito.*;import static org.mockito.ArgumentMatchers.*;import static org.junit.jupiter.api.Assertions.*;
 class DeliverableChecklistNativeDeliveryTest {
+ @BeforeEach void wireAttachments(){ReflectionTestUtils.setField(service,"attachments",mock(ChecklistAttachmentRegistration.class));}
  DeliverableChecklistMapper mapper=mock(DeliverableChecklistMapper.class);DeliverableChecklistDeliveryAccess access=mock(DeliverableChecklistDeliveryAccess.class);PlatformDeliveryMaterialApi materials=mock(PlatformDeliveryMaterialApi.class);DeliverableChecklistServiceImpl service=new DeliverableChecklistServiceImpl();DeliverableChecklistDO row;
  @BeforeEach void setup(){TenantContextHolder.setTenantId(7L);ReflectionTestUtils.setField(service,"deliverableChecklistMapper",mapper);ReflectionTestUtils.setField(service,"deliveryAccess",access);ReflectionTestUtils.setField(service,"materials",materials);row=new DeliverableChecklistDO();row.setId(9L);row.setTenantId(7L);row.setProjectId(20L);row.setStatus(1);row.setVersion(4L);row.setName("Checklist");when(mapper.selectOwnerForUpdate(any())).thenReturn(row);}
  @AfterEach void clear(){TenantContextHolder.clear();}
@@ -12,4 +13,19 @@ class DeliverableChecklistNativeDeliveryTest {
  @Test void staleCasDoesNotPublishBusinessResult(){assertThrows(Exception.class,()->service.passDeliverableChecklist(9L));verifyNoInteractions(materials);}
  @Test void scopeDenialDoesNotAdvanceNativeState(){doThrow(new IllegalStateException("scope denied")).when(access).require(row,"audit");assertThrows(Exception.class,()->service.passDeliverableChecklist(9L));verify(mapper,never()).updateById(any(DeliverableChecklistDO.class));verifyNoInteractions(materials);}
  @Test void wrongNativeStateCannotPublishResult(){row.setStatus(0);assertThrows(Exception.class,()->service.passDeliverableChecklist(9L));verifyNoInteractions(materials);}
+ @Test void nativeDraftSaveCollectsAttachmentsAfterSuccessfulCas(){
+  row.setStatus(0);when(mapper.updateById(any(DeliverableChecklistDO.class))).thenReturn(1);
+  var request=new cn.iocoder.yudao.module.pms.acceptance.controller.admin.deliverablechecklist.vo.DeliverableChecklistSaveReqVO();request.setId(9L);request.setProjectId(20L);request.setName("Checklist");request.setVersion(4);
+  service.updateDeliverableChecklist(request);
+  var attachments=(ChecklistAttachmentRegistration)ReflectionTestUtils.getField(service,"attachments");
+  var order=inOrder(mapper,attachments);order.verify(mapper).selectOwnerForUpdate(any());order.verify(mapper).updateById(any(DeliverableChecklistDO.class));order.verify(attachments).register(9L);
+ }
+ @Test void failedNativeCasDoesNotCollectAttachments(){
+  row.setStatus(0);var request=new cn.iocoder.yudao.module.pms.acceptance.controller.admin.deliverablechecklist.vo.DeliverableChecklistSaveReqVO();request.setId(9L);request.setProjectId(20L);request.setVersion(4);
+  assertThrows(Exception.class,()->service.updateDeliverableChecklist(request));verifyNoInteractions((ChecklistAttachmentRegistration)ReflectionTestUtils.getField(service,"attachments"));
+ }
+ @Test void submitCapturesActualAttachmentsBeforeFreezingDraft(){
+  row.setStatus(0);when(mapper.updateById(any(DeliverableChecklistDO.class))).thenReturn(1);service.submitDeliverableChecklist(9L);
+  var attachments=(ChecklistAttachmentRegistration)ReflectionTestUtils.getField(service,"attachments");var order=inOrder(attachments,mapper);order.verify(attachments).register(9L);order.verify(mapper).updateById(argThat((DeliverableChecklistDO update)->update.getStatus()==1));
+ }
 }

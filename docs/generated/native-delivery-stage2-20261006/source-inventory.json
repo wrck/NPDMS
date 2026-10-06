@@ -1,0 +1,359 @@
+{
+  "head": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "scope": "All direct PMS file policy implementations; native engineering/acceptance/cutover registration callsites; scoped Vue raw UploadFile candidates. NOT a route-assembly or production pass count.",
+  "historicalCounts": {
+    "entryGroups": 32,
+    "writePaths": 29,
+    "reusableAsCurrentAcceptance": false,
+    "reason": "Committed handoff/reference plans lack a matching row-level 32/29 inventory; current survey savefile/confirmresult symbols are absent. New command chains and legacy raw URLs are listed separately."
+  },
+  "counts": {
+    "directFilePolicyImplementations": 17,
+    "nativeRegistrationCallsites": 21,
+    "rawUploadFileCallsites": 7,
+    "rawUploadFileComponents": 5,
+    "oldSurveyCommandSymbols": 0
+  },
+  "filePolicies": [
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/ProjectDeliverableFilePolicyProvider.java",
+      "line": 19,
+      "class": "ProjectDeliverableFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER",
+        "TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportFileBusinessObjectPolicyProvider.java",
+      "line": 28,
+      "class": "AcceptanceReportFileBusinessObjectPolicyProvider",
+      "dispatchExpressions": [
+        "OWNER_CONTEXT",
+        "OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentFilePolicy.java",
+      "line": 20,
+      "class": "ChecklistAttachmentFilePolicy",
+      "dispatchExpressions": [
+        "\"ACC\"",
+        "TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResponseFilePolicyProvider.java",
+      "line": 28,
+      "class": "SatisfactionResponseFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER",
+        "TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultFilePolicyProvider.java",
+      "line": 21,
+      "class": "SatisfactionResultFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER",
+        "TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProvider.java",
+      "line": 30,
+      "class": "ArrivalFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER_CONTEXT",
+        "OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentFilePolicy.java",
+      "line": 8,
+      "class": "NativeAttachmentFilePolicy",
+      "dispatchExpressions": [
+        "kind.getModule()",
+        "kind.getEntityType()"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingGeneratedFilePolicy.java",
+      "line": 20,
+      "class": "BriefingGeneratedFilePolicy",
+      "dispatchExpressions": [
+        "\"SOL\"",
+        "\"BRIEFING_DOCUMENT\""
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/ConstructionPlanChangeFilePolicyProvider.java",
+      "line": 36,
+      "class": "ConstructionPlanChangeFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER_CONTEXT",
+        "OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/preparation/PreparationFilePolicyProvider.java",
+      "line": 32,
+      "class": "PreparationFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER_CONTEXT",
+        "OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisFilePolicyProvider.java",
+      "line": 38,
+      "class": "RequirementAnalysisFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER_CONTEXT",
+        "OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisRevisionFilePolicy.java",
+      "line": 26,
+      "class": "RequirementAnalysisRevisionFilePolicy",
+      "dispatchExpressions": [
+        "OWNER",
+        "TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingGeneratedFilePolicy.java",
+      "line": 20,
+      "class": "TrainingGeneratedFilePolicy",
+      "dispatchExpressions": [
+        "\"IMP\"",
+        "\"TRAINING_RECORD\""
+      ]
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFilePolicyProvider.java",
+      "line": 30,
+      "class": "DeliveryFilePolicyProvider",
+      "dispatchExpressions": [
+        "DeliveryMaterialService.FILE_OWNER_CONTEXT",
+        "DeliveryMaterialService.FILE_OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/dynamicform/DynamicFormFilePolicyProvider.java",
+      "line": 38,
+      "class": "DynamicFormFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER_CONTEXT",
+        "OBJECT_TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/export/PlatformExportFilePolicyProvider.java",
+      "line": 16,
+      "class": "PlatformExportFilePolicyProvider",
+      "dispatchExpressions": [
+        "OWNER",
+        "TYPE"
+      ]
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/CollectionLogFilePolicy.java",
+      "line": 15,
+      "class": "CollectionLogFilePolicy",
+      "dispatchExpressions": [
+        "\"PLT\"",
+        "\"CollectionTask\""
+      ]
+    }
+  ],
+  "nativeMaterialRegistrationCallsites": [
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportCommandService.java",
+      "line": 108,
+      "class": "AcceptanceReportCommandService",
+      "nearestPublicMethod": "updateDraft",
+      "marker": "::registerNativeSourceFile"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportCommandService.java",
+      "line": 163,
+      "class": "AcceptanceReportCommandService",
+      "nearestPublicMethod": "revoke",
+      "marker": "::registerNativeSourceFile"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/archivedocument/ArchiveDocumentServiceImpl.java",
+      "line": 158,
+      "class": "ArchiveDocumentServiceImpl",
+      "nearestPublicMethod": "archiveArchiveDocument",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/completioncertificate/CompletionCertificateServiceImpl.java",
+      "line": 183,
+      "class": "CompletionCertificateServiceImpl",
+      "nearestPublicMethod": "customerConfirm",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/completioncertificate/CompletionCertificateServiceImpl.java",
+      "line": 219,
+      "class": "CompletionCertificateServiceImpl",
+      "nearestPublicMethod": "archiveCompletionCertificate",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentRegistration.java",
+      "line": 20,
+      "class": "ChecklistAttachmentRegistration",
+      "nearestPublicMethod": "register",
+      "marker": "::registerNativeSourceFile"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistServiceImpl.java",
+      "line": 150,
+      "class": "DeliverableChecklistServiceImpl",
+      "nearestPublicMethod": "passDeliverableChecklist",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultDecisionService.java",
+      "line": 136,
+      "class": "SatisfactionResultDecisionService",
+      "nearestPublicMethod": "decide",
+      "marker": ".registerNativeSourceFile("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistration.java",
+      "line": 29,
+      "class": "ArrivalDeliveryRegistration",
+      "nearestPublicMethod": "registerFiles",
+      "marker": "::registerNativeSourceFile"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistration.java",
+      "line": 32,
+      "class": "ArrivalDeliveryRegistration",
+      "nearestPublicMethod": "registerSigned",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentRegistration.java",
+      "line": 38,
+      "class": "NativeAttachmentRegistration",
+      "nearestPublicMethod": "register",
+      "marker": ".registerNativeSourceFile("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingServiceImpl.java",
+      "line": 172,
+      "class": "BriefingServiceImpl",
+      "nearestPublicMethod": "generateBriefing",
+      "marker": "generatedFiles.create("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisRevisionFiles.java",
+      "line": 37,
+      "class": "RequirementAnalysisRevisionFiles",
+      "nearestPublicMethod": "lockForFreeze",
+      "marker": "::registerNativeSourceFile"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisRevisionFiles.java",
+      "line": 46,
+      "class": "RequirementAnalysisRevisionFiles",
+      "nearestPublicMethod": "registerActivated",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisRevisionFiles.java",
+      "line": 62,
+      "class": "RequirementAnalysisRevisionFiles",
+      "nearestPublicMethod": "copy",
+      "marker": "::registerNativeSourceFile"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/solution/SolutionCustomerDocumentService.java",
+      "line": 36,
+      "class": "SolutionCustomerDocumentService",
+      "nearestPublicMethod": "attach",
+      "marker": ".registerNativeUploadedFile("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/solution/SolutionServiceImpl.java",
+      "line": 215,
+      "class": "SolutionServiceImpl",
+      "nearestPublicMethod": "generateDraft",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/solutionreview/SolutionTieredReviewService.java",
+      "line": 225,
+      "class": "SolutionTieredReviewService",
+      "nearestPublicMethod": "approved",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingServiceImpl.java",
+      "line": 317,
+      "class": "TrainingServiceImpl",
+      "nearestPublicMethod": "confirmByToken",
+      "marker": "grantFiles.create("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingServiceImpl.java",
+      "line": 446,
+      "class": "TrainingServiceImpl",
+      "nearestPublicMethod": "confirmByToken",
+      "marker": ".registerBusinessResultMaterial("
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingServiceImpl.java",
+      "line": 456,
+      "class": "TrainingServiceImpl",
+      "nearestPublicMethod": "confirmByToken",
+      "marker": "generatedFiles.create("
+    }
+  ],
+  "rawUploadFileCandidates": [
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/announcement/index.vue",
+      "line": 194,
+      "element": "<UploadFile v-model=\"form.fileUrl!\" /"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+      "line": 187,
+      "element": "<UploadFile v-model=\"form.fileUrl!\" /"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/SolutionChapterForm.vue",
+      "line": 151,
+      "element": "<UploadFile v-model=\"topology.asIsUrl\" :disabled=\"readOnly\" /"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/SolutionChapterForm.vue",
+      "line": 176,
+      "element": "<UploadFile v-model=\"topology.toBeUrl\" :disabled=\"readOnly\" /"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/SolutionReviewChapterForm.vue",
+      "line": 107,
+      "element": "<UploadFile v-model=\"topology.asIsUrl\" :disabled=\"readOnly\" /"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/SolutionReviewChapterForm.vue",
+      "line": 132,
+      "element": "<UploadFile v-model=\"topology.toBeUrl\" :disabled=\"readOnly\" /"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+      "line": 175,
+      "element": "<UploadFile v-model=\"form.attachmentUrl!\" /"
+    }
+  ],
+  "oldSurveyCommandSymbols": []
+}

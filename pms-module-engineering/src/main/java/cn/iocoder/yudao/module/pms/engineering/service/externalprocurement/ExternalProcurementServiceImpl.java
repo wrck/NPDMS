@@ -7,6 +7,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.externalprocurem
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.externalprocurement.vo.ExternalProcurementSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.externalprocurement.ExternalProcurementDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.externalprocurement.ExternalProcurementMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentKind;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +34,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 @Slf4j
 public class ExternalProcurementServiceImpl implements ExternalProcurementService {
+    @Resource
+    private NativeAttachmentRegistration attachments;
+
 
     /**
      * 状态：0 草稿
@@ -87,6 +94,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createExternalProcurement(ExternalProcurementSaveReqVO createReqVO) {
+        attachments.requireLegacyUnchanged(null,createReqVO.getAttachmentFiles());
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
         // 2. 校验项目存在
@@ -107,7 +115,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     @Transactional(rollbackFor = Exception.class)
     public void updateExternalProcurement(ExternalProcurementSaveReqVO updateReqVO) {
         // 1. 校验存在
-        ExternalProcurementDO existing = validateExternalProcurementExists(updateReqVO.getId());
+        ExternalProcurementDO existing = lockExternalProcurement(updateReqVO.getId());
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可编辑
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 乐观锁版本校验
@@ -117,15 +125,20 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
             throw exception(EXT_PROC_CODE_DUPLICATE, updateReqVO.getCode());
         }
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
+        attachments.requireLegacyUnchanged(existing.getAttachmentFiles(),updateReqVO.getAttachmentFiles());
+        attachments.requireSameProject(NativeAttachmentKind.EXTERNAL_PROCUREMENT,existing.getId(),existing.getProjectId(),updateReqVO.getProjectId());
         ExternalProcurementDO update = BeanUtils.toBean(updateReqVO, ExternalProcurementDO.class);
-        externalProcurementMapper.updateById(update);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
+        if (externalProcurementMapper.updateById(update) != 1) throw exception(EXT_PROC_VERSION_NOT_MATCH);
+        attachments.register(NativeAttachmentKind.EXTERNAL_PROCUREMENT,update.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteExternalProcurement(Long id) {
         // 1. 校验存在
-        ExternalProcurementDO existing = validateExternalProcurementExists(id);
+        ExternalProcurementDO existing = lockExternalProcurement(id);
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可删除
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 删除
@@ -155,10 +168,11 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     @Transactional(rollbackFor = Exception.class)
     public void submitExternalProcurement(Long id) {
         // 1. 校验存在
-        ExternalProcurementDO entity = validateExternalProcurementExists(id);
+        ExternalProcurementDO entity = lockExternalProcurement(id);
         // 2. 状态校验：0 草稿 / 4 已驳回 → 1 已提交
         validateStatus(entity, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 更新状态
+        attachments.register(NativeAttachmentKind.EXTERNAL_PROCUREMENT,entity.getId());
         updateStatus(entity, STATUS_SUBMITTED, null, null, null);
     }
 
@@ -166,7 +180,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     @Transactional(rollbackFor = Exception.class)
     public void approveExternalProcurement(ExternalProcurementApproveReqVO reqVO) {
         // 1. 校验存在
-        ExternalProcurementDO entity = validateExternalProcurementExists(reqVO.getId());
+        ExternalProcurementDO entity = lockExternalProcurement(reqVO.getId());
         // 2. 状态校验：1 已提交 / 2 审批中 可审批
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 根据审批动作决定目标状态
@@ -179,7 +193,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     @Transactional(rollbackFor = Exception.class)
     public void withdrawExternalProcurement(Long id) {
         // 1. 校验存在
-        ExternalProcurementDO entity = validateExternalProcurementExists(id);
+        ExternalProcurementDO entity = lockExternalProcurement(id);
         // 2. 状态校验：1 已提交 / 2 审批中 → 5 已撤回
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 更新状态
@@ -190,7 +204,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     @Transactional(rollbackFor = Exception.class)
     public void terminateExternalProcurement(Long id) {
         // 1. 校验存在
-        ExternalProcurementDO entity = validateExternalProcurementExists(id);
+        ExternalProcurementDO entity = lockExternalProcurement(id);
         // 2. 状态校验：非 3 已通过 / 非 6 已终止 可终止
         if (Objects.equals(entity.getStatus(), STATUS_PASSED)
                 || Objects.equals(entity.getStatus(), STATUS_TERMINATED)) {
@@ -242,7 +256,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
         if (newStatus == STATUS_PASSED || newStatus == STATUS_REJECTED || newStatus == STATUS_DRAFT) {
             entity.setApproveTime(LocalDateTime.now());
         }
-        externalProcurementMapper.updateById(entity);
+        if (externalProcurementMapper.updateById(entity) != 1) throw exception(EXT_PROC_VERSION_NOT_MATCH);
     }
 
     private void validateCodeUnique(String code, Long excludeId) {
@@ -270,7 +284,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     }
 
     private void validateVersion(ExternalProcurementDO entity, Integer version) {
-        if (version != null && !Objects.equals(entity.getVersion(), version)) {
+        if (version != null && (entity.getVersion() == null || entity.getVersion().longValue() != version.longValue())) {
             throw exception(EXT_PROC_VERSION_NOT_MATCH);
         }
     }
@@ -283,4 +297,10 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
         }
         throw exception(EXT_PROC_STATUS_INVALID);
     }
+    private ExternalProcurementDO lockExternalProcurement(Long id) {
+        var row=externalProcurementMapper.selectAttachmentOwnerForUpdate(new NativeAttachmentOwnerLockQuery(TenantContextHolder.getRequiredTenantId(),id));
+        if(row==null)throw exception(EXT_PROC_NOT_EXISTS);
+        return row;
+    }
+
 }

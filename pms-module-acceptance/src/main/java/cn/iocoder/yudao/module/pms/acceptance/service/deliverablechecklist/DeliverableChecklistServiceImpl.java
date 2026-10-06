@@ -55,6 +55,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     @Resource
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
     @Resource private DeliverableChecklistDeliveryAccess deliveryAccess;
+    @Resource private ChecklistAttachmentRegistration attachments;
     @Resource private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials;
 
     @Override
@@ -80,6 +81,10 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     public void updateDeliverableChecklist(DeliverableChecklistSaveReqVO updateReqVO) {
         DeliverableChecklistDO existing = validateExists(updateReqVO.getId());
         deliveryAccess.require(existing,"update");
+        if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
+                && !materials.listByEntity("ACC", "deliverableChecklist", existing.getId()).isEmpty()) {
+            throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("CHECKLIST_SOURCE_MOVE_DENIED", "Registered attachment Owner cannot move projects");
+        }
         // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
@@ -90,6 +95,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         updateObj.setTenantId(existing.getTenantId());
         deliveryAccess.require(updateObj,"update");
         updateRecord(updateObj);
+        attachments.register(existing.getId());
     }
 
     @Override
@@ -123,6 +129,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
+        attachments.register(entity.getId());
         updateStatus(entity, STATUS_SUBMITTED);
     }
 
