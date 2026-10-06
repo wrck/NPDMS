@@ -324,10 +324,19 @@ class DeviceConfigurationLogDownloadServiceTest {
 
     @Test void materialWithdrawalDuringNativeAuthorizationCannotReturnContent() {
         nativeDownload("pms-native-config:v1:9007199254740993:9007199254740995","ACTIVE");
+        var ownerLocked = new java.util.concurrent.atomic.AtomicBoolean(false);
         when(materials.listByEntityAndType("IMP","configuration",9007199254740993L,"IMP.CONFIGURATION_LOG"))
-                .thenReturn(java.util.List.of(nativeMaterial("ACTIVE"))).thenReturn(java.util.List.of(nativeMaterial("WITHDRAWN")));
-        when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenReturn("https://native.example/authorized");
+                .thenAnswer(ignored -> java.util.List.of(nativeMaterial(ownerLocked.get() ? "WITHDRAWN" : "ACTIVE")));
+        when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenAnswer(ignored -> {
+            // Deterministic competing withdrawal at the native Owner authorization/lock boundary.
+            ownerLocked.set(true);
+            return "https://native.example/authorized";
+        });
         assertThrows(ServiceException.class,()->service.download(1L,7L,8L,"raw-token"));
+        var ordered = org.mockito.Mockito.inOrder(materials,nativeFiles);
+        ordered.verify(materials).listByEntityAndType("IMP","configuration",9007199254740993L,"IMP.CONFIGURATION_LOG");
+        ordered.verify(nativeFiles).requestDownload("IMP","configuration",9007199254740993L,9007199254740995L);
+        ordered.verify(materials).listByEntityAndType("IMP","configuration",9007199254740993L,"IMP.CONFIGURATION_LOG");
         verify(evidence,never()).inspectDocumentByArtifact(any(),any(),any());
         verify(contentClient,never()).open(any());verify(fileApi,never()).presignGetUrl(any(),any());
     }

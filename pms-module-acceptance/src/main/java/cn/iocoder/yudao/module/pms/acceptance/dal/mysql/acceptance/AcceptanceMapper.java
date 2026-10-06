@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 @Deprecated(since = "F-ACC-001", forRemoval = false)
 public interface AcceptanceMapper extends ProjectScopedCodeMapper<AcceptanceDO> {
+    AcceptanceDO selectOwnerForUpdate(@org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.AcceptanceOwnerLockQuery query);
 
     default PageResult<AcceptanceDO> selectPage(AcceptancePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<AcceptanceDO>()

@@ -111,8 +111,9 @@ class NativeAttachmentDeliveryMySqlTest {
     Map<String, byte[]> stored = new HashMap<>();
 
     @BeforeEach void start() throws Exception {
-        assertEquals(URL, System.getProperty("native.delivery.jdbcUrl"), "Exclusive tmpfs Compose database required");
-        var source = new DriverManagerDataSource(URL, "root", "");
+        String selectedUrl=testJdbcUrl();
+        assertEquals(selectedUrl, System.getProperty("native.delivery.jdbcUrl"), "Exclusive tmpfs Compose database required");
+        var source = new DriverManagerDataSource(selectedUrl, "root", "");
         jdbc = new JdbcTemplate(source);
         var configuration = new MybatisConfiguration(); configuration.setMapUnderscoreToCamelCase(true);
         var global = new GlobalConfig(); global.setDbConfig(new GlobalConfig.DbConfig().setIdType(IdType.AUTO));
@@ -120,11 +121,12 @@ class NativeAttachmentDeliveryMySqlTest {
         var interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantDatabaseInterceptor(new TenantProperties())));
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
-        var mapperTypes = List.of(ConfigurationMapper.class, JointTestMapper.class, ExternalProcurementMapper.class, OutsourceRequestMapper.class, MaterialRequisitionMapper.class, MaterialExchangeMapper.class, MaterialExchangeSerialMapper.class, ArrivalMapper.class, DeliverableChecklistMapper.class, FileArtifactMapper.class, FileVersionMapper.class, FileReferenceMapper.class,
+        var mapperTypes = new ArrayList<Class<?>>(List.of(ConfigurationMapper.class, JointTestMapper.class, ExternalProcurementMapper.class, OutsourceRequestMapper.class, MaterialRequisitionMapper.class, MaterialExchangeMapper.class, MaterialExchangeSerialMapper.class, ArrivalMapper.class, DeliverableChecklistMapper.class, FileArtifactMapper.class, FileVersionMapper.class, FileReferenceMapper.class,
                 FileUploadSessionMapper.class, FileArchiveRecordMapper.class, PlatformIdempotencyRecordMapper.class,
                 PlatformOperationAuditMapper.class, PlatformOutboxEventMapper.class, DeliveryMaterialMapper.class,
                 DeliveryRequirementMapper.class, DeliverySubmissionMapper.class, DeliveryFulfillmentMapper.class,
-                DeliveryTypeMapper.class, DeliveryCapabilityConfigMapper.class);
+                DeliveryTypeMapper.class, DeliveryCapabilityConfigMapper.class));
+        mapperTypes.addAll(extraMapperTypes());
         mapperTypes.forEach(configuration::addMapper);
         var factory = new MybatisSqlSessionFactoryBean(); factory.setDataSource(source); factory.setConfiguration(configuration);
         factory.setGlobalConfig(global); factory.setPlugins(interceptor);
@@ -132,6 +134,7 @@ class NativeAttachmentDeliveryMySqlTest {
         var resolver = new PathMatchingResourcePatternResolver();
         for (String directory : List.of("file", "command", "delivery", "arrival", "deliverablechecklist", "configuration", "jointtest", "externalprocurement", "outsource", "materialrequisition", "materialexchange"))
             resources.addAll(List.of(resolver.getResources("classpath*:mapper/" + directory + "/*.xml")));
+        for(String path:extraMapperPaths())resources.addAll(List.of(resolver.getResources("classpath*:mapper/"+path)));
         factory.setMapperLocations(resources.toArray(org.springframework.core.io.Resource[]::new));
         var sessions = new SqlSessionTemplate(Objects.requireNonNull(factory.getObject()));
         for (var type : List.of(ConfigurationDO.class, JointTestDO.class, ExternalProcurementDO.class, OutsourceRequestDO.class, MaterialRequisitionDO.class, MaterialExchangeDO.class, MaterialExchangeSerialDO.class, ArrivalDO.class, DeliverableChecklistDO.class, FileArtifactDO.class, FileVersionDO.class, FileReferenceDO.class,
@@ -139,6 +142,7 @@ class NativeAttachmentDeliveryMySqlTest {
                 PlatformOperationAuditDO.class, PlatformOutboxEventDO.class, DeliveryMaterialDO.class,
                 DeliveryRequirementDO.class, DeliverySubmissionDO.class, DeliveryFulfillmentDO.class,
                 DeliveryTypeDO.class, DeliveryCapabilityConfigDO.class)) schema(type);
+        for(var type:extraSchemaTypes())schema(type);
         jdbc.execute("CREATE UNIQUE INDEX ledger_scope ON plt_idempotency_record(tenant_id,scope_code,actor_id,idempotency_key)");
         jdbc.execute("CREATE UNIQUE INDEX source_identity ON plt_delivery_material(tenant_id,source_identity_key)");
         jdbc.execute("DROP TABLE IF EXISTS native_device_archive_fixture");
@@ -160,7 +164,7 @@ class NativeAttachmentDeliveryMySqlTest {
             stored.put(command.storageOperationId(), command.validatedContent());
             return new FileStorageReceipt(command.storageOperationId(), (long) stored.size(), command.name(), command.mediaType(), command.validatedContent().length); });
         var arrivalMapper = sessions.getMapper(ArrivalMapper.class);
-        BusinessModelContributor contributor = () -> List.of(new BusinessModelDeclaration(new BusinessModelDescriptor("IMP", "arrival",
+        BusinessModelContributor contributor = () -> java.util.stream.Stream.concat(List.of(new BusinessModelDeclaration(new BusinessModelDescriptor("IMP", "arrival",
                 "IMP_ARRIVAL", 1, BusinessModelKind.AGGREGATE_ROOT, "到货签收", "pms:imp-arrival:query",
                 List.of(new BusinessFieldDescriptor("projectId", "项目", EntityField.Type.NUMBER, true, true, false, null)),
                 List.of(), List.of(), List.of(), "imp_eng_arrival"), ArrivalDO.class, arrivalMapper, null),
@@ -173,7 +177,7 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","jointTest","NATI
 new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","externalProcurement","NATIVE_EXTERNAL_PROCUREMENT",1,BusinessModelKind.AGGREGATE_ROOT,"原生附件","pms:"+NativeAttachmentKind.EXTERNAL_PROCUREMENT.getPermission().substring(4)+":query",List.of(new BusinessFieldDescriptor("projectId","项目",EntityField.Type.NUMBER,true,true,false,null)),List.of(),List.of(),List.of(),"imp_eng_external_procurement"),ExternalProcurementDO.class,sessions.getMapper(ExternalProcurementMapper.class),null),
 new BusinessModelDeclaration(new BusinessModelDescriptor("RES","outsourceRequest","NATIVE_OUTSOURCE",1,BusinessModelKind.AGGREGATE_ROOT,"原生附件","pms:"+NativeAttachmentKind.OUTSOURCE.getPermission().substring(4)+":query",List.of(new BusinessFieldDescriptor("projectId","项目",EntityField.Type.NUMBER,true,true,false,null)),List.of(),List.of(),List.of(),"res_outsource_request"),OutsourceRequestDO.class,sessions.getMapper(OutsourceRequestMapper.class),null),
 new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialRequisition","NATIVE_MATERIAL_REQUISITION",1,BusinessModelKind.AGGREGATE_ROOT,"原生附件","pms:"+NativeAttachmentKind.MATERIAL_REQUISITION.getPermission().substring(4)+":query",List.of(new BusinessFieldDescriptor("projectId","项目",EntityField.Type.NUMBER,true,true,false,null)),List.of(),List.of(),List.of(),"imp_eng_material_requisition"),MaterialRequisitionDO.class,sessions.getMapper(MaterialRequisitionMapper.class),null),
-new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange","NATIVE_MATERIAL_EXCHANGE",1,BusinessModelKind.AGGREGATE_ROOT,"原生附件","pms:"+NativeAttachmentKind.MATERIAL_EXCHANGE.getPermission().substring(4)+":query",List.of(new BusinessFieldDescriptor("projectId","项目",EntityField.Type.NUMBER,true,true,false,null)),List.of(),List.of(),List.of(),"imp_eng_material_exchange"),MaterialExchangeDO.class,sessions.getMapper(MaterialExchangeMapper.class),null));
+new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange","NATIVE_MATERIAL_EXCHANGE",1,BusinessModelKind.AGGREGATE_ROOT,"原生附件","pms:"+NativeAttachmentKind.MATERIAL_EXCHANGE.getPermission().substring(4)+":query",List.of(new BusinessFieldDescriptor("projectId","项目",EntityField.Type.NUMBER,true,true,false,null)),List.of(),List.of(),List.of(),"imp_eng_material_exchange"),MaterialExchangeDO.class,sessions.getMapper(MaterialExchangeMapper.class),null)).stream(),extraDeclarations(sessions).stream()).toList();
         context.getBeanFactory().registerSingleton("contributor", contributor);
         context.registerBean(BusinessEntityPersistenceRegistry.class, () -> new BusinessEntityPersistenceRegistry(context.getBeanProvider(BusinessModelContributor.class)));
         context.register(ArrivalNativeDeliveryAccess.class,NativeAttachmentOwners.class,NativeAttachmentAccess.class,
@@ -197,7 +201,7 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
                 DeliverableChecklistDeliveryAccess.class, DeliverableChecklistServiceImpl.class);
         context.getBeanFactory().registerSingleton("acceptanceRecordCodeGenerator",
                 mock(cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator.class));
-        context.registerBean(DeliveryOwnerAccess.class, () -> new DeliveryOwnerAccess(List.of(context.getBean(ArrivalNativeDeliveryAccess.class), context.getBean(AcceptanceResultDeliveryAccess.class),context.getBean(IMPNativeAttachmentDeliveryAccess.class),context.getBean(RESNativeAttachmentDeliveryAccess.class)), context.getBean(BusinessEntityPersistenceRegistry.class),
+        context.registerBean(DeliveryOwnerAccess.class, () -> new DeliveryOwnerAccess(new ArrayList<>(context.getBeansOfType(DeliveryMaterialUploadPolicyValidator.class).values()), context.getBean(BusinessEntityPersistenceRegistry.class),
                 new PermissionBusinessAccessGuard(permissions), context.getBeanProvider(EntityFieldProvider.class), scopes, projects));
         context.register(ArrivalFilePolicyProvider.class, ArrivalDocumentSources.class, ArrivalDeliveryEvidenceProvider.class,
                 ArrivalDeliveryRegistration.class, ArrivalServiceImpl.class, PlatformCommandExecutionApiImpl.class,
@@ -226,12 +230,14 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
         context.registerBean(FileLifecycleApplicationService.class, () -> new FileLifecycleApplicationService(context.getBean(PlatformCommandExecutionApiImpl.class),
                 context.getBean(OperationAuditApiImpl.class), context.getBean(FileBusinessObjectPolicyRegistry.class), security, sessions.getMapper(FileArtifactMapper.class),
                 sessions.getMapper(FileVersionMapper.class), sessions.getMapper(FileReferenceMapper.class), sessions.getMapper(FileUploadSessionMapper.class), sessions.getMapper(FileArchiveRecordMapper.class), context.getBean(FileEventFactory.class)));
+        registerExtraBeans(sessions);
         context.refresh(); var spring = new SpringUtil(); spring.setApplicationContext(context); spring.postProcessBeanFactory(context.getBeanFactory());
         tx = new TransactionTemplate(context.getBean(DataSourceTransactionManager.class)); login(7L);
         var row = new ArrivalDO(); row.setId(9L); row.setProjectId(20L); row.setTenantId(7L); row.setVersion(0L); row.setStatus(0); row.setCode("ARR-9");
         row.setArrivalTime(LocalDateTime.of(2026, 10, 6, 8, 0)); row.setQuantity(1); row.setRemark("Persisted receipt");
         arrivalMapper.insert(row);
         for(var kind:NativeAttachmentKind.values())insertNative(kind);
+        initializeExtraOwners(sessions);
         var checklist = new DeliverableChecklistDO(); checklist.setId(19L); checklist.setTenantId(7L); checklist.setProjectId(20L);
         checklist.setStatus(0); checklist.setVersion(0L); checklist.setCode("CHECK-19"); checklist.setName("原生核对清单"); checklist.setRemark("Persisted checklist");
         sessions.getMapper(DeliverableChecklistMapper.class).insert(checklist);
@@ -242,6 +248,14 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
         receipt.setAllowedMediaJson("[]"); receipt.setMaxSizeBytes(52428800L); receipt.setEnabled(true); receipt.setVersion(0);
         context.getBean(DeliveryTypeMapper.class).insert(receipt);
     }
+
+    String testJdbcUrl(){return URL;}
+    List<Class<?>> extraMapperTypes(){return List.of();}
+    List<Class<?>> extraSchemaTypes(){return List.of();}
+    List<String> extraMapperPaths(){return List.of();}
+    List<BusinessModelDeclaration> extraDeclarations(SqlSessionTemplate sessions){return List.of();}
+    void registerExtraBeans(SqlSessionTemplate sessions){}
+    void initializeExtraOwners(SqlSessionTemplate sessions){}
 
     @AfterEach void close() { TenantContextHolder.clear(); org.springframework.security.core.context.SecurityContextHolder.clearContext(); if (context != null) context.close(); }
     static ProjectScopeResult scope() { return new ProjectScopeResult(20L, 3L, Set.of(20L), Set.of()); }

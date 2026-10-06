@@ -171,8 +171,8 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl!" />
+          <el-form-item label="附件">
+            <AdditionalNativeAttachments kind="legacyAcceptance" :entity-id="form.id" :readonly="form.status !== 0 || !checkPermi(['pms:acc-acceptance:update'])" @changed="attachmentOwnerChanged" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -190,6 +190,8 @@
 </template>
 
 <script setup lang="ts">
+import AdditionalNativeAttachments from '@/views/pms/engineering/attachment/AdditionalNativeAttachments.vue'
+import { checkPermi } from '@/utils/permission'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
@@ -241,7 +243,6 @@ const openForm = (row?: AcceptanceVO) => {
       signedDate: '',
       conclusion: '',
       opinion: '',
-      attachmentUrl: '',
       status: 0,
       remark: '',
       version: undefined
@@ -250,6 +251,7 @@ const openForm = (row?: AcceptanceVO) => {
   )
   formVisible.value = true
 }
+const attachmentOwnerChanged = (owner: { version?: number; status?: number }) => { form.version = owner.version; form.status = owner.status }
 const save = async () => {
   await formRef.value.validate()
   saving.value = true

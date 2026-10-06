@@ -1,0 +1,352 @@
+{
+  "base": "be007ec3379b3c3f6951fe7a4f0052eec4c11097",
+  "isolatedTree": "/workspace/native-two-independent-verify-20261006",
+  "allPassed": true,
+  "KnoDraftIncluded": false,
+  "suites": [
+    {
+      "label": "briefing-access",
+      "class": "cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentAccessTest",
+      "tests": 9,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "scopeVersionAndArchivedProjectFailClosed",
+          "result": "PASS"
+        },
+        {
+          "name": "manualSourceUsesActualBriefingRootAndNoSyntheticRevision",
+          "result": "PASS"
+        },
+        {
+          "name": "generatedPurposeCannotBeWrittenThroughManualPolicy",
+          "result": "PASS"
+        },
+        {
+          "name": "wrongTenantOrPrincipalCannotUseTheManualOwner",
+          "result": "PASS"
+        },
+        {
+          "name": "placeholderOrRevokedScopeBlocksManualWrites",
+          "result": "PASS"
+        },
+        {
+          "name": "genericOrTemplateWriteCannotUseManualMaterialAdapter",
+          "result": "PASS"
+        },
+        {
+          "name": "briefingGenerateUsesNativeGeneratePermission",
+          "result": "PASS"
+        },
+        {
+          "name": "nullOwnerVersionCannotAuthorizeManualUpload",
+          "result": "PASS"
+        },
+        {
+          "name": "generatedBriefingKeepsManualAttachmentsReadOnly",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "label": "briefing-generated-document",
+      "class": "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGenerateDocumentTest",
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "blankContentAssemblesFromRealBriefingDataNotPlaceholder",
+          "result": "PASS"
+        },
+        {
+          "name": "generateWritesRealFileMetadataInsteadOfForgedPlaceholder",
+          "result": "PASS"
+        },
+        {
+          "name": "manualContentIsPreservedVerbatim",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "label": "briefing-generated-policy",
+      "class": "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGeneratedFilePolicyTest",
+      "tests": 4,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "rejectsGenerationWithoutNativeOperationPermission",
+          "result": "PASS"
+        },
+        {
+          "name": "rejectsCrossTenantBeforeReadingOwner",
+          "result": "PASS"
+        },
+        {
+          "name": "rejectsStaleNativeVersionBeforeProjectAccess",
+          "result": "PASS"
+        },
+        {
+          "name": "rejectsVoidOwnerBeforeProjectAccess",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "label": "legacy-acceptance",
+      "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.LegacyAcceptanceAttachmentTest",
+      "tests": 8,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "queryPermissionDoesNotGrantUpload",
+          "result": "PASS"
+        },
+        {
+          "name": "nativeCollectionUsesLockedActualFactsAndDoesNotInventFiles",
+          "result": "PASS"
+        },
+        {
+          "name": "originUsesActualRootNeverThePassResultType",
+          "result": "PASS"
+        },
+        {
+          "name": "allNonDraftStatesAreReadOnly",
+          "result": "PASS"
+        },
+        {
+          "name": "tenantPrincipalAndPlaceholderAreDenied",
+          "result": "PASS"
+        },
+        {
+          "name": "draftUploadKeepsLegacyMediaSizeAndRequiresManagedProject",
+          "result": "PASS"
+        },
+        {
+          "name": "missingActualOwnerVersionCannotGrantWrites",
+          "result": "PASS"
+        },
+        {
+          "name": "scopeAndProjectChangeUnderLockAreDenied",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "label": "asset-download",
+      "class": "cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadServiceTest",
+      "tests": 23,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "withdrawnNativeMaterialCannotDowngradeToLegacyUrl",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectLogThatDoesNotBelongToDevice",
+          "result": "PASS"
+        },
+        {
+          "name": "actualOldVersionLookupCannotSilentlyDownloadTheReplacement",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectConcurrentSecondConsumption",
+          "result": "PASS"
+        },
+        {
+          "name": "malformedNativeLocatorDoesNotBecomeALegacyUrl",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldDeclareProductionConstructorForSpringInjection",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectUnsupportedFileProtocol",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectGrantWithoutDownloadPermission",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectExpiredToken",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectPermissionRevocationAtDownloadTime",
+          "result": "PASS"
+        },
+        {
+          "name": "nativeLocatorPreservesLargeIdsAndUsesFileAuthorizationAfterDeviceAuthorization",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldIssueUserBoundGrantWithDigestOnly",
+          "result": "PASS"
+        },
+        {
+          "name": "crossTenantDeviceRequestCannotReachNativeFileApi",
+          "result": "PASS"
+        },
+        {
+          "name": "replacedDetachedOrFilePermissionRevokedReferenceFailsWithoutUrlFallback",
+          "result": "PASS"
+        },
+        {
+          "name": "materialWithdrawalDuringNativeAuthorizationCannotReturnContent",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectOversizedFileBeforeReturningStream",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectGrantWhenDeviceIsInvisible",
+          "result": "PASS"
+        },
+        {
+          "name": "nativeOwnerAuthorizationPrecedesFrozenFileLocksAndTheContentOpen",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectRepeatedConsumption",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectLogWithoutFile",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldConsumeGrantOnceAndStreamThroughInternalPresignedUrl",
+          "result": "PASS"
+        },
+        {
+          "name": "shouldRejectForwardedTokenFromOtherUser",
+          "result": "PASS"
+        },
+        {
+          "name": "detachedReferenceCannotDownloadEvenWhenMaterialIsStillActive",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "label": "two-native-mysql-and-browser",
+      "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeTwoDeliveryMySqlTest",
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "twoChromiumTwoPagesUploadCollectRetryWithdraw",
+          "result": "PASS"
+        },
+        {
+          "name": "twoNativeFreezeCollectsUsingActualActionPermissionAndPreservesRead(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoNativeFreezeCollectsUsingActualActionPermissionAndPreservesRead(Kind)[2]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoRegistrationFailureRollsBackActualOwnerAndRetriesFile(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoRegistrationFailureRollsBackActualOwnerAndRetriesFile(Kind)[2]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoBriefingManualAndGeneratedSnapshotsKeepDifferentPurposesAndActualRoot",
+          "result": "PASS"
+        },
+        {
+          "name": "twoManualSaveCannotOverwriteGeneratedMetadataAfterRejection",
+          "result": "PASS"
+        },
+        {
+          "name": "twoGenerationFailureRollsBackManualCollectionAndOwner",
+          "result": "PASS"
+        },
+        {
+          "name": "twoRawUrlCannotCreateOrUpdateAnUnregisteredAttachment(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoLegacyAcceptanceCodeAllocationStillIncludesSoftDeletedRows",
+          "result": "PASS"
+        },
+        {
+          "name": "twoPreciseFreezePermissionFailureRollsBackMaterialAndOwner(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoPreciseFreezePermissionFailureRollsBackMaterialAndOwner(Kind)[2]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoReplacementAndDetachInvalidateFrozenMaterialWithoutMakingHistory(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoReplacementAndDetachInvalidateFrozenMaterialWithoutMakingHistory(Kind)[2]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoActualSaveSharedMaterialCompletionAndWithdrawal(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoActualSaveSharedMaterialCompletionAndWithdrawal(Kind)[2]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoAssemblyDoesNotRegisterKnoNativePolicyOrValidator",
+          "result": "PASS"
+        },
+        {
+          "name": "twoViewOnlyProjectScopeCannotCollectOnNativeFreeze(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoViewOnlyProjectScopeCannotCollectOnNativeFreeze(Kind)[2]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoTenantAndPrecisePermissionAreRequired(Kind)[1]",
+          "result": "PASS"
+        },
+        {
+          "name": "twoTenantAndPrecisePermissionAreRequired(Kind)[2]",
+          "result": "PASS"
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "backendUnitAndRegression": 47,
+    "twoNativeMysqlAndBrowser": 21,
+    "twoActualBrowserPages": 2,
+    "frontendRuntime": 8
+  },
+  "commands": [
+    "source /workspace/toolchains/activate.sh; mvn -B -s /workspace/toolchains/maven-settings.xml -pl pms-module-engineering,pms-module-asset -am test -Dtest=SupplementalAttachmentAccessTest,LegacyAcceptanceAttachmentTest,BriefingGenerateDocumentTest,BriefingGeneratedFilePolicyTest,DeviceConfigurationLogDownloadServiceTest -Dsurefire.failIfNoSpecifiedTests=false",
+    "NATIVE_DELIVERY_MAVEN_SETTINGS=/workspace/toolchains/maven-settings.xml bash scripts/tests/verify_native_delivery_two_mysql.sh",
+    "node node_modules/vitest/vitest.mjs run --config vitest.pms-file.config.ts src/views/pms/engineering/attachment/AdditionalNativeAttachments.runtime.spec.ts"
+  ],
+  "limits": "Real native Vue/components, secured controllers/services/transactions/common file-material on exclusive model-derived MySQL. Deterministic actor/permissions/project tree/lifecycle/storage ports. No full Boot/login/real roles/storage/download/Flyway, no claim against later 186 integration."
+}
