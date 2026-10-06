@@ -15,7 +15,7 @@
     <section v-if="customerDocUrl" class="customer-doc">
       <div class="customer-doc-head">
         <span class="customer-doc-title">客户方案文档</span>
-        <el-link type="primary" :href="customerDocUrl" target="_blank">下载/查看文件</el-link>
+        <el-link v-for="(url,index) in customerDocUrls" :key="url" type="primary" @click="downloadCustomerSolutionDocument(url)">下载/查看{{ customerSolutionDocumentName(url)||`文件${customerDocUrls.length>1?` ${index+1}`:''}` }}</el-link>
       </div>
       <iframe
         v-if="customerDocPreviewSrc"
@@ -348,9 +348,15 @@
     </section>
     </template>
   </div>
+  <DeliveryPanel v-if="form.id" owner-module="SOL" entity-type="solution" :entity-id="form.id" />
 </template>
 
 <script setup lang="ts">
+import { resolveCustomerSolutionDocument,downloadCustomerSolutionDocument,customerSolutionDocumentUrls,customerSolutionDocumentName } from './saveCustomerSolutionDocuments'
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import { ElMessage } from 'element-plus'
+import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
+import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
@@ -589,7 +595,8 @@ watch(
   { immediate: true }
 )
 // 浏览器可内嵌预览的格式；doc/xls/ppt 无法内嵌渲染，保留显式下载入口
-const customerDocPreviewable = computed(() => /\.(pdf|txt)(\?|#|$)/i.test(customerDocUrl.value))
+const customerDocUrls=computed(()=>customerSolutionDocumentUrls(customerDocUrl.value))
+const customerDocPreviewable = computed(() => /\.(pdf|txt)(\?|#|$)/i.test(customerDocUrls.value[0]||''))
 // 文件端点以 attachment 下发（iframe 直挂 src 会被浏览器拦为下载），优先取字节转 Blob 内嵌。
 // 与后端存储类型无关：平台文件端点（/admin-api/...）按当前 API 基址重写 origin（登记域名可能失效），
 // 其余存储按原始地址取流；全部取流失败回退原始地址内嵌（对象存储等内联下发的直链）
@@ -609,13 +616,14 @@ watch(
     releaseCustomerDocBlob()
     customerDocPreviewSrc.value = ''
     if (!url || !previewable) return
-    const candidates = [url]
-    const pathIndex = url.indexOf('/admin-api/')
-    if (pathIndex >= 0) candidates.unshift(import.meta.env.VITE_BASE_URL + url.slice(pathIndex))
+    const primary=customerDocUrls.value[0]
+    const candidates = [primary]
+    const pathIndex = primary.indexOf('/admin-api/')
+    if (pathIndex >= 0) candidates.unshift(import.meta.env.VITE_BASE_URL + primary.slice(pathIndex))
     const tryFetch = (index: number): void => {
       if (seq !== customerDocLoadSeq.value) return
       if (index >= candidates.length) {
-        customerDocPreviewSrc.value = url
+        customerDocPreviewSrc.value = primary
         return
       }
       fetch(candidates[index])
@@ -627,7 +635,7 @@ watch(
         })
         .catch(() => tryFetch(index + 1))
     }
-    tryFetch(0)
+    if(primary.startsWith('/api/v1/pms/solutions/')){resolveCustomerSolutionDocument(primary).then(resolved=>{if(seq!==customerDocLoadSeq.value)return;candidates.splice(0,candidates.length,resolved);tryFetch(0)}).catch(()=>{if(seq===customerDocLoadSeq.value)customerDocPreviewSrc.value=''})}else tryFetch(0)
   },
   { immediate: true }
 )
@@ -762,13 +770,30 @@ const buildSolutionHtml = () => {
   ].join('')
   return html
 }
-const downloadSolution = () => {
-  const blob = new Blob([buildSolutionHtml()], { type: 'text/html;charset=utf-8' })
-  const anchor = document.createElement('a')
-  anchor.href = URL.createObjectURL(blob)
-  anchor.download = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.html`
-  anchor.click()
-  URL.revokeObjectURL(anchor.href)
+const solutionDownloadBusy = ref(false)
+let solutionDownloadAttempt: import('@/components/DeliveryArtifact/uploadDeliveryFile').DeliveryUploadAttempt | undefined
+let solutionDownloadContent = ''
+const downloadSolution = async () => {
+  if (solutionDownloadBusy.value) return
+  solutionDownloadBusy.value = true
+  try {
+    const html = buildSolutionHtml()
+    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.html`
+    if (solutionDownloadContent !== html || solutionDownloadAttempt?.owner.entityId !== form.value.id)
+      solutionDownloadAttempt = undefined
+    solutionDownloadContent = html
+    solutionDownloadAttempt = await prepareGeneratedSolutionHtml(form.value.id!, html, fileName, solutionDownloadAttempt)
+    await uploadDeliveryFile(solutionDownloadAttempt)
+    const anchor = document.createElement('a')
+    anchor.href = URL.createObjectURL(solutionDownloadAttempt.file)
+    anchor.download = fileName
+    anchor.click()
+    URL.revokeObjectURL(anchor.href)
+  } catch (failure: any) {
+    ElMessage.error(failure?.response?.data?.msg || failure?.message || '实施方案交付件保存失败')
+  } finally {
+    solutionDownloadBusy.value = false
+  }
 }
 
 // ---------- 可选模块模板 ----------

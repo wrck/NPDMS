@@ -8,5 +8,9 @@ public record BusinessModelDeclaration(
         BusinessModelDescriptor descriptor,
         Class<?> entityClass,
         Object mapper,
-        Object revisionMapper) {
+        Object revisionMapper,
+        String nativeEntityType) {
+    public BusinessModelDeclaration(BusinessModelDescriptor descriptor,Class<?> entityClass,Object mapper,Object revisionMapper) {
+        this(descriptor,entityClass,mapper,revisionMapper,null);
+    }
 }

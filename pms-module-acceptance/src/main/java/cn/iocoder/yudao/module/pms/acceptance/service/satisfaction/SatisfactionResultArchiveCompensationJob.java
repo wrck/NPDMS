@@ -38,31 +38,24 @@ public class SatisfactionResultArchiveCompensationJob implements JobHandler {
 
     private String archivePending() {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
-        List<TemplateFrozenMaterialView> materials = platform.listPendingArchiveMaterials();
+        List<TemplateFrozenSubmissionView> submissions = platform.listPendingArchiveSubmissions();
         int archived = 0;
         int pending = 0;
         int scanned = 0;
-        for (TemplateFrozenMaterialView material : materials) {
+        for (TemplateFrozenSubmissionView submission : submissions) {
             if (scanned >= BATCH_SIZE) break;
-            if (!isSatisfactionProjection(material)) continue;
+            if (!satisfactionProjection(submission)) continue;
             scanned++;
             try {
-                compensationService.archive(tenantId, material.id());
+                compensationService.archiveSubmission(tenantId, submission.id());
                 archived++;
             } catch (RuntimeException failure) {
-                compensationService.recordFailure(tenantId, material.id(), "ARCHIVE_FAILED");
+                compensationService.recordSubmissionFailure(tenantId, submission.id(), "ARCHIVE_FAILED");
                 pending++;
-                log.warn("[execute][满意度投影材料({})归档失败，保留待补偿]", material.id(), failure);
+                log.warn("[execute][满意度投影材料({})归档失败，保留待补偿]", submission.id(), failure);
             }
         }
         return String.format("满意度归档成功 %d 条，继续待补偿 %d 条", archived, pending);
-    }
-
-    private boolean isSatisfactionProjection(TemplateFrozenMaterialView material) {
-        return platform.findSubmissionIdByMaterial(material.id())
-                .flatMap(platform::findSubmissionById)
-                .map(SatisfactionResultArchiveCompensationJob::satisfactionProjection)
-                .orElse(false);
     }
 
     private static boolean satisfactionProjection(TemplateFrozenSubmissionView submission) {

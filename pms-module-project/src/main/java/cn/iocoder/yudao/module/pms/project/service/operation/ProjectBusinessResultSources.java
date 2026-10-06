@@ -113,6 +113,12 @@ public final class ProjectBusinessResultSources {
         return changes;
     }
 
+    public DeliveryIdentity deliveryIdentity(Query query) {
+        var observation=lockAndInspect(query);
+        if(observation.result()==null || observation.result().validity()!=Validity.CURRENT) return null;
+        return sources.get(query.type()).source().deliveryIdentity(query);
+    }
+
     public Observation inspect(Query query) {
         return inspect(query, false);
     }

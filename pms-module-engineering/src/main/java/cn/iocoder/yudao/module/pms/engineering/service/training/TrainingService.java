@@ -41,6 +41,8 @@ public interface TrainingService {
      * （重新）生成培训记录表文件并上传文件服务，返回文件URL。
      */
     String generateRecordFile(Long id);
+    String requestGeneratedFileDownload(Long trainingId,Long materialId);
+    String requestPdfDownload(Long trainingId) throws java.io.IOException;
 
     /**
      * 公开端：按令牌查看培训记录（客户移动端）。

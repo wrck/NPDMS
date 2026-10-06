@@ -132,6 +132,41 @@ class SatisfactionResultArchiveCompensationServiceTest {
         verify(resultMapper, org.mockito.Mockito.times(1)).updateArchiveProjection(any());
     }
 
+    @Test
+    void sharedArchivedMaterialStillArchivesEachNativeSubmissionTarget() {
+        when(platform.lockMaterials(List.of(30L,31L,32L))).thenReturn(List.of(
+                material(30L,100L,"ARCHIVED"),material(31L,101L,"ARCHIVED"),material(32L,102L,"ARCHIVED")));
+        when(platform.markSubmissionArchiveState(any(),eq("ARCHIVED"),any())).thenReturn(true);
+        when(resultMapper.updateArchiveProjection(any())).thenReturn(1);
+        for(long id:List.of(40L,41L)) {
+            long submissionId=1000L+id;
+            when(platform.lockPendingArchiveSubmission(submissionId)).thenReturn(Optional.of(
+                    new TemplateFrozenSubmissionView(submissionId,20L,"satisfaction-result:"+id+":1","AUTO_PROJECTION","CURRENT","{}",null,List.of(30L,31L,32L),null)));
+            var owner=result();owner.setId(id);when(resultMapper.selectByIdForUpdate(7L,id)).thenReturn(owner);
+            when(resultFileMapper.selectListByResult(new SatisfactionResultFilesQuery(7L,id))).thenReturn(List.of(
+                    resultFile("RESULT_DOCUMENT",1,100L,"doc"),resultFile("SIGNATURE",1,101L,"sig"),resultFile("ATTACHMENT",1,102L,"att")));
+            service.archiveSubmission(7L,submissionId);
+            verify(platform).markSubmissionArchiveState(submissionId,"ARCHIVED",null);
+        }
+        var commands=ArgumentCaptor.forClass(ArchiveFileReferenceSetsCommand.class);
+        verify(fileApi,times(6)).archiveReferenceSets(commands.capture());
+        assertEquals(List.of("40","40","40","41","41","41"),commands.getAllValues().stream()
+                .map(command->command.archiveSetKey().objectId()).toList());
+        verify(platform,never()).findSubmissionIdByMaterial(any());
+    }
+
+    @Test void scopedFailureUpdatesOnlyItsOwnNativeResult() {
+        when(platform.lockPendingArchiveSubmission(1001L)).thenReturn(Optional.of(submission()));
+        when(platform.markSubmissionArchiveState(1001L,"PENDING_COMPENSATION","ARCHIVE_TIMEOUT")).thenReturn(true);
+        when(resultMapper.selectByIdForUpdate(7L,40L)).thenReturn(result());
+        when(resultMapper.updateArchiveProjection(any())).thenReturn(1);
+        service.recordSubmissionFailure(7L,1001L,"ARCHIVE_TIMEOUT");
+        var update=ArgumentCaptor.forClass(SatisfactionResultArchiveProjectionUpdate.class);
+        verify(resultMapper).updateArchiveProjection(update.capture());
+        assertEquals(40L,update.getValue().resultId());assertEquals(1,update.getValue().archiveRetryCount());
+        verify(platform,never()).findSubmissionIdByMaterial(any());
+    }
+
     private void stubProjection() {
         when(platform.lockMaterials(anyList())).thenAnswer(
                 invocation -> ((List<Long>) invocation.getArgument(0)).stream()

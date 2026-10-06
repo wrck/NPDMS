@@ -54,10 +54,14 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     private DeliverableChecklistMapper deliverableChecklistMapper;
     @Resource
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
+    @Resource private DeliverableChecklistDeliveryAccess deliveryAccess;
+    @Resource private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public Long createDeliverableChecklist(DeliverableChecklistSaveReqVO createReqVO) {
         // 插入；编码由系统按项目编码自动生成
+        if(createReqVO.getStatus()!=null && createReqVO.getStatus()!=STATUS_DRAFT)throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         DeliverableChecklistDO entity = BeanUtils.toBean(createReqVO, DeliverableChecklistDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 AcceptanceRecordCodeGenerator.DELIVERABLE_CHECKLIST, deliverableChecklistMapper));
@@ -72,8 +76,10 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void updateDeliverableChecklist(DeliverableChecklistSaveReqVO updateReqVO) {
         DeliverableChecklistDO existing = validateExists(updateReqVO.getId());
+        deliveryAccess.require(existing,"update");
         // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
@@ -81,12 +87,16 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         DeliverableChecklistDO updateObj = BeanUtils.toBean(updateReqVO, DeliverableChecklistDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
-        deliverableChecklistMapper.updateById(updateObj);
+        updateObj.setTenantId(existing.getTenantId());
+        deliveryAccess.require(updateObj,"update");
+        updateRecord(updateObj);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void deleteDeliverableChecklist(Long id) {
         DeliverableChecklistDO existing = validateExists(id);
+        deliveryAccess.require(existing,"delete");
         // 仅草稿或已驳回状态允许删除
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
@@ -106,17 +116,21 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void submitDeliverableChecklist(Long id) {
         DeliverableChecklistDO entity = validateExists(id);
+        deliveryAccess.require(entity,"submit");
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
-        updateStatus(id, STATUS_SUBMITTED);
+        updateStatus(entity, STATUS_SUBMITTED);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void passDeliverableChecklist(Long id) {
         DeliverableChecklistDO entity = validateExists(id);
+        deliveryAccess.require(entity,"audit");
         if (!Objects.equals(entity.getStatus(), STATUS_SUBMITTED)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
@@ -124,30 +138,40 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         updateObj.setId(id);
         updateObj.setStatus(STATUS_PASSED);
         updateObj.setCheckTime(LocalDateTime.now());
-        deliverableChecklistMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        updateRecord(updateObj);
+        materials.registerBusinessResultMaterial("ACC","deliverableChecklist",id,"DELIVERABLE_CHECKLIST",
+                "deliverableChecklist",id.toString(),null,entity.getName(),entity.getProjectId());
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void rejectDeliverableChecklist(Long id) {
         DeliverableChecklistDO entity = validateExists(id);
+        deliveryAccess.require(entity,"audit");
         if (!Objects.equals(entity.getStatus(), STATUS_SUBMITTED)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
-        updateStatus(id, STATUS_REJECTED);
+        updateStatus(entity, STATUS_REJECTED);
     }
 
-    private void updateStatus(Long id, int status) {
+    private void updateStatus(DeliverableChecklistDO entity, int status) {
         DeliverableChecklistDO updateObj = new DeliverableChecklistDO();
-        updateObj.setId(id);
+        updateObj.setId(entity.getId());
+        updateObj.setVersion(entity.getVersion());
         updateObj.setStatus(status);
-        deliverableChecklistMapper.updateById(updateObj);
+        updateRecord(updateObj);
     }
 
+    private void updateRecord(DeliverableChecklistDO row) {
+        if(row.getVersion()==null || deliverableChecklistMapper.updateById(row)!=1)
+            throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("CHECKLIST_VERSION_CONFLICT","Current native checklist version required");
+    }
     private DeliverableChecklistDO validateExists(Long id) {
         if (id == null) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS);
         }
-        DeliverableChecklistDO entity = deliverableChecklistMapper.selectById(id);
+        DeliverableChecklistDO entity = deliverableChecklistMapper.selectOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.query.DeliverableChecklistOwnerLockQuery(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),id));
         if (entity == null) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS);
         }

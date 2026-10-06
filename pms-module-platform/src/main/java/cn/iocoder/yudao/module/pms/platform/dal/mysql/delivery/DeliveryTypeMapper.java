@@ -16,6 +16,9 @@ public interface DeliveryTypeMapper extends BaseMapperX<DeliveryTypeDO> {
                 .eq(DeliveryTypeDO::getTypeCode, typeCode)));
     }
 
+    DeliveryTypeDO selectCodeForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryTypeCodeLockQuery query);
+
     default List<DeliveryTypeDO> selectAll() {
         return selectList(new LambdaQueryWrapperX<DeliveryTypeDO>()
                 .orderByAsc(DeliveryTypeDO::getTypeCode));

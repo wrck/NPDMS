@@ -11,6 +11,7 @@ import java.util.List;
 
 @Mapper
 public interface DeliverableChecklistMapper extends ProjectScopedCodeMapper<DeliverableChecklistDO> {
+    DeliverableChecklistDO selectOwnerForUpdate(@org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.query.DeliverableChecklistOwnerLockQuery query);
 
     default PageResult<DeliverableChecklistDO> selectPage(DeliverableChecklistPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DeliverableChecklistDO>()

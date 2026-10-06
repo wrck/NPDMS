@@ -126,6 +126,7 @@
         </el-col>
       </el-row>
     </el-form>
+    <DeliveryPanel v-if="form.id" owner-module="IMP" entity-type="arrival" :entity-id="form.id" :readonly="true" />
     <section class="sign-document-section" aria-label="签收单附件">
       <h4>签收单附件</h4>
       <template v-if="form.id">
@@ -171,6 +172,7 @@
 </template>
 
 <script setup lang="ts">
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'

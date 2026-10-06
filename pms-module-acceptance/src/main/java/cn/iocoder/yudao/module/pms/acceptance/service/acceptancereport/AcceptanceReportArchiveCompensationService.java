@@ -46,6 +46,27 @@ public class AcceptanceReportArchiveCompensationService {
             throw new IllegalStateException("archive source state conflict");
         }
         TemplateFrozenSubmissionView submission = requireReportProjection(material);
+        archiveProjection(tenantId, submission);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void archiveSubmission(Long tenantId, Long submissionId) {
+        TemplateFrozenSubmissionView submission = platform.lockPendingArchiveSubmission(submissionId).orElse(null);
+        if (submission == null) return;
+        if (!PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION.equals(submission.sourceType())
+                || submission.requestKey() == null || !submission.requestKey().startsWith("report:"))
+            throw new IllegalStateException("archive source identity conflict");
+        archiveProjection(tenantId, submission);
+        if (!platform.markSubmissionArchiveState(submission.id(), PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED, null))
+            throw new IllegalStateException("archive obligation update conflict");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void recordSubmissionFailure(Long tenantId, Long submissionId, String failureCode) {
+        platform.markSubmissionArchiveState(submissionId, PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION, failureCode);
+    }
+
+    private void archiveProjection(Long tenantId, TemplateFrozenSubmissionView submission) {
         long reportId = Long.parseLong(
                 AcceptanceReportSourceProjectionService.projectionVersionId(submission.requestKey()));
         AcceptanceReportVersionDO report = reportMapper.selectById(reportId);
@@ -54,6 +75,8 @@ public class AcceptanceReportArchiveCompensationService {
         }
         List<TemplateFrozenMaterialView> materials = platform.lockMaterials(submission.materialIds());
         if (materials.isEmpty()) throw new IllegalStateException("archive attachments missing");
+        if (materials.stream().anyMatch(row -> !PlatformDeliveryRequirementApi.MATERIAL_KIND_FILE.equals(row.materialKind())
+                || "WITHDRAWN".equals(row.status()))) throw new IllegalStateException("archive material invalid");
         List<FileArtifactVersionFact> facts = materials.stream().map(this::toFact).toList();
         Long scopeVersion = facts.getFirst().scopeVersion();
         if (facts.stream().anyMatch(fact -> !Objects.equals(scopeVersion, fact.scopeVersion()))) {

@@ -51,6 +51,7 @@ export interface ModelDetailVO {
   entityType: string
   stableCode: string
   title: string
+  viewCode?: string
   fields: FieldVO[]
   operations: OperationVO[]
   capabilities: CapabilityVO[]
@@ -107,6 +108,7 @@ export interface BusinessOperationReceipt {
 export interface OperationExecuteRequest {
   idempotencyKey: string
   concurrencyBasis?: number
+  revisionId?: string | number
   entryKind?: 'INDEPENDENT' | 'PROJECT_NODE' | 'IMPORT' | 'BATCH' | 'SYSTEM' | 'PUBLIC_LINK'
   entryCorrelationId?: string
   input: Record<string, unknown>
@@ -138,7 +140,7 @@ export const getEntityPage = (
 export const getEntityData = (
   ownerModule: string,
   entityType: string,
-  params: { id: number; revisionId?: number }
+  params: { id: string | number; revisionId?: string | number }
 ) =>
   request.get<BusinessEntityData>({
     url: `${baseUrl}/${ownerModule}/${entityType}/data`,
@@ -150,7 +152,7 @@ export const executeEntityOperation = (
   ownerModule: string,
   entityType: string,
   operationCode: string,
-  entityId: number | undefined,
+  entityId: string | number | undefined,
   data: OperationExecuteRequest
 ) =>
   request.post<BusinessOperationReceipt>({
@@ -161,4 +163,24 @@ export const executeEntityOperation = (
     silentError: true
   })
 
+export const recoverEntityOperation = (ownerModule: string, entityType: string, operationCode: string,
+  operationVersion: number, idempotencyKey: string) =>
+  request.get<BusinessOperationReceipt | null>({
+    url: `${baseUrl}/${ownerModule}/${entityType}/operations/${operationCode}/receipt`,
+    params: { operationVersion, idempotencyKey }, silentError: true
+  })
+
 export const newIdempotencyKey = () => crypto.randomUUID()
+
+
+export interface BusinessEntityFormData {
+  layout?: {
+    binding: { formRevisionId: string | number; extensionDefinitionRevisionId?: string | number; fieldBindings: Record<string, string>; version: number }
+    formConfJson: string
+    formRulesJson: string
+  }
+  extensions: { definitionRevisionId?: string | number; fields: Record<string, unknown>; version: number }
+  definitions: Array<{ code: string; label: string; type: FieldType; required: boolean; maxLength?: number; allowedValues?: string[] }>
+}
+export const getEntityForm = (ownerModule: string, entityType: string, entityId: string | number) =>
+  request.get<BusinessEntityFormData>({ url: `${baseUrl}/${ownerModule}/${entityType}/form`, params: { entityId }, silentError: true })

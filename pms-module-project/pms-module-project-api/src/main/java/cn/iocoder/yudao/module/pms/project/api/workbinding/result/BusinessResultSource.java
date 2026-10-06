@@ -6,6 +6,11 @@ import java.util.Objects;
 /** Internal Owner fact boundary; configuration metadata neither executes commands nor grants user access. */
 public interface BusinessResultSource {
     Descriptor descriptor();
+    /** Owner-declared canonical material identity, resolved under the same native result lock. */
+    default DeliveryIdentity deliveryIdentity(Query query) { return null; }
+    record DeliveryIdentity(String ownerModule,String entityType,Long entityId,String businessTypeCode,
+                            String businessObjectType,String businessObjectId,Long businessRevisionNo) { }
+
     Observation inspect(Query query);
 
     /** Caller transaction. Exact selected identity; Owner must lock its current validity rows. */

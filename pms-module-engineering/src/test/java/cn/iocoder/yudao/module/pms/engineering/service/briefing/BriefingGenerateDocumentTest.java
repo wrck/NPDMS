@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.service.briefing;
 
-import cn.iocoder.yudao.module.infra.api.file.FileApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import org.junit.jupiter.api.AfterEach;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingGenerateReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.BriefingDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.BriefingMapper;
@@ -21,14 +24,18 @@ import static org.mockito.Mockito.*;
 class BriefingGenerateDocumentTest {
 
     private final BriefingMapper mapper = mock(BriefingMapper.class);
-    private final FileApi fileApi = mock(FileApi.class);
+    private final NativeGeneratedFileApi generatedFiles = mock(NativeGeneratedFileApi.class);
     private final BriefingServiceImpl service = new BriefingServiceImpl();
     private BriefingDO row;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "briefingMapper", mapper);
-        ReflectionTestUtils.setField(service, "fileApi", fileApi);
+        ReflectionTestUtils.setField(service, "generatedFiles", generatedFiles);
+        TenantContextHolder.setTenantId(1L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(9L).setTenantId(1L),new org.springframework.mock.web.MockHttpServletRequest());
+        when(generatedFiles.create(any())).thenReturn(new NativeGeneratedFileApi.RegisteredFile(210L,220L,230L,1,"a".repeat(64),"BR-001.html"));
         row = new BriefingDO();
         row.setId(1L);
         row.setCode("BR-001");
@@ -42,24 +49,27 @@ class BriefingGenerateDocumentTest {
         when(mapper.updateById(any(BriefingDO.class))).thenReturn(1);
     }
 
+    @AfterEach void clear(){TenantContextHolder.clear();org.springframework.security.core.context.SecurityContextHolder.clearContext();}
+
     @Test
     void generateWritesRealFileMetadataInsteadOfForgedPlaceholder() throws Exception {
-        when(fileApi.createFile(any(), anyString(), anyString(), anyString())).thenReturn("/file/briefing/BR-001.html");
 
         BriefingGenerateReqVO request = new BriefingGenerateReqVO();
         request.setId(1L);
         request.setVersion(2);
         service.generateBriefing(request);
 
-        ArgumentCaptor<byte[]> contentCaptor = ArgumentCaptor.forClass(byte[].class);
-        verify(fileApi).createFile(contentCaptor.capture(), eq("BR-001.html"), eq("briefing"), eq("text/html"));
-        byte[] document = contentCaptor.getValue();
+        ArgumentCaptor<NativeGeneratedFileCommand> contentCaptor = ArgumentCaptor.forClass(NativeGeneratedFileCommand.class);
+        verify(generatedFiles).create(contentCaptor.capture());
+        var command=contentCaptor.getValue();
+        assertEquals(9L,command.actorUserId());assertEquals("BRIEFING_DOCUMENT_HTML/2",command.purposeCode());
+        byte[] document = command.content();
         assertTrue(document.length > 0);
         String html = new String(document, StandardCharsets.UTF_8);
         assertTrue(html.contains("BR-001"));
         assertTrue(html.contains("核心交换机割接交底"));
 
-        assertEquals("/file/briefing/BR-001.html", row.getFileUrl());
+        assertEquals("/api/v1/pms/briefings/1/files/210", row.getFileUrl());
         assertEquals("BR-001.html", row.getFileName());
         assertEquals((long) document.length, row.getFileSize());
         String expectedChecksum = HexFormat.of()
@@ -71,7 +81,6 @@ class BriefingGenerateDocumentTest {
 
     @Test
     void blankContentAssemblesFromRealBriefingDataNotPlaceholder() {
-        when(fileApi.createFile(any(), anyString(), anyString(), anyString())).thenReturn("/file/BR-001.html");
 
         BriefingGenerateReqVO request = new BriefingGenerateReqVO();
         request.setId(1L);
@@ -87,7 +96,6 @@ class BriefingGenerateDocumentTest {
     @Test
     void manualContentIsPreservedVerbatim() {
         row.setContent("人工编写内容");
-        when(fileApi.createFile(any(), anyString(), anyString(), anyString())).thenReturn("/file/BR-001.html");
 
         BriefingGenerateReqVO request = new BriefingGenerateReqVO();
         request.setId(1L);

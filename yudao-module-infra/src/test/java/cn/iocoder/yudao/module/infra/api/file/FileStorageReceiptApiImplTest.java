@@ -51,6 +51,53 @@ class FileStorageReceiptApiImplTest {
         ReflectionTestUtils.setField(api, "receiptDownloads", receiptDownloads);
     }
 
+    @Test void localStorageUsesTheSameAuthorizedExpiringReceiptEndpoint() {
+        var stored=file(901L,36L,"op-901","log.txt","text/plain",3L);
+        var local=mock(cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClient.class);
+        when(fileMapper.selectById(901L)).thenReturn(stored);
+        when(fileConfigService.getFileClient(36L)).thenReturn(local);
+        when(receiptDownloads.issue(stored,60)).thenReturn("http://server/ticket");
+        assertEquals("http://server/ticket",api.presignGet(901L,60).shortLivedUrl());
+        verify(local,never()).presignGetUrl(any(),any());
+    }
+    @Test void outerRollbackDeletesOnlyTheNewUncommittedPhysicalObject() throws Exception {
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            when(fileMapper.selectListByStorageOperation(any())).thenReturn(List.of());
+            when(fileConfigService.getMasterFileClient()).thenReturn(masterClient);
+            when(masterClient.getId()).thenReturn(11L);
+            when(masterClient.upload(any(),any(),any())).thenReturn("https://private/receipt");
+            when(fileMapper.insert(any(FileDO.class))).thenAnswer(call->{((FileDO)call.getArgument(0)).setId(101L);return 1;});
+            api.store(command("rollback-new","evidence.pdf","application/pdf"));
+            for(var sync:org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations())
+                sync.afterCompletion(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK);
+            verify(masterClient).delete("pms-storage-receipts/rollback-new");
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
+    @Test void rollbackCannotDeleteACommittedReceiptUsingTheSamePath() throws Exception {
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            when(fileMapper.selectListByStorageOperation(any())).thenReturn(List.of());
+            when(fileConfigService.getMasterFileClient()).thenReturn(masterClient);
+            when(masterClient.getId()).thenReturn(11L);
+            when(masterClient.upload(any(),any(),any())).thenReturn("https://private/receipt");
+            when(fileMapper.insert(any(FileDO.class))).thenAnswer(call->{((FileDO)call.getArgument(0)).setId(101L);return 1;});
+            when(fileMapper.selectCommittedReceiptForRollback(any())).thenReturn(List.of(file(201L,11L,"protected","evidence.pdf","application/pdf",3L)));
+            api.store(command("protected","evidence.pdf","application/pdf"));
+            for(var sync:org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations())
+                sync.afterCompletion(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK);
+            verify(masterClient,never()).delete(any());
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
+
     @Test void databaseStorageUsesAuthorizedExpiringReceiptAccess() {
         var stored=file(901L,36L,"op-901","log.txt","text/plain",3L);
         var database=org.mockito.Mockito.mock(cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient.class);

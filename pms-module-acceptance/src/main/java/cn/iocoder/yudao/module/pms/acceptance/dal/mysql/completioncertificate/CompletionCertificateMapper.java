@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface CompletionCertificateMapper extends ProjectScopedCodeMapper<CompletionCertificateDO> {
+    CompletionCertificateDO selectDeliveryOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery query);
+
 
     default PageResult<CompletionCertificateDO> selectPage(CompletionCertificatePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<CompletionCertificateDO>()

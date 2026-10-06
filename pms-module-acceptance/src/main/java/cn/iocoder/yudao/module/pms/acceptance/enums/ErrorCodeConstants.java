@@ -12,6 +12,7 @@ public interface ErrorCodeConstants {
     // ========== 电子完工证明 1-014-011-000 ==========
     ErrorCode ACC_COMPLETION_CERTIFICATE_NOT_EXISTS = new ErrorCode(1_014_011_000, "电子完工证明不存在");
     ErrorCode ACC_COMPLETION_CERTIFICATE_CODE_DUPLICATE = new ErrorCode(1_014_011_001, "项目内完工证明编码已存在");
+    ErrorCode ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT = new ErrorCode(1_014_011_003, "完工证明版本冲突，请刷新后重试");
     ErrorCode ACC_COMPLETION_CERTIFICATE_STATUS_INVALID = new ErrorCode(1_014_011_002, "完工证明状态流转不合法");
 
     // ========== 初验/终验 1-014-012-000 ==========
@@ -39,6 +40,7 @@ public interface ErrorCodeConstants {
     // ========== 归档文档 1-014-015-000 ==========
     ErrorCode ACC_ARCHIVE_DOCUMENT_NOT_EXISTS = new ErrorCode(1_014_015_000, "归档文档不存在");
     ErrorCode ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE = new ErrorCode(1_014_015_001, "项目内归档文档编码已存在");
+    ErrorCode ACC_ARCHIVE_DOCUMENT_VERSION_CONFLICT = new ErrorCode(1_014_015_003, "归档文档版本冲突，请刷新后重试");
     ErrorCode ACC_ARCHIVE_DOCUMENT_STATUS_INVALID = new ErrorCode(1_014_015_002, "归档文档状态流转不合法");
 
     // ========== 迁移期沿用的 PROJ 段通用错误码（同号同文案，行为保持；ACC 后续独立分配时段时再收敛）==========

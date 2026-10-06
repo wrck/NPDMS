@@ -25,11 +25,17 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.DYNA
 public class DynamicFormBusinessObjectPolicyProviderRegistry {
 
     private final List<DynamicFormBusinessObjectPolicyProvider> providers;
+    private final org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.support.capability.DeclaredBusinessCapabilityAdapterFactory> declared;
     private final Object transactionResourceKey = new Object();
     private final Object revisionTransactionResourceKey = new Object();
 
     public DynamicFormBusinessObjectPolicyProviderRegistry(List<DynamicFormBusinessObjectPolicyProvider> providers) {
-        this.providers = List.copyOf(providers);
+        this(providers,null);
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public DynamicFormBusinessObjectPolicyProviderRegistry(List<DynamicFormBusinessObjectPolicyProvider> providers,
+            org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.support.capability.DeclaredBusinessCapabilityAdapterFactory> declared) {
+        this.providers=List.copyOf(providers);this.declared=declared;
     }
 
     public DynamicFormPolicyFact inspectRevision(DynamicFormRevisionPolicyQuery query) {
@@ -170,6 +176,9 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
         if (key == null) throw exception(DYNAMIC_FORM_PROVIDER_UNAVAILABLE);
         List<DynamicFormBusinessObjectPolicyProvider> matches = providers.stream()
                 .filter(provider -> key.equals(provider.providerKey())).toList();
+        var defaults=declared==null?null:declared.getIfAvailable();
+        if(matches.isEmpty() && defaults!=null && defaults.supports(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef(1L,key.ownerContext(),key.objectType(),1L)))
+            return defaults.formPolicy(key);
         if (matches.size() != 1) throw exception(DYNAMIC_FORM_PROVIDER_UNAVAILABLE);
         return matches.getFirst();
     }

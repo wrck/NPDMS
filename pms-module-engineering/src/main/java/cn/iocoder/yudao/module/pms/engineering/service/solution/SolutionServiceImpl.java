@@ -38,6 +38,7 @@ public class SolutionServiceImpl implements SolutionService {
 
     @Resource
     private SolutionMapper solutionMapper;
+    @Resource private SolutionCustomerDocumentService customerDocuments;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
     @Resource
@@ -55,6 +56,7 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSolution(SolutionSaveReqVO createReqVO) {
+        if(SolutionCustomerDocumentService.hasNativePointer(createReqVO.getRemark()))customerDocuments.validatePointer(null,createReqVO.getRemark());
         SolutionDO solution = BeanUtils.toBean(createReqVO, SolutionDO.class);
         solution.setStatus(0);
         solution.setVersion(0L);
@@ -89,6 +91,7 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionDO existing = validateSolutionExists(updateReqVO.getId());
         validateStatus(existing, 0);
         validateVersion(existing, updateReqVO.getVersion() == null ? null : updateReqVO.getVersion().longValue());
+        if(SolutionCustomerDocumentService.hasNativePointer(updateReqVO.getRemark()))customerDocuments.validatePointer(existing.getId(),updateReqVO.getRemark());
         SolutionDO update = BeanUtils.toBean(updateReqVO, SolutionDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());

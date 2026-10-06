@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.platform.support.model;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
 import cn.iocoder.yudao.module.pms.platform.api.entity.EntityField;
 import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -75,7 +76,8 @@ public final class BusinessModelIntrospector {
             for (Field property : level.getDeclaredFields()) {
                 if (Modifier.isStatic(property.getModifiers()) || property.isSynthetic()
                         || Modifier.isTransient(property.getModifiers())
-                        || property.isAnnotationPresent(JsonIgnore.class)) {
+                        || property.isAnnotationPresent(JsonIgnore.class)
+                        && !property.isAnnotationPresent(BusinessModelField.class)) {
                     continue;
                 }
                 TableField tableField = property.getAnnotation(TableField.class);

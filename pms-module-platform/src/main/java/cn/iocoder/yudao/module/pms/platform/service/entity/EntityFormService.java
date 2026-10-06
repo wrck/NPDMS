@@ -37,6 +37,7 @@ public class EntityFormService implements EntityFormApi {
 
     @Override
     public Binding read(EntityDataRef target, EntityActor actor) {
+        target=registry.nativeRef(target);
         registry.requireReadable(target, actor);
         return binding(mapper.selectBinding(EntityValueQuery.of(target)));
     }
@@ -57,6 +58,9 @@ public class EntityFormService implements EntityFormApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public Binding bind(Bind command) {
+        command=new Bind(registry.nativeRef(command.target()),command.actor(),command.expectedEntityVersion(),
+                command.expectedBindingVersion(),command.formRevisionId(),command.extensionDefinitionRevisionId(),
+                command.fieldBindings(),command.bindRemainingFields());
         registry.lockForWrite(command.target(), command.actor(), command.expectedEntityVersion());
         var entity = command.target().entity();
         var revision = formRevisions.selectByRow(new DynamicFormRevisionRowQuery(entity.tenantId(), command.formRevisionId()));
@@ -158,6 +162,7 @@ public class EntityFormService implements EntityFormApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor) {
+        source=registry.nativeRef(source);target=registry.nativeRef(target);
         if (!source.entity().equals(target.entity()) || source.equals(target)) throw exception(ENTITY_REVISION_MISMATCH);
         var original = read(source, actor);
         registry.lockForWrite(target, actor, expectedTargetVersion);

@@ -38,10 +38,10 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
         String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + command.nodeKind() + ":" + command.nodeId() + ":" + command.idempotencyKey());
         // Reuse the existing command key for Owner audit, form callbacks and committed-event correlation.
         var actor = new EntityActor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), key);
-        EntityVersionProvider.Revision result;
+        cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt receipt;
         if (code.endsWith(".CREATE")) {
             if (command.objectId() != null) throw exception(BAD_REQUEST, "CREATE_OBJECT_MUST_BE_ABSENT");
-            result = commands.getObject().create(new RequirementAnalysisEntityCommands.Create(command.projectId(), command.execution()), actor, key);
+            receipt = commands.getObject().executeReceipt("create",null,null,new RequirementAnalysisEntityCommands.Create(command.projectId(), command.execution()), actor, key);
         } else {
             Long id;
             try { id = Long.valueOf(command.objectId()); } catch (RuntimeException invalid) { throw exception(BAD_REQUEST, "BUSINESS_OBJECT_REQUIRED"); }
@@ -54,7 +54,7 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
                 RequirementAnalysisEntityCommands.Patch input;
                 try { input = ProjectOperationInput.read(JsonUtils.getObjectMapper(), command.input(), RequirementAnalysisEntityCommands.Patch.class); }
                 catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
-                result = commands.getObject().save(ref, command.expectedBusinessVersion().intValue(),
+                receipt = commands.getObject().executeReceipt("save",ref, command.expectedBusinessVersion().intValue(),
                         new RequirementAnalysisEntityCommands.Patch(input.values(), input.extensionDefinitionRevisionId(), input.expectedExtensionVersion(),
                                 input.extensionValues(), command.execution()), actor, key);
             } else {
@@ -64,15 +64,18 @@ public class RequirementAnalysisOperationCommandAdapter implements ProjectBusine
                     reason = ProjectOperationInput.optionalText(command.input(), "reason");
                 } catch (IllegalArgumentException invalid) { throw exception(BAD_REQUEST, "BUSINESS_INPUT_INVALID"); }
                 var action = new RequirementAnalysisEntityCommands.Action(reason, command.execution());
-                result = code.endsWith(".COMPLETE") ? commands.getObject().complete(ref, command.expectedBusinessVersion().intValue(), action, actor, key)
-                        : commands.getObject().copy(ref, command.expectedBusinessVersion().intValue(), action, actor, key);
+                receipt = commands.getObject().executeReceipt(code.endsWith(".COMPLETE") ? "complete" : "copy",
+                        ref,command.expectedBusinessVersion().intValue(),action,actor,key);
             }
         }
+        var result = RequirementAnalysisEntityCommands.nativeRevision(receipt);
         if (result == null || result.ref() == null || result.ref().revisionId() == null) throw new IllegalStateException("OWNER_RESULT_IDENTITY_INVALID");
         String id = result.ref().revisionId().toString();
         String fact = "SOL:REQUIREMENT_ANALYSIS_REVISION:" + id + ":" + result.version() + ":" + result.state().name();
+        var response=(tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(JsonUtils.toJsonString(result));
+        response.set("operationReceipt",JsonUtils.parseTree(JsonUtils.toJsonString(receipt)));
         return new ProjectOperationResult("SOL", "REQUIREMENT_ANALYSIS", id, id, (long) result.version(), fact,
                 code.endsWith(".COMPLETE") ? "REQUIREMENT_ANALYSIS_COMPLETED" : "REQUIREMENT_ANALYSIS_DRAFT_SAVED",
-                JsonUtils.parseTree(JsonUtils.toJsonString(result)), false);
+                response, false);
     }
 }

@@ -54,7 +54,7 @@ class ArrivalDocumentSourcesTest {
 
         var scope = sources.resolve(TENANT, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT");
 
-        assertEquals(new FileDocumentSourceProvider.Scope(66L, ArrivalDocumentSources.SOURCE_CODE),
+        assertEquals(new FileDocumentSourceProvider.Scope(66L, ArrivalDocumentSources.SOURCE_CODE,"IMP","arrival",7L,null),
                 scope);
     }
 

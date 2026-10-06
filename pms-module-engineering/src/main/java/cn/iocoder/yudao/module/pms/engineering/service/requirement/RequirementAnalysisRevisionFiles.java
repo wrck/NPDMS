@@ -14,6 +14,8 @@ public class RequirementAnalysisRevisionFiles {
     private final FileArtifactApi files;
     private final RequirementAnalysisAccess access;
     private final EntityFormApi forms;
+    @org.springframework.beans.factory.annotation.Autowired
+    private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials;
 
     public List<FileReferenceSetFact> inspect(RevisionRef revision, EntityActor actor) {
         var row = access.read(revision.revisionId(), actor);
@@ -30,8 +32,20 @@ public class RequirementAnalysisRevisionFiles {
     public void lockForFreeze(RevisionRef revision, EntityActor actor) {
         var facts = inspect(revision, actor);
         if (facts.isEmpty()) return;
-        files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(facts.stream()
+        var locked=files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(facts.stream()
                 .map(fact -> new FileReferenceSetExpectation(fact.key(), fact.scopeVersion(), fact.activeFacts())).toList(), FileActionCodes.READ));
+        locked.forEach(set -> set.activeFacts().forEach(materials::registerNativeSourceFile));
+    }
+
+    /** Explicit business save: optional files become materials even without template requirements. */
+    public void registerSaved(RevisionRef revision, EntityActor actor) {
+        lockForFreeze(revision,actor);
+    }
+
+    public void registerActivated(cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO row) {
+        materials.registerBusinessResultMaterial("SOL","requirementAnalysis",row.getEntityId(),
+                RequirementAnalysisDeliveryEvidenceProvider.CODE,RequirementAnalysisDeliveryEvidenceProvider.TYPE,
+                String.valueOf(row.getId()),row.getRevisionNo().longValue(),"需求分析完成修订 v"+row.getRevisionNo(),row.getProjectId());
     }
 
     public void copy(RevisionRef source, RevisionRef target, EntityActor actor) {
@@ -45,7 +59,7 @@ public class RequirementAnalysisRevisionFiles {
                         FileActionCodes.READ, file.fileFactVersion(), file.scopeVersion()),
                 new ExistingFileReferenceTarget(RequirementAnalysisRevisionFilePolicy.OWNER, RequirementAnalysisRevisionFilePolicy.TYPE,
                         target.revisionId().toString(), set.key().purposeCode(), file.referenceKey(), targetRow.getId())))));
-        if (!items.isEmpty()) files.attachExistingVersions(new AttachExistingFileVersionsCommand("RA-REVISION-COPY-" + target.revisionId(), items));
+        if (!items.isEmpty()) files.attachExistingVersions(new AttachExistingFileVersionsCommand("RA-REVISION-COPY-" + target.revisionId(), items)).forEach(materials::registerNativeSourceFile);
     }
 
     private FileReferenceSetKey key(RevisionRef revision, String purpose) {

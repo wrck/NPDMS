@@ -37,6 +37,14 @@ public class DeliveryMaterialDO extends TenantBaseDO {
     private Long entityId;
     private String typeCode;
     private String materialKind;
+    /** 新登记材料的来源版本身份；旧行不改写。 */
+    private String sourceIdentityKey;
+    /** 稳定业务分类及原生来源锚，独立于模板要求编码；旧字段/历史快照不改写。 */
+    private String businessTypeCode;
+    private String sourceOwnerModule;
+    private String sourceEntityType;
+    private Long sourceEntityId;
+    private Long sourceRevisionId;
     /** 绑定的模板冻结要求（TEMPLATE_FROZEN 要求的材料直连）；CATALOG 场景为空。 */
     private Long requirementId;
     /** 项目上下文：供项目级汇总与门禁定位，不改变 owner 三元组语义。 */

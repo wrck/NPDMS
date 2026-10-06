@@ -21,6 +21,11 @@ import java.util.Map;
 
 public interface FileBusinessObjectPolicyProvider {
 
+    default FileBusinessObjectPolicyFact lockAndRevalidateNativeGeneratedFile(
+            cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFilePolicyQuery query) {
+        throw new UnsupportedOperationException("native generated file policy is not implemented");
+    }
+
     String ownerContext();
 
     String objectType();

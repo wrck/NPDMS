@@ -83,10 +83,22 @@ public class DeliveryCatalogService {
                 .toList();
     }
 
+    public DeliveryTypeDO requireType(String typeCode) {
+        return typeMapper.selectByCode(typeCode).orElseThrow(() -> new BusinessContractException(
+                "DELIVERY_TYPE_NOT_FOUND", "交付类型不存在: " + typeCode));
+    }
+
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public DeliveryTypeDO lockEnabledType(String typeCode) {
+        var row = typeMapper.selectCodeForUpdate(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryTypeCodeLockQuery(
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),typeCode));
+        if (row == null) throw new BusinessContractException("DELIVERY_TYPE_NOT_FOUND", "交付类型不存在");
+        if (!Boolean.TRUE.equals(row.getEnabled())) throw new BusinessContractException("DELIVERY_TYPE_DISABLED", "交付类型已停用");
+        return row;
+    }
+
     public DeliveryTypeDO requireEnabledType(String typeCode) {
-        DeliveryTypeDO row = typeMapper.selectByCode(typeCode)
-                .orElseThrow(() -> new BusinessContractException("DELIVERY_TYPE_NOT_FOUND",
-                        "交付类型不存在: " + typeCode));
+        DeliveryTypeDO row = requireType(typeCode);
         if (!Boolean.TRUE.equals(row.getEnabled())) {
             throw new BusinessContractException("DELIVERY_TYPE_DISABLED", "交付类型已停用: " + typeCode);
         }

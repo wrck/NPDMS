@@ -15,7 +15,7 @@ import java.util.List;
 @TableName("sol_requirement_analysis")
 /** P12-B1：继承统一业务基类，id/version 由基类唯一定义（EntityRevision.getVersion(): Long 契约）。 */
 public class RequirementAnalysisDO extends BaseBusinessEntity {
-    @JsonIgnore private Long projectId;
+    @JsonIgnore @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField private Long projectId;
     @NotBlank
     private String projectBackground;
     @NotBlank

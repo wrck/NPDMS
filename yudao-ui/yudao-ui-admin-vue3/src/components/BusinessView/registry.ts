@@ -1,4 +1,4 @@
-import { markRaw, type Component } from 'vue'
+import { defineAsyncComponent, markRaw, type Component } from 'vue'
 import OwnerCompletionEntry from './OwnerCompletionEntry.vue'
 import ProjectMembersBusinessView from './ProjectMembersBusinessView.vue'
 import { businessPageRoutes, validatePagePresentation, type PagePresentation } from './presentationRoute'
@@ -40,6 +40,9 @@ interface Adapter {
   viewSource: 'PAGE' | 'DYNAMIC_FORM'
   pageUrl?: string
   component: Component
+  /** Optional independent catalog presentation reuses this same professional component. */
+  businessEntityViewCode?: string
+  standaloneProps?: (project: ProjectMasterVO) => Record<string, unknown>
   resolve: (target: BusinessViewTarget) => Record<string, unknown> | undefined
 }
 const positiveId = isBusinessViewId
@@ -90,6 +93,8 @@ const adapters: readonly Adapter[] = [
   {
     ...businessPageRoutes.SOL_SITE_SURVEY,
     component: markRaw(SiteSurveyPage),
+    businessEntityViewCode: 'sol_site_survey',
+    standaloneProps: (project) => ({ projectId: project.id }),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null &&
       positiveId(resolvedContext.project?.id) &&
@@ -116,6 +121,8 @@ const adapters: readonly Adapter[] = [
   {
     ...businessPageRoutes.PROJ_REQUIREMENT_ANALYSIS,
     component: markRaw(ProjectRequirementAnalysisPanel),
+    businessEntityViewCode: 'sol_requirement_analysis',
+    standaloneProps: (project) => ({ project }),
       resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
       && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
@@ -158,6 +165,13 @@ const adapters: readonly Adapter[] = [
         : undefined
   }
 ]
+export const resolveStandaloneBusinessEntityView = (viewCode: string | undefined) => {
+  const adapter = adapters.find((entry) => !!entry.standaloneProps &&
+    (entry.componentKey === viewCode || entry.businessEntityViewCode === viewCode))
+  return adapter ? { component: adapter.component, resolve: adapter.standaloneProps! } : undefined
+}
+
+const declaredComponent = markRaw(defineAsyncComponent(() => import('./DeclaredBusinessView.vue')))
 export const resolveBusinessView = (target: BusinessViewTarget) => {
   const registration = target.registration
   if (!['PUBLISHED', 'DISABLED'].includes(registration.status))
@@ -170,6 +184,16 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
       item.ownerContext === registration.ownerContext &&
       item.viewSource === registration.viewSource
   )
+  if (!adapter && registration.componentKey.startsWith('DECLARED_BUSINESS_') && registration.componentVersion === '1'
+      && registration.viewSource === 'PAGE' && registration.dynamicFormRevisionId == null && !target.presentation
+      && positiveId(target.resolvedContext.businessObjectId)) {
+    const readonly = target.readonly === true || registration.status === 'DISABLED'
+    return { component: declaredComponent, props: {
+      ownerModule: registration.ownerContext, entityType: registration.entityType,
+      stableCode: registration.componentKey.slice('DECLARED_BUSINESS_'.length),
+      entityId: target.resolvedContext.businessObjectId, readonly, allowedActions: readonly ? [] : [...target.allowedActions]
+    } }
+  }
   if (!adapter)
     return { error: '该精确组件版本尚未部署或与Owner/实体不匹配，请联系配置负责人后重试。' }
   const context = adapter.resolve(target)

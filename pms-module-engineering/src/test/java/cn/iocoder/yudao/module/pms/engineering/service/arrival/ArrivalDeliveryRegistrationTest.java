@@ -1,0 +1,20 @@
+package cn.iocoder.yudao.module.pms.engineering.service.arrival;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.module.pms.platform.api.file.*;import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
+import org.junit.jupiter.api.*;import java.util.*;import static org.mockito.Mockito.*;import static org.mockito.ArgumentMatchers.*;import static org.junit.jupiter.api.Assertions.*;
+class ArrivalDeliveryRegistrationTest {
+ PermissionApi permissions=mock(PermissionApi.class);ProjectScopeApi scopes=mock(ProjectScopeApi.class);FileArtifactApi files=mock(FileArtifactApi.class);PlatformDeliveryMaterialApi materials=mock(PlatformDeliveryMaterialApi.class);ArrivalDeliveryRegistration service=new ArrivalDeliveryRegistration(permissions,scopes,files,materials);ArrivalDO row;
+ @BeforeEach void setup(){TenantContextHolder.setTenantId(7L);SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(17L).setTenantId(7L),new org.springframework.mock.web.MockHttpServletRequest());row=new ArrivalDO();row.setTenantId(7L);row.setId(9L);row.setProjectId(20L);row.setCode("ARR-9");}
+ @AfterEach void clear(){TenantContextHolder.clear();org.springframework.security.core.context.SecurityContextHolder.clearContext();}
+ @Test void functionPermissionDoesNotGrantOtherProject(){when(permissions.hasAnyPermissions(17L,"pms:imp-arrival:update")).thenReturn(true);when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L,3L,Set.of(21L),Set.of()));assertThrows(Exception.class,()->service.requireWrite(row));verifyNoInteractions(files,materials);}
+ @Test void changedProjectScopeDeniesAfterLock(){when(permissions.hasAnyPermissions(17L,"pms:imp-arrival:update")).thenReturn(true);when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L,3L,Set.of(20L),Set.of()));when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L,4L,Set.of(20L),Set.of()));assertThrows(Exception.class,()->service.requireWrite(row));}
+ @Test void emptyOptionalSignSlotDoesNotInventRequiredFile(){when(files.inspectReferenceSets(any())).thenReturn(List.of(new FileReferenceSetFact(new FileReferenceSetKey("IMP","ARRIVAL","9","ARRIVAL_SIGN_DOCUMENT"),3L,List.of())));when(files.lockAndRevalidateReferenceSets(any())).thenReturn(List.of());service.registerFiles(row);verifyNoInteractions(materials);service.registerSigned(row);verify(materials).registerBusinessResultMaterial("IMP","arrival",9L,"RECEIPT","arrival","9",null,"ARR-9",20L);}
+ @Test void materialRegistrationUsesLockedActualFileFact(){var file=new FileArtifactVersionFact(31L,1,"arrival-sign-document","ARRIVAL_SIGN_DOCUMENT","a.txt",3L,"text/plain","sha","AVAILABLE","ACTIVE",null,3L);var set=new FileReferenceSetFact(new FileReferenceSetKey("IMP","ARRIVAL","9","ARRIVAL_SIGN_DOCUMENT"),3L,List.of(file));when(files.inspectReferenceSets(any())).thenReturn(List.of(set));when(files.lockAndRevalidateReferenceSets(any())).thenReturn(List.of(set));service.registerFiles(row);verify(materials).registerNativeSourceFile(file);}
+}

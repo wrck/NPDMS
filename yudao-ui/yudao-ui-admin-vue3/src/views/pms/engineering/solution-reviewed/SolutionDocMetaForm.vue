@@ -24,7 +24,8 @@
       </el-col>
       <el-col v-if="customerPlan.hasCustomerPlan === 'yes'" :span="12">
         <el-form-item label="上传方案文件">
-          <UploadFile v-model="customerPlan.customerPlanUrl" :disabled="readOnly" />
+          <CustomerSolutionDocumentPicker v-model="pendingFiles" :readonly="readOnly" />
+          <div v-if="customerPlan.customerPlanUrl">已保存的方案文件保持不变；保存后替换为新文件。</div>
         </el-form-item>
       </el-col>
       <el-col v-if="customerPlan.hasCustomerPlan === 'yes'" :span="24">
@@ -36,12 +37,14 @@
 
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
+import CustomerSolutionDocumentPicker from './CustomerSolutionDocumentPicker.vue'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 
 defineOptions({ name: 'SolutionDocMetaForm' })
 
 defineProps<{ readOnly: boolean }>()
 const model = defineModel<SolutionVO>({ required: true })
+const pendingFiles=defineModel<File[]>('pendingFiles',{default:()=>[]})
 
 // remark 是共享信封列：本组件只拥有 hasCustomerPlan/customerPlanUrl 两键，写回时
 // 先解析现值再覆盖，其余键（业务清单/培训/归档等）由章节表单维护，禁止整体覆盖。

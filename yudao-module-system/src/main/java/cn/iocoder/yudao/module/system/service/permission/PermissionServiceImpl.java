@@ -51,6 +51,9 @@ public class PermissionServiceImpl implements PermissionService {
     private UserRoleMapper userRoleMapper;
 
     @Resource
+    private PermissionAssociationService associations;
+
+    @Resource
     private RoleService roleService;
     @Resource
     private MenuService menuService;
@@ -168,16 +171,13 @@ public class PermissionServiceImpl implements PermissionService {
                     allEntries = true) // allEntries 清空所有缓存，此处无法方便获得 roleId 对应的 user 缓存们
     })
     public void processRoleDeleted(Long roleId) {
-        // 标记删除 UserRole
-        userRoleMapper.deleteListByRoleId(roleId);
-        // 标记删除 RoleMenu
-        roleMenuMapper.deleteListByRoleId(roleId);
+        associations.processRoleDeleted(roleId);
     }
 
     @Override
     @CacheEvict(value = RedisKeyConstants.MENU_ROLE_ID_LIST, key = "#menuId")
     public void processMenuDeleted(Long menuId) {
-        roleMenuMapper.deleteListByMenuId(menuId);
+        associations.processMenuDeleted(menuId);
     }
 
     @Override
@@ -230,7 +230,7 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @CacheEvict(value = RedisKeyConstants.USER_ROLE_ID_LIST, key = "#userId")
     public void processUserDeleted(Long userId) {
-        userRoleMapper.deleteListByUserId(userId);
+        associations.processUserDeleted(userId);
     }
 
     @Override
@@ -246,7 +246,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public Set<Long> getUserRoleIdListByRoleId(Collection<Long> roleIds) {
-        return convertSet(userRoleMapper.selectListByRoleIds(roleIds), UserRoleDO::getUserId);
+        return associations.getUserRoleIdListByRoleId(roleIds);
     }
 
     /**

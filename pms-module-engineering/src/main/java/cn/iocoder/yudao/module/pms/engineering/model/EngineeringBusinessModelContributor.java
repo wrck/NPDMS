@@ -24,7 +24,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.Requir
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.resource.ResourceReadyDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.risk.RiskDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward.ScheduleBackwardDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan.StagePlanBatchDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingDO;
@@ -52,7 +52,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.Requirement
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.resource.ResourceReadyMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.risk.RiskMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.schedulebackward.ScheduleBackwardMapper;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.SiteSurveyMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.StagePlanBatchMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.training.TrainingMapper;
@@ -70,15 +70,15 @@ import java.util.List;
 /**
  * B1/B2 批次统一目录声明（P12）：
  * 设计与实施在用业务实体进入统一目录，由统一基类、默认读取与目录页面承载；
- * 专业写路径（状态机、审批、外发、归档）保留在本域控制器与服务中，
- * 因此声明不开放通用 create/save 操作，也不引入与本域重复的写入入口。
+ * 需求分析的创建、保存、完成与复制通过统一执行服务调用本域命令。
+ * 其余专业写路径暂保留在本域控制器与服务中，不开放重复的通用写入口。
  */
 @Component
 public class EngineeringBusinessModelContributor implements BusinessModelContributor {
 
     private final RequirementMapper requirementMapper;
     private final RequirementAnalysisMapper requirementAnalysisMapper;
-    private final SiteSurveyMapper siteSurveyMapper;
+    private final SiteSurveyEntityMapper siteSurveyMapper;
     private final SolutionMapper solutionMapper;
     private final ConstructionPlanMapper constructionPlanMapper;
     private final StagePlanBatchMapper stagePlanBatchMapper;
@@ -107,7 +107,7 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
 
     public EngineeringBusinessModelContributor(RequirementMapper requirementMapper,
                                                RequirementAnalysisMapper requirementAnalysisMapper,
-                                               SiteSurveyMapper siteSurveyMapper,
+                                               SiteSurveyEntityMapper siteSurveyMapper,
                                                SolutionMapper solutionMapper,
                                                ConstructionPlanMapper constructionPlanMapper,
                                                StagePlanBatchMapper stagePlanBatchMapper,
@@ -163,6 +163,31 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
         this.announcementMapper = announcementMapper;
     }
 
+    private static String requirementFieldName(String code) {
+        return switch (code) {
+            case "projectBackground" -> "项目背景";
+            case "projectObjective" -> "项目目标";
+            case "networkTopology" -> "组网拓扑";
+            case "transmissionRequirement" -> "传输需求";
+            case "trafficRequirement" -> "流量需求";
+            case "businessRequirement" -> "业务需求";
+            case "ipPlanning" -> "IP 规划";
+            case "redundancyRequirement" -> "冗余需求";
+            case "securityProtection" -> "安全防护";
+            case "operationsRequirement" -> "运维需求";
+            case "loggingRequirement" -> "日志需求";
+            case "transmissionCurrentOptions" -> "现有传输选项";
+            case "trafficNewConnections" -> "新增连接";
+            case "trafficConcurrency" -> "业务并发";
+            case "trafficThroughput" -> "业务吞吐量";
+            case "businessDeviceDetails" -> "业务设备明细";
+            case "ipManagementResources" -> "管理地址资源";
+            case "ipPublicResources" -> "公网地址资源";
+            case "operationsManagementOptions" -> "运维管理方式";
+            default -> code;
+        };
+    }
+
     private static BusinessFieldDescriptor field(String code, String name, EntityField.Type type) {
         return new BusinessFieldDescriptor(code, name, type, false, true, true, null);
     }
@@ -193,36 +218,28 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
         BusinessModelDescriptor requirementAnalysis = new BusinessModelDescriptor("SOL", "requirementAnalysis",
                 "SOL_REQUIREMENT_ANALYSIS", 1, BusinessModelKind.AGGREGATE_ROOT, "需求分析",
                 "pms:requirement-analysis:query",
-                List.of(required("projectBackground", "项目背景", EntityField.Type.TEXT),
-                        required("projectObjective", "项目目标", EntityField.Type.TEXT),
-                        required("networkTopology", "组网拓扑", EntityField.Type.TEXT),
-                        field("transmissionRequirement", "传输需求", EntityField.Type.TEXT),
-                        field("trafficRequirement", "流量需求", EntityField.Type.TEXT),
-                        field("businessRequirement", "业务需求", EntityField.Type.TEXT),
-                        field("ipPlanning", "IP 规划", EntityField.Type.TEXT),
-                        field("redundancyRequirement", "冗余需求", EntityField.Type.TEXT),
-                        field("securityProtection", "安全防护", EntityField.Type.TEXT),
-                        field("operationsRequirement", "运维需求", EntityField.Type.TEXT),
-                        field("loggingRequirement", "日志需求", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "sol_requirement_analysis");
+                cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider.FIELDS.fields().stream()
+                        .map(value -> new BusinessFieldDescriptor(value.code(), requirementFieldName(value.code()), value.type(), value.required(), true, true, null)).toList(),
+                List.of(), List.of(
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("create", 1, "创建草稿", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.CREATE),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("save", 1, "保存草稿", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.UPDATE),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("complete", 1, "完成并生效", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("copy", 1, "复制为新草稿", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND)),
+                List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding(
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType.CONTENT_HISTORY,null,true),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding(
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType.DYNAMIC_FORM,null,true)),
+                "sol_requirement_analysis");
         declarations.add(new BusinessModelDeclaration(requirementAnalysis, RequirementAnalysisDO.class,
                 requirementAnalysisMapper, null));
         BusinessModelDescriptor siteSurvey = new BusinessModelDescriptor("SOL", "siteSurvey",
                 "SOL_SITE_SURVEY", 1, BusinessModelKind.AGGREGATE_ROOT, "现场工勘",
                 "pms:sol-site-survey:query",
-                List.of(required("code", "工勘编码", EntityField.Type.TEXT),
-                        required("name", "工勘名称", EntityField.Type.TEXT),
-                        field("surveyDate", "勘察日期", EntityField.Type.DATE),
-                        field("location", "位置", EntityField.Type.TEXT),
-                        field("powerSupply", "供电", EntityField.Type.TEXT),
-                        field("cabinet", "机柜", EntityField.Type.TEXT),
-                        field("networkPort", "网络端口", EntityField.Type.TEXT),
-                        field("fiber", "光纤", EntityField.Type.TEXT),
-                        field("conclusion", "工勘结论", EntityField.Type.TEXT),
-                        field("outsourceRequired", "是否委外", EntityField.Type.BOOLEAN),
-                        field("status", "状态", EntityField.Type.NUMBER)),
-                List.of(), List.of(), List.of(), "sol_eng_site_survey");
-        declarations.add(new BusinessModelDeclaration(siteSurvey, SiteSurveyDO.class, siteSurveyMapper, null));
+                cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityProvider.modelFields(),
+                List.of(), cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessApplicationService.operations(),
+                List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding(
+                        cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType.DYNAMIC_FORM,null,true)), "sol_site_survey");
+        declarations.add(new BusinessModelDeclaration(siteSurvey, SiteSurveyEntityDO.class, siteSurveyMapper, null));
         BusinessModelDescriptor solution = new BusinessModelDescriptor("SOL", "solution",
                 "SOL_SOLUTION", 1, BusinessModelKind.AGGREGATE_ROOT, "实施方案",
                 "pms:sol-solution:query",

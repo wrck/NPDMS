@@ -1,0 +1,666 @@
+{
+  "status": "CHECKPOINT_NOT_ACCEPTANCE",
+  "createdUtc": "2026-10-06T06:17:56.979066+00:00",
+  "baseHead": "faab7dd9564cb2d2d0dbee655538d140ae860c3d",
+  "branch": "fix/visio-template-followup",
+  "remote": "origin",
+  "repository": "https://github.com/wrck/NPDMS",
+  "remoteBeforePush": "fd999c9801981ebbe10b80f6d8ce2e8ddaef1994",
+  "excluded": {
+    "LOG_FILE_IS_UNDEFINED": "Spring runtime logging output; retained locally, excluded from upload.",
+    "docs/generated/2026-09-27-fullflow-test/browser/tmp-training.png": "Temporary browser screenshot without acceptance provenance; retained locally.",
+    "docs/generated/2026-09-27-fullflow-test/browser/tmp-view.png": "Temporary browser screenshot without acceptance provenance; retained locally."
+  },
+  "resources": "Owned Compose project npdms-declared-framework-4600 removed after labels/tmpfs verification; localhost 27461,27462,27463,27464 are closed.",
+  "checks": [
+    {
+      "localEvidence": "declared-late-intent-red.log",
+      "sha256": "67bc650cf83d79c8afb541618c753dbda40bd977e3877e7413fc96d5fe0d5a4f",
+      "buildSuccess": false,
+      "buildFailure": false,
+      "runnerSummary": [
+        "Test Files  1 failed (1)",
+        "Tests  3 failed | 6 passed (9)"
+      ]
+    },
+    {
+      "localEvidence": "declared-late-intent-green.log",
+      "sha256": "fef1e706761d342eed37d993810563fc8759e575d0573c82e8c5f6a2f94a480d",
+      "buildSuccess": false,
+      "buildFailure": false,
+      "runnerSummary": [
+        "Test Files  5 passed (5)",
+        "Tests  20 passed (20)"
+      ]
+    },
+    {
+      "localEvidence": "declared-framework-stage3-ui-2.log",
+      "sha256": "f67636a7afb659a873d6df6c59970e3c6b612b757469692f1f3c289196df90d4",
+      "buildSuccess": false,
+      "buildFailure": false,
+      "runnerSummary": [
+        "Test Files  7 passed (7)",
+        "Tests  68 passed (68)"
+      ]
+    },
+    {
+      "localEvidence": "declared-required-bound-red.log",
+      "sha256": "f0b8aafdf13b3fa152a4acf6477bdebd44165280ffa22c66a7d55a961e475bd0",
+      "buildSuccess": false,
+      "buildFailure": true,
+      "classes": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest",
+          "total": 1,
+          "passed": 0,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "total": 1,
+        "passed": 0,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "runnerSummary": []
+    },
+    {
+      "localEvidence": "declared-required-bound-green.log",
+      "sha256": "96ae51e752bdc37c44aa6734859b10adeeb634f18f83c5103cb16de3278ac8ad",
+      "buildSuccess": true,
+      "buildFailure": false,
+      "classes": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest",
+          "total": 9,
+          "passed": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+          "total": 3,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityExtensionValidationTest",
+          "total": 4,
+          "passed": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormBindingTest",
+          "total": 5,
+          "passed": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "total": 21,
+        "passed": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "runnerSummary": []
+    },
+    {
+      "localEvidence": "declared-login-real-redis-red.log",
+      "sha256": "e9c38c77f4726f20ae0d01b7c39b69872bc2b14a467067b661185942239c60a0",
+      "buildSuccess": false,
+      "buildFailure": true,
+      "classes": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+          "total": 3,
+          "passed": 2,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "total": 3,
+        "passed": 2,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "runnerSummary": []
+    },
+    {
+      "localEvidence": "declared-login-real-redis-green.log",
+      "sha256": "d2575c09f0b30fcf4aef9b0ce7c71536fa5c557fd892d3f3b2b67f27c6fd7d80",
+      "buildSuccess": true,
+      "buildFailure": false,
+      "classes": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelDetailContractTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredBusinessRuntimePersistenceTest",
+          "total": 32,
+          "passed": 31,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest",
+          "total": 8,
+          "passed": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+          "total": 3,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOperationRecoveryRuntimePersistenceTest",
+          "total": 3,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredViewDeliveryRuntimePersistenceTest",
+          "total": 4,
+          "passed": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "total": 52,
+        "passed": 51,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "runnerSummary": []
+    },
+    {
+      "localEvidence": "declared-framework-stage3-regression-2.log",
+      "sha256": "81452dd286d6c9b5525ae06752f55948cc9afdbd1b35cf9e9f5f543cdceee4f8",
+      "buildSuccess": false,
+      "buildFailure": true,
+      "classes": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.support.service.BusinessEntityIdentityResolverTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelDetailContractTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.delivery.DeliveryControllerAuthorizationTest",
+          "total": 8,
+          "passed": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredBusinessRuntimePersistenceTest",
+          "total": 32,
+          "passed": 31,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest",
+          "total": 10,
+          "passed": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+          "total": 4,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOperationRecoveryRuntimePersistenceTest",
+          "total": 3,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredViewDeliveryRuntimePersistenceTest",
+          "total": 4,
+          "passed": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryCatalogFileAuthorizationTest",
+          "total": 5,
+          "passed": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProviderAuthorizationTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceAuthorizationTest",
+          "total": 1,
+          "passed": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceTest",
+          "total": 8,
+          "passed": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryOwnerAccessTest",
+          "total": 9,
+          "passed": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryRequirementServiceTest",
+          "total": 18,
+          "passed": 18,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliverySourceReuseTest",
+          "total": 20,
+          "passed": 20,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityExtensionValidationTest",
+          "total": 4,
+          "passed": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormBindingTest",
+          "total": 5,
+          "passed": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportSourceProjectionServiceTest",
+          "total": 11,
+          "passed": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.acceptance.service.archivedocument.ArchiveDocumentNativeDeliveryTest",
+          "total": 11,
+          "passed": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.DeliverableChecklistNativeDeliveryTest",
+          "total": 4,
+          "passed": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultSourceProjectionServiceTest",
+          "total": 6,
+          "passed": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.framework.DeclaredBusinessRuntimePersistenceTest",
+          "total": 14,
+          "passed": 4,
+          "failures": 0,
+          "errors": 10,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyBusinessModelPersistenceTest",
+          "total": 6,
+          "passed": 4,
+          "failures": 0,
+          "errors": 2,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyPublicOperationPermissionTest",
+          "total": 4,
+          "passed": 2,
+          "failures": 2,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisCommandServiceTest",
+          "total": 9,
+          "passed": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryAccessTest",
+          "total": 6,
+          "passed": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryEvidenceProviderTest",
+          "total": 8,
+          "passed": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisIndependentRevisionOperationTest",
+          "total": 14,
+          "passed": 14,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisOwnerOperationContextTest",
+          "total": 10,
+          "passed": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFileBatchTest",
+          "total": 2,
+          "passed": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFilePolicyContextTest",
+          "total": 1,
+          "passed": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessResultSourceTest",
+          "total": 10,
+          "passed": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityFormServiceTest",
+          "total": 8,
+          "passed": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityWiringTest",
+          "total": 1,
+          "passed": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityWriteAccessTest",
+          "total": 3,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityWriteEntryTest",
+          "total": 8,
+          "passed": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyOperationEntryPolicyTest",
+          "total": 1,
+          "passed": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.TemplateSiteSurveyOperationInputTest",
+          "total": 23,
+          "passed": 23,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyBusinessValuesTest",
+          "total": 3,
+          "passed": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "total": 304,
+        "passed": 288,
+        "failures": 2,
+        "errors": 12,
+        "skipped": 2
+      },
+      "runnerSummary": []
+    },
+    {
+      "localEvidence": "declared-auth-browser-backend-4.log",
+      "sha256": "d70cc996753cf1fb35b826fcecf13c3e6c5874f83fecd0b62f2832045a8587d1",
+      "buildSuccess": true,
+      "buildFailure": false,
+      "classes": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+          "total": 1,
+          "passed": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "total": 1,
+        "passed": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "runnerSummary": []
+    },
+    {
+      "localEvidence": "declared-native-view-node.log",
+      "sha256": "92509ebfd7e5f110db613b8e8ddb4a20cbb6301b01ab501e183930b5386f88cb",
+      "buildSuccess": false,
+      "buildFailure": false,
+      "runnerSummary": [
+        "鈩?pass 42",
+        "鈩?fail 0"
+      ]
+    },
+    {
+      "localEvidence": "declared-framework-stage3-ui.log",
+      "sha256": "6d19342f2e1335c5cf90435faabb377b3c7def5142212aa1a420daea6e973bf5",
+      "buildSuccess": false,
+      "buildFailure": false,
+      "runnerSummary": [
+        "鈩?pass 11",
+        "鈩?fail 0",
+        "鈩?pass 13",
+        "鈩?fail 0",
+        "鈩?pass 18",
+        "鈩?fail 0",
+        "Error: No test suite found in file M:/AICoding/CodexData/worktrees/4600/NPDMS/yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationClient.node.test.mjs",
+        "Error: No test suite found in file M:/AICoding/CodexData/worktrees/4600/NPDMS/yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationClient.selfReview.node.test.mjs",
+        "Error: No test suite found in file M:/AICoding/CodexData/worktrees/4600/NPDMS/yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationPresentation.node.test.mjs",
+        "ReferenceError: window is not defined",
+        "Test Files  5 failed | 10 passed (15)",
+        "Tests  7 failed | 112 passed (119)"
+      ]
+    },
+    {
+      "localEvidence": "declared-native-presentation-fixture.log",
+      "sha256": "3c82402c6e66fcb637189d4463e82df8042093a1e114f4a65712363abe3904ee",
+      "buildSuccess": false,
+      "buildFailure": false,
+      "runnerSummary": [
+        "ReferenceError: window is not defined",
+        "Test Files  1 failed (1)"
+      ]
+    }
+  ],
+  "browser": {
+    "passed": true,
+    "browser": "Chromium",
+    "assertions": [
+      "Native username/password login, SQL token, Redis token cache, actual permission rows and production security filters",
+      "Committed create with lost response survives refresh, restores original receipt using GET only and leaves one subject/ledger/audit/outbox",
+      "Session recovery stores only key/fingerprint/context; unreadable fixed values remain hidden",
+      "No-history actual form-create renders fixed alias and typed extensions, validates required fields and saves one atomic fixed/extension operation",
+      "Explicit required extension clear is denied by server and content/ledger/audit/outbox remain unchanged",
+      "Shared default runtime view opens the authorized object and enforces read-only controls"
+    ],
+    "limitations": [
+      "The temporary HTTP transport uses MockMvc with production Spring Security filters and controllers, rather than a full Tomcat application.",
+      "Inactive delivery/history/approval panels are excluded from this form fixture; their applicable backend and frontend regressions run separately."
+    ],
+    "pageErrors": [],
+    "commandCount": 2,
+    "recoveryQueryCount": 1,
+    "counts": {
+      "it_declared_note": 1,
+      "plt_idempotency_record": 2,
+      "plt_operation_audit": 4,
+      "plt_outbox_event": 2,
+      "plt_entity_extension_definition": 1,
+      "plt_entity_extension_value": 1,
+      "plt_entity_form_binding": 1,
+      "title": "Browser form saved"
+    }
+  },
+  "stagedWhitespaceCheck": {
+    "status": "WARNING_NOT_FIXED",
+    "path": "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V249__site_survey_typed_business_fields.sql",
+    "line": 88,
+    "reason": "new blank line at EOF; preserve existing working-tree content for checkpoint",
+    "referenceMarkdownHardBreakWarningsPreserved": 12,
+    "allDiagnostics": [
+      "docs/reference/unified-business-local-plans-20261006/现状核对与设计方案.md:3: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/现状核对与设计方案.md:4: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/现状核对与设计方案.md:5: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:5: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:6: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:7: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:8: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:229: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:256: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:273: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:304: trailing whitespace.",
+      "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md:321: trailing whitespace.",
+      "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V249__site_survey_typed_business_fields.sql:88: new blank line at EOF."
+    ]
+  }
+}

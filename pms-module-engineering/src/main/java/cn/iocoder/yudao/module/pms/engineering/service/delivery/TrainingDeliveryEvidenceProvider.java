@@ -32,6 +32,10 @@ public class TrainingDeliveryEvidenceProvider implements DeliveryBusinessObjectE
             throw new BusinessContractException("DELIVERY_BUSINESS_OBJECT_INVALID",
                     "现场培训记录不存在: " + businessObjectId);
         }
+        if (!Objects.equals(projectId, training.getProjectId()) || businessRevisionNo != null) {
+            throw new BusinessContractException("DELIVERY_BUSINESS_OBJECT_INVALID",
+                    "培训成果项目或修订身份不匹配: " + businessObjectId);
+        }
         if (!Objects.equals(training.getStatus(), TrainingStatusEnum.CONFIRMED.getStatus())) {
             throw new BusinessContractException("DELIVERY_BUSINESS_OBJECT_INVALID",
                     "现场培训未处于客户已确认状态，不能作为交付证据: " + businessObjectId);

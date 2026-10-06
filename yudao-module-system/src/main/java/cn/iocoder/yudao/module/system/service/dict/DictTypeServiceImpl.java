@@ -27,7 +27,7 @@ import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.*;
 public class DictTypeServiceImpl implements DictTypeService {
 
     @Resource
-    private DictDataService dictDataService;
+    private cn.iocoder.yudao.module.system.dal.mysql.dict.DictDataMapper dictDataMapper;
 
     @Resource
     private DictTypeMapper dictTypeMapper;
@@ -80,7 +80,7 @@ public class DictTypeServiceImpl implements DictTypeService {
         // 校验是否存在
         DictTypeDO dictType = validateDictTypeExists(id);
         // 校验是否有字典数据
-        if (dictDataService.getDictDataCountByDictType(dictType.getType()) > 0) {
+        if (dictDataMapper.selectCountByDictType(dictType.getType()) > 0) {
             throw exception(DICT_TYPE_HAS_CHILDREN);
         }
         // 删除字典类型
@@ -92,7 +92,7 @@ public class DictTypeServiceImpl implements DictTypeService {
         // 1. 校验是否有字典数据
         List<DictTypeDO> dictTypes = dictTypeMapper.selectByIds(ids);
         dictTypes.forEach(dictType -> {
-            if (dictDataService.getDictDataCountByDictType(dictType.getType()) > 0) {
+            if (dictDataMapper.selectCountByDictType(dictType.getType()) > 0) {
                 throw exception(DICT_TYPE_HAS_CHILDREN);
             }
         });

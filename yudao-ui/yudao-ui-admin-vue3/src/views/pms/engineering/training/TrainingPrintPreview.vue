@@ -26,6 +26,8 @@
         </el-select>
       </el-form-item>
     </el-form>
+    <el-alert title="正式 PDF 下载前须保存并登记交付件；只读用户可查看当前预览，已登记文件请从培训详情的交付件列表下载。"
+      type="info" :closable="false" class="mb-8px" />
     <div v-loading="loading" class="print-scroll">
       <div
         v-if="decoded"
@@ -43,19 +45,16 @@
     </div>
     <template #footer>
       <el-button :disabled="exporting" @click="visible = false">关闭</el-button>
-      <el-button
-        type="primary"
-        :loading="exporting"
-        :disabled="!decoded || loading"
-        @click="exportPdf"
-        >下载 PDF</el-button
-      >
+      <el-button v-if="canRegister" type="primary" :loading="exporting"
+        :disabled="!decoded || loading" @click="exportPdf">下载 PDF（自动登记交付件）</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import dayjs from 'dayjs'
+import { getDeliveryTypes } from '@/api/pms/platform/delivery'
+import { createDeliveryUploadAttempt, uploadDeliveryFile, type DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import { getTraining } from '@/api/pms/engineering/training'
 import type { TrainingVO } from '@/api/pms/engineering/training'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
@@ -80,6 +79,8 @@ const decoded = shallowRef<ReturnType<typeof decodeDynamicForm>>()
 const values = ref<Record<string, any>>({})
 const filename = ref('培训记录.pdf')
 const message = useMessage()
+const deliveryAttempt = shallowRef<DeliveryUploadAttempt>()
+const canRegister = computed(() => checkPermi(['pms:file:upload']) && checkPermi(['pms:delivery:operate']))
 const loading = ref(false)
 const selected = ref('approved')
 const templates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
@@ -113,6 +114,7 @@ const standardLayout = (): PrintSnapshot => ({
   )
 })
 const selectLayout = async () => {
+  deliveryAttempt.value = undefined
   loading.value = true
   try {
     if (selected.value === 'approved') applyLayout(standardLayout())
@@ -137,6 +139,7 @@ const selectLayout = async () => {
 const open = async (record: TrainingVO, projectName: string, snapshot?: PrintSnapshot) => {
   const request = ++openRequest
   recordData = record
+  deliveryAttempt.value = undefined
   projectLabel = projectName
   boundSnapshot.value = snapshot?.engine === PRINT_ENGINE ? snapshot : undefined
   const approvedBound = boundSnapshot.value?.formConfJson.trainingPrintStyle === 'APPROVED_TABLE'
@@ -167,7 +170,16 @@ const open = async (record: TrainingVO, projectName: string, snapshot?: PrintSna
     if (request === openRequest) loading.value = false
   }
 }
+const downloadPdf = (file: File) => {
+  const url = URL.createObjectURL(file)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.name
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 const exportPdf = async () => {
+  if (!canRegister.value) return
   if (exporting.value || loading.value || !paper.value) return
   exporting.value = true
   try {
@@ -175,6 +187,15 @@ const exportPdf = async () => {
     if (current.status === 3) {
       visible.value = false
       message.warning('已作废的培训记录不允许下载 PDF')
+      return
+    }
+    if (current.id !== recordData.id || current.projectId !== recordData.projectId
+        || current.version !== recordData.version) {
+      throw new Error('培训记录已变化，请关闭预览后重新打开')
+    }
+    if (deliveryAttempt.value) {
+      await uploadDeliveryFile(deliveryAttempt.value)
+      downloadPdf(deliveryAttempt.value.file)
       return
     }
     await nextTick()
@@ -227,9 +248,17 @@ const exportPdf = async () => {
       pagebreak: { mode: ['css', 'legacy'], avoid: ['.el-form-item', 'img', 'h2'] },
       enableLinks: false
     }
-    await worker.set(options).from(paper.value).save()
-  } catch {
-    message.error('PDF 生成失败，请重试')
+    const blob = await worker.set(options).from(paper.value).outputPdf('blob') as Blob
+    if (!canRegister.value) throw new Error('无生成交付件写权限')
+    const type = (await getDeliveryTypes(true)).find(item => item.typeCode === 'TRAINING_RECORD')
+    if (!type || !current.id) throw new Error('培训记录交付件类型不可用')
+    deliveryAttempt.value = createDeliveryUploadAttempt({ ownerModule: 'IMP', entityType: 'training',
+      entityId: current.id }, type, new File([blob], filename.value, { type: 'application/pdf' }),
+      current.name, 'GENERATED')
+    await uploadDeliveryFile(deliveryAttempt.value)
+    downloadPdf(deliveryAttempt.value.file)
+  } catch (failure: any) {
+    message.error(failure?.response?.data?.msg || failure?.message || 'PDF 生成或交付件登记失败，请重试')
   } finally {
     exporting.value = false
   }

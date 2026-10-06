@@ -62,15 +62,15 @@
       </el-table-column>
       <el-table-column label="操作" width="460" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-archive-document:update']"
-            >编辑</el-button
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-archive-document:query']"
+            >查看</el-button
           >
           <el-button
             link
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'submitArchiveDocument', '提交')"
-            v-hasPermi="['pms:acc-archive-document:update']"
+            v-hasPermi="['pms:acc-archive-document:submit']"
             >提交</el-button
           >
           <el-button
@@ -78,7 +78,7 @@
             type="primary"
             v-if="row.status === 1"
             @click="handleAction(row, 'archiveArchiveDocument', '归档')"
-            v-hasPermi="['pms:acc-archive-document:update']"
+            v-hasPermi="['pms:acc-archive-document:audit']"
             >归档</el-button
           >
           <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-archive-document:delete']"
@@ -139,7 +139,8 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="文件地址" prop="fileUrl">
-            <UploadFile v-model="form.fileUrl!" />
+            <el-button v-if="form.fileUrl" link type="primary" @click="openDocumentFile">查看当前文件</el-button>
+            <span v-else>暂无当前文件</span>
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -154,15 +155,20 @@
         </el-col>
       </el-row>
     </el-form>
+    <DeliveryPanel v-if="form.id" :key="form.id" owner-module="ACC" entity-type="archiveDocument"
+      :entity-id="form.id" :type-codes="['ARCHIVE_DOCUMENT']" :readonly="form.status !== 0" @changed="onDeliveryChanged" />
+    <el-alert v-else title="请先保存文档资料，再上传交付文件。" type="info" :closable="false" />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="form.status === 0 || !form.id" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import { listMaterials } from '@/api/pms/platform/delivery'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as ArchiveDocumentApi from '@/api/pms/acceptance/archive-document'
@@ -222,6 +228,18 @@ const openForm = (row?: ArchiveDocumentVO) => {
     row || {}
   )
   formVisible.value = true
+}
+const onDeliveryChanged = async () => {
+  if (!form.id || form.status !== 0) return
+  const files = (await listMaterials('ACC', 'archiveDocument', form.id, 'ARCHIVE_DOCUMENT'))
+    .filter((item) => item.materialKind === 'FILE' && item.status === 'ACTIVE').sort((a, b) => b.id - a.id)
+  if (files[0]) form.fileUrl = `/api/v1/pms/archive-documents/${form.id}/files/${files[0].id}`
+  else if (form.fileUrl?.startsWith(`/api/v1/pms/archive-documents/${form.id}/files/`)) form.fileUrl = ''
+}
+const openDocumentFile = async () => {
+  const match = form.fileUrl?.match(/^\/api\/v1\/pms\/archive-documents\/(\d+)\/files\/(\d+)$/)
+  const url = match ? await ArchiveDocumentApi.getArchiveDocumentFileTicket(Number(match[1]), Number(match[2])) : form.fileUrl
+  if (url) window.open(url, '_blank', 'noopener,noreferrer')
 }
 const save = async () => {
   await formRef.value.validate()

@@ -128,7 +128,7 @@ class AcceptanceReportCommandServiceTest {
     }
 
     private AcceptanceReportCommandService service() {
-        return new AcceptanceReportCommandService(activityMapper, reportMapper, attachmentMapper,
+        return new AcceptanceReportCommandService(org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.class), activityMapper, reportMapper, attachmentMapper,
                 fileArtifactApi, commandExecutionApi, projectScopeApi, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.class));
     }
 

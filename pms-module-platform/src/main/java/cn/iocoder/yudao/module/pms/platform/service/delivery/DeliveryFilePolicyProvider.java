@@ -35,6 +35,8 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
 
     private final DeliveryCatalogService catalogService;
     private final List<DeliveryMaterialUploadPolicyValidator> uploadValidators;
+    @org.springframework.beans.factory.annotation.Autowired
+    private DeliveryOwnerAccess ownerAccess;
 
     @Override
     public String ownerContext() {
@@ -53,15 +55,7 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
 
     @Override
     public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
-        if (catalogService.findEnabledType(query.purposeCode()) == null) {
-            return inspectOrDelegate(query.toInspectionQuery(), true, query.expectedScopeVersion());
-        }
-        FileBusinessObjectPolicyFact fact = inspectOrDelegate(query.toInspectionQuery(), false, null);
-        if (!fact.scopeVersion().equals(query.expectedScopeVersion())) {
-            throw new BusinessContractException("FILE_SCOPE_VERSION_CONFLICT",
-                    "交付类型约束已变化，请重新发起上传");
-        }
-        return fact;
+        return inspectOrDelegate(query.toInspectionQuery(), true, query.expectedScopeVersion());
     }
 
     /** 引用集与单对象同口径：交付材料无独立引用集约束，按 key 走同一校验路径。 */
@@ -91,15 +85,7 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
                 query.actorUserId(), query.key().ownerContext(), query.key().objectType(),
                 query.key().objectId(), query.key().purposeCode(), query.key().purposeCode(),
                 query.requiredAction(), query.ownerExecutionContext());
-        if (catalogService.findEnabledType(query.key().purposeCode()) == null) {
-            return inspectOrDelegate(inspection, true, query.expectedScopeVersion());
-        }
-        FileBusinessObjectPolicyFact fact = inspectOrDelegate(inspection, false, null);
-        if (!fact.scopeVersion().equals(query.expectedScopeVersion())) {
-            throw new BusinessContractException("FILE_SCOPE_VERSION_CONFLICT",
-                    "交付类型约束已变化，请重新发起上传");
-        }
-        return fact;
+        return inspectOrDelegate(inspection, true, query.expectedScopeVersion());
     }
 
     /** 类型目录命中走目录约束；未命中（Owner 管控用途）按 objectId 前缀委派 Owner 校验方。 */
@@ -109,16 +95,40 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
             throw new BusinessContractException("FILE_ACTION_NOT_ALLOWED",
                     "交付材料不支持文件动作: " + query.requiredAction());
         }
-        DeliveryTypeDO type = catalogService.findEnabledType(query.purposeCode());
-        if (type == null) {
-            String[] owner = parseOwnerObjectId(query.objectId());
-            return requireValidator(owner[0]).validateUpload(query.tenantId(), query.actorUserId(),
-                    owner[1], owner[2], query.purposeCode(), query.requiredAction(),
-                    lock, expectedScopeVersion);
+        String[] owner = parseOwnerObjectId(query.objectId());
+        var validators = uploadValidators.stream().filter(v -> owner[0].equals(v.ownerModule()) && v.supportsEntityType(owner[1])).toList();
+        if (validators.size() > 1) throw DeliveryOwnerAccess.denied();
+        // Owner identity selects template semantics even if its code collides with the type catalog.
+        if (validators.size() == 1) {
+            return validators.getFirst().validateUpload(query.tenantId(), query.actorUserId(), owner[1], owner[2],
+                    query.purposeCode(), query.requiredAction(), lock, expectedScopeVersion);
         }
-        return new FileBusinessObjectPolicyFact(true, type.getVersion().longValue(), "IMMUTABLE", "MULTIPLE",
-                Set.of(type.getCategory()), Set.copyOf(catalogService.allowedMedia(type)),
+        if (ownerAccess == null) throw DeliveryOwnerAccess.denied();
+        boolean write = FileActionCodes.UPLOAD.equals(query.requiredAction()) || FileActionCodes.REFERENCE.equals(query.requiredAction());
+        Long scope = ownerAccess.require(query.tenantId(),query.actorUserId(),owner[0],owner[1],Long.valueOf(owner[2]),
+                query.purposeCode(),write,lock,expectedScopeVersion);
+        DeliveryTypeDO type = write ? (lock ? catalogService.lockEnabledType(query.purposeCode()) : catalogService.requireEnabledType(query.purposeCode())) : catalogService.requireType(query.purposeCode());
+        return new FileBusinessObjectPolicyFact(true, scope, "IMMUTABLE", "MULTIPLE",
+                Set.of(type.getCategory()), catalogService.allowedMedia(type).stream().map(DeliveryFilePolicyProvider::mediaType)
+                        .collect(java.util.stream.Collectors.toUnmodifiableSet()),
                 type.getMaxSizeBytes(), "INTERNAL");
+    }
+
+    private static String mediaType(String value) {
+        return switch(value.toLowerCase(java.util.Locale.ROOT)) {
+            case "pdf" -> "application/pdf";
+            case "html", "htm" -> "text/html";
+            case "jpeg", "jpg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "doc" -> "application/msword";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "xls" -> "application/vnd.ms-excel";
+            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "ppt" -> "application/vnd.ms-powerpoint";
+            case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            case "txt" -> "text/plain";
+            default -> value;
+        };
     }
 
     /** 材料文件锚 objectId = "{ownerModule}:{entityType}:{entityId}"（fileObjectId 约定）。 */

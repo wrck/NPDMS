@@ -150,13 +150,7 @@ class RequirementAnalysisOwnerOperationContextTest {
                     String code = "SOL.REQUIREMENT_ANALYSIS." + action;
                     String kind = stage ? "STAGE" : "TASK";
                     String key = "PROJECT_OP:" + DigestUtil.sha256Hex(code + ":" + kind + ":4:retry-key");
-                    var facts = new ArrayList<PlatformCommandExecutionApi.SuccessFacts>();
-                    doAnswer(call -> {
-                        var result = call.<Supplier<EntityVersionProvider.Revision>>getArgument(3).get();
-                        facts.add(call.<java.util.function.Function<EntityVersionProvider.Revision,
-                                PlatformCommandExecutionApi.SuccessFacts>>getArgument(4).apply(result));
-                        return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
-                    }).when(f.idempotency).execute(any(), anyString(), eq(EntityVersionProvider.Revision.class), any(), any());
+
                     var input = JsonUtils.parseTree(action.equals("SAVE")
                             ? "{\"values\":{},\"expectedExtensionVersion\":0}" : "{}");
                     String originalInput = input.toString();
@@ -166,9 +160,9 @@ class RequirementAnalysisOwnerOperationContextTest {
                         var result = adapter.invoke(code, request);
                         assertNotNull(result);
                         assertEquals(originalInput, input.toString());
-                        assertEquals(1, facts.size());
-                        assertEquals(key, facts.getFirst().correlationId());
-                        assertTrue(facts.getFirst().businessEvents() == null || facts.getFirst().businessEvents().isEmpty());
+                        assertEquals(1, f.store.completed.size());
+                        assertEquals(key, f.store.completed.getFirst().idempotencyKey());
+                        assertEquals("RA_ENTITY_" + action, f.store.completed.getFirst().scopeCode());
                         verify(f.audit, atLeastOnce()).record(eq(1L), eq(2L), eq(key), anyString(), anyString(),
                                 anyString(), anyString(), anyMap());
                         if (action.equals("COMPLETE")) {
@@ -187,6 +181,41 @@ class RequirementAnalysisOwnerOperationContextTest {
         } finally { TenantContextHolder.clear(); }
     }
 
+    @Test void completedReplayRechecksControlledIdentityWithoutRequiringDraftState() {
+        var f = new Fixture(false, "COMPLETE");
+        EntityVersionProvider.Revision first;
+        try (var verified = ProjectVerifiedOperationScope.open(f.frame("COMPLETE"))) {
+            first = f.invoke("COMPLETE");
+        }
+        assertEquals(EntityVersionProvider.Revision.State.FROZEN, first.state());
+        int guardedWrites = f.checked.size();
+        try (var verified = ProjectVerifiedOperationScope.open(f.frame("COMPLETE"))) {
+            assertEquals(first, f.invoke("COMPLETE"));
+        }
+        assertEquals(1, f.store.completed.size());
+        assertEquals(guardedWrites, f.checked.size());
+        try (var wrong = ProjectVerifiedOperationScope.open(f.frame("SAVE"))) {
+            assertThrows(IllegalStateException.class, () -> f.invoke("COMPLETE"));
+        }
+        assertEquals(1, f.store.completed.size());
+        verify(f.events, times(1)).formed(3L, "RequirementAnalysis", 40L, 2L, "unit-test");
+        verify(f.events, times(1)).changed(3L, "RequirementAnalysis", 40L, 2L, "unit-test");
+    }
+
+    @Test void sameKeyDifferentIntentDoesNotPerformAnotherOwnerMutation() {
+        var f = new Fixture(false, "SAVE");
+        try (var verified = ProjectVerifiedOperationScope.open(f.frame("SAVE"))) {
+            f.invoke("SAVE");
+            var error = assertThrows(cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException.class,
+                    () -> f.commands.save(f.source.revisionRef(), 1,
+                            new RequirementAnalysisEntityCommands.Patch(Map.of("projectBackground", "different"), null, 0, null, f.selection),
+                            f.actor, "save"));
+            assertEquals("IDEMPOTENCY_DIGEST_CONFLICT", error.getErrorCode());
+        }
+        assertEquals(1, f.store.completed.size());
+        verify(f.mapper, times(1)).saveDraft(any());
+    }
+
     @Test void onlyAuditedRequirementCommandsDeclareProjectEntryOnlyControl() {
         var provider = new RequirementAnalysisOperationProvider();
         var scopes = provider.controlScopes();
@@ -202,6 +231,28 @@ class RequirementAnalysisOwnerOperationContextTest {
         return result;
     }
 
+    private static final class UnitTransactionManager extends org.springframework.transaction.support.AbstractPlatformTransactionManager {
+        protected Object doGetTransaction() { return new Object(); }
+        protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition definition) {}
+        protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) {}
+        protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) {}
+    }
+
+    private static final class MemoryExecutionStore implements cn.iocoder.yudao.module.pms.platform.support.service.OperationExecutionStore {
+        final Map<OperationExecutionKey, StoredExecution> records = new LinkedHashMap<>();
+        final List<OperationExecutionKey> completed = new ArrayList<>();
+        public boolean reserve(OperationExecutionKey key, String digest) {
+            return records.putIfAbsent(key, new StoredExecution(digest, "IN_PROGRESS", null)) == null;
+        }
+        public java.util.Optional<StoredExecution> findExisting(OperationExecutionKey key) {
+            return java.util.Optional.ofNullable(records.get(key));
+        }
+        public void complete(OperationExecutionKey key, String type, String resource, cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt receipt) {
+            records.put(key, new StoredExecution(records.get(key).requestDigest(), "COMPLETED", receipt));
+            completed.add(key);
+        }
+    }
+
     private static final class Fixture {
         final EntityActor actor = new EntityActor(1L, 2L, "unit-test");
         final ProjectBusinessExecutionSelection selection;
@@ -215,7 +266,7 @@ class RequirementAnalysisOwnerOperationContextTest {
         final RequirementAnalysisRevisionFiles files = mock(RequirementAnalysisRevisionFiles.class);
         final OperationAuditApi audit = mock(OperationAuditApi.class);
         final EngineeringRuleReevaluationEvents events = mock(EngineeringRuleReevaluationEvents.class);
-        final PlatformCommandExecutionApi idempotency = mock(PlatformCommandExecutionApi.class);
+        final MemoryExecutionStore store = new MemoryExecutionStore();
         final Map<Long, RequirementAnalysisRevisionDO> rows = new LinkedHashMap<>();
         final AtomicReference<RequirementAnalysisDO> current = new AtomicReference<>();
         final List<ProjectBusinessExecutionApi.WriteRequest> checked = new ArrayList<>();
@@ -241,7 +292,26 @@ class RequirementAnalysisOwnerOperationContextTest {
             provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files,
                     audit, events);
             when(extensions.read(any(), any())).thenReturn(new EntityExtensionApi.Values(null, Map.of(), 0));
-            commands = new RequirementAnalysisEntityCommands(provider, access, versions, extensions, idempotency);
+            doReturn(true).when(access).isManager(eq(3L), any());
+            var context = (cn.iocoder.yudao.module.pms.platform.support.service.BusinessCallerContext) () ->
+                    new cn.iocoder.yudao.module.pms.platform.support.service.AbstractBusinessApplicationService.ResolvedCaller(1L, 2L, "unit-test");
+            var catalog = mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelCatalog.class);
+            var descriptor = new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelDescriptor(
+                    "SOL", "requirementAnalysis", "SOL_REQUIREMENT_ANALYSIS", 1,
+                    cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelKind.AGGREGATE_ROOT,
+                    "需求分析", null, List.of(), List.of(), List.of("create", "save", "complete", "copy").stream()
+                    .map(code -> new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor(code, 1, code,
+                            cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND)).toList(), List.of(), "sol_requirement_analysis");
+            when(catalog.require("SOL", "requirementAnalysis")).thenReturn(descriptor);
+            var persistence = mock(cn.iocoder.yudao.module.pms.platform.support.persistence.BusinessEntityPersistenceRegistry.class);
+            var transactions = new UnitTransactionManager();
+            var domain = new RequirementAnalysisDomainCommands(provider, access, versions, extensions);
+            var application = new RequirementAnalysisBusinessApplicationService(context, catalog, persistence,
+                    mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessAccessGuard.class), store,
+                    mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventPort.class), audit,
+                    transactions, domain, access);
+            var dispatcher = new cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDispatcher(persistence, application, List.of(application));
+            commands = new RequirementAnalysisEntityCommands(dispatcher, context);
             when(nodes.inspect(any())).thenReturn(selection.task());
             when(nodes.inspectStage(any())).thenReturn(selection.stage());
             when(nodes.lockAndRevalidate(any())).thenAnswer(i -> i.getArgument(0));
@@ -276,9 +346,7 @@ class RequirementAnalysisOwnerOperationContextTest {
                 source.setFrozenBy(actor.userId()); source.setFrozenAt(LocalDateTime.now()); return 1;
             });
             when(mapper.makeEffective(any())).thenAnswer(i -> { source.setEffectiveMarker(1); source.setVersion(source.getVersion() + 1); return 1; });
-            when(idempotency.<EntityVersionProvider.Revision>execute(any(), anyString(), eq(EntityVersionProvider.Revision.class), any(), any()))
-                    .thenAnswer(i -> new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
-                            i.<Supplier<EntityVersionProvider.Revision>>getArgument(3).get()));
+
             when(versions.create(any(), any(), any(), any())).thenAnswer(i -> provider.createDraft(i.getArgument(0),i.getArgument(1),i.getArgument(2),i.getArgument(3)));
             when(versions.complete(any(), anyInt(), any())).thenAnswer(i -> {
                 RevisionRef ref = i.getArgument(0); int version = i.getArgument(1); EntityActor owner = i.getArgument(2);

@@ -15,6 +15,8 @@ import java.util.List;
 @Mapper
 public interface TrainingMapper extends ProjectScopedCodeMapper<TrainingDO> {
 
+    TrainingDO selectFileOwnerForUpdate(@org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.training.query.TrainingFileOwnerQuery query);
+
     default PageResult<TrainingDO> selectPage(TrainingPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<TrainingDO>()
                 .eqIfPresent(TrainingDO::getProjectId, reqVO.getProjectId())

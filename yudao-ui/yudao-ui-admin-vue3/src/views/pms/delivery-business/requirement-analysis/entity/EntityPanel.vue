@@ -29,8 +29,11 @@
             <small v-if="item.revision.frozenAt">{{ formatDateTime(item.revision.frozenAt) }}</small>
           </button>
         </div>
-        <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
+
       </template>
+        <el-alert v-if="operationReceipt" :title="`操作回执：${operationReceipt.outcome}；并发依据：${operationReceipt.newConcurrencyBasis ?? '-'}`"
+          type="success" show-icon :closable="false" data-testid="requirement-operation-receipt" />
+        <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
     </ContentWrap>
     <ContentWrap v-if="overview" :body-style="{ padding: '20px' }">
       <el-empty v-if="!selectedRevisionId" description="创建草稿后可填写11项核心内容及表单扩展项" />
@@ -44,7 +47,7 @@
           ref="dynamicFormRef"
           :key="`${detail.revision.ref.revisionId}-${detail.extensionValueVersion}`"
           :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail" :execution="loadedExecution"
-          @dirty-change="formDirty = $event" @saved="emit('changed')"
+          @dirty-change="formDirty = $event" @saved="emit('changed')" @receipt="operationReceipt = $event"
         />
         <RequirementBriefingSection v-if="project.id" :project-id="project.id" :manage="openBriefing" />
         <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
@@ -59,13 +62,14 @@
 
 <script setup lang="ts">
 import { formatDate } from '@/utils/formatTime'
+import type { BusinessOperationReceipt } from '@/api/pms/platform/businessmodel'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
 import { type BusinessViewId } from '@/api/pms/platform/business-view/ids'
-import type { EntityId, View, Workspace } from '@/api/pms/engineering/requirement-analysis/entity'
+import type { EntityId, Revision, View, Workspace } from '@/api/pms/engineering/requirement-analysis/entity'
 import { useMessage } from '@/hooks/web/useMessage'
 import { onBeforeRouteLeave } from 'vue-router'
 import EntityForm from './EntityForm.vue'
@@ -95,6 +99,7 @@ const detailLoading = ref(false)
 const commandLoading = ref(false)
 const errorText = ref('')
 const commandError = ref('')
+const operationReceipt = shallowRef<BusinessOperationReceipt>()
 const overview = ref<Workspace>()
 const currentVersions = computed(() => [overview.value?.draft, overview.value?.currentEffective].filter((item) => !!item))
 const detail = ref<View>()
@@ -136,6 +141,7 @@ const canRevise = computed(
 const formatDateTime = (value?: string) => (value ? formatDate(value) : '-')
 const statusLabel = (status: string) => ({ DRAFT: '草稿', FROZEN: '已完成' })[status] || status
 const commandErrorText = (error: any) => {
+  if (error?.message?.startsWith('操作已完成，但回执修订重开失败')) return error.message
   const code = error?.data?.code || error?.code || error?.message
   return code ? `操作未完成：${String(code)}` : '操作未完成，请刷新权威事实后重试。'
 }
@@ -237,6 +243,40 @@ const load = async () => {
     }
   }
 }
+// Reopen only the authoritative command target; a failed read must not select a default revision.
+const reopenReceipt = async (result: Revision | undefined) => {
+  const sequence = ++loadSequence
+  const projectId = props.project.id
+  const execution = selectedExecution()
+  loading.value = true
+  detailLoading.value = true
+  detail.value = undefined
+  selectedRevisionId.value = undefined
+  try {
+    if (!projectId) throw new Error('当前项目身份缺失')
+    if (!result?.ref.revisionId || !result.ref.entity.entityId) throw new Error('回执缺少修订身份')
+    const current = await RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
+    if (sequence !== loadSequence) return
+    if (String(current.projectId) !== String(projectId)) throw new Error('需求分析项目不匹配')
+    const value = await readDetail(result.ref.revisionId, projectId)
+    if (sequence !== loadSequence) return
+    if (!(['tenantId', 'ownerModule', 'entityType', 'entityId'] as const).every(
+      key => String(value.revision.ref.entity[key]) === String(result.ref.entity[key])))
+      throw new Error('回执实体与重开修订不匹配')
+    overview.value = current
+    detail.value = value
+    selectedRevisionId.value = result.ref.revisionId
+    loadedExecution.value = execution
+    formDirty.value = false
+  } catch (error: any) {
+    if (sequence === loadSequence) {
+      overview.value = undefined
+      throw new Error(`操作已完成，但回执修订重开失败：${error?.response?.data?.msg || error?.data?.code || error?.code || error?.message || '读取被拒绝'}`)
+    }
+  } finally {
+    if (sequence === loadSequence) { loading.value = false; detailLoading.value = false }
+  }
+}
 const refreshWorkspace = async () => {
   if (!(await guardCurrentForm('刷新'))) return
   await load()
@@ -257,10 +297,11 @@ const createInitial = async () => {
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.create(payload.projectId, intent.key, payload.execution)
+    const result = await RequirementAnalysisApi.create(payload.projectId, intent.key, payload.execution)
+    operationReceipt.value = result?.operationReceipt
     intent.clear()
     message.success('需求分析草稿已创建')
-    await load()
+    await reopenReceipt(result)
   } catch (error) {
     commandError.value = commandErrorText(error)
   } finally {
@@ -276,10 +317,11 @@ const complete = async () => {
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.complete(payload.revision, intent.key, payload.execution)
+    const result = await RequirementAnalysisApi.complete(payload.revision, intent.key, payload.execution)
+    operationReceipt.value = result?.operationReceipt
     intent.clear()
     message.success('需求分析已完成并冻结为当前有效版本')
-    await load()
+    await reopenReceipt(result)
   } catch (error) {
     commandError.value = commandErrorText(error)
   } finally {
@@ -295,10 +337,11 @@ const createRevision = async () => {
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.copy(payload.revision, intent.key, payload.execution)
+    const result = await RequirementAnalysisApi.copy(payload.revision, intent.key, payload.execution)
+    operationReceipt.value = result?.operationReceipt
     intent.clear()
     message.success('修订草稿已创建，原完成版本保持不变')
-    await load()
+    await reopenReceipt(result)
   } catch (error) {
     commandError.value = commandErrorText(error)
   } finally {

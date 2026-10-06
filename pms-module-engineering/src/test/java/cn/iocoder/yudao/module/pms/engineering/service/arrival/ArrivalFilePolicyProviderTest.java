@@ -115,6 +115,7 @@ class ArrivalFilePolicyProviderTest {
         stubUpdatePermission();
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
 
+        when(arrivalMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(arrival);
         var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 TENANT, ACTOR, ArrivalFilePolicyProvider.OWNER_CONTEXT,
                 ArrivalFilePolicyProvider.OBJECT_TYPE, "7", ArrivalFilePolicyProvider.PURPOSE_CODE,
@@ -158,4 +159,6 @@ class ArrivalFilePolicyProviderTest {
     private ProjectScopeResult scope(Long projectId) {
         return new ProjectScopeResult(projectId, 9L, Set.of(projectId), Set.of());
     }
+    @Test void signatureRaceRechecksLockedRootBeforeFileMutation(){when(arrivalMapper.selectById(7L)).thenReturn(arrival(0));when(arrivalMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(arrival(1));stubUpdatePermission();when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());assertFalse(provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(TENANT,ACTOR,"IMP","ARRIVAL","7",ArrivalFilePolicyProvider.PURPOSE_CODE,ArrivalFilePolicyProvider.REFERENCE_KEY,FileActionCodes.REFERENCE,9L)).allowed());}
+
 }

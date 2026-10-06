@@ -8,8 +8,8 @@ import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import org.springframework.transaction.support.TransactionOperations;
 
 /**
- * 可继承应用服务：普通实体使用框架默认服务，专业业务服务继承并扩展专业校验、查询和命令；
- * 公共安全步骤不可被子类覆盖后跳过（模板方法为 final，子类只覆写受控扩展点）。
+ * 底层应用模板，保留既有 Owner 服务的扩展契约。普通实体使用 DefaultBusinessApplicationService；
+ * 新增薄业务扩展使用 ExtensibleBusinessApplicationService，其公共安全步骤固定，子类只实现业务差异。
  *
  * 固定执行序：
  * 可信调用上下文 → 身份和入参 → 权限及状态 → 幂等与对象锁 → 本域命令 → 回执/审计/事件 → 提交。
@@ -32,26 +32,34 @@ public abstract class AbstractBusinessApplicationService<E extends BaseBusinessE
         this.transactionOperations = transactionOperations;
     }
 
+    /** Reuse the configured transaction and audit/event ports in a thin default-service extension. */
+    protected AbstractBusinessApplicationService(AbstractBusinessApplicationService<?> defaults) {
+        this(defaults.eventPort, defaults.auditApi, defaults.transactionOperations);
+    }
+
     /**
      * 执行一次领域意图。同键同意图重放返回原回执（不再执行领域命令，但访问权限已在本序内复查）；
      * 异载荷拒绝；失败整体回滚，网络未知结果通过查询回执恢复。
      */
     public final BusinessOperationReceipt execute(BusinessOperationRequest request) {
-        try {
-            if (transactionOperations == null) {
-                return doExecute(request);
-            }
-            return transactionOperations.execute(status -> doExecute(request));
-        } catch (ReplayedOperation replay) {
-            return replay.receipt();
+        if (transactionOperations == null) {
+            return doExecute(request);
         }
+        return transactionOperations.execute(status -> doExecute(request));
     }
 
     private BusinessOperationReceipt doExecute(BusinessOperationRequest request) {
         ResolvedCaller caller = resolveCaller(request);
         validateIdentityAndInput(caller, request);
         authorizeAndCheckState(caller, request);
-        LockedAggregate<E> locked = lockAggregate(caller, request);
+        LockedAggregate<E> locked;
+        try {
+            locked = lockAggregate(caller, request);
+        } catch (ReplayedOperation replay) {
+            // Replay is a successful reservation outcome. Resolve it before the transaction
+            // callback returns, so joining a caller transaction does not mark it rollback-only.
+            return replay.receipt();
+        }
         BusinessOperationReceipt receipt = domainCommand(caller, request, locked);
         recordOutcome(caller, request, receipt);
         return receipt;
@@ -90,7 +98,9 @@ public abstract class AbstractBusinessApplicationService<E extends BaseBusinessE
     }
 
     /** 已锁定的聚合及并发核对依据。 */
-    public record LockedAggregate<E extends BaseBusinessEntity>(E aggregate, Long concurrencyBasis) {
+    public record LockedAggregate<E extends BaseBusinessEntity>(E aggregate, Long concurrencyBasis,
+                                                               java.util.Map<String, Object> changes) {
+        public LockedAggregate(E aggregate, Long concurrencyBasis) { this(aggregate, concurrencyBasis, null); }
     }
 
     /** 幂等重放：携带可重复查询的原始回执，由模板方法直接返回，不再执行领域命令。 */

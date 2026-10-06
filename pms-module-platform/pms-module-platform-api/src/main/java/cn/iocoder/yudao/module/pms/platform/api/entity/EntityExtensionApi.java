@@ -8,6 +8,10 @@ public interface EntityExtensionApi {
     Values read(EntityDataRef target, EntityActor actor);
     Values save(Save command);
     void validateComplete(EntityDataRef target, EntityActor actor);
+    /** Ordinary declared writes validate existing values without requiring a separate read permission. */
+    default void validateCompleteForWrite(EntityDataRef target,EntityActor actor,Long expectedEntityVersion) {
+        throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("CAPABILITY_UNAVAILABLE","Write completeness validation is unavailable");
+    }
     void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor);
 
     record Definition(String code, String label, EntityField.Type type, boolean required,

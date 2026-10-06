@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryReq
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementScopeLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementTaskLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySubmissionCurrentLockQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialSubmissionQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,9 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
     private final DeliveryMaterialMapper materialMapper;
     private final DeliveryRequirementService requirementService;
     private final DeliveryMaterialService materialService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private DeliveryFulfillmentService fulfillmentService;
 
     // ———— 生命周期 ————
 
@@ -241,14 +245,8 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
             }
             return replayOutcome(replay.get(), requirement);
         }
-        // 整体置换：旧 ACTIVE 材料中不属于本次提交的退场（对齐 acc 来源版本整组取代语义）。
-        Set<Long> keepIds = new HashSet<>(command.materialIds());
-        for (DeliveryMaterialDO material : materialMapper.selectByRequirement(requirement.getId())) {
-            if (DeliveryMaterialDO.STATUS_ACTIVE.equals(material.getStatus()) && !keepIds.contains(material.getId())) {
-                material.setStatus(DeliveryMaterialDO.STATUS_WITHDRAWN);
-                materialMapper.updateById(material);
-            }
-        }
+        // 整体置换只退出本要求的使用关系，共享材料仍供其他要求使用。
+        fulfillmentService.retainOnly(requirement.getId(), new HashSet<>(command.materialIds()));
         DeliveryRequirementService.SubmissionOutcome outcome = requirementService.submit(
                 requirement.getId(), command.requestKey(), command.materialIds(), command.sourceType(),
                 command.requestPayloadJson(), command.decisionEvidenceJson());
@@ -316,14 +314,10 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
         submissionMapper.updateById(row);
         List<Long> materialIds = parseMaterialIds(row);
         for (Long materialId : materialIds) {
-            withdrawMaterial(materialId);
+            fulfillmentService.withdraw(requirementId, materialId);
         }
         if (materialArchiveStatus != null && !materialArchiveStatus.isBlank()) {
-            for (Long materialId : materialIds) {
-                materialMapper.updateArchiveStateIfPending(new DeliveryMaterialArchiveStateQuery(
-                        TenantContextHolder.getRequiredTenantId(), materialId, materialArchiveStatus,
-                        null, null, null));
-            }
+            markSubmissionArchiveState(row.getId(), materialArchiveStatus, null);
         }
         requirementService.refreshStatus(requirementService.requireRequirement(requirementId));
         return true;
@@ -365,13 +359,13 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
     @Override
     public List<TemplateFrozenMaterialView> listMaterials(Long requirementId) {
         return materialMapper.selectByRequirement(requirementId).stream()
-                .map(DeliveryTemplateFrozenService::toMaterialView).toList();
+                .map(row -> toMaterialView(row, requirementId)).toList();
     }
 
     @Override
     @Transactional
     public void withdrawMaterial(Long materialId) {
-        materialService.withdraw(materialId);
+        materialService.withdrawTrusted(materialId);
     }
 
     @Override
@@ -408,14 +402,42 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
 
     @Override
     public Optional<Long> findSubmissionIdByMaterial(Long materialId) {
-        DeliveryMaterialDO material = materialMapper.selectById(materialId);
-        if (material == null || material.getRequirementId() == null) {
-            return Optional.empty();
+        if (materialMapper.selectById(materialId) == null) return Optional.empty();
+        return submissionMapper.selectListUsingMaterial(new DeliveryMaterialSubmissionQuery(
+                        TenantContextHolder.getRequiredTenantId(), materialId)).stream()
+                .findFirst().map(DeliverySubmissionDO::getId);
+    }
+
+    @Override
+    public List<TemplateFrozenSubmissionView> listPendingArchiveSubmissions() {
+        return submissionMapper.selectPendingArchiveSubmissions(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveQueueQuery(
+                TenantContextHolder.getRequiredTenantId())).stream().map(DeliveryTemplateFrozenService::toSubmissionView).toList();
+    }
+    @Override
+    @Transactional
+    public Optional<TemplateFrozenSubmissionView> lockPendingArchiveSubmission(Long submissionId) {
+        return Optional.ofNullable(submissionMapper.selectArchiveSubmissionForUpdate(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveSubmissionQuery(
+                TenantContextHolder.getRequiredTenantId(),submissionId))).map(DeliveryTemplateFrozenService::toSubmissionView);
+    }
+    @Override
+    @Transactional
+    public void requireSubmissionArchive(Long submissionId) {
+        submissionMapper.requireArchiveSubmission(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveSubmissionQuery(
+                TenantContextHolder.getRequiredTenantId(),submissionId));
+    }
+    @Override
+    @Transactional
+    public boolean markSubmissionArchiveState(Long submissionId,String archiveStatus,String failureCode) {
+        if (!Set.of(ARCHIVE_ARCHIVED,ARCHIVE_INVALID,ARCHIVE_PENDING_COMPENSATION).contains(archiveStatus))
+            throw new BusinessContractException("DELIVERY_ARCHIVE_STATE_INVALID","Unsupported archive transition");
+        boolean updated=submissionMapper.updateArchiveSubmissionState(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveSubmissionStateQuery(
+                TenantContextHolder.getRequiredTenantId(),submissionId,archiveStatus,failureCode))==1;
+        if(updated && ARCHIVE_ARCHIVED.equals(archiveStatus)) {
+            var source=submissionMapper.selectById(submissionId);
+            if(source!=null)for(Long materialId:parseMaterialIds(source))
+                markMaterialArchiveState(materialId,ARCHIVE_ARCHIVED,null,java.time.LocalDateTime.now(),source.getUpdater());
         }
-        return submissionMapper.selectByRequirement(material.getRequirementId()).stream()
-                .filter(submission -> parseMaterialIds(submission).contains(materialId))
-                .findFirst()
-                .map(DeliverySubmissionDO::getId);
+        return updated;
     }
 
     @Override
@@ -429,7 +451,7 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
             }
             try {
                 materialService.lockAndRevalidateActive(material);
-                activeMaterials.add(toMaterialView(material));
+                activeMaterials.add(toMaterialView(material, requirementId));
             } catch (BusinessContractException invalid) {
                 // 证据永久失效（文件不可用/业务成果不成立）→ 材料退场，状态由 refreshStatus 收敛表达。
                 material.setStatus(DeliveryMaterialDO.STATUS_WITHDRAWN);
@@ -484,7 +506,11 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
     }
 
     private static TemplateFrozenMaterialView toMaterialView(DeliveryMaterialDO row) {
-        return new TemplateFrozenMaterialView(row.getId(), row.getRequirementId(), row.getMaterialKind(),
+        return toMaterialView(row, row.getRequirementId());
+    }
+
+    private static TemplateFrozenMaterialView toMaterialView(DeliveryMaterialDO row, Long requirementId) {
+        return new TemplateFrozenMaterialView(row.getId(), requirementId, row.getMaterialKind(),
                 row.getFileReferenceId(), row.getFileArtifactId(), row.getFileVersionNo(), row.getFileSha256(),
                 row.getFileName(), row.getBusinessObjectType(), row.getBusinessObjectId(), row.getBusinessRevisionNo(),
                 row.getStatus(), row.getArchiveStatus(), row.getArchiveFailureCode(), row.getArchiveRetryCount());

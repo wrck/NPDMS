@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEnt
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityPageQuery;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntitySlice;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessFieldFilter;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityScopePolicy;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.collection.BusinessCollectionPort;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.collection.BusinessCollectionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType;
@@ -42,22 +43,64 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
     private final BusinessEntityPersistenceRegistry persistence;
     private final BusinessAccessGuard guard;
     private final EntityExtensionApi extensionApi;
+    private final List<BusinessEntityScopePolicy> scopePolicies;
+    private final DeclaredBusinessScopeSupport declaredScopes;
+    private final List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityContentReader> contentReaders;
 
     public DefaultBusinessEntityAccess(
             cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelCatalog catalog,
             BusinessEntityPersistenceRegistry persistence,
             BusinessAccessGuard guard,
             EntityExtensionApi extensionApi) {
+        this(catalog, persistence, guard, extensionApi, List.of());
+    }
+
+    public DefaultBusinessEntityAccess(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelCatalog catalog,
+            BusinessEntityPersistenceRegistry persistence, BusinessAccessGuard guard,
+            EntityExtensionApi extensionApi, List<BusinessEntityScopePolicy> scopePolicies) {
+        this(catalog,persistence,guard,extensionApi,scopePolicies,List.of());
+    }
+
+    public DefaultBusinessEntityAccess(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelCatalog catalog,
+            BusinessEntityPersistenceRegistry persistence, BusinessAccessGuard guard,
+            EntityExtensionApi extensionApi, List<BusinessEntityScopePolicy> scopePolicies,
+            List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityContentReader> contentReaders) {
+        this(catalog,persistence,guard,extensionApi,scopePolicies,contentReaders,new DeclaredBusinessScopeSupport(List.of()));
+    }
+    public DefaultBusinessEntityAccess(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelCatalog catalog, BusinessEntityPersistenceRegistry persistence,
+            BusinessAccessGuard guard,EntityExtensionApi extensionApi,List<BusinessEntityScopePolicy> scopePolicies,
+            List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityContentReader> contentReaders,
+            DeclaredBusinessScopeSupport declaredScopes) {
+        this.declaredScopes=declaredScopes;
         this.catalog = catalog;
         this.persistence = persistence;
         this.guard = guard;
         this.extensionApi = extensionApi;
+        this.scopePolicies = List.copyOf(scopePolicies);
+        this.contentReaders = List.copyOf(contentReaders);
     }
 
     @Override
     public BusinessEntityData read(EntityDataRef ref, EntityActor actor, String sceneCode) {
+        return read(ref,actor,sceneCode,true);
+    }
+
+    /** Fixed readable projection for capability adapters; avoids recursively merging extensions. */
+    public BusinessEntityData readFixed(EntityDataRef ref, EntityActor actor, String sceneCode) {
+        return read(ref,actor,sceneCode,false);
+    }
+
+    private BusinessEntityData read(EntityDataRef ref, EntityActor actor, String sceneCode, boolean extensions) {
+        actor.requireTenant(ref.entity());
         var descriptor = catalog.require(ref.entity().ownerModule(), ref.entity().entityType());
         guard.requireReadable(descriptor, actor, sceneCode);
+        var readers=contentReaders.stream().filter(reader -> reader.supports(descriptor.ownerModule(),descriptor.entityType())).toList();
+        if (readers.size()>1) throw new BusinessContractException("CONTENT_READER_CONFLICT", "业务内容读取来源必须唯一");
+        if (readers.size()==1) return readers.getFirst().read(ref,actor);
+        scopePolicies.stream().filter(p -> p.supports(descriptor.ownerModule(), descriptor.entityType()))
+                .forEach(p -> p.requireReadable(ref.entity(), actor));
         BusinessModelDeclaration declaration = persistence.require(
                 ref.entity().ownerModule(), ref.entity().entityType());
         if (ref.isRevision()) {
@@ -72,27 +115,32 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
                     || !revision.entityRef().entityId().equals(ref.entity().entityId())) {
                 return unavailable(ref.entity(), "REVISION_NOT_FOUND");
             }
-            return toData(declaration, ref.entity(), row, ref.revisionId(), actor);
+            requireDeclaredScope(declaration,row,actor);
+            return toData(declaration, ref.entity(), row, ref.revisionId(), actor, extensions);
         }
         BaseBusinessEntity row = persistence.<BaseBusinessEntity>mapperOf(declaration)
                 .selectById(ref.entity().entityId());
         if (row == null || !actor.tenantId().equals(row.getTenantId())) {
             return unavailable(ref.entity(), "ENTITY_NOT_FOUND");
         }
-        return toData(declaration, ref.entity(), row, null, actor);
+        requireDeclaredScope(declaration,row,actor);
+        return toData(declaration, ref.entity(), row, null, actor, extensions);
     }
 
     @Override
     public BusinessEntitySlice query(BusinessEntityPageQuery query, EntityActor actor) {
+        requirePageSize(query.pageSize());
         var descriptor = catalog.require(query.ownerModule(), query.entityType());
         guard.requireReadable(descriptor, actor, query.sceneCode());
         BusinessModelDeclaration declaration = persistence.require(query.ownerModule(), query.entityType());
-        List<?> rows = select(declaration, actor.tenantId(), query.filters(), query.pageSize(), query.cursor());
+        requireReadableFilters(descriptor, query.filters());
+        List<?> rows = select(declaration, actor.tenantId(), scopedFilters(descriptor, actor, query.filters()), query.pageSize(), query.cursor());
         return slice(declaration, rows, query.pageSize(), actor);
     }
 
     @Override
     public BusinessEntitySlice members(BusinessCollectionQuery query, EntityActor actor) {
+        requirePageSize(query.pageSize());
         var ownerDescriptor = catalog.require(query.ownerModule(), query.entityType());
         var relation = ownerDescriptor.relations().stream()
                 .filter(r -> r.code().equals(query.relationCode())).findFirst()
@@ -101,16 +149,47 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
         guard.requireReadable(catalog.require(relation.targetOwnerModule(), relation.targetEntityType()),
                 actor, "collection:" + query.relationCode());
         var targetDeclaration = persistence.require(relation.targetOwnerModule(), relation.targetEntityType());
+        requireReadableFilters(targetDeclaration.descriptor(), query.scopeFilters());
         List<BusinessFieldFilter> scope = new ArrayList<>(query.scopeFilters() == null
                 ? List.of() : query.scopeFilters());
         scope.add(new BusinessFieldFilter(relation.targetJoinFieldCode(),
                 BusinessFieldFilter.Operator.EQ, List.of(query.entityId())));
-        List<?> rows = select(targetDeclaration, actor.tenantId(), scope, query.pageSize(), query.cursor());
+        List<?> rows = select(targetDeclaration, actor.tenantId(), scopedFilters(targetDeclaration.descriptor(), actor, scope), query.pageSize(), query.cursor());
         return slice(targetDeclaration, rows, query.pageSize(), actor);
+    }
+
+    private void requirePageSize(int size) {
+        // Same bound as the platform PageParam; public cursor reads never support PAGE_SIZE_NONE.
+        if (size < 1 || size > 200)
+            throw new BusinessContractException("PAGE_SIZE_INVALID", "分页大小必须在 1 到 200 之间");
+    }
+
+    private void requireReadableFilters(BusinessModelDescriptor model, List<BusinessFieldFilter> filters) {
+        for (var filter : filters == null ? List.<BusinessFieldFilter>of() : filters) {
+            if (model.fields().stream().noneMatch(field -> field.code().equals(filter.fieldCode()) && field.readable()))
+                throw new BusinessContractException("FIELD_NOT_OPEN", "字段未开放查询: " + filter.fieldCode());
+        }
+    }
+
+    private List<BusinessFieldFilter> scopedFilters(BusinessModelDescriptor descriptor, EntityActor actor,
+                                                   List<BusinessFieldFilter> filters) {
+        List<BusinessFieldFilter> result = new ArrayList<>(filters == null ? List.of() : filters);
+        scopePolicies.stream().filter(p -> p.supports(descriptor.ownerModule(), descriptor.entityType()))
+                .forEach(p -> result.addAll(p.queryScope(actor)));
+        if(descriptor.scopeBinding()!=null || scopePolicies.stream().noneMatch(p->p.supports(descriptor.ownerModule(),descriptor.entityType())))
+            result.addAll(declaredScopes.queryFilters(descriptor,actor));
+        return result;
+    }
+    private void requireDeclaredScope(BusinessModelDeclaration declaration,Object row,EntityActor actor) {
+        var model=declaration.descriptor();
+        if(model.scopeBinding()!=null || scopePolicies.stream().noneMatch(p->p.supports(model.ownerModule(),model.entityType())))
+            declaredScopes.requireReadable(model,BusinessModelIntrospector.readValues(row,
+                    BusinessModelIntrospector.businessFields(declaration.entityClass())),actor);
     }
 
     private List<?> select(BusinessModelDeclaration declaration, Long tenantId, List<BusinessFieldFilter> filters,
                            int pageSize, String cursor) {
+        // Client filters were validated before this point. Owner filters may use non-readable ownership fields.
         var fields = BusinessModelIntrospector.businessFields(declaration.entityClass());
         QueryWrapper<BaseBusinessEntity> wrapper = new QueryWrapper<>();
         wrapper.eq(TENANT_COLUMN, tenantId);
@@ -173,17 +252,27 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
     private BusinessEntityData toData(BusinessModelDeclaration declaration,
                                       cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef ref,
                                       Object row, Long revisionId, EntityActor actor) {
+        return toData(declaration,ref,row,revisionId,actor,true);
+    }
+
+    private BusinessEntityData toData(BusinessModelDeclaration declaration,
+            cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef ref,
+            Object row, Long revisionId, EntityActor actor, boolean extensions) {
         // 业务字段按声明实体类解释：修订行的元数据列不进入业务值，当前行与修订行共用同一字段目录。
         Map<String, Object> values = new LinkedHashMap<>(
                 BusinessModelIntrospector.readValues(row,
-                        BusinessModelIntrospector.businessFields(declaration.entityClass())));
+                        BusinessModelIntrospector.businessFields(declaration.entityClass()).stream()
+                                .filter(field->declaration.descriptor().fields().stream().anyMatch(open->open.code().equals(field.code()) && open.readable()))
+                                .toList()));
         Long concurrency = row instanceof BaseBusinessEntity business ? business.getVersion() : null;
         // 扩展字段按实体声明启用；修订读取合并修订携带的快照值，解释依据（定义版本）随值存储，不借用当前定义。
-        if (extensionApi != null && extensionEnabled(declaration.descriptor())) {
+        if (extensions && extensionApi != null && extensionEnabled(declaration.descriptor())) {
             EntityDataRef extensionRef = revisionId == null ? EntityDataRef.current(ref)
                     : EntityDataRef.revision(new cn.iocoder.yudao.module.pms.platform.api.entity.RevisionRef(ref, revisionId));
             EntityExtensionApi.Values extension = extensionApi.read(extensionRef, actor);
-            values.putAll(extension.fields());
+            extension.fields().forEach((code,value)->{
+                if(declaration.descriptor().fields().stream().noneMatch(field->field.code().equals(code))) values.put(code,value);
+            });
         }
         return new BusinessEntityData(ref, revisionId, values, concurrency, true, null);
     }

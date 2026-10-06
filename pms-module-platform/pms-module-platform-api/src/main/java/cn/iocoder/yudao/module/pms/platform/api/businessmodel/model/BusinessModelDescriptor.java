@@ -18,5 +18,15 @@ public record BusinessModelDescriptor(
         List<BusinessRelationDescriptor> relations,
         List<BusinessOperationDescriptor> operations,
         List<BusinessCapabilityBinding> capabilities,
-        String viewCode) {
+        String viewCode,
+        BusinessScopeBinding scopeBinding) {
+
+    /** Legacy declarations retain their explicit Owner policy; new defaults require a scope declaration. */
+    public BusinessModelDescriptor(String ownerModule, String entityType, String stableCode, int contractVersion,
+            BusinessModelKind kind, String title, String authorizationPolicyRef,
+            List<BusinessFieldDescriptor> fields, List<BusinessRelationDescriptor> relations,
+            List<BusinessOperationDescriptor> operations, List<BusinessCapabilityBinding> capabilities, String viewCode) {
+        this(ownerModule, entityType, stableCode, contractVersion, kind, title, authorizationPolicyRef,
+                fields, relations, operations, capabilities, viewCode, null);
+    }
 }

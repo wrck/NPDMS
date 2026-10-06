@@ -26,6 +26,10 @@ public interface SiteSurveyEntityMapper extends ProjectScopedCodeMapper<SiteSurv
     SiteSurveyEntityDO selectTaskObjectForUpdate(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityTaskObjectQuery query);
 
+    /** Only tenant/project identity is read for replay authorization, including a soft-deleted target. */
+    SiteSurveyEntityDO selectOperationIdentity(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyOperationIdentityQuery query);
+
     int deleteDraft(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityMutation query);
 

@@ -36,7 +36,7 @@ public class MenuServiceImplTest extends BaseDbUnitTest {
     private MenuMapper menuMapper;
 
     @MockitoBean
-    private PermissionService permissionService;
+    private PermissionAssociationService permissionService;
 
     @MockitoBean
     private TenantService tenantService;

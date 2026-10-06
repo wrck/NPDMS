@@ -101,7 +101,9 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         if (entity.getVersion() == null) {
             entity.setVersion(0L);
         }
-        outsourceRequestMapper.insert(entity);
+        if (outsourceRequestMapper.insert(entity) != 1 || entity.getId() == null) {
+            throw new IllegalStateException("OUTSOURCE_REQUEST_INSERT_FAILED");
+        }
         if ("SITE_SURVEY".equals(entity.getTriggerSource())) {
             siteSurveyService.associateOutsourceRequest(entity.getTriggerRefId(), entity.getProjectId(), entity.getId(), createReqVO.getSiteSurveyExecution());
         }
@@ -130,7 +132,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         } else if ("SITE_SURVEY".equals(update.getTriggerSource())) {
             throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
         }
-        outsourceRequestMapper.updateById(update);
+        updateChecked(update);
     }
 
     @Override
@@ -144,7 +146,9 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         if ("SITE_SURVEY".equals(existing.getTriggerSource())) {
             siteSurveyService.releaseDeletedOutsourceRequest(existing.getTriggerRefId(), existing.getId(), siteSurveyExecution);
         }
-        outsourceRequestMapper.deleteById(id);
+        if (outsourceRequestMapper.deleteById(id) != 1) {
+            throw exception(OUTSOURCE_VERSION_NOT_MATCH);
+        }
     }
 
     @Override
@@ -257,7 +261,13 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         if (newStatus == STATUS_PASSED || newStatus == STATUS_REJECTED || newStatus == STATUS_DRAFT) {
             entity.setApproveTime(LocalDateTime.now());
         }
-        outsourceRequestMapper.updateById(entity);
+        updateChecked(entity);
+    }
+
+    private void updateChecked(OutsourceRequestDO entity) {
+        if (outsourceRequestMapper.updateById(entity) != 1) {
+            throw exception(OUTSOURCE_VERSION_NOT_MATCH);
+        }
     }
 
     private void validateCodeUnique(String code, Long excludeId) {
@@ -285,7 +295,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     }
 
     private void validateVersion(OutsourceRequestDO entity, Integer version) {
-        if (version != null && !Objects.equals(entity.getVersion(), version)) {
+        if (version != null && (entity.getVersion() == null || entity.getVersion().longValue() != version.longValue())) {
             throw exception(OUTSOURCE_VERSION_NOT_MATCH);
         }
     }

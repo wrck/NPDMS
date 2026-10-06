@@ -14,4 +14,33 @@
           AND deleted = b'0'
         FOR UPDATE
     </select>
+    <select id="selectListUsingMaterial" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliverySubmissionDO">
+        SELECT s.* FROM plt_delivery_submission s
+        JOIN plt_delivery_fulfillment f ON f.requirement_id=s.requirement_id AND f.tenant_id=s.tenant_id
+        WHERE s.tenant_id=#{query.tenantId} AND f.material_id=#{query.materialId}
+          AND s.deleted=b'0' AND f.deleted=b'0'
+          AND JSON_CONTAINS(s.material_ids_json, CAST(#{query.materialId} AS JSON))
+        ORDER BY (s.status='CURRENT') DESC, (s.source_type='AUTO_PROJECTION') DESC, s.id DESC
+    </select>
+    <select id="selectPendingArchiveSubmissions" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliverySubmissionDO">
+        SELECT * FROM plt_delivery_submission WHERE tenant_id=#{query.tenantId} AND deleted=b'0'
+          AND archive_status='PENDING_COMPENSATION' AND status &lt;&gt; 'WITHDRAWN' ORDER BY id
+    </select>
+    <select id="selectArchiveSubmissionForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliverySubmissionDO">
+        SELECT * FROM plt_delivery_submission WHERE tenant_id=#{query.tenantId} AND id=#{query.submissionId}
+          AND deleted=b'0' AND archive_status='PENDING_COMPENSATION' AND status &lt;&gt; 'WITHDRAWN' FOR UPDATE
+    </select>
+    <update id="requireArchiveSubmission">
+        UPDATE plt_delivery_submission SET archive_status='PENDING_COMPENSATION',update_time=NOW(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.submissionId} AND deleted=b'0'
+          AND source_type='AUTO_PROJECTION' AND status &lt;&gt; 'WITHDRAWN'
+          AND (request_key LIKE 'report:%' OR request_key LIKE 'satisfaction-result:%')
+          AND (archive_status IS NULL OR archive_status='NOT_REQUIRED')
+    </update>
+    <update id="updateArchiveSubmissionState">
+        UPDATE plt_delivery_submission SET archive_status=#{query.archiveStatus},archive_failure_code=#{query.failureCode},
+          archive_retry_count=archive_retry_count + CASE WHEN #{query.archiveStatus}='PENDING_COMPENSATION' THEN 1 ELSE 0 END,
+          update_time=NOW(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.submissionId} AND deleted=b'0' AND archive_status='PENDING_COMPENSATION'
+    </update>
 </mapper>

@@ -17,6 +17,7 @@ public class EntityVersionService implements EntityVersionApi {
     private final EntityExtensionApi extensions;
 
     public List<EntityVersionProvider.Revision> history(EntityRef entity, EntityActor actor, Long beforeId, int limit) {
+        entity=registry.nativeRef(entity);
         actor.requireTenant(entity);
         if (limit < 1 || limit > 100) throw new IllegalArgumentException("History limit must be 1..100");
         return registry.versions(entity).history(entity, actor, beforeId, limit);
@@ -24,6 +25,7 @@ public class EntityVersionService implements EntityVersionApi {
 
     @Transactional(rollbackFor = Exception.class)
     public EntityVersionProvider.Revision create(EntityRef entity, RevisionRef source, String reason, EntityActor actor) {
+        entity=registry.nativeRef(entity);source=source == null ? null : registry.nativeRef(source);
         actor.requireTenant(entity);
         if (source != null && !entity.equals(source.entity())) throw exception(ENTITY_REVISION_MISMATCH);
         return registry.versions(entity).createDraft(entity, source, reason, actor);
@@ -31,12 +33,14 @@ public class EntityVersionService implements EntityVersionApi {
 
     @Transactional(rollbackFor = Exception.class)
     public EntityVersionProvider.Revision save(RevisionRef ref, int expectedVersion, Map<String, Object> fields, EntityActor actor) {
+        ref=registry.nativeRef(ref);
         registry.lockForWrite(EntityDataRef.revision(ref), actor, (long) expectedVersion);
         return registry.versions(ref.entity()).save(ref, expectedVersion, fields, actor);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public EntityVersionProvider.Revision complete(RevisionRef ref, int expectedVersion, EntityActor actor) {
+        ref=registry.nativeRef(ref);
         registry.lockForWrite(EntityDataRef.revision(ref), actor, (long) expectedVersion);
         extensions.validateComplete(EntityDataRef.revision(ref), actor);
         var provider = registry.versions(ref.entity());
@@ -46,11 +50,13 @@ public class EntityVersionService implements EntityVersionApi {
 
     @Transactional(rollbackFor = Exception.class)
     public void discard(RevisionRef ref, EntityActor actor) {
+        ref=registry.nativeRef(ref);
         actor.requireTenant(ref.entity());
         registry.versions(ref.entity()).discard(ref, actor);
     }
 
     public List<FieldDifference> compare(RevisionRef left, RevisionRef right, EntityActor actor) {
+        left=registry.nativeRef(left);right=registry.nativeRef(right);
         if (!left.entity().equals(right.entity())) throw exception(ENTITY_REVISION_MISMATCH);
         var leftTarget = EntityDataRef.revision(left);
         var rightTarget = EntityDataRef.revision(right);

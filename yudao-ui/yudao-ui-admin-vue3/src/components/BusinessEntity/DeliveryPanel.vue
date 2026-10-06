@@ -10,9 +10,9 @@
     <el-alert v-if="panelError" :title="panelError" type="error" :closable="false" show-icon class="mb-8px" />
 
     <!-- 登记材料：两段式上传（init + complete）后登记为交付材料 -->
-    <el-form inline class="mb-8px">
+    <el-form v-if="can('REGISTER_MATERIAL')" inline class="mb-8px">
       <el-form-item label="材料类型">
-        <el-select v-model="uploadTypeCode" placeholder="选择类型" style="width: 180px" @change="onTypeChange">
+        <el-select v-model="uploadTypeCode" :disabled="uploadLocked" placeholder="选择类型" style="width: 180px" @change="onTypeChange">
           <el-option
             v-for="type in enabledTypes"
             :key="type.typeCode"
@@ -25,12 +25,9 @@
         <el-input v-model="uploadTitle" placeholder="可选" style="width: 180px" />
       </el-form-item>
       <el-form-item>
-        <input ref="fileInputRef" type="file" @change="onFileChange" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" :loading="uploading" :disabled="!selectedFile || !uploadTypeCode" @click="uploadAndRegister">
-          上传并登记
-        </el-button>
+        <DeliveryUploader ref="uploader" v-if="selectedType" :key="uploadTypeCode"
+          :owner-module="ownerModule" :entity-type="entityType" :entity-id="entityId"
+          :type="selectedType" :title="uploadTitle || undefined" @completed="onUploaded" />
       </el-form-item>
     </el-form>
     <div v-if="uploadHint" class="mb-8px text-12px color-#909399">{{ uploadHint }}</div>
@@ -41,9 +38,13 @@
       <el-table-column type="selection" width="42" :selectable="(row) => row.status === 'ACTIVE'" />
       <el-table-column prop="typeCode" label="类型" width="150" />
       <el-table-column prop="title" label="标题" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="fileName" label="文件名" min-width="160" show-overflow-tooltip />
+      <el-table-column label="文件或业务成果" min-width="160" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.materialKind === 'BUSINESS_RESULT'
+          ? `${row.businessObjectType} · ${row.businessObjectId}` : row.fileName }}</template>
+      </el-table-column>
       <el-table-column label="版本" width="70">
-        <template #default="{ row }">v{{ row.fileVersionNo }}</template>
+        <template #default="{ row }">{{ row.materialKind === 'BUSINESS_RESULT'
+          ? (row.businessRevisionNo ? `业务修订 ${row.businessRevisionNo}` : '—') : `文件 v${row.fileVersionNo}` }}</template>
       </el-table-column>
       <el-table-column prop="sourceKind" label="来源" width="90" />
       <el-table-column label="状态" width="90">
@@ -53,9 +54,15 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="文件访问" min-width="180">
+        <template #default="{ row }">
+          <PmsFileReferenceList v-if="row.materialKind === 'FILE' && row.fileBusinessKey"
+            v-bind="row.fileBusinessKey" :artifact-id="row.fileArtifactId" :version-no="row.fileVersionNo" />
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="90">
         <template #default="{ row }">
-          <el-button v-if="row.status === 'ACTIVE'" link type="danger" size="small" @click="withdraw(row)">
+          <el-button v-if="can('WITHDRAW_MATERIAL') && row.status === 'ACTIVE'" link type="danger" size="small" @click="withdraw(row)">
             撤回
           </el-button>
         </template>
@@ -73,17 +80,18 @@
         <template #default="{ row }">{{ countingUnitLabel(row.countingUnit) }}</template>
       </el-table-column>
       <el-table-column label="数量" width="90">
-        <template #default="{ row }">{{ row.count }} / {{ row.minimumQuantity }}</template>
+        <template #default="{ row }">{{ completionErrors[row.id] ? "—" : row.count }} / {{ row.minimumQuantity }}</template>
       </el-table-column>
       <el-table-column label="状态" width="110">
         <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          <span v-if="completionErrors[row.id]" class="color-red">判定失败：{{ completionErrors[row.id] }}</span>
+          <el-tag v-else :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="当前提交" min-width="120">
         <template #default="{ row }">
           <template v-if="currentSubmissions[row.id]">
-            #{{ currentSubmissions[row.id].id }}（{{ currentSubmissions[row.id].materialIds.length }} 项）
+            #{{ currentSubmissions[row.id]?.id }}（{{ currentSubmissions[row.id]?.materialIds.length }} 项）
           </template>
           <template v-else>-</template>
         </template>
@@ -94,6 +102,7 @@
             link
             type="primary"
             size="small"
+            v-if="can('SUBMIT')"
             :disabled="selectedMaterialsByType(row.typeCode).length === 0"
             @click="submit(row)"
           >
@@ -103,13 +112,14 @@
             link
             type="success"
             size="small"
-            :disabled="row.status !== 'SATISFIED' && row.status !== 'CONFIRMED'"
+            v-if="can('CONFIRM')"
+            :disabled="!!completionErrors[row.id] || (row.status !== 'SATISFIED' && row.status !== 'CONFIRMED')"
             @click="confirm(row)"
           >
             确认
           </el-button>
           <el-button
-            v-if="currentSubmissions[row.id]"
+            v-if="can('WITHDRAW_SUBMISSION') && currentSubmissions[row.id]"
             link
             type="danger"
             size="small"
@@ -128,11 +138,12 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   confirmRequirement,
+  getDeliveryAllowedActions,
   getDeliveryTypes,
+  getCompletion,
   listMaterials,
   listRequirements,
   listSubmissions,
-  registerMaterial,
   submitDelivery,
   withdrawMaterial,
   withdrawSubmission,
@@ -141,16 +152,20 @@ import {
   type DeliverySubmissionVO,
   type DeliveryTypeVO
 } from '@/api/pms/platform/delivery'
-import { initializeUpload, completeUpload } from '@/api/pms/platform/file'
+import DeliveryUploader from '@/components/DeliveryArtifact/DeliveryUploader.vue'
+import PmsFileReferenceList from '@/components/PmsFileArtifact/PmsFileReferenceList.vue'
 
 defineOptions({ name: 'DeliveryPanel' })
 
-const props = defineProps<{ ownerModule: string; entityType: string; entityId: number }>()
+const props = defineProps<{ ownerModule: string; entityType: string; entityId: string | number; typeCodes?: string[]; readonly?: boolean }>()
 
 const emit = defineEmits<{ (e: 'changed'): void }>()
 
+const allowedActions=ref<string[]>([])
+const can=(action:string)=>!props.readonly&&allowedActions.value.includes(action)
 const loading = ref(false)
 const panelError = ref('')
+const completionErrors = ref<Record<number, string>>({})
 const types = ref<DeliveryTypeVO[]>([])
 const requirements = ref<DeliveryRequirementVO[]>([])
 const materials = ref<DeliveryMaterialVO[]>([])
@@ -159,11 +174,11 @@ const selectedMaterials = ref<DeliveryMaterialVO[]>([])
 
 const uploadTypeCode = ref('')
 const uploadTitle = ref('')
-const selectedFile = ref<File>()
-const uploading = ref(false)
-const fileInputRef = ref<HTMLInputElement>()
+const uploader = ref<InstanceType<typeof DeliveryUploader>>()
+const uploadLocked = computed(() => !!uploader.value?.isBusy() || !!uploader.value?.hasPendingFile())
 
-const enabledTypes = computed(() => types.value.filter((type) => type.enabled))
+const enabledTypes = computed(() => types.value.filter((type) => type.enabled && (!props.typeCodes || props.typeCodes.includes(type.typeCode))))
+const selectedType = computed(() => enabledTypes.value.find((type) => type.typeCode === uploadTypeCode.value))
 const uploadHint = computed(() => {
   const type = enabledTypes.value.find((item) => item.typeCode === uploadTypeCode.value)
   if (!type) return ''
@@ -185,94 +200,68 @@ const countingUnitLabel = (unit: string) =>
 const statusLabel = (status: string) =>
   ({ OPEN: '未满足', SATISFIED: '已满足', CONFIRMED: '已确认' })[status] ?? status
 
-const statusTagType = (status: string) =>
-  ({ OPEN: 'warning', SATISFIED: 'success', CONFIRMED: 'success' })[status] ?? 'info'
+const statusTagType = (status: string): 'warning' | 'success' | 'info' =>
+  status === 'OPEN' ? 'warning' : status === 'SATISFIED' || status === 'CONFIRMED' ? 'success' : 'info'
 
 const errorMessage = (error: any, fallback: string) =>
   error?.response?.data?.msg || error?.message || fallback
 
 const reload = async () => {
   loading.value = true
+  allowedActions.value=[]
   panelError.value = ''
+  completionErrors.value = {}
+  selectedMaterials.value = []
   try {
-    const [typeList, requirementList, materialList] = await Promise.all([
+    const results = await Promise.allSettled([
       getDeliveryTypes(),
       listRequirements(props.ownerModule, props.entityType, props.entityId),
-      listMaterials(props.ownerModule, props.entityType, props.entityId)
+      listMaterials(props.ownerModule, props.entityType, props.entityId),
+      getDeliveryAllowedActions(props.ownerModule,props.entityType,props.entityId)
     ])
-    types.value = typeList ?? []
-    requirements.value = requirementList ?? []
-    materials.value = materialList ?? []
-    const submissionEntries = await Promise.all(
-      requirements.value.map(async (requirement) => {
+    const failures: string[] = []
+    const [typeResult, requirementResult, materialResult,actionResult] = results
+    allowedActions.value=actionResult.status==='fulfilled'?actionResult.value??[]:[]
+    if(actionResult.status==='rejected')failures.push(errorMessage(actionResult.reason,'操作权限装载失败'))
+    types.value = typeResult.status === 'fulfilled' ? typeResult.value ?? [] : []
+    if (typeResult.status === 'rejected') failures.push(errorMessage(typeResult.reason, '类型装载失败'))
+    materials.value = materialResult.status === 'fulfilled'
+      ? (materialResult.value ?? []).filter(material => !props.typeCodes || props.typeCodes.includes(material.typeCode)) : []
+    if (materialResult.status === 'rejected') failures.push(errorMessage(materialResult.reason, '材料装载失败'))
+    const rows = requirementResult.status === 'fulfilled'
+      ? (requirementResult.value ?? []).filter(requirement => !props.typeCodes || props.typeCodes.includes(requirement.typeCode)) : []
+    if (requirementResult.status === 'rejected') failures.push(errorMessage(requirementResult.reason, '要求装载失败'))
+    requirements.value = await Promise.all(rows.map(async requirement => {
+      try {
+        const fact = await getCompletion(requirement.id)
+        return { ...requirement, count: fact.count,
+          status: fact.confirmed ? 'CONFIRMED' as const : fact.satisfied ? 'SATISFIED' as const : 'OPEN' as const }
+      } catch (error: any) {
+        completionErrors.value[requirement.id] = errorMessage(error, '完成事实判定失败')
+        return requirement
+      }
+    }))
+    const submissionEntries = await Promise.all(requirements.value.map(async requirement => {
+      try {
         const list = await listSubmissions(requirement.id)
-        return [requirement.id, (list ?? []).find((item) => item.status === 'CURRENT')]
-      })
-    )
+        return [requirement.id, (list ?? []).find(item => item.status === 'CURRENT')]
+      } catch (error: any) {
+        failures.push(errorMessage(error, '提交记录装载失败'))
+        return [requirement.id, undefined]
+      }
+    }))
     currentSubmissions.value = Object.fromEntries(submissionEntries)
-  } catch (error: any) {
-    panelError.value = errorMessage(error, '交付件装载失败')
+    panelError.value = failures.join('；')
   } finally {
     loading.value = false
   }
 }
 
-const onTypeChange = () => {
-  if (fileInputRef.value) fileInputRef.value.value = ''
-  selectedFile.value = undefined
-}
-
-const onFileChange = (event: Event) => {
-  selectedFile.value = (event.target as HTMLInputElement).files?.[0]
-}
-
-const uploadAndRegister = async () => {
-  const type = enabledTypes.value.find((item) => item.typeCode === uploadTypeCode.value)
-  const file = selectedFile.value
-  if (!type || !file) return
-  uploading.value = true
-  panelError.value = ''
-  try {
-    const referenceKey = crypto.randomUUID()
-    const initResult = await initializeUpload(
-      {
-        modeCode: 'CREATE_ARTIFACT',
-        ownerContext: 'PLT',
-        objectType: 'DELIVERY_MATERIAL',
-        objectId: `${props.ownerModule}:${props.entityType}:${props.entityId}`,
-        purposeCode: type.typeCode,
-        referenceKey,
-        fileName: file.name,
-        categoryCode: type.category,
-        declaredSizeBytes: file.size,
-        declaredMediaType: file.type || 'application/octet-stream'
-      },
-      crypto.randomUUID()
-    )
-    const completeResult = await completeUpload(
-      initResult.artifactId,
-      initResult.sessionId,
-      file,
-      crypto.randomUUID()
-    )
-    await registerMaterial({
-      ownerModule: props.ownerModule,
-      entityType: props.entityType,
-      entityId: props.entityId,
-      typeCode: type.typeCode,
-      fileReferenceId: completeResult.referenceId,
-      title: uploadTitle.value || undefined
-    })
-    uploadTitle.value = ''
-    if (fileInputRef.value) fileInputRef.value.value = ''
-    selectedFile.value = undefined
-    await reload()
-    emit('changed')
-  } catch (error: any) {
-    panelError.value = errorMessage(error, '上传或登记失败')
-  } finally {
-    uploading.value = false
-  }
+const onTypeChange = () => { uploadTitle.value = '' }
+const onUploaded = async () => {
+  uploadTitle.value = ''
+  await reload()
+  emit('changed')
 }
 
 const onMaterialSelectionChange = (rows: DeliveryMaterialVO[]) => {

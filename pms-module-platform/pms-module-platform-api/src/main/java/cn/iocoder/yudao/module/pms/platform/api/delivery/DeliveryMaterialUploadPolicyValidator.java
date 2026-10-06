@@ -12,8 +12,21 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
  */
 public interface DeliveryMaterialUploadPolicyValidator {
 
+    /** Delivery actions are separate from uploading a file: withdrawal need not allow UPLOAD. */
+    default Long requireDeliveryAccess(Long tenantId, Long actorUserId, String entityType,
+            String entityId, String purposeCode, boolean write, boolean lock, Long expectedScopeVersion) {
+        throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException(
+                "DELIVERY_ACCESS_DENIED", "Owner未声明交付动作授权");
+    }
+
     /** 承接的材料归属模块（材料 owner_module）。 */
     String ownerModule();
+
+    /** Owner capability only; every actual write still performs its native authorization and state checks. */
+    default boolean allowsGenericDeliveryActions(String entityType) { return true; }
+
+    /** A native revision Owner can adapt only its declared entity without intercepting sibling entities. */
+    default boolean supportsEntityType(String entityType) { return true; }
 
     /**
      * 校验并返回上传/读取约束。objectType/entityId 取自材料归属三元组

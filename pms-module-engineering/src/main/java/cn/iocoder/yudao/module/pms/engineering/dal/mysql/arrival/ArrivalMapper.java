@@ -13,6 +13,7 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface ArrivalMapper extends ProjectScopedCodeMapper<ArrivalDO> {
+    ArrivalDO selectDeliveryOwnerForUpdate(@org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalDeliveryOwnerQuery query);
 
     default int deleteEditable(ArrivalEditableDeleteQuery query) {
         return delete(new LambdaQueryWrapperX<ArrivalDO>()

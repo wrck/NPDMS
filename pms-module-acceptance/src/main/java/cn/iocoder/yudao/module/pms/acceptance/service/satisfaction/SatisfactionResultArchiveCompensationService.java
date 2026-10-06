@@ -51,6 +51,40 @@ public class SatisfactionResultArchiveCompensationService {
             throw new IllegalStateException("archive source state conflict");
         }
         TemplateFrozenSubmissionView submission = requireSatisfactionProjection(material);
+        archiveProjection(tenantId, submission);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void archiveSubmission(Long tenantId, Long submissionId) {
+        TemplateFrozenSubmissionView submission = platform.lockPendingArchiveSubmission(submissionId).orElse(null);
+        if (submission == null) return;
+        if (!PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION.equals(submission.sourceType())
+                || submission.requestKey() == null || !submission.requestKey().startsWith("satisfaction-result:"))
+            throw new IllegalStateException("archive source identity conflict");
+        archiveProjection(tenantId, submission);
+        if (!platform.markSubmissionArchiveState(submission.id(), PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED, null))
+            throw new IllegalStateException("archive obligation update conflict");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void recordSubmissionFailure(Long tenantId, Long submissionId, String failureCode) {
+        var submission=platform.lockPendingArchiveSubmission(submissionId).orElse(null);
+        if(submission==null)return;
+        if (!PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION.equals(submission.sourceType())
+                || submission.requestKey()==null || !submission.requestKey().startsWith("satisfaction-result:"))
+            throw new IllegalStateException("archive source identity conflict");
+        var result=resultMapper.selectByIdForUpdate(tenantId,resultIdOf(submission.requestKey()));
+        if(result==null || !Objects.equals(result.getTenantId(),tenantId)) throw new IllegalStateException("archive source unavailable");
+        if(!platform.markSubmissionArchiveState(submissionId,PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION,failureCode))
+            throw new IllegalStateException("archive obligation update conflict");
+        int retries=(result.getArchiveRetryCount()==null?0:result.getArchiveRetryCount())+1;
+        if(resultMapper.updateArchiveProjection(new SatisfactionResultArchiveProjectionUpdate(
+                tenantId,result.getId(),result.getVersion(),submissionId,PlatformDeliveryRequirementApi.ARCHIVE_PENDING_COMPENSATION,
+                failureCode,retries,String.valueOf(result.getArchiveActorUserId())))!=1)
+            throw new IllegalStateException("archive result update failed");
+    }
+
+    private void archiveProjection(Long tenantId, TemplateFrozenSubmissionView submission) {
         long resultId = resultIdOf(submission.requestKey());
         SatisfactionResultDO result = resultMapper.selectByIdForUpdate(tenantId, resultId);
         if (result == null || !Objects.equals(result.getTenantId(), tenantId)
@@ -59,6 +93,8 @@ public class SatisfactionResultArchiveCompensationService {
         }
         List<TemplateFrozenMaterialView> materials = platform.lockMaterials(submission.materialIds());
         if (materials.isEmpty()) throw new IllegalStateException("archive files missing");
+        if (materials.stream().anyMatch(row -> !PlatformDeliveryRequirementApi.MATERIAL_KIND_FILE.equals(row.materialKind())
+                || "WITHDRAWN".equals(row.status()))) throw new IllegalStateException("archive material invalid");
         List<SatisfactionResultFileDO> resultFiles = resultFileMapper.selectListByResult(
                 new SatisfactionResultFilesQuery(tenantId, result.getId()));
         if (!sameFiles(materials, resultFiles)) throw new IllegalStateException("archive source file conflict");

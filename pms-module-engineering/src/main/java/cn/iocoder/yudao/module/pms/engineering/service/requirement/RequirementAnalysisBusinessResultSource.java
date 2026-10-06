@@ -24,6 +24,15 @@ public class RequirementAnalysisBusinessResultSource implements BusinessResultCh
     private final RequirementAnalysisMapper revisions;
 
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
+    @Override public DeliveryIdentity deliveryIdentity(Query query) {
+        var fact=lockAndInspect(query);
+        if(fact.result()==null||fact.result().validity()!=Validity.CURRENT)return null;
+        var result=fact.result();
+        return new DeliveryIdentity("SOL","requirementAnalysis",Long.valueOf(result.objectId()),
+                RequirementAnalysisDeliveryEvidenceProvider.CODE,RequirementAnalysisDeliveryEvidenceProvider.TYPE,
+                result.resultId(),Long.valueOf(result.businessRevision()));
+    }
+
 
     /** 原生结果形成/生效/撤销均在Owner事务内写入同一通道；草稿修改不改变该结果事实。 */
     @Override public boolean transactionalChangeCoverage() { return true; }

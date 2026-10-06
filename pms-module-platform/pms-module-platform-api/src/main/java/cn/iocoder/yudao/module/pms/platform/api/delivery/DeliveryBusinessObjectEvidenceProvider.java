@@ -7,6 +7,12 @@ package cn.iocoder.yudao.module.pms.platform.api.delivery;
  * 如项目业务成果的 resultType）。
  */
 public interface DeliveryBusinessObjectEvidenceProvider {
+    record Identity(String ownerModule,String entityType,Long entityId,String businessTypeCode,
+                    String businessObjectType,String businessObjectId,Long businessRevisionNo) { }
+    record Alias(String businessObjectType,String businessObjectId,Long businessRevisionNo) {}
+    default java.util.List<Alias> aliases(Long tenantId,Long projectId,String objectId,Long revision) { return java.util.List.of(); }
+    default Identity identity(Long tenantId,Long projectId,String objectId,Long revision) { return null; }
+
 
     /**
      * 是否承接该业务成果对象类型。动态类型（成果类型清单在 Owner 模块运行时才可知）

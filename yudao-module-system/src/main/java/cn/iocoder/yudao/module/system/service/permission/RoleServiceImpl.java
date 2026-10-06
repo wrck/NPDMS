@@ -46,7 +46,7 @@ import static cn.iocoder.yudao.module.system.enums.LogRecordConstants.*;
 public class RoleServiceImpl implements RoleService {
 
     @Resource
-    private PermissionService permissionService;
+    private PermissionAssociationService permissionService;
 
     @Resource
     private RoleMapper roleMapper;

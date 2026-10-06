@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
  * 交底书编号全局唯一；草稿状态可编辑或删除。
  */
 public interface BriefingService {
+    String requestGeneratedFileDownload(Long id,Long materialId);
 
     /**
      * 创建交底书（校验编号唯一 + 项目存在）
