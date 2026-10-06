@@ -77,6 +77,7 @@ const attempt = ref<{
   ownerExecutionContext?: JsonObject
   initialized?: FileApi.FileUploadInitRespVO
 }>()
+let generation = 0
 
 const businessKey = (): FileBusinessKey => ({
   ownerContext: props.ownerContext,
@@ -85,16 +86,28 @@ const businessKey = (): FileBusinessKey => ({
   purposeCode: props.purposeCode,
   referenceKey: props.referenceKey
 })
+const identity = () =>
+  JSON.stringify([
+    businessKey(),
+    props.artifactId,
+    props.expectedReferenceVersion,
+    props.categoryCode
+  ])
 
 const selectFile = (file: UploadFile) => {
   if (selectedFile.value !== file.raw) {
+    ++generation
+    busy.value = false
     attempt.value = undefined
     selectedExecutionContext.value = props.ownerExecutionContext
-      ? structuredClone(toRaw(props.ownerExecutionContext)) : undefined
+      ? structuredClone(toRaw(props.ownerExecutionContext))
+      : undefined
   }
   selectedFile.value = file.raw
 }
 const removeFile = () => {
+  ++generation
+  busy.value = false
   selectedFile.value = undefined
   selectedExecutionContext.value = undefined
   attempt.value = undefined
@@ -103,22 +116,35 @@ const onExceed = () => message.warning('每个材料槽位一次只能选择一�
 
 const submit = async () => {
   const file = selectedFile.value
-  if (!file) return
+  if (!file || busy.value) return
   if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
     return message.error('文件大小必须在 50MiB 以内')
   }
   busy.value = true
   progress.value = 0
   stage.value = 'UPLOADING'
+  const selectedGeneration = generation
+  const selectedIdentity = identity()
+  const selectedKey = businessKey()
+  attempt.value ||= {
+    initKey: generateUUID(),
+    completeKey: generateUUID(),
+    ownerExecutionContext: selectedExecutionContext.value
+  }
+  const selectedAttempt = attempt.value
+  const isCurrent = () =>
+    generation === selectedGeneration &&
+    identity() === selectedIdentity &&
+    attempt.value === selectedAttempt
   try {
-    attempt.value ||= { initKey: generateUUID(), completeKey: generateUUID(),
-      ownerExecutionContext: selectedExecutionContext.value }
     const initialized =
-      attempt.value.initialized ||
+      selectedAttempt.initialized ||
       (await FileApi.initializeUpload(
         {
-          ...businessKey(),
-          ...(attempt.value.ownerExecutionContext ? { ownerExecutionContext: attempt.value.ownerExecutionContext } : {}),
+          ...selectedKey,
+          ...(selectedAttempt.ownerExecutionContext
+            ? { ownerExecutionContext: selectedAttempt.ownerExecutionContext }
+            : {}),
           modeCode: uploadMode.value,
           artifactId: props.artifactId,
           expectedReferenceVersion: props.expectedReferenceVersion,
@@ -127,30 +153,48 @@ const submit = async () => {
           declaredSizeBytes: file.size,
           declaredMediaType: file.type || 'application/octet-stream'
         },
-        attempt.value.initKey
+        selectedAttempt.initKey
       ))
-    attempt.value.initialized = initialized
+    if (!isCurrent()) return
+    selectedAttempt.initialized = initialized
     const completed = await FileApi.completeUpload(
       initialized.artifactId,
       initialized.sessionId,
       file,
-      attempt.value.completeKey,
+      selectedAttempt.completeKey,
       (value) => {
+        if (!isCurrent()) return
         progress.value = value
         if (value >= 100) stage.value = 'VALIDATING'
       },
-      attempt.value.ownerExecutionContext
+      selectedAttempt.ownerExecutionContext
     )
+    if (!isCurrent()) return
     progress.value = 100
     message.success('文件已通过服务端校验并绑定')
     emit('completed', completed)
     selectedFile.value = undefined
     attempt.value = undefined
     uploadRef.value?.clearFiles()
+  } catch (error) {
+    if (isCurrent()) throw error
   } finally {
-    busy.value = false
+    if (generation === selectedGeneration && identity() === selectedIdentity) busy.value = false
   }
 }
+watch(
+  identity,
+  () => {
+    removeFile()
+    progress.value = 0
+    stage.value = 'UPLOADING'
+    uploadRef.value?.clearFiles()
+  },
+  { flush: 'sync' }
+)
+onBeforeUnmount(() => {
+  ++generation
+})
 defineExpose({ isBusy: () => busy.value, hasPendingFile: () => !!selectedFile.value })
 </script>
 

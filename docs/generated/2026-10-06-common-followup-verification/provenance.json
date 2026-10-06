@@ -1,0 +1,22 @@
+{
+  "baseCheckpoint": "c41c12e054c5830b0390aa1fa51820a9b4ed3b42",
+  "nativeCheckpoint": "9b7b1b54b238cad218b58f315243f954c3110392",
+  "nativeParent": "be007ec3379b3c3f6951fe7a4f0052eec4c11097",
+  "nativeDeltaFiles": 33,
+  "nativeBytePreserved": 32,
+  "intentionalThreeWayMergedFile": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeAttachmentDeliveryMySqlTest.java",
+  "mergeResolution": "retain c41 closed ExplicitPermissionApi fixture registration and all guards, plus upstream registerExtraBeans hook; default behavior verified57 MySQL/six pages, extra hooks21 MySQL/two pages",
+  "sourceHashCount": 231,
+  "backendSourceHashCount": 157,
+  "normalJar": {
+    "path": "yudao-server/target/yudao-server.jar",
+    "sha256": "b44682167c73d1f06fece78d4273dc9f49568c1f590d52266c31cdee2ced40bc",
+    "bytes": 206831391
+  },
+  "publishedEvidenceBytePreserved": true,
+  "noKnoIncrement": true,
+  "fourForbiddenPathsUnchangedOrAbsent": true,
+  "noHistoricalSqlEdits": true,
+  "noGlobalUploadRegistrationHook": true,
+  "noProductionMigrationDeploymentMasterMergeForcepush": true
+}

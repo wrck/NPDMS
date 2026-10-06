@@ -1,0 +1,14 @@
+{
+  "ownedProjectsRemoved": {
+    "npdms-unified-followup-20261006": "",
+    "npdms-followup-declared-20261006": "",
+    "npdms-native-delivery-two-20261006": "",
+    "npdms-native-delivery-stage2-20261006": "",
+    "npdms-native-delivery-20261006": ""
+  },
+  "normalTomcatStopped": true,
+  "sharedOriginalInfrastructure": [
+    "3a13c98cd92bd9cada8cbf39648a3b4b2a8f0b5a17ec17ddce7f2b2c2babd46b running",
+    "42a6bcb3a7867076a577d3465f1a199ecfb2b530e6073716de20986df235c32f running"
+  ]
+}

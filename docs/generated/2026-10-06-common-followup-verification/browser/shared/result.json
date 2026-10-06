@@ -1,0 +1,21 @@
+{
+  "scope": "Actual shared Vue SFCs and ElementPlus, same component instance across Owner changes; file API promises controlled. No server authorization conclusion.",
+  "checks": [
+    {
+      "mode": "reference",
+      "status": "PASS",
+      "pageErrors": []
+    },
+    {
+      "mode": "upload",
+      "status": "PASS",
+      "pageErrors": []
+    },
+    {
+      "mode": "form",
+      "status": "PASS",
+      "pageErrors": []
+    }
+  ],
+  "status": "PASS"
+}

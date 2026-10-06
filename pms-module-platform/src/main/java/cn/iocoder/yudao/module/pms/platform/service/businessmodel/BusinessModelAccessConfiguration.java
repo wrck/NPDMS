@@ -37,6 +37,7 @@ public class BusinessModelAccessConfiguration {
     }
 
     @Bean
+    @org.springframework.context.annotation.Primary
     public BusinessEntityAccessPort businessEntityAccessPort(BusinessModelCatalog catalog,
                                                              BusinessEntityPersistenceRegistry persistence,
                                                              BusinessAccessGuard guard,
