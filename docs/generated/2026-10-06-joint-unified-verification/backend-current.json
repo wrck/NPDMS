@@ -1,0 +1,4170 @@
+{
+  "aggregateWarning": "Runs overlap and must not be added. 71 package classes are selected by 70 simple-name selectors. SQL native suites use model-derived task schemas, not a complete Flyway database.",
+  "package": {
+    "command": "mvn -s /workspace/toolchains/maven-settings.xml -pl yudao-server -am package -Dnpdms.declared.exclusive=true -Dtest=<backend-selectors.txt> -Dsurefire.failIfNoSpecifiedTests=false",
+    "exitCode": 0,
+    "modules": 42,
+    "sourceManifest": "package-source-files.json",
+    "totals": {
+      "tests": 558,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "passed": 555
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.AcceptanceResultDeliveryAccessTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptance.AcceptanceResultDeliveryAccessTest.xml",
+          "sha256": "c87a05d1c3657ab10eace0a43ece157d388f739ce835d4516462c63542c9d311",
+          "bytes": 92242
+        },
+        "cases": [
+          {
+            "name": "satisfactionOtherAssigneeDoesNotInheritGeneralModulePermission",
+            "status": "PASS"
+          },
+          {
+            "name": "foreignTenantDeniesBeforeScope",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeRevokedDuringLockDenies",
+            "status": "PASS"
+          },
+          {
+            "name": "noFunctionPermissionDeniesActualControllerBeforeMaterialQuery",
+            "status": "PASS"
+          },
+          {
+            "name": "panelsNeverCreateNativeBusinessResultsOrGenericUploads",
+            "status": "PASS"
+          },
+          {
+            "name": "unknownSiblingOwnerIsNeverClaimed",
+            "status": "PASS"
+          },
+          {
+            "name": "readonlyOwnersProjectNoGenericActionsEvenForAnOperator",
+            "status": "PASS"
+          },
+          {
+            "name": "exactAdapterRoutesAllThreeActualControllerReads",
+            "status": "PASS"
+          },
+          {
+            "name": "changedTreeDuringLockDenies",
+            "status": "PASS"
+          },
+          {
+            "name": "staleScopeVersionCannotObtainLockedRead",
+            "status": "PASS"
+          },
+          {
+            "name": "otherProjectScopeDeniesActualRequirementsController",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccessTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccessTest.xml",
+          "sha256": "2922d665a2795ecdef191c32fa94d07b0bd16880da9e8eacb0413ffeb070bebc",
+          "bytes": 92454
+        },
+        "cases": [
+          {
+            "name": "archivedAppendOrWithdrawalIsDeniedBeforeScope",
+            "status": "PASS"
+          },
+          {
+            "name": "foreignTenantNativeRootIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "activeDraftAcceptsOriginalArchiveFormats",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeAuditDeniesFunctionGrantedActorOutsideProjectScope",
+            "status": "PASS"
+          },
+          {
+            "name": "closedProjectCannotAcceptNewDocument",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeAuditRevalidatesManageScopeWithoutChangingLifecycleRules",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSubmitRechecksEmptyScopeAfterLock",
+            "status": "PASS"
+          },
+          {
+            "name": "anonymousNativeConfirmationNeverUsesOtherEmployeeIdentity",
+            "status": "PASS"
+          },
+          {
+            "name": "noVisibleProjectsDoesNotBecomeUnrestrictedRead",
+            "status": "PASS"
+          },
+          {
+            "name": "certificatePanelCannotReplaceNativeConfirmation",
+            "status": "PASS"
+          },
+          {
+            "name": "changedTreeDuringUploadCompletionIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "archivedReadWorksWithoutActiveProjectOrWritePermission",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportCommandServiceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportCommandServiceTest.xml",
+          "sha256": "90dd530a1577f848313f74869c3c809b79894bb0de8a985a0e309f9985982608",
+          "bytes": 90616
+        },
+        "cases": [
+          {
+            "name": "publishesCompleteDraftAndFreezesOrderedPublicFileFacts",
+            "status": "PASS"
+          },
+          {
+            "name": "revokeClearsCurrentWithoutRestoringPreviousVersion",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.archivedocument.ArchiveDocumentNativeDeliveryTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.archivedocument.ArchiveDocumentNativeDeliveryTest.xml",
+          "sha256": "61a7302d5f2cb58774d4293102450dfb66c7b62f585c45235ce074f2e2bd791e",
+          "bytes": 92264
+        },
+        "cases": [
+          {
+            "name": "nativeArchivePublishesOnlyAfterRealStateTransition",
+            "status": "PASS"
+          },
+          {
+            "name": "archivedMetadataCannotBeOverwritten",
+            "status": "PASS"
+          },
+          {
+            "name": "pointerFromOtherNativeRootIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "missingOptimisticVersionDoesNotExecuteUpdate",
+            "status": "PASS"
+          },
+          {
+            "name": "staleArchiveDoesNotPublishResult",
+            "status": "PASS"
+          },
+          {
+            "name": "registeredSourceCannotBeReparentedIntoAnotherProject",
+            "status": "PASS"
+          },
+          {
+            "name": "createCannotReuseOtherRootPointer",
+            "status": "PASS"
+          },
+          {
+            "name": "draftRoundTripKeepsHistoryAddressAndBusinessVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "staleDraftWriteIsReportedAndNeverPublishesResult",
+            "status": "PASS"
+          },
+          {
+            "name": "unavailableUnifiedPointerCannotBeSaved",
+            "status": "PASS"
+          },
+          {
+            "name": "createCannotSkipNativeArchiveStateMachine",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.completioncertificate.CompletionCertificateServiceTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.completioncertificate.CompletionCertificateServiceTest.xml",
+          "sha256": "fde833be5b9fa6da4cc21baea2501541738128320a193f4273c7f8c81c10c60b",
+          "bytes": 92144
+        },
+        "cases": [
+          {
+            "name": "create_shouldGenerateCodeAndInsertDevicesWithSort",
+            "status": "PASS"
+          },
+          {
+            "name": "staleConfirmationDoesNotPublishBusinessResult",
+            "status": "PASS"
+          },
+          {
+            "name": "getDevices_shouldDelegateToMapper",
+            "status": "PASS"
+          },
+          {
+            "name": "update_nonDraft_shouldRejectWithoutDeviceChange",
+            "status": "PASS"
+          },
+          {
+            "name": "archivePublishesSameUnrevisionedRealCertificateIdentity",
+            "status": "PASS"
+          },
+          {
+            "name": "update_draft_shouldReplaceDevices",
+            "status": "PASS"
+          },
+          {
+            "name": "customerConfirm_pendingCustomer_shouldTransitionWithConfirmTime",
+            "status": "PASS"
+          },
+          {
+            "name": "delete_shouldCascadeDevices",
+            "status": "PASS"
+          },
+          {
+            "name": "staleDraftUpdateDoesNotReplaceDevices",
+            "status": "PASS"
+          },
+          {
+            "name": "createCannotForgeCustomerConfirmedStatus",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentTest.xml",
+          "sha256": "ab13ab367f8760235ecb19adb5e2e75ba11c3720261a01fdd2d4521fec51095c",
+          "bytes": 91481
+        },
+        "cases": [
+          {
+            "name": "queryPermissionDoesNotGrantUpload",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeCollectionUsesLockedActualFactsAndDoesNotInventFiles",
+            "status": "PASS"
+          },
+          {
+            "name": "originUsesActualRootNeverThePassResultType",
+            "status": "PASS"
+          },
+          {
+            "name": "allNonDraftStatesAreReadOnly",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantPrincipalAndPlaceholderAreDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "draftUploadKeepsLegacyMediaSizeAndRequiresManagedProject",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeAndProjectChangeUnderLockAreDenied",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.DeliverableChecklistNativeDeliveryTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.DeliverableChecklistNativeDeliveryTest.xml",
+          "sha256": "92bd0b32dd740d822f2ada28db1ea05cba8980e55b81114b67203c0411c50aeb",
+          "bytes": 92420
+        },
+        "cases": [
+          {
+            "name": "staleCasDoesNotPublishBusinessResult",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDraftSaveCollectsAttachmentsAfterSuccessfulCas",
+            "status": "PASS"
+          },
+          {
+            "name": "failedNativeCasDoesNotCollectAttachments",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeDenialDoesNotAdvanceNativeState",
+            "status": "PASS"
+          },
+          {
+            "name": "wrongNativeStateCannotPublishResult",
+            "status": "PASS"
+          },
+          {
+            "name": "submitCapturesActualAttachmentsBeforeFreezingDraft",
+            "status": "PASS"
+          },
+          {
+            "name": "actualPassRegistersUnrevisionedResultAfterCas",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseFilePolicyProviderTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseFilePolicyProviderTest.xml",
+          "sha256": "92331f7723f234aa601d79db2069ca97bdf03dc829b49565c6b4285396f9f83d",
+          "bytes": 90428
+        },
+        "cases": [
+          {
+            "name": "returnsGrantCreatorAsAuditActorAfterOwnerAndScopeLock",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseReservationServiceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseReservationServiceTest.xml",
+          "sha256": "e4a7acebad84e7a56fa8c3c4559daf797eebec032c8c6fe2ee14a92f39396937",
+          "bytes": 90610
+        },
+        "cases": [
+          {
+            "name": "reservesWithGrantIssuerAndStableScope",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsNonUserGrantCreatorBeforeIdempotencyWrite",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseSubmissionServiceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseSubmissionServiceTest.xml",
+          "sha256": "d625fdee77e42e1860389659157155c095c517a7b34279c1581f64f8b480897f",
+          "bytes": 91199
+        },
+        "cases": [
+          {
+            "name": "replayWithDifferentFileSetConflictsWithoutWrite",
+            "status": "PASS"
+          },
+          {
+            "name": "differentGrantCannotClaimExistingResponse",
+            "status": "PASS"
+          },
+          {
+            "name": "sameRequestWithDifferentPayloadConflictsWithoutWrite",
+            "status": "PASS"
+          },
+          {
+            "name": "persistsImmutableResponseFilesAndMovesTaskToDecision",
+            "status": "PASS"
+          },
+          {
+            "name": "missingSignatureRejectedBeforeAnyWrite",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultDecisionServiceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultDecisionServiceTest.xml",
+          "sha256": "75c8561d151f13330ea09109fb8e9f383ded079bbadaf0e846fb14069e57d90d",
+          "bytes": 90823
+        },
+        "cases": [
+          {
+            "name": "independentCollectionUsesExistingScoreAndSignatureWithoutAnInventedArchiveTarget",
+            "status": "PASS"
+          },
+          {
+            "name": "generatedFileFailureLeavesResultWritesAtZero",
+            "status": "PASS"
+          },
+          {
+            "name": "createsResultDocumentResultAndTaskTransition",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultFilePolicyProviderTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultFilePolicyProviderTest.xml",
+          "sha256": "8cfb2ca7ca405b7c080de44f7a87a6429dd5f5802105687aa4007cb3ca878cde",
+          "bytes": 91381
+        },
+        "cases": [
+          {
+            "name": "rejectsResultDocumentWhenTenantOrProjectScopeDoesNotMatch",
+            "status": "PASS"
+          },
+          {
+            "name": "allowsResultDocumentDownloadForCurrentProjectViewScope",
+            "status": "PASS"
+          },
+          {
+            "name": "allowsResultDocumentReadForArtifactDetails",
+            "status": "PASS"
+          },
+          {
+            "name": "occupiedResultFailsBeforeProjectScope",
+            "status": "PASS"
+          },
+          {
+            "name": "validatesOwnerChainAndReturnsExactTreeVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "wrongAssigneeFailsBeforeScopeLookup",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadServiceTest",
+        "tests": 23,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadServiceTest.xml",
+          "sha256": "f9307f1a90a3687910216318cd51e48b2689c17de94a6bfcb85e3b99deda7b4c",
+          "bytes": 81780
+        },
+        "cases": [
+          {
+            "name": "withdrawnNativeMaterialCannotDowngradeToLegacyUrl",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectLogThatDoesNotBelongToDevice",
+            "status": "PASS"
+          },
+          {
+            "name": "actualOldVersionLookupCannotSilentlyDownloadTheReplacement",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectConcurrentSecondConsumption",
+            "status": "PASS"
+          },
+          {
+            "name": "malformedNativeLocatorDoesNotBecomeALegacyUrl",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldDeclareProductionConstructorForSpringInjection",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectUnsupportedFileProtocol",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectGrantWithoutDownloadPermission",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectExpiredToken",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectPermissionRevocationAtDownloadTime",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeLocatorPreservesLargeIdsAndUsesFileAuthorizationAfterDeviceAuthorization",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldIssueUserBoundGrantWithDigestOnly",
+            "status": "PASS"
+          },
+          {
+            "name": "crossTenantDeviceRequestCannotReachNativeFileApi",
+            "status": "PASS"
+          },
+          {
+            "name": "replacedDetachedOrFilePermissionRevokedReferenceFailsWithoutUrlFallback",
+            "status": "PASS"
+          },
+          {
+            "name": "materialWithdrawalDuringNativeAuthorizationCannotReturnContent",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectOversizedFileBeforeReturningStream",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectGrantWhenDeviceIsInvisible",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeOwnerAuthorizationPrecedesFrozenFileLocksAndTheContentOpen",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectRepeatedConsumption",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectLogWithoutFile",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldConsumeGrantOnceAndStreamThroughInternalPresignedUrl",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldRejectForwardedTokenFromOtherUser",
+            "status": "PASS"
+          },
+          {
+            "name": "detachedReferenceCannotDownloadEvenWhenMaterialIsStillActive",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.framework.DeclaredBusinessRuntimePersistenceTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.framework.DeclaredBusinessRuntimePersistenceTest.xml",
+          "sha256": "7d85ba5e255a4117bcc06795d70aa9ff0a6957b3826b0fecf79f6d72ffc5d448",
+          "bytes": 99233
+        },
+        "cases": [
+          {
+            "name": "queryPermissionPlusPublicOperateCannotSaveOrReadOriginalWriteReceipt",
+            "status": "PASS"
+          },
+          {
+            "name": "declaredProjectRefScopesCreateUpdateAndRejectsOtherTenantProject",
+            "status": "PASS"
+          },
+          {
+            "name": "sameIntentUsesProductionPersistentLedgerAuditAndOutboxOnce",
+            "status": "PASS"
+          },
+          {
+            "name": "changedIntentUnderOriginalKeyIsRejectedWithoutEffects",
+            "status": "PASS"
+          },
+          {
+            "name": "updateMustCarryClientVersionBeforeAnyPersistentEffects",
+            "status": "PASS"
+          },
+          {
+            "name": "auditInsertFailureRollsBackBodyAndReservedLedger",
+            "status": "PASS"
+          },
+          {
+            "name": "requiredInputIsValidatedOnServerBeforeInsert",
+            "status": "PASS"
+          },
+          {
+            "name": "emptyScopeDoesNotExpandPageAndRevocationRejectsWriteReplay",
+            "status": "PASS"
+          },
+          {
+            "name": "queryPermissionPlusPublicOperateCannotCreate",
+            "status": "PASS"
+          },
+          {
+            "name": "patchOmissionPreservesRequiredValueButExplicitClearFails",
+            "status": "PASS"
+          },
+          {
+            "name": "unreadableFieldDoesNotLeakThroughDefaultReadOrPage",
+            "status": "PASS"
+          },
+          {
+            "name": "outboxFailureRollsBackEntityLedgerAndAudit",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantInterceptorAndIdentityRejectForeignEntity",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrentTransactionsWithOneVersionHaveExactlyOneWinner",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyBusinessModelPersistenceTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyBusinessModelPersistenceTest.xml",
+          "sha256": "558922ea60198faa0caa529a62686ba1862e854d0928fd6bfc7bccd37b05dcb6",
+          "bytes": 96028
+        },
+        "cases": [
+          {
+            "name": "genericPageIntersectsCallerFilterWithOwnerProjectsAndFailsClosedOnEmptyScope",
+            "status": "PASS"
+          },
+          {
+            "name": "explicitlyOpenedFieldsReadAndFilterWithoutExposingOwnerJsonMetadata",
+            "status": "PASS"
+          },
+          {
+            "name": "assignedIdentityAndLongOptimisticVersionRemainSingleMappedColumns",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRecoveryKeepsOriginalReceiptAndUsesTheObjectsCurrentOwner",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRecoveryPreservesTheSoftDeletedOwnersIdentityContract",
+            "status": "PASS"
+          },
+          {
+            "name": "genericReadUsesCurrentMapperAndRequiresBothOwnerPermissionAndProjectScope",
+            "status": "PASS"
+          },
+          {
+            "name": "existingTrustedObserverStillReadsOnlyItsTenantAndOwnerAliasIsExact",
+            "status": "PASS"
+          },
+          {
+            "name": "modelFunctionPermissionAloneCannotReplaceOwnerScopeAndMissingPermissionDeniesPages",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRecoveryRequiresTheOriginalOperationPermissionBeforeReadingTheLedger",
+            "status": "PASS"
+          },
+          {
+            "name": "legacyUnboundReceiptsCannotBeRelabeledAsTheRequestedOperation",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyPublicOperationPermissionTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyPublicOperationPermissionTest.xml",
+          "sha256": "72a86f9c396da7f11cd7311ed38e7dfddedb8a1e24e4283da2f0f0f52eece244",
+          "bytes": 95835
+        },
+        "cases": [
+          {
+            "name": "observerAndUnknownOperationsCannotAcquireInteractiveWritePermission",
+            "status": "PASS"
+          },
+          {
+            "name": "queryPermissionNeverMakesAllOwnerOperationsExecutable",
+            "status": "PASS"
+          },
+          {
+            "name": "requirementManagerReadContractIsPreservedWithoutInventingItsQueryGrant",
+            "status": "PASS"
+          },
+          {
+            "name": "missingOrMismatchedAuthenticatedIdentityDeniesBeforeOwnerPermissionChecks",
+            "status": "PASS"
+          },
+          {
+            "name": "eachOperationReflectsExactOwnerPermissionAndPublicRoutePermission",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalDeliveryRegistrationTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalDeliveryRegistrationTest.xml",
+          "sha256": "89b5aad60a57c62bf83247e13425cd56627313ceaf5b5b248bcff6a5a9f505d1",
+          "bytes": 95109
+        },
+        "cases": [
+          {
+            "name": "materialRegistrationUsesLockedActualFileFact",
+            "status": "PASS"
+          },
+          {
+            "name": "emptyOptionalSignSlotDoesNotInventRequiredFile",
+            "status": "PASS"
+          },
+          {
+            "name": "overlappingPlaceholderCannotAuthorizeMaterialMutation",
+            "status": "PASS"
+          },
+          {
+            "name": "changedProjectScopeDeniesAfterLock",
+            "status": "PASS"
+          },
+          {
+            "name": "functionPermissionDoesNotGrantOtherProject",
+            "status": "PASS"
+          },
+          {
+            "name": "deletingRequiresItsOwnPermissionAndCurrentManagedProject",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalFilePolicyProviderTest",
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalFilePolicyProviderTest.xml",
+          "sha256": "cab3eb7d54087af602bea81f11c1ea466af5a914dc5d09e8620b474ef3bce6c9",
+          "bytes": 96928
+        },
+        "cases": [
+          {
+            "name": "otherPurposesAndUnknownActionsAreDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "changedScopeVersionAtOwnerLockIsDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "editableRecordAllowsEveryApprovedMutatingAction(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "editableRecordAllowsEveryApprovedMutatingAction(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "editableRecordAllowsEveryApprovedMutatingAction(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "editableRecordAllowsEveryApprovedMutatingAction(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "fileMutationRequiresManageScopeAndRejectsPlaceholderProject",
+            "status": "PASS"
+          },
+          {
+            "name": "lockAndRevalidateReturnsTheObservedScopeVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "foreignTenantRecordIsDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "pendingSignRecordAllowsEveryMutatingActionWithSingleSignSlot",
+            "status": "PASS"
+          },
+          {
+            "name": "projectViewerCanUseEveryApprovedReadAction(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "projectViewerCanUseEveryApprovedReadAction(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "projectViewerCanUseEveryApprovedReadAction(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "outOfScopeProjectIsDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "signedRecordFreezesTheSignDocumentEvidence",
+            "status": "PASS"
+          },
+          {
+            "name": "signatureRaceRechecksLockedRootBeforeFileMutation",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryAccessTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryAccessTest.xml",
+          "sha256": "4ef1e1cb039c1bee542f0dfe52f53b4a195caed92d3c8730284a52c124d119db",
+          "bytes": 95275
+        },
+        "cases": [
+          {
+            "name": "withdrawalUsesActualOwnerUpdateAndManagedScope",
+            "status": "PASS"
+          },
+          {
+            "name": "signedArrivalRemainsReadableButRejectsWithdrawal",
+            "status": "PASS"
+          },
+          {
+            "name": "genericFileRouteCannotIntroduceASecondArrivalSlot",
+            "status": "PASS"
+          },
+          {
+            "name": "queryPermissionCannotAuthorizeWithdrawal",
+            "status": "PASS"
+          },
+          {
+            "name": "placeholderAndChangedScopeRejectUnderLock",
+            "status": "PASS"
+          },
+          {
+            "name": "inactiveProjectAndWrongPurposeRejectWithdrawal",
+            "status": "PASS"
+          },
+          {
+            "name": "actualPrincipalAndTenantAreRequired",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryCommandTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryCommandTest.xml",
+          "sha256": "e12a1ce245b7866457960f689f385d7f8606b06db6fb48904f9812ddd5edacd1",
+          "bytes": 94750
+        },
+        "cases": [
+          {
+            "name": "failedFileCollectionPreventsSigningAndResultRegistration",
+            "status": "PASS"
+          },
+          {
+            "name": "authorizedEditableDeleteStillUsesTheNativeVersionCas",
+            "status": "PASS"
+          },
+          {
+            "name": "deniedDeleteKeepsTheOwnerAndItsMaterialSources",
+            "status": "PASS"
+          },
+          {
+            "name": "signedOwnerCannotBeDeleted",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGenerateDocumentTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGenerateDocumentTest.xml",
+          "sha256": "149841308a021632a7ba9183caf4bb7c75c475e5fb9a88be3372851ca076fb22",
+          "bytes": 94565
+        },
+        "cases": [
+          {
+            "name": "blankContentAssemblesFromRealBriefingDataNotPlaceholder",
+            "status": "PASS"
+          },
+          {
+            "name": "generateWritesRealFileMetadataInsteadOfForgedPlaceholder",
+            "status": "PASS"
+          },
+          {
+            "name": "manualContentIsPreservedVerbatim",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGeneratedFilePolicyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGeneratedFilePolicyTest.xml",
+          "sha256": "93321f67cac84df239a817fbe0bc4df605d015d328583d33834ed2422880ca8a",
+          "bytes": 94734
+        },
+        "cases": [
+          {
+            "name": "rejectsGenerationWithoutNativeOperationPermission",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsCrossTenantBeforeReadingOwner",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsStaleNativeVersionBeforeProjectAccess",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsVoidOwnerBeforeProjectAccess",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.configuration.ConfigurationLocalLifecycleTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.configuration.ConfigurationLocalLifecycleTest.xml",
+          "sha256": "b2878b25451a44aa8a9924bedba7b73b61bb697b0dae47b2c50ddad250e90beb",
+          "bytes": 94943
+        },
+        "cases": [
+          {
+            "name": "completedRecordCannotBeEditedOrDeleted",
+            "status": "PASS"
+          },
+          {
+            "name": "failedUpdateCannotBeReportedAsSuccess",
+            "status": "PASS"
+          },
+          {
+            "name": "normalEditingCannotSetACompletedStateFromTheRequest",
+            "status": "PASS"
+          },
+          {
+            "name": "startAndCompleteLeaveVersionIncrementToMybatis",
+            "status": "PASS"
+          },
+          {
+            "name": "newConfigurationAlwaysStartsPending",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.delivery.SolutionDeliveryEvidenceProviderTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.delivery.SolutionDeliveryEvidenceProviderTest.xml",
+          "sha256": "1a6f07b214a83ad624965ac8bbbab5bc1b2037626da5065f290f1a1b2f69f233",
+          "bytes": 94712
+        },
+        "cases": [
+          {
+            "name": "rejectsDifferentTenant",
+            "status": "PASS"
+          },
+          {
+            "name": "acceptsExactProjectAndBaseline",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsDifferentBaseline",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsApprovedSolutionFromDifferentProject",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.delivery.TrainingDeliveryEvidenceProviderTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.delivery.TrainingDeliveryEvidenceProviderTest.xml",
+          "sha256": "6a23946144e54011ff2f2463821fdad50e8721c286240cc56ceee01951c2c02c",
+          "bytes": 94926
+        },
+        "cases": [
+          {
+            "name": "rejectsDifferentTenant",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsRevisionForUnversionedTraining",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsConfirmedTrainingFromAnotherProjectInSameTenant",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsUnconfirmedTraining",
+            "status": "PASS"
+          },
+          {
+            "name": "acceptsExactConfirmedTrainingWithoutInventedRevision",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.jointtest.JointTestLocalLifecycleTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.jointtest.JointTestLocalLifecycleTest.xml",
+          "sha256": "73df9dddfc6fba99bc0aca6cf0b421f67b53e1bfdc309d6b37d3344ff93f184f",
+          "bytes": 94904
+        },
+        "cases": [
+          {
+            "name": "lostPassUpdateDoesNotReportSuccess",
+            "status": "PASS"
+          },
+          {
+            "name": "missingFailureReasonDoesNotWriteAResult",
+            "status": "PASS"
+          },
+          {
+            "name": "editingPreservesTheWorkflowStateAndRejectsAStaleVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "failureRecordsItsReasonWithTheLoadedOptimisticVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "failedResultCannotBePassedOrDeleted",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeReservedIntegrationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeReservedIntegrationTest.xml",
+          "sha256": "b4c089ee243c1fa10fb509ff4fc52a7f65ed3d5d13fb0aa05912850d6c19ac8f",
+          "bytes": 94655
+        },
+        "cases": [
+          {
+            "name": "reservedEndpointDoesNotSimulateSendingOrReceivingAnOrder",
+            "status": "PASS"
+          },
+          {
+            "name": "historicalCrmEvidenceIsNotRewrittenWhenIntegrationIsPaused",
+            "status": "PASS"
+          },
+          {
+            "name": "missingApplicationStillFailsWithoutAnyWrite",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeSerialServiceTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeSerialServiceTest.xml",
+          "sha256": "58dd0248fdaf65c12dad1bee2eb2afab7ebe768472e71916392aa68ce0e9c313",
+          "bytes": 96829
+        },
+        "cases": [
+          {
+            "name": "explicitEditReplacesChildrenAfterParentVersionCheck",
+            "status": "PASS"
+          },
+          {
+            "name": "mixedScopeAndLegacyRowsValidateBothProviders",
+            "status": "PASS"
+          },
+          {
+            "name": "optimisticWriteFailureCannotReplaceSerials",
+            "status": "PASS"
+          },
+          {
+            "name": "persistsPerRowExchangeQuantity",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidSelectionNeverWritesApplicationOrChildren",
+            "status": "PASS"
+          },
+          {
+            "name": "rowWithoutAnyReferenceIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "savesEverySelectedSerialUsingServerSnapshot",
+            "status": "PASS"
+          },
+          {
+            "name": "quantityMustMatchSerialQuantityTotal",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsInactiveExchangeProduct",
+            "status": "PASS"
+          },
+          {
+            "name": "completedApplicationCannotRewriteSnapshots",
+            "status": "PASS"
+          },
+          {
+            "name": "legacyClientOmittingChildrenPreservesExistingSnapshot",
+            "status": "PASS"
+          },
+          {
+            "name": "savesScopeLineUsingServerOrderFacts",
+            "status": "PASS"
+          },
+          {
+            "name": "staleVersionCannotReplaceSerials",
+            "status": "PASS"
+          },
+          {
+            "name": "joinsDistinctScopeItemCodesAndExitsLegacyFacts",
+            "status": "PASS"
+          },
+          {
+            "name": "writesServerSideExchangeProductSnapshot",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceRequestVersionContractTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceRequestVersionContractTest.xml",
+          "sha256": "727f209bc3877b24b4c263b5574816f380e12a8a97ac426c2b297f0fd2aca239",
+          "bytes": 95123
+        },
+        "cases": [
+          {
+            "name": "failedStateTransitionCannotReturnSuccess",
+            "status": "PASS"
+          },
+          {
+            "name": "staleVersionIsRejectedBeforeWriting",
+            "status": "PASS"
+          },
+          {
+            "name": "numericEqualIntegerInputAndLongEntityVersionAreTheSameVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "failedDeletionCannotReturnSuccess",
+            "status": "PASS"
+          },
+          {
+            "name": "failedDraftUpdateCannotReturnSuccess",
+            "status": "PASS"
+          },
+          {
+            "name": "failedInsertCannotProduceAnObjectIdentity",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTest.xml",
+          "sha256": "5e1e4dc8541414be46b07196cec6b39e4a0d4a06629c42073be9246a42a9c35b",
+          "bytes": 94818
+        },
+        "cases": [
+          {
+            "name": "invalidExecutionFailurePropagatesToTheExistingCreationTransaction",
+            "status": "PASS"
+          },
+          {
+            "name": "creationPassesExactExecutionToSurveyAssociationAndDoesNotSubmitApproval",
+            "status": "PASS"
+          },
+          {
+            "name": "staleExecutionPreventsDeletionAndPreservesTheSourceRelationship",
+            "status": "PASS"
+          },
+          {
+            "name": "deletionRevalidatesTheSameExecutionBeforeRemovingTheRequest",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTransactionTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTransactionTest.xml",
+          "sha256": "f3b5106f408bf6bb203f9020fb0e3fba9bd671631be8edbc1be599e913107bc7",
+          "bytes": 94666
+        },
+        "cases": [
+          {
+            "name": "failedDeletionRestoresRelationshipChangedEarlierInTheSameTransaction",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectedExecutionRollsBackInsertedRequestInsteadOfLeavingAnOrphan",
+            "status": "PASS"
+          },
+          {
+            "name": "successfulCreationAndDeletionCommitTheOwnerRelationshipTogether",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryAccessTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryAccessTest.xml",
+          "sha256": "649dd940552d5355e94f0e0c5f052039aff5aef377fefc17296ae9d6c3a76d25",
+          "bytes": 95095
+        },
+        "cases": [
+          {
+            "name": "draftRevisionOwnerReadsWithoutCurrentRootRow",
+            "status": "PASS"
+          },
+          {
+            "name": "genericWriteAndUploadDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRevisionPermissionRevocationFails",
+            "status": "PASS"
+          },
+          {
+            "name": "projectOutsideReadScopeFails",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeVersionChangeFails",
+            "status": "PASS"
+          },
+          {
+            "name": "siblingSolOwnersAreNotIntercepted",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryEvidenceProviderTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryEvidenceProviderTest.xml",
+          "sha256": "b952475989e679d5ef1824377cf884c213d0957307e5a06be20c6c375dd968b7",
+          "bytes": 95628
+        },
+        "cases": [
+          {
+            "name": "crossProjectCannotReadCompletedRevision",
+            "status": "PASS"
+          },
+          {
+            "name": "frozenButInactiveRevisionIsNotCurrent",
+            "status": "PASS"
+          },
+          {
+            "name": "nonCompletedFrozenRevisionIsUnavailable",
+            "status": "PASS"
+          },
+          {
+            "name": "historicalCompositeAliasesPreserveFrozenTimeAndActualRevision",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeAndTemplateSourcesUseSameTrueRootAndRevision",
+            "status": "PASS"
+          },
+          {
+            "name": "crossTenantCannotReadCompletedRevision",
+            "status": "PASS"
+          },
+          {
+            "name": "wrongBusinessRevisionCannotSilentlyAdoptCurrent",
+            "status": "PASS"
+          },
+          {
+            "name": "draftNeverBecomesCompletedResult",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFileBatchTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFileBatchTest.xml",
+          "sha256": "bca0b5f23af1fcd6bc81e334295d98c0e414b3804658adf70979109a94d12075",
+          "bytes": 94475
+        },
+        "cases": [
+          {
+            "name": "baseBusinessAttachmentsRemainAvailableWithoutAnyPresentationBinding",
+            "status": "PASS"
+          },
+          {
+            "name": "oneOwnerReadPerBatchRetainsFieldAuthorizationAndDoesNotCacheTheNextRequest",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessResultSourceTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessResultSourceTest.xml",
+          "sha256": "328fb17242f603f07d9fa68c13a7990dbf4d8140dd9aff65e8faadde04590a29",
+          "bytes": 95974
+        },
+        "cases": [
+          {
+            "name": "missingFactMetadataIsUnavailable(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "missingFactMetadataIsUnavailable(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "missingFactMetadataIsUnavailable(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeAndNativeIdChecksPrecedeReading",
+            "status": "PASS"
+          },
+          {
+            "name": "deletedAndAbsentRowsAreNotSuccessfulFacts",
+            "status": "PASS"
+          },
+          {
+            "name": "originalOwnerEventMapsToNativeLookupWithoutCreatingAResult",
+            "status": "PASS"
+          },
+          {
+            "name": "archivingDoesNotFabricateAnotherConfirmationOrBusinessRevision",
+            "status": "PASS"
+          },
+          {
+            "name": "exactHistoricalLookupIsNotClaimedForAMutableRow",
+            "status": "PASS"
+          },
+          {
+            "name": "draftAndRejectionAreNotConfirmation(int)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "draftAndRejectionAreNotConfirmation(int)[2]",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyOperationEntryPolicyTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyOperationEntryPolicyTest.xml",
+          "sha256": "2de043e1e177b6405b6eb76f49c60919d206e08befbf7ef989c574e58f10f49c",
+          "bytes": 94237
+        },
+        "cases": [
+          {
+            "name": "onlyTheSixAuditedCommandsUseProjectEntryOnlyControl",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.TemplateSiteSurveyOperationInputTest",
+        "tests": 23,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.TemplateSiteSurveyOperationInputTest.xml",
+          "sha256": "5ebe17f7183a77220a993327d5a82a4218ac84923f3dc0bccf407efd0e984162",
+          "bytes": 103467
+        },
+        "cases": [
+          {
+            "name": "retainsOriginalBeanValidationAndProjectScope",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[7]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[8]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[9]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[10]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[11]",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidInputNeverOverridesIdentityOrReachesOwnerWrite(String)[12]",
+            "status": "PASS"
+          },
+          {
+            "name": "preservesEveryOriginalActionAndAuthorization(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "preservesEveryOriginalActionAndAuthorization(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "preservesEveryOriginalActionAndAuthorization(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "preservesEveryOriginalActionAndAuthorization(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "preservesEveryOriginalActionAndAuthorization(String)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "preservesEveryOriginalActionAndAuthorization(String)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "objectOnlyCommandsCannotSilentlyDiscardInput(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "objectOnlyCommandsCannotSilentlyDiscardInput(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "objectOnlyCommandsCannotSilentlyDiscardInput(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "objectOnlyCommandsCannotSilentlyDiscardInput(String)[4]",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionCustomerDocumentServiceTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionCustomerDocumentServiceTest.xml",
+          "sha256": "1143633a994aac215ba00cb1381cd591f13eb135b2fd0563cda72593017bf8a7",
+          "bytes": 96856
+        },
+        "cases": [
+          {
+            "name": "legacyMultipleLinksKeepOriginalMeaning",
+            "status": "PASS"
+          },
+          {
+            "name": "foreignRootReferenceCannotBecomeCustomerDocument",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeOwnerCasFailureCannotReportBoundSuccess",
+            "status": "PASS"
+          },
+          {
+            "name": "staleVersionCannotReplaceDifferentCustomerBody",
+            "status": "PASS"
+          },
+          {
+            "name": "optimisticPluginMutatesEntityVersionOnlyOnce",
+            "status": "PASS"
+          },
+          {
+            "name": "materialFailureLeavesOldPointerAndPropagates",
+            "status": "PASS"
+          },
+          {
+            "name": "creationAndReplacementBindActualSavedRootFileVersionAndPreserveMetadata",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFileNamesEscapeListDelimiterAndDecodeExactlyOnce",
+            "status": "PASS"
+          },
+          {
+            "name": "crossTenantDeniedBeforeProjectOrFile",
+            "status": "PASS"
+          },
+          {
+            "name": "legacyHistoryPointerRemainsReadableWithoutInventingFileReference",
+            "status": "PASS"
+          },
+          {
+            "name": "lostResponseRetryOfIdenticalBindingReusesMaterialWithoutOverwritingNewVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "treeChangedDuringProjectLockCannotBind",
+            "status": "PASS"
+          },
+          {
+            "name": "queryOnlyActorCannotAttachCustomerFile",
+            "status": "PASS"
+          },
+          {
+            "name": "crossProjectDeniedBeforeFileMaterial",
+            "status": "PASS"
+          },
+          {
+            "name": "approvedBodyCannotBeReplacedThroughFileBinding",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewServiceTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewServiceTest.xml",
+          "sha256": "1745b56a847bef6740f6c3806b507317d3685b80eeae1c14c01dd6db6b45845d",
+          "bytes": 95987
+        },
+        "cases": [
+          {
+            "name": "staleVersionMissingManagerAndEmptyScopeFailBeforeProcessStart",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectionKeepsOriginalAndOnlyCopiesToNewDraft",
+            "status": "PASS"
+          },
+          {
+            "name": "finalApprovalArchivesOnceAndProtectsApprovedVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "ordinarySolutionsTakeTheSameSubmitEntryAndCarryFrozenLevel",
+            "status": "PASS"
+          },
+          {
+            "name": "missingPolicyDecisionBlocksSubmitBeforeProcessStart",
+            "status": "PASS"
+          },
+          {
+            "name": "mismatchedProcessIdentityNeverApprovesSource",
+            "status": "PASS"
+          },
+          {
+            "name": "firstApprovalDoesNotCompleteMajorSolution",
+            "status": "PASS"
+          },
+          {
+            "name": "currentSourceChangeRejectsTerminalResultWithoutOverwrite",
+            "status": "PASS"
+          },
+          {
+            "name": "freezesVersionAndIdenticalSubmissionReplaysWithoutSecondProcess",
+            "status": "PASS"
+          },
+          {
+            "name": "reviewFormRequiresSameTenantExistingReviewAndCurrentProjectScope",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.training.TrainingConfirmationGrantServiceTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.training.TrainingConfirmationGrantServiceTest.xml",
+          "sha256": "a75d16a97aa90059919cc616ed13ba08b838b326b49473382a38c77ca1050055",
+          "bytes": 96588
+        },
+        "cases": [
+          {
+            "name": "changedFrozenFormRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "lossOfCurrentGrantCannotDowngradeNewIssuanceToLegacyPath",
+            "status": "PASS"
+          },
+          {
+            "name": "changedScopeRejectedBeforePhysicalFile",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeRevocationToEmptyIsNotAnUnrestrictedGrant",
+            "status": "PASS"
+          },
+          {
+            "name": "nativePurposeCannotBeChangedToPdfOrOtherOwner",
+            "status": "PASS"
+          },
+          {
+            "name": "expiredGrantRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "issuanceCapturesActualEmployeeAndPersistedDeadline",
+            "status": "PASS"
+          },
+          {
+            "name": "genuinelyHistoricalRootWithoutIssuanceEvidenceRetainsLegacyPath",
+            "status": "PASS"
+          },
+          {
+            "name": "anonymousCustomerUsesImmutableIssuerNotTrainerOrLoggedEmployee",
+            "status": "PASS"
+          },
+          {
+            "name": "missingHistoricalGrantNeverInventsIssuer",
+            "status": "PASS"
+          },
+          {
+            "name": "reissuedDigestDoesNotReuseEarlierGrant",
+            "status": "PASS"
+          },
+          {
+            "name": "foreignTenantGrantRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "staleRootVersionAndConfirmedReplayRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "revokedIssuerPermissionRejected",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.training.TrainingServiceTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.training.TrainingServiceTest.xml",
+          "sha256": "70a6c6cd1846085d95c1895556ee57835088f36df9c31f22bbc35c3121354c33",
+          "bytes": 95225
+        },
+        "cases": [
+          {
+            "name": "newGrantConfirmationUsesExplicitCustomerPrincipalAndRealIssuerExecution",
+            "status": "PASS"
+          },
+          {
+            "name": "confirmRecordsCustomerSectionArchivesDeliverableAndBlocksReplay",
+            "status": "PASS"
+          },
+          {
+            "name": "expiredOrVoidTokenIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "issueFreezesPublishedRevisionAndReissueDoesNotReadNewTemplate",
+            "status": "PASS"
+          },
+          {
+            "name": "issueGeneratesTokenDigestAndRealRecordFile",
+            "status": "PASS"
+          },
+          {
+            "name": "staleConfirmationDoesNotArchive",
+            "status": "PASS"
+          },
+          {
+            "name": "issueReissueReplacesTokenDigestSoOldLinkExpires",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelDetailContractTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelDetailContractTest.xml",
+          "sha256": "1934b5c313117896657f4204c7b6b4c2f3e07e045104e5e176c7707016a883f4",
+          "bytes": 77240
+        },
+        "cases": [
+          {
+            "name": "actualDetailEndpointSerializesViewCodeAndKeepsReadonlyOperation",
+            "status": "PASS"
+          },
+          {
+            "name": "detailPermissionDenialIsPropagatedBeforeReturningAnyView",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileAccessTicketServiceTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileAccessTicketServiceTest.xml",
+          "sha256": "5e0e6f86578adec0f5478351aebb2b746e057675448caa3a247d4bd4a221a896",
+          "bytes": 76569
+        },
+        "cases": [
+          {
+            "name": "publicAccessTicketStopsBeforeGrantWhenBusinessFileReadIsDenied",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileArtifactApiImplTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileArtifactApiImplTest.xml",
+          "sha256": "a8100881ce542cca3578605124257780a254cdbc17e0f4c641798e0f486f8c71",
+          "bytes": 78837
+        },
+        "cases": [
+          {
+            "name": "inspectsAndRevalidatesTheSameExactReferenceFact",
+            "status": "PASS"
+          },
+          {
+            "name": "batchKeepsFilesInTheirOwnSetAndReturnsAuthorizedEmptySets",
+            "status": "PASS"
+          },
+          {
+            "name": "archiveRejectsRevokedActorBeforeFileWrites",
+            "status": "PASS"
+          },
+          {
+            "name": "inspectReferenceSetsProjectsAnInvalidatedActiveReferenceFact",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsChangedFrozenFileFact",
+            "status": "PASS"
+          },
+          {
+            "name": "lockAndRevalidateReferenceSetsStillRejectsAnInvalidatedVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "archivesTheCompleteAcceptanceAttachmentSetForTheFrozenActor",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsAnActiveMemberAddedToAnExpectedEmptySet",
+            "status": "PASS"
+          },
+          {
+            "name": "revalidatesTheCompleteActiveSetInReferenceKeyOrder",
+            "status": "PASS"
+          },
+          {
+            "name": "inspectsAndRevalidatesAnAuthorizedEmptyReferenceSet",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileContentValidationTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileContentValidationTest.xml",
+          "sha256": "7ae9527e5a2dcd771f1bce76700b7c07219a0c0e2e14d20957f9a3a615eeb26f",
+          "bytes": 78383
+        },
+        "cases": [
+          {
+            "name": "clamAvAdapterUsesVersionAndInstreamProtocol",
+            "status": "PASS"
+          },
+          {
+            "name": "realClamAvRejectsEicar",
+            "status": "SKIP",
+            "reason": "Environment variable [NPDMS_CLAMAV_IT] does not exist",
+            "type": null
+          },
+          {
+            "name": "readsExactlyFiftyMegabytesWithinBound",
+            "status": "PASS"
+          },
+          {
+            "name": "missingMimeStillEnforcesPurposeAndExplicitMismatch",
+            "status": "PASS"
+          },
+          {
+            "name": "validatesSizeDigestMediaTypeAndPassedScan",
+            "status": "PASS"
+          },
+          {
+            "name": "unknownMimeCannotTrustExtensionOrAllowExecutableAndBinaryContent",
+            "status": "PASS"
+          },
+          {
+            "name": "skipsSecurityProviderWhenScanningIsDisabled",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsDigestMediaTypeAndScanFailures",
+            "status": "PASS"
+          },
+          {
+            "name": "clamAvAdapterRejectsInvalidVersionResponse",
+            "status": "PASS"
+          },
+          {
+            "name": "missingBrowserMimeAcceptsOnlyAuthorizedDetectedPlainText",
+            "status": "PASS"
+          },
+          {
+            "name": "clamAvAdapterRejectsNonCanonicalOkResponse",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsContentLargerThanFiftyMegabytesBeforeScan",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileContractAndMapperTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileContractAndMapperTest.xml",
+          "sha256": "653e693a874e7a4073e9997edb7677952d917bde05e7259df528e4ff2dafe967",
+          "bytes": 77586
+        },
+        "cases": [
+          {
+            "name": "resolvesOneExactProviderAndRevalidatesTheScopeVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "protectsTheValidatedScanContentFromProviderMutation",
+            "status": "PASS"
+          },
+          {
+            "name": "closesActionAndReferenceKeyAtThePublicQueryBoundary",
+            "status": "PASS"
+          },
+          {
+            "name": "filePolicyQueriesRetainCopiedExecutionContextThroughInspectionProjection",
+            "status": "PASS"
+          },
+          {
+            "name": "failsClosedForMissingMultipleDeniedInvalidAndChangedProviders",
+            "status": "PASS"
+          },
+          {
+            "name": "dispatchesGeneratedFilePolicyAndRejectsChangedScopeVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "exposesOnlyScenarioMapperMethodsAndNoGenericCrud",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileReferenceBatchMapperTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceBatchMapperTest.xml",
+          "sha256": "f91e2ffb3e5ca08a9b9e43627c21cfa1f41c8e022c9260a4663b9422c0588d9e",
+          "bytes": 77768
+        },
+        "cases": [
+          {
+            "name": "batchPreservesExactOwnerTuplesTenantStateAndReferenceOrdering",
+            "status": "PASS"
+          },
+          {
+            "name": "absentKeysReturnNoRowsRatherThanBroadeningScope",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileReferenceDiscoveryPersistenceTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceDiscoveryPersistenceTest.xml",
+          "sha256": "906735d745e879b1b1ca9f8757fb43a1bca5b605a40df4bab15554c65b3604b0",
+          "bytes": 80639
+        },
+        "cases": [
+          {
+            "name": "reflectsDetachedAndNewVersionFactsInsteadOfReturningAnActiveCachedReceipt",
+            "status": "PASS"
+          },
+          {
+            "name": "absentOrOtherTenantSlotCannotRevealTheUploadedReference",
+            "status": "PASS"
+          },
+          {
+            "name": "findsUploadedReferenceAfterCallerLosesArtifactIdWithoutChangingAnyFacts",
+            "status": "PASS"
+          },
+          {
+            "name": "currentOwnerDenialAndUnavailableProviderFailClosedBeforeDatabaseLookup",
+            "status": "PASS"
+          },
+          {
+            "name": "productionJsonModulePreservesSnowflakeIdentityAsStrings",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidActorAndIncompleteKeysAreRejectedBeforeLookup",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileReferenceSetPolicyBatchTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceSetPolicyBatchTest.xml",
+          "sha256": "d1271c3582105f32cda513a0b8dd3019a70b6f67df80791e9274f869b53fe9bd",
+          "bytes": 77067
+        },
+        "cases": [
+          {
+            "name": "oneDeniedFieldRejectsTheCollection",
+            "status": "PASS"
+          },
+          {
+            "name": "defaultProviderKeepsPerSetAuthorizationAndRegistrySeparatesOwners",
+            "status": "PASS"
+          },
+          {
+            "name": "unavailableProviderStillFailsClosed",
+            "status": "PASS"
+          },
+          {
+            "name": "missingAndForeignBatchFactsCannotAuthorizeTheCollection",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileUploadInitializationServiceTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileUploadInitializationServiceTest.xml",
+          "sha256": "7d0eab2fee5575a51b928a7e136df20787e15425a23fe08d8121688314c1f1ff",
+          "bytes": 77471
+        },
+        "cases": [
+          {
+            "name": "replaysCompletedInitializationWithoutReauthorizingCurrentScope",
+            "status": "PASS"
+          },
+          {
+            "name": "sendsSelectedExecutionToOwnerAndNeverStoresItInSessionOrAudit",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsDeclaredSizeAboveBusinessLimitWithoutSessionSideEffect",
+            "status": "PASS"
+          },
+          {
+            "name": "initializesTrustedSessionWithoutCreatingFileVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsIdempotencyConflictWithoutSessionSideEffect",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsReplacementForImmutableReference",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredBusinessRuntimePersistenceTest",
+        "tests": 32,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredBusinessRuntimePersistenceTest.xml",
+          "sha256": "bf85a08c8ee13f23089c4149af9c98bb84b6d9bffd9b9a163cf92f298283fe2b",
+          "bytes": 109696
+        },
+        "cases": [
+          {
+            "name": "parentReadBindingUsesAuthorizedParentRowsForListsAndDetails",
+            "status": "PASS"
+          },
+          {
+            "name": "omittedRequiredValueIsPreservedAndExplicitNullIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "declaredWritableOwnershipCanMoveBetweenAuthorizedScopes",
+            "status": "PASS"
+          },
+          {
+            "name": "plainDoReplayRegistersItsInlineMappingWithoutPoisoningOtherMappers",
+            "status": "PASS"
+          },
+          {
+            "name": "queryAndPublicOperatePermissionsDoNotAuthorizeWrites",
+            "status": "PASS"
+          },
+          {
+            "name": "projectScopeRevisionChangeBeforeWriteRollsBackReservation",
+            "status": "PASS"
+          },
+          {
+            "name": "replayCanJoinCallerTransactionForDefaultEmptyAndDifferentialExtensions",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantIsolationAppliesToDetailPageWritesAndReceiptKeys",
+            "status": "PASS"
+          },
+          {
+            "name": "outboxDatabaseFailureRollsBackSubjectLedgerAndAudit",
+            "status": "PASS"
+          },
+          {
+            "name": "twoTransactionsWithSameVersionHaveExactlyOneWinner",
+            "status": "PASS"
+          },
+          {
+            "name": "createReplayUsesReceiptObjectsCurrentOwnershipRatherThanOriginalProject",
+            "status": "PASS"
+          },
+          {
+            "name": "casAlsoWorksWithoutOptionalOptimisticLockInterceptor",
+            "status": "PASS"
+          },
+          {
+            "name": "userWithNoRolesCannotReadOrWrite",
+            "status": "PASS"
+          },
+          {
+            "name": "sameKeyAcrossConcurrentTransactionsExecutesOnce",
+            "status": "PASS"
+          },
+          {
+            "name": "scopeUsesProjectRefAndRejectsCrossProjectCreatesAndUpdates",
+            "status": "PASS"
+          },
+          {
+            "name": "ownershipChangeLocksTreeRootsInGlobalOrder",
+            "status": "PASS"
+          },
+          {
+            "name": "realFailureStillRollsBackAllWorkInJoinedCallerTransaction",
+            "status": "PASS"
+          },
+          {
+            "name": "browserUsesGenericApiAndMySql",
+            "status": "SKIP",
+            "reason": "System property [npdms.declared.browser] does not exist",
+            "type": null
+          },
+          {
+            "name": "thirdModelNeedsOnlyDeclarationDoMapperAndSchema",
+            "status": "PASS"
+          },
+          {
+            "name": "viewScopeDoesNotGrantManageScope",
+            "status": "PASS"
+          },
+          {
+            "name": "auditDatabaseFailureRollsBackSubjectLedgerAndEvents",
+            "status": "PASS"
+          },
+          {
+            "name": "optionalExplicitNullIsPersisted",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsRecheckedBeforeReplayingCommittedResult",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidPaginationDoesNotProduceUnboundedReads",
+            "status": "PASS"
+          },
+          {
+            "name": "unreadableFieldCannotBeUsedAsClientFilter",
+            "status": "PASS"
+          },
+          {
+            "name": "missingOperationAndScopeDeclarationsFailClosed",
+            "status": "PASS"
+          },
+          {
+            "name": "declaredScopeWithoutPolicyImplementationDoesNotBecomeTenantWide",
+            "status": "PASS"
+          },
+          {
+            "name": "ownerReadCompatibilityRestrictsLegacyListsAndDetailsWithoutGrantingWrites",
+            "status": "PASS"
+          },
+          {
+            "name": "createPermissionDoesNotGrantUpdatePermission",
+            "status": "PASS"
+          },
+          {
+            "name": "receiptSurvivesNewApplicationContextAndEntryContextChanges",
+            "status": "PASS"
+          },
+          {
+            "name": "requiredTypeReadonlyAndControlFieldsAreValidatedOnServer",
+            "status": "PASS"
+          },
+          {
+            "name": "genericApiCrudAndThinExtensionShareProductionSafetyAndReceipt",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest.xml",
+          "sha256": "a667129f2a0c1557994dc4beac542a0e3a59be074c7357f49912152909b1adb4",
+          "bytes": 85725
+        },
+        "cases": [
+          {
+            "name": "outboxFailureRollsBackBothFixedAndExtensionContent",
+            "status": "PASS"
+          },
+          {
+            "name": "ordinaryRequiredExtensionOmissionPreservesAndExplicitClearRollsBack",
+            "status": "PASS"
+          },
+          {
+            "name": "fixedOnlySaveCannotBypassRequiredBoundExtension",
+            "status": "PASS"
+          },
+          {
+            "name": "createOnlyPermissionCanSaveInitialExtensionsButCannotChangeExistingExtensions",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidExtensionAndStaleValueVersionDoNotCommitFixedFieldsLedgerOrEvents",
+            "status": "PASS"
+          },
+          {
+            "name": "directCapabilityWritesRequireDeclaredUpdatePermissionCurrentVersionAndScope",
+            "status": "PASS"
+          },
+          {
+            "name": "noHistoryFormBindingAndTypedExtensionSaveNeedNoEntityProvider",
+            "status": "PASS"
+          },
+          {
+            "name": "auditFailureRollsBackBothFixedAndExtensionContent",
+            "status": "PASS"
+          },
+          {
+            "name": "productionSerializedSnowflakeDefinitionIdIsExactAndMalformedIdsFailClosed",
+            "status": "PASS"
+          },
+          {
+            "name": "publicFormReadUsesActualScopeAndBindingApi",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest.xml",
+          "sha256": "7db2f56705d36c2b9abd85485c26e4555dd3f1b47f72f97020ad03459c23751e",
+          "bytes": 98712
+        },
+        "cases": [
+          {
+            "name": "productionTokenFilterAndMethodPermissionsAllowWriterDenyReaderAndNoRole",
+            "status": "PASS"
+          },
+          {
+            "name": "browserRealLoginFormAndRefreshRecovery",
+            "status": "SKIP",
+            "reason": "System property [npdms.declared.browserLogin] does not exist",
+            "type": null
+          },
+          {
+            "name": "realLoginRejectsBadPasswordDisabledUserAndUnauthenticatedMethods",
+            "status": "PASS"
+          },
+          {
+            "name": "receiptRecoveryUsesAuthenticatedQueryWithoutAnotherBusinessWrite",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOperationRecoveryRuntimePersistenceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOperationRecoveryRuntimePersistenceTest.xml",
+          "sha256": "87718da5d9b5811f006161e485ce23db55eb01ed0977ce6021df46da8da7812b",
+          "bytes": 79880
+        },
+        "cases": [
+          {
+            "name": "unknownOrCommittedIntentRecoveryNeverReservesOrRepeatsTheCommand",
+            "status": "PASS"
+          },
+          {
+            "name": "exactOriginalOperationPermissionAndActorTenantRemainRequired",
+            "status": "PASS"
+          },
+          {
+            "name": "recoveredOldReceiptUsesObjectsCurrentOwnership",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+          "sha256": "82dc896db6a9681ff0f445dc5b6d7a708236faf56f5864939d0b6a1b9a57d666",
+          "bytes": 78297
+        },
+        "cases": [
+          {
+            "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredViewDeliveryRuntimePersistenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredViewDeliveryRuntimePersistenceTest.xml",
+          "sha256": "f9a3a4ab02393997c8328b96fd983f64e29ceacdfc38c71d036a6e793e42e4cd",
+          "bytes": 80178
+        },
+        "cases": [
+          {
+            "name": "closedProjectEmptyScopeCrossTenantAndScopeChangeDenyDelivery",
+            "status": "PASS"
+          },
+          {
+            "name": "projectRefDeliveryReadAndWriteUseIndependentOperationPermissionAndActiveScope",
+            "status": "PASS"
+          },
+          {
+            "name": "declarationIdentityAliasNeedsNoServiceBeanAndPreservesLargeId",
+            "status": "PASS"
+          },
+          {
+            "name": "runtimeViewDirectoryIsGeneratedWithoutEntityProviderAndDoesNotAuthorizeAnObject",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeclaredBusinessDeliveryBridgeSpringContextTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeclaredBusinessDeliveryBridgeSpringContextTest.xml",
+          "sha256": "6797f1f34a1c0626ccb78dfc205ecd76b325f72ec272e3c669c41fdb3337d433",
+          "bytes": 76626
+        },
+        "cases": [
+          {
+            "name": "declaredBridgeDoesNotMakeTheNativeFilePolicyGraphCircular",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProviderAuthorizationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProviderAuthorizationTest.xml",
+          "sha256": "36b612f8db52660378dd4dc5c3f53238c937ec8d063e1c7c14969f516ff4cb15",
+          "bytes": 77452
+        },
+        "cases": [
+          {
+            "name": "catalogPurposeOwnerDenialAndUnknownPurposeFailBeforeCatalogAndReadOnlyCannotWrite",
+            "status": "PASS"
+          },
+          {
+            "name": "existingExtensionCatalogProducesStrictUploadMimeTypes",
+            "status": "PASS"
+          },
+          {
+            "name": "catalogPurposeIntersectsOwnerLimitsAfterAuthorizationAndRevalidation",
+            "status": "PASS"
+          },
+          {
+            "name": "catalogCodeCollisionCannotBypassOwnerScope",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeCatalogCollisionPreservesOriginalPolicyWithoutCatalogLookup",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceAuthorizationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceAuthorizationTest.xml",
+          "sha256": "3815d84245f93cde817512b223b9a4fc11adccb4f515e52f291df89d19f13987",
+          "bytes": 76618
+        },
+        "cases": [
+          {
+            "name": "absentAuthenticatedOwnerAuthorityCannotWithdrawActiveMaterial",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceTest.xml",
+          "sha256": "cf14aa8f193ee7350d9b851b71ea7f9fdb837f95661ca542165620394975e84e",
+          "bytes": 77784
+        },
+        "cases": [
+          {
+            "name": "duplicateKeyConflictSurfacesWhenIdempotentRowMissing",
+            "status": "PASS"
+          },
+          {
+            "name": "businessResultRegistersAfterProviderValidation",
+            "status": "PASS"
+          },
+          {
+            "name": "missingEvidenceProviderRejectsRegistration",
+            "status": "PASS"
+          },
+          {
+            "name": "businessResultIsIdempotentPerBusinessObjectRevision",
+            "status": "PASS"
+          },
+          {
+            "name": "businessObjectWithoutIdentityIsRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "revalidationRejectsUnavailableFileEvidence",
+            "status": "PASS"
+          },
+          {
+            "name": "revalidationUsesProviderForBusinessResultRows",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawMarksRowAndPublishesEvent",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest.xml",
+          "sha256": "c4d493fbeea83b733e6138297f6a539b7bc0e419a0c318338d75b7d499327ecc",
+          "bytes": 81491
+        },
+        "cases": [
+          {
+            "name": "simultaneousAssociationAndWithdrawalCannotLeaveWithdrawnMaterialWithAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "auditAndOutboxFailuresRollBackMaterialVersionAndLedgerAndAllowRetry",
+            "status": "PASS"
+          },
+          {
+            "name": "bothMaterialLockOrdersRejectTheLosingConcurrentCommand",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrentDifferentKeysHaveExactlyOneVersionWinner",
+            "status": "PASS"
+          },
+          {
+            "name": "missingPrincipalWrongTenantAndRolelessAreDeniedWithoutLedgerReservation",
+            "status": "PASS"
+          },
+          {
+            "name": "staleVersionTemplateArchiveAndExistingFulfillmentCannotWithdraw",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawalInsideOuterTransactionRollsBackWithItsCaller",
+            "status": "PASS"
+          },
+          {
+            "name": "associationOuterRollbackAndCrossTenantNeverLeaveAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "currentOwnerAndOriginalPermissionAreRequiredBeforeCompletedReplay",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "casReplayPreservesAnchorsAndRecordsExactlyOneAuditAndDeliveryEvent",
+            "status": "PASS"
+          },
+          {
+            "name": "staleActiveMaterialCannotBeAssociatedAfterWithdrawal",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryOwnerAccessTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryOwnerAccessTest.xml",
+          "sha256": "7910627b8e614dcbcdc5930d36ff277478a8e3cbfeabde03019dc373eace0fa9",
+          "bytes": 77942
+        },
+        "cases": [
+          {
+            "name": "changedScopeDuringWriteRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "projectLinkedSolutionCannotWriteAfterProjectClosed",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantMismatchAndUnauthenticatedActorRejectedBeforeOwnerRead",
+            "status": "PASS"
+          },
+          {
+            "name": "initialUploadChecksActiveProjectWithoutTakingCompletionLock",
+            "status": "PASS"
+          },
+          {
+            "name": "ownerActualProjectUsedForAuthorizedRead",
+            "status": "PASS"
+          },
+          {
+            "name": "foreignTenantOwnerRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "activeProjectLinkedWriteRetainsAuthorizedPath",
+            "status": "PASS"
+          },
+          {
+            "name": "functionPermissionDoesNotGrantForeignProjectRead",
+            "status": "PASS"
+          },
+          {
+            "name": "lifecycleUsesLockedCurrentFactRatherThanEarlierActiveSnapshot",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryRequirementServiceTest",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryRequirementServiceTest.xml",
+          "sha256": "694fccb6ad2ff85196a199fb1eae4d436d6014e841f1069f0acad37105cec2d1",
+          "bytes": 79761
+        },
+        "cases": [
+          {
+            "name": "currentSubmissionWithOnlyWithdrawnMaterialsCannotReportCompletion",
+            "status": "PASS"
+          },
+          {
+            "name": "replayRejectsSameKeyAndMaterialsWithDifferentSource",
+            "status": "PASS"
+          },
+          {
+            "name": "submissionUnitCountsOnlyCurrentSubmissions",
+            "status": "PASS"
+          },
+          {
+            "name": "submitRejectsMaterialOfAnotherEntity",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawRejectsNonCurrentSubmission",
+            "status": "PASS"
+          },
+          {
+            "name": "fileVersionUnitDeduplicatesSameArtifactVersion",
+            "status": "PASS"
+          },
+          {
+            "name": "businessResultWithoutFileVersionCannotSatisfyFileVersionCountingUnit",
+            "status": "PASS"
+          },
+          {
+            "name": "submitReplacesCurrentSubmissionAndSatisfiesRequirement",
+            "status": "PASS"
+          },
+          {
+            "name": "registrationValidatesDocumentOwnerBeforeFreezingEvidence",
+            "status": "PASS"
+          },
+          {
+            "name": "submitReplaysByIdempotencyKeyWithoutInserting",
+            "status": "PASS"
+          },
+          {
+            "name": "submitRejectsDuplicateRequestKeyOnRaceConflict",
+            "status": "PASS"
+          },
+          {
+            "name": "completionUsesOwnerRuleInsteadOfTreatingTemplateQuantityAsBusinessCompletion",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawSubmissionRevertsConfirmedRequirementToOpen",
+            "status": "PASS"
+          },
+          {
+            "name": "materialUnitCountsOnlyActiveMaterialsNotExclusivelySuperseded",
+            "status": "PASS"
+          },
+          {
+            "name": "evidenceInvalidationDuringSubmitFailsExplicitly",
+            "status": "PASS"
+          },
+          {
+            "name": "ordinarySubmissionRejectsSameKeyWithDifferentMaterialIntent",
+            "status": "PASS"
+          },
+          {
+            "name": "completionRejectsInvalidMaterialEvenWhenStoredStatusAndQuantityAreSatisfied",
+            "status": "PASS"
+          },
+          {
+            "name": "completionIgnoresStoredConfirmedStatusWhenCurrentQuantityIsMissing",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliverySourceReuseTest",
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliverySourceReuseTest.xml",
+          "sha256": "c6892e41cb1355f289a21d40dae125538609e4ce8282990d265e2f4ab70af3a3",
+          "bytes": 80105
+        },
+        "cases": [
+          {
+            "name": "oldNullWrapperCannotBeSubmittedAsNewSameSecondApproval",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrentDuplicateProjectionPromotesExistingSource",
+            "status": "PASS"
+          },
+          {
+            "name": "documentFirstProjectionPromotesArchiveObligationWithoutOverwritingIdentity",
+            "status": "PASS"
+          },
+          {
+            "name": "unrelatedHashCannotMasqueradeAsCurrentRevisionWrapper",
+            "status": "PASS"
+          },
+          {
+            "name": "copiedRaFileKeepsFirstRevisionAndHistoricalTypeAlias",
+            "status": "PASS"
+          },
+          {
+            "name": "wrappedThenNativeResultSharesMaterialAndPreservesTemplateHistory",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawnSourceCannotBeReactivatedByRegisteringAnotherRequirement",
+            "status": "PASS"
+          },
+          {
+            "name": "archiveCompletionAndInvalidityAreNeverDowngradedByReuse",
+            "status": "PASS"
+          },
+          {
+            "name": "unprovenLegacyNullRevisionDoesNotAcquireCurrentApprovedIdentity",
+            "status": "PASS"
+          },
+          {
+            "name": "sameSecondNullAliasDoesNotMergeDifferentApprovedBaseline",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationReusesLegacyWrapperWithoutOverwritingItsStoredIdentity",
+            "status": "PASS"
+          },
+          {
+            "name": "relationRejectsAnotherProjectsMaterialBeforeAnyWrite",
+            "status": "PASS"
+          },
+          {
+            "name": "projectionFirstDocumentReuseKeepsArchiveObligation",
+            "status": "PASS"
+          },
+          {
+            "name": "businessRevisionUsesOneMaterialAndStillRevalidatesOwnerEvidence",
+            "status": "PASS"
+          },
+          {
+            "name": "actualSourceProjectMismatchRejectsBeforeAssociationOrMaterialWrites",
+            "status": "PASS"
+          },
+          {
+            "name": "actualNativeOwnerClassificationDoesNotReplaceTemplateRequirementIdentity",
+            "status": "PASS"
+          },
+          {
+            "name": "fileVersionUsesOneMaterialAcrossDifferentRequirementCodesAndReferences",
+            "status": "PASS"
+          },
+          {
+            "name": "explicitCurrentRevisionRawWrapperHashRemainsValidAndIsReused",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeThenWrappedResultSharesMaterialAndPreservesOriginalRoot",
+            "status": "PASS"
+          },
+          {
+            "name": "differentApprovedRevisionStillCreatesDistinctMaterial",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityCapabilityCopyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityCapabilityCopyTest.xml",
+          "sha256": "8db77bbc41a984a2bd1b813ed7b7c17ad80dbe2e0c720af45bd16c2ebea13505",
+          "bytes": 77113
+        },
+        "cases": [
+          {
+            "name": "activatingRevisionWithoutExtensionsClearsOnlyMutableTarget",
+            "status": "PASS"
+          },
+          {
+            "name": "activatingFormlessRevisionDoesNotKeepPreviousCurrentLayout",
+            "status": "PASS"
+          },
+          {
+            "name": "emptySourceCannotBypassFrozenTargetProtection",
+            "status": "PASS"
+          },
+          {
+            "name": "requiredDefinitionStillAppliesWhenNoValueRowHasEverBeenSaved",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityExtensionValidationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityExtensionValidationTest.xml",
+          "sha256": "98dd55aca96461f66f43ad00e3e8fad5d4f6d4cbe816b6cdccffaabe0d97fec8",
+          "bytes": 77091
+        },
+        "cases": [
+          {
+            "name": "dateAndFiniteNumberAreTypedBusinessValues",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectUnknownFieldsIncorrectTypesAndOutOfRangeChoices",
+            "status": "PASS"
+          },
+          {
+            "name": "definitionCannotShadowBusinessField",
+            "status": "PASS"
+          },
+          {
+            "name": "draftMayBeIncompleteButCompletionRequiresValue",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormBindingTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormBindingTest.xml",
+          "sha256": "c16d45d0fe0e061bc3e226b15c75846436032e04c98758dfe4b053137d002d53",
+          "bytes": 77276
+        },
+        "cases": [
+          {
+            "name": "fixedOnlyFormDoesNotCreateExtensionDefinition",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectedOwnerWriteAndUnpublishedTemplateCannotCreateDefinitions",
+            "status": "PASS"
+          },
+          {
+            "name": "firstBindingCreatesTypedDefinitionAndSaveAcceptsOnlyDeclaredValues",
+            "status": "PASS"
+          },
+          {
+            "name": "reusesMigratedDefinitionWithoutOverwritingIt",
+            "status": "PASS"
+          },
+          {
+            "name": "optInBindingPersistsAdditionalCheckboxAndBusinessDetailRows",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadServiceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadServiceTest.xml",
+          "sha256": "2723165dea75d563ea5a2cb195a6a5352274456109a41f4825b4f25ffadd4f32",
+          "bytes": 76964
+        },
+        "cases": [
+          {
+            "name": "finalRevalidationRejectsSequenceThatDiffersFromServerSlot",
+            "status": "PASS"
+          },
+          {
+            "name": "completeRejectsOperationIdThatDiffersFromServerSlot",
+            "status": "PASS"
+          },
+          {
+            "name": "initializeUsesIssuerAndServerSlotWithoutSecurityContext",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.support.service.BusinessEntityIdentityResolverTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.support.service.BusinessEntityIdentityResolverTest.xml",
+          "sha256": "9f6b490b35380e5c945edd8418af7de52f3bea25791da402052dfba275497711",
+          "bytes": 54286
+        },
+        "cases": [
+          {
+            "name": "realBeanMetadataResolvesWithoutInitializingOwnerAndPreservesExactTarget",
+            "status": "PASS"
+          },
+          {
+            "name": "selfAliasesAndIdenticalNamesInOtherOwnersRemainUnambiguous",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeAliasCannotShadowAnotherDeclarationWithoutAnAlias",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeAliasCannotShadowUnaliasedServiceMetadata",
+            "status": "PASS"
+          },
+          {
+            "name": "duplicateNativeIdentityFailsClosed",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDispatcherRecoveryTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDispatcherRecoveryTest.xml",
+          "sha256": "9844d34959d7d254e4d7b426fb16382277cfb126c5794be9d0548ef0da59d100",
+          "bytes": 54764
+        },
+        "cases": [
+          {
+            "name": "nativeOperationRecoveryUsesItsServiceWithoutOpeningGenericCapabilities",
+            "status": "PASS"
+          },
+          {
+            "name": "anOwnerWithoutTheRecoveryContractCannotFallThroughToDefaults",
+            "status": "PASS"
+          },
+          {
+            "name": "defaultReceiptRecoveryKeepsTheDefaultService",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApiImplTest",
+        "tests": 39,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/joint-package-final-reports/TEST-cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApiImplTest.xml",
+          "sha256": "d6bcf5965427129926574c543c74136e60b7c6694e385bbcfe0850b7b0af83ec",
+          "bytes": 80799
+        },
+        "cases": [
+          {
+            "name": "listsEveryCurrentGrantHolderOrdered",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[7]",
+            "status": "PASS"
+          },
+          {
+            "name": "permissionIsCaseSensitiveExactAndNeverWildcard(String)[8]",
+            "status": "PASS"
+          },
+          {
+            "name": "secondCheckDoesNotReuseMyBatisLocalCacheAfterRevocation",
+            "status": "PASS"
+          },
+          {
+            "name": "ordinaryExplicitGrantAndHiddenButtonPassBothQueries",
+            "status": "PASS"
+          },
+          {
+            "name": "wildcardMenuDoesNotGrantConcretePermission",
+            "status": "PASS"
+          },
+          {
+            "name": "lockVariantRequiresExistingTransaction",
+            "status": "PASS"
+          },
+          {
+            "name": "superAdminStillNeedsActualGrant",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[7]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[8]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[9]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[10]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[11]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[12]",
+            "status": "PASS"
+          },
+          {
+            "name": "everyDisabledDeletedOrMissingLinkFailsClosed(String)[13]",
+            "status": "PASS"
+          },
+          {
+            "name": "databaseFailurePropagatesRatherThanGranting",
+            "status": "PASS"
+          },
+          {
+            "name": "requiresMatchingTenantAndNonEmptyInputs",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsCrossTenantLinksEvenWhenTenantInterceptorIsIgnored(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsCrossTenantLinksEvenWhenTenantInterceptorIsIgnored(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsCrossTenantLinksEvenWhenTenantInterceptorIsIgnored(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "rejectsCrossTenantLinksEvenWhenTenantInterceptorIsIgnored(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "cannotCombineUserRoleWithAnotherRolesMenuGrant",
+            "status": "PASS"
+          },
+          {
+            "name": "holdsEveryGrantLinkUntilOuterTransactionEnds(String)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "holdsEveryGrantLinkUntilOuterTransactionEnds(String)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "holdsEveryGrantLinkUntilOuterTransactionEnds(String)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "holdsEveryGrantLinkUntilOuterTransactionEnds(String)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "holdsEveryGrantLinkUntilOuterTransactionEnds(String)[5]",
+            "status": "PASS"
+          }
+        ]
+      }
+    ]
+  },
+  "casMysqlAndH2": {
+    "command": "mvn -pl pms-module-platform -am test -Dtest=DeliveryMaterialWithdrawalPersistenceTest,DeliveryMaterialWithdrawalMySqlIntegrationTest,FileReferenceDiscoveryMySqlIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false -Dnpdms.delivery.withdrawal.mysql.exclusive=true -Dnpdms.delivery.withdrawal.mysql.port=27481 -Dnpdms.delivery.withdrawal.mysql.database=npdms_delivery_withdrawal_joint_20261006 -Dnpdms.file.discovery.mysql.exclusive=true -Dnpdms.file.discovery.mysql.port=27481 -Dnpdms.file.discovery.mysql.database=npdms_file_discovery_joint_20261006",
+    "exitCode": 0,
+    "totals": {
+      "tests": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 32
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.file.FileReferenceDiscoveryMySqlIntegrationTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/cas-discovery-mysql-pass-4/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceDiscoveryMySqlIntegrationTest.xml",
+          "sha256": "990761901c12dd0dbe3b2dfcba9e32fac4054fc2045677dc6555b412d45b71c4",
+          "bytes": 73497
+        },
+        "cases": [
+          {
+            "name": "reflectsDetachedAndNewVersionFactsInsteadOfReturningAnActiveCachedReceipt",
+            "status": "PASS"
+          },
+          {
+            "name": "absentOrOtherTenantSlotCannotRevealTheUploadedReference",
+            "status": "PASS"
+          },
+          {
+            "name": "findsUploadedReferenceAfterCallerLosesArtifactIdWithoutChangingAnyFacts",
+            "status": "PASS"
+          },
+          {
+            "name": "currentOwnerDenialAndUnavailableProviderFailClosedBeforeDatabaseLookup",
+            "status": "PASS"
+          },
+          {
+            "name": "productionJsonModulePreservesSnowflakeIdentityAsStrings",
+            "status": "PASS"
+          },
+          {
+            "name": "invalidActorAndIncompleteKeysAreRejectedBeforeLookup",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalMySqlIntegrationTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/cas-discovery-mysql-pass-4/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalMySqlIntegrationTest.xml",
+          "sha256": "e218104ff7f7f086bc712971e827f089a13a4753dd1ba839606cebf53bd62554",
+          "bytes": 77485
+        },
+        "cases": [
+          {
+            "name": "simultaneousAssociationAndWithdrawalCannotLeaveWithdrawnMaterialWithAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "auditAndOutboxFailuresRollBackMaterialVersionAndLedgerAndAllowRetry",
+            "status": "PASS"
+          },
+          {
+            "name": "bothMaterialLockOrdersRejectTheLosingConcurrentCommand",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrentDifferentKeysHaveExactlyOneVersionWinner",
+            "status": "PASS"
+          },
+          {
+            "name": "missingPrincipalWrongTenantAndRolelessAreDeniedWithoutLedgerReservation",
+            "status": "PASS"
+          },
+          {
+            "name": "staleVersionTemplateArchiveAndExistingFulfillmentCannotWithdraw",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawalInsideOuterTransactionRollsBackWithItsCaller",
+            "status": "PASS"
+          },
+          {
+            "name": "associationOuterRollbackAndCrossTenantNeverLeaveAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "currentOwnerAndOriginalPermissionAreRequiredBeforeCompletedReplay",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "casReplayPreservesAnchorsAndRecordsExactlyOneAuditAndDeliveryEvent",
+            "status": "PASS"
+          },
+          {
+            "name": "staleActiveMaterialCannotBeAssociatedAfterWithdrawal",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/cas-discovery-mysql-pass-4/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest.xml",
+          "sha256": "dcc6a7766ef96ea81aae4adc2f3f0bc37cd785cfeea918a0e1f1539b0525c659",
+          "bytes": 78220
+        },
+        "cases": [
+          {
+            "name": "simultaneousAssociationAndWithdrawalCannotLeaveWithdrawnMaterialWithAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "auditAndOutboxFailuresRollBackMaterialVersionAndLedgerAndAllowRetry",
+            "status": "PASS"
+          },
+          {
+            "name": "bothMaterialLockOrdersRejectTheLosingConcurrentCommand",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrentDifferentKeysHaveExactlyOneVersionWinner",
+            "status": "PASS"
+          },
+          {
+            "name": "missingPrincipalWrongTenantAndRolelessAreDeniedWithoutLedgerReservation",
+            "status": "PASS"
+          },
+          {
+            "name": "staleVersionTemplateArchiveAndExistingFulfillmentCannotWithdraw",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawalInsideOuterTransactionRollsBackWithItsCaller",
+            "status": "PASS"
+          },
+          {
+            "name": "associationOuterRollbackAndCrossTenantNeverLeaveAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "currentOwnerAndOriginalPermissionAreRequiredBeforeCompletedReplay",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "casReplayPreservesAnchorsAndRecordsExactlyOneAuditAndDeliveryEvent",
+            "status": "PASS"
+          },
+          {
+            "name": "staleActiveMaterialCannotBeAssociatedAfterWithdrawal",
+            "status": "PASS"
+          }
+        ]
+      }
+    ],
+    "limitations": "Actual Spring transactions/current material row locks/SQL/ledger/audit/outbox/V398 migration; native Owner table and permissions are fixture ports; final file ticket is mocked in download race assertions."
+  },
+  "nativeSix": {
+    "command": "NATIVE_DELIVERY_MAVEN_SETTINGS=/workspace/toolchains/maven-settings.xml bash scripts/tests/verify_native_delivery_stage2_mysql.sh",
+    "exitCode": 0,
+    "totals": {
+      "tests": 57,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 57
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeAttachmentDeliveryMySqlTest",
+        "tests": 57,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/native-stage2-evidence/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeAttachmentDeliveryMySqlTest.xml",
+          "sha256": "f25ea819305f80c82530bf6515220748f08f60468ddebdef82ce450e498c5200",
+          "bytes": 221850
+        },
+        "cases": [
+          {
+            "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRawUrlCannotBypassCommonFileRegistration(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUploadSizeAndDisguisedExecutableStayRejected",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeRegistrationFailureRollsBackOwnerAndRetryUsesCompletedFile(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeSaveCollectsExactlyOneActualMaterialAndCommonWithdrawalInvalidates(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeReplacementAndDetachCannotReuseFrozenOldMaterialEvidence(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionFreezesUploadsAndWithdrawalWhileFilesStayReadable(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeChromiumSixPagesUploadCollectRetryWithdraw",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[3]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[4]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[5]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[6]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeConfigurationArchiveIsIdempotentAndDevicePortFailureRollsBackOwnerAndMaterial",
+            "status": "PASS"
+          }
+        ]
+      }
+    ],
+    "limitations": "Six real native pages/services/current native Owner access/MySQL; authentication/project/storage/device ports deterministic; not complete login/Flyway/external storage acceptance."
+  },
+  "arrivalChecklist": {
+    "command": "NATIVE_DELIVERY_MAVEN_SETTINGS=/workspace/toolchains/maven-settings.xml bash scripts/tests/verify_native_delivery_mysql.sh",
+    "exitCode": 0,
+    "totals": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 5
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeArrivalDeliveryMySqlTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/native-stage1-evidence/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeArrivalDeliveryMySqlTest.xml",
+          "sha256": "d072878e60640958188ea0c5613c0e4ebc7a9e45fb9170735fb64a734c436ad0",
+          "bytes": 126519
+        },
+        "cases": [
+          {
+            "name": "nativeChecklistSubmissionFreezesActualFilesAndRejectsPublicWithdrawal",
+            "status": "PASS"
+          },
+          {
+            "name": "registrationFailureRollsBackOwnerSaveAndCrossTenantAndSignedWritesStayDenied",
+            "status": "PASS"
+          },
+          {
+            "name": "referenceReplacementAndDetachCannotReuseEarlierCompletionEvidence",
+            "status": "PASS"
+          },
+          {
+            "name": "chromiumNativeUploadCollectAndFailedCollectionRetry",
+            "status": "PASS"
+          },
+          {
+            "name": "realUploadOwnerSaveAndUnifiedQueriesShareOneMaterialAndWithdrawalRemovesCompletion",
+            "status": "PASS"
+          }
+        ]
+      }
+    ]
+  },
+  "declaredBrowser": {
+    "command": "NPDMS_DECLARED_EXCLUSIVE=true NPDMS_MAVEN_SETTINGS=/workspace/toolchains/maven-settings.xml NPDMS_BROWSER_PACKAGES=/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules NPDMS_BROWSER_EXECUTABLE=/usr/bin/chromium node tests/declared-business-browser/verify.mjs",
+    "exitCode": 0,
+    "totals": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 1
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/declared-browser-evidence/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest.xml",
+          "sha256": "8ecb6fca84fe3d8a2d5a8aa6b382fb4ef758bcf428597d0a88a4a9d72678d182",
+          "bytes": 74335
+        },
+        "cases": [
+          {
+            "name": "browserRealLoginFormAndRefreshRecovery",
+            "status": "PASS"
+          }
+        ]
+      }
+    ]
+  },
+  "ui": {
+    "command": "pnpm exec vitest run --config vitest.pms-file.config.ts <ui-selectors.json> --reporter=json --outputFile=.run/joint-20261006/ui-joint-final.json",
+    "exitCode": 0,
+    "totals": {
+      "numTotalTests": 78,
+      "numPassedTests": 78,
+      "numFailedTests": 0,
+      "numPendingTests": 0
+    },
+    "files": [
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/useBusinessEntity.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "retains the idempotency key after an unknown response and refuses a different pending intent",
+            "status": "passed"
+          },
+          {
+            "name": "restores the exact key after a fresh page instance while storing no business input or Secret",
+            "status": "passed"
+          },
+          {
+            "name": "confirms a committed original receipt after refresh without another business POST",
+            "status": "passed"
+          },
+          {
+            "name": "isolates intent locators across actor and effective tenant, including visit tenant",
+            "status": "passed"
+          },
+          {
+            "name": "a denied retry cannot erase an earlier unknown commit, while a first definite rejection can be corrected",
+            "status": "passed"
+          },
+          {
+            "name": "refuses to send a business command when recovery metadata cannot be persisted",
+            "status": "passed"
+          },
+          {
+            "name": "a late receipt from an old shared create cannot delete the newer unknown create intent",
+            "status": "passed"
+          },
+          {
+            "name": "a late rejection from an old shared create cannot delete the newer unknown create intent",
+            "status": "passed"
+          },
+          {
+            "name": "a late GET recovery cannot erase a newer intent created after another caller recovered the old receipt",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/presentationHost.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "BusinessViewHost consumes frozen page routing keeps the real host and unsaved Owner buffer through refresh, disable and explicit reopen",
+            "status": "passed"
+          },
+          {
+            "name": "BusinessViewHost consumes frozen page routing never mounts the default Owner page when first inspection supplies an unregistered route",
+            "status": "passed"
+          },
+          {
+            "name": "BusinessViewHost consumes frozen page routing the actual component registry rejects mismatched routes and never spreads URL parameters into props",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeliveryArtifact/DeliveryUploader.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "registers the uploaded file under its business type before emitting completion",
+            "status": "passed"
+          },
+          {
+            "name": "retries registration without reuploading after a registration failure",
+            "status": "passed"
+          },
+          {
+            "name": "rejects a file exceeding its delivery type policy before storage",
+            "status": "passed"
+          },
+          {
+            "name": "retains an exact business identity above JavaScript safe integer precision",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "shared file recovery recovers the exact stable slot after a full remount with no saved artifact ID",
+            "status": "passed"
+          },
+          {
+            "name": "shared file recovery cannot turn a missing or inaccessible reference into a restored file",
+            "status": "passed"
+          },
+          {
+            "name": "shared file recovery preserves detached state and refuses to render its removal action",
+            "status": "passed"
+          },
+          {
+            "name": "shared file recovery ignores a late lookup from the previous Owner rather than overwriting its new slot",
+            "status": "passed"
+          },
+          {
+            "name": "shared file recovery uploads another version with exact string artifact/session/reference IDs",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requestTime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "retains absent historical application time without inventing an epoch or current date",
+            "status": "passed"
+          },
+          {
+            "name": "continues to convert valid native dates and reject invalid explicit input",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/file/fileId.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "file HTTP identities discovers a reference without inventing an artifact ID",
+            "status": "passed"
+          },
+          {
+            "name": "file HTTP identities keeps large string IDs exact in URLs and multipart fields",
+            "status": "passed"
+          },
+          {
+            "name": "file HTTP identities rejects already rounded numeric IDs before issuing any request",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/ChecklistAttachments.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "native completion uses persisted Owner and preserves retry after a failed save",
+            "status": "passed"
+          },
+          {
+            "name": "readonly owner cannot upload, save or withdraw attachments",
+            "status": "passed"
+          },
+          {
+            "name": "a source read failure stays visible and does not open a new upload",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival/arrivalWorkspace.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "makes a signed record read-only and freezes its sign document slot",
+            "status": "passed"
+          },
+          {
+            "name": "creates a pending record without inheriting a viewed record status or evidence",
+            "status": "passed"
+          },
+          {
+            "name": "keeps the dialog on the saved record after create so the sign document can be attached",
+            "status": "passed"
+          },
+          {
+            "name": "collects an uploaded file through the saved Owner without saving unrelated local edits",
+            "status": "passed"
+          },
+          {
+            "name": "reopens the existing native source slot from material identity and blocks upload on a failed read",
+            "status": "passed"
+          },
+          {
+            "name": "retains failed collection for explicit Owner retry and ignores a late upload from another record",
+            "status": "passed"
+          },
+          {
+            "name": "withdraws only actually superseded or detached materials from the exact native slot",
+            "status": "passed"
+          },
+          {
+            "name": "keeps local pending and abnormal records editable with their existing version",
+            "status": "passed"
+          },
+          {
+            "name": "preserves the legacy attachment payload and renders it as read-only links",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "configuration retries actual native collection without a new file upload",
+            "status": "passed"
+          },
+          {
+            "name": "jointTest retries actual native collection without a new file upload",
+            "status": "passed"
+          },
+          {
+            "name": "externalProcurement retries actual native collection without a new file upload",
+            "status": "passed"
+          },
+          {
+            "name": "outsourceRequest retries actual native collection without a new file upload",
+            "status": "passed"
+          },
+          {
+            "name": "materialRequisition retries actual native collection without a new file upload",
+            "status": "passed"
+          },
+          {
+            "name": "materialExchange retries actual native collection without a new file upload",
+            "status": "passed"
+          },
+          {
+            "name": "configuration rejects collecting into a frozen native Owner",
+            "status": "passed"
+          },
+          {
+            "name": "jointTest rejects collecting into a frozen native Owner",
+            "status": "passed"
+          },
+          {
+            "name": "externalProcurement rejects collecting into a frozen native Owner",
+            "status": "passed"
+          },
+          {
+            "name": "outsourceRequest rejects collecting into a frozen native Owner",
+            "status": "passed"
+          },
+          {
+            "name": "materialRequisition rejects collecting into a frozen native Owner",
+            "status": "passed"
+          },
+          {
+            "name": "materialExchange rejects collecting into a frozen native Owner",
+            "status": "passed"
+          },
+          {
+            "name": "readonly history cannot upload, save or withdraw",
+            "status": "passed"
+          },
+          {
+            "name": "a draft needs its saved native identity before file operations",
+            "status": "passed"
+          },
+          {
+            "name": "an upload completion from the previous Owner cannot save the newly opened Owner",
+            "status": "passed"
+          },
+          {
+            "name": "a late Owner lookup cannot collect files after the record changes",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "keeps completed local results and their logs read-only",
+            "status": "passed"
+          },
+          {
+            "name": "does not copy an old result or log into a new pending record",
+            "status": "passed"
+          },
+          {
+            "name": "does not turn a cleared optional date into the Unix epoch",
+            "status": "passed"
+          },
+          {
+            "name": "rejects the unselected project sentinel while accepting actual project identifiers",
+            "status": "passed"
+          },
+          {
+            "name": "keeps empty legacy attachment metadata when reopening a record with no log",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "shows the retained failure reason without allowing terminal result edits or deletion",
+            "status": "passed"
+          },
+          {
+            "name": "starts a clean local record and emits the exact device ID and timestamp",
+            "status": "passed"
+          },
+          {
+            "name": "requires a nonblank failure reason and submits its trimmed text",
+            "status": "passed"
+          },
+          {
+            "name": "keeps empty legacy attachment metadata when reopening a record with no evidence",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "opens the original application form with exact survey/round context, saves a draft and returns with that identity",
+            "status": "passed"
+          },
+          {
+            "name": "refuses to open a new form when the source execution changed",
+            "status": "passed"
+          },
+          {
+            "name": "clears a previous node selection when opening an unrelated manual application",
+            "status": "passed"
+          },
+          {
+            "name": "sends the selected execution for source-linked deletion but no context for other applications",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/solutionWorkspace.runtime.spec.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "existing solution drafting and read-only viewing keeps the unavailable major-review route out of the ordinary approval dialog",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing opens approved content read-only and does not issue save or delete commands",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing does not carry approval or status fields into a new manual draft after viewing a baseline",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing keeps existing draft editing and its optimistic version payload",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing saves a real new native root before uploading customer files and preserves other remark fields",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing retries failed native customer-file attachment without re-saving the unchanged draft",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing does not make a draft writable for a read-only operator",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing reopens the current server record instead of the stale list row and displays review results",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing blocks saving while loading and after failure, then supports reloading the same record",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing does not replace a new draft with a late response from the previously opened record",
+            "status": "passed"
+          },
+          {
+            "name": "existing solution drafting and read-only viewing keeps an unavailable record closed to editing and rejects an unselected project",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  }
+}

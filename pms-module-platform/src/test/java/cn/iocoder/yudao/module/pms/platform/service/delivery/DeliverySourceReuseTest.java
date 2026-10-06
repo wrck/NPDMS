@@ -29,7 +29,10 @@ class DeliverySourceReuseTest {
         materials=mock(DeliveryMaterialMapper.class);links=mock(DeliveryFulfillmentMapper.class);
         files=mock(FileEvidenceApi.class);provider=mock(DeliveryBusinessObjectEvidenceProvider.class);
         service=new DeliveryMaterialService(materials,mock(DeliveryCatalogService.class),files,mock(DeliveryEventPublisher.class),List.of(provider));
-        ReflectionTestUtils.setField(service,"fulfillmentService",new DeliveryFulfillmentService(links));
+        lenient().when(materials.selectMaterialsForUpdate(any(DeliveryMaterialIdLockQuery.class))).thenAnswer(call -> {
+            var row=material();row.setId(call.getArgument(0,DeliveryMaterialIdLockQuery.class).ids().getFirst());return List.of(row);
+        });
+        ReflectionTestUtils.setField(service,"fulfillmentService",new DeliveryFulfillmentService(links,materials));
     }
     @AfterEach void cleanup(){TenantContextHolder.clear();}
     DeliveryRequirementDO requirement(){
@@ -116,7 +119,7 @@ class DeliverySourceReuseTest {
     }
     @Test void relationRejectsAnotherProjectsMaterialBeforeAnyWrite(){
         var original=material();original.setProjectId(100L);
-        assertThrows(BusinessContractException.class,()->new DeliveryFulfillmentService(links).associate(requirement(),original));
+        assertThrows(BusinessContractException.class,()->new DeliveryFulfillmentService(links,materials).associate(requirement(),original));
         verifyNoInteractions(links);
     }
     private cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact projectionFact() {

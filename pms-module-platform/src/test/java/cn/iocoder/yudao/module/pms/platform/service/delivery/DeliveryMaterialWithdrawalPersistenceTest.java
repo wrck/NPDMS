@@ -13,6 +13,9 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.*;
 import cn.iocoder.yudao.module.pms.platform.service.businessmodel.TenantCallerContext;
 import cn.iocoder.yudao.module.pms.platform.service.command.*;
 import cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi;
+import cn.iocoder.yudao.module.pms.platform.service.file.NativeGeneratedFileService;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileAccessTicketService;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
@@ -43,6 +46,7 @@ import static org.mockito.ArgumentMatchers.*;
 class DeliveryMaterialWithdrawalPersistenceTest {
     static final ThreadLocal<DataSource> SOURCES = new ThreadLocal<>();
     static final AtomicBoolean permission = new AtomicBoolean(), failAudit = new AtomicBoolean(), failOutbox = new AtomicBoolean();
+    static volatile CountDownLatch downloadOwnerAttempt;
     AnnotationConfigApplicationContext context;
     JdbcTemplate jdbc;
     PlatformDeliveryMaterialApi api;
@@ -58,7 +62,7 @@ class DeliveryMaterialWithdrawalPersistenceTest {
         SecurityFrameworkUtils.setLoginUser(principal, new MockHttpServletRequest());
     }
     @BeforeEach void start() throws Exception {
-        source=database(); SOURCES.set(source); jdbc=new JdbcTemplate(source);
+        downloadOwnerAttempt=null;source=database(); SOURCES.set(source); jdbc=new JdbcTemplate(source);
         for(var type:TABLES) schema(jdbc,type,mysql());
         jdbc.execute("CREATE UNIQUE INDEX ledger_scope ON plt_idempotency_record(tenant_id,scope_code,actor_id,idempotency_key)");
         jdbc.execute("CREATE TABLE native_owner (id BIGINT PRIMARY KEY, tenant_id BIGINT, writable BOOLEAN, version BIGINT)");
@@ -145,6 +149,81 @@ class DeliveryMaterialWithdrawalPersistenceTest {
         assertThrows(BusinessContractException.class,()->tx.executeWithoutResult(status->context.getBean(DeliveryFulfillmentService.class).associate(requirement,material)));
         assertEquals(0L,counts().get("plt_delivery_fulfillment"));anchors();
     }
+    @Test void simultaneousAssociationAndWithdrawalCannotLeaveWithdrawnMaterialWithAnActiveRelation() throws Exception {
+        var material=context.getBean(DeliveryMaterialMapper.class).selectById(901L);
+        var requirement=new DeliveryRequirementDO();requirement.setId(1001L);requirement.setTenantId(7L);requirement.setProjectId(99L);
+        var start=new CountDownLatch(1);
+        try(var pool=Executors.newFixedThreadPool(2)) {
+            var withdrawn=pool.submit(()->{login(7,9);try{start.await();api.withdrawMaterial(901L,0L,"race","reason");return true;}catch(BusinessContractException denied){return false;}finally{SecurityContextHolder.clearContext();TenantContextHolder.clear();}});
+            var associated=pool.submit(()->{login(7,9);try{start.await();new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(status->context.getBean(DeliveryFulfillmentService.class).associate(requirement,material));return true;}catch(BusinessContractException denied){return false;}finally{SecurityContextHolder.clearContext();TenantContextHolder.clear();}});
+            start.countDown();boolean w=withdrawn.get(15,TimeUnit.SECONDS),a=associated.get(15,TimeUnit.SECONDS);assertNotEquals(w,a);
+            assertEquals(w?"WITHDRAWN":"ACTIVE",jdbc.queryForObject("SELECT status FROM plt_delivery_material WHERE id=901",String.class));
+            assertEquals(w?0L:1L,counts().get("plt_delivery_fulfillment"));assertEquals(w?1L:0L,counts().get("plt_idempotency_record"));
+        }
+        anchors();
+    }
+
+    @Test void bothMaterialLockOrdersRejectTheLosingConcurrentCommand() throws Exception {
+        for(boolean associationFirst:List.of(true,false)) {
+            jdbc.update("DELETE FROM plt_delivery_fulfillment");jdbc.update("DELETE FROM plt_idempotency_record");jdbc.update("DELETE FROM plt_operation_audit");jdbc.update("DELETE FROM plt_outbox_event");
+            jdbc.update("UPDATE plt_delivery_material SET status='ACTIVE',version=0 WHERE id=901");
+            var material=context.getBean(DeliveryMaterialMapper.class).selectById(901L);
+            var requirement=new DeliveryRequirementDO();requirement.setId(1001L);requirement.setTenantId(7L);requirement.setProjectId(99L);
+            var attempted=new CountDownLatch(1);var pending=new java.util.concurrent.atomic.AtomicReference<Future<Boolean>>();
+            try(var pool=Executors.newSingleThreadExecutor()) {
+                new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(status->{
+                    if(associationFirst)context.getBean(DeliveryFulfillmentService.class).associate(requirement,material);
+                    else api.withdrawMaterial(901L,0L,"first","reason");
+                    pending.set(pool.submit(()->{login(7,9);try{attempted.countDown();if(associationFirst)api.withdrawMaterial(901L,0L,"second","reason");else new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(other->context.getBean(DeliveryFulfillmentService.class).associate(requirement,material));return true;}catch(BusinessContractException denied){return false;}finally{SecurityContextHolder.clearContext();TenantContextHolder.clear();}}));
+                    try{assertTrue(attempted.await(5,TimeUnit.SECONDS));}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException(interrupted);}
+                    assertFalse(pending.get().isDone(),"second command must wait for the first transaction's material lock");
+                });
+                assertFalse(pending.get().get(15,TimeUnit.SECONDS),"loser must recheck current material/relations after the lock");
+            }
+            assertEquals(associationFirst?"ACTIVE":"WITHDRAWN",jdbc.queryForObject("SELECT status FROM plt_delivery_material WHERE id=901",String.class));
+            assertEquals(associationFirst?1L:0L,counts().get("plt_delivery_fulfillment"));anchors();
+        }
+    }
+
+    @Test void associationOuterRollbackAndCrossTenantNeverLeaveAnActiveRelation() {
+        var material=context.getBean(DeliveryMaterialMapper.class).selectById(901L);
+        var requirement=new DeliveryRequirementDO();requirement.setId(1001L);requirement.setTenantId(7L);requirement.setProjectId(99L);
+        var tx=new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+        assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(status->{context.getBean(DeliveryFulfillmentService.class).associate(requirement,material);throw new IllegalStateException("caller failure");}));
+        assertEquals(0L,counts().get("plt_delivery_fulfillment"));
+        login(8,9);assertThrows(BusinessContractException.class,()->tx.executeWithoutResult(status->context.getBean(DeliveryFulfillmentService.class).associate(requirement,material)));
+        assertEquals(0L,counts().get("plt_delivery_fulfillment"));login(7,9);
+        assertEquals(1L,api.withdrawMaterial(901L,0L,"after-association-rollback","reason").version());anchors();
+    }
+
+    @Test void nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket() throws Exception {
+        jdbc.update("UPDATE plt_delivery_material SET file_reference_id=501,material_kind='FILE' WHERE id=901");
+        downloadOwnerAttempt=new CountDownLatch(1);
+        var tickets=context.getBean(FileAccessTicketService.class);
+        var attempted=new CountDownLatch(1);var pending=new java.util.concurrent.atomic.AtomicReference<Future<String>>();
+        try(var pool=Executors.newSingleThreadExecutor()) {
+            new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(status->{
+                jdbc.queryForList("SELECT id FROM native_owner WHERE id=101 FOR UPDATE");
+                pending.set(pool.submit(()->{login(7,9);try{attempted.countDown();return context.getBean(NativeGeneratedFileService.class).requestDownload("NATIVE","note",101L,901L);}finally{SecurityContextHolder.clearContext();TenantContextHolder.clear();}}));
+                try{assertTrue(attempted.await(5,TimeUnit.SECONDS));assertTrue(downloadOwnerAttempt.await(5,TimeUnit.SECONDS),"download must acquire its actual Owner before file authorization");}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException(interrupted);}
+                assertFalse(pending.get().isDone(),"download must wait for the Owner transaction");
+                jdbc.update("UPDATE plt_delivery_material SET status='WITHDRAWN',version=1 WHERE id=901");
+            });
+            var failure=assertThrows(ExecutionException.class,()->pending.get().get(15,TimeUnit.SECONDS));
+            assertInstanceOf(BusinessContractException.class,failure.getCause());
+        }
+        verify(tickets,never()).create(any());assertTrue(counts().values().stream().allMatch(v->v==0));anchors();
+    }
+
+    @Test void nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket() {
+        jdbc.update("UPDATE plt_delivery_material SET file_reference_id=501,material_kind='FILE' WHERE id=901");
+        var downloads=context.getBean(NativeGeneratedFileService.class);var tickets=context.getBean(FileAccessTicketService.class);
+        assertEquals("https://fixture.invalid/internal",downloads.requestDownload("NATIVE","note",101L,901L));verify(tickets,times(1)).create(any());clearInvocations(tickets);
+        api.withdrawMaterial(901L,0L,"withdraw-download","reason");
+        assertThrows(BusinessContractException.class,()->downloads.requestDownload("NATIVE","note",101L,901L));
+        login(8,9);assertThrows(BusinessContractException.class,()->downloads.requestDownload("NATIVE","note",101L,901L));verify(tickets,never()).create(any());anchors();
+    }
+
     @Test void withdrawalInsideOuterTransactionRollsBackWithItsCaller() {
         var tx=new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
         assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(status->{api.withdrawMaterial(901L,0L,"outer","reason");throw new IllegalStateException("caller failure");}));
@@ -158,7 +237,7 @@ class DeliveryMaterialWithdrawalPersistenceTest {
             var annotation=field.getAnnotation(TableField.class);if(annotation!=null&&!annotation.exist())continue;
             String name=annotation!=null&&!annotation.value().isBlank()?annotation.value():field.getName().replaceAll("([a-z0-9])([A-Z])","$1_$2").toLowerCase(Locale.ROOT);
             if(type==DeliveryMaterialDO.class && name.equals("version"))continue;
-            Class<?> kind=field.getType();String sql=kind==Long.class||kind==Integer.class?"BIGINT":kind==Boolean.class?"BOOLEAN":kind==java.time.LocalDateTime.class?"TIMESTAMP":"VARCHAR(4000)";
+            Class<?> kind=field.getType();String sql=kind==Long.class||kind==Integer.class?"BIGINT":kind==Boolean.class?"BOOLEAN":kind==java.time.LocalDateTime.class?"TIMESTAMP":mysql?"VARCHAR(256)":"VARCHAR(4000)";
             if(name.equals("id"))sql="BIGINT AUTO_INCREMENT PRIMARY KEY";else if(name.equals("deleted"))sql="BOOLEAN DEFAULT FALSE";else if(name.equals("create_time")||name.equals("update_time"))sql="TIMESTAMP DEFAULT CURRENT_TIMESTAMP";
             if(name.equals("response_payload")||name.equals("detail_snapshot")||name.equals("payload"))sql="TEXT";
             columns.putIfAbsent(name,name+" "+sql);
@@ -168,6 +247,7 @@ class DeliveryMaterialWithdrawalPersistenceTest {
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
     @Import({DeliveryMaterialWithdrawalService.class,PlatformCommandExecutionApiImpl.class,PlatformTransactionalOutboxWriter.class,TenantCallerContext.class})
     static class Config {
+        @Bean static org.springframework.core.convert.ConversionService conversionService(){return org.springframework.boot.convert.ApplicationConversionService.getSharedInstance();}
         @Bean DataSource dataSource(){return SOURCES.get();}
         @Bean PlatformTransactionManager transactionManager(DataSource source){return new DataSourceTransactionManager(source);}
         @Bean SqlSessionFactory sessions(DataSource source) throws Exception {
@@ -185,7 +265,7 @@ class DeliveryMaterialWithdrawalPersistenceTest {
         }
         @Bean DeliveryMaterialMapper materials(SqlSessionFactory f){return new SqlSessionTemplate(f).getMapper(DeliveryMaterialMapper.class);}
         @Bean DeliveryFulfillmentMapper fulfillmentMapper(SqlSessionFactory f){return new SqlSessionTemplate(f).getMapper(DeliveryFulfillmentMapper.class);}
-        @Bean DeliveryFulfillmentService fulfillment(DeliveryFulfillmentMapper f){return new DeliveryFulfillmentService(f);}
+        @Bean DeliveryFulfillmentService fulfillment(DeliveryFulfillmentMapper f,DeliveryMaterialMapper m){return new DeliveryFulfillmentService(f,m);}
         @Bean PlatformIdempotencyRecordMapper ledger(SqlSessionFactory f){return new SqlSessionTemplate(f).getMapper(PlatformIdempotencyRecordMapper.class);}
         @Bean PlatformOperationAuditMapper audits(SqlSessionFactory f) {
             var real=new SqlSessionTemplate(f).getMapper(PlatformOperationAuditMapper.class);var spy=mock(PlatformOperationAuditMapper.class,org.mockito.AdditionalAnswers.delegatesTo(real));
@@ -204,12 +284,22 @@ class DeliveryMaterialWithdrawalPersistenceTest {
                 public boolean supportsEntityType(String type){return "note".equals(type);}
                 public cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact validateUpload(Long t,Long a,String e,String id,String p,String action,boolean lock,Long scope){throw new AssertionError("withdrawal is not file upload");}
                 public Long requireDeliveryAccess(Long tenant,Long actor,String type,String id,String purpose,boolean write,boolean lock,Long expected) {
-                    assertTrue(write && lock);assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
+                    assertTrue(lock);assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
+                    if(!write && downloadOwnerAttempt!=null)downloadOwnerAttempt.countDown();
                     var rows=new JdbcTemplate(ds).queryForList("SELECT tenant_id,writable,version FROM native_owner WHERE id=? FOR UPDATE",Long.valueOf(id));
-                    if(rows.size()!=1||!Objects.equals(tenant,((Number)rows.getFirst().get("tenant_id")).longValue())||!Boolean.TRUE.equals(rows.getFirst().get("writable")))throw new BusinessContractException("DELIVERY_ACCESS_DENIED","Owner denied");return ((Number)rows.getFirst().get("version")).longValue();
+                    if(rows.size()!=1||!Objects.equals(tenant,((Number)rows.getFirst().get("tenant_id")).longValue())||write&&!Boolean.TRUE.equals(rows.getFirst().get("writable")))throw new BusinessContractException("DELIVERY_ACCESS_DENIED","Owner denied");return ((Number)rows.getFirst().get("version")).longValue();
                 }
             };
             return new DeliveryOwnerAccess(List.of(owner),null,null,null,null,null);
+        }
+        @Bean FileEvidenceApi evidence() {
+            var api=mock(FileEvidenceApi.class);when(api.inspectDocument(7L,501L)).thenReturn(new FileEvidenceApi.Document(501L,"NATIVE","note","101","DOC","slot",9007199254740993L,2,"frozen-sha","native.txt",true));return api;
+        }
+        @Bean FileAccessTicketService tickets() {
+            var api=mock(FileAccessTicketService.class);var result=new cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileAccessTicketRespVO(701L,"https://fixture.invalid/internal",java.time.LocalDateTime.now().plusSeconds(60));when(api.create(any())).thenReturn(result);return api;
+        }
+        @Bean NativeGeneratedFileService nativeDownloads(DeliveryMaterialMapper materials,FileEvidenceApi evidence,FileAccessTicketService tickets,DeliveryOwnerAccess owners) {
+            return new NativeGeneratedFileService(mock(cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry.class),mock(cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService.class),mock(DeliveryMaterialService.class),materials,evidence,tickets,mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class),owners);
         }
         @Bean PlatformDeliveryMaterialApi materialApi(DeliveryMaterialMapper m,DeliveryMaterialWithdrawalService s){return new PlatformDeliveryMaterialApiImpl(mock(DeliveryMaterialService.class),m,s);}
     }

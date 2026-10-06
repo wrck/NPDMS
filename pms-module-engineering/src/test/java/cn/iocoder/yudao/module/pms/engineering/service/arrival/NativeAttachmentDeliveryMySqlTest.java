@@ -203,6 +203,7 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
                 ArrivalDeliveryRegistration.class, ArrivalServiceImpl.class, PlatformCommandExecutionApiImpl.class,
                 PlatformTransactionalOutboxWriter.class, OperationAuditApiImpl.class, DeliveryCatalogService.class,
                 DeliveryMaterialService.class, PlatformDeliveryMaterialApiImpl.class, DeliveryFulfillmentService.class,
+                DeliveryMaterialWithdrawalService.class, cn.iocoder.yudao.module.pms.platform.service.businessmodel.TenantCallerContext.class,
                 DeliveryDocumentOriginResolver.class, DeliveryEventPublisher.class, DeliveryRequirementService.class);
         context.getBeanFactory().registerSingleton("engineeringRecordCodeGenerator", mock(EngineeringRecordCodeGenerator.class));
         context.registerBean(cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.class,
@@ -226,6 +227,9 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
         context.registerBean(FileLifecycleApplicationService.class, () -> new FileLifecycleApplicationService(context.getBean(PlatformCommandExecutionApiImpl.class),
                 context.getBean(OperationAuditApiImpl.class), context.getBean(FileBusinessObjectPolicyRegistry.class), security, sessions.getMapper(FileArtifactMapper.class),
                 sessions.getMapper(FileVersionMapper.class), sessions.getMapper(FileReferenceMapper.class), sessions.getMapper(FileUploadSessionMapper.class), sessions.getMapper(FileArchiveRecordMapper.class), context.getBean(FileEventFactory.class)));
+        // Public Java CAS has separate explicit permission/Owner tests; accidental use here stays denied.
+        context.registerBean(cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi.class,
+                () -> mock(cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi.class));
         context.refresh(); var spring = new SpringUtil(); spring.setApplicationContext(context); spring.postProcessBeanFactory(context.getBeanFactory());
         tx = new TransactionTemplate(context.getBean(DataSourceTransactionManager.class)); login(7L);
         var row = new ArrivalDO(); row.setId(9L); row.setProjectId(20L); row.setTenantId(7L); row.setVersion(0L); row.setStatus(0); row.setCode("ARR-9");
@@ -353,6 +357,16 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM plt_file_version",Integer.class));
     }
     @ParameterizedTest @EnumSource(NativeAttachmentKind.class)
+    void nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind kind){
+        nativeUpload(kind,"query-only-final");
+        when(permissions.hasAnyPermissions(17L,kind.getPermission()+":update")).thenReturn(false);
+        assertThrows(RuntimeException.class,()->freezeNative(kind));
+        assertTrue(nativeMaterials(kind).isEmpty());
+        var owner=context.getBean(NativeAttachmentOwners.class).find(kind,7L,nativeId(kind),false);
+        assertEquals(kind==NativeAttachmentKind.CONFIGURATION||kind==NativeAttachmentKind.JOINT_TEST?1:0,owner.status());
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM plt_file_version",Integer.class));
+    }
+    @ParameterizedTest @EnumSource(NativeAttachmentKind.class)
     void nativeTenantPermissionScopeAndProjectRevocationFailClosed(NativeAttachmentKind kind){
         var access=context.getBean(NativeAttachmentAccess.class);String id=String.valueOf(nativeId(kind));
         when(permissions.hasAnyPermissions(17L,kind.getPermission()+":update")).thenReturn(false);
@@ -398,13 +412,31 @@ new BusinessModelDeclaration(new BusinessModelDescriptor("IMP","materialExchange
         }
         assertTrue(nativeMaterials(kind).isEmpty());assertEquals(0L,jdbc.queryForObject("SELECT version FROM "+nativeTable(kind)+" WHERE id=?",Long.class,id));
     }
-    @Test void nativeUploadSizeAndUnrecognizedConfigMimeStayRejected() {
+    @Test void nativeUploadSizeAndDisguisedExecutableStayRejected() {
         var kind=NativeAttachmentKind.CONFIGURATION;var uploads=context.getBean(FileUploadApplicationService.class);
         assertThrows(RuntimeException.class,()->uploads.initialize(new FileUploadInitializeCommand(7L,17L,"oversize","CREATE_ARTIFACT",null,null,
                 "IMP","configuration","30",kind.getPurpose(),"oversize","native.txt",kind.getPurpose(),5242881L,"text/plain",null)));
-        assertThrows(RuntimeException.class,()->uploads.initialize(new FileUploadInitializeCommand(7L,17L,"cfg-mime","CREATE_ARTIFACT",null,null,
-                "IMP","configuration","30",kind.getPurpose(),"cfg-mime","native.cfg",kind.getPurpose(),100L,"application/octet-stream",null)));
-        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM plt_file_artifact",Integer.class));
+        byte[] executable=new byte[256];executable[0]='M';executable[1]='Z';
+        var initialized=uploads.initialize(new FileUploadInitializeCommand(7L,17L,"cfg-mime","CREATE_ARTIFACT",null,null,
+                "IMP","configuration","30",kind.getPurpose(),"cfg-mime","native.cfg",kind.getPurpose(),(long)executable.length,"application/octet-stream",null));
+        assertThrows(RuntimeException.class,()->uploads.complete(new FileUploadCompleteCommand(7L,17L,"cfg-mime:complete",initialized.artifactId(),initialized.sessionId(),new MockMultipartFile("file","native.cfg","application/octet-stream",executable),null)));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM plt_file_artifact",Integer.class));assertTrue(nativeMaterials(kind).isEmpty());
+    }
+
+    @ParameterizedTest @EnumSource(NativeAttachmentKind.class)
+    void nativeUnknownMimeTextCompletesAndRegistersWithItsActualOwner(NativeAttachmentKind kind) {
+        var uploads=context.getBean(FileUploadApplicationService.class);
+        byte[] content="hostname switch-1\ninterface ethernet1\n description 中文\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String[] names={"native.log","native.cfg","native.conf"};String[] mime={null,"application/octet-stream",""};
+        for(int i=0;i<names.length;i++) {
+            String slot="unknown-"+i;
+            var initialized=uploads.initialize(new FileUploadInitializeCommand(7L,17L,slot+":init","CREATE_ARTIFACT",null,null,
+                    kind.getModule(),kind.getEntityType(),String.valueOf(nativeId(kind)),kind.getPurpose(),slot,names[i],kind.getPurpose(),(long)content.length,mime[i],null));
+            var complete=uploads.complete(new FileUploadCompleteCommand(7L,17L,slot+":complete",initialized.artifactId(),initialized.sessionId(),new MockMultipartFile("file",names[i],mime[i],content),null));
+            assertEquals("text/plain",jdbc.queryForObject("SELECT detected_media_type FROM plt_file_version WHERE artifact_id=?",String.class,complete.artifactId()));
+        }
+        updateNative(kind,"text evidence");assertEquals(3,nativeMaterials(kind).size());
+        for(var material:nativeMaterials(kind)){assertEquals(kind.getModule(),material.ownerModule());assertEquals(kind.getEntityType(),material.entityType());assertEquals(nativeId(kind),material.entityId());}
     }
 
     @Test void nativeConfigurationArchiveIsIdempotentAndDevicePortFailureRollsBackOwnerAndMaterial() {

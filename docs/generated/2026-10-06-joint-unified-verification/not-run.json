@@ -1,0 +1,233 @@
+{
+  "overallAcceptance": "INCOMPLETE; selected integration verification is not all-business acceptance",
+  "priorSnapshotFailures": [
+    {
+      "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationServiceTest",
+      "oldTests": 15,
+      "oldFailures": 4,
+      "oldErrors": 3,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "0a65d3dac786d46487dc50c4caa5a86e62bfe19f63cbfc0d45147b9dd1b2dc7d"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisSpringPersistenceTest",
+      "oldTests": 9,
+      "oldFailures": 0,
+      "oldErrors": 9,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "c2bff9a1123532708270388db7740f495a9707530344c2bb712cb3fa69f0b09e"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.TemplateRequirementOperationInputTest",
+      "oldTests": 15,
+      "oldFailures": 0,
+      "oldErrors": 4,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "c77d72bac10d8e0bceb3cd4d114b448b33006633354fd9980265ab1e96656b4d"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.sync.SyncRunTransactionTest",
+      "oldTests": 23,
+      "oldFailures": 0,
+      "oldErrors": 23,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "9ef687e4fb57c217d3d2e5d07581f273284cc7769e972b86f41d18e93d4fa756"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngineTest",
+      "oldTests": 23,
+      "oldFailures": 0,
+      "oldErrors": 1,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "a3352a4060b811088bd52c6296db759ded61458ad83e9845803ea48324decb98"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceContractTest",
+      "oldTests": 11,
+      "oldFailures": 1,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "2fa451c5392f19d1db60d9f151ad7cd44e56ba0bf57009609220b3e584fdc514"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.file.FileContractAndMapperTest",
+      "oldTests": 7,
+      "oldFailures": 1,
+      "oldErrors": 0,
+      "current": "CURRENT_SELECTED_PASS",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "250d0fcf88e52e07ffb078b80a17625a9d5aa203e550a0ecf14ca261dae1bf93"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityCapabilityCopyTest",
+      "oldTests": 4,
+      "oldFailures": 2,
+      "oldErrors": 2,
+      "current": "CURRENT_SELECTED_PASS",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "38cbffcf1458dd9bfa08bd01401b6acffddf1cca0ad5d4775d20acc6372faf87"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApiImplTest",
+      "oldTests": 4,
+      "oldFailures": 1,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "879cb090541e09a11cfc1e2a9c4935250a3c092f91a882475ece2f6c04b08d37"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectClosurePolicyFreezeTest",
+      "oldTests": 4,
+      "oldFailures": 1,
+      "oldErrors": 2,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "6bcb91f6cadecb04630148a3554e34b4463dc84225e12272eac678866a87b99e"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImplTest",
+      "oldTests": 25,
+      "oldFailures": 4,
+      "oldErrors": 3,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "4835e70896b70387285b783591f937c244e82269ccb5fc5399fd21baf363f872"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerQueryServiceTest",
+      "oldTests": 5,
+      "oldFailures": 1,
+      "oldErrors": 1,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "368d737c265eabbcf119e1cfc5e937293b18b98fadb05ad6459a3398647dcbfd"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerCandidateServiceTest",
+      "oldTests": 2,
+      "oldFailures": 0,
+      "oldErrors": 1,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "be4c857d4602ce01627f14dd5ff70429bb72d704e7e555ef743777e13ce4fe81"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateCandidateWatermarkTest",
+      "oldTests": 2,
+      "oldFailures": 1,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "43e3c37c9a4403b3a9f631f8f00a351d551cf815c2bcb0027cdfebe26dcc8f07"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateMatchRuleEvaluatorTest",
+      "oldTests": 9,
+      "oldFailures": 1,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "a1e6367c8d22dbc258b05ace2bfd618cd010cc95de6ca230054b78ef800ed287"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateExecutionConfigurationCompilationTest",
+      "oldTests": 13,
+      "oldFailures": 3,
+      "oldErrors": 1,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "f8f4b4a98c3e4173e736e0a1b5932b0193cdcf8003bc54d4ecb2aa2a3d20053f"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateExecutionConfigurationPersistenceTest",
+      "oldTests": 5,
+      "oldFailures": 0,
+      "oldErrors": 1,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "98e0936f53d9aaa93306cfacb9501244d5d82022e5499bc6a245d2967de376ff"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplatePresentationRoutesTest",
+      "oldTests": 24,
+      "oldFailures": 3,
+      "oldErrors": 1,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "72827fdf172991ed8db96bd6e45296267341bdd04a77ee612333db8722532158"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateSnapshotConsumersTest",
+      "oldTests": 8,
+      "oldFailures": 3,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "dd182ec4358383f0214eb1db29efd5464f262132fedc2cc55a6b4307812ebed3"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionSnapshotTest",
+      "oldTests": 45,
+      "oldFailures": 42,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "84119e46219f4036ac9fd0087a5c8ab51cb50481a012991f129f2b83fb36a604"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionedCompilationTest",
+      "oldTests": 8,
+      "oldFailures": 8,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "ee52fc830e43f2b0c09c0cc0c7a2f7b7e7d277b80252b475b179982b6d32f6d1"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionedPublicationTest",
+      "oldTests": 25,
+      "oldFailures": 0,
+      "oldErrors": 17,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "c2b38db16320e8c6c9120386b763d16a11158e8964f06b632b6b17d04eb33796"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.project.service.rule.PreparationRelativeWaitSampleTest",
+      "oldTests": 4,
+      "oldFailures": 2,
+      "oldErrors": 0,
+      "current": "NOT_RERUN",
+      "originalEvidence": "../2026-10-06-cloud-framework-verification/backend-failures.json",
+      "originalXmlSha256": "2a22843747aa82eb7f24ad1282d488ec5f0df33290290a1d86e14527ceeb75a1"
+    }
+  ],
+  "notRun": [
+    "Whole repository backend suite",
+    "Whole UI suite/typecheck/production frontend build; prior operationAdapters and CUSTOM_DELAY static assertion failures remain historical evidence, not current passes",
+    "Legacy DeliveryFulfillmentMySqlTest on its fixed external port (fixture constructor updated; test not run)",
+    "Remaining approximately 38 native Owner adaptations; count is historical planning evidence, not a current inventory",
+    "Multi-browser concurrency and real external storage/ClamAV engine",
+    "Production database, actual historical migration, deployment, master merge, force push",
+    "New project creation/detail/history activity"
+  ],
+  "separateNativeFollowup": [
+    "KNO announcement: persistent file scopeVersion versus native Owner save version contract unresolved; no constant 0/Owner-ID workaround",
+    "Briefing manual attachments and old ACC acceptance later package; excluded from the two integrated checkpoints",
+    "Topology/construction photos, DurationChange, Preparation lineage",
+    "Site survey/history training six Hosts",
+    "Four native withdraw/terminate material invalidation paths"
+  ],
+  "runtimeLimitations": [
+    "Full original migrations fail at V374 line 72, MySQL 1267 collation conflict; V398 only verified in isolated forward migration fixture. No historical SQL edit, Flyway repair, version skip or manual later migration.",
+    "Ordinary Tomcat runs on V373 plus failed partial V374. Its 21-request security/transaction acceptance passes; actual stage outbox processing logs CURRENT_STAGE_CONTRACT_REQUIRED at ProjectTaskBusinessAssociationService.java:71 and remains not-completed. This does not prove async convergence.",
+    "Final package has three skips. Real login browser passed separately; package skip statuses are preserved without changing package counts."
+  ]
+}

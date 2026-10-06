@@ -153,6 +153,7 @@ class NativeArrivalDeliveryMySqlTest {
                 ArrivalDeliveryRegistration.class, ArrivalServiceImpl.class, PlatformCommandExecutionApiImpl.class,
                 PlatformTransactionalOutboxWriter.class, OperationAuditApiImpl.class, DeliveryCatalogService.class,
                 DeliveryMaterialService.class, PlatformDeliveryMaterialApiImpl.class, DeliveryFulfillmentService.class,
+                DeliveryMaterialWithdrawalService.class, cn.iocoder.yudao.module.pms.platform.service.businessmodel.TenantCallerContext.class,
                 DeliveryDocumentOriginResolver.class, DeliveryEventPublisher.class, DeliveryRequirementService.class);
         context.getBeanFactory().registerSingleton("engineeringRecordCodeGenerator", mock(EngineeringRecordCodeGenerator.class));
         context.registerBean(cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.class,
@@ -176,6 +177,9 @@ class NativeArrivalDeliveryMySqlTest {
         context.registerBean(FileLifecycleApplicationService.class, () -> new FileLifecycleApplicationService(context.getBean(PlatformCommandExecutionApiImpl.class),
                 context.getBean(OperationAuditApiImpl.class), context.getBean(FileBusinessObjectPolicyRegistry.class), security, sessions.getMapper(FileArtifactMapper.class),
                 sessions.getMapper(FileVersionMapper.class), sessions.getMapper(FileReferenceMapper.class), sessions.getMapper(FileUploadSessionMapper.class), sessions.getMapper(FileArchiveRecordMapper.class), context.getBean(FileEventFactory.class)));
+        // Public Java CAS has separate explicit permission/Owner tests; accidental use here stays denied.
+        context.registerBean(cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi.class,
+                () -> mock(cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi.class));
         context.refresh(); var spring = new SpringUtil(); spring.setApplicationContext(context); spring.postProcessBeanFactory(context.getBeanFactory());
         tx = new TransactionTemplate(context.getBean(DataSourceTransactionManager.class)); login(7L);
         var row = new ArrivalDO(); row.setId(9L); row.setProjectId(20L); row.setTenantId(7L); row.setVersion(0L); row.setStatus(0); row.setCode("ARR-9");

@@ -48,7 +48,7 @@ class DeliveryFulfillmentMySqlTest {
                 var materials=session.getMapper(DeliveryMaterialMapper.class);
                 var requirements=session.getMapper(DeliveryRequirementMapper.class);
                 var submissions=session.getMapper(DeliverySubmissionMapper.class);
-                var fulfillment=new DeliveryFulfillmentService(session.getMapper(DeliveryFulfillmentMapper.class));
+                var fulfillment=new DeliveryFulfillmentService(session.getMapper(DeliveryFulfillmentMapper.class),materials);
                 var original=materials.selectById(9101L);
                 assertEquals(9001L,original.getRequirementId());
                 assertEquals("ACTIVE",original.getStatus());
