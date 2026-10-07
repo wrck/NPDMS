@@ -13,6 +13,14 @@ def field(scope,label):
 def confirm(page,name):
     page.get_by_role('button',name=name,exact=True).click();page.get_by_role('button',name='确定',exact=True).click()
 
+def select_comparison_version(panel,label,version):
+    # Element Plus keeps both select popups mounted during their transition.
+    # Resolve the specific combobox's controlled listbox, never a page-wide option.
+    control=panel.get_by_role('combobox',name=label,exact=True)
+    control.click();listbox_id=control.get_attribute('aria-controls')
+    assert listbox_id, 'Comparison combobox must identify its listbox'
+    panel.page.locator('[id="'+listbox_id+'"]').get_by_role('option',name=version,exact=True).click()
+
 def main():
     shared.prepare()
     (FIX/'Fixture.vue').write_text('''<template><Page api-base="/api/v1/pms/version-notes" title="版本业务" /></template><script setup>import Page from '@/components/ProjectBusiness/ProjectBusinessPage.vue'</script>''')
@@ -51,8 +59,8 @@ def main():
                 page.screenshot(path=str(OUT/'frozen.png'),full_page=True);result['checks'].append('empty business classes inherit actual revision APIs, form/extension save, immutable freeze and current activation')
                 confirm(page,'从此版本复制');expect(panel.locator('h4')).to_contain_text('草稿',timeout=15000)
                 field(panel,'标题').fill('Alternative');confirm(page,'保存修订');expect(panel.get_by_role('button',name='放弃修订',exact=True)).to_be_enabled(timeout=15000)
-                panel.locator('.el-form--inline .el-select').nth(0).click();page.get_by_role('option',name='#1',exact=True).click()
-                panel.locator('.el-form--inline .el-select').nth(1).click();page.get_by_role('option',name='#2',exact=True).click();panel.get_by_role('button',name='比较',exact=True).click()
+                select_comparison_version(panel,'比较左版本','#1')
+                select_comparison_version(panel,'比较右版本','#2');panel.get_by_role('button',name='比较',exact=True).click()
                 expect(panel.get_by_text('"Alternative"',exact=True)).to_be_visible(timeout=15000)
                 panel.get_by_role('button',name='放弃修订',exact=True).click();page.get_by_role('button',name='取消',exact=True).click();assert len(shared.fixture('/fixture/evidence')['it_version_note_revision'])==2
                 confirm(page,'放弃修订');expect(panel.locator('h4')).to_contain_text('冻结只读',timeout=15000)
