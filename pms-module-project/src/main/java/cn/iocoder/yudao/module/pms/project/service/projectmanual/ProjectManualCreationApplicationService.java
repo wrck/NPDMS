@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.invalidParamException;
+
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -93,8 +95,8 @@ public class ProjectManualCreationApplicationService {
     /** 根项目入口解析已选择客户；子项目统一由带父范围授权的拆分应用层创建。 */
     public ManualProjectCreateResult createWithSelectedCustomer(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
-        if (command.draft().getParentId() != null || command.draft().getCustomerCode() == null
-                || command.draft().getCustomerCode().isBlank()) {
+        if (command.draft().getParentId() != null
+                || command.draft().getCustomerCode() == null || command.draft().getCustomerCode().isBlank()) {
             throw new IllegalArgumentException("请选择客户主档，并通过拆分入口创建子项目");
         }
         authorizationService.assertCanCreate(actor.actorId());
@@ -104,7 +106,7 @@ public class ProjectManualCreationApplicationService {
                         actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), ManualProjectCreateResult.class,
                 () -> {
-                    resolveSelectedCustomer(command.draft(), actor);
+                    if (command.contractId() == null) resolveSelectedCustomer(command.draft(), actor);
                     return createOnce(command, actor);
                 }, result -> successFacts(command, actor, result));
         if (execution.decision() == Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
@@ -121,11 +123,16 @@ public class ProjectManualCreationApplicationService {
 
     public TemplateMatchResult previewWithSelectedCustomer(
             ProjectMasterDO draft, Long companyId, Long departmentId, Actor actor) {
+        return previewWithSelectedCustomer(draft, companyId, departmentId, actor, null, null, null);
+    }
+
+    public TemplateMatchResult previewWithSelectedCustomer(ProjectMasterDO draft, Long companyId, Long departmentId,
+            Actor actor, Long contractId, Long salesOrderId, String sourceFingerprint) {
         authorizationService.assertCanCreate(actor.actorId());
         if (draft.getParentId() != null || draft.getCustomerCode() == null || draft.getCustomerCode().isBlank())
             throw new IllegalArgumentException("请选择客户主档，并通过拆分入口创建子项目");
-        resolveSelectedCustomer(draft, actor);
-        return previewMatching(draft, companyId, departmentId, actor);
+        if (contractId == null) resolveSelectedCustomer(draft, actor);
+        return previewMatching(draft, companyId, departmentId, actor, contractId, salesOrderId, sourceFingerprint);
     }
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
@@ -153,15 +160,28 @@ public class ProjectManualCreationApplicationService {
 
     public TemplateMatchResult previewMatching(
             ProjectMasterDO draft, Long companyId, Long departmentId, Actor actor) {
+        return previewMatching(draft, companyId, departmentId, actor, null, null, null);
+    }
+
+    public TemplateMatchResult previewMatching(ProjectMasterDO draft, Long companyId, Long departmentId,
+            Actor actor, Long contractId, Long salesOrderId, String sourceFingerprint) {
         authorizationService.assertCanCreate(actor.actorId());
         if (draft.getParentId() != null) throw new IllegalArgumentException("子项目使用拆分选模入口");
         companyApi.validateCompanyList(List.of(companyId));
         deptApi.validateDeptList(List.of(departmentId));
         if (!organizationScopeApi.hasScope(actor.actorId(), companyId, departmentId))
             throw exception(PROJECT_ORGANIZATION_SCOPE_INVALID, "当前操作人无下单公司与办事处的联合范围");
-        var normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(draft));
+        TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(draft));
         draft.setTenantId(actor.tenantId());
         assignOrganization(draft, resolveCompany(companyId), resolveDepartment(departmentId));
+        if (contractId != null) {
+            var source = commerceSourceApi.resolveCreationSource(new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
+                    actor.tenantId(), contractId, actor.actorId(), salesOrderId, sourceFingerprint));
+            if (sourceFingerprint == null || !sourceFingerprint.equals(source.sourceFingerprint()))
+                throw invalidParamException("来源已变化，请重新加载合同订单");
+            applyCommerceSource(draft, source, actor);
+        }
+        var normalized = TemplateMatchDecisionRules.requireCommonAttributes(attributes(draft));
         return projectTemplateService.matchPreview(projectRuleFields.normalizedCreationFacts(draft, normalized, true));
     }
 
@@ -186,14 +206,10 @@ public class ProjectManualCreationApplicationService {
         assignOrganization(command.draft(), company, department);
         command.draft().setLocationResolutionStatus(projectSiteService.validateLocationScope(
                 command.sites(), command.draft().getImplementationLocation()));
-        TemplateMatchDecision matchDecision = command.draft().getParentId() == null
-                ? projectAttributeResolutionService.resolveInitial(command.draft(),
-                        command.templateRevisionId(), command.candidateWatermark())
-                : null;
-        if (commerceResolution != null) {
-            // CRM权威字段在模板匹配后写入：不影响手工模板匹配口径（重大级别由服务端按CRM执行单落库）。
-            applyCommerceSource(command.draft(), commerceResolution);
-        }
+        if (commerceResolution != null) applyCommerceSource(command.draft(), commerceResolution, actor);
+        TemplateMatchDecision matchDecision = commerceResolution == null
+                ? projectAttributeResolutionService.resolveInitial(command.draft(), command.templateRevisionId(), command.candidateWatermark())
+                : projectAttributeResolutionService.resolveSourceInitial(command.draft(), command.templateRevisionId(), command.candidateWatermark());
         ProjectMasterDO project = matchDecision == null
                 ? projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
                         command.templateRevisionId(), command.candidateWatermark(), command.serviceManagerUserId())
@@ -206,7 +222,7 @@ public class ProjectManualCreationApplicationService {
             commerceSourceApi.bindProjectCommerceSource(
                     new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
                             actor.tenantId(), project.getId(), command.contractId(), actor.actorId(),
-                            command.idempotencyKey()));
+                            command.idempotencyKey(), command.salesOrderId(), command.sourceFingerprint()));
         }
         projectSiteService.bindSites(project.getId(), command.sites());
         initializePreparationIfConfigured(project, actor);
@@ -233,22 +249,40 @@ public class ProjectManualCreationApplicationService {
                 matchDecision == null ? null : matchDecision.decisionMode(), matchOperationId);
     }
 
-    /** 合同主档链只读解析：校验合同可见性与手工登记合同号一致性（ADR-0022 trim+大小写不敏感比较）。 */
+    /** 合同主档链事务内锁定解析：校验合同可见性与手工登记合同号一致性（ADR-0022 trim+大小写不敏感比较）。 */
     private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution
             resolveCommerceSource(ManualProjectCreateCommand command, Actor actor) {
-        var resolution = commerceSourceApi.resolveCreationSource(
+        var resolution = commerceSourceApi.resolveCreationSourceForUpdate(
                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
-                        actor.tenantId(), command.contractId(), actor.actorId()));
+                        actor.tenantId(), command.contractId(), actor.actorId(), command.salesOrderId(), command.sourceFingerprint()));
         String manualContractNo = command.draft().getContractNo();
         if (manualContractNo != null && !manualContractNo.isBlank() && resolution.contractNo() != null
                 && !manualContractNo.trim().equalsIgnoreCase(resolution.contractNo().trim())) {
-            throw new IllegalArgumentException("合同主档与手工登记合同号不一致");
+            throw invalidParamException("合同主档与手工登记合同号不一致");
         }
         return resolution;
     }
 
     private void applyCommerceSource(ProjectMasterDO draft,
-            cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution source) {
+            cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution source, Actor actor) {
+        if (source.orderFacts() == null) throw invalidParamException("请选择合同下的有效销售订单");
+        if (source.projectName() == null || source.projectName().isBlank())
+            throw invalidParamException("同步来源缺少项目名称，请补全来源信息");
+        if (!java.util.Objects.equals(draft.getCompanyCode(), source.companyCode()))
+            throw invalidParamException("所选公司与合同来源公司不一致");
+        if (source.executionFacts() != null && source.executionFacts().departmentCode() != null
+                && !java.util.Objects.equals(source.executionFacts().departmentCode(), draft.getDepartmentCode()))
+            throw invalidParamException("所选办事处与执行单办事处不一致");
+        // The project customer is the selected final customer; the buyer remains on the linked order/contract.
+        if (draft.getCustomerCode() == null || draft.getCustomerCode().isBlank())
+            throw invalidParamException("请选择最终客户主档");
+        resolveSelectedCustomer(draft, actor);
+        draft.setProjectName(source.projectName());
+        draft.setContractNo(source.contractNo());
+        draft.setSalesType(source.orderFacts().salesType());
+        // The user still creates a project manually; only CRM facts come from the selected chain.
+        draft.setSourceType(cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules.SOURCE_TYPE_MANUAL);
+        draft.setProjectType(cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules.DEFAULT_PROJECT_TYPE);
         draft.setCustomerProjectName(source.customerProjectName());
         draft.setMajorProjectLevel(source.majorProjectLevel());
         draft.setMarketCode(source.marketCode());
@@ -281,6 +315,9 @@ public class ProjectManualCreationApplicationService {
                                       ManualProjectCreateResult result) {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("projectId", result.id());
+        detail.put("contractId", command.contractId());
+        detail.put("salesOrderId", command.salesOrderId());
+        detail.put("sourceFingerprint", command.sourceFingerprint());
         detail.put("templateId", result.lifecycleTemplateId());
         detail.put("templateRevisionNo", result.lifecycleTemplateRevisionNo());
         detail.put("creationReasonDigest", sha256(command.draft().getCreationReason()));
@@ -317,6 +354,10 @@ public class ProjectManualCreationApplicationService {
                 || actor.correlationId() == null || actor.correlationId().isBlank()) {
             throw new IllegalArgumentException("正式项目创建命令不完整");
         }
+        if (command.contractId() == null ? command.salesOrderId() != null || command.sourceFingerprint() != null
+                : command.salesOrderId() == null || command.sourceFingerprint() == null
+                    || !command.sourceFingerprint().matches("[0-9a-f]{64}"))
+            throw new IllegalArgumentException("合同、销售订单和来源摘要必须一起提交");
         command.draft().setCreationReason(
                 TemplateMatchDecisionRules.requireReason(command.draft().getCreationReason()));
         if (command.draft().getParentId() == null) {

@@ -122,3 +122,25 @@ it('a late GET recovery cannot erase a newer intent created after another caller
   const refreshed=useBusinessEntity(()=> 'IT',()=> 'note');await refreshed.loadDetail();expect(refreshed.pendingIntent.value?.key).toBe(key)
   await refreshed.execute(op,undefined,{title:'B'});expect(vi.mocked(request.post).mock.calls[2][0].data.idempotencyKey).toBe(key)
 })
+
+it('retains active filters across continuation and refresh without sharing caller arrays', async () => {
+  const entity = useBusinessEntity(() => 'IT', () => 'note')
+  vi.mocked(request.post).mockResolvedValue({ members: [], nextCursor: '20', completeness: 'PARTIAL' })
+  const filters = [{ fieldCode: 'title', operator: 'LIKE' as const, values: ['first'] }]
+  await entity.loadPage(filters, true)
+  filters[0].values[0] = 'mutated'
+  await entity.loadPage()
+  expect(vi.mocked(request.post).mock.calls.at(-1)![0].data.filters).toEqual([{ fieldCode: 'title', operator: 'LIKE', values: ['first'] }])
+  expect(vi.mocked(request.post).mock.calls.at(-1)![0].data.cursor).toBe('20')
+  await entity.loadPage(undefined, true)
+  expect(vi.mocked(request.post).mock.calls.at(-1)![0].data.cursor).toBeUndefined()
+})
+it('ignores an old search response after a newer search succeeds', async () => {
+  const entity = useBusinessEntity(() => 'IT', () => 'note')
+  const old = deferred()
+  vi.mocked(request.post).mockImplementationOnce(() => old.promise).mockResolvedValue({ members: [{ marker: 'new' }], completeness: 'COMPLETE' })
+  const first = entity.loadPage([{ fieldCode: 'title', operator: 'LIKE', values: ['old'] }], true)
+  await entity.loadPage([{ fieldCode: 'title', operator: 'LIKE', values: ['new'] }], true)
+  old.resolve({ members: [{ marker: 'old' }], completeness: 'COMPLETE' }); await first
+  expect(entity.rows.value).toEqual([{ marker: 'new' }])
+})

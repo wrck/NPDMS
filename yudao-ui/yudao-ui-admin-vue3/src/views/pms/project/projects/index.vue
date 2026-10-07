@@ -425,11 +425,11 @@
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="项目名称" prop="projectName">
-                <el-input v-model="createForm.projectName" placeholder="某客户网络优化工程" />
+                <el-input :readonly="!!createForm.contractId" v-model="createForm.projectName" placeholder="某客户网络优化工程" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="客户主档" prop="customerCode">
+              <el-form-item label="最终客户主档" prop="customerCode">
                 <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
@@ -444,73 +444,14 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="合同主档" prop="contractNo">
-                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
-                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
+                <PmsEntitySelect v-model="createForm.contractId" :api="getSelectableContracts"
+                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="id"
                   query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
             </el-col>
             <el-col v-if="createForm.contractId" :span="24">
-              <div v-loading="creationSourceLoading" class="creation-source">
-                <template v-if="creationSource">
-                  <el-descriptions
-                    title="合同链取值预览（CRM权威值提交后由服务端落库）"
-                    :column="mobile ? 1 : 4"
-                    size="small"
-                    border
-                  >
-                    <el-descriptions-item label="客户项目名称">
-                      {{ creationSource.resolved?.customerProjectName || '—' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="重大项目级别">{{ majorLevelText }}</el-descriptions-item>
-                    <el-descriptions-item label="项目类型">
-                      {{ dictText(creationSource.resolved?.projectType, DICT_TYPE.PMS_PROJECT_TYPE) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="下单时间">
-                      {{ timeText(creationSource.resolved?.orderCreateTime) }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="市场">
-                      {{ creationSource.resolved?.marketName || creationSource.resolved?.marketCode || '—' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="系统">
-                      {{ creationSource.resolved?.systemName || creationSource.resolved?.systemCode || '—' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="拓展">
-                      {{ creationSource.resolved?.expendName || creationSource.resolved?.expendCode || '—' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="行业">
-                      {{ creationSource.resolved?.industryName || creationSource.resolved?.industryCode || '—' }}
-                    </el-descriptions-item>
-                  </el-descriptions>
-                  <div v-if="creationSource.orders?.length" class="source-block">
-                    <div class="source-title">关联销售订单</div>
-                    <el-table :data="creationSource.orders" size="small" max-height="180">
-                      <el-table-column prop="orderNo" label="订单号" min-width="150" />
-                      <el-table-column prop="salesType" label="销售类型" width="90" />
-                      <el-table-column label="订单金额" width="150">
-                        <template #default="{ row }">{{ amountText(row.orderAmount, row.currencyCode) }}</template>
-                      </el-table-column>
-                      <el-table-column label="下单时间" width="170">
-                        <template #default="{ row }">{{ timeText(row.orderCreateTime) }}</template>
-                      </el-table-column>
-                      <el-table-column prop="executionNo" label="主执行单号" min-width="130" />
-                    </el-table>
-                  </div>
-                  <div v-if="creationSource.executionOrders?.length" class="source-block">
-                    <div class="source-title">关联执行单</div>
-                    <el-table :data="creationSource.executionOrders" size="small" max-height="180">
-                      <el-table-column prop="executionNo" label="执行单号" min-width="140" />
-                      <el-table-column prop="projectName" label="CRM项目名称" min-width="160" show-overflow-tooltip />
-                      <el-table-column prop="departmentName" label="办事处" width="120" show-overflow-tooltip />
-                      <el-table-column label="项目金额" width="140">
-                        <template #default="{ row }">{{ row.projectAmount == null ? '—' : row.projectAmount }}</template>
-                      </el-table-column>
-                      <el-table-column label="提交时间" width="170">
-                        <template #default="{ row }">{{ timeText(row.submitTime) }}</template>
-                      </el-table-column>
-                    </el-table>
-                  </div>
-                </template>
-              </div>
+              <ProjectCreationSource :source="creationSource" :loading="creationSourceLoading" :error="sourceError"
+                :sales-order-id="createForm.salesOrderId" @select-order="selectSalesOrder" />
             </el-col>
           </el-row>
           <el-row :gutter="16">
@@ -661,7 +602,7 @@
               v-model="createForm.creationReason"
               type="textarea"
               :rows="2"
-              placeholder="BR-2 必填：说明为何脱离 CRM/ERP 链路手工创建"
+              placeholder="请说明项目创建原因"
             />
           </el-form-item>
         </el-form>
@@ -1138,6 +1079,8 @@
 </template>
 
 <script setup lang="ts">
+import ProjectCreationSource from '@/views/pms/project/projects/ProjectCreationSource.vue'
+import { useProjectCreationSource } from '@/views/pms/project/projects/useProjectCreationSource'
 import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
@@ -1174,8 +1117,7 @@ import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
 import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
 import { getSelectableCustomers, type SelectedCustomer } from '../inheritance/projects/customerSelection'
-import { getSelectableContracts, type SelectedContract } from './contractSelection'
-import { getContractCreationSource, type ContractCreationSourceRespVO } from '@/api/pms/commerce'
+import { getSelectableContracts } from './contractSelection'
 import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
 import { closedProjectStatuses } from './projectStatus'
 
@@ -1390,9 +1332,6 @@ const createErrorMessage = ref('')
 const companies = ref<CompanyVO[]>([])
 const departments = ref<DeptVO[]>([])
 const availableSites = ref<SiteVO[]>([])
-/** 合同链取值预览（合同→订单→执行单，CRM权威建议值） */
-const creationSource = ref<ContractCreationSourceRespVO | null>(null)
-const creationSourceLoading = ref(false)
 const primarySiteIndex = ref(0)
 
 const createForm = reactive({
@@ -1401,6 +1340,8 @@ const createForm = reactive({
   customerName: '',
   contractNo: '',
   contractId: undefined as number | undefined,
+  salesOrderId: undefined as number | undefined,
+  sourceFingerprint: undefined as string | undefined,
   orderOfficeCompanyId: undefined as number | undefined,
   orderOfficeDepartmentId: undefined as number | undefined,
   locationMode: 'sites' as 'sites' | 'fallback',
@@ -1420,60 +1361,13 @@ const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
   createForm.customerName = customer && customer.code === code ? customer.name : ''
 }
 
-/** 选择合同主档后带入合同号与合同客户，并按合同→订单→执行单链预览取值、带入建议字段。 */
-const selectContract = async (no: unknown, contract?: SelectedContract) => {
-  const selected = contract && contract.contractNo === no ? contract : undefined
-  creationSource.value = null
-  createForm.contractId = selected?.id
-  createForm.contractNo = selected?.contractNo ?? ''
-  if (!selected?.customerCode) return
-  createForm.customerCode = selected.customerCode
-  createForm.customerName = selected.customerName ?? selected.customerCode
-  if (!selected.id) return
-  creationSourceLoading.value = true
-  try {
-    const source = await getContractCreationSource(selected.id)
-    creationSource.value = source
-    applyCreationSource(source)
-  } catch {
-    // 预览失败保持既有手工录入值，不阻断创建
-  } finally {
-    creationSourceLoading.value = false
-  }
-}
-
-/** 按解析链建议带入可编辑字段；CRM权威四维/客户项目名称/重大级别由服务端按执行单落库，页面仅预览。 */
-const applyCreationSource = (source: ContractCreationSourceRespVO) => {
-  const resolved = source.resolved
-  if (!resolved) return
-  if (resolved.projectName) createForm.projectName = resolved.projectName
-  if (resolved.customerCode) {
-    createForm.customerCode = resolved.customerCode
-    createForm.customerName = resolved.customerName ?? resolved.customerCode
-  }
-  const company = companies.value.find((item) => item.code === resolved.companyCode)
-  if (company?.id != null) createForm.orderOfficeCompanyId = company.id
-  const execution =
-    source.executionOrders?.find((item) => item.id === resolved.executionOrderId) ??
-    source.executionOrders?.[0]
-  const department = departments.value.find((item) => item.code === execution?.departmentCode)
-  if (department?.id != null) createForm.orderOfficeDepartmentId = department.id
-  // 命中CRM重大项目级别时按工程类预填项目类别（模板匹配维度，可改）
-  if (resolved.majorProjectLevel) createForm.projectCategory = 'ENGINEERING'
-}
-
-const majorLevelText = computed(() => {
-  const level = creationSource.value?.resolved?.majorProjectLevel
-  return level ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, level) || level : '空值'
-})
-const dictText = (value: string | null | undefined, dict: DICT_TYPE) =>
-  value ? getDictLabel(dict, value) || value : '—'
-const timeText = (value?: string | null) => (value ? formatDate(value) : '—')
-const amountText = (value?: number | null, currency?: string | null) =>
-  value == null ? '—' : `${currency || ''} ${value}`.trim()
+const { creationSource, creationSourceLoading, sourceError, sourceReady, selectContract, selectSalesOrder, resetSource } =
+  useProjectCreationSource(createForm, companies, departments)
 
 const createRules = {
-  customerCode: [{ required: true, message: '请选择客户主档', trigger: 'change' }],
+  customerCode: [{ validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+    callback(value?.trim() ? undefined : new Error('请选择最终客户主档'))
+  }, trigger: 'change' }],
   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
   orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
   orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],
@@ -1515,6 +1409,8 @@ const openWizard = () => {
     customerName: '',
     contractNo: '',
     contractId: undefined,
+    salesOrderId: undefined,
+    sourceFingerprint: undefined,
     orderOfficeCompanyId: undefined,
     orderOfficeDepartmentId: undefined,
     locationMode: 'sites',
@@ -1525,7 +1421,7 @@ const openWizard = () => {
     implementationMode: '',
     creationReason: ''
   })
-  creationSource.value = null
+  resetSource()
   primarySiteIndex.value = 0
   selectedTemplateRevisionId.value = undefined
   matchResult.value = null
@@ -1535,6 +1431,7 @@ const openWizard = () => {
 }
 
 const wizardNext0 = async () => {
+  if (!sourceReady.value) { message.error('请先选择关联销售订单并加载来源'); return }
   await wizardFormRef.value?.validate()
   if (createForm.locationMode === 'sites') {
     if (createForm.sites.some((item) => !item.siteId || item.siteVersion === undefined)) {
@@ -1555,6 +1452,9 @@ const wizardNext0 = async () => {
 
 // ============ 模板匹配（步骤②） ============
 const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useCreationTemplateMatch(() => ({
+  contractId: createForm.contractId,
+  salesOrderId: createForm.salesOrderId,
+  sourceFingerprint: createForm.sourceFingerprint,
   projectName: createForm.projectName,
   customerCode: createForm.customerCode || undefined,
   orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
@@ -1621,6 +1521,7 @@ const stageGates = (code: string) =>
 
 // ============ 提交创建（步骤③） ============
 const submitCreate = async () => {
+  if (!sourceReady.value) { message.error('请重新加载合同订单来源'); return }
   const sites: ProjectSiteReqVO[] | undefined =
     createForm.locationMode === 'sites'
       ? createForm.sites.map((item, index) => ({
@@ -1635,6 +1536,8 @@ const submitCreate = async () => {
     customerName: createForm.customerName || undefined,
     contractNo: createForm.contractNo || undefined,
     contractId: createForm.contractId,
+    salesOrderId: createForm.salesOrderId,
+    sourceFingerprint: createForm.sourceFingerprint,
     orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
     orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
     sites,

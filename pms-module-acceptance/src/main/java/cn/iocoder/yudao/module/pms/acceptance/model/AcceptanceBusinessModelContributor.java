@@ -133,22 +133,13 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                 List.of(), List.of(), List.of(), "acc_acceptance_scope_binding");
         declarations.add(new BusinessModelDeclaration(scopeBinding, AcceptanceScopeBindingDO.class,
                 acceptanceScopeBindingMapper, null));
-        BusinessModelDescriptor archiveDocument = new BusinessModelDescriptor("ACC", "archiveDocument",
-                "ACC_ARCHIVE_DOCUMENT", 1, BusinessModelKind.AGGREGATE_ROOT, "归档文档",
-                "pms:acc-archive-document:query",
-                List.of(required("projectId", "项目", EntityField.Type.NUMBER),
-                        required("code", "文档编码", EntityField.Type.TEXT),
-                        required("name", "文档名称", EntityField.Type.TEXT),
-                        field("documentType", "文档类型", EntityField.Type.TEXT),
-                        field("documentUrl", "文档地址", EntityField.Type.TEXT),
-                        field("versionNo", "版本", EntityField.Type.TEXT),
-                        field("archiveUserId", "归档人", EntityField.Type.NUMBER),
-                        field("archiveTime", "归档时间", EntityField.Type.DATETIME),
-                        field("status", "状态", EntityField.Type.NUMBER),
-                        field("remark", "备注", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_archive_document");
-        declarations.add(new BusinessModelDeclaration(archiveDocument, ArchiveDocumentDO.class,
-                archiveDocumentMapper, null));
+        declarations.add(cn.iocoder.yudao.module.pms.platform.support.model.DefaultBusinessModels.project(
+                "ACC", "archiveDocument", "ACC_ARCHIVE_DOCUMENT", "归档文档",
+                "pms:acc-archive-document", ArchiveDocumentDO.class, archiveDocumentMapper,
+                List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("submit", 1, "提交",
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND, "pms:acc-archive-document:submit"),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("archive", 1, "归档",
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND, "pms:acc-archive-document:audit"))));
         BusinessModelDescriptor completionCertificate = new BusinessModelDescriptor("ACC", "completionCertificate",
                 "ACC_COMPLETION_CERTIFICATE", 1, BusinessModelKind.AGGREGATE_ROOT, "竣工证书",
                 "pms:acc-completion-certificate:query",
@@ -168,23 +159,15 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                 List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_completion_certificate");
         declarations.add(new BusinessModelDeclaration(completionCertificate, CompletionCertificateDO.class,
                 completionCertificateMapper, null));
-        BusinessModelDescriptor deliverableChecklist = new BusinessModelDescriptor("ACC", "deliverableChecklist",
-                "ACC_DELIVERABLE_CHECKLIST", 1, BusinessModelKind.AGGREGATE_ROOT, "交付件核对清单",
-                "pms:acc-deliverable-checklist:query",
-                List.of(required("projectId", "项目", EntityField.Type.NUMBER),
-                        required("code", "清单编码", EntityField.Type.TEXT),
-                        required("name", "清单名称", EntityField.Type.TEXT),
-                        field("acceptanceId", "验收记录", EntityField.Type.NUMBER),
-                        field("deliverableType", "交付件类型", EntityField.Type.TEXT),
-                        field("deliverableUrl", "交付件地址", EntityField.Type.TEXT),
-                        field("checkUserId", "核对人", EntityField.Type.NUMBER),
-                        field("checkTime", "核对时间", EntityField.Type.DATETIME),
-                        field("checkResult", "核对结果", EntityField.Type.TEXT),
-                        field("status", "状态", EntityField.Type.NUMBER),
-                        field("remark", "备注", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_deliverable_checklist");
-        declarations.add(new BusinessModelDeclaration(deliverableChecklist, DeliverableChecklistDO.class,
-                deliverableChecklistMapper, null));
+        declarations.add(cn.iocoder.yudao.module.pms.platform.support.model.DefaultBusinessModels.project(
+                "ACC", "deliverableChecklist", "ACC_DELIVERABLE_CHECKLIST", "交付件核对清单",
+                "pms:acc-deliverable-checklist", DeliverableChecklistDO.class, deliverableChecklistMapper,
+                List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("submit", 1, "提交",
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND, "pms:acc-deliverable-checklist:submit"),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("pass", 1, "通过",
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND, "pms:acc-deliverable-checklist:audit"),
+                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("reject", 1, "驳回",
+                                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND, "pms:acc-deliverable-checklist:audit"))));
         BusinessModelDescriptor normalClosure = new BusinessModelDescriptor("ACC", "normalClosureApplication",
                 "ACC_NORMAL_CLOSURE_APPLICATION", 1, BusinessModelKind.AGGREGATE_ROOT, "项目正常关闭申请",
                 "pms:acc-project-closure:query",

@@ -20,4 +20,7 @@ public interface SalesOrderMapper extends BaseMapperX<SalesOrderDO> {
     List<SalesOrderDO> selectRootReadPage(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderRootReadPageQuery query);
     List<SalesOrderDO> selectRelatedByContract(@Param("query") ContractRelatedOrderQuery query);
     List<SalesOrderDO> selectCreationOrdersByContract(@Param("query") ContractCreationOrderQuery query);
+    List<SalesOrderDO> selectCreationOrdersForUpdate(@Param("query") ContractCreationOrderQuery query);
+    List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO> selectCreationRelationsByContract(@Param("query") ContractRelatedOrderQuery query);
+    List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO> selectCreationRelationsForUpdate(@Param("query") ContractRelatedOrderQuery query);
 }

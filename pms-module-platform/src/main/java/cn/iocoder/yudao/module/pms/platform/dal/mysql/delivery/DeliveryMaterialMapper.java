@@ -21,6 +21,16 @@ import java.util.List;
 
 @Mapper
 public interface DeliveryMaterialMapper extends BaseMapperX<DeliveryMaterialDO> {
+    default cn.iocoder.yudao.framework.common.pojo.PageResult<DeliveryMaterialDO> selectDefaultDeliveryPage(
+            cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DefaultDeliveryListQuery query) {
+        if(query.getReadableBusinessTypes()==null || query.getReadableBusinessTypes().isEmpty()) return new cn.iocoder.yudao.framework.common.pojo.PageResult<>(java.util.List.of(),0L);
+        return new cn.iocoder.yudao.framework.common.pojo.PageResult<>(selectDefaultDeliveryList(query),selectDefaultDeliveryCount(query));
+    }
+    List<DeliveryMaterialDO> selectDefaultDeliveryList(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DefaultDeliveryListQuery query);
+    Long selectDefaultDeliveryCount(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DefaultDeliveryListQuery query);
+    DeliveryMaterialDO selectDefaultUploadIdentityForUpdate(@Param("query") DeliverySourceIdentityQuery query);
+    int mutateDefaultDelivery(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DefaultDeliveryMutationQuery query);
+
     int withdrawIfVersion(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialWithdrawalQuery query);
     int assignSourceIdentityIfMissing(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceIdentityAssignment query);
 

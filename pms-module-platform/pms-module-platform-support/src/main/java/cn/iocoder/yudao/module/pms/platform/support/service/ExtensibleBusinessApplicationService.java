@@ -83,14 +83,19 @@ protected final OperationExecutionStore.OperationExecutionKey executionKey(Resol
     @Override protected final BusinessOperationReceipt domainCommand(ResolvedCaller caller, BusinessOperationRequest request,
             LockedAggregate<BaseBusinessEntity> locked) {
         validateBusinessOperation(request, detachedValues(currentValues(locked)));
+        BusinessOperationReceipt receipt;
         if (operationOf(descriptor(request), request).kind() != BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND)
-            return super.domainCommand(caller, request, locked);
-        return saveChanges(caller, request, locked, locked.changes());
+            receipt = super.domainCommand(caller, request, locked);
+        else if (performCustomOperation(request, detachedValues(currentValues(locked))))
+            receipt = currentOperationReceipt(caller, request, locked);
+        else receipt = saveChanges(caller, request, locked, locked.changes());
+        afterPersist(request, receipt);
+        return receipt;
     }
 
     @Override protected final Map<String, Object> prepareChanges(BusinessOperationRequest request, Map<String, Object> values) {
         return operationOf(descriptor(request), request).kind() == BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND
-                ? customOperationChanges(request, detachedValues(values)) : super.prepareChanges(request, values);
+                ? customOperationChanges(request, detachedValues(values)) : prepareSaveChanges(request, detachedValues(values));
     }
 
     @SuppressWarnings("unchecked")
@@ -106,6 +111,15 @@ protected final OperationExecutionStore.OperationExecutionKey executionKey(Resol
 
     /** Optional domain validation, executed against the current aggregate inside the shared transaction. */
     protected void validateBusinessOperation(BusinessOperationRequest request, Map<String, Object> currentValues) { }
+
+    /** A derived field patch is still subject to common field, scope, validation and CAS checks. */
+    protected Map<String, Object> prepareSaveChanges(BusinessOperationRequest request, Map<String, Object> currentValues) {
+        return super.prepareChanges(request, currentValues);
+    }
+    /** Optional existing state/domain command, called inside the locked common operation transaction. */
+    protected boolean performCustomOperation(BusinessOperationRequest request, Map<String, Object> currentValues) { return false; }
+    /** Optional side effects remain in the same transaction before receipt/audit/event commit. */
+    protected void afterPersist(BusinessOperationRequest request, BusinessOperationReceipt receipt) { }
 
     /** Return only the business difference; the framework validates and persists it. */
     protected Map<String, Object> customOperationChanges(BusinessOperationRequest request, Map<String, Object> currentValues) {

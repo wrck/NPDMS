@@ -47,6 +47,90 @@ public class DefaultBusinessApplicationService
     private final BusinessEntitySaveSupport saveSupport;
     private final cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi extensions;
     private final cn.iocoder.yudao.module.pms.platform.support.access.DeclaredBusinessScopeSupport scopes;
+    private cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort entityAccess;
+    private java.util.function.Supplier<cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi> deliveryPort;
+    private List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessDeletionGuard> deletionGuards = List.of();
+    private jakarta.validation.Validator validator;
+    public final void configureValidation(jakarta.validation.Validator validator,
+            List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessDeletionGuard> guards) {
+        this.validator = java.util.Objects.requireNonNull(validator);
+        deletionGuards = List.copyOf(guards);
+    }
+
+    /** Production wiring is copied into thin subclasses; no business repeats forwarding methods. */
+    public final void configureDefaultCapabilities(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort access,
+            java.util.function.Supplier<cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi> delivery) {
+        if (entityAccess != null || deliveryPort != null) throw new IllegalStateException("Default capabilities already configured");
+        entityAccess = java.util.Objects.requireNonNull(access);
+        deliveryPort = java.util.Objects.requireNonNull(delivery);
+    }
+
+    public final BusinessModelDescriptor model(String owner, String type) {
+        var model = catalog.require(owner, type);
+        guard.requireReadable(model, actor(callerContext.require()), "detail");
+        return model;
+    }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.ModelDetailVO modelView(String owner, String type) {
+        return cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.ModelDetailVO.of(
+                model(owner, type), actor(callerContext.require()), guard);
+    }
+    public final BusinessOperationReceipt executeBound(String owner, String type, String operationCode, Long id,
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.OperationExecuteReqVO input) {
+        var model = catalog.require(owner, type);
+        var operation = model.operations().stream().filter(value -> operationCode.equals(value.code())).findFirst()
+                .orElseThrow(() -> new BusinessContractException("OPERATION_NOT_DECLARED", "业务未开放该操作"));
+        if (input.getRevisionId() != null) throw new BusinessContractException("REVISION_TARGET_UNSUPPORTED", "Default bound CRUD uses the current entity");
+        var caller = callerContext.require();
+        var target = id == null ? null : cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(new EntityRef(caller.tenantId(), owner, type, id));
+        return execute(new BusinessOperationRequest(operation.code(), operation.version(), target, owner, type,
+                input.getInput() == null ? Map.of() : input.getInput(), input.getIdempotencyKey(), input.getConcurrencyBasis(),
+                input.getEntryKind() == null ? cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.OperationEntryKind.INDEPENDENT : input.getEntryKind(), input.getEntryCorrelationId()));
+    }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityData read(String owner, String type, Long id) {
+        var caller = callerContext.require();
+        return access().read(cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(
+                new EntityRef(caller.tenantId(), owner, type, id)), actor(caller), "detail");
+    }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntitySlice query(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityPageQuery query) {
+        var caller = callerContext.require(); var actor = actor(caller);
+        guard.requireReadable(catalog.require(query.ownerModule(), query.entityType()), actor, query.sceneCode());
+        if (query.pageSize() < 1 || query.pageSize() > 200) throw new BusinessContractException("PAGE_SIZE_INVALID", "Invalid page size");
+        var result = queryEntities(query, actor);
+        if (result.members().size() > query.pageSize()) throw new BusinessContractException("QUERY_RESULT_INVALID", "Query hook exceeded the requested page size");
+        var projected = result.members().stream().map(row -> {
+            if (!caller.tenantId().equals(row.ref().tenantId()) || !query.ownerModule().equals(row.ref().ownerModule())
+                    || !query.entityType().equals(row.ref().entityType())) throw new BusinessContractException("QUERY_RESULT_INVALID", "Query hook returned a different business identity");
+            var data = access().read(cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(row.ref()), actor, query.sceneCode());
+            if (!data.available()) throw new BusinessContractException("QUERY_RESULT_INVALID", "Query hook returned an unavailable Owner");
+            return data;
+        }).toList();
+        return new cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntitySlice(projected, result.nextCursor(), result.completeness(), result.unavailableReason());
+    }
+    /** Complex selection may use this business's XML; the final exit still rechecks identity, scope and readable projection. */
+    protected cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntitySlice queryEntities(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityPageQuery query, EntityActor actor) {
+        return access().query(query, actor);
+    }
+    private cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort access() {
+        if (entityAccess == null) throw new BusinessContractException("DEFAULT_CAPABILITY_UNAVAILABLE", "Default access is not configured");
+        return entityAccess;
+    }
+    private cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi deliveries() {
+        if (deliveryPort == null) throw new BusinessContractException("DEFAULT_CAPABILITY_UNAVAILABLE", "Default delivery is not configured");
+        return deliveryPort.get();
+    }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Scope deliveryContext(String owner, String type, String key) { return deliveries().context(owner, type, key); }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Record uploadDelivery(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Scope scope,
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.UploadFile file, String key) { return deliveries().upload(scope, file, key); }
+    public final cn.iocoder.yudao.framework.common.pojo.PageResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Record> listDeliveries(Long project, String type, String business, String entity, int page, int size) { return deliveries().list(project, type, business, entity, page, size); }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Completion deliveryCompletion(cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Scope scope) { return deliveries().completion(scope); }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Record getDelivery(Long id) { return deliveries().get(id); }
+    public final cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Document deliveryFile(Long id) { return deliveries().file(id); }
+    public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Record editDelivery(Long id, Long version, String title) { return deliveries().edit(id, version, title); }
+    public final void deleteDelivery(Long id, Long version) { deliveries().delete(id, version); }
 
     public DefaultBusinessApplicationService(BusinessCallerContext callerContext,
                                              BusinessModelCatalog catalog,
@@ -99,6 +183,10 @@ public class DefaultBusinessApplicationService
         saveSupport = defaults.saveSupport;
         extensions = defaults.extensions;
         scopes = defaults.scopes;
+        entityAccess = defaults.entityAccess;
+        deliveryPort = defaults.deliveryPort;
+        validator = defaults.validator;
+        deletionGuards = defaults.deletionGuards;
     }
 
     @Override
@@ -139,6 +227,8 @@ public class DefaultBusinessApplicationService
         }
         requireWritableFields(descriptor, fixedInput(request));
         extensionPatch(request);
+        if (operation.kind() == BusinessOperationDescriptor.StandardOperationKind.DELETE && request.input() != null && !request.input().isEmpty())
+            throw new BusinessContractException("OPERATION_INPUT_INVALID", "Delete does not accept a content patch");
         if (request.idempotencyKey() == null || request.idempotencyKey().isBlank()
                 || request.idempotencyKey().length() > 128) {
             throw new BusinessContractException("IDEMPOTENCY_KEY_REQUIRED",
@@ -170,6 +260,10 @@ public class DefaultBusinessApplicationService
 
     /** Read an already committed receipt; never reserves or re-executes an unknown intent. */
     public final BusinessOperationReceipt recoverReceipt(String owner,String type,String operationCode,int operationVersion,String key) {
+        return inBusinessTransaction(() -> doRecoverReceipt(owner, type, operationCode, operationVersion, key));
+    }
+
+    private BusinessOperationReceipt doRecoverReceipt(String owner,String type,String operationCode,int operationVersion,String key) {
         BusinessEntitySaveSupport.requireTransaction();
         if(key==null || key.isBlank() || key.length()>128) throw new BusinessContractException("IDEMPOTENCY_KEY_REQUIRED","Receipt recovery requires the original key");
         var caller=callerContext.require();
@@ -203,8 +297,12 @@ public class DefaultBusinessApplicationService
                                             BusinessOperationReceipt receipt) {
         var model = descriptor(request);
         var ref = receipt.entityRef();
-        var row = cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.lock(
-                declaration(request), new cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredCurrentRowQuery(caller.tenantId(), ref.entityId()));
+        boolean deleted = receipt.outcome() == ReceiptOutcome.DELETED
+                && operationOf(model, request).kind() == BusinessOperationDescriptor.StandardOperationKind.DELETE;
+        var query = new cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredCurrentRowQuery(caller.tenantId(), ref.entityId());
+        var row = deleted
+                ? cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.lockDeletedForReceipt(declaration(request), query)
+                : cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.lock(declaration(request), query);
         if (row == null || !caller.tenantId().equals(row.getTenantId()))
             throw new BusinessContractException("ENTITY_NOT_FOUND", "Receipt object is no longer available");
         scopes.requireWritable(model, BusinessModelIntrospector.readValues(row,
@@ -256,7 +354,12 @@ public class DefaultBusinessApplicationService
         requireWritableFields(descriptor(request), changes);
         proposed.putAll(changes);
         scopes.requireWritableAfterChange(descriptor(request), current, proposed, actor(caller));
-        return new LockedAggregate<>(row, row.getVersion(), changes);
+        var locked = cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.lock(declaration(request),
+                new cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredCurrentRowQuery(caller.tenantId(), row.getId()));
+        if (locked == null || !row.getVersion().equals(locked.getVersion())
+                || !current.equals(BusinessModelIntrospector.readValues(locked, BusinessModelIntrospector.businessFields(declaration(request).entityClass()))))
+            throw new BusinessContractException("CONCURRENCY_CONFLICT", "Current Owner changed during scope locking");
+        return new LockedAggregate<>(locked, locked.getVersion(), changes);
     }
 
     @Override
@@ -265,13 +368,26 @@ public class DefaultBusinessApplicationService
         BusinessEntitySaveSupport.requireTransaction();
         BusinessOperationDescriptor operation = operationOf(descriptor(request), request);
         if (operation.kind() == BusinessOperationDescriptor.StandardOperationKind.CREATE) {
-            BaseBusinessEntity created = createEntity(caller, declaration(request), fixedInput(request));
+            BaseBusinessEntity created = createEntity(caller, request, declaration(request), fixedInput(request));
             BusinessModelDescriptor descriptor = descriptor(request);
             EntityRef ref = new EntityRef(caller.tenantId(), descriptor.ownerModule(),
                     descriptor.entityType(), created.getId());
             return saveWithCapabilities(cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(ref),
                     operationActor(caller,request), created.getVersion(), extensionPatch(request),
                     () -> new BusinessOperationReceipt(ReceiptOutcome.SAVED, ref, created.getVersion(), List.of(), null, null,request.operationCode(),request.operationVersion()));
+        }
+        if (operation.kind() == BusinessOperationDescriptor.StandardOperationKind.DELETE) {
+            if (declaration(request).revisionMapper() != null || descriptor(request).capabilities().stream().anyMatch(cap -> cap.enabled()
+                    && (cap.type() == cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType.CONTENT_HISTORY
+                        || cap.type() == cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType.APPROVAL)))
+                throw new BusinessContractException("DELETE_PROTECTED_HISTORY", "History-bearing entities require their existing deletion policy");
+            if (deletionGuards.isEmpty()) throw new BusinessContractException("DELETE_PROTECTION_UNAVAILABLE", "Shared reference protection is unavailable");
+            for (var protection : deletionGuards) protection.requireDeletable(request.targetRef().entity(), actor(caller));
+            cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.delete(declaration(request),
+                    new cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredBusinessCurrentRows.DeleteCommand(caller.tenantId(),
+                            request.targetRef().entity().entityId(), locked.concurrencyBasis(), caller.userId().toString()));
+            return new BusinessOperationReceipt(ReceiptOutcome.DELETED, request.targetRef().entity(), Math.incrementExact(locked.concurrencyBasis()),
+                    List.of(), null, null, request.operationCode(), request.operationVersion());
         }
         if (operation.kind() != BusinessOperationDescriptor.StandardOperationKind.UPDATE) {
             throw new BusinessContractException("OPERATION_NOT_DEFAULTED",
@@ -387,6 +503,7 @@ public class DefaultBusinessApplicationService
         BaseBusinessEntity aggregate = locked.aggregate();
         applyWritableFields(descriptor(request), aggregate, changes);
         requireRequiredFields(descriptor(request),aggregate);
+        validateEntity(request, aggregate);
         BaseMapper<BaseBusinessEntity> mapper = persistence.mapperOf(declaration(request));
         java.util.Set<String> clearedFields = changes.entrySet().stream()
                 .filter(entry -> entry.getValue() == null).map(Map.Entry::getKey)
@@ -417,7 +534,7 @@ public class DefaultBusinessApplicationService
     }
 
     @SuppressWarnings("unchecked")
-    private BaseBusinessEntity createEntity(ResolvedCaller caller, BusinessModelDeclaration declaration,
+    private BaseBusinessEntity createEntity(ResolvedCaller caller, BusinessOperationRequest request, BusinessModelDeclaration declaration,
                                             Map<String, Object> input) {
         BaseBusinessEntity entity;
         try {
@@ -430,13 +547,45 @@ public class DefaultBusinessApplicationService
         entity.setTenantId(caller.tenantId());
         entity.setVersion(0L);
         applyWritableFields(declaration.descriptor(), entity, input);
+        initializeEntity(request, entity);
+        if (entity.getId() != null || !caller.tenantId().equals(entity.getTenantId()) || !Long.valueOf(0).equals(entity.getVersion()))
+            throw new BusinessContractException("CONTROL_FIELD_CHANGED", "Business initialization cannot change identity or version");
+        scopes.requireWritable(declaration.descriptor(), BusinessModelIntrospector.readValues(entity,
+                BusinessModelIntrospector.businessFields(declaration.entityClass())), actor(caller), true);
         requireRequiredFields(declaration.descriptor(),entity);
+        validateEntity(request, entity);
         if (persistence.<BaseBusinessEntity>mapperOf(declaration).insert(entity)!=1)
             throw new BusinessContractException("ENTITY_INSERT_FAILED","创建对象未写入一行");
         if (entity.getId() == null) {
             throw new BusinessContractException("ENTITY_ID_MISSING", "插入后实体主键缺失");
         }
         return entity;
+    }
+
+    /** Only business initialization differs; identity, permissions, validation and persistence stay common. */
+    protected void initializeEntity(BusinessOperationRequest request, BaseBusinessEntity entity) { }
+    protected void validateProposedValues(BusinessOperationRequest request, Map<String, Object> values) { }
+    private void validateEntity(BusinessOperationRequest request, BaseBusinessEntity entity) {
+        if (validator == null) validator = ValidatorHolder.VALUE;
+        var violations = validator.validate(entity);
+        if (!violations.isEmpty()) throw new BusinessContractException("ENTITY_CONSTRAINT_INVALID", violations.stream()
+                .map(value -> value.getPropertyPath() + ": " + value.getMessage()).sorted().collect(java.util.stream.Collectors.joining("; ")));
+        validateProposedValues(request, java.util.Collections.unmodifiableMap(BusinessModelIntrospector.readValues(entity,
+                BusinessModelIntrospector.businessFields(entity.getClass()))));
+    }
+    private static final class ValidatorHolder {
+        private static final jakarta.validation.Validator VALUE = jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator();
+    }
+    protected final BusinessOperationReceipt currentOperationReceipt(ResolvedCaller caller, BusinessOperationRequest request,
+            LockedAggregate<BaseBusinessEntity> before) {
+        var row = persistence.<BaseBusinessEntity>mapperOf(declaration(request)).selectById(request.targetRef().entity().entityId());
+        if (row == null || !caller.tenantId().equals(row.getTenantId()) || row.getVersion() == null
+                || row.getVersion() != Math.incrementExact(before.concurrencyBasis()))
+            throw new BusinessContractException("CUSTOM_OPERATION_CAS_INVALID", "Custom operation must update the same Owner once with CAS");
+        scopes.requireWritable(descriptor(request), BusinessModelIntrospector.readValues(row,
+                BusinessModelIntrospector.businessFields(row.getClass())), actor(caller), false);
+        return new BusinessOperationReceipt(ReceiptOutcome.SAVED, request.targetRef().entity(), row.getVersion(), List.of(),
+                null, null, request.operationCode(), request.operationVersion());
     }
 
     private void applyWritableFields(BusinessModelDescriptor descriptor, BaseBusinessEntity target,

@@ -120,4 +120,46 @@
           AND NOT EXISTS (SELECT 1 FROM plt_delivery_fulfillment f
               WHERE f.tenant_id=#{query.tenantId} AND f.material_id=#{query.materialId} AND f.deleted=b'0')
     </update>
+    <sql id="defaultDeliveryPredicate">
+        m.tenant_id=#{query.tenantId} AND m.project_id=#{query.projectId} AND m.deleted=b'0'
+          AND m.material_kind='FILE' AND m.status='ACTIVE' AND m.source_kind='UPLOAD'
+          AND EXISTS (SELECT 1 FROM plt_file_reference r WHERE r.tenant_id=#{query.tenantId}
+            AND r.id=m.file_reference_id AND r.owner_context='PLT' AND r.object_type='DEFAULT_BUSINESS_DELIVERY')
+          <choose><when test="query.readableBusinessTypes != null and query.readableBusinessTypes.size() > 0">
+            AND CAST(m.business_type_code AS BINARY) IN <foreach collection="query.readableBusinessTypes" item="type" open="(" separator="," close=")">#{type}</foreach>
+          </when><otherwise>AND 1=0</otherwise></choose>
+          <if test="query.deliverableType != null">AND CAST(m.type_code AS BINARY)=CAST(#{query.deliverableType} AS BINARY)</if>
+          <if test="query.businessType != null">AND CAST(m.business_type_code AS BINARY)=CAST(#{query.businessType} AS BINARY)</if>
+          <if test="query.entityId != null">AND m.entity_id=#{query.entityId}</if>
+    </sql>
+    <select id="selectDefaultDeliveryList" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMaterialDO">
+        SELECT m.* FROM plt_delivery_material m WHERE <include refid="defaultDeliveryPredicate" />
+        ORDER BY m.create_time DESC,m.id DESC LIMIT #{query.pageSize} OFFSET #{query.offset}
+    </select>
+    <select id="selectDefaultDeliveryCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM plt_delivery_material m WHERE <include refid="defaultDeliveryPredicate" />
+    </select>
+    <select id="selectDefaultUploadIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMaterialDO">
+        SELECT * FROM plt_delivery_material WHERE tenant_id=#{query.tenantId}
+          AND source_identity_key=#{query.sourceIdentityKey} AND source_kind='UPLOAD'
+          AND EXISTS (SELECT 1 FROM plt_file_reference r WHERE r.tenant_id=#{query.tenantId}
+            AND r.id=plt_delivery_material.file_reference_id AND r.object_type='DEFAULT_BUSINESS_DELIVERY' AND r.owner_context='PLT') FOR UPDATE
+    </select>
+    <update id="mutateDefaultDelivery">
+        UPDATE plt_delivery_material
+        SET version=version+1, updater=#{query.updater}, update_time=NOW(3)
+        <choose><when test="query.delete">, deleted=b'1', status='WITHDRAWN'</when>
+            <otherwise>, title=#{query.title}</otherwise></choose>
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.materialId} AND deleted=b'0'
+          AND source_kind='UPLOAD' AND material_kind='FILE' AND status='ACTIVE'
+          AND EXISTS (SELECT 1 FROM plt_file_reference r WHERE r.tenant_id=#{query.tenantId}
+            AND r.id=plt_delivery_material.file_reference_id AND r.object_type='DEFAULT_BUSINESS_DELIVERY' AND r.owner_context='PLT')
+          AND version=#{query.expectedVersion} AND requirement_id IS NULL
+          AND (archive_status IS NULL OR archive_status='NOT_REQUIRED') AND archive_time IS NULL
+          AND NOT EXISTS (SELECT 1 FROM plt_delivery_fulfillment f
+            WHERE f.tenant_id=#{query.tenantId} AND f.material_id=#{query.materialId} AND f.deleted=b'0')
+          AND NOT EXISTS (SELECT 1 FROM plt_delivery_submission s
+            WHERE s.tenant_id=#{query.tenantId} AND s.deleted=b'0'
+              AND JSON_CONTAINS(s.material_ids_json,CAST(#{query.materialId} AS JSON)))
+    </update>
 </mapper>

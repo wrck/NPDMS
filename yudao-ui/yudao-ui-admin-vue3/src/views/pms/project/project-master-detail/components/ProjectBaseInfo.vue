@@ -18,7 +18,7 @@
           <div class="record-heading"><el-tag effect="plain">合同</el-tag><strong>{{ contract.contractNo }}</strong><span>{{ contract.contractName }}</span></div>
           <dl class="fact-grid">
             <div class="fact"><dt>签约公司</dt><dd>{{ contract.companyName || contract.companyCode || '—' }}</dd></div>
-            <div class="fact"><dt>合同客户</dt><dd>{{ contract.customerName || '—' }}</dd></div>
+            <div class="fact"><dt>合同购货方</dt><dd>{{ contract.customerName || contract.customerCode || '—' }}</dd></div>
             <div class="fact"><dt>合同金额</dt><dd>{{ amount(contract.contractAmount, contract.currencyCode) }}</dd></div>
             <div class="fact"><dt>币种</dt><dd>{{ contract.currencyCode || '—' }}</dd></div>
           </dl>
@@ -26,6 +26,7 @@
         <div v-for="order in commerce?.orders || []" :key="order.id" class="source-record">
           <div class="record-heading"><el-tag type="info" effect="plain">销售订单</el-tag><strong>{{ order.orderNo }}</strong></div>
           <dl class="fact-grid">
+            <div class="fact"><dt>订单购货方</dt><dd>{{ order.customerName || order.customerCode || '—' }}</dd></div>
             <div class="fact"><dt>订单创建时间</dt><dd>{{ time(order.orderCreateTime) }}</dd></div>
             <div class="fact"><dt>下单公司</dt><dd>{{ order.companyName || '—' }}</dd></div>
             <div class="fact"><dt>订单金额</dt><dd>{{ amount(order.orderAmount, order.currencyCode) }}</dd></div>
@@ -37,9 +38,10 @@
         <div v-for="order in commerce?.executionOrders || []" :key="order.id" class="source-record">
           <div class="record-heading"><el-tag type="info" effect="plain">执行单</el-tag><strong>{{ order.executionNo }}</strong></div>
           <dl class="fact-grid">
-            <div v-for="field in executionFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ field.dict ? label(order[field.key], field.dict) : order[field.key] || '—' }}</dd></div>
+            <div v-for="field in executionFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ field.dict ? label(order[field.key], field.dict) : order[field.key] ?? '—' }}</dd></div>
             <div class="fact"><dt>提交时间</dt><dd>{{ time(order.submitTime) }}</dd></div>
             <div class="fact"><dt>同步时间</dt><dd>{{ time(order.sourceSyncTime) }}</dd></div>
+            <div class="fact"><dt>执行单来源</dt><dd>{{ order.sourceSystem || '—' }}</dd></div>
           </dl>
         </div>
         <p v-if="!loading && !error && !commerce?.contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
@@ -67,8 +69,8 @@ import { getMemberPage, type MemberRecord } from '@/api/pms/project/unified-memb
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 interface CommerceOverview {
-  contracts: { id: number; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerName?: string; currencyCode?: string; contractAmount?: number | null }[]
-  orders: { id: number; orderNo: string; companyName?: string; orderCreateTime?: string; orderAmount?: number | null; currencyCode?: string; salesType?: string; customerRequiredTime?: string; executionNo?: string }[]
+  contracts: { id: number; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerCode?: string; customerName?: string; currencyCode?: string; contractAmount?: number | null }[]
+  orders: { id: number; orderNo: string; customerCode?: string; customerName?: string; companyName?: string; orderCreateTime?: string; orderAmount?: number | null; currencyCode?: string; salesType?: string; customerRequiredTime?: string; executionNo?: string }[]
   executionOrders: ({ id: number; executionNo: string } & Record<string, any>)[]
 }
 const commerce = ref<CommerceOverview>()
@@ -81,7 +83,13 @@ const label = (value: string | null | undefined, dict: DICT_TYPE) => value ? get
 const time = (value: any) => value ? formatDate(value) : '—'
 const amount = (value?: number | null, currency?: string) => value == null ? '—' : `${currency || ''} ${value}`.trim()
 const names = (roles: string[], exclude?: number) => members.value.filter(m => roles.includes(m.memberRole) && m.userId !== exclude).map(m => m.memberName || m.employeeNo).filter(Boolean).join('、') || (memberError.value ? '人员信息加载失败' : '—')
-const party = (role: string) => props.project.parties?.filter(p => p.role === role).map(p => p.name || p.code).filter(Boolean).join('、') || '—'
+const party = (role: string) => {
+  const assigned = props.project.parties?.filter(p => p.role === role).map(p => p.name || p.code).filter(Boolean).join('、')
+  if (assigned) return assigned
+  const key = role === 'FINAL_CUSTOMER' ? 'finalCustomerName' : role === 'AGENT' ? 'agentName' : undefined
+  const sourced = key ? [...new Set((commerce.value?.executionOrders || []).map(order => order[key]).filter(Boolean))] : []
+  return sourced.length ? `${sourced.join('、')}（执行单）` : '—'
+}
 interface FactField { label: string; value?: string | null; wide?: boolean }
 const salesRepresentative = computed(() => {
   const assigned = names(['SALES_REPRESENTATIVE'])
@@ -102,6 +110,9 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
       { label: '业务层级', value: p.businessLevelName || p.businessLevelCode },
       { label: '结构深度', value: p.treeDepth == null ? undefined : String(p.treeDepth) },
       { label: '项目开始时间', value: time(p.projectStartTime) },
+      { label: '项目刷新时间', value: time(p.projectRefreshTime) },
+      { label: '项目关闭时间', value: time(p.closedAt ?? p.projectCloseTime) },
+      { label: '销售类型', value: p.salesType }, { label: '业务类型', value: p.businessType },
       { label: '项目结束日期（工勘要求）', value: p.projectEndDate },
       { label: '实施地点', value: p.implementationLocation, wide: true }
     ] },
@@ -118,7 +129,7 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
       { label: '行业', value: p.industryName || p.industryCode }
     ] },
     { title: '客户与参与方', fields: [
-      { label: '客户单位', value: p.customerName || p.customerCode },
+      { label: '项目最终客户', value: p.customerName || p.customerCode },
       { label: '最终客户单位', value: party('FINAL_CUSTOMER') },
       { label: '下单代理商', value: party('AGENT') },
       { label: '服务提供商', value: party('SERVICE_PROVIDER') },

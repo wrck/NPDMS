@@ -42,10 +42,12 @@ public abstract class AbstractBusinessApplicationService<E extends BaseBusinessE
      * 异载荷拒绝；失败整体回滚，网络未知结果通过查询回执恢复。
      */
     public final BusinessOperationReceipt execute(BusinessOperationRequest request) {
-        if (transactionOperations == null) {
-            return doExecute(request);
-        }
-        return transactionOperations.execute(status -> doExecute(request));
+        return inBusinessTransaction(() -> doExecute(request));
+    }
+
+    /** Shared boundary for execution and receipt recovery, including inherited HTTP endpoints. */
+    protected final <T> T inBusinessTransaction(java.util.function.Supplier<T> action) {
+        return transactionOperations == null ? action.get() : transactionOperations.execute(status -> action.get());
     }
 
     private BusinessOperationReceipt doExecute(BusinessOperationRequest request) {

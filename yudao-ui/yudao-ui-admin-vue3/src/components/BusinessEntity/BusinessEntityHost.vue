@@ -67,6 +67,7 @@
         @create="openCreate"
         @open="openEntity"
         @reload="reloadList"
+        @search="(filters) => loadPage(filters, true)"
         @load-more="loadPage()"
       />
       <template v-else>
@@ -126,6 +127,12 @@
             {{ current.available ? '可用' : current.unavailableReason }}
           </el-descriptions-item>
         </el-descriptions>
+        <DefaultBusinessDelivery
+          v-if="current && !current.revisionId"
+          :readonly="props.readonly || props.allowedActions !== undefined || !updateOperation?.executable"
+          :owner-module="props.ownerModule" :entity-type="props.entityType" :entity-id="current.ref.entityId"
+          :deliverable-type="props.deliverableType" @changed="reloadCurrent"
+        />
         <DeliveryPanel
           v-if="deliveryEnabled && current"
           :readonly="props.readonly || props.allowedActions !== undefined"
@@ -166,6 +173,7 @@ import { isConcurrencyConflict, serverErrorMessage, useBusinessEntity } from './
 import BusinessEntityList from './BusinessEntityList.vue'
 import BusinessEntityForm from './BusinessEntityForm.vue'
 import DeliveryPanel from './DeliveryPanel.vue'
+import DefaultBusinessDelivery from './DefaultBusinessDelivery.vue'
 import ApprovalPanel from './ApprovalPanel.vue'
 import ContentHistoryPanel from './ContentHistoryPanel.vue'
 import { resolveStandaloneBusinessEntityView } from '@/components/BusinessView/registry'
@@ -175,7 +183,7 @@ import PmsEntitySelect from '@/components/PmsEntitySelect/index.vue'
 
 defineOptions({ name: 'BusinessEntityHost' })
 const props = defineProps<{ ownerModule: string; entityType: string; initialEntityId?: string | number;
-  expectedStableCode?: string; readonly?: boolean; allowedActions?: string[] }>()
+  expectedStableCode?: string; deliverableType?: string; readonly?: boolean; allowedActions?: string[] }>()
 
 const entity = useBusinessEntity(
   () => props.ownerModule,
@@ -322,7 +330,7 @@ const recoverPending = async () => {
   } catch (error) { operationError.value = serverErrorMessage(error, '上次操作结果暂时无法确认') }
 }
 
-const reloadList = () => loadPage([], true)
+const reloadList = () => loadPage(undefined, true)
 
 const openCreate = () => {
   receipt.value = undefined

@@ -16,6 +16,6 @@ public record BusinessOperationDescriptor(
     }
 
     public enum StandardOperationKind {
-        CREATE, UPDATE, DOMAIN_COMMAND, SUBMIT, WITHDRAW, ARCHIVE
+        CREATE, UPDATE, DELETE, DOMAIN_COMMAND, SUBMIT, WITHDRAW, ARCHIVE
     }
 }

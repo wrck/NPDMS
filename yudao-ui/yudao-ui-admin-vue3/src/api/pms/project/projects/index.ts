@@ -72,6 +72,9 @@ export interface ProjectMasterVO {
   businessType?: string
   notTrackReason?: string
   projectStartTime?: Date
+  projectRefreshTime?: Date
+  projectCloseTime?: Date
+  closedAt?: Date
   projectEndDate?: string
   createTime?: Date
 }
@@ -84,6 +87,8 @@ export interface ProjectCreateReqVO {
   customerName?: string
   contractNo?: string
   contractId?: number
+  salesOrderId?: number
+  sourceFingerprint?: string
   orderOfficeCompanyId: number
   orderOfficeDepartmentId: number
   sites?: ProjectSiteReqVO[]
@@ -560,6 +565,9 @@ export const createProject = (data: ProjectCreateReqVO, idempotencyKey: string) 
 
 /** 创建字段匹配冻结的适用规则；组织编码与固定创建值由服务端解析。 */
 export interface ProjectMatchTemplatesReqVO {
+  contractId?: number
+  salesOrderId?: number
+  sourceFingerprint?: string
   projectName: string
   customerCode?: string
   implementationLocation?: string

@@ -13,6 +13,24 @@ public interface PlatformDeliveryMaterialApi {
     }
 
     record MaterialWithdrawal(Long materialId, Long version, String status) { }
+
+    enum NativeOwnerAction { WITHDRAW, TERMINATE }
+
+    /** Server-created identity and version from the locked native Owner, never an HTTP action selector. */
+    record NativeOwnerActionRequest(String ownerModule, String entityType, Long entityId,
+                                   Long expectedOwnerVersion, NativeOwnerAction action) { }
+
+    /**
+     * Native Owner withdrawal/termination only: the caller must already be in its native transaction,
+     * and call this before its native state CAS. The Owner SPI locks and checks the original action,
+     * current permission, tenant, state, scope and expected Owner version on every call, including replay.
+     * Material version/usage/archive protection and ledger/audit/outbox remain in the same transaction.
+     * This is not a generic material action and must not be exposed as a client-selected HTTP mode.
+     */
+    default MaterialWithdrawal withdrawMaterialForOwnerAction(NativeOwnerActionRequest ownerAction,
+            Long materialId, Long expectedMaterialVersion, String idempotencyKey, String reason) {
+        throw new UnsupportedOperationException("Native Owner material withdrawal unavailable");
+    }
     /** Explicit native upload attachment: preserve actual source identity and enabled catalog, without a requirement. */
     default Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
         throw new UnsupportedOperationException("Native uploaded delivery file registration unavailable");
