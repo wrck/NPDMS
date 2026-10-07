@@ -57,7 +57,7 @@ def main():
                 created=shared.fixture('/fixture/evidence');assert len(created['sol_site_survey'])==1 and len(created['sol_site_survey_material'])==1,created
                 assert int(created['sol_site_survey'][0]['id'])>9007199254740991
                 page.get_by_role('button',name='删除',exact=True).click();page.get_by_role('button',name='取消',exact=True).click()
-                field(page,'工勘名称').fill('继承工勘已编辑');page.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='工勘扩展标志')).get_by_role('switch').click()
+                field(page,'工勘名称').fill('继承工勘已编辑');page.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='工勘扩展标志')).locator('.el-switch').click()
                 with page.expect_response(lambda r:r.request.method=='POST' and '/save-form' in r.url and '/site-survey-business/' in r.url) as save:
                     page.get_by_role('button',name='保存',exact=True).click()
                 assert save.value.json()['code']==0;expect(page.get_by_role('button',name='保存',exact=True)).to_be_enabled()
@@ -72,7 +72,7 @@ def main():
                 page.get_by_role('button',name='需求分析业务',exact=True).click();page.get_by_role('button',name='新建',exact=True).click();field(page,'项目').fill('20')
                 page.get_by_role('button',name='保存',exact=True).click();expect(page.get_by_label('上传交付件')).to_be_enabled(timeout=15000)
                 draft=shared.fixture('/fixture/evidence');assert len(draft['sol_requirement_analysis'])==0 and len(draft['sol_requirement_analysis_revision'])==1,draft
-                page.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='需求扩展标志')).get_by_role('switch').click();field(page,'项目背景').fill('项目背景');field(page,'项目目标').fill('项目目标');field(page,'网络拓扑').fill('网络拓扑')
+                page.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='需求扩展标志')).locator('.el-switch').click();field(page,'项目背景').fill('项目背景');field(page,'项目目标').fill('项目目标');field(page,'网络拓扑').fill('网络拓扑')
                 field(page,'业务设备明细').fill('[{"deviceName":"设备","serialNumber":"SN-RA","businessName":"业务"}]')
                 with page.expect_response(lambda r:r.request.method=='POST' and '/save-form' in r.url and '/requirement-analysis-business/' in r.url) as save:
                     page.get_by_role('button',name='保存',exact=True).click()
