@@ -32,6 +32,19 @@ public interface DeliveryMaterialUploadPolicyValidator {
                 "DELIVERY_ACCESS_DENIED", "Owner未声明交付动作授权");
     }
 
+    /**
+     * Explicit native withdrawal/termination authorization, independent of file UPLOAD and generic writes.
+     * Runs in the caller's existing transaction. Implementations must lock the actual current Owner and
+     * revalidate its native action permission, tenant, lifecycle, scope and expected Owner version.
+     * Return that locked Owner version, not a project tree/scope version. No generic write fallback is allowed.
+     */
+    default Long requireNativeOwnerAction(Long tenantId, Long actorUserId, String entityType,
+            String entityId, String purposeCode, PlatformDeliveryMaterialApi.NativeOwnerAction action,
+            Long expectedOwnerVersion) {
+        throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException(
+                "DELIVERY_ACCESS_DENIED", "Owner未声明原生撤回或终止动作授权");
+    }
+
     /** 承接的材料归属模块（材料 owner_module）。 */
     String ownerModule();
 

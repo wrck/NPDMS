@@ -27,6 +27,12 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
     }
 
     @Override
+    public MaterialWithdrawal withdrawMaterialForOwnerAction(NativeOwnerActionRequest ownerAction,
+            Long materialId, Long expectedMaterialVersion, String idempotencyKey, String reason) {
+        return withdrawalService.withdrawForOwnerAction(ownerAction, materialId, expectedMaterialVersion, idempotencyKey, reason);
+    }
+
+    @Override
     public Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
         return materialService.registerNativeUploadedDocument(fact).getId();
     }
