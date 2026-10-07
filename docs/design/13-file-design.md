@@ -184,3 +184,9 @@ Result归档复用F-ACC-001的双集合模型：结果文档、签字和附件AC
 文件技术可用、报告证据有效、客户验收通过和项目范围覆盖分别判定。失败报告可以作为不可变证据保存；ACC/SOL/CUT等Owner的明确通过及精确范围事实不能由“上传完成/文件可下载/有哈希”替代。当前用户无下载权限不改变客观齐套或验收结果。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。
+
+### 设备日志拆分后的不可变文件（2026-10-06，EQP-02 / EXE-03 增量）
+
+AST以新的 `DeviceConfigurationLogFile` 原生对象持有脱敏完整来源文件和逐设备完整日志，purpose/category为 `DEVICE_CONFIGURATION_LOG`，每个对象只创建一个IMMUTABLE/SINGLE引用，不支持REPLACE或DETACH。来源大日志和设备日志分别登记为 `AST.DEVICE_CONFIGURATION_LOG_SOURCE`、`AST.DEVICE_CONFIGURATION_LOG` 统一材料；后者声明为可供配置交付件选择的文档来源，归集不替代最新文件规则或业务完成。
+
+原始含Secret的上传内容仅作瞬态传输与DAC解析输入，落盘前完成脱敏；来源摘要与归档摘要分开保留。完整来源与拆分文件一批提交，失败整批回滚；PLT既有存储回执仍负责事务回滚后的存储补偿。设备归档版本由AST设备锁串行分配，跨手工/采集入口判定当前最高可用版本；文件工件版本与设备归档版本是不同身份，不互相代用。旧设备日志、采集来源文件和已冻结材料保持原身份和访问策略。

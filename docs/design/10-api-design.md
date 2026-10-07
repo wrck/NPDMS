@@ -779,3 +779,13 @@ SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取
 GET `/api/v1/pms/solution-reviews/policy?projectId=...` 只读预览服务器计算的审核级别与不可用原因。内部 `ProjectFieldRuleApi` 按项目冻结模板修订和规则 key 读取既有发布程序，只接受实体 FIELD/CONSTANT 条件，不从请求接收业务事实或重新编译历史规则。读接口校验当前主体与项目范围；提交用事务锁定项目版本的求值接口。返回配置是否存在、各规则三值结果及规则/项目事实快照。无配置与配置不完整分开处理，未知结果不按普通审批放行。
 
 未绑定模板的导入旧项目返回未配置并保留原 SOL 行为；存在部分模板引用而无法验证精确修订时仍返回不可用，不据损坏引用选择普通审核。读取服务在业务调用时解析原发布 Reader，避免发布校验器发现 SOL Provider 时产生初始化循环依赖。
+
+### 设备配置日志文件归档（2026-10-06，EXE-03 / EQP-02 文件增量）
+
+新增 `/api/v1/pms/device-configuration-log-archives`：POST `/imports` 以 `application/octet-stream` 接收UTF-8日志字节流，query传 `projectId`、UUID `operationId` 和 `fileName`；GET `/imports/{id}` 返回不可变导入结果及关联文件；GET `/latest?projectId` 返回当前项目设备及各自最新可用日志；GET `/history?projectId&deviceId` 返回全部设备文件版本；GET `/{fileId}/download` 重验权限后签发原 PLT 下载票据。导入需要 `pms:device-log-archive:import` 与项目 EDIT 范围，查询需要 query 与项目 VIEW 范围，下载另须 download 和文件平台权限。导入返回 `ARCHIVED` 或 `REJECTED` 处理结果；它们不是配置生命周期状态或配置完成事实。拒绝结果不包含原始内容或Secret。入口最多从内存流读取20MiB加一个超限判断字节，拒绝空输入及超限输入，不使用会将原文落盘的multipart临时文件；保留操作审计但关闭请求/响应正文记录。
+
+INT公开 `DeviceOpsLogSplitApi.split(Command)`，DAC实现内容拆分；命令携带当前租户、项目、输入格式与瞬态内容。结果只包含脱敏完整来源、按唯一整机序列号分组的完整日志及脱敏数量。调用方仍须独立授权与校验设备归属。AST公开 `DeviceConfigurationLogArchiveApi.receiveCollection` 承接IMP验证后的配置结果；PLT公开 `DeviceLogFileApi.readCollection/store` 重验源任务、结果、当前IMP Owner和发起人，复用原PLT文件校验/扫描/存储/引用与统一材料。后台接入使用原任务显式actor，不伪造登录主体。Infra以新的内部 `FileStorageContentApi.read` 读取已登记的receipt内容，核对当前租户、长度和摘要；PLT必须先按已授权FileVersion定位该receipt。此API不创建HTTP入口，不改变上游FileApi，不允许业务模块直接调用Infra Service或读取其表。
+
+DAC新增 POST `/api/v1/npdms/log-splits`，只接受 `TERMINAL_TEXT` 或已验签来源的 `DAC_CALLBACK` 内容，重验JWT execute scope、namespace和project claim；不下发设备命令。输入上限复用采集日志20MiB限制。422仅返回固定失败code及可选内容块序号，不回显日志。配置采集成功不等于此归档成功，归档成功不等于业务配置完成。
+
+采集回传沿用原 `pms:imp-configuration:update` 消费权限及当前项目EDIT范围，PLT通过原配置来源适配器的CONSUME入口锁定重验；该入口不向主体授予手工日志导入权限。手工导入还须 `pms:file:upload`，在调用DAC前重验；下载还须 `pms:file:download`。新的归档权限由已有授权管理显式配置，迁移只初始化菜单，不自动给业务角色授权。归档时间沿用平台EpochMillis，标识沿用Long安全序列化。
