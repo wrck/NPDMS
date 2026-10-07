@@ -75,6 +75,7 @@ public class SatisfactionResultSourceProjectionService {
                 "resultId", event.resultId(), "resultVersion", event.resultVersion()));
         var outcome = platform.submitTemplateFrozen(new TemplateFrozenSubmitCommand(view.id(), requestKey,
                 materialIds, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, payload, null));
+        platform.requireSubmissionArchive(outcome.submissionId());
         if (!outcome.replay()) {
             var confirmation = rules.evaluate(view.projectId(), view.deliverableCode());
             platform.updateSubmissionDecision(outcome.submissionId(),

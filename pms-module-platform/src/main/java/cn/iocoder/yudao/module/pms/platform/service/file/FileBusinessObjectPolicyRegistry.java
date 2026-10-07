@@ -40,6 +40,14 @@ public class FileBusinessObjectPolicyRegistry {
         this.providers = List.copyOf(providers);
     }
 
+    public FileBusinessObjectPolicyFact lockNativeGeneratedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFilePolicyQuery query) {
+        var provider=requireUniqueProvider(query.ownerContext(),query.objectType());
+        var fact=requireUsableFact(provider.lockAndRevalidateNativeGeneratedFile(query));
+        if(query.expectedScopeVersion()!=null && !query.expectedScopeVersion().equals(fact.scopeVersion()))
+            throw exception(FILE_SCOPE_VERSION_CONFLICT);
+        return fact;
+    }
+
     public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
         FileBusinessObjectPolicyProvider provider = requireUniqueProvider(query.ownerContext(), query.objectType());
         FileBusinessObjectPolicyFact fact;

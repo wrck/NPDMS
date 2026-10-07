@@ -34,6 +34,7 @@ public class ArrivalServiceImpl implements ArrivalService {
     private ArrivalMapper arrivalMapper;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
+    @Resource private ArrivalDeliveryRegistration deliveryRegistration;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -57,6 +58,8 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Transactional(rollbackFor = Exception.class)
     public void updateArrival(ArrivalSaveReqVO updateReqVO) {
         ArrivalDO existing = validateArrivalExists(updateReqVO.getId());
+        deliveryRegistration.requireWrite(existing);
+        deliveryRegistration.preventSourceMove(existing,updateReqVO.getProjectId());
         Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
         if (equipmentId != null) {
             deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
@@ -66,7 +69,10 @@ public class ArrivalServiceImpl implements ArrivalService {
         ArrivalDO update = BeanUtils.toBean(updateReqVO, ArrivalDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
+        update.setTenantId(existing.getTenantId());
+        deliveryRegistration.requireWrite(update);
         updateRecord(update);
+        deliveryRegistration.registerFiles(update);
     }
 
     @Override
@@ -93,14 +99,18 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Transactional(rollbackFor = Exception.class)
     public void signArrival(Long id) {
         ArrivalDO arrival = validateArrivalExists(id);
+        deliveryRegistration.requireWrite(arrival);
         validateStatus(arrival, 0); // 待签收 → 已签收
+        deliveryRegistration.registerFiles(arrival);
         updateStatus(arrival, 1);
+        deliveryRegistration.registerSigned(arrival);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markAbnormal(Long id) {
         ArrivalDO arrival = validateArrivalExists(id);
+        deliveryRegistration.requireWrite(arrival);
         validateStatus(arrival, 0); // 待签收 → 异常
         updateStatus(arrival, 2);
     }
@@ -108,7 +118,7 @@ public class ArrivalServiceImpl implements ArrivalService {
     // ==================== 内部工具方法 ====================
 
     private ArrivalDO validateArrivalExists(Long id) {
-        ArrivalDO arrival = arrivalMapper.selectById(id);
+        ArrivalDO arrival = arrivalMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalDeliveryOwnerQuery(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),id));
         if (arrival == null) {
             throw exception(ARRIVAL_NOT_EXISTS);
         }
@@ -116,7 +126,7 @@ public class ArrivalServiceImpl implements ArrivalService {
     }
 
     private void validateVersion(ArrivalDO arrival, Integer version) {
-        if (version != null && !Objects.equals(arrival.getVersion(), version)) {
+        if (version == null || !Objects.equals(arrival.getVersion(), version.longValue())) {
             throw exception(ARRIVAL_VERSION_NOT_MATCH);
         }
     }

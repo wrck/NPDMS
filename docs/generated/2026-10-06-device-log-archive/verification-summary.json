@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-06",
+  "unitTests": {
+    "result": "PASS",
+    "tests": 25,
+    "suites": [
+      {
+        "module": "device-ops-platform/device-ops-parser-semantic",
+        "suite": "com.dp.deviceops.parser.semantic.log.DeviceLogSplitterTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "unknownAndAmbiguousBlocksFailWithoutGuessing",
+          "secretsAreRemovedFromParentAndDeviceFiles",
+          "keepsCompleteCommandsAndMergesRepeatedDeviceSessions"
+        ]
+      },
+      {
+        "module": "device-ops-platform/device-ops-adapter-web-spring",
+        "suite": "com.dp.deviceops.adapter.web.NpdmsLogSplitControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "nativeCallbackRetainsEveryCompleteCommandBlock",
+          "namespaceAndProjectAreRequiredBeforeParsing"
+        ]
+      },
+      {
+        "module": "pms-module-asset",
+        "suite": "cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceLogArchiveServiceTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "manualAndCollectionShareMonotonicDeviceVersionWithoutUpdatingHistory",
+          "concurrentSameSourceReturnsCommittedResultWithoutStoringAnotherFile",
+          "callbackUsesNativeConsumePermissionWithoutGrantingManualImport",
+          "manualImportRequiresNativeFileUploadPermissionBeforeSendingContentToDac",
+          "unassociatedSerialRejectsWholeBatchBeforeWritingAnyFile",
+          "deniedScopeAndForeignTenantNeverReachDacOrStorage",
+          "invalidNewerFileFallsBackToPreviousAvailableFileForSameDevice",
+          "replayReturnsOriginalImportAndChangedPayloadIsRejected",
+          "callbackSerialMustMatchTheTaskDevice"
+        ]
+      },
+      {
+        "module": "pms-module-asset",
+        "suite": "cn.iocoder.yudao.module.pms.asset.controller.admin.device.DeviceLogArchiveControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "oversizedChunkedInputStopsBeforeDacOrArchive",
+          "rawLogBodyIsNotReadByExistingAccessLogBodyExtractor"
+        ]
+      },
+      {
+        "module": "pms-module-engineering",
+        "suite": "cn.iocoder.yudao.module.pms.engineering.service.collection.DeviceConfigurationLogArchiveBridgeTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "archiveFailureRollsBackNativeReception",
+          "successfulNativeReceiverAndArchiveShareOneTransaction",
+          "failedResultKeepsLegacyReceptionAndInvalidInputKeepsLegacyValidation"
+        ]
+      },
+      {
+        "module": "pms-module-platform",
+        "suite": "cn.iocoder.yudao.module.pms.platform.file.DeviceLogFileServiceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "successfulAuthorizedResultReadsItsExactVersion",
+          "currentOwnerMustStillAuthorizeOriginalProjectAndDevice",
+          "failedOrChangedTaskNeverReadsStorage",
+          "foreignTenantCannotInspectTask"
+        ]
+      },
+      {
+        "module": "yudao-module-infra",
+        "suite": "cn.iocoder.yudao.module.infra.service.file.FileStorageContentServiceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "readsOnlyExactRegisteredReceiptContent",
+          "wrongTenantOrLegacyPathCannotReadAnyBytes"
+        ]
+      }
+    ]
+  },
+  "frontend": {
+    "eslint": "PASS",
+    "prettier": "PASS",
+    "vueTsc": "FAILED_IN_EXISTING_DEPENDENCIES",
+    "selectedFilesDiagnostics": 0,
+    "dependencyErrors": [
+      "src/components/BusinessEntity/ApprovalPanel.vue(45,20): error TS2322: Type 'string' is not assignable to type '\"primary\" | \"success\" | \"warning\" | \"danger\" | \"info\" | undefined'.",
+      "src/components/BusinessEntity/ContentHistoryPanel.vue(56,54): error TS2322: Type 'unknown' is not assignable to type 'string | number | boolean | undefined'.",
+      "src/components/BusinessEntity/ContentHistoryPanel.vue(57,64): error TS2322: Type 'unknown' is not assignable to type 'number | null | undefined'.",
+      "src/components/BusinessEntity/ContentHistoryPanel.vue(60,13): error TS2322: Type 'unknown' is not assignable to type 'EpPropMergeType<(new (...args: any[]) => string | number | Date | string[] | number[] | Date[]) | (() => ModelValueType | null) | ((new (...args: any[]) => string | number | Date | string[] | number[] | Date[]) | (() => ModelValueType | null) | null)[], unknown, unknown> | undefined'.",
+      "src/components/BusinessEntity/ContentHistoryPanel.vue(66,13): error TS2322: Type 'unknown' is not assignable to type 'EpPropMergeType<(new (...args: any[]) => string | number | Date | string[] | number[] | Date[]) | (() => ModelValueType | null) | ((new (...args: any[]) => string | number | Date | string[] | number[] | Date[]) | (() => ModelValueType | null) | null)[], unknown, unknown> | undefined'.",
+      "src/components/BusinessEntity/ContentHistoryPanel.vue(70,28): error TS2322: Type 'unknown' is not assignable to type 'string | number | null | undefined'.",
+      "src/components/DeviceCollection/CollectionDialog.vue(390,26): error TS6133: 'row' is declared but its value is never read.",
+      "src/views/pms/platform/processDefinition/index.vue(151,10): error TS6133: 'computed' is declared but its value is never read.",
+      "src/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue(142,10): error TS2322: Type 'StagePlanTaskVO[] | undefined' is not assignable to type 'StagePlanTaskVO[]'.",
+      "src/views/pms/project/project-master-detail/components/schedulePresentation.ts(148,78): error TS2339: Property 'acceptanceTime' does not exist on type '{ stageId?: number | undefined; }'."
+    ]
+  },
+  "mysql": {
+    "database": "npdms_test",
+    "port": 23316,
+    "migration": "NOT_EXECUTED",
+    "concurrencyAndRollbackTests": "NOT_EXECUTED",
+    "reason": "Existing container and configured credentials rejected with MySQL 1045; awaiting valid configuration file path"
+  },
+  "npdmsBrowser": "NOT_EXECUTED",
+  "dacHttpEvidence": "dac-http-verification.json"
+}

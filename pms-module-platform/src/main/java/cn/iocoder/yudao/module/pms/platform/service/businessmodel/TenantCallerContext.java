@@ -21,6 +21,9 @@ public class TenantCallerContext implements BusinessCallerContext {
             throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException(
                     "CALLER_UNRESOLVED", "业务操作缺少可信操作者身份，后台执行须走系统命令契约");
         }
+        var user=SecurityFrameworkUtils.getLoginUser();
+        if(user==null || !java.util.Objects.equals(user.getTenantId(),tenantId))
+            throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("ACCESS_DENIED","Authenticated tenant does not match the request tenant");
         return new AbstractBusinessApplicationService.ResolvedCaller(tenantId, userId, null);
     }
 }

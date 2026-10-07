@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.platform.service.delivery;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
 import cn.iocoder.yudao.module.pms.platform.api.delivery.DeliveryRequirementRuleResolver;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
@@ -87,15 +88,43 @@ public class DeliveryRequirementService {
                 .toList();
     }
 
+    /** Live delivery facts; never infer completion from a persisted lifecycle/status alone. */
+    public record CompletionFact(Long requirementId, int count, int minimumQuantity,
+                                 boolean satisfied, boolean confirmed, String reason) { }
+
+    @Transactional(rollbackFor = Exception.class)
+    public CompletionFact evaluateCompletion(Long requirementId) {
+        DeliveryRequirementDO requirement = requireRequirement(requirementId);
+        if (DeliveryRequirementDO.KIND_CATALOG.equals(requirement.getRequirementKind())) {
+            catalogService.requireEnabledType(requirement.getTypeCode());
+        }
+        CountingInput input = countingInput(requirement);
+        for (DeliveryMaterialDO material : DeliveryCounting.countedMaterials(input)) {
+            // Invalid or inaccessible evidence fails closed and is never reported complete.
+            materialService.revalidateActive(material);
+        }
+        int count = DeliveryCounting.count(input, requirement.getCountingUnit());
+        boolean satisfied = count >= requirement.getMinimumQuantity();
+        String reason = satisfied ? "DELIVERY_QUANTITY_SATISFIED" : "DELIVERY_QUANTITY_NOT_MET";
+        if (satisfied && DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
+            var resolution = resolveRule(requirement, count);
+            satisfied = resolution.satisfied();
+            reason = resolution.reason();
+        }
+        return new CompletionFact(requirementId, count, requirement.getMinimumQuantity(), satisfied,
+                satisfied && DeliveryRequirementDO.STATUS_CONFIRMED.equals(requirement.getStatus()), reason);
+    }
+
     public int countOf(DeliveryRequirementDO requirement) {
         CountingInput input = countingInput(requirement);
         return DeliveryCounting.count(input, requirement.getCountingUnit());
     }
 
     private CountingInput countingInput(DeliveryRequirementDO requirement) {
-        List<DeliveryMaterialDO> activeMaterials = materialMapper
-                .selectByEntity(requirement.getOwnerModule(), requirement.getEntityType(),
-                        requirement.getEntityId(), requirement.getTypeCode()).stream()
+        List<DeliveryMaterialDO> candidates = DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())
+                ? materialMapper.selectByRequirement(requirement.getId())
+                : materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(TenantContextHolder.getRequiredTenantId(),requirement.getOwnerModule(),requirement.getEntityType(),requirement.getEntityId(),requirement.getTypeCode()));
+        List<DeliveryMaterialDO> activeMaterials = candidates.stream()
                 .filter(material -> DeliveryMaterialDO.STATUS_ACTIVE.equals(material.getStatus()))
                 .toList();
         return new CountingInput(activeMaterials, submissionMapper.selectByRequirement(requirement.getId()));
@@ -132,11 +161,17 @@ public class DeliveryRequirementService {
         Optional<DeliverySubmissionDO> replay = submissionMapper.selectByRequestKey(requirementId, requestKey);
         if (replay.isPresent()) {
             DeliverySubmissionDO replayRow = replay.get();
-            if (requestPayloadJson != null
-                    && !JsonUtils.parseTree(replayRow.getRequestPayloadJson() == null ? ""
-                            : replayRow.getRequestPayloadJson()).equals(JsonUtils.parseTree(requestPayloadJson))) {
+            boolean sameMaterials = new java.util.HashSet<>(JsonSupport.parseLongList(replayRow.getMaterialIdsJson()))
+                    .equals(new java.util.HashSet<>(materialIds));
+            String previousSource = replayRow.getSourceType() == null ? "UPLOAD" : replayRow.getSourceType();
+            String nextSource = sourceType == null ? "UPLOAD" : sourceType;
+            String previousPayload = replayRow.getRequestPayloadJson();
+            boolean samePayload = previousPayload == null && requestPayloadJson == null
+                    || previousPayload != null && requestPayloadJson != null
+                    && JsonUtils.parseTree(previousPayload).equals(JsonUtils.parseTree(requestPayloadJson));
+            if (!sameMaterials || !previousSource.equals(nextSource) || !samePayload) {
                 throw new BusinessContractException("DELIVERY_SUBMISSION_PAYLOAD_CONFLICT",
-                        "同一提交标识不能用于不同材料");
+                        "同一提交标识不能用于不同材料或来源");
             }
             return new SubmissionOutcome(replayRow, true, requirement, countOf(requirement));
         }
@@ -147,13 +182,18 @@ public class DeliveryRequirementService {
         if (materials.size() != materialIds.stream().distinct().count()) {
             throw new BusinessContractException("DELIVERY_MATERIAL_NOT_FOUND", "提交包含不存在的材料");
         }
+        java.util.Set<Long> linkedIds = DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())
+                ? materialMapper.selectByRequirement(requirementId).stream()
+                    .filter(linked -> DeliveryMaterialDO.STATUS_ACTIVE.equals(linked.getStatus()))
+                    .map(DeliveryMaterialDO::getId).collect(java.util.stream.Collectors.toSet())
+                : java.util.Set.of();
         List<DeliveryMaterialService.FrozenEvidence> evidence = new ArrayList<>();
         for (DeliveryMaterialDO material : materials) {
             // TEMPLATE_FROZEN 材料按绑定要求归属（项目内共享 owner 三元组，type_code=交付件编码）；
             // CATALOG 材料继续按 owner 三元组 + 类型精确匹配。
             boolean ownerMatch;
             if (DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
-                ownerMatch = requirement.getId().equals(material.getRequirementId());
+                ownerMatch = linkedIds.contains(material.getId());
             } else {
                 ownerMatch = material.getOwnerModule().equals(requirement.getOwnerModule())
                         && material.getEntityType().equals(requirement.getEntityType())

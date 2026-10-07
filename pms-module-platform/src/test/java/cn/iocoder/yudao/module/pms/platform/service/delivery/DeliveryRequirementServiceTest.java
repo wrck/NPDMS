@@ -121,7 +121,7 @@ class DeliveryRequirementServiceTest {
     }
 
     private void stubEntityState() {
-        org.mockito.Mockito.lenient().when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
+        org.mockito.Mockito.lenient().when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenAnswer(invocation -> new ArrayList<>(entityMaterials));
         org.mockito.Mockito.lenient().when(submissionMapper.selectByRequirement(10L))
                 .thenAnswer(invocation -> new ArrayList<>(requirementSubmissions));
@@ -144,7 +144,7 @@ class DeliveryRequirementServiceTest {
         submission(21, "k-old", "WITHDRAWN", List.of(2L));
         DeliveryRequirementDO requirement = requirement(10L, "OPEN",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
-        when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
+        when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenReturn(entityMaterials);
         when(submissionMapper.selectByRequirement(10L)).thenReturn(requirementSubmissions);
 
@@ -158,7 +158,7 @@ class DeliveryRequirementServiceTest {
         material(3, 101, 1);
         DeliveryRequirementDO requirement = requirement(10L, "OPEN",
                 DeliveryTypeDO.COUNTING_FILE_VERSION, 2);
-        when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
+        when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenReturn(entityMaterials);
 
         assertEquals(2, service.countOf(requirement));
@@ -166,12 +166,13 @@ class DeliveryRequirementServiceTest {
 
     @Test
     void submissionUnitCountsOnlyCurrentSubmissions() {
+        material(1, 100, 1);
         submission(21, "k1", "CURRENT", List.of(1L));
         submission(22, "k2", "SUPERSEDED", List.of(1L));
         DeliveryRequirementDO requirement = requirement(10L, "OPEN",
                 DeliveryTypeDO.COUNTING_SUBMISSION, 1);
-        when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
-                .thenReturn(List.of());
+        when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
+                .thenReturn(entityMaterials);
         when(submissionMapper.selectByRequirement(10L)).thenReturn(requirementSubmissions);
 
         assertEquals(1, service.countOf(requirement));
@@ -215,7 +216,7 @@ class DeliveryRequirementServiceTest {
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         when(submissionMapper.selectByRequestKey(10L, "k-old")).thenReturn(java.util.Optional.of(existing));
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
-        when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
+        when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenReturn(List.of());
 
         SubmissionOutcome outcome = service.submit(10L, "k-old", List.of(1L));
@@ -267,7 +268,7 @@ class DeliveryRequirementServiceTest {
         when(submissionMapper.selectById(21L)).thenReturn(requirementSubmissions.get(0));
         when(requirementMapper.selectById(10L)).thenReturn(requirement);
         when(submissionMapper.selectByRequirement(10L)).thenReturn(requirementSubmissions);
-        when(materialMapper.selectByEntity(OWNER_MODULE, ENTITY_TYPE, ENTITY_ID, TYPE_CODE))
+        when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenReturn(new ArrayList<>(entityMaterials));
 
         SubmissionOutcome outcome = service.withdrawSubmission(21L);
@@ -333,4 +334,107 @@ class DeliveryRequirementServiceTest {
     private DeliveryEventPublisher eventPublisher() {
         return new DeliveryEventPublisher(outbox);
     }
+
+    @Test
+    void completionIgnoresStoredConfirmedStatusWhenCurrentQuantityIsMissing() {
+        var row = requirement(10L, "CONFIRMED", "MATERIAL", 1);
+        row.setRequirementKind(DeliveryRequirementDO.KIND_CATALOG);
+        when(requirementMapper.selectById(10L)).thenReturn(row);
+        stubEntityState();
+        var fact = service.evaluateCompletion(10L);
+        assertFalse(fact.satisfied());
+        assertFalse(fact.confirmed());
+        assertEquals("DELIVERY_QUANTITY_NOT_MET", fact.reason());
+        verify(requirementMapper, never()).updateById(any(DeliveryRequirementDO.class));
+    }
+
+    @Test
+    void completionRejectsInvalidMaterialEvenWhenStoredStatusAndQuantityAreSatisfied() {
+        var row = requirement(10L, "CONFIRMED", "MATERIAL", 1);
+        row.setRequirementKind(DeliveryRequirementDO.KIND_CATALOG);
+        when(requirementMapper.selectById(10L)).thenReturn(row);
+        var invalid = material(1, 100, 1);
+        stubEntityState();
+        when(materialService.revalidateActive(invalid)).thenThrow(
+                new BusinessContractException("DELIVERY_FILE_UNAVAILABLE", "file invalid"));
+        assertThrows(BusinessContractException.class, () -> service.evaluateCompletion(10L));
+        verify(requirementMapper, never()).updateById(any(DeliveryRequirementDO.class));
+    }
+
+    @Test
+    void completionUsesOwnerRuleInsteadOfTreatingTemplateQuantityAsBusinessCompletion() {
+        var row = requirement(10L, "CONFIRMED", "MATERIAL", 1);
+        row.setRequirementKind(DeliveryRequirementDO.KIND_TEMPLATE_FROZEN);
+        row.setProjectId(7L);
+        when(requirementMapper.selectById(10L)).thenReturn(row);
+        material(1, 100, 1);
+        when(materialMapper.selectByRequirement(10L)).thenReturn(entityMaterials);
+        when(submissionMapper.selectByRequirement(10L)).thenReturn(requirementSubmissions);
+        var resolver = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.api.delivery.DeliveryRequirementRuleResolver.class);
+        var provider = org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(resolver);
+        when(resolver.evaluate(10L, 7L, TYPE_CODE, 1)).thenReturn(
+                new cn.iocoder.yudao.module.pms.platform.api.delivery.DeliveryRequirementRuleResolver.Resolution(
+                        false, "OWNER_CONFIRMATION_PENDING", "{}"));
+        var publicService = new DeliveryRequirementService(requirementMapper, submissionMapper,
+                materialMapper, catalogService, materialService, outbox, provider);
+        var fact = publicService.evaluateCompletion(10L);
+        assertEquals(1, fact.count());
+        assertFalse(fact.satisfied());
+        assertFalse(fact.confirmed());
+        assertEquals("OWNER_CONFIRMATION_PENDING", fact.reason());
+    }
+
+    @Test
+    void ordinarySubmissionRejectsSameKeyWithDifferentMaterialIntent() {
+        var row = requirement(10L, "SATISFIED", "MATERIAL", 1);
+        var existing = submission(21, "shared-key", "CURRENT", List.of(1L));
+        when(requirementMapper.selectById(10L)).thenReturn(row);
+        when(submissionMapper.selectByRequestKey(10L, "shared-key")).thenReturn(java.util.Optional.of(existing));
+        var error = assertThrows(BusinessContractException.class,
+                () -> service.submit(10L, "shared-key", List.of(2L)));
+        assertEquals("DELIVERY_SUBMISSION_PAYLOAD_CONFLICT", error.getErrorCode());
+        verify(submissionMapper, never()).insert(any(DeliverySubmissionDO.class));
+        verify(submissionMapper, never()).updateById(any(DeliverySubmissionDO.class));
+    }
+
+    @Test
+    void businessResultWithoutFileVersionCannotSatisfyFileVersionCountingUnit() {
+        var result = new DeliveryMaterialDO();
+        result.setId(1L); result.setMaterialKind(DeliveryMaterialDO.KIND_BUSINESS_RESULT);
+        result.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
+        entityMaterials.add(result);
+        stubEntityState();
+        var row = requirement(10L, "OPEN", "FILE_VERSION", 1);
+        assertEquals(0, service.countOf(row));
+    }
+
+    @Test
+    void currentSubmissionWithOnlyWithdrawnMaterialsCannotReportCompletion() {
+        var withdrawn = material(1, 100, 1);
+        withdrawn.setStatus(DeliveryMaterialDO.STATUS_WITHDRAWN);
+        submission(21, "current", "CURRENT", List.of(1L));
+        var row = requirement(10L, "CONFIRMED", "SUBMISSION", 1);
+        row.setRequirementKind(DeliveryRequirementDO.KIND_CATALOG);
+        when(requirementMapper.selectById(10L)).thenReturn(row);
+        stubEntityState();
+        var fact = service.evaluateCompletion(10L);
+        assertEquals(0, fact.count());
+        assertFalse(fact.satisfied());
+        assertFalse(fact.confirmed());
+        assertEquals("CURRENT", requirementSubmissions.getFirst().getStatus());
+        verify(submissionMapper, never()).updateById(any(DeliverySubmissionDO.class));
+    }
+    @Test
+    void replayRejectsSameKeyAndMaterialsWithDifferentSource() {
+        var requirement = requirement(10L, "SATISFIED", "MATERIAL", 1);
+        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        var previous = submission(21L, "same-key", "CURRENT", List.of(1L));
+        previous.setSourceType("UPLOAD");
+        when(submissionMapper.selectByRequestKey(10L, "same-key")).thenReturn(java.util.Optional.of(previous));
+        assertThrows(BusinessContractException.class, () -> service.submit(
+                10L, "same-key", List.of(1L), "AUTO_PROJECTION", null, null));
+        verify(submissionMapper, never()).insert(any(DeliverySubmissionDO.class));
+    }
+
 }

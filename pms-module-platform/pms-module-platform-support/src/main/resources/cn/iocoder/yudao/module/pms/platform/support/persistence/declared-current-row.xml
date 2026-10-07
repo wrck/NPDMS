@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- Compiled once per registered mapper from trusted ORM mappings. No client SQL identifiers. -->
+<mapper namespace="@namespace@">
+    <select id="__pmsCurrentEntityForUpdate" resultMap="@resultMap@"
+            parameterType="cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredCurrentRowQuery"
+            useCache="false" flushCache="true">
+        SELECT @columns@ FROM @table@
+        WHERE id = #{entityId} AND tenant_id = #{tenantId}
+        @logicDelete@
+        FOR UPDATE
+    </select>
+</mapper>

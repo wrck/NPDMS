@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * 统一幂等执行存储的平台实现：复用既有平台幂等台账表与 insertIfAbsent 语义，
@@ -45,13 +46,24 @@ public class PlatformOperationExecutionStore implements OperationExecutionStore 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
     public Optional<StoredExecution> findExisting(OperationExecutionKey key) {
-        PlatformIdempotencyRecordDO existing = mapper.selectByScope(new IdempotencyScopeQuery(
-                key.tenantId(), key.scopeCode(), key.actorId(), key.idempotencyKey()));
+        return findExisting(key, payload -> JsonUtils.parseObject(payload, BusinessOperationReceipt.class));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public Optional<StoredExecution> findExisting(OperationExecutionKey key,
+                                                 Function<String, BusinessOperationReceipt> decoder) {
+        IdempotencyScopeQuery query = new IdempotencyScopeQuery(
+                key.tenantId(), key.scopeCode(), key.actorId(), key.idempotencyKey());
+        // INSERT IGNORE is a current read. A plain SELECT under REPEATABLE READ may still see
+        // the snapshot preceding the winning transaction and miss its committed receipt.
+        PlatformIdempotencyRecordDO existing = org.springframework.transaction.support.TransactionSynchronizationManager
+                .isActualTransactionActive() ? mapper.selectByScopeForUpdate(query) : mapper.selectByScope(query);
         if (existing == null) {
             return Optional.empty();
         }
         BusinessOperationReceipt receipt = existing.getResponsePayload() == null ? null
-                : JsonUtils.parseObject(existing.getResponsePayload(), BusinessOperationReceipt.class);
+                : decoder.apply(existing.getResponsePayload());
         return Optional.of(new StoredExecution(existing.getRequestDigest(), existing.getStatus(), receipt));
     }
 
@@ -59,6 +71,13 @@ public class PlatformOperationExecutionStore implements OperationExecutionStore 
     @Transactional(propagation = Propagation.MANDATORY)
     public void complete(OperationExecutionKey key, String aggregateType, String resourceKey,
                          BusinessOperationReceipt receipt) {
+        complete(key, aggregateType, resourceKey, receipt, JsonUtils.toJsonString(receipt));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void complete(OperationExecutionKey key, String aggregateType, String resourceKey,
+                         BusinessOperationReceipt receipt, String nativeResponsePayload) {
         PlatformIdempotencyRecordDO existing = mapper.selectByScope(new IdempotencyScopeQuery(
                 key.tenantId(), key.scopeCode(), key.actorId(), key.idempotencyKey()));
         if (existing == null) {
@@ -69,7 +88,7 @@ public class PlatformOperationExecutionStore implements OperationExecutionStore 
         completed.setStatus(STATUS_COMPLETED);
         completed.setResourceType(aggregateType);
         completed.setResourceKey(resourceKey);
-        completed.setResponsePayload(JsonUtils.toJsonString(receipt));
+        completed.setResponsePayload(nativeResponsePayload);
         if (mapper.updateById(completed) != 1) {
             throw new IllegalStateException("幂等成功事实写入失败: " + key.idempotencyKey());
         }

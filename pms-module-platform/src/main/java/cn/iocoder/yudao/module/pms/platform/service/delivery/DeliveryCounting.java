@@ -48,13 +48,17 @@ final class DeliveryCounting {
 
     static int count(CountingInput input, String unit) {
         List<DeliveryMaterialDO> counted = countedMaterials(input);
+        Set<Long> countedIds = counted.stream().map(DeliveryMaterialDO::getId).collect(Collectors.toSet());
         return switch (unit) {
             case DeliveryTypeDO.COUNTING_MATERIAL -> counted.size();
             case DeliveryTypeDO.COUNTING_FILE_VERSION -> counted.stream()
+                    .filter(material -> material.getFileArtifactId() != null && material.getFileVersionNo() != null)
                     .map(material -> material.getFileArtifactId() + ":" + material.getFileVersionNo())
                     .collect(Collectors.toSet()).size();
             case DeliveryTypeDO.COUNTING_SUBMISSION -> (int) input.submissions().stream()
                     .filter(submission -> DeliverySubmissionDO.STATUS_CURRENT.equals(submission.getStatus()))
+                    .filter(submission -> parseMaterialIds(submission).stream()
+                            .anyMatch(countedIds::contains))
                     .count();
             default -> throw new IllegalArgumentException("unsupported counting unit: " + unit);
         };

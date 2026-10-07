@@ -1,0 +1,98 @@
+{
+  "ownerModule": "IMP",
+  "entityType": "training",
+  "stableCode": "IMP_TRAINING",
+  "title": "现场培训",
+  "fields": [
+    {
+      "code": "code",
+      "name": "培训编码",
+      "type": "TEXT",
+      "required": true,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "name",
+      "name": "培训名称",
+      "type": "TEXT",
+      "required": true,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "trainingTypes",
+      "name": "培训类型",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "trainingTime",
+      "name": "培训时间",
+      "type": "DATE",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "trainerName",
+      "name": "培训工程师",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "traineeCount",
+      "name": "参训人数",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "contactName",
+      "name": "客户联系人",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "satisfactionRating",
+      "name": "满意度评价",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "signConfirmerName",
+      "name": "客户签字人",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "signTime",
+      "name": "确认时间",
+      "type": "DATETIME",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "status",
+      "name": "状态",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    }
+  ],
+  "operations": [],
+  "capabilities": []
+}

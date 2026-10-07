@@ -50,6 +50,8 @@ export interface TrainingIssueVO {
 }
 
 const baseUrl = '/pms/imp-training'
+export const getGeneratedTrainingFileTicket = (url: string) => request.get<string>({ url })
+export const getTrainingPdfTicket = (id: number) => request.get<string>({ url: `/api/v1/pms/training-records/${id}/pdf:access-ticket` })
 export const downloadTrainingPdf = (id: number) =>
   request.download<Blob>({ url: `/api/v1/pms/training-records/${id}/pdf` })
 

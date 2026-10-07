@@ -184,7 +184,7 @@
           :disabled="!!form.id"
         />
       </el-form-item>
-      <SolutionDocMetaForm v-model="form" :read-only="readOnly" />
+      <SolutionDocMetaForm v-model="form" v-model:pending-files="pendingCustomerFiles" :read-only="readOnly" />
       <SolutionChapterForm
         v-model="form"
         :read-only="readOnly"
@@ -215,7 +215,7 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="createChoice.hasCustomerPlan === 'yes'" label="上传方案文件">
-        <UploadFile v-model="createChoice.customerPlanUrl" />
+        <CustomerSolutionDocumentPicker v-model="createCustomerFiles" />
       </el-form-item>
       <el-form-item v-if="createChoice.hasCustomerPlan === 'yes'">
         <div class="create-tip">确定后本版本正文直接展示客户文档，不再显示九章编辑内容；系统识别未接入</div>
@@ -244,6 +244,9 @@ import { buildRecordName } from '../recordNaming'
 import { formatDate } from '@/utils/formatTime'
 import SolutionTieredReviewDialog from './SolutionTieredReviewDialog.vue'
 import SolutionDocMetaForm from './SolutionDocMetaForm.vue'
+import CustomerSolutionDocumentPicker from './CustomerSolutionDocumentPicker.vue'
+import { saveCustomerSolutionDocuments } from './saveCustomerSolutionDocuments'
+import type { DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import SolutionChapterForm from './SolutionReviewChapterForm.vue'
 
 defineOptions({ name: 'PmsSolutionReviewed' })
@@ -369,11 +372,16 @@ const syncSelection = async () => {
 
 // 新增方案弹窗：客户方案在创建时一次性选定并随记录冻结；确定后进入自动命名的本地草稿，
 // 保存仍由保存草稿/提交审核承载。createChoice 两键写入 remark 信封（META_REMARK_KEYS 归属方案信息组件）
+const pendingCustomerFiles=ref<File[]>([])
+const createCustomerFiles=ref<File[]>([])
+const customerAttempts:DeliveryUploadAttempt[]=[]
+let savedCustomerDraft: string | undefined
 const createVisible = ref(false)
 const createChoice = reactive({ hasCustomerPlan: 'no', customerPlanUrl: '' })
 const openCreate = () => {
   createChoice.hasCustomerPlan = 'no'
   createChoice.customerPlanUrl = ''
+  createCustomerFiles.value=[]
   createVisible.value = true
 }
 const parseEnvelope = (raw: unknown): Record<string, unknown> => {
@@ -387,6 +395,7 @@ const parseEnvelope = (raw: unknown): Record<string, unknown> => {
 const confirmCreate = () => {
   createVisible.value = false
   openForm()
+  pendingCustomerFiles.value=createCustomerFiles.value.slice()
   form.value.remark = JSON.stringify({
     ...parseEnvelope(form.value.remark),
     hasCustomerPlan: createChoice.hasCustomerPlan,
@@ -394,6 +403,9 @@ const confirmCreate = () => {
   })
 }
 const openForm = async (row?: SolutionVO) => {
+  pendingCustomerFiles.value=[]
+  customerAttempts.splice(0)
+  savedCustomerDraft=undefined
   const sequence = ++detailSequence
   detailError.value = ''
   detailLoading.value = !!row?.id
@@ -448,13 +460,32 @@ onBeforeUnmount(() => {
   ++detailSequence
   bodyResizeObserver?.disconnect()
 })
+const draftFingerprint=()=>JSON.stringify({...form.value,version:undefined})
+const persistDraftAndCustomerFiles=async()=>{
+  const withFiles=pendingCustomerFiles.value.length>0&&parseEnvelope(form.value.remark).hasCustomerPlan==='yes'
+  if(!withFiles||savedCustomerDraft!==draftFingerprint()){
+    const existingId=form.value.id, previousVersion=form.value.version
+    if(existingId)await SolutionApi.updateSolution(form.value)
+    else form.value.id=await SolutionApi.createSolution(form.value)
+    const current=await SolutionApi.getSolution(form.value.id!)
+    if(existingId&&previousVersion!==undefined&&current.version!==previousVersion+1)throw new Error('方案版本已变化，请刷新后重试')
+    form.value.version=current.version
+    savedCustomerDraft=withFiles?draftFingerprint():undefined
+  }
+  if(withFiles){
+    const {attached}=await saveCustomerSolutionDocuments({id:form.value.id!,version:form.value.version!},pendingCustomerFiles.value,customerAttempts)
+    form.value.version=attached.version
+    form.value.remark=JSON.stringify({...parseEnvelope(form.value.remark),hasCustomerPlan:'yes',customerPlanUrl:attached.customerPlanUrl})
+    pendingCustomerFiles.value=[];customerAttempts.splice(0);savedCustomerDraft=undefined
+  }
+}
 const save = async () => {
   if (readOnly.value) return
   // 校验拒绝留在表单内提示；API 失败由拦截器弹错并在此吞掉 rejection，逃逸会进入业务视图错误边界，整块组件被替换成不可用回退。
   try { await formRef.value.validate() } catch { return }
   saving.value = true
   try {
-    form.value.id ? await SolutionApi.updateSolution(form.value) : await SolutionApi.createSolution(form.value)
+    await persistDraftAndCustomerFiles()
     message.success('保存成功')
     if (!props.projectId) formVisible.value = false
     await load()
@@ -472,8 +503,7 @@ const submitReview = async () => {
   }
   saving.value = true
   try {
-    if (!form.value.id) form.value.id = (await SolutionApi.createSolution(form.value)) as unknown as number
-    else await SolutionApi.updateSolution(form.value)
+    await persistDraftAndCustomerFiles()
     await load()
     tieredReview.value?.open(form.value)
   } catch {

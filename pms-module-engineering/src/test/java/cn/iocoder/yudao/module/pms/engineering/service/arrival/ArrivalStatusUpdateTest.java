@@ -21,17 +21,20 @@ class ArrivalStatusUpdateTest {
     private ArrivalDO row;
 
     @BeforeEach void setUp() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        ReflectionTestUtils.setField(service,"deliveryRegistration",mock(ArrivalDeliveryRegistration.class));
         ReflectionTestUtils.setField(service, "arrivalMapper", mapper);
         doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6L);
-        when(mapper.selectById(1L)).thenReturn(row);
+        when(mapper.selectDeliveryOwnerForUpdate(any())).thenReturn(row);
     }
 
+    @org.junit.jupiter.api.AfterEach void clearTenant(){cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
     @Test void signUsesTheLoadedVersionRatherThanIncrementingTheLockPredicate() {
         when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(invocation -> {
             ArrivalDO update = invocation.getArgument(0);
-            assertEquals(6, update.getVersion());
+            assertEquals(6L, update.getVersion());
             assertEquals(1, update.getStatus());
             return 1;
         });
@@ -42,7 +45,7 @@ class ArrivalStatusUpdateTest {
     @Test void abnormalTransitionAlsoKeepsTheExpectedVersion() {
         when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(invocation -> {
             ArrivalDO update = invocation.getArgument(0);
-            assertEquals(6, update.getVersion());
+            assertEquals(6L, update.getVersion());
             assertEquals(2, update.getStatus());
             return 1;
         });
@@ -77,7 +80,7 @@ class ArrivalStatusUpdateTest {
         ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setProjectId(7L); request.setStatus(1); request.setVersion(80);
         when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> {
             ArrivalDO inserted = call.getArgument(0);
-            assertEquals(0, inserted.getStatus()); assertEquals(0, inserted.getVersion());
+            assertEquals(0, inserted.getStatus()); assertEquals(0L, inserted.getVersion());
             inserted.setId(2L); return 1;
         });
         assertEquals(2L, service.createArrival(request));
@@ -86,10 +89,10 @@ class ArrivalStatusUpdateTest {
     @Test void editingPreservesPendingOrAbnormalStatusAndUsesTheLoadedLockVersion() {
         for (int status : new int[]{0, 2}) {
             row.setStatus(status);
-            ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setId(1L); request.setStatus(1); request.setRemark("updated");
+            ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setId(1L); request.setStatus(1); request.setVersion(6); request.setRemark("updated");
             when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(call -> {
                 ArrivalDO update = call.getArgument(0);
-                assertEquals(status, update.getStatus()); assertEquals(6, update.getVersion());
+                assertEquals(status, update.getStatus()); assertEquals(6L, update.getVersion());
                 assertEquals("updated", update.getRemark()); return 1;
             });
             service.updateArrival(request);

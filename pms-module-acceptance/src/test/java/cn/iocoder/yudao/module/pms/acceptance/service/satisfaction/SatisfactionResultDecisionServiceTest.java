@@ -47,7 +47,7 @@ class SatisfactionResultDecisionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SatisfactionResultDecisionService(taskMapper, questionnaireMapper, responseMapper,
+        service = new SatisfactionResultDecisionService(org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.class), taskMapper, questionnaireMapper, responseMapper,
                 responseFileMapper, resultMapper, resultFileMapper, projectScopeApi, workBindingFactApi, fileArtifactApi,
                 commandExecutionApi);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {

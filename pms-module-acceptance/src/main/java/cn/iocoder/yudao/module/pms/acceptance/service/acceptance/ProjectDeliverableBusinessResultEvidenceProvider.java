@@ -30,6 +30,15 @@ public class ProjectDeliverableBusinessResultEvidenceProvider implements Deliver
         this.results = results;
     }
 
+    @Override public Identity identity(Long tenantId,Long projectId,String objectId,Long revision) {
+        validateCurrent(tenantId,projectId,objectId,revision);
+        String[] parts=objectId.split("\\|",4);
+        var descriptor=results.types().stream().filter(value->typeCode(value.type()).equals(parts[0])).findFirst().orElseThrow();
+        var identity=results.deliveryIdentity(new BusinessResultSource.Query(tenantId,projectId,descriptor.type(),parts[1],descriptor.exactLookup()?parts[2]:null));
+        return identity==null?null:new Identity(identity.ownerModule(),identity.entityType(),identity.entityId(),identity.businessTypeCode(),
+                identity.businessObjectType(),identity.businessObjectId(),identity.businessRevisionNo());
+    }
+
     @Override
     public boolean supports(String businessObjectType) {
         return BUSINESS_OBJECT_TYPE.equals(businessObjectType);

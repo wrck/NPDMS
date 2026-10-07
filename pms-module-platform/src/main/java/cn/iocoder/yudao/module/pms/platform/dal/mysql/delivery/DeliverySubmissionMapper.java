@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliverySubmissionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySubmissionCurrentLockQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialSubmissionQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -32,6 +33,13 @@ public interface DeliverySubmissionMapper extends BaseMapperX<DeliverySubmission
                 .eq(DeliverySubmissionDO::getStatus, status)
                 .orderByDesc(DeliverySubmissionDO::getId));
     }
+
+    List<DeliverySubmissionDO> selectListUsingMaterial(@Param("query") DeliveryMaterialSubmissionQuery query);
+
+    List<DeliverySubmissionDO> selectPendingArchiveSubmissions(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveQueueQuery query);
+    DeliverySubmissionDO selectArchiveSubmissionForUpdate(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveSubmissionQuery query);
+    int requireArchiveSubmission(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveSubmissionQuery query);
+    int updateArchiveSubmissionState(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryArchiveSubmissionStateQuery query);
 
     DeliverySubmissionDO selectCurrentForUpdate(@Param("query") DeliverySubmissionCurrentLockQuery query);
 }

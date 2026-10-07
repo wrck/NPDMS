@@ -75,6 +75,14 @@ public class TrainingServiceImpl implements TrainingService {
     private DynamicFormBusinessInstanceApi confirmationFormApi;
     @Resource
     private TrainingPrintService trainingPrintService;
+    @Resource private cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi generatedFiles;
+    @Resource private TrainingConfirmationGrantService confirmationGrants;
+    @Resource private cn.iocoder.yudao.module.pms.platform.api.file.BusinessGrantGeneratedFileApi grantFiles;
+    @Resource private cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi operationAudit;
+    @Resource private cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence;
+    @Resource private cn.iocoder.yudao.module.system.api.permission.PermissionApi permissions;
+    @Resource private cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi projectContexts;
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -173,12 +181,13 @@ public class TrainingServiceImpl implements TrainingService {
         update.setTokenExpiresAt(LocalDateTime.now().plusDays(TOKEN_VALID_DAYS));
         update.setStatus(TrainingStatusEnum.ISSUED.getStatus());
         update.setVersion(existing.getVersion());
-        String fileUrl = renderAndUpload(existing);
+        String fileUrl = renderAndUpload(existing, true);
         update.setFileUrl(fileUrl);
         update.setFileName(existing.getFileName());
         update.setFileSize(existing.getFileSize());
         update.setFileChecksum(existing.getFileChecksum());
         if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
+        confirmationGrants.createForIssue(id,update.getSignTokenDigest());
         return new TrainingIssueRespVO(id, token, "/training-records/" + token,
                 update.getTokenExpiresAt(), fileUrl,
                 "外部推送通道（短信/钉钉）未接入，请复制确认链接线下发送给客户，有效期 7 天。");
@@ -203,9 +212,10 @@ public class TrainingServiceImpl implements TrainingService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String generateRecordFile(Long id) {
         TrainingDO existing = validateTrainingExists(id);
-        String fileUrl = renderAndUpload(existing);
+        String fileUrl = renderAndUpload(existing, true);
         TrainingDO update = new TrainingDO();
         update.setId(id);
         update.setFileUrl(fileUrl);
@@ -274,6 +284,9 @@ public class TrainingServiceImpl implements TrainingService {
         entity.setSignatureImageDataUrl(signature);
         entity.setConfirmationFormRules(rules);
         entity.setConfirmationValues(acceptedValues);
+        // New issuance has explicit business-grant evidence; legacy links retain their existing behavior.
+        var confirmationGrant=confirmationGrants.findForConfirmation(entity);
+        cn.iocoder.yudao.module.pms.platform.api.file.BusinessGrantGeneratedFileApi.RegisteredFile confirmedFile=null;
         // 先落客户确认信息，再把含客户填写区域的培训记录表上传文件服务
         TrainingDO update = new TrainingDO();
         update.setId(entity.getId());
@@ -296,13 +309,30 @@ public class TrainingServiceImpl implements TrainingService {
         entity.setSignOpinion(reqVO.getSignOpinion());
         entity.setSignConfirmerName(reqVO.getSignConfirmerName());
         entity.setSignTime(update.getSignTime());
-        update.setFileUrl(renderAndUpload(entity));
+        if(confirmationGrant==null) {
+            update.setFileUrl(renderAndUpload(entity,false));
+        } else {
+            byte[] content=renderRecordDocument(entity).getBytes(StandardCharsets.UTF_8);
+            String fileName=entity.getCode()+".html";
+            confirmedFile=grantFiles.create(new cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantGeneratedFileCommand(
+                    TenantContextHolder.getRequiredTenantId(),"training-grant:"+confirmationGrant.getId()+":"+digestHex(content),
+                    "IMP","TRAINING_RECORD",entity.getId(),entity.getVersion(),confirmationGrant.getId(),confirmationGrant.getIssuanceVersion(),
+                    "TRAINING_RECORD_HTML/"+entity.getVersion(),"TRAINING_RECORD",fileName,"text/html",content));
+            String fileUrl="/api/v1/pms/training-records/"+entity.getId()+"/files/"+confirmedFile.materialId();
+            entity.setFileUrl(fileUrl);entity.setFileName(fileName);entity.setFileSize((long)content.length);entity.setFileChecksum(confirmedFile.sha256());
+            update.setFileUrl(fileUrl);
+        }
         update.setFileName(entity.getFileName());
         update.setFileSize(entity.getFileSize());
         update.setFileChecksum(entity.getFileChecksum());
         if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
 
         archiveConfirmedDeliverable(entity);
+        if(confirmedFile!=null) operationAudit.record(TenantContextHolder.getRequiredTenantId(),confirmedFile.executionUserId(),
+                "training-confirm:"+confirmedFile.grantId(),"TRAINING_CUSTOMER_CONFIRMED","Training",String.valueOf(entity.getId()),"CONFIRMED",
+                java.util.Map.of("subjectType","BUSINESS_GRANT","channel","PUBLIC_LINK","grantId",confirmedFile.grantId(),
+                        "issuanceVersion",confirmedFile.issuanceVersion(),"executionUserId",confirmedFile.executionUserId(),
+                        "trainingId",entity.getId(),"materialId",confirmedFile.materialId(),"artifactId",confirmedFile.artifactId(),"fileVersion",confirmedFile.versionNo()));
     }
 
     private String confirmationRules(TrainingDO entity) {
@@ -389,10 +419,17 @@ public class TrainingServiceImpl implements TrainingService {
     /**
      * 生成培训记录表（HTML）：实施方填写内容 + 客户填写区域（未确认时留空），真实上传文件服务。
      */
-    private String renderAndUpload(TrainingDO entity) {
+    private String renderAndUpload(TrainingDO entity, boolean employeeGeneration) {
         byte[] document = renderRecordDocument(entity).getBytes(StandardCharsets.UTF_8);
         String fileName = entity.getCode() + ".html";
-        String fileUrl = fileApi.createFile(document, fileName, "training", "text/html");
+        String fileUrl;
+        if(employeeGeneration) {
+            var registered=saveNativeDocument(entity,"HTML",fileName,"text/html",document);
+            fileUrl="/api/v1/pms/training-records/"+entity.getId()+"/files/"+registered.materialId();
+        } else {
+            // Existing customer-token path retains its own principal; never impersonate an employee.
+            fileUrl=fileApi.createFile(document,fileName,"training","text/html");
+        }
         // 文件元数据回写到传入实体，由调用方随主更新一并落库
         entity.setFileUrl(fileUrl);
         entity.setFileName(fileName);
@@ -411,6 +448,53 @@ public class TrainingServiceImpl implements TrainingService {
                 null,
                 entity.getName() + "（现场培训记录）",
                 entity.getProjectId());
+    }
+
+    private cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi.RegisteredFile saveNativeDocument(
+            TrainingDO record,String format,String fileName,String media,byte[] content) {
+        String digest=org.apache.commons.codec.digest.DigestUtils.sha256Hex(content);
+        return generatedFiles.create(new cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand(
+                TenantContextHolder.getRequiredTenantId(),SecurityFrameworkUtils.getLoginUserId(),
+                "training-"+format.toLowerCase(java.util.Locale.ROOT)+":"+record.getId()+":"+record.getVersion()+":"+digest,
+                "IMP","TRAINING_RECORD",record.getId(),record.getVersion(),"TRAINING_RECORD_"+format+"/"+record.getVersion(),
+                "TRAINING_RECORD",fileName,media,content));
+    }
+    @Override @Transactional(rollbackFor=Exception.class)
+    public String requestGeneratedFileDownload(Long trainingId,Long materialId) {
+        validateTrainingExists(trainingId);
+        return generatedFiles.requestDownload("IMP","training",trainingId,materialId);
+    }
+    @Override @Transactional(rollbackFor=Exception.class)
+    public String requestPdfDownload(Long trainingId) throws java.io.IOException {
+        TrainingDO record=validateTrainingExists(trainingId);
+        var candidates=deliveryMaterialApi.listByEntityAndType("IMP","training",trainingId,"TRAINING_RECORD").stream()
+                .filter(m->"FILE".equals(m.materialKind()) && m.fileName()!=null && m.fileName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf"))
+                .sorted(java.util.Comparator.comparing(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView::id).reversed()).toList();
+        Long historical=null;
+        for(var candidate:candidates) {
+            var document=fileEvidence.inspectDocumentByArtifact(TenantContextHolder.getRequiredTenantId(),candidate.fileArtifactId(),candidate.fileVersionNo());
+            if(document==null || !document.available())continue;
+            if(historical==null)historical=candidate.id();
+            if(("TRAINING_RECORD_PDF/"+record.getVersion()).equals(document.purposeCode()))
+                return requestGeneratedFileDownload(trainingId,candidate.id());
+        }
+        Long actor=SecurityFrameworkUtils.getLoginUserId();
+        boolean writable=actor!=null && permissions.hasAnyPermissions(actor,"pms:file:upload")
+                && permissions.hasAnyPermissions(actor,"pms:imp-training:update","pms:imp-training:issue")
+                && !TrainingStatusEnum.VOID.getStatus().equals(record.getStatus());
+        if(writable) {
+            var project=projectContexts.inspect(new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Query(
+                    TenantContextHolder.getRequiredTenantId(),record.getProjectId(),actor));
+            writable=project!=null && "ACTIVE".equals(project.lifecycleStatus());
+        }
+        if(!writable) {
+            if(historical!=null)return requestGeneratedFileDownload(trainingId,historical);
+            throw exception(TRAINING_ARGUMENT_INVALID,"No registered PDF is available for read-only download");
+        }
+        if(record.getPrintLayoutSnapshot()!=null && JsonUtils.parseTree(record.getPrintLayoutSnapshot()).has("engine"))
+            throw exception(TRAINING_ARGUMENT_INVALID,"Use the bound print preview to save this dynamic-form PDF");
+        var registered=saveNativeDocument(record,"PDF",record.getCode()+".pdf","application/pdf",TrainingPdfRenderer.render(record));
+        return requestGeneratedFileDownload(trainingId,registered.materialId());
     }
 
     private String renderRecordDocument(TrainingDO entity) {

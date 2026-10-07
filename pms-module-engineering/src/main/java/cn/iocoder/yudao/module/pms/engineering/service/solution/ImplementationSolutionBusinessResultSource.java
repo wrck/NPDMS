@@ -33,6 +33,13 @@ public class ImplementationSolutionBusinessResultSource implements BusinessResul
         this.solutions = solutions;
     }
 
+    @Override public DeliveryIdentity deliveryIdentity(Query query) {
+        var observation=lockAndInspect(query);var result=observation.result();
+        if(result==null || result.validity()!=Validity.CURRENT)return null;
+        return new DeliveryIdentity("SOL","solution",BusinessResultSource.nativeId(result.objectId()),"IMPLEMENTATION_PLAN",
+                "solution",result.objectId(),Long.valueOf(result.businessRevision()));
+    }
+
     @Override public Descriptor descriptor() { return DESCRIPTOR; }
 
     /** 批准/撤回/再批准均在 Owner 事务内经既有 changed() 通道写入同一事件流。 */

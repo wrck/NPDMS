@@ -1,7 +1,10 @@
 <template>
+  <section>
+    <DeclaredBusinessFormLayout v-if="presentation?.layout" ref="layoutRef"
+      :presentation="presentation" :fields="fields || writableFields" :initial-values="initialValues" :disabled="disabled" />
   <el-form ref="formRef" :model="form" label-width="140px" :disabled="disabled">
     <el-form-item
-      v-for="field in writableFields"
+      v-for="field in baseFields"
       :key="field.code"
       :label="field.name"
       :prop="field.code"
@@ -46,28 +49,37 @@
     </el-form-item>
     <slot name="extra"></slot>
   </el-form>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
-import type { FieldVO } from '@/api/pms/platform/businessmodel'
+import { computed, reactive, ref, watch } from 'vue'
+import DeclaredBusinessFormLayout from './DeclaredBusinessFormLayout.vue'
+import type { BusinessEntityFormData, FieldVO } from '@/api/pms/platform/businessmodel'
 
 defineOptions({ name: 'BusinessEntityForm' })
 const props = defineProps<{
   writableFields: FieldVO[]
+  fields?: FieldVO[]
+  presentation?: BusinessEntityFormData
   /** 打开实体的字段值；为空表示新建。 */
   initialValues?: Record<string, unknown>
   disabled?: boolean
 }>()
 
 const formRef = ref()
+const layoutRef = ref<{ buildInput: () => Promise<Record<string, unknown>> }>()
+const baseFields = computed(() => {
+  const mapped = new Set(Object.values(props.presentation?.layout?.binding.fieldBindings || {}))
+  return props.writableFields.filter(field => !mapped.has(field.code))
+})
 const form = reactive<Record<string, unknown>>({})
 const rules = reactive<Record<string, Array<{ required: boolean; message: string; trigger: string }>>>({})
 
 const syncForm = () => {
   Object.keys(form).forEach((key) => delete form[key])
   Object.keys(rules).forEach((key) => delete rules[key])
-  for (const field of props.writableFields) {
+  for (const field of baseFields.value) {
     const initial = props.initialValues?.[field.code]
     if (field.type === 'TEXT_LIST') form[field.code] = Array.isArray(initial) ? [...initial] : []
     else if (field.type === 'OBJECT_LIST')
@@ -83,14 +95,19 @@ watch(() => [props.writableFields, props.initialValues], syncForm, { immediate: 
 /** 校验并把表单值收敛为操作输入；OBJECT_LIST 解析为真实 JSON 数组。 */
 const buildInput = async (): Promise<Record<string, unknown>> => {
   await formRef.value?.validate()
-  const input: Record<string, unknown> = {}
-  for (const field of props.writableFields) {
+  const input: Record<string, unknown> = await layoutRef.value?.buildInput() || {}
+  for (const field of baseFields.value) {
     const raw = form[field.code]
-    if (field.type === 'OBJECT_LIST') {
-      if (raw == null || raw === '') continue
-      input[field.code] = JSON.parse(String(raw))
-    } else if (raw !== null && raw !== undefined && raw !== '') {
-      input[field.code] = raw
+    const value = field.type === 'OBJECT_LIST'
+      ? (raw == null || raw === '' ? null : JSON.parse(String(raw)))
+      : (raw === '' || raw === undefined ? null : raw)
+    if (props.initialValues) {
+      // Omit unchanged/unreadable values, but preserve an explicit clearing of a loaded value.
+      const initial = props.initialValues[field.code] ?? (field.type === 'TEXT_LIST' ? [] : null)
+      if (JSON.stringify(value) === JSON.stringify(initial)) continue
+      input[field.code] = value
+    } else if (value !== null) {
+      input[field.code] = value
     }
   }
   return input

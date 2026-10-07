@@ -88,6 +88,7 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
             compensateUnregisteredObject(client, storagePath, operationId, persistenceFailure);
             throw persistenceFailure;
         }
+        registerRollbackCleanup(client,storagePath,operationId);
         return toReceipt(operationId, file);
     }
 
@@ -103,7 +104,8 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
         FilePathUtils.validatePath(file.getPath());
         FileClient client = fileConfigService.getFileClient(file.getConfigId());
         Assert.notNull(client, "客户端({}) 不能为空", file.getConfigId());
-        String url = client instanceof DBFileClient ? receiptDownloads.issue(file, expirationSeconds)
+        String url = client instanceof DBFileClient || client instanceof cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClient
+                ? receiptDownloads.issue(file, expirationSeconds)
                 : client.presignGetUrl(file.getPath(), expirationSeconds);
         return new FileStorageAccessReceipt(url, LocalDateTime.now().plusSeconds(expirationSeconds));
     }
@@ -158,6 +160,25 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
     private FileStorageReceipt toReceipt(String operationId, FileDO file) {
         return new FileStorageReceipt(operationId, file.getId(), file.getName(),
                 file.getType(), file.getSize());
+    }
+
+    private void registerRollbackCleanup(FileClient client,String storagePath,String operationId) {
+        if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
+                || !org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive())return;
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override public void afterCompletion(int status) {
+                        if(status!=STATUS_ROLLED_BACK)return;
+                        try {
+                            // A replay/committed receipt owns this path; never delete its immutable bytes.
+                            if(!fileMapper.selectCommittedReceiptForRollback(new FileStorageOperationLookupQuery(storagePath)).isEmpty())return;
+                            client.delete(storagePath);
+                        } catch(Exception cleanupFailure) {
+                            log.error("file_storage_rollback_cleanup_failed operationId={} configId={} path={}",
+                                    operationId,client.getId(),storagePath,cleanupFailure);
+                        }
+                    }
+                });
     }
 
     private void compensateUnregisteredObject(FileClient client, String storagePath,

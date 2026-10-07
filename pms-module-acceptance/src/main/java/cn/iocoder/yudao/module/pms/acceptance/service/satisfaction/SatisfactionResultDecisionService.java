@@ -30,6 +30,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionResultDecisionService {
+    private final cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi nativeMaterials;
+
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionResponseMapper responseMapper;
@@ -131,6 +133,7 @@ public class SatisfactionResultDecisionService {
                 String.valueOf(actorUserId))) != 1) {
             throw new IllegalStateException("SATISFACTION_RESULT_WRITE_CONFLICT");
         }
+        if (IndependentSatisfactionService.direct(task)) files.forEach(item -> nativeMaterials.registerNativeSourceFile(item.fact()));
         return new DecisionResult(command.operationId(), command.tenantId(), task.getProjectId(), task.getProjectTaskId(),
                 projectTask == null ? null : projectTask.projectTaskVersion(), task.getDeliverableId(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
                 questionnaire.getTemplateRevisionId(),

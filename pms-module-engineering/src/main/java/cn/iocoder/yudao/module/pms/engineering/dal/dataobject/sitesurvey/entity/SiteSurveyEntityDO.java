@@ -1,12 +1,11 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -21,36 +20,36 @@ import java.time.LocalDate;
 @TableName(value = "sol_site_survey", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SiteSurveyEntityDO extends TenantBaseDO {
+public class SiteSurveyEntityDO extends BaseBusinessEntity {
 
-    @TableId(type = com.baomidou.mybatisplus.annotation.IdType.ASSIGN_ID)
-    @JsonIgnore private Long id;
+    @Override @JsonIgnore public Long getId() { return super.getId(); }
+    @Override @JsonIgnore public Long getVersion() { return super.getVersion(); }
     /**
      * 所属项目编号
      */
-    @JsonIgnore private Long projectId;
+    @BusinessModelField @JsonIgnore private Long projectId;
     /**
      * 工勘编码，项目内唯一
      */
-    @JsonIgnore private String code;
+    @BusinessModelField @JsonIgnore private String code;
     /**
      * 工勘名称
      */
-    @JsonIgnore private String name;
+    @BusinessModelField @JsonIgnore private String name;
     /**
      * 工勘日期
      */
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    @JsonIgnore private LocalDate surveyDate;
+    @BusinessModelField @JsonIgnore private LocalDate surveyDate;
     /**
      * 工勘责任人
      */
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    @JsonIgnore private Long surveyorUserId;
+    @BusinessModelField @JsonIgnore private Long surveyorUserId;
     /**
      * 工勘地点
      */
-    @JsonIgnore private String location;
+    @BusinessModelField @JsonIgnore private String location;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private Long addressId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
@@ -116,7 +115,7 @@ public class SiteSurveyEntityDO extends TenantBaseDO {
     /**
      * 状态：0 草稿 1 已确认 2 已驳回 3 已归档
      */
-    @JsonIgnore private Integer status;
+    @BusinessModelField @JsonIgnore private Integer status;
     /** Owner transition evidence, not generic update_time (editing a remark is not a new confirmation). */
     @JsonIgnore private java.time.LocalDateTime confirmedAt;
     @JsonIgnore private java.time.LocalDateTime archivedAt;
@@ -125,13 +124,7 @@ public class SiteSurveyEntityDO extends TenantBaseDO {
      */
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    @JsonIgnore private Long version;
-
-    @JsonIgnore private Boolean outsourceRequired;
+    @BusinessModelField @JsonIgnore private Boolean outsourceRequired;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private Long outsourceRequestId;
 

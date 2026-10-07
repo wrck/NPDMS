@@ -44,7 +44,7 @@ public class FileStorageReceiptAccessService {
             throw new IllegalArgumentException("FILE_STORAGE_RECEIPT_DB_ACCESS_INVALID");
         }
         FilePathUtils.validatePath(file.getPath());
-        String urlBase = dbConfigDomain(file.getConfigId());
+        String urlBase = receiptConfigDomain(file.getConfigId());
         String token = newToken();
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationSeconds);
         var ticket = new ReceiptTicket(file.getId(), file.getConfigId(), file.getPath(), file.getName(),
@@ -72,12 +72,23 @@ public class FileStorageReceiptAccessService {
         return new ReceiptContent(ticket.name(), ticket.mediaType(), content);
     }
 
-    private String dbConfigDomain(Long configId) {
+    private String receiptConfigDomain(Long configId) {
         FileConfigDO config = fileConfigService.getFileConfig(configId);
-        if (config == null || !(config.getConfig() instanceof DBFileClientConfig dbConfig)) {
-            throw new IllegalStateException("FILE_STORAGE_RECEIPT_DB_CONFIG_INVALID");
-        }
-        return normalizeDomain(dbConfig.getDomain());
+        if(config==null)throw new IllegalStateException("FILE_STORAGE_RECEIPT_CONFIG_INVALID");
+        if(config.getConfig() instanceof DBFileClientConfig database)return receiptDomain(database.getDomain(),configId);
+        if(config.getConfig() instanceof cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClientConfig local)
+            return receiptDomain(local.getDomain(),configId);
+        throw new IllegalStateException("FILE_STORAGE_RECEIPT_CONFIG_INVALID");
+    }
+
+    private String receiptDomain(String configuredDomain,Long configId) {
+        String normalized=normalizeDomain(configuredDomain);
+        String prefix=webProperties.getAdminApi().getPrefix();
+        if(prefix==null || prefix.isBlank())throw new IllegalStateException("FILE_STORAGE_RECEIPT_ADMIN_API_INVALID");
+        prefix=StrUtil.removeSuffix(prefix.startsWith("/")?prefix:"/"+prefix,"/");
+        String legacySuffix=prefix+"/infra/file/"+configId+"/get";
+        // Existing DB/local configuration domains may already name the legacy download route.
+        return normalized.endsWith(legacySuffix)?normalized.substring(0,normalized.length()-legacySuffix.length()):normalized;
     }
 
     private String normalizeDomain(String domain) {

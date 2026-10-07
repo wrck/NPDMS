@@ -56,7 +56,7 @@ class DeliveryMaterialServiceTest {
 
     @Test
     void businessResultRegistersAfterProviderValidation() {
-        when(materialMapper.selectByBusinessObject("SOL", "solution", 42L, "solution", "42", 9L))
+        when(materialMapper.selectSourceBusiness(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceBusinessQuery(1L, 9L, "solution", "42", 9L)))
                 .thenReturn(null);
         when(materialMapper.insert(any(DeliveryMaterialDO.class))).thenReturn(1);
 
@@ -81,7 +81,7 @@ class DeliveryMaterialServiceTest {
     void businessResultIsIdempotentPerBusinessObjectRevision() {
         DeliveryMaterialDO existing = new DeliveryMaterialDO();
         existing.setId(77L);
-        when(materialMapper.selectByBusinessObject("SOL", "solution", 42L, "solution", "42", 9L))
+        when(materialMapper.selectSourceBusiness(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceBusinessQuery(1L, 9L, "solution", "42", 9L)))
                 .thenReturn(existing);
 
         DeliveryMaterialDO registered = service.registerBusinessResult("SOL", "solution", 42L,
@@ -133,7 +133,7 @@ class DeliveryMaterialServiceTest {
 
     @Test
     void duplicateKeyConflictSurfacesWhenIdempotentRowMissing() {
-        when(materialMapper.selectByBusinessObject("SOL", "solution", 42L, "solution", "42", 9L))
+        when(materialMapper.selectSourceBusiness(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceBusinessQuery(1L, 9L, "solution", "42", 9L)))
                 .thenReturn(null);
         DuplicateKeyException conflict = new DuplicateKeyException("dup");
         when(materialMapper.insert(any(DeliveryMaterialDO.class))).thenThrow(conflict);
@@ -153,7 +153,7 @@ class DeliveryMaterialServiceTest {
         row.setTypeCode("IMPLEMENTATION_PLAN");
         when(materialMapper.selectById(5L)).thenReturn(row);
 
-        DeliveryMaterialDO withdrawn = service.withdraw(5L);
+        DeliveryMaterialDO withdrawn = service.withdrawTrusted(5L);
 
         assertEquals(DeliveryMaterialDO.STATUS_WITHDRAWN, withdrawn.getStatus());
         verify(eventPublisher).publishMaterial("SOL", "solution", 42L, "IMPLEMENTATION_PLAN",

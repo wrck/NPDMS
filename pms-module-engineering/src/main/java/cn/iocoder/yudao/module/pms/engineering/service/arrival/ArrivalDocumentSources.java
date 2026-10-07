@@ -43,6 +43,6 @@ public class ArrivalDocumentSources implements FileDocumentSourceProvider {
         }
         var arrival = arrivalMapper.selectById(arrivalId);
         if (arrival == null || !Objects.equals(tenantId, arrival.getTenantId())) return null;
-        return new Scope(arrival.getProjectId(), SOURCE_CODE);
+        return new Scope(arrival.getProjectId(), SOURCE_CODE, "IMP", "arrival", arrival.getId(), null);
     }
 }

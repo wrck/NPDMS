@@ -12,4 +12,7 @@ public interface PlatformIdempotencyRecordMapper extends BaseMapperX<PlatformIde
     int insertIfAbsent(PlatformIdempotencyRecordDO record);
 
     PlatformIdempotencyRecordDO selectByScope(@Param("query") IdempotencyScopeQuery query);
+
+    /** Current read after a concurrent reservation; only called inside the business transaction. */
+    PlatformIdempotencyRecordDO selectByScopeForUpdate(@Param("query") IdempotencyScopeQuery query);
 }

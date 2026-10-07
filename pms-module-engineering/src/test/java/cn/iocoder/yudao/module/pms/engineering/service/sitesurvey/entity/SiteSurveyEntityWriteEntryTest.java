@@ -21,7 +21,7 @@ class SiteSurveyEntityWriteEntryTest {
         var location = mock(EngineeringLocationFactService.class);
         var forms = mock(SiteSurveyEntityFormService.class);
         var events = mock(EngineeringRuleReevaluationEvents.class);
-        var service = new SiteSurveyEntityServiceImpl();
+        var service = new SiteSurveyEntityDomainCommands();
         ReflectionTestUtils.setField(service,"siteSurveyEntityMapper",mapper);
         ReflectionTestUtils.setField(service,"writeAccess",access);
         ReflectionTestUtils.setField(service,"locationFactService",location);

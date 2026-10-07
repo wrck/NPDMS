@@ -1,6 +1,7 @@
 // 统一交付件公共客户端：类型目录、适用配置、要求实例、材料记录、提交台账。
 // 文件上传复用统一文件两段式客户端（api/pms/platform/file），本文件只做交付语义调用。
 import request from '@/config/axios'
+import type { FileBusinessKey } from '@/api/pms/platform/file'
 
 const baseUrl = '/api/v1/pms/delivery'
 
@@ -30,7 +31,7 @@ export interface DeliveryRequirementVO {
   id: number
   ownerModule: string
   entityType: string
-  entityId: number
+  entityId: string | number
   typeCode: string
   required: boolean
   minimumQuantity: number
@@ -42,13 +43,18 @@ export interface DeliveryRequirementVO {
 
 export interface DeliveryMaterialVO {
   id: number
+  fileBusinessKey?: FileBusinessKey
+  materialKind: 'FILE' | 'BUSINESS_RESULT'
+  businessObjectType?: string
+  businessObjectId?: string
+  businessRevisionNo?: number
   typeCode: string
-  fileName: string
+  fileName?: string
   title?: string
-  fileArtifactId: number
-  fileVersionNo: number
-  fileSha256: string
-  fileReferenceId: number
+  fileArtifactId?: number
+  fileVersionNo?: number
+  fileSha256?: string
+  fileReferenceId?: number
   sourceKind: string
   status: 'ACTIVE' | 'WITHDRAWN'
   createTime: string
@@ -75,7 +81,7 @@ export interface SubmissionOutcomeVO {
 export interface EntityOwnerParam {
   ownerModule: string
   entityType: string
-  entityId: number
+  entityId: string | number
 }
 
 export const getDeliveryTypes = (enabled?: boolean) =>
@@ -94,7 +100,7 @@ export const listConfigs = (ownerModule: string, entityType: string) =>
 export const syncRequirements = (data: EntityOwnerParam) =>
   request.post<DeliveryRequirementVO[]>({ url: `${baseUrl}/requirements/sync`, data, silentError: true })
 
-export const listRequirements = (ownerModule: string, entityType: string, entityId: number) =>
+export const listRequirements = (ownerModule: string, entityType: string, entityId: string | number) =>
   request.get<DeliveryRequirementVO[]>({
     url: `${baseUrl}/requirements`,
     params: { ownerModule, entityType, entityId },
@@ -107,7 +113,7 @@ export const confirmRequirement = (requirementId: number) =>
 export const listMaterials = (
   ownerModule: string,
   entityType: string,
-  entityId: number,
+  entityId: string | number,
   typeCode?: string
 ) =>
   request.get<DeliveryMaterialVO[]>({
@@ -135,3 +141,17 @@ export const listSubmissions = (requirementId: number) =>
     params: { requirementId },
     silentError: true
   })
+
+export interface DeliveryCompletionFact {
+  requirementId: number
+  count: number
+  minimumQuantity: number
+  satisfied: boolean
+  confirmed: boolean
+  reason: string
+}
+
+export const getCompletion = (requirementId: number) =>
+  request.get<DeliveryCompletionFact>({ url: `${baseUrl}/requirements/${requirementId}/completion`, silentError: true })
+
+export const getDeliveryAllowedActions=(ownerModule:string,entityType:string,entityId:string|number):Promise<string[]>=>request.get({url:'/api/v1/pms/delivery/allowed-actions',params:{ownerModule,entityType,entityId}})

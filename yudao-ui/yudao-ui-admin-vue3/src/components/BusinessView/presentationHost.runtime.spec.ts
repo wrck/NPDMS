@@ -27,6 +27,7 @@ vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.v
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning: vi.fn() }) }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
+vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 0, getTenantId: () => 7, getVisitTenantId: () => undefined }))
 vi.mock('@/config/axios', () => ({ default: { post: vi.fn() } }))
 vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } } }))
 const route = businessPageRoutes.SOL_SITE_SURVEY

@@ -34,6 +34,9 @@ public interface FileMapper extends BaseMapperX<FileDO> {
                 .orderByAsc(FileDO::getId));
     }
 
+    /** Fresh rollback cleanup lookup; never reuses the pre-rollback receipt query cache. */
+    List<FileDO> selectCommittedReceiptForRollback(@Param("query") FileStorageOperationLookupQuery query);
+
     List<FileDO> selectListByStorageOperation(
             @Param("query") FileStorageOperationLookupQuery query);
 

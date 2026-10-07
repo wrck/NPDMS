@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.platform.support.service;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * 统一幂等执行记录存储：与既有平台幂等台账同语义（预约 IN_PROGRESS、完成 COMPLETED、
@@ -19,6 +20,18 @@ public interface OperationExecutionStore {
      * 查询既有执行记录；无记录返回 empty。重放仍须先通过访问权限检查（由固定执行序保证）。
      */
     Optional<StoredExecution> findExisting(OperationExecutionKey key);
+
+    /** Decode an existing native response at the Owner boundary without creating another ledger. */
+    default Optional<StoredExecution> findExisting(OperationExecutionKey key,
+                                                  Function<String, BusinessOperationReceipt> decoder) {
+        return findExisting(key);
+    }
+
+    /** Preserve a native response protocol while exposing a neutral operation receipt. */
+    default void complete(OperationExecutionKey key, String aggregateType, String resourceKey,
+                          BusinessOperationReceipt receipt, String nativeResponsePayload) {
+        complete(key, aggregateType, resourceKey, receipt);
+    }
 
     /**
      * 完成执行：登记聚合身份与原始回执，回执可重复查询；必须在业务事务内调用。

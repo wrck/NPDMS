@@ -52,6 +52,26 @@ class FileStorageReceiptAccessServiceTest {
     }
 
     @Test
+    void localReceiptTicketReadsRealBytesWithoutExposingStoragePath(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory) throws Exception {
+        var localConfig=new cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClientConfig();
+        localConfig.setDomain("https://files.example/base/admin-api/infra/file/51/get");localConfig.setBasePath(directory.toString());
+        var config=new FileConfigDO();config.setId(51L);config.setConfig(localConfig);
+        when(configs.getFileConfig(51L)).thenReturn(config);
+        var local=new cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClient(51L,localConfig);local.init();
+        byte[] bytes={1,2,3};local.upload(bytes,file.getPath(),file.getType());
+        when(configs.getFileClient(51L)).thenReturn(local);when(files.selectById(501L)).thenReturn(file);
+        String url=service.issue(file,120);
+        assertFalse(url.contains(file.getPath()));assertFalse(url.contains(directory.toString()));
+        assertTrue(url.startsWith("https://files.example/base/admin-api/infra/file-storage-receipts/content?ticket="));
+        var content=service.read(token(url));assertArrayEquals(bytes,content.content());assertEquals("receipt.pdf",content.name());
+        assertNull(service.read("A".repeat(43)));
+        cache.replaceAll((key,value)->JsonUtils.toJsonString(new FileStorageReceiptAccessService.ReceiptTicket(
+                501L,51L,file.getPath(),file.getName(),file.getType(),3L,LocalDateTime.now().minusSeconds(1))));
+        assertNull(service.read(token(url)));
+        assertArrayEquals(bytes,local.getContent(file.getPath()));
+    }
+
+    @Test
     void rejectsUnmanagedFilesBeforeIssuingACapability() {
         file.setPath("public/document.pdf");
         assertThrows(IllegalArgumentException.class, () -> service.issue(file, 60));

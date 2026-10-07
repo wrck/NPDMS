@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import cn.iocoder.yudao.module.pms.platform.support.persistence.BusinessEntityPersistenceRegistry;
 
 import java.util.Map;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -25,6 +26,17 @@ public class BusinessOperationDispatcher {
         this.defaultService = defaultService;
     }
 
+    /** Discover inherited Owner services, including class-based transactional proxies. */
+    public BusinessOperationDispatcher(BusinessEntityPersistenceRegistry persistence,
+                                       DefaultBusinessApplicationService defaultService,
+                                       Collection<? extends AbstractBusinessApplicationService<?>> services) {
+        this(persistence, defaultService);
+        for (AbstractBusinessApplicationService<?> service : services) {
+            BusinessEntityService identity = service.getClass().getAnnotation(BusinessEntityService.class);
+            if (identity != null) register(identity.ownerModule(), identity.entityType(), service);
+        }
+    }
+
     /** 专业服务注册：同一实体重复注册直接报告冲突，不允许静默替换。 */
     public void register(String ownerModule, String entityType,
                          AbstractBusinessApplicationService<?> service) {
@@ -35,6 +47,19 @@ public class BusinessOperationDispatcher {
             throw new BusinessContractException("SERVICE_DECLARED_TWICE",
                     "实体专业服务重复注册: " + key);
         }
+    }
+
+    /** Native Owners retain their own capability providers; generic defaults use this same thin service. */
+    public DefaultBusinessApplicationService capabilityService(String ownerModule,String entityType) {
+        persistence.require(ownerModule,entityType);
+        var service=specialized.getOrDefault(ownerModule+"/"+entityType,defaultService);
+        if(service==defaultService || service instanceof ExtensibleBusinessApplicationService)
+            return (DefaultBusinessApplicationService)service;
+        throw new BusinessContractException("ENTITY_PROVIDER_UNAVAILABLE","Native Owner requires its own capability contract");
+    }
+
+    public BusinessOperationReceipt recoverReceipt(String owner,String type,String operation,int version,String key) {
+        return capabilityService(owner,type).recoverReceipt(owner,type,operation,version,key);
     }
 
     @SuppressWarnings("unchecked")

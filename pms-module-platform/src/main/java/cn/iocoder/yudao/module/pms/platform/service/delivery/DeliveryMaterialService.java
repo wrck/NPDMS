@@ -9,12 +9,16 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMaterialDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryMaterialMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceFileQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceBusinessQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceIdentityQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -34,6 +38,110 @@ public class DeliveryMaterialService {
     private final FileEvidenceApi fileEvidenceApi;
     private final DeliveryEventPublisher eventPublisher;
     private final List<DeliveryBusinessObjectEvidenceProvider> evidenceProviders;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private DeliveryOwnerAccess ownerAccess;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private DeliveryFulfillmentService fulfillmentService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private DeliveryDocumentOriginResolver originResolver;
+
+    private cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider.Scope origin(FileEvidenceApi.Document document, Long projectId) {
+        var scope = originResolver == null ? null : originResolver.resolve(document);
+        if (scope != null && !java.util.Objects.equals(projectId, scope.projectId()))
+            throw new BusinessContractException("DELIVERY_SOURCE_PROJECT_MISMATCH", "File owner belongs to another project");
+        return scope;
+    }
+    private DeliveryMaterialDO enrichOrigin(DeliveryMaterialDO row, cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider.Scope scope) {
+        if (scope == null || !scope.hasBusinessOwner()) return row;
+        if (row.getSourceOwnerModule() != null && (!java.util.Objects.equals(row.getSourceOwnerModule(),scope.ownerModule())
+                || !(java.util.Objects.equals(row.getSourceEntityType(),scope.entityType())
+                    || "SOL".equals(scope.ownerModule()) && java.util.Set.of("REQUIREMENT_ANALYSIS","requirementAnalysis").contains(scope.entityType())
+                    && row.getSourceEntityType()!=null && java.util.Set.of("REQUIREMENT_ANALYSIS","requirementAnalysis").contains(row.getSourceEntityType()))
+                || !java.util.Objects.equals(row.getSourceEntityId(),scope.entityId())))
+            throw new BusinessContractException("DELIVERY_SOURCE_OWNER_CONFLICT", "Source owner identity conflicts");
+        if (row.getId() != null) materialMapper.assignOriginIfMissing(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOriginUpdate(
+                TenantContextHolder.getRequiredTenantId(),row.getId(),scope.sourceCode(),scope.ownerModule(),scope.entityType(),scope.entityId(),scope.revisionId()));
+        if(row.getBusinessTypeCode()==null)row.setBusinessTypeCode(scope.sourceCode());
+        if(row.getSourceOwnerModule()==null)row.setSourceOwnerModule(scope.ownerModule());
+        if(row.getSourceEntityType()==null)row.setSourceEntityType(scope.entityType());
+        row.setSourceEntityId(scope.entityId());
+        if(row.getSourceRevisionId()==null)row.setSourceRevisionId(scope.revisionId());
+        return row;
+    }
+
+    /** A specific authenticated generation operation has already validated its native file Owner. */
+    @Transactional
+    public DeliveryMaterialDO registerNativeGeneratedDocument(Long referenceId) {
+        var document=fileEvidenceApi.inspectDocument(TenantContextHolder.getRequiredTenantId(),referenceId);
+        if(document==null || !document.available())throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","Generated file unavailable");
+        return registerNativeDocument(document,true,DeliveryMaterialDO.SOURCE_GENERATED);
+    }
+
+    @Transactional
+    public DeliveryMaterialDO registerNativeUploadedDocument(FileArtifactVersionFact fact) {
+        return registerNativeDocument(requireNativeFile(fact),true,DeliveryMaterialDO.SOURCE_UPLOAD);
+    }
+
+    @Transactional
+    public DeliveryMaterialDO registerNativeSourceDocument(FileArtifactVersionFact fact) {
+        return registerNativeDocument(requireNativeFile(fact),false,DeliveryMaterialDO.SOURCE_ASSOCIATED);
+    }
+
+    private FileEvidenceApi.Document requireNativeFile(FileArtifactVersionFact fact) {
+        if(fact==null)throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","Native file fact required");
+        var document=fileEvidenceApi.inspectDocumentByArtifact(TenantContextHolder.getRequiredTenantId(),fact.artifactId(),fact.versionNo());
+        if(document==null || !document.available() || !java.util.Objects.equals(fact.sha256(),document.sha256())
+                || !java.util.Objects.equals(fact.referenceKey(),document.referenceKey()))
+            throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","Native file fact does not match its registered anchor");
+        return document;
+    }
+
+    private DeliveryMaterialDO registerNativeDocument(FileEvidenceApi.Document document,boolean requireCatalog,String sourceKind) {
+        var scope=originResolver.resolve(document);
+        if(scope==null || !scope.hasBusinessOwner())throw new BusinessContractException("DELIVERY_SOURCE_UNKNOWN","Generated file has no declared native source");
+        if(requireCatalog)catalogService.requireEnabledType(scope.sourceCode());
+        var existing=sourceFile(scope.projectId(),document.artifactId(),document.versionNo());
+        if(existing!=null)return enrichOrigin(existing,scope);
+        var row=new DeliveryMaterialDO();row.setTenantId(TenantContextHolder.getRequiredTenantId());
+        row.setSourceIdentityKey(sourceKey(scope.projectId(),"FILE",document.artifactId(),document.versionNo()));
+        row.setOwnerModule(scope.ownerModule());row.setEntityType(scope.entityType());row.setEntityId(scope.entityId());row.setTypeCode(scope.sourceCode());
+        row.setProjectId(scope.projectId());row.setMaterialKind(DeliveryMaterialDO.KIND_FILE);row.setFileReferenceId(document.referenceId());
+        row.setFileArtifactId(document.artifactId());row.setFileVersionNo(document.versionNo());row.setFileSha256(document.sha256());
+        row.setFileName(document.name());row.setTitle(document.name());row.setSourceKind(sourceKind);row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
+        enrichOrigin(row,scope);
+        try { materialMapper.insert(row); }
+        catch(DuplicateKeyException conflict) { var concurrent=concurrentSource(row.getSourceIdentityKey());if(concurrent==null)throw conflict;return enrichOrigin(concurrent,scope); }
+        eventPublisher.publishMaterial(scope.ownerModule(),scope.entityType(),scope.entityId(),scope.sourceCode(),"MATERIAL_REGISTERED");
+        return row;
+    }
+
+    private DeliveryMaterialDO sourceFile(Long projectId, Long artifactId, Integer versionNo) {
+        return materialMapper.selectSourceFile(new DeliverySourceFileQuery(
+                TenantContextHolder.getRequiredTenantId(), projectId, artifactId, versionNo));
+    }
+
+    private DeliveryMaterialDO concurrentSource(String key) {
+        return materialMapper.selectSourceIdentityForUpdate(new DeliverySourceIdentityQuery(
+                TenantContextHolder.getRequiredTenantId(), key));
+    }
+
+    private DeliveryMaterialDO associate(DeliveryRequirementDO requirement, DeliveryMaterialDO row) {
+        fulfillmentService.associate(requirement, row);
+        return row;
+    }
+
+    private static String sourceKey(Long projectId, String kind, Object... identity) {
+        // Length-prefixed components avoid delimiter collisions in externally defined object identifiers.
+        StringBuilder value = new StringBuilder(projectId + ":" + kind);
+        for (Object component : identity) {
+            String part = component == null ? "N" : "S" + component;
+            value.append(':').append(part.length()).append(':').append(part);
+        }
+        return org.apache.commons.codec.digest.DigestUtils.sha256Hex(value.toString());
+    }
 
     public static String fileObjectId(String ownerModule, String entityType, Long entityId) {
         return ownerModule + ":" + entityType + ":" + entityId;
@@ -68,7 +176,13 @@ public class DeliveryMaterialService {
             throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE",
                     "文件版本不可用，不能登记为交付材料: " + fileReferenceId);
         }
+        if (requirementId != null) {
+            DeliveryMaterialDO existing = sourceFile(projectId, document.artifactId(), document.versionNo());
+            if (existing != null) return existing;
+        }
         DeliveryMaterialDO row = new DeliveryMaterialDO();
+        row.setTenantId(TenantContextHolder.getRequiredTenantId());
+        if (requirementId != null) row.setSourceIdentityKey(sourceKey(projectId, "FILE", document.artifactId(), document.versionNo()));
         row.setOwnerModule(ownerModule);
         row.setEntityType(entityType);
         row.setEntityId(entityId);
@@ -88,6 +202,10 @@ public class DeliveryMaterialService {
         try {
             materialMapper.insert(row);
         } catch (DuplicateKeyException conflict) {
+            if (requirementId != null) {
+                DeliveryMaterialDO existing = concurrentSource(row.getSourceIdentityKey());
+                if (existing != null) return existing;
+            }
             // 同一文件版本对同一来源实体的重复登记按幂等处理，返回既有材料记录。
             return materialMapper.selectByEntity(ownerModule, entityType, entityId, typeCode).stream()
                     .filter(material -> DeliveryMaterialDO.KIND_FILE.equals(material.getMaterialKind()))
@@ -118,12 +236,20 @@ public class DeliveryMaterialService {
         DeliveryBusinessObjectEvidenceProvider provider = requireProvider(businessObjectType);
         provider.validateCurrent(TenantContextHolder.getRequiredTenantId(), projectId,
                 businessObjectId, businessRevisionNo);
-        DeliveryMaterialDO existing = materialMapper.selectByBusinessObject(
-                ownerModule, entityType, entityId, businessObjectType, businessObjectId, businessRevisionNo);
-        if (existing != null) {
-            return existing;
+        var identity=provider.identity(TenantContextHolder.getRequiredTenantId(),projectId,businessObjectId,businessRevisionNo);
+        String canonicalType=identity==null?businessObjectType:identity.businessObjectType();
+        String canonicalId=identity==null?businessObjectId:identity.businessObjectId();
+        Long canonicalRevision=identity==null?businessRevisionNo:identity.businessRevisionNo();
+        String identityKey=sourceKey(projectId,"BUSINESS_RESULT",canonicalType,canonicalId,canonicalRevision);
+        DeliveryMaterialDO existing=matchingBusinessSource(concurrentSource(identityKey),identity,identityKey);
+        if(existing==null)existing=matchingBusinessSource(materialMapper.selectSourceBusiness(new DeliverySourceBusinessQuery(TenantContextHolder.getRequiredTenantId(),projectId,canonicalType,canonicalId,canonicalRevision)),identity,identityKey);
+        if(existing==null)for(var alias:provider.aliases(TenantContextHolder.getRequiredTenantId(),projectId,businessObjectId,businessRevisionNo)) {
+            existing=matchingBusinessSource(materialMapper.selectSourceBusiness(new DeliverySourceBusinessQuery(TenantContextHolder.getRequiredTenantId(),projectId,alias.businessObjectType(),alias.businessObjectId(),alias.businessRevisionNo())),identity,identityKey);
+            if(existing!=null)break;
         }
+        if(existing!=null)return enrichBusinessIdentity(existing,identity,identityKey);
         DeliveryMaterialDO row = new DeliveryMaterialDO();
+        row.setTenantId(TenantContextHolder.getRequiredTenantId());
         row.setOwnerModule(ownerModule);
         row.setEntityType(entityType);
         row.setEntityId(entityId);
@@ -136,7 +262,9 @@ public class DeliveryMaterialService {
         row.setTitle(title);
         row.setSourceKind(DeliveryMaterialDO.SOURCE_ASSOCIATED);
         row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
-        materialMapper.insert(row);
+        enrichBusinessIdentity(row,identity,identityKey);
+        try { materialMapper.insert(row); }
+        catch(DuplicateKeyException conflict) {var concurrent=concurrentSource(identityKey);if(concurrent==null)throw conflict;return enrichBusinessIdentity(concurrent,identity,identityKey);}
         eventPublisher.publishMaterial(ownerModule, entityType, entityId, typeCode, "MATERIAL_REGISTERED");
         return row;
     }
@@ -156,9 +284,9 @@ public class DeliveryMaterialService {
     @Transactional
     public DeliveryMaterialDO registerTemplateFrozenFile(DeliveryRequirementDO requirement,
                                                          Long fileReferenceId, String title, String sourceKind) {
-        return doRegisterFile(requirement.getOwnerModule(), requirement.getEntityType(),
+        return associate(requirement, doRegisterFile(requirement.getOwnerModule(), requirement.getEntityType(),
                 requirement.getEntityId(), requirement.getTypeCode(), fileReferenceId, title, sourceKind,
-                requirement.getProjectId(), requirement.getId());
+                requirement.getProjectId(), requirement.getId()));
     }
 
     /**
@@ -177,7 +305,16 @@ public class DeliveryMaterialService {
             throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE",
                     "投影文件无法定位可用统一引用: artifact " + fact.artifactId() + "#" + fact.versionNo());
         }
+        if (!fact.artifactId().equals(document.artifactId()) || !fact.versionNo().equals(document.versionNo())
+                || !fact.sha256().equals(document.sha256())) {
+            throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE", "投影版本证据与文件事实不一致");
+        }
+        var scope=origin(document,requirement.getProjectId());
+        DeliveryMaterialDO reusable = sourceFile(requirement.getProjectId(), fact.artifactId(), fact.versionNo());
+        if (reusable != null) return associate(requirement, mergeArchiveObligation(enrichOrigin(reusable,scope), archiveStatus));
         DeliveryMaterialDO row = new DeliveryMaterialDO();
+        row.setTenantId(TenantContextHolder.getRequiredTenantId());
+        row.setSourceIdentityKey(sourceKey(requirement.getProjectId(), "FILE", fact.artifactId(), fact.versionNo()));
         row.setOwnerModule(requirement.getOwnerModule());
         row.setEntityType(requirement.getEntityType());
         row.setEntityId(requirement.getEntityId());
@@ -195,30 +332,17 @@ public class DeliveryMaterialService {
         row.setArchiveStatus(archiveStatus == null || archiveStatus.isBlank()
                 ? DeliveryMaterialDO.ARCHIVE_NOT_REQUIRED : archiveStatus);
         row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
+        enrichOrigin(row,scope);
         try {
             materialMapper.insert(row);
         } catch (DuplicateKeyException conflict) {
-            DeliveryMaterialDO existing = materialMapper.selectByEntity(requirement.getOwnerModule(),
-                            requirement.getEntityType(), requirement.getEntityId(), requirement.getTypeCode()).stream()
-                    .filter(material -> DeliveryMaterialDO.KIND_FILE.equals(material.getMaterialKind()))
-                    .filter(material -> fact.artifactId().equals(material.getFileArtifactId())
-                            && fact.versionNo().equals(material.getFileVersionNo()))
-                    .findFirst()
-                    .orElseThrow(() -> conflict);
-            // 投影事实是权威来源：此前被整体置换/撤销撤回的同一工件版本材料，重新登记时恢复有效。
-            if (DeliveryMaterialDO.STATUS_WITHDRAWN.equals(existing.getStatus())) {
-                existing.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
-                existing.setArchiveStatus(archiveStatus == null || archiveStatus.isBlank()
-                        ? DeliveryMaterialDO.ARCHIVE_NOT_REQUIRED : archiveStatus);
-                materialMapper.updateById(existing);
-                eventPublisher.publishMaterial(requirement.getOwnerModule(), requirement.getEntityType(),
-                        requirement.getEntityId(), requirement.getTypeCode(), "MATERIAL_REACTIVATED");
-            }
-            return existing;
+            DeliveryMaterialDO existing = concurrentSource(row.getSourceIdentityKey());
+            if (existing == null) throw conflict;
+            return associate(requirement, mergeArchiveObligation(enrichOrigin(existing,scope), archiveStatus));
         }
         eventPublisher.publishMaterial(requirement.getOwnerModule(), requirement.getEntityType(),
                 requirement.getEntityId(), requirement.getTypeCode(), "MATERIAL_REGISTERED");
-        return row;
+        return associate(requirement, row);
     }
 
     /**
@@ -239,12 +363,12 @@ public class DeliveryMaterialService {
             throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE",
                     "归集文件引用不存在或不可用: " + fileReferenceId);
         }
-        DeliveryMaterialDO existing = materialMapper.selectByRequirementAndBusinessObject(
-                requirement.getId(), sourceCode, String.valueOf(fileReferenceId), null);
-        if (existing != null) {
-            return existing;
-        }
+        var scope=origin(document,requirement.getProjectId());
+        DeliveryMaterialDO existing = sourceFile(requirement.getProjectId(), document.artifactId(), document.versionNo());
+        if (existing != null) return associate(requirement,enrichOrigin(existing,scope));
         DeliveryMaterialDO row = new DeliveryMaterialDO();
+        row.setTenantId(TenantContextHolder.getRequiredTenantId());
+        row.setSourceIdentityKey(sourceKey(requirement.getProjectId(), "FILE", document.artifactId(), document.versionNo()));
         row.setOwnerModule(requirement.getOwnerModule());
         row.setEntityType(requirement.getEntityType());
         row.setEntityId(requirement.getEntityId());
@@ -262,10 +386,16 @@ public class DeliveryMaterialService {
         row.setBusinessObjectId(String.valueOf(fileReferenceId));
         row.setSourceKind(DeliveryMaterialDO.SOURCE_ASSOCIATED);
         row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
-        materialMapper.insert(row);
+        enrichOrigin(row,scope);
+        try { materialMapper.insert(row); }
+        catch (DuplicateKeyException conflict) {
+            DeliveryMaterialDO concurrent = concurrentSource(row.getSourceIdentityKey());
+            if (concurrent == null) throw conflict;
+            return associate(requirement,enrichOrigin(concurrent,scope));
+        }
         eventPublisher.publishMaterial(requirement.getOwnerModule(), requirement.getEntityType(),
                 requirement.getEntityId(), requirement.getTypeCode(), "MATERIAL_REGISTERED");
-        return row;
+        return associate(requirement, row);
     }
 
     /**
@@ -286,12 +416,18 @@ public class DeliveryMaterialService {
         DeliveryBusinessObjectEvidenceProvider provider = requireProvider(businessObjectType);
         provider.validateCurrent(TenantContextHolder.getRequiredTenantId(), requirement.getProjectId(),
                 businessObjectId, businessRevisionNo);
-        DeliveryMaterialDO existing = materialMapper.selectByRequirementAndBusinessObject(
-                requirement.getId(), businessObjectType, businessObjectId, businessRevisionNo);
-        if (existing != null) {
-            return existing;
-        }
+        var identity=provider.identity(TenantContextHolder.getRequiredTenantId(),requirement.getProjectId(),businessObjectId,businessRevisionNo);
+        String canonicalType=identity==null?businessObjectType:identity.businessObjectType();
+        String canonicalId=identity==null?businessObjectId:identity.businessObjectId();
+        Long canonicalRevision=identity==null?businessRevisionNo:identity.businessRevisionNo();
+        String identityKey=sourceKey(requirement.getProjectId(),"BUSINESS_RESULT",canonicalType,canonicalId,canonicalRevision);
+        DeliveryMaterialDO existing=matchingBusinessSource(concurrentSource(identityKey),identity,identityKey);
+        if(existing==null)existing=matchingBusinessSource(materialMapper.selectSourceBusiness(new DeliverySourceBusinessQuery(TenantContextHolder.getRequiredTenantId(),requirement.getProjectId(),canonicalType,canonicalId,canonicalRevision)),identity,identityKey);
+        if(existing==null && identity!=null)existing=matchingBusinessSource(materialMapper.selectSourceBusiness(new DeliverySourceBusinessQuery(TenantContextHolder.getRequiredTenantId(),requirement.getProjectId(),businessObjectType,businessObjectId,businessRevisionNo)),identity,identityKey);
+        if(existing!=null)return associate(requirement,enrichBusinessIdentity(existing,identity,identityKey));
         DeliveryMaterialDO row = new DeliveryMaterialDO();
+        row.setTenantId(TenantContextHolder.getRequiredTenantId());
+        row.setSourceIdentityKey(identityKey);
         row.setOwnerModule(requirement.getOwnerModule());
         row.setEntityType(requirement.getEntityType());
         row.setEntityId(requirement.getEntityId());
@@ -305,10 +441,54 @@ public class DeliveryMaterialService {
         row.setTitle(title);
         row.setSourceKind(DeliveryMaterialDO.SOURCE_ASSOCIATED);
         row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);
-        materialMapper.insert(row);
+        enrichBusinessIdentity(row,identity,identityKey);
+        try { materialMapper.insert(row); }
+        catch (DuplicateKeyException conflict) {
+            DeliveryMaterialDO concurrent = concurrentSource(row.getSourceIdentityKey());
+            if (concurrent == null) throw conflict;
+            return associate(requirement, concurrent);
+        }
         eventPublisher.publishMaterial(requirement.getOwnerModule(), requirement.getEntityType(),
                 requirement.getEntityId(), requirement.getTypeCode(), "MATERIAL_REGISTERED");
+        return associate(requirement, row);
+    }
+
+    private DeliveryMaterialDO matchingBusinessSource(DeliveryMaterialDO row,DeliveryBusinessObjectEvidenceProvider.Identity identity,String key) {
+        if(row==null || identity==null)return row;
+        if(row.getSourceOwnerModule()!=null && !Objects.equals(row.getSourceOwnerModule(),identity.ownerModule())
+                || row.getSourceEntityType()!=null && !Objects.equals(row.getSourceEntityType(),identity.entityType())
+                || row.getSourceEntityId()!=null && !Objects.equals(row.getSourceEntityId(),identity.entityId())
+                || row.getSourceRevisionId()!=null && !Objects.equals(row.getSourceRevisionId(),identity.businessRevisionNo()))return null;
+        String storedKey=row.getSourceIdentityKey();
+        // Both native identities and historical wrapper identities are hashes. A hash's shape
+        // cannot identify its origin; validate a historical raw key against its frozen coordinates.
+        if(storedKey!=null && storedKey.matches("[0-9a-f]{64}") && !storedKey.equals(key)
+                && !storedKey.equals(sourceKey(row.getProjectId(),"BUSINESS_RESULT",
+                        row.getBusinessObjectType(),row.getBusinessObjectId(),row.getBusinessRevisionNo())))return null;
+        if(row.getBusinessRevisionNo()!=null && !Objects.equals(row.getBusinessRevisionNo(),identity.businessRevisionNo()))return null;
+        if(identity.businessRevisionNo()!=null && !key.equals(storedKey)
+                && !Objects.equals(row.getBusinessRevisionNo(),identity.businessRevisionNo())
+                && !Objects.equals(row.getSourceRevisionId(),identity.businessRevisionNo()))return null;
         return row;
+    }
+
+    private DeliveryMaterialDO enrichBusinessIdentity(DeliveryMaterialDO row,DeliveryBusinessObjectEvidenceProvider.Identity identity,String key) {
+        if(row.getSourceIdentityKey()==null && row.getId()!=null)
+            materialMapper.assignSourceIdentityIfMissing(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceIdentityAssignment(TenantContextHolder.getRequiredTenantId(),row.getId(),key));
+        if(row.getSourceIdentityKey()==null)row.setSourceIdentityKey(key);
+        if(identity!=null)enrichOrigin(row,new cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider.Scope(row.getProjectId(),identity.businessTypeCode(),identity.ownerModule(),identity.entityType(),identity.entityId(),identity.businessRevisionNo()));
+        return row;
+    }
+
+    private DeliveryMaterialDO mergeArchiveObligation(DeliveryMaterialDO material, String requestedStatus) {
+        if (DeliveryMaterialDO.ARCHIVE_PENDING_COMPENSATION.equals(requestedStatus)
+                && DeliveryMaterialDO.STATUS_ACTIVE.equals(material.getStatus())) {
+            int promoted = materialMapper.requireArchiveIfNotRequired(
+                    new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialArchiveObligationQuery(
+                            TenantContextHolder.getRequiredTenantId(), material.getId()));
+            if (promoted == 1) material.setArchiveStatus(DeliveryMaterialDO.ARCHIVE_PENDING_COMPENSATION);
+        }
+        return material;
     }
 
     private static void validateDocumentOwner(FileEvidenceApi.Document document, String ownerModule,
@@ -332,6 +512,16 @@ public class DeliveryMaterialService {
     @Transactional
     public DeliveryMaterialDO withdraw(Long id) {
         DeliveryMaterialDO row = requireMaterial(id);
+        if (ownerAccess == null) throw DeliveryOwnerAccess.denied();
+        ownerAccess.require(row.getOwnerModule(), row.getEntityType(), row.getEntityId(), row.getTypeCode(), true, true);
+        if (row.getRequirementId() != null) throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException(
+                "DELIVERY_OWNER_COMMAND_REQUIRED", "模板材料请使用来源Owner操作接口");
+        return withdrawTrusted(id);
+    }
+
+    /** Package-only entry for Owner-authorized projections and background evidence convergence. */
+    DeliveryMaterialDO withdrawTrusted(Long id) {
+        DeliveryMaterialDO row = requireMaterial(id);
         if (!DeliveryMaterialDO.STATUS_ACTIVE.equals(row.getStatus())) {
             throw new BusinessContractException("DELIVERY_MATERIAL_NOT_ACTIVE", "材料已撤回或不可撤回: " + id);
         }
@@ -350,7 +540,7 @@ public class DeliveryMaterialService {
 
     public List<DeliveryMaterialDO> listByEntity(String ownerModule, String entityType, Long entityId,
                                                  String typeCode) {
-        return materialMapper.selectByEntity(ownerModule, entityType, entityId, typeCode);
+        return materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(TenantContextHolder.getRequiredTenantId(),ownerModule,entityType,entityId,typeCode));
     }
 
     /** 提交台账冻结证据：FILE 行冻结文件版本锚，BUSINESS_RESULT 行冻结业务成果锚（P06R）。 */
@@ -365,6 +555,10 @@ public class DeliveryMaterialService {
             DeliveryBusinessObjectEvidenceProvider provider = requireProvider(material.getBusinessObjectType());
             provider.validateCurrent(TenantContextHolder.getRequiredTenantId(), material.getProjectId(),
                     material.getBusinessObjectId(), material.getBusinessRevisionNo());
+            var identity=provider.identity(TenantContextHolder.getRequiredTenantId(),material.getProjectId(),material.getBusinessObjectId(),material.getBusinessRevisionNo());
+            if(identity!=null && matchingBusinessSource(material,identity,sourceKey(material.getProjectId(),"BUSINESS_RESULT",
+                    identity.businessObjectType(),identity.businessObjectId(),identity.businessRevisionNo()))==null)
+                throw new BusinessContractException("DELIVERY_BUSINESS_OBJECT_INVALID","Frozen approved source identity no longer matches the current business result");
             return new FrozenEvidence(material.getMaterialKind(), null, null, null, null, null,
                     material.getBusinessObjectType(), material.getBusinessObjectId(),
                     material.getBusinessRevisionNo());

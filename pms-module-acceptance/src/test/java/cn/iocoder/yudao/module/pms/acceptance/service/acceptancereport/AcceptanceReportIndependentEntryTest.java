@@ -36,6 +36,7 @@ class AcceptanceReportIndependentEntryTest {
     private final AcceptanceActivityMapper activities = mock(AcceptanceActivityMapper.class);
     private final AcceptanceReportVersionMapper reports = mock(AcceptanceReportVersionMapper.class);
     private final AcceptanceReportAttachmentMapper attachments = mock(AcceptanceReportAttachmentMapper.class);
+    private final cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi nativeMaterials=mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.class);
     private final FileArtifactApi files = mock(FileArtifactApi.class);
     private final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
@@ -93,7 +94,7 @@ class AcceptanceReportIndependentEntryTest {
             facts.add(call.<Function<AcceptanceReportCommands.ReportResult, PlatformCommandExecutionApi.SuccessFacts>>getArgument(4).apply(result));
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
         });
-        owner = new AcceptanceReportCommandService(activities, reports, attachments, files, commands, scopes, nativeProjects);
+        owner = new AcceptanceReportCommandService(nativeMaterials, activities, reports, attachments, files, commands, scopes, nativeProjects);
         var access = new AcceptanceReportOperationAccessProvider(queries, scopes, permissions);
         adapter = new AcceptanceReportOperationCommandAdapter(of(owner), of(queries), of(access), of(validation.getValidator()));
     }
@@ -113,6 +114,7 @@ class AcceptanceReportIndependentEntryTest {
         direct("FINAL");
         owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "native-publish", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
+        verify(nativeMaterials).registerNativeSourceFile(any(FileArtifactVersionFact.class));
         assertEquals("COMPLETED", activity.getActivityStatus());
         assertNull(activity.getProjectTaskId()); assertNull(activity.getExecutionContractId()); assertNull(activity.getDeliverableId());
         verify(activities, never()).selectByIdentityForUpdate(any());
@@ -122,6 +124,15 @@ class AcceptanceReportIndependentEntryTest {
         order.verify(nativeProjects).lock(any(), eq(4L), eq(3L));
         order.verify(activities).selectByIdForUpdate(any());
         order.verify(files).lockAndRevalidateReferenceSets(any());
+    }
+
+    @Test void nativeMaterialFailurePreventsPublishingSuccessFacts() {
+        direct("FINAL");
+        when(nativeMaterials.registerNativeSourceFile(any())).thenThrow(new IllegalStateException("registration unavailable"));
+        assertThrows(IllegalStateException.class,()->owner.publish(
+                new AcceptanceReportCommands.PublishCommand(100L,300L,2L,1,null,"failed-register","digest"),
+                new AcceptanceReportCommands.Actor(7L,19L,"native-entry")));
+        assertTrue(facts.isEmpty());
     }
 
     @Test void failedReportNeverCompletesIndependentAcceptanceAndMissingFilesCannotPublish() {

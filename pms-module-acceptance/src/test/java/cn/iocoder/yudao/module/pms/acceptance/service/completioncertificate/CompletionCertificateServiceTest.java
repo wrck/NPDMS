@@ -39,9 +39,15 @@ class CompletionCertificateServiceTest {
     @Mock
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
 
-    @InjectMocks
+    @Mock
+    private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi deliveryMaterials;
+
+    @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
+ @InjectMocks
     private CompletionCertificateServiceImpl service;
 
+    @org.junit.jupiter.api.BeforeEach void tenant(){cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);}
+    @org.junit.jupiter.api.AfterEach void clear(){cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
     private static CompletionCertificateDeviceSaveReqVO device(String type, String model, int quantity) {
         CompletionCertificateDeviceSaveReqVO reqVO = new CompletionCertificateDeviceSaveReqVO();
         reqVO.setDeviceType(type);
@@ -54,6 +60,7 @@ class CompletionCertificateServiceTest {
             CompletionCertificateDeviceSaveReqVO... devices) {
         CompletionCertificateSaveReqVO reqVO = new CompletionCertificateSaveReqVO();
         reqVO.setId(id);
+        reqVO.setVersion(0);
         reqVO.setProjectId(9L);
         reqVO.setName("测试项目");
         reqVO.setStatus(status);
@@ -89,8 +96,10 @@ class CompletionCertificateServiceTest {
                 device("防护设备", "LPH-9000", 3));
         CompletionCertificateDO existing = new CompletionCertificateDO();
         existing.setId(5L);
+        existing.setVersion(0L);
         existing.setStatus(0);
-        when(completionCertificateMapper.selectById(5L)).thenReturn(existing);
+        when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,5L))).thenReturn(existing);
 
         service.updateCompletionCertificate(reqVO);
 
@@ -108,7 +117,7 @@ class CompletionCertificateServiceTest {
         CompletionCertificateDO existing = new CompletionCertificateDO();
         existing.setId(5L);
         existing.setStatus(2);
-        when(completionCertificateMapper.selectById(5L)).thenReturn(existing);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,5L))).thenReturn(existing);
 
         assertThrows(Exception.class, () -> service.updateCompletionCertificate(reqVO));
         verify(completionCertificateDeviceMapper, never()).deleteByCertificateId(any());
@@ -120,7 +129,7 @@ class CompletionCertificateServiceTest {
         CompletionCertificateDO existing = new CompletionCertificateDO();
         existing.setId(6L);
         existing.setStatus(0);
-        when(completionCertificateMapper.selectById(6L)).thenReturn(existing);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,6L))).thenReturn(existing);
 
         service.deleteCompletionCertificate(6L);
 
@@ -140,8 +149,12 @@ class CompletionCertificateServiceTest {
     void customerConfirm_pendingCustomer_shouldTransitionWithConfirmTime() {
         CompletionCertificateDO existing = new CompletionCertificateDO();
         existing.setId(8L);
+        existing.setVersion(0L);
+        existing.setProjectId(9L);
+        existing.setName("Real certificate");
+        when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
         existing.setStatus(1);
-        when(completionCertificateMapper.selectById(8L)).thenReturn(existing);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,8L))).thenReturn(existing);
 
         service.customerConfirm(8L);
 
@@ -154,4 +167,33 @@ class CompletionCertificateServiceTest {
         assertNull(captor.getValue().getCustomerConfirmUserId());
     }
 
+
+    @Test void staleDraftUpdateDoesNotReplaceDevices() {
+        var row=new CompletionCertificateDO();row.setId(5L);row.setStatus(0);row.setVersion(2L);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,5L))).thenReturn(row);
+        assertThrows(Exception.class,()->service.updateCompletionCertificate(saveReqVO(5L,0,device("router","x",1))));
+        verify(completionCertificateDeviceMapper,never()).deleteByCertificateId(any());
+        verify(completionCertificateDeviceMapper,never()).insertBatch(anyList());
+    }
+    @Test void staleConfirmationDoesNotPublishBusinessResult() {
+        var row=new CompletionCertificateDO();row.setId(8L);row.setStatus(1);row.setVersion(2L);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,8L))).thenReturn(row);
+        assertThrows(Exception.class,()->service.customerConfirm(8L));
+        org.mockito.Mockito.verifyNoInteractions(deliveryMaterials);
+    }
+    @Test void archivePublishesSameUnrevisionedRealCertificateIdentity() {
+        var row=new CompletionCertificateDO();row.setId(8L);row.setStatus(2);row.setVersion(2L);row.setProjectId(9L);row.setName("Real certificate");
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,8L))).thenReturn(row);
+        when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
+        service.archiveCompletionCertificate(8L);
+        verify(deliveryMaterials).registerBusinessResultMaterial("ACC","completionCertificate",8L,"COMPLETION_CERTIFICATE","completionCertificate","8",null,"Real certificate",9L);
+        var update=ArgumentCaptor.forClass(CompletionCertificateDO.class);verify(completionCertificateMapper).updateById(update.capture());
+        assertEquals(2L,update.getValue().getVersion());assertEquals(3,update.getValue().getStatus());assertNotNull(update.getValue().getArchiveTime());
+    }
+
+    @Test void createCannotForgeCustomerConfirmedStatus() {
+        assertThrows(Exception.class,()->service.createCompletionCertificate(saveReqVO(null,2)));
+        verify(completionCertificateMapper,never()).insert(any(CompletionCertificateDO.class));
+        org.mockito.Mockito.verifyNoInteractions(deliveryMaterials);
+    }
 }

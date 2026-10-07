@@ -34,7 +34,7 @@ public class RoleServiceImplTest extends BaseDbUnitTest {
     private RoleMapper roleMapper;
 
     @MockitoBean
-    private PermissionService permissionService;
+    private PermissionAssociationService permissionService;
 
     @Test
     public void testCreateRole_success() {

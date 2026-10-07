@@ -36,7 +36,8 @@ public class OperationAuditApiImpl implements OperationAuditApi {
         audit.setAggregateType(aggregateType);
         audit.setAggregateKey(aggregateKey);
         audit.setActorId(actorId);
-        audit.setCorrelationId(correlationId);
+        // Optional caller correlation still needs a server-owned identity in the NOT NULL ledger.
+        audit.setCorrelationId(correlationId==null || correlationId.isBlank()?java.util.UUID.randomUUID().toString():correlationId);
         // 入口关联标识可选（如独立办理）；缺省时不写摘要，不能因可空字段阻断审计。
         audit.setIdempotencyKeyDigest(correlationId == null ? null : sha256(correlationId));
         audit.setResultCode(resultCode);

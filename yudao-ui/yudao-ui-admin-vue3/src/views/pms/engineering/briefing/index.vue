@@ -226,7 +226,7 @@
         <span v-if="current.fileName">{{ current.fileName }}（{{ current.fileSize }} 字节）</span>
         <el-link
           v-if="current.fileUrl"
-          :href="current.fileUrl"
+          @click="downloadBriefingFile(current.fileUrl)"
           target="_blank"
           type="primary"
           class="ml-10px"
@@ -242,6 +242,7 @@
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
+    <DeliveryPanel v-if="current?.id" owner-module="SOL" entity-type="briefing" :entity-id="current.id" />
   </Dialog>
 
   <!-- 生成对话框 -->
@@ -291,6 +292,14 @@
 </template>
 
 <script setup lang="ts">
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import { getGeneratedBriefingFileTicket } from '@/api/pms/engineering/briefing'
+const downloadBriefingFile = async (url: string) => {
+  const ticket = /^\/api\/v1\/pms\/briefings\/\d+\/files\/\d+$/.test(url)
+    ? await getGeneratedBriefingFileTicket(url) : url
+  window.open(ticket, '_blank', 'noopener')
+}
+
 import { onMounted, reactive, ref } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'

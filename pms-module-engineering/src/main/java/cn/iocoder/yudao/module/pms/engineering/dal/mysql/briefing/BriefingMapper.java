@@ -10,6 +10,8 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface BriefingMapper extends ProjectScopedCodeMapper<BriefingDO> {
 
+    BriefingDO selectFileOwnerForUpdate(@org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.query.BriefingFileOwnerQuery query);
+
     default PageResult<BriefingDO> selectPage(BriefingPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<BriefingDO>()
                 .eqIfPresent(BriefingDO::getProjectId, reqVO.getProjectId())

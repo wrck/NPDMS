@@ -50,7 +50,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'submitCompletionCertificate', '提交')"
-            v-hasPermi="['pms:acc-completion-certificate:update']"
+            v-hasPermi="['pms:acc-completion-certificate:submit']"
             >提交</el-button
           >
           <el-button
@@ -58,7 +58,7 @@
             type="success"
             v-if="row.status === 1"
             @click="handleAction(row, 'customerConfirmCompletionCertificate', '客户确认')"
-            v-hasPermi="['pms:acc-completion-certificate:update']"
+            v-hasPermi="['pms:acc-completion-certificate:audit']"
             >客户确认</el-button
           >
           <el-button
@@ -66,7 +66,7 @@
             type="danger"
             v-if="row.status === 1"
             @click="handleAction(row, 'rejectCompletionCertificate', '驳回')"
-            v-hasPermi="['pms:acc-completion-certificate:update']"
+            v-hasPermi="['pms:acc-completion-certificate:audit']"
             >驳回</el-button
           >
           <el-button
@@ -74,7 +74,7 @@
             type="primary"
             v-if="row.status === 2"
             @click="handleAction(row, 'archiveCompletionCertificate', '归档')"
-            v-hasPermi="['pms:acc-completion-certificate:update']"
+            v-hasPermi="['pms:acc-completion-certificate:audit']"
             >归档</el-button
           >
           <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-completion-certificate:delete']"
@@ -224,6 +224,8 @@
         </el-col>
       </el-row>
     </el-form>
+    <DeliveryPanel v-if="form.id" :key="form.id" owner-module="ACC" entity-type="completionCertificate"
+      :entity-id="form.id" :type-codes="['COMPLETION_CERTIFICATE']" readonly />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
@@ -232,6 +234,7 @@
 </template>
 
 <script setup lang="ts">
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'

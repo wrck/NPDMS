@@ -1,0 +1,2536 @@
+{
+  "closurePolicy": null,
+  "closureRuleKey": null,
+  "deliverables": [
+    {
+      "code": "D_ARRIVAL",
+      "configuration": {
+        "scope": "TASK",
+        "required": false,
+        "outputType": "FILE",
+        "allowedSources": [
+          "UPLOAD"
+        ],
+        "deliverableType": "DOCUMENT",
+        "minimumQuantity": 1,
+        "confirmationRule": {
+          "predicate": "CONSTANT",
+          "parameters": {
+            "value": true
+          }
+        }
+      },
+      "name": "到货签收单（直签上传文件）",
+      "nodeKey": "deliverable:D_ARRIVAL",
+      "required": false,
+      "source": null,
+      "stageCode": "S4",
+      "taskCode": "DEPLOY_ARRIVAL"
+    },
+    {
+      "code": "D_INITIAL",
+      "configuration": {
+        "scope": "TASK",
+        "required": false,
+        "outputType": "FILE",
+        "allowedSources": [
+          "UPLOAD"
+        ],
+        "deliverableType": "DOCUMENT",
+        "minimumQuantity": 1,
+        "confirmationRule": {
+          "predicate": "CONSTANT",
+          "parameters": {
+            "value": true
+          }
+        }
+      },
+      "name": "客户签署初验单（直签上传文件）",
+      "nodeKey": "deliverable:D_INITIAL",
+      "required": false,
+      "source": null,
+      "stageCode": "S5",
+      "taskCode": "ACCEPT_INITIAL"
+    },
+    {
+      "code": "D_FINAL",
+      "configuration": {
+        "scope": "TASK",
+        "required": false,
+        "outputType": "FILE",
+        "allowedSources": [
+          "UPLOAD"
+        ],
+        "deliverableType": "DOCUMENT",
+        "minimumQuantity": 1,
+        "confirmationRule": {
+          "predicate": "CONSTANT",
+          "parameters": {
+            "value": true
+          }
+        }
+      },
+      "name": "客户签署终验单（直签上传文件）",
+      "nodeKey": "deliverable:D_FINAL",
+      "required": false,
+      "source": null,
+      "stageCode": "S5",
+      "taskCode": "ACCEPT_FINAL"
+    },
+    {
+      "code": "D_SATISFACTION",
+      "configuration": {
+        "scope": "TASK",
+        "required": true,
+        "outputType": "BUSINESS_RESULT",
+        "allowedSources": [
+          "BUSINESS_RESULT"
+        ],
+        "deliverableType": "BUSINESS_RESULT",
+        "minimumQuantity": 1,
+        "automaticSources": [
+          "ACC.SATISFACTION.SATISFACTION_PASSED"
+        ],
+        "confirmationRule": {
+          "predicate": "CONSTANT",
+          "parameters": {
+            "value": true
+          }
+        }
+      },
+      "name": "满意度调查有效业务结果（系统记录）",
+      "nodeKey": "deliverable:D_SATISFACTION",
+      "required": true,
+      "source": null,
+      "stageCode": "S5",
+      "taskCode": "ACCEPT_SATISFACTION"
+    }
+  ],
+  "gates": [
+    {
+      "code": "S1_ENTRY",
+      "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+      "gateType": "ENTRY",
+      "name": "工前准备准入",
+      "nodeKey": "gate:S1_ENTRY",
+      "references": [
+        {
+          "refCode": "S0_COMPLETED",
+          "refType": "STATE",
+          "refVersion": null
+        }
+      ],
+      "source": null,
+      "stageCode": "S1"
+    },
+    {
+      "code": "S2_ENTRY",
+      "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+      "gateType": "ENTRY",
+      "name": "施工计划制定与审批准入",
+      "nodeKey": "gate:S2_ENTRY",
+      "references": [
+        {
+          "refCode": "S1_COMPLETED",
+          "refType": "STATE",
+          "refVersion": null
+        }
+      ],
+      "source": null,
+      "stageCode": "S2"
+    },
+    {
+      "code": "S3_ENTRY",
+      "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+      "gateType": "ENTRY",
+      "name": "实施方案编制与审核准入",
+      "nodeKey": "gate:S3_ENTRY",
+      "references": [
+        {
+          "refCode": "S1_COMPLETED",
+          "refType": "STATE",
+          "refVersion": null
+        }
+      ],
+      "source": null,
+      "stageCode": "S3"
+    },
+    {
+      "code": "S4_ENTRY",
+      "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+      "gateType": "ENTRY",
+      "name": "实施部署准入",
+      "nodeKey": "gate:S4_ENTRY",
+      "references": [
+        {
+          "refCode": "S2_COMPLETED",
+          "refType": "STATE",
+          "refVersion": null
+        },
+        {
+          "refCode": "S3_COMPLETED",
+          "refType": "STATE",
+          "refVersion": null
+        }
+      ],
+      "source": null,
+      "stageCode": "S4"
+    },
+    {
+      "code": "S5_ENTRY",
+      "description": "阶段准入条件的同源引用；计划和方案为并行分支，部署要求二者均完成。",
+      "gateType": "ENTRY",
+      "name": "验收交维准入",
+      "nodeKey": "gate:S5_ENTRY",
+      "references": [
+        {
+          "refCode": "S4_COMPLETED",
+          "refType": "STATE",
+          "refVersion": null
+        }
+      ],
+      "source": null,
+      "stageCode": "S5"
+    }
+  ],
+  "layout": {
+    "nodes": {
+      "stage:S0": {
+        "x": 350,
+        "y": 80
+      },
+      "stage:S1": {
+        "x": 350,
+        "y": 210
+      },
+      "stage:S2": {
+        "x": 180,
+        "y": 340
+      },
+      "stage:S3": {
+        "x": 520,
+        "y": 340
+      },
+      "stage:S4": {
+        "x": 350,
+        "y": 470
+      },
+      "stage:S5": {
+        "x": 350,
+        "y": 600
+      }
+    },
+    "views": {}
+  },
+  "match": {
+    "implementationMethod": null,
+    "majorProjectLevel": null,
+    "projectCategory": null,
+    "signingMethod": null
+  },
+  "matchRuleKey": null,
+  "milestones": [],
+  "processDefinitionKey": null,
+  "ruleAssets": [],
+  "rules": [
+    {
+      "key": "PRE_SURVEY_DONE",
+      "name": "现场工勘与环境适配核对·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "BUSINESS_FACT",
+        "parameters": {
+          "factCode": "SURVEY_CONFIRMED",
+          "quantifier": "ALL"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "PRE_REQUIREMENT_DONE",
+      "name": "需求分析·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "BUSINESS_FACT",
+        "parameters": {
+          "factCode": "REQUIREMENT_ANALYSIS_COMPLETED",
+          "quantifier": "ALL"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "PRE_DURATION_DONE",
+      "name": "工期与分工界面确认·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "BUSINESS_FACT",
+        "parameters": {
+          "factCode": "DURATION_EFFECTIVE",
+          "quantifier": "ALL"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_COORDINATE_DONE",
+      "name": "客户到货及实施协调·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK_NATIVE_STATUS",
+        "parameters": {
+          "requiredStatus": "DONE"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_ARRIVAL_ENTER",
+      "name": "到货验收与签收·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_COORDINATE"
+            }
+          },
+          {
+            "predicate": "FIELD",
+            "parameters": {
+              "value": "DIRECT_SIGN",
+              "operator": "=",
+              "fieldCode": "project.signingMethod",
+              "valueType": "TEXT"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_ARRIVAL_DONE",
+      "name": "到货验收与签收·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK_NATIVE_STATUS",
+            "parameters": {
+              "requiredStatus": "DONE"
+            }
+          },
+          {
+            "predicate": "DELIVERABLE",
+            "parameters": {
+              "refCode": "D_ARRIVAL"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_HARDWARE_ENTER",
+      "name": "硬件实施·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_COORDINATE"
+            }
+          },
+          {
+            "rules": [
+              {
+                "predicate": "FIELD",
+                "parameters": {
+                  "value": "CHANNEL_SIGN",
+                  "operator": "=",
+                  "fieldCode": "project.signingMethod",
+                  "valueType": "TEXT"
+                }
+              },
+              {
+                "rules": [
+                  {
+                    "predicate": "FIELD",
+                    "parameters": {
+                      "value": "DIRECT_SIGN",
+                      "operator": "=",
+                      "fieldCode": "project.signingMethod",
+                      "valueType": "TEXT"
+                    }
+                  },
+                  {
+                    "predicate": "TASK",
+                    "parameters": {
+                      "refCode": "DEPLOY_ARRIVAL"
+                    }
+                  }
+                ],
+                "operator": "ALL"
+              }
+            ],
+            "operator": "ANY"
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_CONFIG_ENTER",
+      "name": "配置调试·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK",
+        "parameters": {
+          "refCode": "DEPLOY_HARDWARE"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_JOINT_ENTER",
+      "name": "业务联调·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK",
+        "parameters": {
+          "refCode": "DEPLOY_CONFIG"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_CUTOVER_ENTER",
+      "name": "割接上线·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK",
+        "parameters": {
+          "refCode": "DEPLOY_JOINT"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_COORDINATE_DONE",
+      "name": "客户验收交维协调·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK_NATIVE_STATUS",
+        "parameters": {
+          "requiredStatus": "DONE"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_INITIAL_ENTER",
+      "name": "项目初验·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_COORDINATE"
+            }
+          },
+          {
+            "predicate": "FIELD",
+            "parameters": {
+              "value": "DIRECT_SIGN",
+              "operator": "=",
+              "fieldCode": "project.signingMethod",
+              "valueType": "TEXT"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_INITIAL_DONE",
+      "name": "项目初验·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "BUSINESS_FACT",
+            "parameters": {
+              "factCode": "PRELIMINARY_ACCEPTANCE_PASSED",
+              "quantifier": "ALL"
+            }
+          },
+          {
+            "predicate": "DELIVERABLE",
+            "parameters": {
+              "refCode": "D_INITIAL"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_FINAL_ENTER",
+      "name": "项目终验·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_COORDINATE"
+            }
+          },
+          {
+            "predicate": "FIELD",
+            "parameters": {
+              "value": "DIRECT_SIGN",
+              "operator": "=",
+              "fieldCode": "project.signingMethod",
+              "valueType": "TEXT"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_INITIAL"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_FINAL_DONE",
+      "name": "项目终验·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "BUSINESS_FACT",
+            "parameters": {
+              "factCode": "FINAL_ACCEPTANCE_PASSED",
+              "quantifier": "ALL"
+            }
+          },
+          {
+            "predicate": "DELIVERABLE",
+            "parameters": {
+              "refCode": "D_FINAL"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_TRAINING_ENTER",
+      "name": "现场培训·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_COORDINATE"
+            }
+          },
+          {
+            "rules": [
+              {
+                "predicate": "FIELD",
+                "parameters": {
+                  "value": "CHANNEL_SIGN",
+                  "operator": "=",
+                  "fieldCode": "project.signingMethod",
+                  "valueType": "TEXT"
+                }
+              },
+              {
+                "rules": [
+                  {
+                    "predicate": "FIELD",
+                    "parameters": {
+                      "value": "DIRECT_SIGN",
+                      "operator": "=",
+                      "fieldCode": "project.signingMethod",
+                      "valueType": "TEXT"
+                    }
+                  },
+                  {
+                    "predicate": "TASK",
+                    "parameters": {
+                      "refCode": "ACCEPT_FINAL"
+                    }
+                  }
+                ],
+                "operator": "ALL"
+              }
+            ],
+            "operator": "ANY"
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_SATISFACTION_ENTER",
+      "name": "满意度调查·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK",
+        "parameters": {
+          "refCode": "ACCEPT_TRAINING"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "ACCEPT_SATISFACTION_DONE",
+      "name": "满意度调查·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "DELIVERABLE",
+        "parameters": {
+          "refCode": "D_SATISFACTION"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S1_ENTER",
+      "name": "工前准备·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "STATE",
+        "parameters": {
+          "refCode": "S0_COMPLETED"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S2_ENTER",
+      "name": "施工计划制定与审批·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "STATE",
+        "parameters": {
+          "refCode": "S1_COMPLETED"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S2_DONE",
+      "name": "施工计划制定与审批·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK",
+        "parameters": {
+          "refCode": "PLAN_CONSTRUCTION"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S3_ENTER",
+      "name": "实施方案编制与审核·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "STATE",
+        "parameters": {
+          "refCode": "S1_COMPLETED"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S3_DONE",
+      "name": "实施方案编制与审核·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "TASK",
+        "parameters": {
+          "refCode": "PLAN_SOLUTION"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S4_ENTER",
+      "name": "实施部署·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "STATE",
+            "parameters": {
+              "refCode": "S2_COMPLETED"
+            }
+          },
+          {
+            "predicate": "STATE",
+            "parameters": {
+              "refCode": "S3_COMPLETED"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "S4_DONE",
+      "name": "实施部署·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_COORDINATE"
+            }
+          },
+          {
+            "rules": [
+              {
+                "predicate": "FIELD",
+                "parameters": {
+                  "value": "CHANNEL_SIGN",
+                  "operator": "=",
+                  "fieldCode": "project.signingMethod",
+                  "valueType": "TEXT"
+                }
+              },
+              {
+                "rules": [
+                  {
+                    "predicate": "FIELD",
+                    "parameters": {
+                      "value": "DIRECT_SIGN",
+                      "operator": "=",
+                      "fieldCode": "project.signingMethod",
+                      "valueType": "TEXT"
+                    }
+                  },
+                  {
+                    "predicate": "TASK",
+                    "parameters": {
+                      "refCode": "DEPLOY_ARRIVAL"
+                    }
+                  }
+                ],
+                "operator": "ALL"
+              }
+            ],
+            "operator": "ANY"
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_HARDWARE"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_CONFIG"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_JOINT"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "DEPLOY_CUTOVER"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "S5_ENTER",
+      "name": "验收交维·准入",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "STATE",
+        "parameters": {
+          "refCode": "S4_COMPLETED"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S5_DONE",
+      "name": "验收交维·完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_COORDINATE"
+            }
+          },
+          {
+            "rules": [
+              {
+                "predicate": "FIELD",
+                "parameters": {
+                  "value": "CHANNEL_SIGN",
+                  "operator": "=",
+                  "fieldCode": "project.signingMethod",
+                  "valueType": "TEXT"
+                }
+              },
+              {
+                "rules": [
+                  {
+                    "predicate": "FIELD",
+                    "parameters": {
+                      "value": "DIRECT_SIGN",
+                      "operator": "=",
+                      "fieldCode": "project.signingMethod",
+                      "valueType": "TEXT"
+                    }
+                  },
+                  {
+                    "predicate": "TASK",
+                    "parameters": {
+                      "refCode": "ACCEPT_INITIAL"
+                    }
+                  }
+                ],
+                "operator": "ALL"
+              }
+            ],
+            "operator": "ANY"
+          },
+          {
+            "rules": [
+              {
+                "predicate": "FIELD",
+                "parameters": {
+                  "value": "CHANNEL_SIGN",
+                  "operator": "=",
+                  "fieldCode": "project.signingMethod",
+                  "valueType": "TEXT"
+                }
+              },
+              {
+                "rules": [
+                  {
+                    "predicate": "FIELD",
+                    "parameters": {
+                      "value": "DIRECT_SIGN",
+                      "operator": "=",
+                      "fieldCode": "project.signingMethod",
+                      "valueType": "TEXT"
+                    }
+                  },
+                  {
+                    "predicate": "TASK",
+                    "parameters": {
+                      "refCode": "ACCEPT_FINAL"
+                    }
+                  }
+                ],
+                "operator": "ALL"
+              }
+            ],
+            "operator": "ANY"
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_TRAINING"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "ACCEPT_SATISFACTION"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "FLOW_ASSIGNMENT_DONE",
+      "name": "人员指派完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "BUSINESS_FACT",
+        "parameters": {
+          "factCode": "PROJECT_ASSIGNMENT_COMPLETED",
+          "quantifier": "ALL"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "PLAN_CONSTRUCTION_DONE",
+      "name": "施工计划审批完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "BUSINESS_FACT",
+        "parameters": {
+          "factCode": "CONSTRUCTION_PLAN_APPROVED",
+          "quantifier": "ALL"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "PLAN_SOLUTION_APPROVAL_DONE",
+      "name": "方案审核及适用工程管理部复审完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "BUSINESS_FACT",
+        "parameters": {
+          "factCode": "IMPLEMENTATION_SOLUTION_APPROVED",
+          "quantifier": "ALL"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "DEPLOY_CUTOVER_DONE",
+      "name": "割接审批通过即完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "predicate": "CONSTANT",
+        "parameters": {
+          "value": true
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "S1_DONE",
+      "name": "工勘及其他工前任务完成",
+      "kind": "CONDITION",
+      "shared": false,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "PRE_SURVEY"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "PRE_REQUIREMENT"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "PRE_DURATION"
+            }
+          },
+          {
+            "predicate": "TASK",
+            "parameters": {
+              "refCode": "PRE_CONTACT"
+            }
+          }
+        ],
+        "operator": "ALL"
+      },
+      "decision": null
+    },
+    {
+      "key": "SOLUTION_MAJOR_REVIEW_REQUIRED",
+      "name": "CRM重大项目适用工程管理部复审",
+      "kind": "CONDITION",
+      "shared": true,
+      "expression": {
+        "predicate": "FIELD",
+        "parameters": {
+          "value": [
+            "办事处级重大项目",
+            "市场部级重大项目",
+            "公司级重大项目"
+          ],
+          "operator": "in",
+          "fieldCode": "project.majorProjectLevel",
+          "valueType": "TEXT"
+        }
+      },
+      "decision": null
+    },
+    {
+      "key": "SOLUTION_ORDINARY_REVIEW_ALLOWED",
+      "name": "非重大项目适用普通审核（含无CRM来源手工项目）",
+      "kind": "CONDITION",
+      "shared": true,
+      "expression": {
+        "rules": [
+          {
+            "predicate": "FIELD",
+            "parameters": {
+              "operator": "null",
+              "fieldCode": "project.majorProjectLevel",
+              "valueType": "TEXT"
+            }
+          },
+          {
+            "rules": [
+              {
+                "predicate": "FIELD",
+                "parameters": {
+                  "value": "",
+                  "operator": "!=",
+                  "fieldCode": "project.majorProjectLevel",
+                  "valueType": "TEXT"
+                }
+              },
+              {
+                "rules": [
+                  {
+                    "predicate": "FIELD",
+                    "parameters": {
+                      "value": [
+                        "办事处级重大项目",
+                        "市场部级重大项目",
+                        "公司级重大项目"
+                      ],
+                      "operator": "in",
+                      "fieldCode": "project.majorProjectLevel",
+                      "valueType": "TEXT"
+                    }
+                  }
+                ],
+                "operator": "NOT"
+              }
+            ],
+            "operator": "ALL"
+          }
+        ],
+        "operator": "ANY"
+      },
+      "decision": null
+    }
+  ],
+  "schemaVersion": 2,
+  "sourceEvidence": {
+    "scope": "S0-S5；保留计划与方案并行和本模板直签分支。S6 未由原图定义，不新增自动项目闭环。",
+    "purpose": "需求方要求重新区分业务系统记录与文件交付件，并新建独立模板草稿。",
+    "sourceFile": "需求/项目交付/项目交付流程 (2).vsdx",
+    "configuredAt": "2026-10-06",
+    "classification": {
+      "deferred": [
+        "工程交底书"
+      ],
+      "explicitFiles": [
+        "客户方案分支的客户实施方案（原业务入口输入）",
+        "直签到货签收单",
+        "直签客户签署初验单",
+        "直签客户签署终验单"
+      ],
+      "systemRecords": [
+        "需求分析表",
+        "最终用户信息",
+        "工期",
+        "分工界面（含辅料）",
+        "安装位置",
+        "启用功能",
+        "运行业务",
+        "初验/终验报告",
+        "现场培训记录",
+        "满意度调查"
+      ]
+    },
+    "pendingDecisions": [
+      "施工计划和实施方案是否还须独立文件交付件",
+      "配置 Log 是否必须文件或允许系统记录"
+    ],
+    "sourceExtraction": "docs/generated/2026-10-06-visio-system-record-template/flow-source.json",
+    "sourceTemplateId": 993009900014,
+    "confirmedDecisions": [
+      {
+        "decision": "施工计划与实施方案在工前准备后并行，二者完成后实施部署",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "制定施工计划页188按审核施工计划配置",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "本模板非直签严格按图跳过初验和终验；仅对本模板生效",
+        "authority": "2026-09-22当前会话需求方明确裁决"
+      },
+      {
+        "decision": "CRM改单、物料申领、外采事前申请为独立流程，不设统一回流",
+        "authority": "2026-09-22当前会话需求方明确裁决"
+      },
+      {
+        "decision": "忽略配置工具自动检查",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "重大复审由工程管理部承担",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "CRM重大项目级别为办事处级重大项目、市场部级重大项目或公司级重大项目时，须工程管理部复审",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "工前确认已包含在工勘记录中，取消单独填写；第8项上架加电是否需要原厂实施、第9项是否需要导轨/托盘作为需求方指定的支线依据。",
+        "authority": "2026-09-22当前会话需求方更正",
+        "supersedes": "项目经理通过工前确认表单独填写三项判断"
+      },
+      {
+        "decision": "手工项目（无CRM来源，重大项目级别为空）按普通审核处理；空字符串仍阻断（依据SCH-05）；2026-09-22需求方更正原\"级别缺失阻断\"立场",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "手工项目（无CRM来源，重大项目级别为空）按普通审核处理；空字符串仍阻断（依据SCH-05）；2026-09-22需求方更正原\"级别缺失阻断\"立场",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "手工项目（无CRM来源，重大项目级别为空）按普通审核处理；空字符串仍阻断（依据SCH-05）；2026-09-22需求方更正原\"级别缺失阻断\"立场",
+        "authority": "2026-09-22当前会话需求方确认"
+      },
+      {
+        "decision": "工程交底书暂不处理；不设置交付件或完成门槛",
+        "authority": "2026-10-06 当前会话需求方答复"
+      }
+    ],
+    "configurationBoundary": "独立草稿；未决文件要求和五个完成事实缺口解决前不发布。",
+    "completionIntegrationGaps": [
+      {
+        "reason": "最终用户和联系人业务记录的 Owner 完成事实未接入；不构造伪事实或人工文件替代。",
+        "taskCode": "PRE_CONTACT",
+        "nativeRecord": "ProjectCustomerContactDO",
+        "ownerContext": "CUS"
+      },
+      {
+        "reason": "安装位置和安装完成记录的 Owner 完成事实未接入；不构造伪事实或人工文件替代。",
+        "taskCode": "DEPLOY_HARDWARE",
+        "nativeRecord": "installation",
+        "ownerContext": "IMP"
+      },
+      {
+        "reason": "启用功能和配置调试完成记录；配置 Log 文件要求待确认的 Owner 完成事实未接入；不构造伪事实或人工文件替代。",
+        "taskCode": "DEPLOY_CONFIG",
+        "nativeRecord": "configuration",
+        "ownerContext": "IMP"
+      },
+      {
+        "reason": "运行业务和联调通过记录的 Owner 完成事实未接入；不构造伪事实或人工文件替代。",
+        "taskCode": "DEPLOY_JOINT",
+        "nativeRecord": "jointTest",
+        "ownerContext": "IMP"
+      },
+      {
+        "reason": "培训客户确认及签署记录的 Owner 完成事实未接入；不构造伪事实或人工文件替代。",
+        "taskCode": "ACCEPT_TRAINING",
+        "nativeRecord": "training",
+        "ownerContext": "IMP"
+      }
+    ],
+    "sourcePublishedRevisionNo": 10
+  },
+  "stages": [
+    {
+      "admissionRuleKey": null,
+      "code": "S0",
+      "completionRule": null,
+      "completionRuleKey": "FLOW_ASSIGNMENT_DONE",
+      "entryCriteria": "CRM生成订单；由项目管理入口办理服务经理与项目经理指派。",
+      "exitCriteria": "按同办事处、单省异地、多省异地分支完成指派；异常回退总部，不复制指派审批任务。",
+      "exitRuleKey": null,
+      "lifecycleStage": "S0",
+      "name": "项目立项与指派",
+      "nodeKey": "stage:S0",
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "sortOrder": 0,
+      "source": null,
+      "start": true,
+      "terminal": false,
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2102312813843894274",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "VISIO_DELIVERY_20260922_PROJECT_ASSIGNMENT",
+          "disabledAt": null,
+          "entityType": "PROJECT_ASSIGNMENT",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1790065408779,
+          "componentKey": "PROJ_PROJECT_ASSIGNMENT",
+          "ownerContext": "PROJ",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "COPY",
+            "DISABLE"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "PROJ_PROJECT_ASSIGNMENT_QUERY",
+          "supportedActions": [
+            "QUERY"
+          ],
+          "commandProviderKey": "PROJ_PROJECT_ASSIGNMENT_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "PROJ_PROJECT_ASSIGNMENT_PERMISSION"
+        },
+        "componentKey": "PROJ_PROJECT_ASSIGNMENT",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2102312813843894274",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "PROJ",
+        "targetObjectKey": "PROJECT_ASSIGNMENT",
+        "targetObjectType": "PROJECT_ASSIGNMENT",
+        "type": "BUSINESS_OBJECT"
+      }
+    },
+    {
+      "admissionRuleKey": "S1_ENTER",
+      "code": "S1",
+      "completionRule": null,
+      "completionRuleKey": "S1_DONE",
+      "entryCriteria": "S0指派完成。",
+      "exitCriteria": "工勘、需求分析、工期与分工界面、用户联系人按原业务记录确认。CRM 改单、物料申领和外采为独立支线，不新增统一回流或重复文件门槛。工程交底书暂不处理；联系人完成事实尚未接入。",
+      "exitRuleKey": null,
+      "lifecycleStage": "S1",
+      "name": "工前准备",
+      "nodeKey": "stage:S1",
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "schedulePercentage": 20,
+      "sortOrder": 10,
+      "source": null,
+      "start": false,
+      "terminal": false,
+      "workBinding": null
+    },
+    {
+      "admissionRuleKey": "S2_ENTER",
+      "code": "S2",
+      "completionRule": null,
+      "completionRuleKey": "S2_DONE",
+      "entryCriteria": "工前准备完成；与实施方案并行。",
+      "exitCriteria": "当前施工计划审批通过并生效；是否须独立文件交付件待需求方确认。",
+      "exitRuleKey": null,
+      "lifecycleStage": "S2",
+      "name": "施工计划制定与审批",
+      "nodeKey": "stage:S2",
+      "permission": null,
+      "schedulePercentage": 20,
+      "sortOrder": 20,
+      "source": null,
+      "start": false,
+      "terminal": false,
+      "workBinding": null
+    },
+    {
+      "admissionRuleKey": "S3_ENTER",
+      "code": "S3",
+      "completionRule": null,
+      "completionRuleKey": "S3_DONE",
+      "entryCriteria": "工前准备完成；与施工计划并行。",
+      "exitCriteria": "方案审核及适用工程管理部复审通过；客户方案保留原业务入口上传；是否须独立文件交付件待需求方确认。",
+      "exitRuleKey": null,
+      "lifecycleStage": "S3",
+      "name": "实施方案编制与审核",
+      "nodeKey": "stage:S3",
+      "permission": null,
+      "schedulePercentage": 20,
+      "sortOrder": 30,
+      "source": null,
+      "start": false,
+      "terminal": false,
+      "workBinding": null
+    },
+    {
+      "admissionRuleKey": "S4_ENTER",
+      "code": "S4",
+      "completionRule": null,
+      "completionRuleKey": "S4_DONE",
+      "entryCriteria": "施工计划与实施方案均完成；发货事实仍由原业务入口核验。",
+      "exitCriteria": "适用到货签收单文件、安装与配置及联调系统记录、割接原完成依据。安装/配置/联调的系统记录完成事实尚未接入；配置 Log 文件要求待确认。",
+      "exitRuleKey": null,
+      "lifecycleStage": "S4",
+      "name": "实施部署",
+      "nodeKey": "stage:S4",
+      "permission": null,
+      "schedulePercentage": 20,
+      "sortOrder": 40,
+      "source": null,
+      "start": false,
+      "terminal": false,
+      "workBinding": null
+    },
+    {
+      "admissionRuleKey": "S5_ENTER",
+      "code": "S5",
+      "completionRule": null,
+      "completionRuleKey": "S5_DONE",
+      "entryCriteria": "实施部署完成；客户验收安排与验收领域状态仍由业务模块核验。",
+      "exitCriteria": "适用初验/终验有效报告与客户签署验收单、培训客户确认记录、有效满意度结果；纸质交接、回款和归档支线仍独立办理。培训记录完成事实尚未接入。",
+      "exitRuleKey": null,
+      "lifecycleStage": "S5",
+      "name": "验收交维",
+      "nodeKey": "stage:S5",
+      "permission": null,
+      "schedulePercentage": 20,
+      "sortOrder": 50,
+      "source": null,
+      "start": false,
+      "terminal": true,
+      "workBinding": null
+    }
+  ],
+  "tasks": [
+    {
+      "admissionRuleKey": null,
+      "code": "PRE_SURVEY",
+      "completionRule": null,
+      "completionRuleKey": "PRE_SURVEY_DONE",
+      "description": "来源：工前准备页294、390、418。项目经理开展工勘；物料不适配时进入独立CRM改单流程，不设置统一回流。工勘确认事实只证明工勘完成，不替代环境适配判断。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "现场工勘与环境适配核对",
+      "nodeKey": "task:PRE_SURVEY",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 0,
+      "source": null,
+      "stageCode": "S1",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101604731582791681",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_SITE_SURVEY",
+          "disabledAt": null,
+          "entityType": "SITE_SURVEY",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896961332,
+          "componentKey": "SOL_SITE_SURVEY",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "DISABLE",
+            "QUERY",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "SOL_SITE_SURVEY_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "CREATE",
+            "UPDATE",
+            "CONFIRM",
+            "REJECT",
+            "ARCHIVE",
+            "LINK",
+            "UNLINK"
+          ],
+          "commandProviderKey": "SOL_SITE_SURVEY_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "SOL_SITE_SURVEY_PERMISSION"
+        },
+        "componentKey": "SOL_SITE_SURVEY",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101604731582791681",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "PROJECT_SITE_SURVEY",
+        "targetObjectType": "SITE_SURVEY",
+        "type": "BUSINESS_COMPONENT"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "PRE_REQUIREMENT",
+      "completionRule": null,
+      "completionRuleKey": "PRE_REQUIREMENT_DONE",
+      "description": "来源：工前准备 #317/#536。以原需求分析实体表单和已完成版本为依据，不要求重复上传需求分析表文件。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "需求分析",
+      "nodeKey": "task:PRE_REQUIREMENT",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 10,
+      "source": null,
+      "stageCode": "S1",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606301384949762",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_REQUIREMENT_ANALYSIS",
+          "disabledAt": null,
+          "entityType": "REQUIREMENT_ANALYSIS",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896963469,
+          "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "project"
+            ],
+            "properties": {
+              "project": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "version"
+                ],
+                "properties": {
+                  "id": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "allowedActions": [
+            "DISABLE",
+            "QUERY",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "SOL_REQUIREMENT_ANALYSIS_QUERY",
+          "supportedActions": [
+            "CREATE_INITIAL_DRAFT",
+            "PATCH_FORM",
+            "COMPLETE",
+            "CREATE_DRAFT"
+          ],
+          "commandProviderKey": "SOL_REQUIREMENT_ANALYSIS_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "SOL_REQUIREMENT_ANALYSIS_PERMISSION"
+        },
+        "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "schemaVersion": 2,
+          "contextMapping": {
+            "project": "project"
+          },
+          "dynamicFormRevisionNo": 1,
+          "dynamicFormTemplateId": 992203010001,
+          "businessViewRevisionId": "2101606301384949762",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING",
+          "dynamicFormTemplateRevisionId": 992203020001,
+          "dynamicFormRevisionFactVersion": 1
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "PRE_04_REQUIREMENT_ANALYSIS",
+        "targetObjectType": "REQUIREMENT_ANALYSIS",
+        "type": "BUSINESS_OBJECT"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "PRE_DURATION",
+      "completionRule": null,
+      "completionRuleKey": "PRE_DURATION_DONE",
+      "description": "来源：工前准备页340、543、549。确认项目有效工期及含辅料的分工界面；工期生效不等同施工计划审批。工期与分工界面属于原业务记录，不要求重复上传同名文件。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "工期与分工界面确认",
+      "nodeKey": "task:PRE_DURATION",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 20,
+      "source": null,
+      "stageCode": "S1",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606310708887554",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_CONSTRUCTION_PLAN",
+          "disabledAt": null,
+          "entityType": "CONSTRUCTION_PLAN",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896965816,
+          "componentKey": "PLN_CONSTRUCTION_PLAN",
+          "ownerContext": "PLN",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "DISABLE",
+            "QUERY",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "PLN_CONSTRUCTION_PLAN_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "CREATE",
+            "UPDATE",
+            "LINK",
+            "UNLINK"
+          ],
+          "commandProviderKey": "PLN_CONSTRUCTION_PLAN_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "PLN_CONSTRUCTION_PLAN_PERMISSION"
+        },
+        "componentKey": "PLN_CONSTRUCTION_PLAN",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101606310708887554",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "PLN",
+        "targetObjectKey": "PROJECT_CONSTRUCTION_PLAN",
+        "targetObjectType": "CONSTRUCTION_PLAN",
+        "type": "BUSINESS_COMPONENT"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "PRE_CONTACT",
+      "completionRule": null,
+      "completionRuleKey": null,
+      "description": "来源：工前准备页363、546。在项目原有客户联系人功能维护最终用户信息，并保留对应记录。【系统记录；待接入完成依据】最终用户和联系人业务记录。当前 Owner 未提供模板可读的完成事实，完成规则留空以阻止发布；不以人工结束任务或上传同名文件替代。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "用户联系人获取",
+      "nodeKey": "task:PRE_CONTACT",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 30,
+      "source": null,
+      "stageCode": "S1",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "routePath": "/customer-asset/customer-contact"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "PAGE"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "PLAN_CONSTRUCTION",
+      "completionRule": null,
+      "completionRuleKey": "PLAN_CONSTRUCTION_DONE",
+      "description": "来源：制定施工计划 #72/#149/#299/#110/#188/#173。保留直签合同验收时间、非直签有效工期输入；项目经理编写，服务经理审核，驳回在原业务计划修改重提。与实施方案并行，以当前批准计划事实为依据。【待确认】是否还须独立文件交付件；未确认前保留为草稿。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "施工计划制定与审批",
+      "nodeKey": "task:PLAN_CONSTRUCTION",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 0,
+      "source": null,
+      "stageCode": "S2",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2102312815597113345",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "VISIO_DELIVERY_20260922_STAGE_PLAN",
+          "disabledAt": null,
+          "entityType": "STAGE_PLAN",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1790065409111,
+          "componentKey": "PLN_STAGE_PLAN_APPROVAL",
+          "ownerContext": "PLN",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "COPY",
+            "DISABLE"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "PLN_STAGE_PLAN_APPROVAL_QUERY",
+          "supportedActions": [
+            "QUERY"
+          ],
+          "commandProviderKey": "PLN_STAGE_PLAN_APPROVAL_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "PLN_STAGE_PLAN_APPROVAL_PERMISSION"
+        },
+        "componentKey": "PLN_STAGE_PLAN_APPROVAL",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2102312815597113345",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "PLN",
+        "targetObjectKey": "STAGE_PLAN",
+        "targetObjectType": "STAGE_PLAN",
+        "type": "BUSINESS_OBJECT"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "PLAN_SOLUTION",
+      "completionRule": null,
+      "completionRuleKey": "PLAN_SOLUTION_APPROVAL_DONE",
+      "description": "来源：编写实施方案 #403/#417/#441/#521/#559/#589/#630。方案及审批记录在原业务模块形成；使用客户方案时在原业务入口上传客户方案。以原方案审核及适用的工程管理部复审事实为依据，忽略配置工具检查。【待确认】是否还须独立文件交付件；未确认前保留为草稿。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "实施方案编制与分级审核",
+      "nodeKey": "task:PLAN_SOLUTION",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 0,
+      "source": null,
+      "stageCode": "S3",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2102312816972845058",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "VISIO_DELIVERY_20260922_IMPLEMENTATION_SOLUTION",
+          "disabledAt": null,
+          "entityType": "IMPLEMENTATION_SOLUTION",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1790065409458,
+          "componentKey": "SOL_IMPLEMENTATION_SOLUTION",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "COPY",
+            "DISABLE"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "SOL_IMPLEMENTATION_SOLUTION_QUERY",
+          "supportedActions": [
+            "QUERY"
+          ],
+          "commandProviderKey": "SOL_IMPLEMENTATION_SOLUTION_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "SOL_IMPLEMENTATION_SOLUTION_PERMISSION"
+        },
+        "componentKey": "SOL_IMPLEMENTATION_SOLUTION",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2102312816972845058",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "IMPLEMENTATION_SOLUTION",
+        "targetObjectType": "IMPLEMENTATION_SOLUTION",
+        "type": "BUSINESS_OBJECT"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "DEPLOY_COORDINATE",
+      "completionRule": null,
+      "completionRuleKey": "DEPLOY_COORDINATE_DONE",
+      "description": "来源：实施部署页408、571。项目发货后由项目经理联系客户确认到货和实施安排，实际发货信息从商务业务读取。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "客户到货及实施协调",
+      "nodeKey": "task:DEPLOY_COORDINATE",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 0,
+      "source": null,
+      "stageCode": "S4",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {},
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "TASK_NATIVE"
+      }
+    },
+    {
+      "admissionRuleKey": "DEPLOY_ARRIVAL_ENTER",
+      "code": "DEPLOY_ARRIVAL",
+      "completionRule": null,
+      "completionRuleKey": "DEPLOY_ARRIVAL_DONE",
+      "description": "来源：实施部署页358、372、424。仅直签分支要求到货验收及签收单；纸质单据交销售与秘书，回款和归档作为独立下游办理。签收单材料有效且人工办理提交才算本任务完成。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "到货验收与签收",
+      "nodeKey": "task:DEPLOY_ARRIVAL",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 10,
+      "source": null,
+      "stageCode": "S4",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "routePath": "/pms/engineering/execution/imp-arrival"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "PAGE"
+      }
+    },
+    {
+      "admissionRuleKey": "DEPLOY_HARDWARE_ENTER",
+      "code": "DEPLOY_HARDWARE",
+      "completionRule": null,
+      "completionRuleKey": null,
+      "description": "来源：实施部署页425、499。登记安装位置；直签到货验收后办理，非直签经客户协调后办理。【系统记录；待接入完成依据】安装位置和安装完成记录。当前 Owner 未提供模板可读的完成事实，完成规则留空以阻止发布；不以人工结束任务或上传同名文件替代。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "硬件实施",
+      "nodeKey": "task:DEPLOY_HARDWARE",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 20,
+      "source": null,
+      "stageCode": "S4",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "routePath": "/pms/engineering/execution/imp-installation"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "PAGE"
+      }
+    },
+    {
+      "admissionRuleKey": "DEPLOY_CONFIG_ENTER",
+      "code": "DEPLOY_CONFIG",
+      "completionRule": null,
+      "completionRuleKey": null,
+      "description": "来源：实施部署页451、499。硬件实施后开展配置调试，保留启用功能和配置Log；沿用文件与敏感数据保护。【系统记录；待接入完成依据】启用功能和配置调试完成记录；配置 Log 文件要求待确认。当前 Owner 未提供模板可读的完成事实，完成规则留空以阻止发布；不以人工结束任务或上传同名文件替代。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "配置调试",
+      "nodeKey": "task:DEPLOY_CONFIG",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 30,
+      "source": null,
+      "stageCode": "S4",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "routePath": "/pms/engineering/execution/imp-configuration"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "PAGE"
+      }
+    },
+    {
+      "admissionRuleKey": "DEPLOY_JOINT_ENTER",
+      "code": "DEPLOY_JOINT",
+      "completionRule": null,
+      "completionRuleKey": null,
+      "description": "来源：实施部署页474、499。配置调试完成后办理业务联调，记录运行业务和联调结果。【系统记录；待接入完成依据】运行业务和联调通过记录。当前 Owner 未提供模板可读的完成事实，完成规则留空以阻止发布；不以人工结束任务或上传同名文件替代。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "业务联调",
+      "nodeKey": "task:DEPLOY_JOINT",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 40,
+      "source": null,
+      "stageCode": "S4",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "routePath": "/pms/engineering/execution/imp-joint-test"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "PAGE"
+      }
+    },
+    {
+      "admissionRuleKey": "DEPLOY_CUTOVER_ENTER",
+      "code": "DEPLOY_CUTOVER",
+      "completionRule": null,
+      "completionRuleKey": "DEPLOY_CUTOVER_DONE",
+      "description": "割接完成审批：发起割接审批并由服务经理审批，审批通过即视为割接完成。过渡方案说明：当前为割接完成外接接入前的临时依据，后续将替换为割接系统业务事实（CUTOVER_COMPLETED）。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "割接上线",
+      "nodeKey": "task:DEPLOY_CUTOVER",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 50,
+      "source": null,
+      "stageCode": "S4",
+      "workBinding": {
+        "approvalDefinitionKey": "PMS_DELIVERY_CUTOVER_APPROVAL",
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "processDefinitionId": "0e48d1a2-b761-11f1-bd7e-00ff0b78abd7"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "APPROVAL"
+      }
+    },
+    {
+      "admissionRuleKey": null,
+      "code": "ACCEPT_COORDINATE",
+      "completionRule": null,
+      "completionRuleKey": "ACCEPT_COORDINATE_DONE",
+      "description": "来源：验收交维页67、230。联系客户安排验收、培训与资料交接；原图触发事件仍标“项目发货事件”，来源原文保留，阶段准入按交付全链依赖办理。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "客户验收交维协调",
+      "nodeKey": "task:ACCEPT_COORDINATE",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 0,
+      "source": null,
+      "stageCode": "S5",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {},
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "TASK_NATIVE"
+      }
+    },
+    {
+      "admissionRuleKey": "ACCEPT_INITIAL_ENTER",
+      "code": "ACCEPT_INITIAL",
+      "completionRule": null,
+      "completionRuleKey": "ACCEPT_INITIAL_DONE",
+      "description": "来源：验收交维页16、31、83、107；结合现行直签场景分为初验与终验。初验报告必须有效且结论通过，文件上传本身不算验收完成。系统发布的报告和通过结论由验收 Owner 校验；客户签署验收单单独作为文件，不把系统生成报告自动当作客户验收单。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "项目初验",
+      "nodeKey": "task:ACCEPT_INITIAL",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 10,
+      "source": null,
+      "stageCode": "S5",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606320578084865",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_ACCEPTANCE_REPORT",
+          "disabledAt": null,
+          "entityType": "ACCEPTANCE",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896968189,
+          "componentKey": "ACC_ACCEPTANCE_REPORT",
+          "ownerContext": "ACC",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "COPY",
+            "DISABLE"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "ACC_ACCEPTANCE_REPORT_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "MANAGE",
+            "UPDATE",
+            "REVOKE",
+            "LINK",
+            "UNLINK"
+          ],
+          "commandProviderKey": "ACC_ACCEPTANCE_REPORT_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "ACC_ACCEPTANCE_REPORT_PERMISSION"
+        },
+        "componentKey": "ACC_ACCEPTANCE_REPORT",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "acceptanceType": "PRELIMINARY",
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101606320578084865",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "ACC",
+        "targetObjectKey": "PROJECT_ACCEPTANCE",
+        "targetObjectType": "ACCEPTANCE",
+        "type": "BUSINESS_COMPONENT"
+      }
+    },
+    {
+      "admissionRuleKey": "ACCEPT_FINAL_ENTER",
+      "code": "ACCEPT_FINAL",
+      "completionRule": null,
+      "completionRuleKey": "ACCEPT_FINAL_DONE",
+      "description": "来源：验收交维页31、83、107。终验报告必须有效且结论通过；直签初验后进入终验。2026-09-22需求方确认本模板严格按图：非直签跳过初验和终验；该例外仅适用于本模板，不改变其他模板。系统发布的报告和通过结论由验收 Owner 校验；客户签署验收单单独作为文件，不把系统生成报告自动当作客户验收单。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "项目终验",
+      "nodeKey": "task:ACCEPT_FINAL",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 20,
+      "source": null,
+      "stageCode": "S5",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606320578084865",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_ACCEPTANCE_REPORT",
+          "disabledAt": null,
+          "entityType": "ACCEPTANCE",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896968189,
+          "componentKey": "ACC_ACCEPTANCE_REPORT",
+          "ownerContext": "ACC",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "COPY",
+            "DISABLE"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "ACC_ACCEPTANCE_REPORT_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "MANAGE",
+            "UPDATE",
+            "REVOKE",
+            "LINK",
+            "UNLINK"
+          ],
+          "commandProviderKey": "ACC_ACCEPTANCE_REPORT_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "ACC_ACCEPTANCE_REPORT_PERMISSION"
+        },
+        "componentKey": "ACC_ACCEPTANCE_REPORT",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "acceptanceType": "FINAL",
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101606320578084865",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "ACC",
+        "targetObjectKey": "PROJECT_ACCEPTANCE",
+        "targetObjectType": "ACCEPTANCE",
+        "type": "BUSINESS_COMPONENT"
+      }
+    },
+    {
+      "admissionRuleKey": "ACCEPT_TRAINING_ENTER",
+      "code": "ACCEPT_TRAINING",
+      "completionRule": null,
+      "completionRuleKey": null,
+      "description": "来源：验收交维页84、158。登记培训内容、参训与签署记录。直签在适用验收办理后进入，非直签按原图由客户协调后进入；满意度单独关联真实业务结果。【系统记录；待接入完成依据】培训客户确认及签署记录。当前 Owner 未提供模板可读的完成事实，完成规则留空以阻止发布；不以人工结束任务或上传同名文件替代。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "现场培训",
+      "nodeKey": "task:ACCEPT_TRAINING",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 30,
+      "source": null,
+      "stageCode": "S5",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "routePath": "/pms/imp-training"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "PAGE"
+      }
+    },
+    {
+      "admissionRuleKey": "ACCEPT_SATISFACTION_ENTER",
+      "code": "ACCEPT_SATISFACTION",
+      "completionRule": null,
+      "completionRuleKey": "ACCEPT_SATISFACTION_DONE",
+      "description": "来源：验收交维 #158。只关联 ACC 当前有效的 SATISFACTION_PASSED 业务结果，保留原评分、签署与权限规则；不设置调查文件上传门槛，不接收普通文件代替业务结果。",
+      "estimatedHours": null,
+      "exitRuleKey": null,
+      "gateRef": null,
+      "name": "满意度调查",
+      "nodeKey": "task:ACCEPT_SATISFACTION",
+      "parentTaskCode": null,
+      "permission": {
+        "policyRef": null,
+        "policySnapshot": {
+          "requiredActions": [
+            "VIEW"
+          ]
+        },
+        "sourceRevisionId": null
+      },
+      "priority": 2,
+      "satisfactionTiming": null,
+      "sortOrder": 40,
+      "source": null,
+      "stageCode": "S5",
+      "workBinding": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": null,
+        "componentKey": null,
+        "dynamicFormRevisionId": null,
+        "parameters": {},
+        "sourceRevisionId": null,
+        "targetContextCode": null,
+        "targetObjectKey": null,
+        "targetObjectType": null,
+        "type": "TASK_NATIVE"
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "code": "TR_S0_S1",
+      "condition": null,
+      "conditionRuleKey": null,
+      "defaultBranch": false,
+      "edgeKey": "edge:S0:S1",
+      "fromStageCode": "S0",
+      "priority": 0,
+      "source": null,
+      "toStageCode": "S1"
+    },
+    {
+      "code": "TR_S1_S2",
+      "condition": null,
+      "conditionRuleKey": null,
+      "defaultBranch": false,
+      "edgeKey": "edge:S1:S2",
+      "fromStageCode": "S1",
+      "priority": 1,
+      "source": null,
+      "toStageCode": "S2"
+    },
+    {
+      "code": "TR_S1_S3",
+      "condition": null,
+      "conditionRuleKey": null,
+      "defaultBranch": false,
+      "edgeKey": "edge:S1:S3",
+      "fromStageCode": "S1",
+      "priority": 2,
+      "source": null,
+      "toStageCode": "S3"
+    },
+    {
+      "code": "TR_S2_S4",
+      "condition": null,
+      "conditionRuleKey": null,
+      "defaultBranch": false,
+      "edgeKey": "edge:S2:S4",
+      "fromStageCode": "S2",
+      "priority": 3,
+      "source": null,
+      "toStageCode": "S4"
+    },
+    {
+      "code": "TR_S3_S4",
+      "condition": null,
+      "conditionRuleKey": null,
+      "defaultBranch": false,
+      "edgeKey": "edge:S3:S4",
+      "fromStageCode": "S3",
+      "priority": 4,
+      "source": null,
+      "toStageCode": "S4"
+    },
+    {
+      "code": "TR_S4_S5",
+      "condition": null,
+      "conditionRuleKey": null,
+      "defaultBranch": false,
+      "edgeKey": "edge:S4:S5",
+      "fromStageCode": "S4",
+      "priority": 5,
+      "source": null,
+      "toStageCode": "S5"
+    }
+  ]
+}

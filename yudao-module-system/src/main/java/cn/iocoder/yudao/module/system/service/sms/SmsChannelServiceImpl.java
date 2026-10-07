@@ -35,7 +35,7 @@ public class SmsChannelServiceImpl implements SmsChannelService {
     private SmsChannelMapper smsChannelMapper;
 
     @Resource
-    private SmsTemplateService smsTemplateService;
+    private cn.iocoder.yudao.module.system.dal.mysql.sms.SmsTemplateMapper smsTemplateMapper;
 
     @Override
     public Long createSmsChannel(SmsChannelSaveReqVO createReqVO) {
@@ -58,7 +58,7 @@ public class SmsChannelServiceImpl implements SmsChannelService {
         // 校验存在
         validateSmsChannelExists(id);
         // 校验是否有在使用该账号的模版
-        if (smsTemplateService.getSmsTemplateCountByChannelId(id) > 0) {
+        if (smsTemplateMapper.selectCountByChannelId(id) > 0) {
             throw exception(SMS_CHANNEL_HAS_CHILDREN);
         }
         // 删除
@@ -69,7 +69,7 @@ public class SmsChannelServiceImpl implements SmsChannelService {
     public void deleteSmsChannelList(List<Long> ids) {
         // 1. 校验是否有在使用该账号的模版
         ids.forEach(id -> {
-            if (smsTemplateService.getSmsTemplateCountByChannelId(id) > 0) {
+            if (smsTemplateMapper.selectCountByChannelId(id) > 0) {
                 throw exception(SMS_CHANNEL_HAS_CHILDREN);
             }
         });

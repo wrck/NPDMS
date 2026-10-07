@@ -42,6 +42,8 @@ public class RequirementAnalysisAccess {
     }
 
     public void requireRead(Long projectId, EntityActor actor, boolean draft) {
+        // Preserve the common fact port's reserved observer contract; HTTP actors cannot inject this identity.
+        if (actor.isSystemObserver()) return;
         if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:query", "pms:requirement-analysis:manage")) throw exception(FORBIDDEN);
         var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_VIEW));
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);

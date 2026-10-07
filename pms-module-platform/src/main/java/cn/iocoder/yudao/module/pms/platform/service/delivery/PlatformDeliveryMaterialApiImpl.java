@@ -21,6 +21,16 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
     private final DeliveryMaterialMapper materialMapper;
 
     @Override
+    public Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
+        return materialService.registerNativeUploadedDocument(fact).getId();
+    }
+
+    @Override
+    public Long registerNativeSourceFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
+        return materialService.registerNativeSourceDocument(fact).getId();
+    }
+
+    @Override
     @Transactional
     public Long registerFileMaterial(String ownerModule, String entityType, Long entityId, String typeCode,
                                      Long fileReferenceId, String title, String sourceKind, Long projectId) {
@@ -39,14 +49,14 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
 
     @Override
     public List<DeliveryMaterialView> listByEntity(String ownerModule, String entityType, Long entityId) {
-        return materialMapper.selectByEntity(ownerModule, entityType, entityId, null).stream()
+        return materialService.listByEntity(ownerModule, entityType, entityId, null).stream()
                 .map(PlatformDeliveryMaterialApiImpl::toView).toList();
     }
 
     @Override
     public List<DeliveryMaterialView> listByEntityAndType(String ownerModule, String entityType, Long entityId,
                                                           String typeCode) {
-        return materialMapper.selectByEntity(ownerModule, entityType, entityId, typeCode).stream()
+        return materialService.listByEntity(ownerModule, entityType, entityId, typeCode).stream()
                 .map(PlatformDeliveryMaterialApiImpl::toView).toList();
     }
 

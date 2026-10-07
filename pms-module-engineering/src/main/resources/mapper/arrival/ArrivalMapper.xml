@@ -9,4 +9,7 @@
         WHERE project_id = #{projectId}
           AND code IS NOT NULL
     </select>
+    <select id="selectDeliveryOwnerForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO">
+        SELECT * FROM imp_eng_arrival WHERE tenant_id=#{query.tenantId} AND id=#{query.arrivalId} AND deleted=b'0' FOR UPDATE
+    </select>
 </mapper>

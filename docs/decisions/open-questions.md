@@ -1275,3 +1275,16 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Decision owner: 需求方
 - Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
 
+## 2026-10-06 流程图系统记录与文件要求澄清
+
+### Q-TPL-FLOW-20261006-001 — 新模板中计划、方案与配置 Log 的文件要求
+
+- Status: RESOLVED（2026-10-06 需求方已确认文件要求和配置 Log 最新范围；实现接入缺口另行保留）
+- Requirement IDs: F-PROJ-009 配置实例；不修改 PRD、通用模板模型或既有已发布模板。
+- Source: `需求/项目交付/项目交付流程 (2).vsdx` 六页及需求方 2026-10-06 当前会话：图中标注可能是系统记录，不应全部解释为文件交付件；重新梳理后新建模板。
+- Confirmed: 工程交底书暂不处理；新模板不设置该项交付件或完成门槛。施工计划、实施方案“以系统记录和审批为准，不要求额外上传同名文件”。客户提供方案仍是原业务入口的条件输入。
+- Resolution: 配置 Log 是设备日志文件，允许手动上传及设备采集回传多个入口；每次文件记录保留。需求方追加确认按同一设备跨入口取最新文件，“大日志文件需要按设备拆分成对应的小日志关联会对应的设备”。到货签收单和客户签署验收单仍单独识别为文件；审批、系统报告、培训记录和满意度结果保持系统记录/业务结果属性。
+- Remaining implementation boundary: 文件业务口径已澄清，不再标为 BLOCKED_BY_SPEC。新草稿 `993009900029` 中联系人、安装、配置、联调、培训完成事实尚未接入；配置日志的多设备拆分、设备关联、跨入口最新文件校验及模板来源接入也未实现。完成规则及日志确认规则明确留空，Compiler 预检阻止发布；这些是实现缺口，不以任意文件上传、任务手工结束或采集技术成功填补。
+- Evidence: `docs/generated/2026-10-06-visio-system-record-template/`；记录以本次运行采集的旧模板最新已发布 rev10 为来源，早期 rev9 记录不充当当前草稿真值。
+- Implementation follow-up（2026-10-07）: 后续授权的DAC拆分、AST设备关联及跨入口最新文件代码已实施，见`docs/generated/2026-10-06-device-log-archive/README.md`；原文的“未实现”为模板创建时边界。V409迁移、实际MySQL与NPDMS浏览器验收仍未执行，模板日志确认规则及五项Owner完成依据仍未接通，草稿保持未发布。
+- Decision owner: 需求方。

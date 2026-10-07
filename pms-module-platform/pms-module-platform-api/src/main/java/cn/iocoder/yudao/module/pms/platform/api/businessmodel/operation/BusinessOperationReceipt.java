@@ -14,5 +14,11 @@ public record BusinessOperationReceipt(
         Long newConcurrencyBasis,
         List<ResultReference> references,
         String recoveryState,
-        String failureReason) {
+        String failureReason,
+        String operationCode,
+        Integer operationVersion) {
+    public BusinessOperationReceipt(ReceiptOutcome outcome,EntityRef entityRef,Long newConcurrencyBasis,
+            List<ResultReference> references,String recoveryState,String failureReason) {
+        this(outcome,entityRef,newConcurrencyBasis,references,recoveryState,failureReason,null,null);
+    }
 }

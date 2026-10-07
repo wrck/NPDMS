@@ -1,28 +1,19 @@
 package cn.iocoder.yudao.module.pms.engineering.controller.admin.training;
-
-import cn.iocoder.yudao.framework.common.exception.ServiceException;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingDO;
 import cn.iocoder.yudao.module.pms.engineering.service.training.TrainingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.TRAINING_STATUS_INVALID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 class TrainingPdfControllerTest {
-    @Test void rejectsVoidRecordsBeforeReadingEitherPrintLayout() {
-        var service = mock(TrainingService.class);
-        var controller = new TrainingPdfController();
-        ReflectionTestUtils.setField(controller, "trainingService", service);
-        var record = new TrainingDO();
-        record.setStatus(3);
-        when(service.getTraining(1L)).thenReturn(record);
-        for (String snapshot : new String[]{null, "{\"engine\":\"FORM_CREATE_ELEMENT_PLUS\"}"}) {
-            record.setPrintLayoutSnapshot(snapshot);
-            var error = assertThrows(ServiceException.class, () -> controller.download(1L));
-            assertEquals(TRAINING_STATUS_INVALID.getCode(), error.getCode());
-            assertEquals("已作废的培训记录不允许下载 PDF", error.getMessage());
-        }
-    }
+ @Test void redirectsOnlyAfterNativeServiceRegisteredOrLocatedTheActualPdf() throws Exception {
+  var service=mock(TrainingService.class);var controller=new TrainingPdfController();ReflectionTestUtils.setField(controller,"trainingService",service);
+  when(service.requestPdfDownload(1L)).thenReturn("http://localhost/registered.pdf");
+  var response=controller.download(1L);assertEquals(302,response.getStatusCode().value());assertEquals("http://localhost/registered.pdf",response.getHeaders().getLocation().toString());
+  verify(service).requestPdfDownload(1L);verify(service,never()).getTraining(any());
+ }
+ @Test void aRejectedNativeGenerationNeverReturnsAnUnregisteredPdf() throws Exception {
+  var service=mock(TrainingService.class);var controller=new TrainingPdfController();ReflectionTestUtils.setField(controller,"trainingService",service);
+  when(service.requestPdfDownload(1L)).thenThrow(new IllegalStateException("owner denied"));
+  assertThrows(IllegalStateException.class,()->controller.download(1L));
+ }
 }

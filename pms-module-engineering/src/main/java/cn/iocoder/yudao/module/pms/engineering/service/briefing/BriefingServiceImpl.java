@@ -2,7 +2,6 @@ package cn.iocoder.yudao.module.pms.engineering.service.briefing;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingApproveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingGenerateReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.briefing.vo.BriefingPageReqVO;
@@ -72,7 +71,7 @@ public class BriefingServiceImpl implements BriefingService {
     @Resource
     private BriefingMapper briefingMapper;
     @Resource
-    private FileApi fileApi;
+    private cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi generatedFiles;
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
 
@@ -123,6 +122,12 @@ public class BriefingServiceImpl implements BriefingService {
     }
 
     @Override
+    public String requestGeneratedFileDownload(Long id,Long materialId) {
+        validateBriefingExists(id);
+        return generatedFiles.requestDownload("SOL","briefing",id,materialId);
+    }
+
+    @Override
     public BriefingDO getBriefing(Long id) {
         return briefingMapper.selectById(id);
     }
@@ -164,7 +169,13 @@ public class BriefingServiceImpl implements BriefingService {
         // 6. 生成真实文件写入平台文件服务，取得真实访问地址、大小与校验和；
         //    每次从草稿生成都按当前内容重新出文件，驳回后再次生成反映最新编辑
         byte[] document = renderBriefingDocument(entity);
-        String fileUrl = fileApi.createFile(document, entity.getCode() + ".html", "briefing", "text/html");
+        var registered=generatedFiles.create(new cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand(
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                "briefing-html:"+entity.getId()+":"+entity.getVersion()+":"+sha256Hex(document),
+                "SOL","BRIEFING_DOCUMENT",entity.getId(),entity.getVersion(),"BRIEFING_DOCUMENT_HTML/"+entity.getVersion(),
+                "BRIEFING_DOCUMENT",entity.getCode()+".html","text/html",document));
+        String fileUrl="/api/v1/pms/briefings/"+entity.getId()+"/files/"+registered.materialId();
         entity.setFileUrl(fileUrl);
         entity.setFileName(entity.getCode() + ".html");
         entity.setFileSize((long) document.length);

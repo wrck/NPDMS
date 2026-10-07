@@ -40,9 +40,27 @@ class TrainingServiceTest {
     private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final TrainingServiceImpl service = new TrainingServiceImpl();
     private TrainingDO row;
+    private final TrainingConfirmationGrantService confirmationGrants=mock(TrainingConfirmationGrantService.class);
+    private final cn.iocoder.yudao.module.pms.platform.api.file.BusinessGrantGeneratedFileApi grantFiles=mock(cn.iocoder.yudao.module.pms.platform.api.file.BusinessGrantGeneratedFileApi.class);
+    private final cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi operationAudit=mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class);
+    private final cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi generatedFiles=mock(cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi.class);
+
 
     @BeforeEach
     void setUp() {
+        TenantContextHolder.setTenantId(1L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(9L).setTenantId(1L),
+                new org.springframework.mock.web.MockHttpServletRequest());
+        ReflectionTestUtils.setField(service,"generatedFiles",generatedFiles);
+        ReflectionTestUtils.setField(service,"confirmationGrants",confirmationGrants);
+        ReflectionTestUtils.setField(service,"grantFiles",grantFiles);
+        ReflectionTestUtils.setField(service,"operationAudit",operationAudit);
+        when(generatedFiles.create(any())).thenAnswer(invocation->{
+            var command=(cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand)invocation.getArgument(0);
+            return new cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi.RegisteredFile(210L,220L,230L,1,
+                    org.apache.commons.codec.digest.DigestUtils.sha256Hex(command.content()),command.fileName());
+        });
         ReflectionTestUtils.setField(service, "trainingMapper", trainingMapper);
         ReflectionTestUtils.setField(service, "deliveryMaterialApi", deliveryMaterialApi);
         ReflectionTestUtils.setField(service, "adminUserApi", adminUserApi);
@@ -51,6 +69,7 @@ class TrainingServiceTest {
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
         row = new TrainingDO();
         row.setId(1L);
+        row.setTenantId(1L);
         row.setCode("TR-001");
         row.setName("设备运维培训");
         row.setProjectId(7L);
@@ -86,15 +105,17 @@ class TrainingServiceTest {
         assertTrue(updated.getTokenExpiresAt().isAfter(LocalDateTime.now()));
 
         // 培训记录表真实生成并上传，客户区域留空待填
-        ArgumentCaptor<byte[]> contentCaptor = ArgumentCaptor.forClass(byte[].class);
-        verify(fileApi).createFile(contentCaptor.capture(), eq("TR-001.html"), eq("training"), eq("text/html"));
-        String html = new String(contentCaptor.getValue(), StandardCharsets.UTF_8);
+        var contentCaptor=ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand.class);
+        verify(generatedFiles).create(contentCaptor.capture());
+        assertEquals(9L,contentCaptor.getValue().actorUserId());assertEquals("TRAINING_RECORD_HTML/3",contentCaptor.getValue().purposeCode());
+        verify(fileApi,never()).createFile(any(),any(),any(),any());
+        String html = new String(contentCaptor.getValue().content(), StandardCharsets.UTF_8);
         assertTrue(html.contains("TR-001"));
         assertTrue(html.contains("设备运维培训"));
         assertTrue(html.contains("培训工程师技术水平及表达能力"));
         assertTrue(html.contains("客户填写区域（客户确认后回填）"));
-        assertEquals("/file/training/TR-001.html", updated.getFileUrl());
-        assertEquals((long) contentCaptor.getValue().length, updated.getFileSize());
+        assertEquals("/api/v1/pms/training-records/1/files/210", updated.getFileUrl());
+        assertEquals((long) contentCaptor.getValue().content().length, updated.getFileSize());
     }
 
     @Test
@@ -204,4 +225,20 @@ class TrainingServiceTest {
         } finally { TenantContextHolder.clear(); }
     }
 
+    @org.junit.jupiter.api.AfterEach void cleanupNativeContext(){TenantContextHolder.clear();org.springframework.security.core.context.SecurityContextHolder.clearContext();}
+
+    @Test void newGrantConfirmationUsesExplicitCustomerPrincipalAndRealIssuerExecution() throws Exception {
+        row.setStatus(1);row.setSignTokenDigest(org.apache.commons.codec.digest.DigestUtils.sha256Hex("new-token"));row.setTokenExpiresAt(LocalDateTime.now().plusDays(1));
+        when(trainingMapper.selectByDigest(row.getSignTokenDigest())).thenReturn(row);
+        var grant=new cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingConfirmationGrantDO();grant.setId(71L);grant.setIssuanceVersion(2L);grant.setIssuedByUserId(33L);
+        when(confirmationGrants.findForConfirmation(row)).thenReturn(grant);
+        when(grantFiles.create(any())).thenAnswer(call->{var c=(cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantGeneratedFileCommand)call.getArgument(0);return new cn.iocoder.yudao.module.pms.platform.api.file.BusinessGrantGeneratedFileApi.RegisteredFile(310L,320L,330L,1,org.apache.commons.codec.digest.DigestUtils.sha256Hex(c.content()),c.fileName(),71L,2L,33L);});
+        var req=new TrainingPublicConfirmReqVO();req.setSkillRating("很好");req.setEffectRating("很好");req.setSatisfactionRating("非常满意");req.setSignConfirmerName("Actual customer");
+        req.setSignatureImageDataUrl(TrainingConfirmationFormsTest.png(true));
+        service.confirmByToken("new-token",req);
+        verify(fileApi,never()).createFile(any(),any(),any(),any());verify(generatedFiles,never()).create(any());
+        var command=ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantGeneratedFileCommand.class);verify(grantFiles).create(command.capture());
+        assertEquals(71L,command.getValue().grantId());assertEquals(1L,command.getValue().objectId());assertEquals(3L,command.getValue().expectedOwnerVersion());
+        verify(operationAudit).record(eq(1L),eq(33L),any(),eq("TRAINING_CUSTOMER_CONFIRMED"),eq("Training"),eq("1"),eq("CONFIRMED"),argThat(detail->"BUSINESS_GRANT".equals(detail.get("subjectType"))&&"PUBLIC_LINK".equals(detail.get("channel"))));
+    }
 }

@@ -46,3 +46,5 @@ export const publishBriefing = (id: number) =>
   request.put({ url: `${baseUrl}/publish`, params: { id } })
 export const terminateBriefing = (id: number) =>
   request.put({ url: `${baseUrl}/terminate`, params: { id } })
+
+export const getGeneratedBriefingFileTicket = (url: string) => request.get<string>({ url })

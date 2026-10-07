@@ -398,9 +398,14 @@
       <p class="function-desc">提交审核后，服务经理进行审核，重大项目自动推送总部复审；审核通过则阶段完成，可下载实施方案。下载方案导出当前 1~8 章内容为 HTML 文件。</p>
     </section>
   </div>
+  <DeliveryPanel v-if="form.id" owner-module="SOL" entity-type="solution" :entity-id="form.id" />
 </template>
 
 <script setup lang="ts">
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import { ElMessage } from 'element-plus'
+import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
+import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
@@ -734,13 +739,30 @@ const buildSolutionHtml = () => {
   ].join('')
   return html
 }
-const downloadSolution = () => {
-  const blob = new Blob([buildSolutionHtml()], { type: 'text/html;charset=utf-8' })
-  const anchor = document.createElement('a')
-  anchor.href = URL.createObjectURL(blob)
-  anchor.download = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.html`
-  anchor.click()
-  URL.revokeObjectURL(anchor.href)
+const solutionDownloadBusy = ref(false)
+let solutionDownloadAttempt: import('@/components/DeliveryArtifact/uploadDeliveryFile').DeliveryUploadAttempt | undefined
+let solutionDownloadContent = ''
+const downloadSolution = async () => {
+  if (solutionDownloadBusy.value) return
+  solutionDownloadBusy.value = true
+  try {
+    const html = buildSolutionHtml()
+    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.html`
+    if (solutionDownloadContent !== html || solutionDownloadAttempt?.owner.entityId !== form.value.id)
+      solutionDownloadAttempt = undefined
+    solutionDownloadContent = html
+    solutionDownloadAttempt = await prepareGeneratedSolutionHtml(form.value.id!, html, fileName, solutionDownloadAttempt)
+    await uploadDeliveryFile(solutionDownloadAttempt)
+    const anchor = document.createElement('a')
+    anchor.href = URL.createObjectURL(solutionDownloadAttempt.file)
+    anchor.download = fileName
+    anchor.click()
+    URL.revokeObjectURL(anchor.href)
+  } catch (failure: any) {
+    ElMessage.error(failure?.response?.data?.msg || failure?.message || '实施方案交付件保存失败')
+  } finally {
+    solutionDownloadBusy.value = false
+  }
 }
 
 // ---------- 可选模块模板 ----------

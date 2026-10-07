@@ -26,6 +26,11 @@
         SELECT <include refid="taskFactColumns"/> FROM sol_site_survey
         WHERE <include refid="taskObjectScope"/> FOR UPDATE
     </select>
+    <select id="selectOperationIdentity" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO">
+        SELECT <include refid="taskFactColumns"/> FROM sol_site_survey
+        WHERE id = #{query.objectId} AND tenant_id = #{query.tenantId}
+    </select>
+
     <update id="deleteDraft">
         UPDATE sol_site_survey SET deleted = 1, version = version + 1, update_time = CURRENT_TIMESTAMP
         WHERE id = #{query.id} AND tenant_id = #{query.tenantId} AND version = #{query.version}

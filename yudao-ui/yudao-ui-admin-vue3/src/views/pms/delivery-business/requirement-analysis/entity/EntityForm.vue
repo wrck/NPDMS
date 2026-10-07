@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import type { Api as FormCreateApi } from '@form-create/element-ui'
+import type { BusinessOperationReceipt } from '@/api/pms/platform/businessmodel'
 import { toRaw } from 'vue'
 import { vFormCreateKeyboardRows } from '@/views/pms/project/project-master-detail/components/formCreateKeyboardRows'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
@@ -53,6 +54,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'dirty-change': [dirty: boolean]
   saved: [detail?: View]
+  receipt: [receipt: BusinessOperationReceipt]
 }>()
 const message = useMessage()
 registerDynamicFormComponents()
@@ -210,7 +212,8 @@ const save = async () => {
   const intent = stableCommandIntent(`requirement-save:${entityId}`, { version: props.detail.revision.version, payload })
   saving.value = true
   try {
-    await RequirementAnalysisApi.save(props.detail.revision, payload, intent.key)
+    const result = await RequirementAnalysisApi.save(props.detail.revision, payload, intent.key)
+    if (result?.operationReceipt) emit('receipt', result.operationReceipt)
     if (entityId !== props.detail.revision.ref.revisionId) return false
     const authoritative = await props.reload()
     if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId) return false

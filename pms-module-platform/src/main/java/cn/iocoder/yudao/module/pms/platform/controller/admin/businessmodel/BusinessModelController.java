@@ -67,6 +67,9 @@ public class BusinessModelController {
 
         private Long concurrencyBasis;
 
+        @Positive
+        private Long revisionId;
+
         private OperationEntryKind entryKind;
 
         @Pattern(regexp = "[A-Za-z0-9_.:-]{0,128}")
@@ -170,8 +173,11 @@ public class BusinessModelController {
                 .filter(op -> op.code().equals(operationCode)).findFirst()
                 .orElseThrow(() -> new BusinessContractException("OPERATION_NOT_DECLARED",
                         "操作未在目录声明: " + operationCode));
-        EntityDataRef targetRef = entityId == null ? null : EntityDataRef.current(
-                new EntityRef(TenantContextHolder.getRequiredTenantId(), ownerModule, entityType, entityId));
+        if (request.getRevisionId() != null && entityId == null) {
+            throw new BusinessContractException("OPERATION_INPUT_INVALID", "修订目标必须携带逻辑实体身份");
+        }
+        EntityDataRef targetRef = entityId == null ? null : new EntityDataRef(
+                new EntityRef(TenantContextHolder.getRequiredTenantId(), ownerModule, entityType, entityId), request.getRevisionId());
         BusinessOperationRequest operationRequest = new BusinessOperationRequest(
                 operation.code(), operation.version(), targetRef, ownerModule, entityType,
                 request.getInput() == null ? Map.of() : request.getInput(),
@@ -218,7 +224,7 @@ public class BusinessModelController {
     }
 
     public record ModelDetailVO(String ownerModule, String entityType, String stableCode,
-                                String title, List<FieldVO> fields,
+                                String title, String viewCode, List<FieldVO> fields,
                                 List<OperationVO> operations,
                                 List<CapabilityVO> capabilities) {
 
@@ -237,7 +243,7 @@ public class BusinessModelController {
                             capability.enabled()))
                     .toList();
             return new ModelDetailVO(descriptor.ownerModule(), descriptor.entityType(),
-                    descriptor.stableCode(), descriptor.title(), fields, operations, capabilities);
+                    descriptor.stableCode(), descriptor.title(), descriptor.viewCode(), fields, operations, capabilities);
         }
 
         private static OperationVO executableOf(BusinessModelDescriptor descriptor,

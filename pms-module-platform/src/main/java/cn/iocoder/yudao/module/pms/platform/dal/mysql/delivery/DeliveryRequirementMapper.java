@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementIdLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementIdentityLockQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementIdentityQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementScopeLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementTaskLockQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -41,6 +42,8 @@ public interface DeliveryRequirementMapper extends BaseMapperX<DeliveryRequireme
     }
 
     DeliveryRequirementDO selectIdForUpdate(@Param("query") DeliveryRequirementIdLockQuery query);
+
+    DeliveryRequirementDO selectIdentity(@Param("query") DeliveryRequirementIdentityQuery query);
 
     DeliveryRequirementDO selectIdentityForUpdate(@Param("query") DeliveryRequirementIdentityLockQuery query);
 

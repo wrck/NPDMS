@@ -21,6 +21,8 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.Satisfactio
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionQuestionnaireTemplateMapper;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessFieldDescriptor;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityType;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelDeclaration;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelDescriptor;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelKind;
@@ -114,7 +116,7 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                         field("currentReportVersionId", "现行报告版本", EntityField.Type.NUMBER),
                         field("originKind", "来源类型", EntityField.Type.TEXT),
                         field("originKey", "来源键", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "acc_acceptance");
+                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_acceptance");
         declarations.add(new BusinessModelDeclaration(acceptanceActivity, AcceptanceActivityDO.class,
                 acceptanceActivityMapper, null));
         BusinessModelDescriptor scopeBinding = new BusinessModelDescriptor("ACC", "acceptanceScopeBinding",
@@ -144,7 +146,7 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                         field("archiveTime", "归档时间", EntityField.Type.DATETIME),
                         field("status", "状态", EntityField.Type.NUMBER),
                         field("remark", "备注", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "acc_archive_document");
+                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_archive_document");
         declarations.add(new BusinessModelDeclaration(archiveDocument, ArchiveDocumentDO.class,
                 archiveDocumentMapper, null));
         BusinessModelDescriptor completionCertificate = new BusinessModelDescriptor("ACC", "completionCertificate",
@@ -163,7 +165,7 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                         field("attachmentUrl", "附件地址", EntityField.Type.TEXT),
                         field("status", "状态", EntityField.Type.NUMBER),
                         field("remark", "备注", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "acc_completion_certificate");
+                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_completion_certificate");
         declarations.add(new BusinessModelDeclaration(completionCertificate, CompletionCertificateDO.class,
                 completionCertificateMapper, null));
         BusinessModelDescriptor deliverableChecklist = new BusinessModelDescriptor("ACC", "deliverableChecklist",
@@ -180,7 +182,7 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                         field("checkResult", "核对结果", EntityField.Type.TEXT),
                         field("status", "状态", EntityField.Type.NUMBER),
                         field("remark", "备注", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "acc_deliverable_checklist");
+                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_deliverable_checklist");
         declarations.add(new BusinessModelDeclaration(deliverableChecklist, DeliverableChecklistDO.class,
                 deliverableChecklistMapper, null));
         BusinessModelDescriptor normalClosure = new BusinessModelDescriptor("ACC", "normalClosureApplication",
@@ -217,7 +219,7 @@ public class AcceptanceBusinessModelContributor implements BusinessModelContribu
                         field("taskStatus", "任务状态", EntityField.Type.TEXT),
                         field("questionnaireId", "问卷", EntityField.Type.NUMBER),
                         field("resultId", "结果", EntityField.Type.NUMBER)),
-                List.of(), List.of(), List.of(), "acc_satisfaction_collection_task");
+                List.of(), List.of(), List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DELIVERY,null,true)), "acc_satisfaction_collection_task");
         declarations.add(new BusinessModelDeclaration(collectionTask, SatisfactionCollectionTaskDO.class,
                 satisfactionCollectionTaskMapper, null));
         BusinessModelDescriptor questionnaire = new BusinessModelDescriptor("ACC", "satisfactionQuestionnaire",

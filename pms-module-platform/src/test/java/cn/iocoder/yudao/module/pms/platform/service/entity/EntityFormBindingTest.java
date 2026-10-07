@@ -29,6 +29,8 @@ class EntityFormBindingTest {
     private final List<EntityExtensionApi.Definition> definitions = List.of(new EntityExtensionApi.Definition("tags", "tags", EntityField.Type.TEXT_LIST, false, null, List.of("A", "B")));
 
     @BeforeEach void prepare() {
+        when(registry.nativeRef(any(EntityDataRef.class))).thenAnswer(call->call.getArgument(0));
+        when(registry.nativeRef(any(EntityRef.class))).thenAnswer(call->call.getArgument(0));
         var provider = mock(EntityFieldProvider.class);
         when(registry.fields(any())).thenReturn(provider);
         when(provider.fields()).thenReturn(List.of(new EntityField("powerSupply", EntityField.Type.TEXT, false)));

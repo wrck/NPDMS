@@ -1,0 +1,82 @@
+{
+  "ownerModule": "IMP",
+  "entityType": "configuration",
+  "stableCode": "IMP_CONFIGURATION",
+  "title": "配置调试",
+  "fields": [
+    {
+      "code": "code",
+      "name": "配置编码",
+      "type": "TEXT",
+      "required": true,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "equipmentId",
+      "name": "设备编号",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "configLogUrl",
+      "name": "配置 Log 文件",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "debugResult",
+      "name": "调试结果",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "debuggerUserId",
+      "name": "调试人",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "debugTime",
+      "name": "调试时间",
+      "type": "DATETIME",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "configSnapshot",
+      "name": "配置档案快照",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "status",
+      "name": "状态",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    }
+  ],
+  "operations": [],
+  "capabilities": []
+}

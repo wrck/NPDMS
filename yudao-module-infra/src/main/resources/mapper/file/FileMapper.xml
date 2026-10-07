@@ -13,4 +13,9 @@
         ORDER BY id
     </select>
 
+    <select id="selectCommittedReceiptForRollback" useCache="false" flushCache="true"
+            resultType="cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO">
+        SELECT id, config_id, name, path, url, type, size, creator, create_time, updater, update_time, deleted
+        FROM infra_file WHERE path=#{query.storagePath} AND deleted=b'0' ORDER BY id
+    </select>
 </mapper>

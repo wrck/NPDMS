@@ -20,6 +20,18 @@
         FOR UPDATE
     </select>
 
+    <select id="selectIdentity"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO">
+        SELECT <include refid="columns"/>
+        FROM plt_delivery_requirement
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_module = #{query.ownerModule}
+          AND entity_type = #{query.entityType}
+          AND entity_id = #{query.entityId}
+          AND type_code = #{query.typeCode}
+          AND deleted = b'0'
+    </select>
+
     <select id="selectIdentityForUpdate"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO">
         SELECT <include refid="columns"/>

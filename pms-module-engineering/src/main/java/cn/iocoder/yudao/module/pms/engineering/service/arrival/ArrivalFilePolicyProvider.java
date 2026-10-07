@@ -100,8 +100,8 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
                 tenantId, actorUserId, located.getProjectId(),
                 ProjectScopeApi.ACTION_VIEW, expectedScopeVersion));
         if (!inScope(scope, located.getProjectId())) return denied();
-        ArrivalDO locked = locate(tenantId, objectId);
-        if (locked == null || !Objects.equals(locked.getProjectId(), located.getProjectId())) return denied();
+        ArrivalDO locked = arrivalMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalDeliveryOwnerQuery(tenantId,located.getId()));
+        if (locked == null || !Objects.equals(locked.getTenantId(),tenantId) || !Objects.equals(locked.getProjectId(), located.getProjectId())) return denied();
         return policy(allowed(actorUserId, requiredAction, locked), scope.treeVersion(), locked);
     }
 

@@ -1,0 +1,3492 @@
+[
+  {
+    "ownerModule": "ACC",
+    "entityType": "acceptance",
+    "stableCode": "ACC_ACCEPTANCE",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AcceptanceDO",
+    "history": false,
+    "readPermission": "pms:acc-acceptance:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_ACCEPTANCE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\acceptance\\AcceptanceDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "acceptanceType",
+      "acceptanceDate",
+      "planId",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "archiveTime",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\acceptance\\AcceptanceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "acceptanceActivity",
+    "stableCode": "ACC_ACCEPTANCE_ACTIVITY",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceActivityDO",
+    "history": false,
+    "readPermission": "pms:acceptance:report:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_ACCEPTANCE_ACTIVITY",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\acceptancereport\\AcceptanceActivityDO.java",
+    "fields": [
+      "projectId",
+      "projectTaskId",
+      "executionContractId",
+      "deliverableId",
+      "acceptanceType",
+      "activityStatus",
+      "currentReportVersionId",
+      "originKind",
+      "originKey",
+      "originSnapshot",
+      "ruleSnapshot"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\acceptancereport\\AcceptanceActivityDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "acceptanceScopeBinding",
+    "stableCode": "ACC_ACCEPTANCE_SCOPE_BINDING",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancescope.AcceptanceScopeBindingDO",
+    "history": false,
+    "readPermission": "pms:acc-acceptance:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_ACCEPTANCE_SCOPE_BINDING",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\acceptancescope\\AcceptanceScopeBindingDO.java",
+    "fields": [
+      "projectId",
+      "projectStageSnapshotId",
+      "deliveryScopeId",
+      "scopeAllocationVersion",
+      "bindingTrigger",
+      "bindingStatus",
+      "effectiveFrom",
+      "effectiveTo",
+      "acceptanceFactVersion"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\acceptancescope\\AcceptanceScopeBindingDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "archiveDocument",
+    "stableCode": "ACC_ARCHIVE_DOCUMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.archivedocument.ArchiveDocumentDO",
+    "history": false,
+    "readPermission": "pms:acc-archive-document:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_ARCHIVE_DOCUMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\archivedocument\\ArchiveDocumentDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "documentType",
+      "documentUrl",
+      "versionNo",
+      "archiveUserId",
+      "archiveTime",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\archivedocument\\ArchiveDocumentDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "completionCertificate",
+    "stableCode": "ACC_COMPLETION_CERTIFICATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO",
+    "history": false,
+    "readPermission": "pms:acc-completion-certificate:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_COMPLETION_CERTIFICATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\completioncertificate\\CompletionCertificateDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "certificateNo",
+      "customerId",
+      "completionDate",
+      "customerConfirmUserId",
+      "customerConfirmTime",
+      "archiveTime",
+      "rejectReason",
+      "content",
+      "attachmentUrl",
+      "serviceType",
+      "engineerUserId",
+      "engineerName",
+      "engineerContact",
+      "customerUnit",
+      "contractNo",
+      "itemArrival",
+      "itemInstall",
+      "itemCutover",
+      "itemTraining",
+      "itemDocs",
+      "customerSignUrl",
+      "customerSignDate",
+      "vendorSignUrl",
+      "vendorSignDate",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\completioncertificate\\CompletionCertificateDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "deliverableChecklist",
+    "stableCode": "ACC_DELIVERABLE_CHECKLIST",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.deliverablechecklist.DeliverableChecklistDO",
+    "history": false,
+    "readPermission": "pms:acc-deliverable-checklist:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_DELIVERABLE_CHECKLIST",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\deliverablechecklist\\DeliverableChecklistDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "acceptanceId",
+      "deliverableType",
+      "deliverableUrl",
+      "checkUserId",
+      "checkTime",
+      "checkResult",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\deliverablechecklist\\DeliverableChecklistDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "normalClosureApplication",
+    "stableCode": "ACC_NORMAL_CLOSURE_APPLICATION",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO",
+    "history": false,
+    "readPermission": "pms:acc-project-closure:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_NORMAL_CLOSURE_APPLICATION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\normalclosure\\NormalClosureApplicationDO.java",
+    "fields": [
+      "projectId",
+      "snapshotId",
+      "closureType",
+      "ruleRevision",
+      "fromStage",
+      "projectVersion",
+      "treeVersion",
+      "status",
+      "applicantUserId",
+      "serviceManagerUserId",
+      "reviewerUserId",
+      "processDefinitionKey",
+      "processDefinitionId",
+      "processInstanceId",
+      "businessKey",
+      "processEvidence",
+      "submittedAt",
+      "decidedAt"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\normalclosure\\NormalClosureApplicationDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "satisfactionCollectionTask",
+    "stableCode": "ACC_SATISFACTION_COLLECTION_TASK",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionCollectionTaskDO",
+    "history": false,
+    "readPermission": "pms:acceptance:satisfaction:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_SATISFACTION_COLLECTION_TASK",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\satisfaction\\SatisfactionCollectionTaskDO.java",
+    "fields": [
+      "projectId",
+      "projectTaskId",
+      "deliverableId",
+      "originKind",
+      "originKey",
+      "originSnapshot",
+      "sourceOwnerContext",
+      "sourceObjectType",
+      "sourceObjectId",
+      "sourceObjectVersion",
+      "triggerOwnerContext",
+      "triggerObjectType",
+      "triggerFactId",
+      "triggerFactVersion",
+      "collectionKey",
+      "taskRevisionNo",
+      "priorTaskId",
+      "assignedToUserId",
+      "assignedByUserId",
+      "taskStatus",
+      "questionnaireId",
+      "resultId"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\satisfaction\\SatisfactionCollectionTaskDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "satisfactionQuestionnaire",
+    "stableCode": "ACC_SATISFACTION_QUESTIONNAIRE",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionQuestionnaireDO",
+    "history": false,
+    "readPermission": "pms:acceptance:satisfaction:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_SATISFACTION_QUESTIONNAIRE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\satisfaction\\SatisfactionQuestionnaireDO.java",
+    "fields": [
+      "collectionTaskId",
+      "templateId",
+      "templateRevisionId",
+      "templateVersion",
+      "frozenQuestionJson",
+      "frozenThreshold",
+      "ruleVersion",
+      "questionnaireStatus",
+      "accessScopeVersion"
+    ],
+    "compatibilityAction": "PARENT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\satisfaction\\SatisfactionQuestionnaireDO.java"
+    ]
+  },
+  {
+    "ownerModule": "ACC",
+    "entityType": "satisfactionQuestionnaireTemplate",
+    "stableCode": "ACC_SATISFACTION_QUESTIONNAIRE_TEMPLATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionQuestionnaireTemplateDO",
+    "history": false,
+    "readPermission": "pms:acceptance:satisfaction:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "ACC_SATISFACTION_QUESTIONNAIRE_TEMPLATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\satisfaction\\SatisfactionQuestionnaireTemplateDO.java",
+    "fields": [
+      "templateCode",
+      "name",
+      "status",
+      "currentRevisionId"
+    ],
+    "compatibilityAction": "EXPLICIT_TENANT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-acceptance\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\acceptance\\dal\\dataobject\\satisfaction\\SatisfactionQuestionnaireTemplateDO.java",
+      "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyTenantReadBindings.java"
+    ]
+  },
+  {
+    "ownerModule": "AST",
+    "entityType": "device",
+    "stableCode": "AST_DEVICE",
+    "entityClass": "cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO",
+    "history": false,
+    "readPermission": "pms:device:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "AST_DEVICE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\device\\DeviceDO.java",
+    "fields": [
+      "sn",
+      "name",
+      "productCode",
+      "productModel",
+      "productName",
+      "productDesc",
+      "shipmentTime",
+      "packageNo",
+      "contractNo",
+      "shipmentRecordId",
+      "projectId",
+      "companyId",
+      "companyName",
+      "departmentId",
+      "departmentCode",
+      "departmentName",
+      "organizationSource",
+      "organizationUpdatedAt",
+      "projectAssignmentVersion",
+      "customerId",
+      "customerAssignmentVersion",
+      "siteId",
+      "siteLocationId",
+      "locationResolutionStatus",
+      "locationSnapshot",
+      "locationEffectiveFrom",
+      "locationRecordId",
+      "warrantyStartDate",
+      "warrantyEndDate",
+      "warrantyStatus",
+      "conpVersion",
+      "conpType",
+      "conpSeries",
+      "conpMark",
+      "status",
+      "remark",
+      "sourceSystem",
+      "sourceKey",
+      "sourceVersion",
+      "sourceUpdatedAt",
+      "syncedAt",
+      "syncStatus"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\device\\DeviceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "AST",
+    "entityType": "site",
+    "stableCode": "AST_SITE",
+    "entityClass": "cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteDO",
+    "history": false,
+    "readPermission": "pms:asset-location:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "AST_SITE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\location\\SiteDO.java",
+    "fields": [
+      "code",
+      "name",
+      "customerId",
+      "addressId",
+      "siteType",
+      "status"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\location\\SiteDO.java"
+    ]
+  },
+  {
+    "ownerModule": "AST",
+    "entityType": "assetProductOfficial",
+    "stableCode": "AST_PRODUCT_OFFICIAL",
+    "entityClass": "cn.iocoder.yudao.module.pms.asset.dal.dataobject.product.AssetProductOfficialDO",
+    "history": false,
+    "readPermission": "pms:imp-material-exch:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "AST_PRODUCT_OFFICIAL",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\product\\AssetProductOfficialDO.java",
+    "fields": [
+      "productCode",
+      "productName",
+      "productModel",
+      "productDesc",
+      "technicalSpec",
+      "status"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\product\\AssetProductOfficialDO.java"
+    ]
+  },
+  {
+    "ownerModule": "AST",
+    "entityType": "assetProductType",
+    "stableCode": "AST_PRODUCT_TYPE",
+    "entityClass": "cn.iocoder.yudao.module.pms.asset.dal.dataobject.producttype.AssetProductTypeDO",
+    "history": false,
+    "readPermission": "pms:asset-product-type:controlled-import",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "AST_PRODUCT_TYPE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\producttype\\AssetProductTypeDO.java",
+    "fields": [
+      "typeCode",
+      "displayName",
+      "enabled",
+      "sourceSystem",
+      "sourceKey",
+      "sourceVersion",
+      "sourceUpdatedAt",
+      "payloadHash",
+      "syncStatus",
+      "lastSyncAttemptAt",
+      "syncedAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-asset\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\asset\\dal\\dataobject\\producttype\\AssetProductTypeDO.java"
+    ]
+  },
+  {
+    "ownerModule": "COM",
+    "entityType": "contract",
+    "stableCode": "COM_CONTRACT",
+    "entityClass": "cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO",
+    "history": false,
+    "readPermission": "pms:commerce:contract:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "COM_CONTRACT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\contract\\ContractDO.java",
+    "fields": [
+      "companyId",
+      "companyCode",
+      "companyName",
+      "contractNo",
+      "masterSourceSystem",
+      "masterSourceRecordKey",
+      "masterSourceVersion",
+      "contractType",
+      "customerId",
+      "customerCode",
+      "customerName",
+      "contractName",
+      "contractAmount",
+      "currencyCode",
+      "currencyName",
+      "contractCreateTime",
+      "projectName",
+      "projectCode",
+      "marketCode",
+      "marketName",
+      "departmentCode",
+      "departmentName",
+      "systemCode",
+      "systemName",
+      "expendCode",
+      "expendName",
+      "industryCode",
+      "industryName",
+      "marketingRepresentativeCode",
+      "marketingRepresentativeName",
+      "secondaryRepresentativeCode",
+      "authorityStatus",
+      "sourceLifecycleStatus",
+      "sourceSyncTime",
+      "sourceUpdatedAt",
+      "status"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\contract\\ContractDO.java"
+    ]
+  },
+  {
+    "ownerModule": "COM",
+    "entityType": "salesOrder",
+    "stableCode": "COM_SALES_ORDER",
+    "entityClass": "cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO",
+    "history": false,
+    "readPermission": "pms:commerce:contract:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "COM_SALES_ORDER",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\order\\SalesOrderDO.java",
+    "fields": [
+      "sourceSystem",
+      "sourceRecordKey",
+      "sourceVersion",
+      "companyId",
+      "companyCode",
+      "companyName",
+      "orderType",
+      "orderNo",
+      "salesType",
+      "contractNo",
+      "executionNo",
+      "customerId",
+      "customerCode",
+      "customerName",
+      "sourceProjectName",
+      "orderComment",
+      "orderAmount",
+      "currencyCode",
+      "authorityStatus",
+      "sourceLifecycleStatus",
+      "sourceSyncTime",
+      "sourceUpdatedAt",
+      "status",
+      "orderCreateTime",
+      "customerRequiredTime",
+      "customInfo"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\order\\SalesOrderDO.java"
+    ]
+  },
+  {
+    "ownerModule": "COM",
+    "entityType": "deliveryScope",
+    "stableCode": "COM_DELIVERY_SCOPE",
+    "entityClass": "cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO",
+    "history": false,
+    "readPermission": "pms:commerce:scope:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "COM_DELIVERY_SCOPE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\scope\\DeliveryScopeDO.java",
+    "fields": [
+      "projectId",
+      "projectCode",
+      "projectName",
+      "projectCompanyCode",
+      "projectCompanyName",
+      "projectDepartmentCode",
+      "projectDepartmentName",
+      "projectCustomerCode",
+      "projectCustomerName",
+      "projectManagerEmployeeNo",
+      "projectManagerName",
+      "orderLineId",
+      "orderSourceSystem",
+      "orderCompanyCode",
+      "orderCompanyName",
+      "orderType",
+      "orderNo",
+      "lineNo",
+      "productCode",
+      "productDesc",
+      "allocatedQty",
+      "scopeStatus",
+      "allocationVersion",
+      "allocationSource",
+      "changeReason",
+      "departmentId",
+      "departmentCode",
+      "departmentName",
+      "departmentVersion",
+      "sourceEvidence",
+      "effectiveFrom",
+      "effectiveTo",
+      "status"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\scope\\DeliveryScopeDO.java"
+    ]
+  },
+  {
+    "ownerModule": "COM",
+    "entityType": "authorityCandidate",
+    "stableCode": "COM_AUTHORITY_CANDIDATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.AuthorityCandidateDO",
+    "history": false,
+    "readPermission": "pms:commerce:authority:reconcile",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "COM_AUTHORITY_CANDIDATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\authority\\AuthorityCandidateDO.java",
+    "fields": [
+      "objectType",
+      "candidateSourceSystem",
+      "candidateSourceKey",
+      "candidateVersion",
+      "candidatePayload",
+      "evidenceReference",
+      "candidateStatus",
+      "matchedOwnerType",
+      "matchedOwnerId",
+      "matchedOwnerSourceVersion",
+      "decisionReason",
+      "submittedBy",
+      "submittedAt",
+      "decidedBy",
+      "decidedAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\authority\\AuthorityCandidateDO.java"
+    ]
+  },
+  {
+    "ownerModule": "COM",
+    "entityType": "crmExecutionOrder",
+    "stableCode": "COM_CRM_EXECUTION_ORDER",
+    "entityClass": "cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO",
+    "history": false,
+    "readPermission": "pms:commerce:contract:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "COM_CRM_EXECUTION_ORDER",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\executionorder\\CrmExecutionOrderDO.java",
+    "fields": [
+      "sourceSystem",
+      "executionNo",
+      "projectCode",
+      "projectName",
+      "primaryProjectId",
+      "salesRepCode",
+      "salesRepName",
+      "salesRepPhone",
+      "marketCode",
+      "marketName",
+      "systemSourceKey",
+      "systemCode",
+      "systemName",
+      "expendSourceKey",
+      "expendCode",
+      "expendName",
+      "industryCode",
+      "industryName",
+      "departmentId",
+      "departmentCode",
+      "departmentName",
+      "serviceTypeName",
+      "channelName",
+      "engineeringFeeRaw",
+      "engineeringFee",
+      "sourceObjectId",
+      "applyType",
+      "companyId",
+      "companyCode",
+      "companyName",
+      "customerProjectName",
+      "finalCustomerName",
+      "agentName",
+      "projectManagerCode",
+      "projectManagerName",
+      "decisionPath",
+      "requiredInDate",
+      "receiverName",
+      "receiverContact",
+      "receiverAddress",
+      "loanReason",
+      "projectType",
+      "majorProjectLevel",
+      "projectAmount",
+      "afProjectAmount",
+      "submitTime",
+      "predictedBidTime",
+      "contactName",
+      "contactPhone",
+      "afEvidenceStatus",
+      "sourceSyncTime",
+      "status"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-commerce\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\commerce\\dal\\dataobject\\executionorder\\CrmExecutionOrderDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUS",
+    "entityType": "customerMaster",
+    "stableCode": "CUS_CUSTOMER_MASTER",
+    "entityClass": "cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO",
+    "history": false,
+    "readPermission": "pms:customer:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUS_CUSTOMER_MASTER",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-customer\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\customer\\dal\\dataobject\\customer\\CustomerMasterDO.java",
+    "fields": [
+      "code",
+      "name",
+      "shortName",
+      "customerLevel",
+      "lifecycleStatus",
+      "sourceType",
+      "sourceKey",
+      "sourceVersion",
+      "syncStatus",
+      "dataAsOf",
+      "reconciliationPending",
+      "temporaryReason",
+      "contactPhone",
+      "contactEmail",
+      "departmentCode",
+      "departmentName",
+      "marketCode",
+      "marketName",
+      "systemCode",
+      "systemName",
+      "expendCode",
+      "expendName",
+      "industryCode",
+      "industryName",
+      "address",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-customer\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\customer\\dal\\dataobject\\customer\\CustomerMasterDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUS",
+    "entityType": "customerContact",
+    "stableCode": "CUS_CUSTOMER_CONTACT",
+    "entityClass": "cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.CustomerContactMasterDO",
+    "history": false,
+    "readPermission": "pms:customer-contact:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUS_CUSTOMER_CONTACT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-customer\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\customer\\dal\\dataobject\\contact\\CustomerContactMasterDO.java",
+    "fields": [
+      "customerId",
+      "customerName",
+      "name",
+      "department",
+      "title",
+      "mobile",
+      "phone",
+      "email",
+      "primaryFlag",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-customer\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\customer\\dal\\dataobject\\contact\\CustomerContactMasterDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUS",
+    "entityType": "customerServiceLevel",
+    "stableCode": "CUS_CUSTOMER_SERVICE_LEVEL",
+    "entityClass": "cn.iocoder.yudao.module.pms.customer.dal.dataobject.servicelevel.CustomerServiceLevelDO",
+    "history": false,
+    "readPermission": "pms:service-level:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUS_CUSTOMER_SERVICE_LEVEL",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-customer\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\customer\\dal\\dataobject\\servicelevel\\CustomerServiceLevelDO.java",
+    "fields": [
+      "customerId",
+      "level",
+      "validFrom",
+      "validTo",
+      "status",
+      "responseTimeHours",
+      "proactiveService",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-customer\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\customer\\dal\\dataobject\\servicelevel\\CustomerServiceLevelDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverTask",
+    "stableCode": "CUT_TASK",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_TASK",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\taskv2\\CutoverTaskDO.java",
+    "fields": [
+      "projectId",
+      "previousTaskId",
+      "taskNo",
+      "taskName",
+      "background",
+      "cutoverType",
+      "networkMode",
+      "scheduledTime",
+      "taskOrigin",
+      "intakeSourceType",
+      "sourceSystem",
+      "sourceBusinessNo",
+      "businessEventId",
+      "currentStage",
+      "taskStatus",
+      "ownerUserId",
+      "customerId",
+      "implementationReadinessSnapshotId",
+      "implementationReadinessSnapshotVersion",
+      "projectScopeVersion",
+      "projectContextSnapshot",
+      "deviceScopeWatermark",
+      "customerContextSnapshot",
+      "readinessContextSnapshot",
+      "manualGrade",
+      "currentAssessmentId",
+      "configurationRevisionId",
+      "configurationCode",
+      "configurationRevisionNo",
+      "legacyTaskId",
+      "legacyCutoverTypeRaw",
+      "legacyNetworkModeRaw",
+      "legacyStatusValue",
+      "legacySourceVersion",
+      "legacyMappingVersion"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\taskv2\\CutoverTaskDO.java",
+      "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/taskv2/CutoverTaskQueryService.java:detail"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverAssessment",
+    "stableCode": "CUT_ASSESSMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_ASSESSMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\taskv2\\CutoverAssessmentDO.java",
+    "fields": [
+      "cutoverTaskId",
+      "assessmentVersion",
+      "assessmentStatus",
+      "questionnaireTemplateCode",
+      "questionnaireTemplateVersion",
+      "answerSnapshot",
+      "contextSnapshot",
+      "manualGrade",
+      "simpleFlow",
+      "submittedBy",
+      "submittedAt",
+      "invalidatedBy",
+      "invalidatedAt",
+      "invalidationReason",
+      "currentMarker"
+    ],
+    "compatibilityAction": "PARENT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\taskv2\\CutoverAssessmentDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverPlanRevision",
+    "stableCode": "CUT_PLAN_REVISION",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query-plan",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_PLAN_REVISION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\planv2\\CutoverPlanRevisionDO.java",
+    "fields": [
+      "cutoverTaskId",
+      "revisionNo",
+      "originCode",
+      "editModeCode",
+      "gradeCode",
+      "assessmentId",
+      "assessmentVersion",
+      "checklistId",
+      "checklistVersion",
+      "configurationRevisionId",
+      "configurationCode",
+      "configurationRevisionNo",
+      "templateSectionSnapshot",
+      "sourceSnapshot",
+      "contentSnapshot",
+      "fileArtifactId",
+      "fileVersionNo",
+      "fileReferenceKey",
+      "fileFactVersion",
+      "fileScopeVersion",
+      "fileSha256",
+      "ownershipConfirmed",
+      "statusCode",
+      "currentMarker",
+      "submittedBy",
+      "submittedAt",
+      "approvalInstanceId",
+      "approvalVersion",
+      "sourcePlanRevisionId",
+      "revisionReasonCode",
+      "invalidatedBy",
+      "invalidatedAt",
+      "invalidationReasonCode",
+      "legacyPlanId",
+      "legacyStatusRaw",
+      "legacySourceVersion",
+      "legacyMappingVersion"
+    ],
+    "compatibilityAction": "PARENT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\planv2\\CutoverPlanRevisionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverApprovalInstance",
+    "stableCode": "CUT_APPROVAL_INSTANCE",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query-approval",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_APPROVAL_INSTANCE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\approval\\CutoverApprovalInstanceDO.java",
+    "fields": [
+      "taskId",
+      "projectId",
+      "planRevisionId",
+      "planRevisionNo",
+      "assessmentId",
+      "assessmentVersion",
+      "checklistId",
+      "checklistVersion",
+      "gradeCode",
+      "initiatorUserId",
+      "initiatorProjectScopeVersion",
+      "sourceSnapshotVersion",
+      "sourceSnapshot",
+      "routeSnapshot",
+      "leadTimeEnabled",
+      "leadTimeSnapshot",
+      "statusCode",
+      "holdReasonCode",
+      "currentNodeNo",
+      "previousApprovalInstanceId",
+      "replacementApprovalInstanceId",
+      "decisionAt",
+      "rejectionReason"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\approval\\CutoverApprovalInstanceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverChecklist",
+    "stableCode": "CUT_CHECKLIST",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_CHECKLIST",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\checklist\\CutoverChecklistDO.java",
+    "fields": [
+      "cutoverTaskId",
+      "assessmentId",
+      "assessmentVersion",
+      "checklistVersion",
+      "statusCode",
+      "inputSnapshot",
+      "inputSnapshotHash",
+      "configRevisionSnapshot",
+      "matchTrace",
+      "configGapSnapshot",
+      "submittedBy",
+      "submittedAt",
+      "invalidatedAt",
+      "invalidatedReason",
+      "currentMarker"
+    ],
+    "compatibilityAction": "PARENT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\checklist\\CutoverChecklistDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverClosure",
+    "stableCode": "CUT_CLOSURE",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query-closure",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_CLOSURE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\closure\\CutoverClosureDO.java",
+    "fields": [
+      "taskId",
+      "projectId",
+      "approvalInstanceId",
+      "approvalVersion",
+      "planRevisionId",
+      "planRevisionNo",
+      "planVersion",
+      "taskVersionAtP6",
+      "deviceScopeWatermark",
+      "statusCode",
+      "preCheckNormal",
+      "preCheckDetail",
+      "executionNormal",
+      "executionDetail",
+      "testNormal",
+      "testDetail",
+      "rollbackOccurred",
+      "rollbackSuccessful",
+      "rollbackReason",
+      "legacyItems",
+      "finalResultCode",
+      "resultRef",
+      "submittedBy",
+      "submittedAt",
+      "archivedAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\closure\\CutoverClosureDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverConfigurationRevision",
+    "stableCode": "CUT_CONFIGURATION_REVISION",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO",
+    "history": false,
+    "readPermission": "pms:cutover-config:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_CONFIGURATION_REVISION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\configuration\\CutoverConfigurationRevisionDO.java",
+    "fields": [
+      "configurationCode",
+      "configurationName",
+      "revisionNo",
+      "statusCode",
+      "effectiveFrom",
+      "effectiveTo",
+      "dictionarySnapshot",
+      "dimensionDefinitionSnapshot",
+      "planTemplateSectionSnapshot",
+      "navigationRuleSnapshot",
+      "validationResultSnapshot",
+      "changeSummary",
+      "publishedBy",
+      "publishedAt",
+      "disabledBy",
+      "disabledAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\configuration\\CutoverConfigurationRevisionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "CUT",
+    "entityType": "cutoverSpareApplicationReference",
+    "stableCode": "CUT_SPARE_APPLICATION_REFERENCE",
+    "entityClass": "cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO",
+    "history": false,
+    "readPermission": "pms:cutover-task:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "CUT_SPARE_APPLICATION_REFERENCE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\spare\\CutoverSpareApplicationReferenceDO.java",
+    "fields": [
+      "cutoverTaskId",
+      "projectId",
+      "platformRequestId",
+      "integrationStatus",
+      "externalSystemCode",
+      "externalRequestId",
+      "externalApplicationNo",
+      "launchUrl",
+      "needSnapshot",
+      "requestContextSnapshot",
+      "currentStatusRevisionId",
+      "retryCount",
+      "lastFailureCode",
+      "lastFailureDetail",
+      "lastAttemptAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-cutover\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\cutover\\dal\\dataobject\\spare\\CutoverSpareApplicationReferenceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "requirement",
+    "stableCode": "SOL_REQUIREMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementDO",
+    "history": false,
+    "readPermission": "pms:sol-requirement:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_REQUIREMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\requirement\\RequirementDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "requirementType",
+      "templateId",
+      "templateVersionId",
+      "templateSnapshot",
+      "sectionData",
+      "background",
+      "topology",
+      "transmission",
+      "traffic",
+      "business",
+      "ipPlan",
+      "redundancy",
+      "protection",
+      "oAndM",
+      "logRetention",
+      "interfaceContent",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\requirement\\RequirementDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "requirementAnalysis",
+    "stableCode": "SOL_REQUIREMENT_ANALYSIS",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisDO",
+    "history": false,
+    "readPermission": "pms:requirement-analysis:query",
+    "operations": [
+      {
+        "code": "create",
+        "version": 1,
+        "name": "创建草稿",
+        "kind": "CREATE"
+      },
+      {
+        "code": "save",
+        "version": 1,
+        "name": "保存草稿",
+        "kind": "UPDATE"
+      },
+      {
+        "code": "complete",
+        "version": 1,
+        "name": "完成并生效",
+        "kind": "DOMAIN_COMMAND"
+      },
+      {
+        "code": "copy",
+        "version": 1,
+        "name": "复制为新草稿",
+        "kind": "DOMAIN_COMMAND"
+      }
+    ],
+    "issues": [
+      {
+        "stableCode": "SOL_REQUIREMENT_ANALYSIS",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      },
+      {
+        "stableCode": "SOL_REQUIREMENT_ANALYSIS",
+        "location": "operation:create",
+        "errorCode": "OPERATION_PERMISSION_NOT_DECLARED",
+        "impact": "Default execution is rejected; an existing Owner operation policy may still authorize it."
+      },
+      {
+        "stableCode": "SOL_REQUIREMENT_ANALYSIS",
+        "location": "operation:save",
+        "errorCode": "OPERATION_PERMISSION_NOT_DECLARED",
+        "impact": "Default execution is rejected; an existing Owner operation policy may still authorize it."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\requirement\\RequirementAnalysisDO.java",
+    "fields": [
+      "projectId",
+      "projectBackground",
+      "projectObjective",
+      "networkTopology",
+      "transmissionRequirement",
+      "trafficRequirement",
+      "businessRequirement",
+      "ipPlanning",
+      "redundancyRequirement",
+      "securityProtection",
+      "operationsRequirement",
+      "loggingRequirement",
+      "transmissionCurrentOptions",
+      "trafficNewConnections",
+      "trafficConcurrency",
+      "trafficThroughput",
+      "businessDeviceDetails",
+      "ipManagementResources",
+      "ipPublicResources",
+      "operationsManagementOptions",
+      "statusCode"
+    ],
+    "compatibilityAction": "EXISTING_NATIVE_OWNER_HOOK",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\requirement\\RequirementAnalysisDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "siteSurvey",
+    "stableCode": "SOL_SITE_SURVEY",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO",
+    "history": false,
+    "readPermission": "pms:sol-site-survey:query",
+    "operations": [
+      {
+        "code": "create",
+        "version": 1,
+        "name": "创建草稿",
+        "kind": "CREATE"
+      },
+      {
+        "code": "save",
+        "version": 1,
+        "name": "保存草稿",
+        "kind": "UPDATE"
+      },
+      {
+        "code": "delete",
+        "version": 1,
+        "name": "删除草稿",
+        "kind": "DOMAIN_COMMAND"
+      },
+      {
+        "code": "confirm",
+        "version": 1,
+        "name": "确认工勘",
+        "kind": "DOMAIN_COMMAND"
+      },
+      {
+        "code": "reject",
+        "version": 1,
+        "name": "驳回工勘",
+        "kind": "DOMAIN_COMMAND"
+      },
+      {
+        "code": "archive",
+        "version": 1,
+        "name": "归档工勘",
+        "kind": "DOMAIN_COMMAND"
+      }
+    ],
+    "issues": [
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      },
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "operation:create",
+        "errorCode": "OPERATION_PERMISSION_NOT_DECLARED",
+        "impact": "Default execution is rejected; an existing Owner operation policy may still authorize it."
+      },
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "operation:save",
+        "errorCode": "OPERATION_PERMISSION_NOT_DECLARED",
+        "impact": "Default execution is rejected; an existing Owner operation policy may still authorize it."
+      },
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "field:powerTypes",
+        "errorCode": "FIELD_DECLARATION_INVALID",
+        "impact": "The declared field has no matching persisted property and type."
+      },
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "field:powerEnvironments",
+        "errorCode": "FIELD_DECLARATION_INVALID",
+        "impact": "The declared field has no matching persisted property and type."
+      },
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "field:networkPortTypes",
+        "errorCode": "FIELD_DECLARATION_INVALID",
+        "impact": "The declared field has no matching persisted property and type."
+      },
+      {
+        "stableCode": "SOL_SITE_SURVEY",
+        "location": "field:selectedMaterials",
+        "errorCode": "FIELD_DECLARATION_INVALID",
+        "impact": "The declared field has no matching persisted property and type."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\sitesurvey\\entity\\SiteSurveyEntityDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "surveyDate",
+      "surveyorUserId",
+      "location",
+      "addressId",
+      "addressVersion",
+      "siteId",
+      "siteVersion",
+      "siteLocationId",
+      "siteLocationVersion",
+      "locationResolutionStatus",
+      "addressSnapshot",
+      "locationSnapshot",
+      "powerSupply",
+      "cabinet",
+      "networkPort",
+      "fiber",
+      "module",
+      "cable",
+      "ground",
+      "constructionResource",
+      "conclusion",
+      "status",
+      "confirmedAt",
+      "archivedAt",
+      "remark",
+      "outsourceRequired",
+      "outsourceRequestId",
+      "cabinetReady",
+      "cableReady",
+      "moduleReady",
+      "originalModule",
+      "manufacturerInstallation",
+      "railTrayRequired",
+      "materialMatches",
+      "requiredEndDate",
+      "powerTypes",
+      "powerEnvironments",
+      "networkPortTypes",
+      "selectedMaterials"
+    ],
+    "compatibilityAction": "EXISTING_NATIVE_OWNER_HOOK",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\sitesurvey\\entity\\SiteSurveyEntityDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "solution",
+    "stableCode": "SOL_SOLUTION",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO",
+    "history": false,
+    "readPermission": "pms:sol-solution:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_SOLUTION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\solution\\SolutionDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "solutionType",
+      "templateId",
+      "templateVersionId",
+      "templateSnapshot",
+      "sectionData",
+      "background",
+      "target",
+      "team",
+      "inventory",
+      "plan",
+      "topology",
+      "interfacePlan",
+      "ipPlan",
+      "versionLabel",
+      "script",
+      "quality",
+      "risk",
+      "oAndM",
+      "reviewLevel",
+      "status",
+      "approvedBy",
+      "approvedTime",
+      "approvalOpinion",
+      "baselineVersion",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\solution\\SolutionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "constructionPlan",
+    "stableCode": "SOL_CONSTRUCTION_PLAN",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO",
+    "history": false,
+    "readPermission": "pms:construction-plan:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_CONSTRUCTION_PLAN",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\constructionplan\\ConstructionPlanDO.java",
+    "fields": [
+      "projectId",
+      "currentDurationRevisionId",
+      "pendingChangeId",
+      "planRecalculationStatusCode",
+      "planRecalculationSourceRevisionId"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\constructionplan\\ConstructionPlanDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "stagePlanBatch",
+    "stableCode": "SOL_STAGE_PLAN_BATCH",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan.StagePlanBatchDO",
+    "history": false,
+    "readPermission": "pms:imp-stage-plan:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_STAGE_PLAN_BATCH",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      },
+      {
+        "stableCode": "SOL_STAGE_PLAN_BATCH",
+        "location": "field:taskPlansJson",
+        "errorCode": "FIELD_DECLARATION_INVALID",
+        "impact": "The declared field has no matching persisted property and type."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\stageplan\\StagePlanBatchDO.java",
+    "fields": [
+      "projectId",
+      "status",
+      "durationRevisionId",
+      "calculatedStart",
+      "calculatedEnd",
+      "inputSnapshot",
+      "taskPlansJson",
+      "remark",
+      "bpmProcessKey",
+      "bpmProcessInstanceId",
+      "submittedAt",
+      "submittedBy",
+      "effectiveAt",
+      "effectiveBy",
+      "rejectReason"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\stageplan\\StagePlanBatchDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "training",
+    "stableCode": "IMP_TRAINING",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.training.TrainingDO",
+    "history": false,
+    "readPermission": "pms:imp-training:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_TRAINING",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\training\\TrainingDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "contactName",
+      "contactPhone",
+      "trainingTypes",
+      "trainingTime",
+      "trainerUserId",
+      "trainerName",
+      "traineeCount",
+      "content",
+      "status",
+      "signTokenDigest",
+      "tokenExpiresAt",
+      "skillRating",
+      "effectRating",
+      "satisfactionRating",
+      "signOpinion",
+      "signConfirmerName",
+      "signTime",
+      "fileUrl",
+      "fileName",
+      "fileSize",
+      "fileChecksum",
+      "remark",
+      "confirmationTemplateId",
+      "confirmationRevisionId",
+      "confirmationFormRules",
+      "confirmationValues",
+      "signatureImageDataUrl",
+      "printTemplateId",
+      "printRevisionId",
+      "printLayoutSnapshot"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\training\\TrainingDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "arrival",
+    "stableCode": "IMP_ARRIVAL",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO",
+    "history": false,
+    "readPermission": "pms:imp-arrival:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_ARRIVAL",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\arrival\\ArrivalDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "arrivalTime",
+      "receiverUserId",
+      "equipmentId",
+      "quantity",
+      "inspectionResult",
+      "exceptionRecord",
+      "attachmentUrl",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\arrival\\ArrivalDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "arrivalAcceptance",
+    "stableCode": "IMP_ARRIVAL_ACCEPTANCE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO",
+    "history": false,
+    "readPermission": "pms:arrival-acceptance:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_ARRIVAL_ACCEPTANCE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\arrivalacceptance\\ArrivalAcceptanceDO.java",
+    "fields": [
+      "projectId",
+      "batchCode",
+      "batchRootMarker",
+      "logisticsNo",
+      "arrivedAt",
+      "signerSnapshot",
+      "status",
+      "projectVersion",
+      "projectParticipantFactVersion",
+      "projectScopeVersion",
+      "deliveryScopeVersion",
+      "expectedScopeSnapshot",
+      "scopeWatermark",
+      "migrationResolutionStatus",
+      "migrationReasonCode",
+      "legacySourceId",
+      "projectFactVersion",
+      "evidenceId",
+      "evidenceRevision",
+      "predecessorAcceptanceId",
+      "successorReason",
+      "submittedBy",
+      "submittedAt",
+      "confirmedBy",
+      "confirmedAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\arrivalacceptance\\ArrivalAcceptanceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "deliveryEvidence",
+    "stableCode": "IMP_DELIVERY_EVIDENCE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.DeliveryEvidenceDO",
+    "history": false,
+    "readPermission": "pms:arrival-acceptance:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_DELIVERY_EVIDENCE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\arrivalacceptance\\DeliveryEvidenceDO.java",
+    "fields": [
+      "projectId",
+      "sourceRequirement",
+      "sourceObjectType",
+      "sourceObjectId",
+      "currentRevisionNo",
+      "accSyncStatus",
+      "accLastPublishedAt",
+      "accNextRetryAt",
+      "accRetryCount",
+      "accLastEventId",
+      "accCorrelationId",
+      "accAcceptedRecordId",
+      "accArchivedRecordId"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\arrivalacceptance\\DeliveryEvidenceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "installation",
+    "stableCode": "IMP_INSTALLATION",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO",
+    "history": false,
+    "readPermission": "pms:imp-installation:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_INSTALLATION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\installation\\InstallationDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "equipmentId",
+      "installLocation",
+      "addressId",
+      "addressVersion",
+      "siteId",
+      "siteVersion",
+      "siteLocationId",
+      "siteLocationVersion",
+      "locationResolutionStatus",
+      "addressSnapshot",
+      "locationSnapshot",
+      "effectiveFrom",
+      "effectiveTo",
+      "installTime",
+      "installerUserId",
+      "environmentCheck",
+      "specCheck",
+      "photoUrl",
+      "result",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\installation\\InstallationDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "jointTest",
+    "stableCode": "IMP_JOINT_TEST",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.jointtest.JointTestDO",
+    "history": false,
+    "readPermission": "pms:imp-joint-test:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_JOINT_TEST",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\jointtest\\JointTestDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "testCase",
+      "equipmentId",
+      "participants",
+      "testTime",
+      "testerUserId",
+      "result",
+      "exceptionRecord",
+      "evidenceUrl",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\jointtest\\JointTestDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "deliverable",
+    "stableCode": "IMP_DELIVERABLE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.deliverable.DeliverableDO",
+    "history": false,
+    "readPermission": "pms:imp-deliverable:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_DELIVERABLE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\deliverable\\DeliverableDO.java",
+    "fields": [
+      "projectId",
+      "phaseId",
+      "code",
+      "name",
+      "deliverableType",
+      "sourceType",
+      "sourceId",
+      "fileUrl",
+      "fileSize",
+      "fileChecksum",
+      "status",
+      "archivedTime",
+      "archivedBy",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\deliverable\\DeliverableDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "materialExchange",
+    "stableCode": "IMP_MATERIAL_EXCHANGE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange.MaterialExchangeDO",
+    "history": false,
+    "readPermission": "pms:imp-material-exch:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_MATERIAL_EXCHANGE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\materialexchange\\MaterialExchangeDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "exchangeType",
+      "deviceId",
+      "productName",
+      "productCode",
+      "productModel",
+      "quantity",
+      "unit",
+      "originalOrderNo",
+      "reason",
+      "reasonFiles",
+      "crmPushStatus",
+      "crmPushTime",
+      "crmOrderNo",
+      "newDeviceId",
+      "exchangeProgress",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "approveAction",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\materialexchange\\MaterialExchangeDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "materialRequisition",
+    "stableCode": "IMP_MATERIAL_REQUISITION",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialrequisition.MaterialRequisitionDO",
+    "history": false,
+    "readPermission": "pms:imp-material-req:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_MATERIAL_REQUISITION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\materialrequisition\\MaterialRequisitionDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "requisitionType",
+      "equipmentId",
+      "productName",
+      "productCode",
+      "specification",
+      "quantity",
+      "unit",
+      "neededDate",
+      "warehouseId",
+      "warehouseName",
+      "stockStatus",
+      "attachmentFiles",
+      "triggerSource",
+      "triggerRefId",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "approveAction",
+      "bpmProcessInstanceId",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\materialrequisition\\MaterialRequisitionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "externalProcurement",
+    "stableCode": "IMP_EXTERNAL_PROCUREMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.externalprocurement.ExternalProcurementDO",
+    "history": false,
+    "readPermission": "pms:imp-ext-proc:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_EXTERNAL_PROCUREMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\externalprocurement\\ExternalProcurementDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "procurementType",
+      "productName",
+      "productCode",
+      "specification",
+      "brand",
+      "productModel",
+      "quantity",
+      "unit",
+      "unitPrice",
+      "totalPrice",
+      "currency",
+      "supplierName",
+      "supplierContact",
+      "supplierPhone",
+      "neededDate",
+      "expectedDeliveryDate",
+      "attachmentFiles",
+      "triggerSource",
+      "triggerRefId",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "approveAction",
+      "bpmProcessInstanceId",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\externalprocurement\\ExternalProcurementDO.java"
+    ]
+  },
+  {
+    "ownerModule": "RES",
+    "entityType": "outsourceRequest",
+    "stableCode": "RES_OUTSOURCE_REQUEST",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.outsource.OutsourceRequestDO",
+    "history": false,
+    "readPermission": "pms:res-outsource:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "RES_OUTSOURCE_REQUEST",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\outsource\\OutsourceRequestDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "outsourceType",
+      "workContent",
+      "workQuantity",
+      "workUnit",
+      "plannedStartDate",
+      "plannedEndDate",
+      "estimatedCost",
+      "actualCost",
+      "currency",
+      "vendorId",
+      "vendorName",
+      "contactUserId",
+      "contactPhone",
+      "attachmentFiles",
+      "triggerSource",
+      "triggerRefId",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "approveAction",
+      "bpmProcessInstanceId",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\outsource\\OutsourceRequestDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "authorization",
+    "stableCode": "PLT_AUTHORIZATION",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.authorization.AuthorizationDO",
+    "history": false,
+    "readPermission": "pms:plt-authorization:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_AUTHORIZATION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\authorization\\AuthorizationDO.java",
+    "fields": [
+      "code",
+      "projectId",
+      "name",
+      "authorizationType",
+      "deviceId",
+      "deviceSerial",
+      "deviceModel",
+      "licenseKey",
+      "licenseType",
+      "applyStartDate",
+      "applyEndDate",
+      "actualEndDate",
+      "usageLimit",
+      "usedCount",
+      "status",
+      "submitUserId",
+      "submitTime",
+      "approverUserId",
+      "approveOpinion",
+      "approveTime",
+      "recallUserId",
+      "recallTime",
+      "processInstanceId",
+      "creatorUserId",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\authorization\\AuthorizationDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "briefing",
+    "stableCode": "SOL_BRIEFING",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.briefing.BriefingDO",
+    "history": false,
+    "readPermission": "pms:sol-briefing:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_BRIEFING",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\briefing\\BriefingDO.java",
+    "fields": [
+      "code",
+      "projectId",
+      "name",
+      "briefingType",
+      "templateId",
+      "templateSnapshot",
+      "sourceSnapshot",
+      "content",
+      "fileUrl",
+      "fileName",
+      "fileSize",
+      "fileChecksum",
+      "status",
+      "generateTime",
+      "publishTime",
+      "approverUserId",
+      "approveOpinion",
+      "approveTime",
+      "creatorUserId",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\briefing\\BriefingDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "configuration",
+    "stableCode": "IMP_CONFIGURATION",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO",
+    "history": false,
+    "readPermission": "pms:imp-configuration:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_CONFIGURATION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\configuration\\ConfigurationDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "equipmentId",
+      "configLogUrl",
+      "debugResult",
+      "debuggerUserId",
+      "debugTime",
+      "configSnapshot",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\configuration\\ConfigurationDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "issue",
+    "stableCode": "IMP_ISSUE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.issue.IssueDO",
+    "history": false,
+    "readPermission": "pms:imp-issue:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_ISSUE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\issue\\IssueDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "description",
+      "source",
+      "severity",
+      "ownerUserId",
+      "deadline",
+      "solution",
+      "verificationStandard",
+      "verifyResult",
+      "verifiedBy",
+      "verifiedTime",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\issue\\IssueDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "risk",
+    "stableCode": "IMP_RISK",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.risk.RiskDO",
+    "history": false,
+    "readPermission": "pms:imp-risk:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_RISK",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\risk\\RiskDO.java",
+    "fields": [
+      "code",
+      "projectId",
+      "name",
+      "riskType",
+      "deviceId",
+      "deviceSerial",
+      "deviceModel",
+      "scenario",
+      "riskLevel",
+      "status",
+      "crmSynced",
+      "crmSyncTime",
+      "handlerUserId",
+      "handleOpinion",
+      "handleTime",
+      "creatorUserId",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\risk\\RiskDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "resourceReady",
+    "stableCode": "SOL_RESOURCE_READY",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.resource.ResourceReadyDO",
+    "history": false,
+    "readPermission": "pms:sol-resource:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_RESOURCE_READY",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\resource\\ResourceReadyDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "resourceType",
+      "equipmentId",
+      "quantity",
+      "readyStatus",
+      "readyTime",
+      "readyUserId",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\resource\\ResourceReadyDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SOL",
+    "entityType": "scheduleBackward",
+    "stableCode": "SOL_SCHEDULE_BACKWARD",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward.ScheduleBackwardDO",
+    "history": false,
+    "readPermission": "pms:sol-schedule-backward:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SOL_SCHEDULE_BACKWARD",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\schedulebackward\\ScheduleBackwardDO.java",
+    "fields": [
+      "projectId",
+      "targetDate",
+      "projectType",
+      "status",
+      "conflictSummary",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\schedulebackward\\ScheduleBackwardDO.java"
+    ]
+  },
+  {
+    "ownerModule": "IMP",
+    "entityType": "docTemplate",
+    "stableCode": "IMP_DOC_TEMPLATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.doctemplate.DocTemplateDO",
+    "history": false,
+    "readPermission": "pms:imp-doc-template:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "IMP_DOC_TEMPLATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\doctemplate\\DocTemplateDO.java",
+    "fields": [
+      "code",
+      "name",
+      "docCategory",
+      "parentTemplateId",
+      "applicability",
+      "description",
+      "currentVersionId",
+      "status"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\doctemplate\\DocTemplateDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "formTemplate",
+    "stableCode": "PLT_FORM_TEMPLATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.formtemplate.FormTemplateDO",
+    "history": false,
+    "readPermission": "pms:plt-form-template:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_FORM_TEMPLATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\formtemplate\\FormTemplateDO.java",
+    "fields": [
+      "code",
+      "name",
+      "productType",
+      "conf",
+      "fields",
+      "description",
+      "status"
+    ],
+    "compatibilityAction": "EXPLICIT_TENANT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\formtemplate\\FormTemplateDO.java",
+      "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyTenantReadBindings.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "formInstance",
+    "stableCode": "PLT_FORM_INSTANCE",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.forminstance.FormInstanceDO",
+    "history": false,
+    "readPermission": "pms:plt-form-instance:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_FORM_INSTANCE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\forminstance\\FormInstanceDO.java",
+    "fields": [
+      "code",
+      "projectId",
+      "templateId",
+      "templateSnapshot",
+      "formData",
+      "name",
+      "status",
+      "submitTime",
+      "approverUserId",
+      "approveOpinion",
+      "approveTime",
+      "fillerUserId",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\forminstance\\FormInstanceDO.java"
+    ]
+  },
+  {
+    "ownerModule": "KNO",
+    "entityType": "announcement",
+    "stableCode": "KNO_ANNOUNCEMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.engineering.dal.dataobject.announcement.AnnouncementDO",
+    "history": false,
+    "readPermission": "pms:kno-announcement:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "KNO_ANNOUNCEMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\announcement\\AnnouncementDO.java",
+    "fields": [
+      "code",
+      "title",
+      "announcementType",
+      "productModel",
+      "affectedVersions",
+      "publishDate",
+      "effectiveDate",
+      "expireDate",
+      "severity",
+      "content",
+      "handlingSuggestion",
+      "fileUrl",
+      "fileName",
+      "fileSize",
+      "fileChecksum",
+      "status",
+      "creatorUserId",
+      "remark"
+    ],
+    "compatibilityAction": "EXPLICIT_TENANT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-engineering\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\engineering\\dal\\dataobject\\announcement\\AnnouncementDO.java",
+      "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyTenantReadBindings.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "authorizationGrant",
+    "stableCode": "PLT_AUTHORIZATION_GRANT",
+    "entityClass": "cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO",
+    "history": false,
+    "readPermission": "pms:project:authorization:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_AUTHORIZATION_GRANT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\authorization\\AuthorizationGrantDO.java",
+    "fields": [
+      "subjectTypeCode",
+      "subjectId",
+      "resourceContextCode",
+      "resourceTypeCode",
+      "resourceId",
+      "actionCode",
+      "scopeCode",
+      "effectiveFrom",
+      "effectiveTo",
+      "statusCode",
+      "sourceContextCode",
+      "sourceObjectType",
+      "sourceObjectId",
+      "grantedBy",
+      "grantedAt",
+      "revokedBy",
+      "revokedAt",
+      "revokeReason",
+      "currentMarker"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\authorization\\AuthorizationGrantDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "businessViewRevision",
+    "stableCode": "PLT_BUSINESS_VIEW_REVISION",
+    "entityClass": "cn.iocoder.yudao.module.pms.platform.dal.dataobject.businessview.BusinessViewRevisionDO",
+    "history": false,
+    "readPermission": "pms:business-view:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_BUSINESS_VIEW_REVISION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\businessview\\BusinessViewRevisionDO.java",
+    "fields": [
+      "entityType",
+      "viewKey",
+      "revisionNo",
+      "ownerContext",
+      "viewSource",
+      "dynamicFormRevisionId",
+      "componentKey",
+      "componentVersion",
+      "contextSchema",
+      "supportedActions",
+      "queryProviderKey",
+      "commandProviderKey",
+      "permissionProviderKey",
+      "publishedAt",
+      "disabledAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\businessview\\BusinessViewRevisionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "collectionTemplate",
+    "stableCode": "PLT_COLLECTION_TEMPLATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTemplateDO",
+    "history": false,
+    "readPermission": "pms:collection-template:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_COLLECTION_TEMPLATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\collection\\CollectionTemplateDO.java",
+    "fields": [
+      "templateCode",
+      "name",
+      "ownerContext",
+      "purpose",
+      "protocol",
+      "deviceModel",
+      "revision",
+      "commandText",
+      "contentHash",
+      "status",
+      "publicationStarted",
+      "publishedAt"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\collection\\CollectionTemplateDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "collectionTask",
+    "stableCode": "PLT_COLLECTION_TASK",
+    "entityClass": "cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO",
+    "history": false,
+    "readPermission": "pms:device-collection:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_COLLECTION_TASK",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\collection\\CollectionTaskDO.java",
+    "fields": [
+      "batchId",
+      "platformTaskId",
+      "sourceContext",
+      "sourceObjectType",
+      "sourceObjectId",
+      "projectId",
+      "deviceId",
+      "deviceName",
+      "host",
+      "port",
+      "protocol",
+      "templateId",
+      "templateVersion",
+      "templateHash",
+      "credentialMode",
+      "credentialId",
+      "grantSnapshotId",
+      "temporaryUsername",
+      "idempotencyKey",
+      "completionMode",
+      "status",
+      "technicalStage",
+      "externalTaskId",
+      "externalStatus",
+      "resultVersion",
+      "fileVersionId",
+      "quarantineEvidenceId",
+      "failureCategory",
+      "consumerContext",
+      "consumerObjectType",
+      "consumerObjectId",
+      "consumedResultVersion",
+      "lastCallbackSequence"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\collection\\CollectionTaskDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PLT",
+    "entityType": "deliveryRequirement",
+    "stableCode": "PLT_DELIVERY_REQUIREMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO",
+    "history": false,
+    "readPermission": "pms:project:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PLT_DELIVERY_REQUIREMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\delivery\\DeliveryRequirementDO.java",
+    "fields": [
+      "ownerModule",
+      "entityType",
+      "entityId",
+      "typeCode",
+      "name",
+      "requirementKind",
+      "stageCode",
+      "taskCode",
+      "planVersionId",
+      "sourceDefinitionId",
+      "projectId",
+      "frozenConfigJson",
+      "required",
+      "minimumQuantity",
+      "countingUnit",
+      "status",
+      "confirmedBy",
+      "confirmedTime",
+      "configId",
+      "configVersion"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-platform\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\platform\\dal\\dataobject\\delivery\\DeliveryRequirementDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "project",
+    "stableCode": "PRJ_PROJECT",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO",
+    "history": false,
+    "readPermission": "pms:project:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_PROJECT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectmanual\\ProjectMasterDO.java",
+    "fields": [
+      "projectCode",
+      "codeRootId",
+      "projectSequence",
+      "codeRuleVersion",
+      "projectName",
+      "parentId",
+      "rootId",
+      "treePath",
+      "treeDepth",
+      "treeSort",
+      "businessLevelCode",
+      "businessLevelName",
+      "customerId",
+      "customerCode",
+      "customerName",
+      "managerId",
+      "managerEmployeeNo",
+      "managerName",
+      "companyId",
+      "companyCode",
+      "companyName",
+      "departmentId",
+      "departmentCode",
+      "departmentName",
+      "projectType",
+      "signingMethod",
+      "projectCategory",
+      "implementationMode",
+      "majorProjectLevel",
+      "marketCode",
+      "marketName",
+      "systemCode",
+      "systemName",
+      "expendCode",
+      "expendName",
+      "industryCode",
+      "industryName",
+      "customerProjectName",
+      "salesType",
+      "businessType",
+      "serviceLevelCode",
+      "notTrackReason",
+      "contractNo",
+      "implementationLocation",
+      "locationResolutionStatus",
+      "creationReason",
+      "lifecycleTemplateId",
+      "lifecycleTemplateRevisionNo",
+      "lifecycleTemplateRevisionId",
+      "activePlanVersionId",
+      "templateLoadMethod",
+      "processDefinitionKey",
+      "processDefinitionVersion",
+      "projectStartTime",
+      "projectEndDate",
+      "projectRefreshTime",
+      "projectCloseTime",
+      "sourceType",
+      "status",
+      "lifecycleStatus",
+      "closurePolicySnapshot",
+      "closureType",
+      "closedFromStage",
+      "closedAt",
+      "currentStage",
+      "assignmentStatus",
+      "taskTreeVersion",
+      "taskProgressVersion",
+      "progress",
+      "aggregationWeight",
+      "weightSource"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectmanual\\ProjectMasterDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "portfolio",
+    "stableCode": "PRJ_PORTFOLIO",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioDO",
+    "history": false,
+    "readPermission": "pms:portfolio:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_PORTFOLIO",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\portfolio\\ProjectPortfolioDO.java",
+    "fields": [
+      "code",
+      "name",
+      "purpose",
+      "ownerUserId",
+      "validFrom",
+      "validTo",
+      "status",
+      "targetMetrics",
+      "memberType"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\portfolio\\ProjectPortfolioDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "projectRisk",
+    "stableCode": "PRJ_PROJECT_RISK",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.risk.ProjectRiskDO",
+    "history": false,
+    "readPermission": "pms:project-risk:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_PROJECT_RISK",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\risk\\ProjectRiskDO.java",
+    "fields": [
+      "projectId",
+      "title",
+      "riskLevel",
+      "riskType",
+      "cause",
+      "impact",
+      "mitigation",
+      "contingency",
+      "ownerUserId",
+      "status",
+      "warningThreshold",
+      "reviewNotes",
+      "identifiedAt",
+      "closedAt"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\risk\\ProjectRiskDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "projectTemplate",
+    "stableCode": "PRJ_PROJECT_TEMPLATE",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO",
+    "history": false,
+    "readPermission": "pms:project-template:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_PROJECT_TEMPLATE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projecttemplate\\ProjectTemplateDO.java",
+    "fields": [
+      "code",
+      "name",
+      "status",
+      "matchPriority",
+      "description",
+      "systemReserved"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projecttemplate\\ProjectTemplateDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "projectSite",
+    "stableCode": "PRJ_PROJECT_SITE",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectSiteDO",
+    "history": false,
+    "readPermission": "pms:project:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_PROJECT_SITE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectmanual\\ProjectSiteDO.java",
+    "fields": [
+      "projectId",
+      "siteId",
+      "siteVersionSnapshot",
+      "primarySite",
+      "scopeStatus",
+      "effectiveFrom",
+      "effectiveTo",
+      "siteCodeSnapshot",
+      "siteNameSnapshot",
+      "addressSnapshot"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectmanual\\ProjectSiteDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "splitRequest",
+    "stableCode": "PRJ_SPLIT_REQUEST",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitRequestDO",
+    "history": false,
+    "readPermission": "pms:project:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_SPLIT_REQUEST",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectsplit\\ProjectSplitRequestDO.java",
+    "fields": [
+      "parentProjectId",
+      "status",
+      "draftVersion",
+      "parentVersion",
+      "scopeVersion",
+      "treeVersion",
+      "templateRevisionId",
+      "previewHash",
+      "validationStatus",
+      "validationSummary",
+      "validatedAt",
+      "appliedChangeBatchId"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectsplit\\ProjectSplitRequestDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "treeVersion",
+    "stableCode": "PRJ_TREE_VERSION",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO",
+    "history": false,
+    "readPermission": "pms:project-tree:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_TREE_VERSION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projecttree\\ProjectTreeVersionDO.java",
+    "fields": [
+      "rootProjectId",
+      "treeVersion",
+      "status",
+      "changeBatchId",
+      "nodeCount",
+      "pathCount",
+      "activatedAt",
+      "failedReason"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projecttree\\ProjectTreeVersionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "treeChange",
+    "stableCode": "PRJ_TREE_CHANGE",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO",
+    "history": false,
+    "readPermission": "pms:project-tree:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_TREE_CHANGE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projecttree\\ProjectTreeChangeDO.java",
+    "fields": [
+      "changeBatchId",
+      "operationType",
+      "projectId",
+      "parentIdBefore",
+      "parentIdAfter",
+      "baseTreeVersion",
+      "newTreeVersion",
+      "actorId",
+      "reason",
+      "occurredAt"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projecttree\\ProjectTreeChangeDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "teamBatchChange",
+    "stableCode": "PRJ_TEAM_BATCH_CHANGE",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange.TeamBatchChangeDO",
+    "history": false,
+    "readPermission": "pms:team-batch-change:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_TEAM_BATCH_CHANGE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\batchchange\\TeamBatchChangeDO.java",
+    "fields": [
+      "batchNo",
+      "sourceUserId",
+      "targetUserId",
+      "scopeType",
+      "reason",
+      "status",
+      "totalCount",
+      "successCount",
+      "failureCount",
+      "remark"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\batchchange\\TeamBatchChangeDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "stageSuggestionRule",
+    "stableCode": "PRJ_STAGE_SUGGESTION_RULE",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectschedule.StageSuggestionRuleDO",
+    "history": false,
+    "readPermission": "pms:stage-plan-suggestion-rule:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_STAGE_SUGGESTION_RULE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectschedule\\StageSuggestionRuleDO.java",
+    "fields": [
+      "stageCode",
+      "signingMethod",
+      "sourceType",
+      "referenceStageCode",
+      "offsetMonths",
+      "offsetDays",
+      "remark",
+      "enabled"
+    ],
+    "compatibilityAction": "EXPLICIT_TENANT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectschedule\\StageSuggestionRuleDO.java",
+      "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyTenantReadBindings.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "taskAssignment",
+    "stableCode": "PRJ_TASK_ASSIGNMENT",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO",
+    "history": false,
+    "readPermission": "pms:project-task:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_TASK_ASSIGNMENT",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\taskworkbench\\ProjectTaskAssignmentDO.java",
+    "fields": [
+      "projectTaskId",
+      "assigneeUserId",
+      "effectiveFrom",
+      "effectiveTo",
+      "currentMarker",
+      "assignedBy",
+      "reason"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\taskworkbench\\ProjectTaskAssignmentDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "planVersion",
+    "stableCode": "PRJ_PLAN_VERSION",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO",
+    "history": false,
+    "readPermission": "pms:plan-change:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_PLAN_VERSION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectplan\\ProjectPlanVersionDO.java",
+    "fields": [
+      "projectId",
+      "revisionNo",
+      "status",
+      "sourceTemplateRevisionId",
+      "basePlanVersionId",
+      "designerDocument",
+      "executionSnapshot",
+      "effectiveAt",
+      "closedAt",
+      "closureResult"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectplan\\ProjectPlanVersionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "projectClosure",
+    "stableCode": "PRJ_CLOSURE_RECORD",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO",
+    "history": false,
+    "readPermission": "pms:acc-project-closure:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_CLOSURE_RECORD",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectclosure\\ProjectClosureDO.java",
+    "fields": [
+      "projectId",
+      "code",
+      "name",
+      "closureType",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "legacyIssueSummary",
+      "archiveTime",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectclosure\\ProjectClosureDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "governanceAction",
+    "stableCode": "PRJ_GOVERNANCE_ACTION",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectGovernanceActionDO",
+    "history": false,
+    "readPermission": "pms:project-governance:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_GOVERNANCE_ACTION",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectgovernance\\ProjectGovernanceActionDO.java",
+    "fields": [
+      "projectId",
+      "actionNo",
+      "actionType",
+      "reason",
+      "proofFiles",
+      "applicantUserId",
+      "applyTime",
+      "approverUserId",
+      "approveTime",
+      "approveOpinion",
+      "beforeProjectStatus",
+      "afterProjectStatus",
+      "beforeManagerUserId",
+      "afterManagerUserId",
+      "executeTime",
+      "status",
+      "remark"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\projectgovernance\\ProjectGovernanceActionDO.java"
+    ]
+  },
+  {
+    "ownerModule": "PRJ",
+    "entityType": "exitRecord",
+    "stableCode": "PRJ_EXIT_RECORD",
+    "entityClass": "cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureExitRecordDO",
+    "history": false,
+    "readPermission": "pms:acc-project-closure:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "PRJ_EXIT_RECORD",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\normalclosure\\NormalClosureExitRecordDO.java",
+    "fields": [
+      "projectId",
+      "applicationId",
+      "snapshotId",
+      "projectVersion",
+      "stageInstanceId",
+      "templateRevisionId",
+      "scopeVersion",
+      "gateSnapshotRef",
+      "sourceContext",
+      "sourceRecordId",
+      "sourceRecordRevision",
+      "closureType",
+      "closedFromStage",
+      "beforeLifecycleStatus",
+      "afterLifecycleStatus",
+      "beforeProjectVersion",
+      "afterProjectVersion",
+      "processInstanceId",
+      "revalidationEvidence",
+      "closedAt"
+    ],
+    "compatibilityAction": "PROJECT_OWNER_READ_BINDING",
+    "compatibilityEvidence": [
+      "docs/design/07-authorization-design.md:2.1",
+      "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\dal\\dataobject\\normalclosure\\NormalClosureExitRecordDO.java"
+    ]
+  },
+  {
+    "ownerModule": "SRV",
+    "entityType": "inspectionRule",
+    "stableCode": "SRV_INSPECTION_RULE",
+    "entityClass": "cn.iocoder.yudao.module.pms.service.dal.dataobject.inspectionrule.InspectionRuleDO",
+    "history": false,
+    "readPermission": "pms:inspection-rule:query",
+    "operations": [],
+    "issues": [
+      {
+        "stableCode": "SRV_INSPECTION_RULE",
+        "location": "scope",
+        "errorCode": "SCOPE_POLICY_NOT_DECLARED",
+        "impact": "Default writes and reads without an Owner scope policy are rejected."
+      }
+    ],
+    "source": "pms-module-service\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\service\\dal\\dataobject\\inspectionrule\\InspectionRuleDO.java",
+    "fields": [
+      "detectionId",
+      "ruleName"
+    ],
+    "compatibilityAction": "OWNER_SCOPE_ADAPTER_REQUIRED",
+    "compatibilityEvidence": [
+      "pms-module-service\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\service\\dal\\dataobject\\inspectionrule\\InspectionRuleDO.java"
+    ]
+  }
+]

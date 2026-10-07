@@ -243,7 +243,7 @@
       </el-descriptions-item>
       <el-descriptions-item label="令牌有效期">{{ formatDate(issueResult?.tokenExpiresAt) }}</el-descriptions-item>
       <el-descriptions-item label="培训记录表">
-        <el-link v-if="issueResult?.fileUrl" type="primary" :href="issueResult?.fileUrl" target="_blank"
+        <el-link v-if="issueResult?.fileUrl" type="primary" @click="downloadIssuedFile(issueResult.fileUrl)"
           >查看已生成文件</el-link
         >
       </el-descriptions-item>
@@ -291,6 +291,8 @@
         <el-button tag="a" :href="detail.signatureImageDataUrl" download="客户手写签字.png" link type="primary">保存签字图片</el-button>
       </section>
       <template v-if="detail.remark"><h3>备注</h3><p class="training-text">{{ detail.remark }}</p></template>
+      <DeliveryPanel v-if="detail.id" :key="detail.id" owner-module="IMP" entity-type="training"
+        :entity-id="detail.id" :type-codes="['TRAINING_RECORD']" :readonly="readonly || detail.status === 3" />
     </div>
     <template #footer>
       <div class="training-detail-actions">
@@ -305,6 +307,7 @@
 </template>
 
 <script setup lang="ts">
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import TrainingPrintTemplates from './TrainingPrintTemplates.vue'
 import TrainingPrintPreview from './TrainingPrintPreview.vue'
 import { PRINT_CATEGORY } from './trainingPrintForm'
@@ -533,6 +536,12 @@ const issue = async (row: TrainingVO) => {
   await load()
 }
 
+const downloadIssuedFile = async (fileUrl: string) => {
+  const url = /^\/api\/v1\/pms\/training-records\/\d+\/files\/\d+$/.test(fileUrl)
+    ? await TrainingApi.getGeneratedTrainingFileTicket(fileUrl) : fileUrl
+  window.open(url, '_blank', 'noopener')
+}
+
 const copyLink = async () => {
   await navigator.clipboard.writeText(publicUrl.value)
   message.success('链接已复制')
@@ -549,6 +558,11 @@ const downloadRecord = async (row: TrainingVO) => {
       return
     }
     const snapshot = record.printLayoutSnapshot ? JSON.parse(record.printLayoutSnapshot) : undefined
+    if (!snapshot) {
+      const ticket = await TrainingApi.getTrainingPdfTicket(id)
+      window.open(ticket, '_blank', 'noopener')
+      return
+    }
     const project = record.projectId ? await ProjectApi.getProject(record.projectId) : undefined
     await printPreview.value?.open(record, project?.projectName || '', snapshot)
 

@@ -91,7 +91,7 @@ class SiteSurveyEntityFormServiceTest {
         var access = mock(SiteSurveyEntityWriteAccess.class);
         var deadlines = mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class);
         var events = mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class);
-        var owner = new SiteSurveyEntityServiceImpl();
+        var owner = new SiteSurveyEntityDomainCommands();
         org.springframework.test.util.ReflectionTestUtils.setField(owner, "siteSurveyEntityMapper", mapper);
         org.springframework.test.util.ReflectionTestUtils.setField(owner, "writeAccess", access);
         org.springframework.test.util.ReflectionTestUtils.setField(owner, "formService", service);

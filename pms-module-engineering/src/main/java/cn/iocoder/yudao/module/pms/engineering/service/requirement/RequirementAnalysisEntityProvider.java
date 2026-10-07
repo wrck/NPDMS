@@ -50,6 +50,13 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
     }
 
     @Override
+    public Long concurrencyBasis(EntityDataRef target, EntityActor actor) {
+        requireReadable(target,actor);
+        return target.isRevision() ? revision(target,actor).getVersion()
+                : mapper.selectCurrent(new RequirementEntityQuery(actor.tenantId(),target.entity().entityId())).getVersion();
+    }
+
+    @Override
     public void requireReadable(EntityDataRef target, EntityActor actor) {
         requireType(target.entity(), actor);
         if (target.isRevision()) {
@@ -169,6 +176,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         draft.setUpdater(actor.userId().toString());
         if (mapper.saveDraft(draft) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         draft.setVersion(draft.getVersion() + 1);
+        files.registerSaved(ref,actor);
         record("REQUIREMENT_ANALYSIS_SAVE", draft, actor);
         return draft.revisionMetadata();
     }
@@ -243,6 +251,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         if (mapper.makeEffective(new RequirementActivationUpdate(actor.tenantId(), revision.getId(),
                 revision.getVersion(), actor.userId().toString())) != 1) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         var active = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revision.getId()));
+        if ("COMPLETED".equals(active.getStatusCode())) files.registerActivated(active);
         record("REQUIREMENT_ANALYSIS_ACTIVATE", active, actor);
         // 形成边界在生效标记落库之后记录：归集消费者以形成事件的观测快照判定现行性，冻结未生效的快照会死锁归集。
         events.formed(active.getProjectId(), "RequirementAnalysis", active.getId(), actor.userId(), actor.correlationId());

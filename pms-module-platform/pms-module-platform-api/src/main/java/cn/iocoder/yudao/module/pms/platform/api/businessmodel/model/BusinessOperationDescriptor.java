@@ -8,7 +8,12 @@ public record BusinessOperationDescriptor(
         String code,
         int version,
         String name,
-        StandardOperationKind kind) {
+        StandardOperationKind kind,
+        String authorizationPolicyRef) {
+
+    public BusinessOperationDescriptor(String code, int version, String name, StandardOperationKind kind) {
+        this(code, version, name, kind, null);
+    }
 
     public enum StandardOperationKind {
         CREATE, UPDATE, DOMAIN_COMMAND, SUBMIT, WITHDRAW, ARCHIVE

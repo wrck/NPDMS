@@ -38,4 +38,9 @@ public class DeliverySubmissionDO extends TenantBaseDO {
     private String submitEvidenceJson;
     /** 判定证据快照：提交/归集后冻结的满足判定（满足/原因/证据）。 */
     private String decisionEvidenceJson;
+    /** Archive obligation belongs to this immutable source submission, not the shared material. */
+    private String archiveStatus;
+    private String archiveFailureCode;
+    private Integer archiveRetryCount;
+
 }

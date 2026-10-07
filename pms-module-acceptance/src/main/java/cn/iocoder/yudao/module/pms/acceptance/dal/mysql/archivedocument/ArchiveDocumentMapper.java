@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface ArchiveDocumentMapper extends ProjectScopedCodeMapper<ArchiveDocumentDO> {
+    ArchiveDocumentDO selectDeliveryOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.archivedocument.query.ArchiveDocumentDeliveryLockQuery query);
+
 
     default PageResult<ArchiveDocumentDO> selectPage(ArchiveDocumentPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ArchiveDocumentDO>()

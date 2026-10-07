@@ -67,6 +67,7 @@ public class AcceptanceReportSourceProjectionService {
                 "reportVersionId", event.currentReportVersionId(), "reportVersionNo", event.reportVersionNo()));
         var outcome = platform.submitTemplateFrozen(new TemplateFrozenSubmitCommand(view.id(), requestKey,
                 materialIds, PlatformDeliveryRequirementApi.SOURCE_AUTO_PROJECTION, payload, null));
+        platform.requireSubmissionArchive(outcome.submissionId());
         backfillDecision(view, outcome);
     }
 

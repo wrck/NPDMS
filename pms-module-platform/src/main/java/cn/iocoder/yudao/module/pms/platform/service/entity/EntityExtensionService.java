@@ -29,6 +29,7 @@ public class EntityExtensionService implements EntityExtensionApi {
 
     @Override
     public Values read(EntityDataRef target, EntityActor actor) {
+        target=registry.nativeRef(target);
         registry.requireReadable(target, actor);
         return values(mapper.selectValues(EntityValueQuery.of(target)));
     }
@@ -36,13 +37,26 @@ public class EntityExtensionService implements EntityExtensionApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public Values save(Save command) {
+        command=new Save(registry.nativeRef(command.target()),command.actor(),command.expectedEntityVersion(),
+                command.expectedValueVersion(),command.definitionRevisionId(),command.fields());
         registry.lockForWrite(command.target(), command.actor(), command.expectedEntityVersion());
         var definition = definition(command.definitionRevisionId(), command.target().entity(), command.actor());
+        boolean patch=registry.fields(command.target().entity()).usesValidatedExtensionPatch();
         EntityExtensionValidation.values(definition.fields(), command.fields(), false);
         var old = mapper.lockValues(EntityValueQuery.of(command.target()));
         if ((old == null ? 0 : old.getVersion()) != command.expectedValueVersion()) {
             throw exception(ENTITY_VALUE_VERSION_CONFLICT);
         }
+        Map<String,Object> fields=new LinkedHashMap<>();
+        if(patch) {
+            EntityExtensionValidation.definitions(definition.fields(),registry.fields(command.target().entity()).fields());
+            var binding=mapper.selectBinding(EntityValueQuery.of(command.target()));
+            if(binding!=null && binding.getExtensionDefinitionRevisionId()!=null
+                    && !Objects.equals(binding.getExtensionDefinitionRevisionId(),definition.id())) throw exception(ENTITY_VALUE_INVALID);
+            if(old!=null && Objects.equals(old.getDefinitionRevisionId(),definition.id())) fields.putAll(values(old).fields());
+        }
+        fields.putAll(command.fields());
+        EntityExtensionValidation.values(definition.fields(),fields,patch);
         var row = old == null ? new EntityExtensionValueDO() : old;
         var entity = command.target().entity();
         row.setTenantId(entity.tenantId());
@@ -51,7 +65,7 @@ public class EntityExtensionService implements EntityExtensionApi {
         row.setEntityId(entity.entityId());
         row.setRevisionId(command.target().revisionId() == null ? 0L : command.target().revisionId());
         row.setDefinitionRevisionId(definition.id());
-        row.setValuesJson(JsonUtils.toJsonString(command.fields()));
+        row.setValuesJson(JsonUtils.toJsonString(fields));
         row.setUpdater(command.actor().userId().toString());
         if (old == null) {
             row.setId(IdWorker.getId());
@@ -71,7 +85,24 @@ public class EntityExtensionService implements EntityExtensionApi {
     }
 
     @Override
+    @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public void validateCompleteForWrite(EntityDataRef target,EntityActor actor,Long expectedEntityVersion) {
+        target=registry.nativeRef(target);
+        if(!registry.fields(target.entity()).usesValidatedExtensionPatch()) throw exception(ENTITY_VALUE_INVALID);
+        registry.lockForWrite(target,actor,expectedEntityVersion);
+        var values=values(mapper.lockValues(EntityValueQuery.of(target)));
+        var binding=mapper.lockBinding(EntityValueQuery.of(target));
+        Long definitionId=values.definitionRevisionId();
+        if(binding!=null && binding.getExtensionDefinitionRevisionId()!=null) {
+            if(definitionId!=null && !definitionId.equals(binding.getExtensionDefinitionRevisionId())) throw exception(ENTITY_VALUE_INVALID);
+            definitionId=binding.getExtensionDefinitionRevisionId();
+        }
+        if(definitionId!=null) EntityExtensionValidation.values(definition(definitionId,target.entity(),actor).fields(),values.fields(),true);
+    }
+
+    @Override
     public void validateComplete(EntityDataRef target, EntityActor actor) {
+        target=registry.nativeRef(target);
         Values values = read(target, actor);
         var binding = mapper.selectBinding(EntityValueQuery.of(target));
         Long definitionId = values.definitionRevisionId();
@@ -88,6 +119,7 @@ public class EntityExtensionService implements EntityExtensionApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor) {
+        source=registry.nativeRef(source);target=registry.nativeRef(target);
         if (!source.entity().equals(target.entity()) || source.equals(target)) throw exception(ENTITY_REVISION_MISMATCH);
         Values sourceValues = read(source, actor);
         // Even an empty source must not bypass the target's write protection.
@@ -108,7 +140,8 @@ public class EntityExtensionService implements EntityExtensionApi {
     @Transactional(rollbackFor = Exception.class)
     public DefinitionRevision publishDefinition(Long tenantId, String ownerModule, String entityType,
                                                 List<Definition> fields, EntityActor actor) {
-        var scope = new EntityRef(tenantId, ownerModule, entityType, 1L);
+        var scope = registry.nativeRef(new EntityRef(tenantId, ownerModule, entityType, 1L));
+        ownerModule=scope.ownerModule();entityType=scope.entityType();
         actor.requireTenant(scope);
         if (!permissionApi.hasAnyPermissions(actor.userId(), "pms:dynamic-form-template:manage")) throw exception(FORBIDDEN);
         EntityExtensionValidation.definitions(fields, registry.fields(scope).fields());
@@ -129,6 +162,7 @@ public class EntityExtensionService implements EntityExtensionApi {
 
     @Override
     public DefinitionRevision definition(Long id, EntityRef entity, EntityActor actor) {
+        entity=registry.nativeRef(entity);
         actor.requireTenant(entity);
         var row = id == null ? null : mapper.selectDefinition(id);
         if (row == null || !entity.tenantId().equals(row.getTenantId()) || !entity.ownerModule().equals(row.getOwnerModule())

@@ -55,6 +55,8 @@ import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.PM
 @Service
 @RequiredArgsConstructor
 public class AcceptanceReportCommandService {
+    private final cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi nativeMaterials;
+
 
     static final String PUBLISH_SCOPE = "POST:/pms/acceptances/{id}/report-versions/{versionId}/actions/publish";
     static final String REVOKE_SCOPE = "POST:/pms/acceptances/{id}/actions/revoke-current-version";
@@ -103,6 +105,7 @@ public class AcceptanceReportCommandService {
         applyContent(row, command.content());
         row.setUpdater(String.valueOf(actor.userId()));
         if (reportMapper.updateById(row) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
+        lockAttachmentSet(row.getId(),false).forEach(nativeMaterials::registerNativeSourceFile);
         return new ReportResult(row.getAcceptanceId(), row.getId(), row.getReportVersionNo(), "DRAFT", null, false);
     }
 
@@ -157,6 +160,7 @@ public class AcceptanceReportCommandService {
         draft.setUpdater(String.valueOf(actor.userId()));
         if (reportMapper.updateById(draft) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         persistAttachments(actor, draft.getId(), files);
+        if (IndependentAcceptancePolicy.direct(activity)) files.forEach(nativeMaterials::registerNativeSourceFile);
         activity.setCurrentReportVersionId(draft.getId());
         activity.setUpdater(String.valueOf(actor.userId()));
         if (activityMapper.updateById(activity) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
@@ -185,11 +189,16 @@ public class AcceptanceReportCommandService {
     }
 
     private List<FileArtifactVersionFact> lockAttachmentSet(Long reportVersionId) {
+        return lockAttachmentSet(reportVersionId,true);
+    }
+
+    private List<FileArtifactVersionFact> lockAttachmentSet(Long reportVersionId,boolean required) {
         FileReferenceSetKey key = new FileReferenceSetKey("ACC", "ACCEPTANCE_REPORT_VERSION",
                 String.valueOf(reportVersionId), ATTACHMENT_PURPOSE);
         try {
             List<FileReferenceSetFact> inspected = fileArtifactApi.inspectReferenceSets(
                     new FileReferenceSetCollectionQuery(List.of(key), FileActionCodes.READ));
+            if (!required && (inspected.isEmpty() || inspected.size()==1 && inspected.getFirst().activeFacts().isEmpty())) return List.of();
             if (inspected.size() != 1 || inspected.getFirst().activeFacts().isEmpty()) {
                 throw exception(ACC_REPORT_INCOMPLETE);
             }

@@ -38,11 +38,27 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @Validated
 @RequiredArgsConstructor
 public class DeliveryController {
+    @jakarta.annotation.Resource private cn.iocoder.yudao.framework.security.core.service.SecurityFrameworkService securityFrameworkService;
+    @GetMapping("/allowed-actions")
+    @PreAuthorize("@ss.hasPermission('pms:delivery:query')")
+    public CommonResult<java.util.List<String>> allowedActions(@RequestParam("ownerModule") String module,
+            @RequestParam("entityType") String type,@RequestParam("entityId") Long id) {
+        ownerAccess.require(module,type,id,null,false,false);
+        if (!ownerAccess.allowsGenericDeliveryActions(module,type)
+                || !securityFrameworkService.hasPermission("pms:delivery:operate")) return success(java.util.List.of());
+        boolean templateOwner = cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TEMPLATE_OWNER_MODULE.equals(module)
+                && cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.TEMPLATE_ENTITY_TYPE.equals(type);
+        return success(templateOwner ? java.util.List.of("REGISTER_MATERIAL","WITHDRAW_MATERIAL")
+                : java.util.List.of("REGISTER_MATERIAL","WITHDRAW_MATERIAL","SUBMIT","CONFIRM","WITHDRAW_SUBMISSION"));
+    }
+
 
     private final DeliveryCatalogService catalogService;
     private final DeliveryMaterialService materialService;
     private final DeliveryRequirementService requirementService;
+    private final cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryOwnerAccess ownerAccess;
     private final DeliverySubmissionMapper submissionMapper;
+    private final cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence;
 
     @Data
     public static class DeliveryTypeCreateReqVO {
@@ -134,6 +150,11 @@ public class DeliveryController {
     @Data
     public static class MaterialVO {
         private Long id;
+        private MaterialFileKey fileBusinessKey;
+        private String materialKind;
+        private String businessObjectType;
+        private String businessObjectId;
+        private Long businessRevisionNo;
         private String typeCode;
         private String fileName;
         private String title;
@@ -145,6 +166,9 @@ public class DeliveryController {
         private String status;
         private String createTime;
     }
+
+    public record MaterialFileKey(String ownerContext, String objectType, String objectId,
+                                  String purposeCode, String referenceKey) { }
 
     @Data
     public static class SubmissionOutcomeVO {
@@ -198,6 +222,10 @@ public class DeliveryController {
     public static MaterialVO toView(DeliveryMaterialDO row) {
         MaterialVO vo = new MaterialVO();
         vo.setId(row.getId());
+        vo.setMaterialKind(row.getMaterialKind());
+        vo.setBusinessObjectType(row.getBusinessObjectType());
+        vo.setBusinessObjectId(row.getBusinessObjectId());
+        vo.setBusinessRevisionNo(row.getBusinessRevisionNo());
         vo.setTypeCode(row.getTypeCode());
         vo.setFileName(row.getFileName());
         vo.setTitle(row.getTitle());
@@ -209,6 +237,21 @@ public class DeliveryController {
         vo.setStatus(row.getStatus());
         vo.setCreateTime(String.valueOf(row.getCreateTime()));
         return vo;
+    }
+
+    private MaterialVO materialView(DeliveryMaterialDO row) {
+        MaterialVO view = toView(row);
+        if (row.getFileReferenceId() != null) {
+            var document = fileEvidence.inspectDocument(
+                    cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),
+                    row.getFileReferenceId());
+            if (document != null) {
+                // Original file identity is retained; the file APIs still enforce separate access permission.
+                view.setFileBusinessKey(new MaterialFileKey(document.ownerContext(), document.objectType(),
+                        document.objectId(), document.purposeCode(), document.referenceKey()));
+            }
+        }
+        return view;
     }
 
     // ---------- 类型目录 ----------
@@ -263,7 +306,9 @@ public class DeliveryController {
 
     @PostMapping("/requirements/sync")
     @PreAuthorize("@ss.hasPermission('pms:delivery:query')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<List<RequirementVO>> syncRequirements(@Valid @RequestBody OwnerReqVO reqVO) {
+        ownerAccess.require(reqVO.getOwnerModule(),reqVO.getEntityType(),reqVO.getEntityId(),null,true,true);
         return success(requirementService.syncFromConfig(reqVO.getOwnerModule(), reqVO.getEntityType(),
                 reqVO.getEntityId()).stream().map(row -> toView(new DeliveryRequirementService.RequirementView(
                 row, requirementService.countOf(row), row.getMinimumQuantity(), row.getCountingUnit()))).toList());
@@ -273,13 +318,23 @@ public class DeliveryController {
     @PreAuthorize("@ss.hasPermission('pms:delivery:query')")
     public CommonResult<List<RequirementVO>> listRequirements(
             @RequestParam String ownerModule, @RequestParam String entityType, @RequestParam Long entityId) {
+        ownerAccess.require(ownerModule,entityType,entityId,null,false,false);
         return success(requirementService.viewByEntity(ownerModule, entityType, entityId).stream()
                 .map(DeliveryController::toView).toList());
     }
 
+    @GetMapping("/requirements/{id}/completion")
+    @PreAuthorize("@ss.hasPermission('pms:delivery:query')")
+    public CommonResult<DeliveryRequirementService.CompletionFact> completion(@PathVariable Long id) {
+        authorizeRequirement(id, false);
+        return success(requirementService.evaluateCompletion(id));
+    }
+
     @PostMapping("/requirements/{id}/confirm")
     @PreAuthorize("@ss.hasPermission('pms:delivery:operate')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<RequirementVO> confirm(@PathVariable Long id) {
+        authorizeRequirement(id,true);
         return success(toView(requirementService.confirm(id)));
     }
 
@@ -287,32 +342,43 @@ public class DeliveryController {
 
     @GetMapping("/materials")
     @PreAuthorize("@ss.hasPermission('pms:delivery:query')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<List<MaterialVO>> listMaterials(
             @RequestParam String ownerModule, @RequestParam String entityType, @RequestParam Long entityId,
             @RequestParam(required = false) String typeCode) {
+        ownerAccess.require(ownerModule,entityType,entityId,typeCode,false,false);
         return success(materialService.listByEntity(ownerModule, entityType, entityId, typeCode).stream()
-                .map(DeliveryController::toView).toList());
+                .map(this::materialView).toList());
     }
 
     @PostMapping("/materials")
     @PreAuthorize("@ss.hasPermission('pms:delivery:operate')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<MaterialVO> registerMaterial(@Valid @RequestBody MaterialRegisterReqVO reqVO) {
-        return success(toView(materialService.registerFile(reqVO.getOwnerModule(), reqVO.getEntityType(),
+        ownerAccess.require(reqVO.getOwnerModule(),reqVO.getEntityType(),reqVO.getEntityId(),reqVO.getTypeCode(),true,true);
+        Long actualProject = ownerAccess.projectId(reqVO.getOwnerModule(),reqVO.getEntityType(),reqVO.getEntityId());
+        if (reqVO.getProjectId() != null && !java.util.Objects.equals(actualProject,reqVO.getProjectId()))
+            throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("DELIVERY_PROJECT_MISMATCH","材料项目必须来自真实Owner对象");
+        reqVO.setProjectId(actualProject);
+        return success(materialView(materialService.registerFile(reqVO.getOwnerModule(), reqVO.getEntityType(),
                 reqVO.getEntityId(), reqVO.getTypeCode(), reqVO.getFileReferenceId(), reqVO.getTitle(),
                 reqVO.getSourceKind(), reqVO.getProjectId(), null)));
     }
 
     @PostMapping("/materials/{id}/withdraw")
     @PreAuthorize("@ss.hasPermission('pms:delivery:operate')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<MaterialVO> withdrawMaterial(@PathVariable Long id) {
-        return success(toView(materialService.withdraw(id)));
+        return success(materialView(materialService.withdraw(id)));
     }
 
     // ---------- 提交台账 ----------
 
     @PostMapping("/submissions")
     @PreAuthorize("@ss.hasPermission('pms:delivery:operate')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<SubmissionOutcomeVO> submit(@Valid @RequestBody SubmissionReqVO reqVO) {
+        authorizeRequirement(reqVO.getRequirementId(),true);
         var outcome = requirementService.submit(reqVO.getRequirementId(), reqVO.getRequestKey(),
                 reqVO.getMaterialIds());
         SubmissionOutcomeVO vo = new SubmissionOutcomeVO();
@@ -327,7 +393,11 @@ public class DeliveryController {
 
     @PostMapping("/submissions/{id}/withdraw")
     @PreAuthorize("@ss.hasPermission('pms:delivery:operate')")
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public CommonResult<SubmissionOutcomeVO> withdrawSubmission(@PathVariable Long id) {
+        var submission = submissionMapper.selectById(id);
+        if (submission == null) throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("DELIVERY_SUBMISSION_NOT_FOUND","提交记录不存在");
+        authorizeRequirement(submission.getRequirementId(),true);
         var outcome = requirementService.withdrawSubmission(id);
         SubmissionOutcomeVO vo = new SubmissionOutcomeVO();
         vo.setSubmissionId(outcome.submission().getId());
@@ -342,7 +412,16 @@ public class DeliveryController {
     @GetMapping("/submissions")
     @PreAuthorize("@ss.hasPermission('pms:delivery:query')")
     public CommonResult<List<SubmissionVO>> listSubmissions(@RequestParam Long requirementId) {
+        authorizeRequirement(requirementId,false);
         return success(submissionMapper.selectByRequirement(requirementId).stream()
                 .map(DeliveryController::toView).toList());
     }
+    private void authorizeRequirement(Long id, boolean write) {
+        var row = requirementService.requireRequirement(id);
+        ownerAccess.require(row.getOwnerModule(),row.getEntityType(),row.getEntityId(),row.getTypeCode(),write,write);
+        if (write && cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(row.getRequirementKind()))
+            throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException(
+                    "DELIVERY_OWNER_COMMAND_REQUIRED", "模板冻结要求请使用来源Owner提交接口，以保留来源约束和判定证据");
+    }
+
 }

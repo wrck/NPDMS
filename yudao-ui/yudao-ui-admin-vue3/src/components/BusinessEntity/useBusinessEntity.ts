@@ -3,7 +3,10 @@
 import { computed, ref, shallowRef } from 'vue'
 import {
   executeEntityOperation,
+  recoverEntityOperation,
   getEntityData,
+  getEntityForm,
+  type BusinessEntityFormData,
   getEntityPage,
   getModelDetail,
   newIdempotencyKey,
@@ -15,6 +18,9 @@ import {
   type ModelDetailVO,
   type OperationVO
 } from '@/api/pms/platform/businessmodel'
+import { businessIntentStorageKey, readBusinessIntent, writeBusinessIntent, clearBusinessIntent,
+  businessIntentFingerprint, type PendingBusinessIntent } from './businessOperationIntent'
+
 
 export const isConcurrencyConflict = (error: any) => {
   const status = error?.response?.status ?? error?.status
@@ -43,6 +49,7 @@ export function useBusinessEntity(ownerModule: () => string, entityType: () => s
     loadError.value = ''
     try {
       detail.value = await getModelDetail(ownerModule(), entityType())
+      pendingIntent.value = readBusinessIntent(businessIntentStorageKey(ownerModule(), entityType()))
     } catch (error: any) {
       loadError.value = serverErrorMessage(error, '统一模型目录加载失败')
     } finally {
@@ -93,32 +100,80 @@ export function useBusinessEntity(ownerModule: () => string, entityType: () => s
   }
 
   const current = shallowRef<BusinessEntityData>()
-  const readEntity = async (id: number, revisionId?: number) => {
+  const formPresentation = shallowRef<BusinessEntityFormData>()
+  const readEntity = async (id: string | number, revisionId?: string | number) => {
     const data = await getEntityData(ownerModule(), entityType(), { id, revisionId })
     if (!data.available) {
       throw new Error(data.unavailableReason || '实体不可用')
     }
+    const form = !revisionId && detail.value?.capabilities.some(item => item.type === 'DYNAMIC_FORM' && item.enabled)
+      ? await getEntityForm(ownerModule(), entityType(), id) : undefined
+    formPresentation.value = form
     current.value = data
     return data
   }
 
   const executing = ref(false)
-  const execute = async (
-    operation: OperationVO,
-    entityId: number | undefined,
-    input: Record<string, unknown>,
-    concurrencyBasis?: number
-  ): Promise<BusinessOperationReceipt> => {
+  const pendingIntent = shallowRef<PendingBusinessIntent>()
+  const recover = async (): Promise<BusinessOperationReceipt | null> => {
+    if (executing.value) throw new Error('操作正在执行')
+    const storageKey = businessIntentStorageKey(ownerModule(), entityType())
+    const pending = readBusinessIntent(storageKey)
+    pendingIntent.value = pending
+    if (!pending || !storageKey) return null
     executing.value = true
     try {
-      return await executeEntityOperation(ownerModule(), entityType(), operation.code, entityId, {
-        idempotencyKey: newIdempotencyKey(),
-        concurrencyBasis,
-        input
+      const receipt = await recoverEntityOperation(ownerModule(), entityType(), pending.operation, pending.operationVersion, pending.key)
+      if (receipt) {
+        clearBusinessIntent(storageKey, pending)
+        pendingIntent.value = readBusinessIntent(storageKey)
+      }
+      return receipt
+    } finally { executing.value = false }
+  }
+  const execute = async (
+    operation: OperationVO,
+    entityId: string | number | undefined,
+    input: Record<string, unknown>,
+    concurrencyBasis?: number,
+    revisionId?: string | number
+  ): Promise<BusinessOperationReceipt> => {
+    if (executing.value) throw new Error('操作正在执行')
+    const storageKey = businessIntentStorageKey(ownerModule(), entityType())
+    if (!storageKey) throw new Error('登录上下文不可用，无法保存操作恢复信息')
+    executing.value = true
+    let alreadyUnknown = false
+    let attempt: PendingBusinessIntent | undefined
+    try {
+      const fingerprint = await businessIntentFingerprint({ ownerModule: ownerModule(), entityType: entityType(),
+        operation: operation.code, operationVersion: operation.version, entityId: entityId == null ? undefined : String(entityId), input,
+        concurrencyBasis, revisionId: revisionId == null ? undefined : String(revisionId) })
+      // Re-read after hashing, so two mounted callers share an existing intent rather than mint two keys.
+      const stored = readBusinessIntent(storageKey)
+      alreadyUnknown = !!stored
+      if (stored && stored.fingerprint !== fingerprint) throw new Error('上次操作结果仍未确定，请先确认原操作')
+      const pending = stored || { fingerprint, key: newIdempotencyKey(), operation: operation.code,
+        operationVersion: operation.version, entityId: entityId == null ? undefined : String(entityId), concurrencyBasis,
+        revisionId: revisionId == null ? undefined : String(revisionId) }
+      attempt = pending
+      writeBusinessIntent(storageKey, pending)
+      pendingIntent.value = pending
+      const receipt = await executeEntityOperation(ownerModule(), entityType(), operation.code, entityId, {
+        idempotencyKey: pending.key, concurrencyBasis, revisionId, input
       })
-    } finally {
-      executing.value = false
-    }
+      clearBusinessIntent(storageKey, pending)
+      pendingIntent.value = readBusinessIntent(storageKey)
+      return receipt
+    } catch (error: any) {
+      const status = error?.response?.status ?? error?.status
+      const code = error?.response?.data?.code ?? error?.data?.code
+      // Denial on a retry cannot prove whether an earlier unknown request committed.
+      if (attempt && !alreadyUnknown && (error === 'error' || (status >= 400 && status < 500 && status !== 408) || (code != null && Number(code) !== 500))) {
+        clearBusinessIntent(storageKey, attempt)
+        pendingIntent.value = readBusinessIntent(storageKey)
+      }
+      throw error
+    } finally { executing.value = false }
   }
 
   return {
@@ -136,8 +191,11 @@ export function useBusinessEntity(ownerModule: () => string, entityType: () => s
     sliceComplete,
     loadPage,
     current,
+    formPresentation,
     readEntity,
     executing,
+    pendingIntent,
+    recover,
     execute
   }
 }

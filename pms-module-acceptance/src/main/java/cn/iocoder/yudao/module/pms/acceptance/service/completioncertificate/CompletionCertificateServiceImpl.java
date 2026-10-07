@@ -11,6 +11,10 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.Co
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
 import jakarta.annotation.Resource;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -62,11 +66,16 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     private CompletionCertificateDeviceMapper completionCertificateDeviceMapper;
     @Resource
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
+    @Resource
+    private PlatformDeliveryMaterialApi deliveryMaterials;
+    @Resource
+    private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createCompletionCertificate(CompletionCertificateSaveReqVO createReqVO) {
         // 插入；编码由系统按项目编码自动生成
+        if(createReqVO.getStatus()!=null && createReqVO.getStatus()!=STATUS_DRAFT)throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         CompletionCertificateDO entity = BeanUtils.toBean(createReqVO, CompletionCertificateDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 AcceptanceRecordCodeGenerator.COMPLETION_CERTIFICATE, completionCertificateMapper));
@@ -89,7 +98,9 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         CompletionCertificateDO updateObj = BeanUtils.toBean(updateReqVO, CompletionCertificateDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
-        completionCertificateMapper.updateById(updateObj);
+        if (updateObj.getVersion() == null || completionCertificateMapper.updateById(updateObj) != 1) {
+            throw exception(ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT);
+        }
         // 设备明细整存整取：按新列表重建
         completionCertificateDeviceMapper.deleteByCertificateId(existing.getId());
         insertCertificateDevices(existing.getId(), updateReqVO.getDevices());
@@ -139,17 +150,25 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void submitCompletionCertificate(Long id) {
         CompletionCertificateDO entity = validateExists(id);
+        nativeAccess.requireCommand(TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                "completionCertificate",entity.getProjectId(),"submit");
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
-        updateStatus(id, STATUS_PENDING_CUSTOMER_CONFIRM);
+        updateStatus(entity, STATUS_PENDING_CUSTOMER_CONFIRM);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void customerConfirm(Long id) {
         CompletionCertificateDO entity = validateExists(id);
+        nativeAccess.requireCommand(TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                "completionCertificate",entity.getProjectId(),"audit");
         if (!Objects.equals(entity.getStatus(), STATUS_PENDING_CUSTOMER_CONFIRM)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
@@ -157,21 +176,35 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         updateObj.setId(id);
         updateObj.setStatus(STATUS_CUSTOMER_CONFIRMED);
         updateObj.setCustomerConfirmTime(LocalDateTime.now());
-        completionCertificateMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        if (updateObj.getVersion() == null || completionCertificateMapper.updateById(updateObj) != 1) {
+            throw exception(ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT);
+        }
+        deliveryMaterials.registerBusinessResultMaterial("ACC", "completionCertificate", id,
+                "COMPLETION_CERTIFICATE", "completionCertificate", String.valueOf(id), null,
+                entity.getName(), entity.getProjectId());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void rejectCompletionCertificate(Long id) {
         CompletionCertificateDO entity = validateExists(id);
+        nativeAccess.requireCommand(TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                "completionCertificate",entity.getProjectId(),"audit");
         if (!Objects.equals(entity.getStatus(), STATUS_PENDING_CUSTOMER_CONFIRM)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
-        updateStatus(id, STATUS_REJECTED);
+        updateStatus(entity, STATUS_REJECTED);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void archiveCompletionCertificate(Long id) {
         CompletionCertificateDO entity = validateExists(id);
+        nativeAccess.requireCommand(TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                "completionCertificate",entity.getProjectId(),"audit");
         if (!Objects.equals(entity.getStatus(), STATUS_CUSTOMER_CONFIRMED)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
@@ -179,21 +212,30 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         updateObj.setId(id);
         updateObj.setStatus(STATUS_ARCHIVED);
         updateObj.setArchiveTime(LocalDateTime.now());
-        completionCertificateMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        if (updateObj.getVersion() == null || completionCertificateMapper.updateById(updateObj) != 1) {
+            throw exception(ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT);
+        }
+        deliveryMaterials.registerBusinessResultMaterial("ACC", "completionCertificate", id,
+                "COMPLETION_CERTIFICATE", "completionCertificate", String.valueOf(id), null,
+                entity.getName(), entity.getProjectId());
     }
 
-    private void updateStatus(Long id, int status) {
+    private void updateStatus(CompletionCertificateDO entity, int status) {
         CompletionCertificateDO updateObj = new CompletionCertificateDO();
-        updateObj.setId(id);
+        updateObj.setId(entity.getId());
+        updateObj.setVersion(entity.getVersion());
         updateObj.setStatus(status);
-        completionCertificateMapper.updateById(updateObj);
+        if (updateObj.getVersion() == null || completionCertificateMapper.updateById(updateObj) != 1) {
+            throw exception(ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT);
+        }
     }
 
     private CompletionCertificateDO validateExists(Long id) {
         if (id == null) {
             throw exception(ACC_COMPLETION_CERTIFICATE_NOT_EXISTS);
         }
-        CompletionCertificateDO entity = completionCertificateMapper.selectById(id);
+        CompletionCertificateDO entity = completionCertificateMapper.selectDeliveryOwnerForUpdate(new CompletionCertificateDeliveryLockQuery(TenantContextHolder.getRequiredTenantId(),id));
         if (entity == null) {
             throw exception(ACC_COMPLETION_CERTIFICATE_NOT_EXISTS);
         }

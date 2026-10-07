@@ -3,7 +3,7 @@ import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
-import { businessViewTargetKey, resolveBusinessView, type BusinessViewTarget } from './registry'
+import { businessViewTargetKey, resolveStandaloneBusinessEntityView, resolveBusinessView, type BusinessViewTarget } from './registry'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
@@ -15,6 +15,8 @@ import {
   textOf,
   findByTestId
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true, checkRole: () => true }))
 
 // The custom renderer has no DOM; keyboard/ARIA integration is covered by its DOM suite.
 vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
@@ -727,4 +729,32 @@ describe('PM-03 BusinessView runtime', () => {
     expect(findByTestId(mounted.root, 'duration-dirty')).toBeTruthy()
     mounted.app.unmount()
   })
+})
+
+it('reuses the registered requirement professional component for the standalone catalog view', () => {
+  const adapter = resolveStandaloneBusinessEntityView('sol_requirement_analysis')
+  expect(adapter?.component).toBe(ProjectRequirementAnalysisPanel)
+  const project = { id: 7, projectName: 'test' } as any
+  expect(adapter?.resolve(project)).toEqual({ project })
+  expect(resolveStandaloneBusinessEntityView('unregistered')).toBeUndefined()
+})
+
+
+it('loads one shared declared runtime with an exact object reference and denies incompatible versions or contexts', () => {
+  const value = target('PAGE')
+  Object.assign(value.registration, { componentKey: 'DECLARED_BUSINESS_IT_NOTE', componentVersion: '1', entityType: 'note', ownerContext: 'IT' })
+  value.resolvedContext = { businessObjectId: '9007199254740993' }
+  value.allowedActions = ['save']
+  const result = resolveBusinessView(value)
+  expect(result.props).toEqual({ ownerModule: 'IT', entityType: 'note', stableCode: 'IT_NOTE', entityId: '9007199254740993', readonly: false, allowedActions: ['save'] })
+  value.registration.status = 'DISABLED'
+  expect(resolveBusinessView(value).props?.allowedActions).toEqual([])
+  value.registration.componentVersion = '2'
+  expect(resolveBusinessView(value).error).toBeTruthy()
+  value.registration.componentVersion = '1'
+  value.resolvedContext = {}
+  expect(resolveBusinessView(value).error).toBeTruthy()
+  value.resolvedContext = { businessObjectId: 7 }
+  value.registration.dynamicFormRevisionId = 9
+  expect(resolveBusinessView(value).error).toBeTruthy()
 })

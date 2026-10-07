@@ -6,6 +6,13 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMate
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialArchiveRetryQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialArchiveStateQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialIdLockQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementMaterialQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceFileQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceBusinessQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceIdentityQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOriginUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,6 +21,8 @@ import java.util.List;
 
 @Mapper
 public interface DeliveryMaterialMapper extends BaseMapperX<DeliveryMaterialDO> {
+    int assignSourceIdentityIfMissing(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliverySourceIdentityAssignment query);
+
 
     /** 归档补偿队列：按归档状态取材料（补偿方按文件锚点分组推进）。 */
     default List<DeliveryMaterialDO> selectByArchiveStatus(String archiveStatus) {
@@ -68,12 +77,23 @@ public interface DeliveryMaterialMapper extends BaseMapperX<DeliveryMaterialDO> 
         return rows.isEmpty() ? null : rows.get(0);
     }
 
-    /** 要求维度材料：TEMPLATE_FROZEN 链按绑定要求聚合（owner 三元组在项目内共享）。 */
+    List<DeliveryMaterialDO> selectListForOwner(@Param("query") DeliveryMaterialOwnerQuery query);
+    int requireArchiveIfNotRequired(@Param("query") cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialArchiveObligationQuery query);
+
+    int assignOriginIfMissing(@Param("query") DeliveryMaterialOriginUpdate query);
+
+    /** 要求使用关系查询：投影退出状态，不修改共享材料本身。 */
     default List<DeliveryMaterialDO> selectByRequirement(Long requirementId) {
-        return selectList(new LambdaQueryWrapperX<DeliveryMaterialDO>()
-                .eq(DeliveryMaterialDO::getRequirementId, requirementId)
-                .orderByAsc(DeliveryMaterialDO::getId));
+        return selectListForRequirement(new DeliveryRequirementMaterialQuery(
+                TenantContextHolder.getRequiredTenantId(), requirementId));
     }
+
+    List<DeliveryMaterialDO> selectListForRequirement(@Param("query") DeliveryRequirementMaterialQuery query);
+    DeliveryMaterialDO selectSourceIdentityForUpdate(@Param("query") DeliverySourceIdentityQuery query);
+    /** 保留历史重复登记行，以确定的最早登记材料作为来源版本的复用身份。 */
+    DeliveryMaterialDO selectSourceFile(@Param("query") DeliverySourceFileQuery query);
+    /** 历史多要求成果登记不重写；按精确修订（含NULL）选择最早材料。 */
+    DeliveryMaterialDO selectSourceBusiness(@Param("query") DeliverySourceBusinessQuery query);
 
     /** 模板冻结要求的 BUSINESS_RESULT 幂等：同一要求 + 业务对象 + 修订锚。 */
     default DeliveryMaterialDO selectByRequirementAndBusinessObject(Long requirementId,

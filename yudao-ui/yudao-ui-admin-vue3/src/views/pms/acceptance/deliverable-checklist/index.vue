@@ -85,7 +85,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'submitDeliverableChecklist', '提交')"
-            v-hasPermi="['pms:acc-deliverable-checklist:update']"
+            v-hasPermi="['pms:acc-deliverable-checklist:submit']"
             >提交</el-button
           >
           <el-button
@@ -93,7 +93,7 @@
             type="success"
             v-if="row.status === 1"
             @click="handleAction(row, 'passDeliverableChecklist', '通过')"
-            v-hasPermi="['pms:acc-deliverable-checklist:update']"
+            v-hasPermi="['pms:acc-deliverable-checklist:audit']"
             >通过</el-button
           >
           <el-button
@@ -101,7 +101,7 @@
             type="danger"
             v-if="row.status === 1"
             @click="handleAction(row, 'rejectDeliverableChecklist', '驳回')"
-            v-hasPermi="['pms:acc-deliverable-checklist:update']"
+            v-hasPermi="['pms:acc-deliverable-checklist:audit']"
             >驳回</el-button
           >
           <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-deliverable-checklist:delete']"
@@ -179,6 +179,7 @@
         </el-col>
       </el-row>
     </el-form>
+    <DeliveryPanel v-if="form.id" owner-module="ACC" entity-type="deliverableChecklist" :entity-id="form.id" :readonly="true" />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
@@ -187,6 +188,7 @@
 </template>
 
 <script setup lang="ts">
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import ProjectDeliverablesPanel from '@/views/pms/project/project-master-detail/components/ProjectDeliverablesPanel.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'

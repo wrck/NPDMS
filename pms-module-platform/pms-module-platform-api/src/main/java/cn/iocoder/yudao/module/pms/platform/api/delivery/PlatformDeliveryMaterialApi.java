@@ -7,6 +7,14 @@ import java.util.List;
  * 写入统一模型 plt_delivery_material 的唯一入口；模块间不得直接写平台交付表。
  */
 public interface PlatformDeliveryMaterialApi {
+    /** Explicit native upload attachment: preserve actual source identity and enabled catalog, without a requirement. */
+    default Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
+        throw new UnsupportedOperationException("Native uploaded delivery file registration unavailable");
+    }
+
+    /** Trusted native operation after its Owner authorization and file-version lock; no requirement is fabricated. */
+    Long registerNativeSourceFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact);
+
 
     /** 材料状态：有效（登记即冻结，参与计数）。 */
     String STATUS_ACTIVE = "ACTIVE";

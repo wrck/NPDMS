@@ -20,7 +20,7 @@ public class EngineeringDocumentSources implements FileDocumentSourceProvider {
         try { id = Long.valueOf(object); } catch (RuntimeException invalid) { return null; }
         if ("REQUIREMENT_ANALYSIS_REVISION".equals(type)) {
             var row = requirements.selectRevision(new RequirementRevisionQuery(tenant, id));
-            return row == null ? null : new Scope(row.getProjectId(), "SOL.REQUIREMENT_DOCUMENT");
+            return row == null ? null : new Scope(row.getProjectId(), "SOL.REQUIREMENT_DOCUMENT", "SOL", "requirementAnalysis", row.getEntityId(), row.getId());
         }
         return null;
     }

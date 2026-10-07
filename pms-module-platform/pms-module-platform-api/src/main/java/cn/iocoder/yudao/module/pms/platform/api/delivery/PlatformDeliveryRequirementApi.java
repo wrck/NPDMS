@@ -212,6 +212,13 @@ public interface PlatformDeliveryRequirementApi {
     /** 定位包含指定材料的提交（投影来源反查：材料 → 所属提交台账）。 */
     Optional<Long> findSubmissionIdByMaterial(Long materialId);
 
+    /** Independent archive targets remain pending even when another submission archived a shared file. */
+    List<TemplateFrozenSubmissionView> listPendingArchiveSubmissions();
+    Optional<TemplateFrozenSubmissionView> lockPendingArchiveSubmission(Long submissionId);
+    void requireSubmissionArchive(Long submissionId);
+    boolean markSubmissionArchiveState(Long submissionId, String archiveStatus, String failureCode);
+
+
     /**
      * 门禁收敛：锁要求行 → ACTIVE 材料逐条锁定重验（文件按自身锚点，业务成果按 Owner 提供方）→
      * 证据永久失效的材料撤回 → refreshStatus 状态收敛。判定不满足不抛错（由状态表达）。

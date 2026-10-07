@@ -27,6 +27,8 @@ public class BusinessEntityPersistenceRegistry {
         contributors.orderedStream().forEach(contributor -> contributor.declarations().forEach(this::register));
     }
 
+    public java.util.List<BusinessModelDeclaration> declarations() { return java.util.List.copyOf(byEntity.values()); }
+
     public Optional<BusinessModelDeclaration> find(String ownerModule, String entityType) {
         return Optional.ofNullable(byEntity.get(key(ownerModule, entityType)));
     }
