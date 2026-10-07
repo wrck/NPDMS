@@ -66,6 +66,14 @@ public class BusinessOperationDispatcher {
         throw new BusinessContractException("RECEIPT_RECOVERY_UNAVAILABLE","Owner has no public receipt recovery contract");
     }
 
+    /** Shared and inherited HTTP routes select the same thin service, including its complex-query override. */
+    public cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntitySlice query(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityPageQuery query) {
+        persistence.require(query.ownerModule(), query.entityType());
+        var selected = specialized.getOrDefault(query.ownerModule() + "/" + query.entityType(), defaultService);
+        return (selected instanceof ExtensibleBusinessApplicationService defaults ? defaults : defaultService).query(query);
+    }
+
     @SuppressWarnings("unchecked")
     public BusinessOperationReceipt dispatch(BusinessOperationRequest request) {
         String ownerModule = request.targetRef() != null

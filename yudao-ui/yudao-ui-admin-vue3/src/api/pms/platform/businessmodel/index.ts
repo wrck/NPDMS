@@ -88,7 +88,7 @@ export interface BusinessEntitySlice {
   unavailableReason?: string
 }
 
-export type ReceiptOutcome = 'SAVED' | 'ACCEPTED' | 'APPROVAL_PENDING' | 'EFFECTED' | 'FAILED'
+export type ReceiptOutcome = 'DELETED' | 'SAVED' | 'ACCEPTED' | 'APPROVAL_PENDING' | 'EFFECTED' | 'FAILED'
 
 export interface ResultReference {
   kind: 'FILE' | 'APPROVAL' | 'RESULT' | 'COMMAND'

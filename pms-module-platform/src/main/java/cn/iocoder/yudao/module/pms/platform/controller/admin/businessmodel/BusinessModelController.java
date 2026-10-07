@@ -89,9 +89,13 @@ public class BusinessModelController extends cn.iocoder.yudao.module.pms.platfor
                         .map(filter -> new BusinessFieldFilter(filter.getFieldCode(),
                                 filter.getOperator(), filter.getValues()))
                         .toList();
-        return success(accessPort.query(new BusinessEntityPageQuery(
+        var query = new BusinessEntityPageQuery(
                 request.getSceneCode(), ownerModule, entityType, filters,
-                request.getPageSize(), request.getCursor()), actor()));
+                request.getPageSize(), request.getCursor());
+        // Explicit default adoption uses inherited query overrides. Existing revision/native readers
+        // retain their original projection and access contract until their own migration is approved.
+        return success(catalog.require(ownerModule, entityType).scopeBinding() == null
+                ? accessPort.query(query, actor()) : dispatcher.query(query));
     }
 
     @GetMapping("/{ownerModule}/{entityType}/data")

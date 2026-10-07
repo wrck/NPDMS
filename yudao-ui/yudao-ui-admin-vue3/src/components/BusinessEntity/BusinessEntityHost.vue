@@ -85,9 +85,8 @@
           :fields="detail.fields"
           :presentation="formPresentation"
           :disabled="executing || !editingOperation?.executable"
-        >
-          <template #extra>
-            <el-form-item>
+        />
+            <div class="business-operation-toolbar">
               <el-button
                 type="primary"
                 :loading="executing"
@@ -103,13 +102,14 @@
                 :title="operation.reason"
                 @click="runCustom(operation)"
               >{{ operation.name }}</el-button>
-              <el-button :disabled="executing" @click="backToList">返回列表</el-button>
+              <el-button v-if="current && !current.revisionId && deleteOperation" type="danger"
+                :loading="deleting" :disabled="executing || deleting || !deleteOperation.executable"
+                :title="deleteOperation.reason" @click="removeEntity">删除</el-button>
+              <el-button :disabled="executing || deleting" @click="backToList">返回列表</el-button>
               <el-button v-if="current" :disabled="executing" @click="reopen">
                 重新读取（重开）
               </el-button>
-            </el-form-item>
-          </template>
-        </BusinessEntityForm>
+            </div>
         <el-descriptions
           v-if="current"
           :column="2"
@@ -166,6 +166,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef } from 'vue'
+import { useMessage } from '@/hooks/web/useMessage'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import type { BusinessEntityData, BusinessOperationReceipt, OperationVO } from '@/api/pms/platform/businessmodel'
@@ -185,6 +186,8 @@ defineOptions({ name: 'BusinessEntityHost' })
 const props = defineProps<{ ownerModule: string; entityType: string; initialEntityId?: string | number;
   expectedStableCode?: string; deliverableType?: string; readonly?: boolean; allowedActions?: string[] }>()
 
+const message = useMessage()
+const deleting = ref(false)
 const entity = useBusinessEntity(
   () => props.ownerModule,
   () => props.entityType
@@ -229,7 +232,7 @@ const professionalProps = computed(() => {
 })
 let leaving: Promise<boolean> | undefined
 const guardContentLeave = (): Promise<boolean> => {
-  if (executing.value) return Promise.resolve(false)
+  if (executing.value || deleting.value) return Promise.resolve(false)
   if (leaving) return leaving
   leaving = (async () => {
     try {
@@ -282,6 +285,7 @@ const availableOperation = (operation?: OperationVO): OperationVO | undefined =>
   ? { ...operation, executable: false, reason: '当前运行入口未开放该操作' } : operation
 const createOperation = computed(() => availableOperation(declaredCreate.value))
 const updateOperation = computed(() => availableOperation(declaredUpdate.value))
+const deleteOperation = computed(() => availableOperation(detail.value?.operations.find(operation => operation.kind === 'DELETE')))
 const pageTitle = computed(() => (mode.value === 'FORM' ? '统一业务实体办理' : detail.value?.title || '统一业务实体'))
 const customOperations = computed(() => (detail.value?.operations || []).filter(operation => operation.kind === 'DOMAIN_COMMAND').map(operation => availableOperation(operation)!))
 const isCreate = computed(() => editingOperation.value?.kind === 'CREATE')
@@ -308,8 +312,9 @@ const load = async () => {
   }
   if (detail.value && !professionalView.value) {
     await loadPage([], true)
-    if (pendingIntent.value) await recoverPending()
-    if (props.initialEntityId != null && !current.value) await openEntity({ ref: { entityId: props.initialEntityId } } as BusinessEntityData)
+    const recovered = pendingIntent.value ? await recoverPending() : undefined
+    if (props.initialEntityId != null && !current.value
+        && !(recovered?.outcome === 'DELETED' && String(recovered.entityRef?.entityId) === String(props.initialEntityId))) await openEntity({ ref: { entityId: props.initialEntityId } } as BusinessEntityData)
   }
 }
 
@@ -321,12 +326,17 @@ const recoverPending = async () => {
     const result = await recover()
     if (!result) return
     receipt.value = result
-    if (result.entityRef) {
+    if (result.outcome === 'DELETED') {
+      current.value = undefined
+      formPresentation.value = undefined
+      mode.value = 'LIST'
+    } else if (result.entityRef) {
       await readEntity(result.entityRef.entityId)
       editingOperation.value = updateOperation.value
       mode.value = 'FORM'
     }
     await reloadList()
+    return result
   } catch (error) { operationError.value = serverErrorMessage(error, '上次操作结果暂时无法确认') }
 }
 
@@ -412,6 +422,28 @@ const save = async () => {
         error?.response?.data?.msg || error?.message || '操作执行失败'
     }
   }
+}
+
+const removeEntity = async () => {
+  const target = current.value, operation = deleteOperation.value
+  if (!target || target.revisionId || !operation?.executable || executing.value || deleting.value) return
+  deleting.value = true
+  try {
+    try { await message.confirm('确定删除当前业务记录？有关联引用或受保护历史的记录将由服务端拒绝删除。') }
+    catch { return }
+    // A stale confirmation must not delete a newly selected object or bypass changed entry restrictions.
+    if (current.value !== target || !deleteOperation.value?.executable || props.readonly) return
+    operationError.value = ''; conflictMessage.value = ''
+    const result = await execute(operation, target.ref.entityId, {}, target.concurrencyBasis)
+    receipt.value = result
+    if (result.outcome === 'DELETED') {
+      current.value = undefined; formPresentation.value = undefined; editingOperation.value = undefined
+      mode.value = 'LIST'
+      await reloadList()
+    }
+  } catch (error) {
+    operationError.value = serverErrorMessage(error, '删除失败，当前记录已保留，请刷新后重试')
+  } finally { deleting.value = false }
 }
 
 const runCustom = async (operation: OperationVO) => {
