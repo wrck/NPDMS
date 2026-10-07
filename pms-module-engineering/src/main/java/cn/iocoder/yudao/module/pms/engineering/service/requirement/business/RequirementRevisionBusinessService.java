@@ -31,6 +31,8 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
     private final RequirementAnalysisRevisionFiles files;
     private final EngineeringRuleReevaluationEvents events;
     private interface DraftInput { }
+    @Override protected EntityDataRef formTarget(RequirementAnalysisRevisionDO row){return EntityDataRef.revision(row.revisionRef());}
+    @Override protected void afterChange(String operation,RequirementAnalysisRevisionDO before,RequirementAnalysisRevisionDO row){if("save-form".equals(operation))afterUpdate(before,row);}
     @Override protected Long generatedId(){return IdWorker.getId();}
     @Override protected long initialVersion(){return 1L;}
     @Override protected Class<?>[] validationGroups(RequirementAnalysisRevisionDO row){return new Class<?>[]{DraftInput.class};}

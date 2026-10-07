@@ -85,4 +85,15 @@ class RequirementInheritedBusinessTest extends RequirementAnalysisSpringPersiste
         assertEquals("SOL_REQUIREMENT_ANALYSIS_REVISION",business.definition().stableCode());
         assertEquals(row.getId().toString(),business.deliveryScope(row.getId(),"ATTACHMENT").businessEntityKey());
     }
+    @Test void inheritedFormUsesLogicalRevisionExtensionIdentityAndRollsBackInvalidInput() {
+        var draft=business.create(business.input(Map.of("projectId",20)),"form-create");long id=draft.entityRef().entityId();
+        var input=Map.<String,Object>of("projectBackground","body","$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",0,"values",Map.of("CUSTOM_FLAG",true)));
+        var saved=business.saveForm(id,input,draft.newConcurrencyBasis(),"form-save");
+        assertEquals(true,business.form(id).extensions().fields().get("CUSTOM_FLAG"));
+        assertEquals(business.get(id).getEntityId(),jdbc.queryForObject("SELECT entity_id FROM plt_entity_extension_value",Long.class));
+        assertEquals(id,jdbc.queryForObject("SELECT revision_id FROM plt_entity_extension_value",Long.class));
+        var invalid=Map.<String,Object>of("projectBackground","must rollback","$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",business.form(id).extensions().version(),"values",Map.of("CUSTOM_FLAG","invalid")));
+        assertThrows(RuntimeException.class,()->business.saveForm(id,invalid,saved.newConcurrencyBasis(),"bad-form"));
+        assertEquals("body",business.get(id).getProjectBackground());assertEquals(true,business.form(id).extensions().fields().get("CUSTOM_FLAG"));
+    }
 }
