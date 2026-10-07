@@ -1,0 +1,100 @@
+{
+  "oldTemplateId": 993009900014,
+  "identityVersionBefore": 40,
+  "identityVersionAfter": 40,
+  "revisionsBefore": [
+    [
+      10,
+      "PUBLISHED"
+    ],
+    [
+      9,
+      "PUBLISHED"
+    ],
+    [
+      8,
+      "PUBLISHED"
+    ],
+    [
+      7,
+      "PUBLISHED"
+    ],
+    [
+      6,
+      "PUBLISHED"
+    ],
+    [
+      5,
+      "PUBLISHED"
+    ],
+    [
+      4,
+      "PUBLISHED"
+    ],
+    [
+      3,
+      "PUBLISHED"
+    ],
+    [
+      2,
+      "PUBLISHED"
+    ],
+    [
+      1,
+      "PUBLISHED"
+    ],
+    [
+      0,
+      "DRAFT"
+    ]
+  ],
+  "revisionsAfter": [
+    [
+      10,
+      "PUBLISHED"
+    ],
+    [
+      9,
+      "PUBLISHED"
+    ],
+    [
+      8,
+      "PUBLISHED"
+    ],
+    [
+      7,
+      "PUBLISHED"
+    ],
+    [
+      6,
+      "PUBLISHED"
+    ],
+    [
+      5,
+      "PUBLISHED"
+    ],
+    [
+      4,
+      "PUBLISHED"
+    ],
+    [
+      3,
+      "PUBLISHED"
+    ],
+    [
+      2,
+      "PUBLISHED"
+    ],
+    [
+      1,
+      "PUBLISHED"
+    ],
+    [
+      0,
+      "DRAFT"
+    ]
+  ],
+  "publishedDesignerUnchanged": true,
+  "verification": "API value equality; no hash scan or writes to original template",
+  "verifiedAt": "2026-10-06T09:59:18.252262+00:00"
+}

@@ -1,0 +1,98 @@
+{
+  "ownerModule": "IMP",
+  "entityType": "installation",
+  "stableCode": "IMP_INSTALLATION",
+  "title": "硬件安装",
+  "fields": [
+    {
+      "code": "code",
+      "name": "安装编码",
+      "type": "TEXT",
+      "required": true,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "equipmentId",
+      "name": "设备编号",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "installLocation",
+      "name": "安装位置",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "locationResolutionStatus",
+      "name": "位置解析状态",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "installTime",
+      "name": "安装时间",
+      "type": "DATETIME",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "installerUserId",
+      "name": "安装人",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "environmentCheck",
+      "name": "环境检查",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "specCheck",
+      "name": "安装规范检查",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "photoUrl",
+      "name": "安装照片",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "result",
+      "name": "安装结果",
+      "type": "TEXT",
+      "required": false,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "code": "status",
+      "name": "状态",
+      "type": "NUMBER",
+      "required": false,
+      "readable": true,
+      "writable": true
+    }
+  ],
+  "operations": [],
+  "capabilities": []
+}

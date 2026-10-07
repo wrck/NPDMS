@@ -1,0 +1,26 @@
+{
+  "templateId": 993009900029,
+  "code": "TPL-DELIVERY-RECORD-20261006",
+  "status": "DRAFT",
+  "revisionId": 993009900051,
+  "identityVersion": 6,
+  "checks": {
+    "sixStagesSeventeenTasks": true,
+    "fourFileDefinitionsOneBusinessResult": true,
+    "engineeringBriefDeferred": true,
+    "planAndSolutionNoDuplicateFiles": true,
+    "fiveOwnerGapsRemainExplicit": true,
+    "configurationLogRequirementConfirmedButNotRuntimeEnforced": true,
+    "logConfirmationRuleExplicitlyAbsent": true,
+    "sixCompilerBlocksRemain": true,
+    "allFileClarificationsResolved": true,
+    "draftOnlyNoPublishedRevision": true,
+    "originalPublishedTemplateUnchanged": true
+  },
+  "browser": "Real Chrome login/create/save/reopen; confirmed S4 device-log definition survived save; Compiler precheck displays the same six blocks; page errors empty",
+  "notExecuted": [
+    "configuration log splitting or latest-file business execution",
+    "new-template publication",
+    "new-project instantiation or end-to-end business execution"
+  ]
+}
