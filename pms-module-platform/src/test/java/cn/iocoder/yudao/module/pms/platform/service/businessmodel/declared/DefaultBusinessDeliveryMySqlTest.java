@@ -116,6 +116,7 @@ class DefaultBusinessDeliveryMySqlTest {
                 context.getBean(FileVersionMapper.class),context.getBean(FileReferenceMapper.class),context.getBean(FileBusinessObjectPolicyRegistry.class),context.getBean(BoundedMultipartReader.class),
                 context.getBean(FileContentPolicyService.class),storage,new FileEventFactory(),context.getBean(PlatformCommandExecutionApiImpl.class),context.getBean(OperationAuditApiImpl.class),Duration.ofMinutes(15)));
         context.refresh();deliveries=context.getBean(DefaultBusinessDeliveryService.class);filePolicy=context.getBean(DefaultBusinessDeliveryFilePolicy.class);
+        runtime.context.getBeanFactory().registerSingleton("defaultBusinessDelivery",deliveries);
         tx=new TransactionTemplate(context.getBean(DataSourceTransactionManager.class));login(7,880001);
         first=create("declaredNote",99,"first");second=create("secondDelivery",99,"second");
         assertTrue(catalog.require("IT","declaredNote").capabilities().isEmpty());assertTrue(catalog.require("IT","secondDelivery").capabilities().isEmpty());

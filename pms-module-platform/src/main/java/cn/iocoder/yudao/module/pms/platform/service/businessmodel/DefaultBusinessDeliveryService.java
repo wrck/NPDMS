@@ -36,8 +36,15 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     private final FileUploadApplicationService uploads;
     private final FileEvidenceApi files;
     private final DeliveryMaterialMapper materials;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners> directOwners;
+    private cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners direct() {
+        return directOwners == null ? null : directOwners.getIfAvailable();
+    }
 
     public BusinessModelDescriptor model(String businessType) {
+        var direct=direct();
+        if(direct!=null) { var found=direct.byCode(businessType);if(found.isPresent())return found.get().definition(); }
         return catalog.findByStableCode(businessType).orElseThrow(()->invalid("未知业务类型"));
     }
     public static Long entityId(String key) {
@@ -51,6 +58,12 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         if(scope==null || scope.projectId()==null || scope.projectId()<=0) throw invalid("项目ID不合法");
         type(scope.deliverableType());var model=model(scope.businessType());var caller=callers.require();
         Long id=entityId(scope.businessEntityKey());
+        var direct=direct();
+        if(direct!=null && direct.byCode(scope.businessType()).isPresent()) {
+            var access=direct.require(caller.tenantId(),caller.userId(),model.ownerModule(),model.entityType(),id,write,lock,null);
+            if(!scope.projectId().equals(access.projectId())) throw invalid("业务实体不属于指定项目");
+            return model;
+        }
         entities.requireDefault(caller.tenantId(),caller.userId(),model.ownerModule(),model.entityType(),id,write,lock,null);
         if(!scope.projectId().equals(entities.projectId(caller.tenantId(),model.ownerModule(),model.entityType(),id)))
             throw invalid("业务实体不属于指定项目");
@@ -58,7 +71,15 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     }
     @Transactional(readOnly=true)
     public Scope context(String owner,String entityType,String key) {
-        var caller=callers.require();var model=catalog.require(owner,entityType);Long id=entityId(key);
+        var caller=callers.require();Long id=entityId(key);var direct=direct();
+        if(direct!=null) {
+            var service=direct.byIdentity(owner,entityType);
+            if(service.isPresent()) {
+                var access=direct.require(caller.tenantId(),caller.userId(),owner,entityType,id,false,false,null);
+                return new Scope(access.projectId(),service.get().definition().stableCode(),key,null);
+            }
+        }
+        var model=catalog.require(owner,entityType);
         entities.requireDefault(caller.tenantId(),caller.userId(),owner,entityType,id,false,false,null);
         return new Scope(entities.projectId(caller.tenantId(),owner,entityType,id),model.stableCode(),key,null);
     }
@@ -124,9 +145,15 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         query.setBusinessType(businessType);query.setEntityId(businessEntityKey==null?null:entityId(businessEntityKey));query.setPageNo(pageNo);query.setPageSize(pageSize);
         var actor=new cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor(caller.tenantId(),caller.userId(),"DELIVERY_COLLECTION");
         var readableTypes=new java.util.HashSet<String>();
-        for(var model:catalog.all()) {
-            if(!entities.supports(model.ownerModule(),model.entityType())) continue;
-            try {guard.requireReadable(model,actor,"delivery");readableTypes.add(model.stableCode());}
+        var allModels=new java.util.LinkedHashMap<String,BusinessModelDescriptor>();
+        catalog.all().forEach(model->allModels.put(model.stableCode(),model));
+        var direct=direct();if(direct!=null)direct.definitions().forEach(model->allModels.put(model.stableCode(),model));
+        for(var model:allModels.values()) {
+            boolean inherited=direct!=null && direct.byCode(model.stableCode()).isPresent();
+            if(!inherited && !entities.supports(model.ownerModule(),model.entityType())) continue;
+            try {
+                if(inherited)direct.requireReadableModel(model.stableCode());else guard.requireReadable(model,actor,"delivery");
+                readableTypes.add(model.stableCode());}
             catch(BusinessContractException denied) { /* Fail closed for this business type. */ }
         }
         query.setReadableBusinessTypes(Set.copyOf(readableTypes));

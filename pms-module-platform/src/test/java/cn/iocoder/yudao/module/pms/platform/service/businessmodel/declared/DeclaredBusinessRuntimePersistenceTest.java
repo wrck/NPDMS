@@ -103,6 +103,25 @@ class DeclaredBusinessRuntimePersistenceTest {
             }
         }
     }
+    @Test void publicPageUsesConfiguredDefaultQueryAgainstActualSql() {
+        var saved=runtime.dispatcher.dispatch(create("page-default",Map.of("projectRef",99L,"title","Page default","internalMemo","private")));
+        var request=new cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelController.PageQueryReqVO();
+        request.setPageSize(20);
+        var page=runtime.controller.page("IT","declaredNote",request).getData();
+        assertEquals(saved.entityRef(),page.members().getFirst().ref());
+        assertEquals("Page default",page.members().getFirst().fieldValues().get("title"));
+        assertFalse(page.members().getFirst().fieldValues().containsKey("internalMemo"));
+    }
+    @Test void thinInheritedServiceCopiesQueryPortsBeforeItsFirstPage() throws Exception {
+        runtime.close();runtime=new Runtime(true,1,false,false,null,false);jdbc=runtime.jdbc;
+        initializeSchema();login(7L,WRITER);
+        var saved=runtime.dispatcher.dispatch(create("page-inherited",Map.of("projectRef",99L,"title","Inherited page")));
+        var request=new cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelController.PageQueryReqVO();
+        request.setPageSize(20);
+        var page=runtime.controller.page("IT","declaredNote",request).getData();
+        assertEquals(saved.entityRef(),page.members().getFirst().ref());
+        assertEquals("Inherited page",page.members().getFirst().fieldValues().get("title"));
+    }
     private static void login(long tenant, long user) {
         TenantContextHolder.setTenantId(tenant);
         var principal = new LoginUser(); principal.setId(user); principal.setTenantId(tenant); principal.setUserType(2);
@@ -621,15 +640,18 @@ class DeclaredBusinessRuntimePersistenceTest {
                 forms=transactionProxy(new cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormService(mapper,entityProviders,extensions,
                         sessions.getMapper(cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateRevisionMapper.class),schema,businessApi,audit),transactionManager);
             } else {entityProviders=null;extensions=null;forms=null;}
-            var service=configuration.defaultBusinessApplicationService(new TenantCallerContext(),catalog,persistence,guard,ledger,
-                    new OutboxBusinessEventPort(outbox),audit,context.getBeanProvider(org.springframework.transaction.support.TransactionOperations.class),
-                    transactionManager,context.getBeanProvider(EntityExtensionApi.class),scopes);
-            if(extension==1) context.getBeanFactory().registerSingleton("noteService",new EmptyDeclaredNoteService(service));
-            if(extension==2) context.getBeanFactory().registerSingleton("noteService",new DeclaredNoteService(service));
-            dispatcher=configuration.businessOperationDispatcher(persistence,service,context.<AbstractBusinessApplicationService<?>>getBeanProvider(org.springframework.core.ResolvableType.forClass(AbstractBusinessApplicationService.class)));
             access=(DefaultBusinessEntityAccess)configuration.businessEntityAccessPort(catalog,persistence,guard,context.getBeanProvider(EntityExtensionApi.class),
                     context.getBeanProvider(BusinessEntityScopePolicy.class),context.getBeanProvider(BusinessEntityContentReader.class),scopes);
             context.getBeanFactory().registerSingleton("businessAccess",access);
+            var service=configuration.defaultBusinessApplicationService(new TenantCallerContext(),catalog,persistence,guard,ledger,
+                    new OutboxBusinessEventPort(outbox),audit,context.getBeanProvider(org.springframework.transaction.support.TransactionOperations.class),
+                    transactionManager,context.getBeanProvider(EntityExtensionApi.class),scopes);
+            // Match production wiring before thin services copy the configured defaults.
+            service.configureDefaultCapabilities(access, () -> context.getBean(
+                    cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.class));
+            if(extension==1) context.getBeanFactory().registerSingleton("noteService",new EmptyDeclaredNoteService(service));
+            if(extension==2) context.getBeanFactory().registerSingleton("noteService",new DeclaredNoteService(service));
+            dispatcher=configuration.businessOperationDispatcher(persistence,service,context.<AbstractBusinessApplicationService<?>>getBeanProvider(org.springframework.core.ResolvableType.forClass(AbstractBusinessApplicationService.class)));
             context.getBeanFactory().registerSingleton("businessOperations",dispatcher);
             controller=new cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelController(catalog,guard,access,dispatcher,context.getBeanProvider(cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.ExecutionBackendCapability.class));
         }

@@ -14,6 +14,8 @@ import java.util.Set;
 public class DefaultBusinessDeliveryFilePolicy implements FileBusinessObjectPolicyProvider {
     private final DeclaredBusinessDeliveryBridge entities;
     private final BusinessCallerContext callers;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners> directOwners;
     private static final Set<String> MEDIA=Set.of("text/plain","text/csv","application/pdf","image/png","image/jpeg",
             "application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -39,6 +41,14 @@ public class DefaultBusinessDeliveryFilePolicy implements FileBusinessObjectPoli
         DefaultBusinessDeliveryService.type(query.purposeCode());
         var owner=query.objectId()==null?new String[0]:query.objectId().split(":",4);
         if(owner.length!=4) throw new BusinessContractException("ACCESS_DENIED","文件业务身份不合法");
+        var direct=directOwners==null?null:directOwners.getIfAvailable();
+        if(direct!=null && direct.byIdentity(owner[1],owner[2]).isPresent()) {
+            var access=direct.require(query.tenantId(),query.actorUserId(),owner[1],owner[2],DefaultBusinessDeliveryService.entityId(owner[3]),
+                    FileActionCodes.UPLOAD.equals(query.requiredAction()),lock,expectedScope);
+            if(!DefaultBusinessDeliveryService.entityId(owner[0]).equals(access.projectId()))
+                throw new BusinessContractException("ACCESS_DENIED","文件业务实体已不属于原项目");
+            return new FileBusinessObjectPolicyFact(true,access.scopeVersion(),"IMMUTABLE","MULTIPLE",Set.of("DOCUMENT"),MEDIA,52_428_800L,"INTERNAL");
+        }
         Long scope=entities.requireDefault(query.tenantId(),query.actorUserId(),owner[1],owner[2],
                 DefaultBusinessDeliveryService.entityId(owner[3]),FileActionCodes.UPLOAD.equals(query.requiredAction()),lock,expectedScope);
         if(!DefaultBusinessDeliveryService.entityId(owner[0]).equals(entities.projectId(query.tenantId(),owner[1],owner[2],DefaultBusinessDeliveryService.entityId(owner[3]))))

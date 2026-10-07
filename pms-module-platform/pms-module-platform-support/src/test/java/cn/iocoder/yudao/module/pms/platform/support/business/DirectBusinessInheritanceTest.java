@@ -1,0 +1,155 @@
+package cn.iocoder.yudao.module.pms.platform.support.business;
+
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.*;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventPort;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.*;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.*;
+import cn.iocoder.yudao.module.pms.platform.api.entity.*;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseProjectBusinessEntity;
+import cn.iocoder.yudao.module.pms.platform.support.service.*;
+import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.validation.Validation;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.junit.jupiter.api.*;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+/** Real generic Spring injection and inherited HTTP methods; Mapper/storage are unit doubles, not SQL acceptance. */
+class DirectBusinessInheritanceTest {
+    @Data @EqualsAndHashCode(callSuper=true) @TableName("it_direct_note")
+    @ProjectBusinessModel(ownerModule="IT",entityType="directNote",stableCode="IT_DIRECT_NOTE",name="Note",permissionPrefix="it:direct-note")
+    public static class Note extends BaseProjectBusinessEntity {
+        @BusinessModelField(name="Title") @NotBlank private String title;
+        private String internalSecret;
+    }
+    @Data @EqualsAndHashCode(callSuper=true) @TableName("it_direct_other")
+    @ProjectBusinessModel(ownerModule="IT",entityType="directOther",stableCode="IT_DIRECT_OTHER",name="Other",permissionPrefix="it:direct-other")
+    public static class Other extends BaseProjectBusinessEntity {
+        @BusinessModelField @NotBlank private String description;
+    }
+    @TableName("it_direct_special")
+    @ProjectBusinessModel(ownerModule="IT",entityType="directSpecial",stableCode="IT_DIRECT_SPECIAL",name="Special",permissionPrefix="it:direct-special")
+    public static class Special extends Note { }
+    interface NoteMapper extends BusinessMapper<Note> { }
+    interface OtherMapper extends BusinessMapper<Other> { }
+    interface SpecialMapper extends BusinessMapper<Special> { }
+    public static class NoteService extends DefaultProjectBusinessService<NoteMapper,Note> { }
+    public static class OtherService extends DefaultProjectBusinessService<OtherMapper,Other> { }
+    public static class WrongQueryService extends DefaultProjectBusinessService<NoteMapper,Note> {
+        @Override @SuppressWarnings({"rawtypes","unchecked"}) protected cn.iocoder.yudao.framework.common.pojo.PageResult<Note> selectPage(BusinessReadQuery query) {
+            var wrong=new Other();wrong.setId(11L);wrong.setTenantId(7L);wrong.setProjectId(99L);
+            return new cn.iocoder.yudao.framework.common.pojo.PageResult((List)List.of(wrong),1L);
+        }
+    }
+    public static class SpecialService extends DefaultProjectBusinessService<SpecialMapper,Special> {
+        @Override protected void beforeCreate(Special entity) { entity.setTitle(entity.getTitle().toUpperCase(Locale.ROOT)); }
+    }
+    @RestController @RequestMapping("/it/direct-notes")
+    public static class NoteController extends ProjectBusinessController<NoteService,Note> { }
+    @RestController @RequestMapping("/it/direct-others")
+    public static class OtherController extends ProjectBusinessController<OtherService,Other> { }
+    static class Transactions extends AbstractPlatformTransactionManager {
+        protected Object doGetTransaction() { return new Object(); }
+        protected void doBegin(Object transaction,TransactionDefinition definition) { }
+        protected void doCommit(DefaultTransactionStatus status) { }
+        protected void doRollback(DefaultTransactionStatus status) { }
+    }
+    static class Journal implements OperationExecutionStore {
+        final Map<OperationExecutionKey,StoredExecution> entries=new HashMap<>();
+        public boolean reserve(OperationExecutionKey key,String digest) { return entries.putIfAbsent(key,new StoredExecution(digest,"IN_PROGRESS",null))==null; }
+        public Optional<StoredExecution> findExisting(OperationExecutionKey key) { return Optional.ofNullable(entries.get(key)); }
+        public void complete(OperationExecutionKey key,String type,String resource,BusinessOperationReceipt receipt) {
+            entries.put(key,new StoredExecution(entries.get(key).requestDigest(),"COMPLETED",receipt));
+        }
+    }
+    AnnotationConfigApplicationContext context;
+    NoteMapper notes;OtherMapper others;SpecialMapper specials;
+    BusinessAccessGuard permissions;BusinessScopeAccess projects;DefaultBusinessDeliveryApi deliveries;
+    final Map<Long,Note> noteRows=new HashMap<>();final Map<Long,Other> otherRows=new HashMap<>();final Map<Long,Special> specialRows=new HashMap<>();
+    @BeforeEach void setup() {
+        notes=mock(NoteMapper.class);others=mock(OtherMapper.class);specials=mock(SpecialMapper.class);
+        permissions=mock(BusinessAccessGuard.class);projects=mock(BusinessScopeAccess.class);deliveries=mock(DefaultBusinessDeliveryApi.class);
+        when(projects.policyRef()).thenReturn("project");when(projects.readableScopeIds(any())).thenReturn(Set.of(99L));
+        when(notes.insert(any(Note.class))).thenAnswer(call->{Note row=call.getArgument(0);row.setId(11L);noteRows.put(11L,row);return 1;});
+        when(others.insert(any(Other.class))).thenAnswer(call->{Other row=call.getArgument(0);row.setId(22L);otherRows.put(22L,row);return 1;});
+        when(specials.insert(any(Special.class))).thenAnswer(call->{Special row=call.getArgument(0);row.setId(33L);specialRows.put(33L,row);return 1;});
+        when(notes.selectById(any())).thenAnswer(call->noteRows.get(call.getArgument(0)));
+        when(others.selectById(any())).thenAnswer(call->otherRows.get(call.getArgument(0)));
+        when(specials.selectById(any())).thenAnswer(call->specialRows.get(call.getArgument(0)));
+        context=new AnnotationConfigApplicationContext();
+        var defaults=new BusinessDefaults(()->new AbstractBusinessApplicationService.ResolvedCaller(7L,42L,null),permissions,projects,
+                Validation.buildDefaultValidatorFactory().getValidator(),new TransactionTemplate(new Transactions()),new Journal(),
+                mock(OperationAuditApi.class),mock(BusinessEventPort.class),List.of(mock(BusinessDeletionGuard.class)),()->deliveries);
+        context.registerBean(BusinessDefaults.class,()->defaults);
+        context.registerBean(NoteMapper.class,()->notes);context.registerBean(OtherMapper.class,()->others);context.registerBean(SpecialMapper.class,()->specials);
+        context.register(NoteService.class,OtherService.class,SpecialService.class,NoteController.class,OtherController.class);context.refresh();
+    }
+    @AfterEach void close() { if(context!=null)context.close(); }
+    @Test void twoEmptyBusinessClassesInheritWithoutCatalogContributorOrDispatcher() {
+        var first=context.getBean(NoteService.class);var second=context.getBean(OtherService.class);
+        var a=first.create(first.input(Map.of("projectId",99,"title","First")),"first-create");
+        var b=second.create(second.input(Map.of("projectId",99,"description","Second")),"second-create");
+        assertEquals(11L,a.entityRef().entityId());assertEquals(22L,b.entityRef().entityId());
+        assertEquals("First",first.get(11L).getTitle());assertEquals("Second",second.get(22L).getDescription());
+        assertTrue(context.getBeansOfType(BusinessModelCatalog.class).isEmpty());
+        assertTrue(context.getBeansOfType(BusinessModelContributor.class).isEmpty());
+        assertTrue(context.getBeansOfType(BusinessOperationDispatcher.class).isEmpty());
+        assertTrue(context.getBeansOfType(DefaultBusinessApplicationService.class).isEmpty());
+        assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,NoteController.class.getDeclaredMethods().length);
+        verify(projects,atLeastOnce()).requireWritable(99L,new EntityActor(7L,42L,null),true);
+    }
+    @Test void inheritedControllerCallsItsOwnTypedServiceAndMapper() throws Exception {
+        var mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class)).build();
+        mvc.perform(post("/it/direct-notes").contentType("application/json")
+                .content("{\"idempotencyKey\":\"http-create\",\"values\":{\"projectId\":99,\"title\":\"HTTP\"}}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.entityRef.entityId").value(11));
+        mvc.perform(get("/it/direct-notes/11")).andExpect(status().isOk()).andExpect(jsonPath("$.data.fieldValues.title").value("HTTP"))
+                .andExpect(jsonPath("$.data.fieldValues.internalSecret").doesNotExist());
+        verify(notes).insert(any(Note.class));verifyNoInteractions(others,specials);
+    }
+    @Test void businessDifferenceOverridesOnlyTheTypedHook() {
+        var service=context.getBean(SpecialService.class);
+        service.create(service.input(Map.of("projectId",99,"title","lower")),"special");
+        assertEquals("LOWER",specialRows.get(33L).getTitle());
+        assertEquals("IT_DIRECT_SPECIAL",service.definition().stableCode());verify(specials).insert(any(Special.class));
+    }
+    @Test void defaultPermissionFailurePreventsAnyMapperWrite() {
+        var service=context.getBean(NoteService.class);
+        doThrow(new BusinessContractException("ACCESS_DENIED","denied")).when(permissions).requireWritable(any(),any(),eq("operation:create"));
+        assertThrows(BusinessContractException.class,()->service.create(service.input(Map.of("projectId",99,"title","denied")),"denied"));
+        verify(notes,never()).insert(any(Note.class));
+    }
+    @Test void sameIntentReplaysWithoutAnotherInsertAndChangedInputIsRejected() {
+        var service=context.getBean(NoteService.class);var input=service.input(Map.of("projectId",99,"title","same"));
+        var first=service.create(input,"same-key");assertEquals(first,service.create(input,"same-key"));verify(notes,times(1)).insert(any(Note.class));
+        assertEquals("IDEMPOTENCY_DIGEST_CONFLICT",assertThrows(BusinessContractException.class,()->service.create(service.input(Map.of("projectId",99,"title","changed")),"same-key")).getErrorCode());
+    }
+    @Test void uploadCapabilityIsInheritedAndUsesTheCommonFourKeyApi() {
+        var service=context.getBean(NoteService.class);service.create(service.input(Map.of("projectId",99,"title","file")),"file-owner");
+        var file=new DefaultBusinessDeliveryApi.UploadFile("note.txt","text/plain",1L,()->new java.io.ByteArrayInputStream(new byte[]{1}));
+        service.uploadDelivery(11L,"REPORT",file,"upload-key");
+        verify(deliveries).upload(new DefaultBusinessDeliveryApi.Scope(99L,"IT_DIRECT_NOTE","11","REPORT"),file,"upload-key");
+    }
+    @Test void hiddenAndControlFieldsCannotEnterThroughGenericInput() {
+        var service=context.getBean(NoteService.class);
+        assertThrows(BusinessContractException.class,()->service.input(Map.of("projectId",99,"title","x","tenantId",8)));
+        assertThrows(BusinessContractException.class,()->service.input(Map.of("projectId",99,"title","x","internalSecret","hidden")));
+    }    @Test void aComplexQueryCannotReturnAnotherBusinessEntityClass() {
+        context.registerBean(WrongQueryService.class);
+        assertThrows(BusinessContractException.class,()->context.getBean(WrongQueryService.class).page(new BusinessPageQuery()));
+    }
+
+}

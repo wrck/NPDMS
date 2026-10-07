@@ -4,6 +4,7 @@ import json
 import subprocess
 import time
 import urllib.request
+import urllib.parse
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -120,6 +121,11 @@ def main():
             page.screenshot(path=str(OUT/'second-reupload.png'),full_page=True)
             result['checks'].append({'name':'exact echo / logical delete / common completion invalidation / reupload chooses latest without overwriting business values','passed':True,'deleted':deleted,'database':final})
             assert not errors,errors
+            # Opening an initial entity can hide a failed list request; do not count that as a working default page.
+            pages=[response for response in networks if urllib.parse.urlparse(response['url']).path.endswith('/page')]
+            assert pages,'Default business list was never requested'
+            assert all(response['status']==200 and json.loads(response['body']).get('code')==0 for response in pages),pages
+            result['checks'].append({'name':'shared default page queries succeed before and after business switching','passed':True})
             browser.close();result['passed']=True
     finally:
         (OUT/'browser-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2))
