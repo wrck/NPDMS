@@ -28,7 +28,7 @@ def main():
     ports=(FIX/'ports.ts').read_text().replace("export const useMessage=()=>({success:()=>{},error:()=>{},warning:()=>{},confirm:async()=>{}});", "import {ElMessageBox} from 'element-plus';export const useMessage=()=>({success:()=>{},error:()=>{},warning:()=>{},confirm:(text)=>ElMessageBox.confirm(text,'确认',{confirmButtonText:'确定',cancelButtonText:'取消'})});")
     (FIX/'ports.ts').write_text(ports)
     log=(FIX/'vite.log').open('w');vite=subprocess.Popen(['node',str(UI/'node_modules/vite/bin/vite.js'),'--config',str(FIX/'vite.config.mjs')],cwd=FIX,stdout=log,stderr=subprocess.STDOUT)
-    result={'scope':'Actual ProjectBusinessPage and delivery/collection SFCs, inherited business APIs, production services and isolated MySQL; authentication, project and storage use fixture ports.','checks':[]};networks=[]
+    result={'scope':'Actual ProjectBusinessPage and delivery/collection SFCs, inherited business APIs, production services and isolated MySQL; authentication, project and storage use fixture ports.','checks':[]};networks=[];responses=[]
     try:
         for _ in range(100):
             if vite.poll() is not None:raise RuntimeError((FIX/'vite.log').read_text())
@@ -38,7 +38,8 @@ def main():
             browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
             page=browser.new_page(viewport={'width':1500,'height':1600});errors=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
-            page.on('response',lambda r:networks.append({'url':r.url,'status':r.status,'body':r.text()}) if '/api/v1/' in r.url else None)
+            page.on('response',lambda r:responses.append(r) if '/api/v1/' in r.url else None)
+            page.on('requestfailed',lambda r:errors.append(r.url+': '+str(r.failure)) if '/api/v1/' in r.url else None)
             page.goto('http://127.0.0.1:27463',wait_until='networkidle')
             for button,label,value in [('业务一','title','First inherited'),('业务二','description','Second inherited')]:
                 if button=='业务二':page.get_by_role('button',name=button,exact=True).click()
@@ -79,12 +80,19 @@ def main():
             expect(page.locator('.business-entity-list .el-table__row')).to_have_count(0,timeout=15000)
             final=shared.fixture('/fixture/evidence');assert final['it_direct_other'][0]['deleted'] and final['plt_delivery_material'][1]['deleted'],final
             assert len(final['plt_delivery_material'])==2,final
+            page.wait_for_load_state('networkidle')
+            # Read response bodies while the browser is alive, not in re-entrant event callbacks during close.
+            networks.extend({'url':r.url,'status':r.status,'body':r.text()} for r in responses)
             assert not errors,errors
             assert all(r['status']==200 and json.loads(r['body']).get('code')==0 for r in networks),networks
             assert not any('/business-models/' in r['url'] for r in networks),networks
             result.update(passed=True,evidence=final);result['checks'].append('same material table and collection; cancel/confirm delete; logical history retained; no model dispatcher API')
             browser.close()
     finally:
+        if not networks:
+            for response in responses:
+                try:networks.append({'url':response.url,'status':response.status,'body':response.text()})
+                except Exception as failure:networks.append({'url':response.url,'status':response.status,'captureError':str(failure)})
         (OUT/'result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2,default=str));(OUT/'http.json').write_text(json.dumps(networks,ensure_ascii=False,indent=2))
         vite.terminate()
         try:vite.wait(timeout=10)
