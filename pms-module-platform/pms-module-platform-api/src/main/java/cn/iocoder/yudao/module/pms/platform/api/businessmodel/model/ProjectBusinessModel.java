@@ -14,4 +14,6 @@ public @interface ProjectBusinessModel {
     String stableCode();
     String name();
     String permissionPrefix();
+    /** Previous native identity of the same physical row, for immutable reference protection. */
+    String nativeEntityType() default "";
 }

@@ -11,11 +11,13 @@
       @load-more="loadPage(false)" @create="create" @open="row => edit(row.ref.entityId)" />
     <template v-else>
       <BusinessEntityForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues"
-        :fields="model?.fields" :disabled="busy || !saveOperation?.executable || readonly || current?.available === false" />
+        :fields="model?.fields" lossless-numbers :disabled="busy || !saveOperation?.executable || readonly || current?.available === false" />
       <div class="business-actions">
         <el-button type="primary" :loading="executing" :disabled="busy || readonly || !saveOperation?.executable || current?.available === false" @click="save">保存</el-button>
         <el-button v-if="current && deleteOperation" type="danger" :disabled="busy || readonly || !deleteOperation.executable" @click="remove">删除</el-button>
-        <slot name="actions" :current="current" :api="api" :reload="reloadCurrent" :busy="busy" />
+        <slot name="actions" :current="current" :api="api" :reload="reloadCurrent" :busy="busy" :execute="runAction">
+          <template v-if="current"><el-button v-for="action in businessActions" :key="action.code" :disabled="busy || readonly || !action.executable" @click="runAction(action.code)">{{ action.name }}</el-button></template>
+        </slot>
         <el-button v-if="current" :disabled="busy" @click="reloadCurrent">重新读取</el-button>
         <el-button :disabled="busy" @click="back">返回列表</el-button>
       </div>
@@ -46,6 +48,7 @@ const form = ref<InstanceType<typeof BusinessEntityForm>>(), deliveries = ref<In
 const busy = computed(() => executing.value || confirming.value || !!deliveries.value?.isBusy())
 const createOperation = computed(() => { const action=state.operation('CREATE'); return props.readonly && action ? { ...action, executable:false } : action })
 const updateOperation = computed(() => state.operation('UPDATE')), deleteOperation = computed(() => state.operation('DELETE'))
+const businessActions = computed(()=>model.value?.operations.filter(action=>action.kind==='DOMAIN_COMMAND') || [])
 const saveOperation = computed(() => current.value ? updateOperation.value : createOperation.value)
 const readonlyFields = computed(() => readableFields.value.filter(field => !field.writable))
 watch(() => props.apiBase, async () => { editing.value=false; await state.load() }, { immediate:true })
@@ -55,6 +58,18 @@ const save = async () => {
   if (busy.value || props.readonly) return
   try { const input=await form.value!.buildInput(); const result=await state.execute(current.value ? 'save' : 'create',input); if(result && result.outcome!=='FAILED')editing.value=true }
   catch { /* Field controls retain their validation messages. */ }
+}
+const runAction = async (code:string,values:Record<string,unknown> = {}) => {
+  if(busy.value || props.readonly || !current.value)return
+  const action=businessActions.value.find(value=>value.code===code);if(!action?.executable)return
+  const changes=await form.value?.buildInput();if(changes && Object.keys(changes).length){message.warning('请先保存当前修改，再执行业务操作');return}
+  const selected=current.value;confirming.value=true
+  try {
+    try{await message.confirm(`确定执行“${action.name}”？`)}catch{return}
+    if(current.value!==selected || props.readonly)return
+    const result=await state.execute(code,values);if(result?.outcome==='DELETED')editing.value=false
+    return result
+  }finally{confirming.value=false}
 }
 const remove = async () => {
   if (busy.value || props.readonly || !current.value || !deleteOperation.value?.executable) return

@@ -33,7 +33,8 @@ class DirectBusinessInheritanceTest {
     @ProjectBusinessModel(ownerModule="IT",entityType="directNote",stableCode="IT_DIRECT_NOTE",name="Note",permissionPrefix="it:direct-note")
     public static class Note extends BaseProjectBusinessEntity {
         @BusinessModelField(name="Title") @NotBlank private String title;
-        private String internalSecret;
+        @com.fasterxml.jackson.annotation.JsonIgnore private String internalSecret;
+        @BusinessModelField @com.baomidou.mybatisplus.annotation.TableField(exist=false) private List<Child> children;
     }
     @Data @EqualsAndHashCode(callSuper=true) @TableName("it_direct_other")
     @ProjectBusinessModel(ownerModule="IT",entityType="directOther",stableCode="IT_DIRECT_OTHER",name="Other",permissionPrefix="it:direct-other")
@@ -43,6 +44,7 @@ class DirectBusinessInheritanceTest {
     @TableName("it_direct_special")
     @ProjectBusinessModel(ownerModule="IT",entityType="directSpecial",stableCode="IT_DIRECT_SPECIAL",name="Special",permissionPrefix="it:direct-special")
     public static class Special extends Note { }
+    @Data public static class Child { @com.fasterxml.jackson.annotation.JsonIgnore private Long internalId; private String value; }
     interface NoteMapper extends BusinessMapper<Note> { }
     interface OtherMapper extends BusinessMapper<Other> { }
     interface SpecialMapper extends BusinessMapper<Special> { }
@@ -55,6 +57,8 @@ class DirectBusinessInheritanceTest {
         }
     }
     public static class SpecialService extends DefaultProjectBusinessService<SpecialMapper,Special> {
+        @Override protected Long generatedId(){return 33L;}
+        @Override protected long initialVersion(){return 1L;}
         @Override protected void beforeCreate(Special entity) { entity.setTitle(entity.getTitle().toUpperCase(Locale.ROOT)); }
     }
     @RestController @RequestMapping("/it/direct-notes")
@@ -123,7 +127,7 @@ class DirectBusinessInheritanceTest {
     @Test void businessDifferenceOverridesOnlyTheTypedHook() {
         var service=context.getBean(SpecialService.class);
         service.create(service.input(Map.of("projectId",99,"title","lower")),"special");
-        assertEquals("LOWER",specialRows.get(33L).getTitle());
+        assertEquals("LOWER",specialRows.get(33L).getTitle());assertEquals(1L,specialRows.get(33L).getVersion());
         assertEquals("IT_DIRECT_SPECIAL",service.definition().stableCode());verify(specials).insert(any(Special.class));
     }
     @Test void defaultPermissionFailurePreventsAnyMapperWrite() {
@@ -142,6 +146,21 @@ class DirectBusinessInheritanceTest {
         var file=new DefaultBusinessDeliveryApi.UploadFile("note.txt","text/plain",1L,()->new java.io.ByteArrayInputStream(new byte[]{1}));
         service.uploadDelivery(11L,"REPORT",file,"upload-key");
         verify(deliveries).upload(new DefaultBusinessDeliveryApi.Scope(99L,"IT_DIRECT_NOTE","11","REPORT"),file,"upload-key");
+    }
+    @Test void childFieldsAreExposedWithoutPretendingToBeParentSqlColumns() {
+        var service=context.getBean(NoteService.class);
+        assertTrue(service.definition().fields().stream().anyMatch(field->field.code().equals("children")));
+        assertFalse(cn.iocoder.yudao.module.pms.platform.support.model.BusinessModelIntrospector.businessFields(Note.class).stream().anyMatch(field->field.code().equals("children")));
+        var input=service.input(Map.of("children",List.of(Map.of("value","business","internalId",987))));
+        assertEquals("business",input.getChildren().getFirst().getValue());assertNull(input.getChildren().getFirst().getInternalId());
+    }
+    @Test void internalCopiesRetainJsonIgnoredIdentityAndDetachNestedBusinessValues() {
+        var source=new Note();source.setId(11L);source.setTenantId(7L);source.setProjectId(99L);source.setVersion(2L);source.setInternalSecret("internal");
+        var child=new Child();child.setInternalId(91L);child.setValue("original");source.setChildren(new ArrayList<>(List.of(child)));
+        Note copied=org.springframework.test.util.ReflectionTestUtils.invokeMethod(context.getBean(NoteService.class),"copy",source);
+        assertEquals("internal",copied.getInternalSecret());assertEquals(91L,copied.getChildren().getFirst().getInternalId());
+        assertEquals(11L,copied.getId());assertEquals(99L,copied.getProjectId());assertEquals(2L,copied.getVersion());
+        copied.getChildren().getFirst().setValue("changed");assertEquals("original",source.getChildren().getFirst().getValue());
     }
     @Test void hiddenAndControlFieldsCannotEnterThroughGenericInput() {
         var service=context.getBean(NoteService.class);

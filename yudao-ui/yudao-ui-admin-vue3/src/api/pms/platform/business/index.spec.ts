@@ -30,3 +30,10 @@ it('project collection uses shared material API without the old model-workbench 
  await listDeliveries({projectId:99,deliverableType:'REPORT'})
  expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/business-deliverables',params:{projectId:99,deliverableType:'REPORT'},silentError:true})
 })
+
+it('custom business APIs share the client but retain explicit endpoint and protected concurrency fields',async()=>{
+ const api=createProjectBusinessApi('/api/v1/pms/site-survey-business')
+ await api.action('confirm','9007199254740993',2,'key',{version:99,idempotencyKey:'forged'})
+ expect(request.post).toHaveBeenCalledWith({url:'/api/v1/pms/site-survey-business/9007199254740993/confirm',data:{version:2,idempotencyKey:'key'},silentError:true})
+ expect(()=>api.action('../delete',11,2,'key')).toThrow()
+})

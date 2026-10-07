@@ -38,7 +38,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         if (type == null || !BaseProjectBusinessEntity.class.isAssignableFrom(type)) throw invalid("BUSINESS_TYPE_UNRESOLVED", "Service must bind its concrete entity");
         var identity = type.getDeclaredAnnotation(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.ProjectBusinessModel.class);
         if (identity == null) throw invalid("BUSINESS_IDENTITY_REQUIRED", "Entity must define its stable business identity");
-        binding = new BusinessEntityBinding<>((Class<E>) type, mapper, businessOperations(identity.permissionPrefix()));
+        binding = new BusinessEntityBinding<>((Class<E>) type, mapper, businessOperations(identity.permissionPrefix()), this::configureOperations);
     }
     @Override public final BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
     @Override public final BusinessModelViews.ModelDetailVO model() {
@@ -63,7 +63,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         for (E row : result.getList()) {
             checkRow(row, row.getId(), actor);
             if (!projects.contains(row.getProjectId())) throw invalid("ENTITY_SCOPE_DENIED", "Business query returned a foreign project");
-            defaults.projects().requireReadable(row.getProjectId(), actor);
+            defaults.projects().requireReadable(row.getProjectId(), actor);afterRead(row);
         }
         return result;
     }
@@ -74,15 +74,20 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         var values = inputValues(source, null);
         return write("create", null, null, values, key, actor -> {
             E entity = binding.create(values);
-            entity.setTenantId(actor.tenantId()); entity.setVersion(0L);
+            Long generated=generatedId(),project=entity.getProjectId();long initial=initialVersion();
+            if(initial<0 || generated!=null && generated<=0)throw invalid("CONTROL_FIELD_CHANGED","Invalid generated identity");
+            entity.setId(generated);entity.setTenantId(actor.tenantId());entity.setVersion(initial);
+            requireProject(entity);defaults.projects().requireWritable(entity.getProjectId(), actor, true);
+            return inBusinessOperation("create", null, entity, () -> {
             beforeCreate(entity);
-            if (entity.getId() != null || !actor.tenantId().equals(entity.getTenantId()) || !Long.valueOf(0).equals(entity.getVersion()))
+            if (!Objects.equals(project,entity.getProjectId()) || !Objects.equals(generated,entity.getId()) || !actor.tenantId().equals(entity.getTenantId()) || !Long.valueOf(initial).equals(entity.getVersion()))
                 throw invalid("CONTROL_FIELD_CHANGED", "Initialization changed business identity");
             requireProject(entity); defaults.projects().requireWritable(entity.getProjectId(), actor, true);
-            validate(entity);
+            validate(entity,"create");
             if (mapper.insert(entity) != 1 || entity.getId() == null) throw invalid("ENTITY_INSERT_FAILED", "Business insert did not return one persisted identity");
             afterCreate(copy(entity));
             return saved(entity, "create", ReceiptOutcome.SAVED);
+            });
         });
     }
     @Override public final BusinessOperationReceipt update(Long id, E source, Set<String> changedFields, Long version, String key) {
@@ -92,27 +97,35 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             E proposed = copy(before); binding.patch(proposed, values); beforeUpdate(copy(before), proposed);
             checkIdentity(proposed, before); requireProject(proposed);
             defaults.projects().requireWritableScopes(new HashSet<>(List.of(before.getProjectId(), proposed.getProjectId())), actor, true);
+            return inBusinessOperation("save", before, proposed, () -> {
             E locked = lock(id, actor); requireVersion(locked, version);
             if (!binding.values(before).equals(binding.values(locked))) throw invalid("CONCURRENCY_CONFLICT", "Business changed while its scopes were locked");
-            validate(proposed);
+            validate(proposed,"save");
             var nulls = new HashSet<String>(); binding.values(proposed).forEach((name,value) -> { if (value == null) nulls.add(name); });
             persistUpdate(proposed, actor, version, nulls);
             afterUpdate(copy(before), copy(proposed));
             return saved(proposed, "save", ReceiptOutcome.SAVED);
+            });
         });
     }
     @Override public final BusinessOperationReceipt delete(Long id, Long version, String key) {
         return write("delete", id, version, Map.of(), key, actor -> {
             E observed = current(id, actor); requireVersion(observed, version);
             defaults.projects().requireWritable(observed.getProjectId(), actor, true);
+            return inBusinessOperation("delete", observed, null, () -> {
             E locked = lock(id, actor); requireVersion(locked, version);
             if (!Objects.equals(observed.getProjectId(), locked.getProjectId())) throw invalid("CONCURRENCY_CONFLICT", "Business project changed");
             beforeDelete(copy(locked));
             if (defaults.deletionGuards().isEmpty()) throw invalid("DELETE_PROTECTION_UNAVAILABLE", "Shared reference protection is unavailable");
-            for (var guard : defaults.deletionGuards()) guard.requireDeletable(identity(locked), actor);
+            for (var guard : defaults.deletionGuards()) {
+                guard.requireDeletable(identity(locked), actor);
+                if(binding.mapping.nativeEntityType()!=null && !definition().entityType().equals(binding.mapping.nativeEntityType()))
+                    guard.requireDeletable(new EntityRef(actor.tenantId(),definition().ownerModule(),binding.mapping.nativeEntityType(),id),actor);
+            }
             DeclaredBusinessCurrentRows.delete(binding.mapping, new DeclaredBusinessCurrentRows.DeleteCommand(actor.tenantId(), id, version, actor.userId().toString()));
             locked.setVersion(Math.incrementExact(version)); afterDelete(copy(locked));
             return saved(locked, "delete", ReceiptOutcome.DELETED);
+            });
         });
     }
 
@@ -127,17 +140,32 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         if (Set.of("create", "save", "delete").contains(operation)) throw invalid("BUSINESS_OPERATION_INVALID", "Use the inherited CRUD method for standard operations");
         return write(operation, id, version, intent, key, actor -> {
             E before = current(id, actor); requireVersion(before, version);
-            E proposed = copy(before); mutation.accept(proposed); checkIdentity(proposed, before); requireProject(proposed);
-            defaults.projects().requireWritableScopes(new HashSet<>(List.of(before.getProjectId(), proposed.getProjectId())), actor, true);
-            E locked = lock(id, actor); requireVersion(locked, version);
-            if (!binding.values(before).equals(binding.values(locked))) throw invalid("CONCURRENCY_CONFLICT", "Business changed while its scopes were locked");
-            validate(proposed);
-            var nulls = new HashSet<String>(); binding.values(proposed).forEach((name,value) -> { if (value == null) nulls.add(name); });
-            persistUpdate(proposed, actor, version, nulls);
-            return saved(proposed, operation, ReceiptOutcome.SAVED);
+            defaults.projects().requireWritable(before.getProjectId(),actor,true);
+            return inBusinessOperation(operation,before,null,()->{
+                E locked=lock(id,actor);requireVersion(locked,version);
+                if(!binding.values(before).equals(binding.values(locked)))throw invalid("CONCURRENCY_CONFLICT","Business changed while its scopes were locked");
+                E proposed=copy(locked);mutation.accept(proposed);checkIdentity(proposed,locked);
+                if(!Objects.equals(proposed.getProjectId(),locked.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","A domain action cannot move its project");
+                validate(proposed,operation);
+                var nulls=new HashSet<String>();binding.values(proposed).forEach((name,value)->{if(value==null)nulls.add(name);});
+                persistUpdate(proposed,actor,version,nulls);
+                afterChange(operation,copy(locked),copy(proposed));
+                return saved(proposed,operation,ReceiptOutcome.SAVED);
+            });
         });
     }
 
+    /** Override only existing business permission names/availability; inherited CRUD implementations remain shared. */
+    protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> configureOperations(
+            List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> operations) { return operations; }
+    /** Existing Owner execution context surrounds the shared lock/write; the default has no workflow dependency. */
+    protected <T> T inBusinessOperation(String operation,E current,E proposed,java.util.function.Supplier<T> action) { return action.get(); }
+    protected Long generatedId() { return null; }
+    protected long initialVersion() { return 0L; }
+    protected void afterRead(E entity) { }
+    protected void authorizeReceipt(String operation,E entity) { }
+    protected void afterChange(String operation,E before,E current) { }
+    protected Class<?>[] validationGroups(E entity) { return new Class<?>[]{jakarta.validation.groups.Default.class}; }
     protected void beforeCreate(E entity) { }
     protected void afterCreate(E entity) { }
     protected void beforeUpdate(E current, E proposed) { }
@@ -145,6 +173,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected void beforeDelete(E current) { }
     protected void afterDelete(E deleted) { }
     protected void validateBusiness(E entity) { }
+    protected void validateBusiness(E entity,String operation) { validateBusiness(entity); }
     protected void validateDelivery(E entity, boolean write) { }
 
     @Override public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi deliveryApi() {
@@ -213,15 +242,15 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
                 ? binding.type.cast(DeclaredBusinessCurrentRows.lockDeletedForReceipt(binding.mapping, new DeclaredCurrentRowQuery(actor.tenantId(), receipt.entityRef().entityId())))
                 : current(receipt.entityRef().entityId(), actor);
         checkRow(row, receipt.entityRef().entityId(), actor);
-        defaults.projects().requireWritable(row.getProjectId(), actor, false);
+        defaults.projects().requireWritable(row.getProjectId(), actor, false);authorizeReceipt(operation,copy(row));
     }
     private OperationExecutionStore.OperationExecutionKey journalKey(EntityActor actor, String key) {
         return new OperationExecutionStore.OperationExecutionKey(actor.tenantId(), "crud:" + definition().ownerModule() + "/" + definition().entityType(), actor.userId(), key);
     }
-    private E current(Long id, EntityActor actor) { E row = mapper.selectById(id); checkRow(row,id,actor); return row; }
+    private E current(Long id, EntityActor actor) { E row = mapper.selectById(id); checkRow(row,id,actor);afterRead(row);return row; }
     private E lock(Long id, EntityActor actor) {
         E row = binding.type.cast(DeclaredBusinessCurrentRows.lock(binding.mapping, new DeclaredCurrentRowQuery(actor.tenantId(), id)));
-        checkRow(row,id,actor); return row;
+        checkRow(row,id,actor);afterRead(row);return row;
     }
     private void checkRow(E row, Long id, EntityActor actor) {
         if (row == null || !binding.type.isInstance(row) || id == null || id <= 0 || !id.equals(row.getId()) || !actor.tenantId().equals(row.getTenantId()) || row.getProjectId() == null || row.getProjectId() <= 0)
@@ -237,10 +266,10 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     private void requireVersion(E row, Long version) {
         if (version == null || !version.equals(row.getVersion())) throw invalid("CONCURRENCY_CONFLICT", "Business concurrency basis is stale");
     }
-    private void validate(E entity) {
-        var violations = defaults.validator().validate(entity);
+    private void validate(E entity,String operation) {
+        var violations = defaults.validator().validate(entity,validationGroups(entity));
         if (!violations.isEmpty()) throw invalid("ENTITY_CONSTRAINT_INVALID", violations.stream().map(v -> v.getPropertyPath() + ": " + v.getMessage()).sorted().toList().toString());
-        validateBusiness(copy(entity));
+        validateBusiness(copy(entity),operation);
     }
     @SuppressWarnings({"rawtypes", "unchecked"})
     private void persistUpdate(E entity, EntityActor actor, Long version, Set<String> nulls) {
@@ -254,8 +283,8 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         binding.create(values); // validate the same field/type whitelist for typed service callers
         return Collections.unmodifiableMap(values);
     }
-    private E copy(E source) { return JsonUtils.parseObject(JsonUtils.toJsonString(source), binding.type); }
-    private EntityActor actor() { var caller = defaults.callers().require(); return new EntityActor(caller.tenantId(), caller.userId(), caller.entryCorrelationId()); }
+    private E copy(E source) { return BusinessEntityCopies.copy(source); }
+    protected final EntityActor actor() { var caller = defaults.callers().require(); return new EntityActor(caller.tenantId(), caller.userId(), caller.entryCorrelationId()); }
     private EntityRef identity(E entity) { return new EntityRef(entity.getTenantId(), definition().ownerModule(), definition().entityType(), entity.getId()); }
     private BusinessOperationReceipt saved(E entity, String operation, ReceiptOutcome outcome) {
         return new BusinessOperationReceipt(outcome, identity(entity), entity.getVersion(), List.of(), null, null, operation, operationVersion(operation));

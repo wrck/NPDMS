@@ -20,8 +20,13 @@ public final class DeclaredBusinessEntityWriter {
         UpdateWrapper<BaseBusinessEntity> condition = new UpdateWrapper<>();
         condition.eq("id", entity.getId()).eq("tenant_id", tenantId).eq("version", expectedVersion);
         condition.set("version", nextVersion);
+        var table=com.baomidou.mybatisplus.core.metadata.TableInfoHelper.getTableInfo(entity.getClass());
         for (var field : BusinessModelIntrospector.businessFields(entity.getClass())) {
-            if (clearedFields.contains(field.code())) condition.set(field.column(), null);
+            if (!clearedFields.contains(field.code()))continue;
+            var mapped=table==null?null:table.getFieldList().stream().filter(value->value.getProperty().equals(field.code())).findFirst().orElse(null);
+            // ALWAYS already emits column=NULL from the entity. A second SET is invalid on H2 and ambiguous on MySQL.
+            if(mapped==null || mapped.getUpdateStrategy()!=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+                condition.set(field.column(), null);
         }
         // The wrapper owns the version assignment/predicate. Suppress the entity version while
         // constructing the Mapper statement so the optional interceptor cannot duplicate either.

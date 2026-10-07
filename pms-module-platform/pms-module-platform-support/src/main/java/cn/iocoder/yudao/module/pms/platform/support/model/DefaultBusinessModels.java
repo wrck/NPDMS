@@ -10,8 +10,13 @@ public final class DefaultBusinessModels {
     public static BusinessModelDeclaration project(String owner, String type, String stableCode, String title,
             String permissionPrefix, Class<? extends BaseProjectBusinessEntity> entity, BaseMapper<?> mapper,
             List<BusinessOperationDescriptor> additionalOperations) {
+        return project(owner,type,stableCode,title,permissionPrefix,entity,mapper,additionalOperations,false);
+    }
+    public static BusinessModelDeclaration project(String owner, String type, String stableCode, String title,
+            String permissionPrefix, Class<? extends BaseProjectBusinessEntity> entity, BaseMapper<?> mapper,
+            List<BusinessOperationDescriptor> additionalOperations, boolean aggregateFields) {
         if (permissionPrefix == null || permissionPrefix.isBlank()) throw new IllegalArgumentException("Business permission prefix is required");
-        var fields = BusinessModelIntrospector.businessFields(entity).stream()
+        var fields = (aggregateFields ? BusinessModelIntrospector.aggregateFields(entity) : BusinessModelIntrospector.businessFields(entity)).stream()
                 // Only deliberately exposed fields enter the public model, never incidental database columns.
                 .filter(field -> field.property().isAnnotationPresent(BusinessModelField.class)).map(field -> {
             var annotation = field.property().getAnnotation(BusinessModelField.class);

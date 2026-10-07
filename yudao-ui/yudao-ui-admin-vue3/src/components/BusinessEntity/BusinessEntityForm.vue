@@ -10,12 +10,16 @@
       :prop="field.code"
       :rules="rules[field.code]"
     >
+      <el-input v-if="field.type === 'NUMBER' && losslessNumbers" v-model="form[field.code] as string" inputmode="decimal" />
       <el-input-number
-        v-if="field.type === 'NUMBER'"
+        v-else-if="field.type === 'NUMBER'"
         v-model="form[field.code] as number | undefined"
         :controls="false"
         class="w-full!"
       />
+      <el-select v-else-if="field.type === 'BOOLEAN' && losslessNumbers" v-model="form[field.code] as boolean" clearable>
+        <el-option label="是" :value="true" /><el-option label="否" :value="false" />
+      </el-select>
       <el-switch v-else-if="field.type === 'BOOLEAN'" v-model="form[field.code] as boolean" />
       <el-date-picker
         v-else-if="field.type === 'DATE'"
@@ -65,6 +69,8 @@ const props = defineProps<{
   /** 打开实体的字段值；为空表示新建。 */
   initialValues?: Record<string, unknown>
   disabled?: boolean
+  /** Preserve bigint IDs/decimal values as text on the direct inherited path. */
+  losslessNumbers?: boolean
 }>()
 
 const formRef = ref()

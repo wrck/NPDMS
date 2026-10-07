@@ -56,11 +56,11 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
     }
     await loadPage(true)
   }
-  const execute = async (action: 'create' | 'save' | 'delete', values: Record<string, unknown> = {}) => {
+  const execute = async (action: string, values: Record<string, unknown> = {}) => {
     if (executing.value) return
     const client = api(), target = current.value, key = storageKey()
     if (!key) { error.value = '登录上下文不可用，不能安全保存操作回执'; return }
-    const allowed = operation(action === 'create' ? 'CREATE' : action === 'save' ? 'UPDATE' : 'DELETE')
+    const allowed = ['create','save','delete'].includes(action) ? operation(action === 'create' ? 'CREATE' : action === 'save' ? 'UPDATE' : 'DELETE') : model.value?.operations.find(item=>item.code===action && item.kind==='DOMAIN_COMMAND')
     if (!allowed?.executable || action !== 'create' && (!target || target.concurrencyBasis == null)) { error.value = allowed?.reason || '当前操作不可执行'; return }
     executing.value = true; error.value = ''
     let attempt: PendingBusinessIntent | undefined, previous = false
@@ -74,7 +74,8 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
       writeBusinessIntent(key, attempt); pending.value = attempt
       const result = action === 'create' ? await client.create(values, attempt.key)
         : action === 'save' ? await client.update(target!.ref.entityId, values, target!.concurrencyBasis!, attempt.key)
-          : await client.remove(target!.ref.entityId, target!.concurrencyBasis!, attempt.key)
+          : action === 'delete' ? await client.remove(target!.ref.entityId, target!.concurrencyBasis!, attempt.key)
+            : await client.action(action,target!.ref.entityId,target!.concurrencyBasis!,attempt.key,values)
       clearBusinessIntent(key, attempt)
       if (client.base === api().base) { pending.value = readBusinessIntent(key); await applyReceipt(result) }
       return result

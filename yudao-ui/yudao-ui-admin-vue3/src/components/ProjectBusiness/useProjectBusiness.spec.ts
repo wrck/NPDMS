@@ -38,3 +38,10 @@ it('a definitive application rejection clears the first intent so corrected inpu
  await state.execute('save',{title:'invalid'});expect(storage.size).toBe(0)
  await state.execute('save',{title:'corrected'});expect(api.update).toHaveBeenCalledTimes(2)
 })
+
+it('custom action shares unknown-result recovery and never calls the CRUD delete endpoint',async()=>{
+ const state=useProjectBusiness(()=>api);api.action=vi.fn().mockRejectedValueOnce(new Error('lost')).mockResolvedValue({...saved,operationCode:'confirm'})
+ await state.load();state.model.value!.operations.push({code:'confirm',kind:'DOMAIN_COMMAND',executable:true} as any);await state.open(11)
+ await state.execute('confirm');const key=vi.mocked(api.action).mock.calls[0][3]
+ await state.execute('confirm');expect(vi.mocked(api.action).mock.calls[1][3]).toBe(key);expect(api.remove).not.toHaveBeenCalled();expect(storage.size).toBe(0)
+})

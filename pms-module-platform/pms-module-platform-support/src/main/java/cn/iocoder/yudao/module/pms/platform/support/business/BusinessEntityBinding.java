@@ -11,12 +11,17 @@ final class BusinessEntityBinding<E extends BaseProjectBusinessEntity> {
     final Class<E> type;
     final BusinessModelDeclaration mapping;
     final List<BusinessModelIntrospector.IntrospectedField> fields;
-    BusinessEntityBinding(Class<E> type, BusinessMapper<E> mapper, List<BusinessOperationDescriptor> operations) {
+    BusinessEntityBinding(Class<E> type, BusinessMapper<E> mapper, List<BusinessOperationDescriptor> operations, java.util.function.UnaryOperator<List<BusinessOperationDescriptor>> configureOperations) {
         this.type = type;
         var annotation = type.getDeclaredAnnotation(ProjectBusinessModel.class);
         if (annotation == null) throw new BusinessContractException("BUSINESS_IDENTITY_REQUIRED", "Business entity must define its own stable identity");
-        mapping = DefaultBusinessModels.project(annotation.ownerModule(), annotation.entityType(), annotation.stableCode(),
-                annotation.name(), annotation.permissionPrefix(), type, mapper, operations);
+        var initial = DefaultBusinessModels.project(annotation.ownerModule(), annotation.entityType(), annotation.stableCode(),
+                annotation.name(), annotation.permissionPrefix(), type, mapper, operations, true);
+        var descriptor=initial.descriptor();
+        var configured=new BusinessModelDescriptor(descriptor.ownerModule(),descriptor.entityType(),descriptor.stableCode(),descriptor.contractVersion(),
+                descriptor.kind(),descriptor.title(),descriptor.authorizationPolicyRef(),descriptor.fields(),descriptor.relations(),
+                List.copyOf(configureOperations.apply(descriptor.operations())),descriptor.capabilities(),descriptor.viewCode(),descriptor.scopeBinding());
+        mapping=new BusinessModelDeclaration(configured,type,mapper,null,annotation.nativeEntityType().isBlank()?null:annotation.nativeEntityType());
         for (String identity : List.of(annotation.ownerModule(), annotation.entityType(), annotation.stableCode()))
             if (!identity.matches("[A-Za-z][A-Za-z0-9_-]{0,127}"))
                 throw new BusinessContractException("BUSINESS_IDENTITY_INVALID", "Business identity must be a stable code");
@@ -24,7 +29,7 @@ final class BusinessEntityBinding<E extends BaseProjectBusinessEntity> {
         for (var operation : mapping.descriptor().operations())
             if (!operationCodes.add(operation.code()) || operation.version() < 1 || operation.authorizationPolicyRef() == null || operation.authorizationPolicyRef().isBlank())
                 throw new BusinessContractException("BUSINESS_OPERATION_INVALID", "Business operations require unique codes, versions and permissions");
-        fields = BusinessModelIntrospector.businessFields(type);
+        fields = BusinessModelIntrospector.aggregateFields(type);
     }
     E create(Map<String,Object> values) {
         try {
