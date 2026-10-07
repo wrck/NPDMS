@@ -11,5 +11,8 @@ import lombok.Data;
 public class BusinessPageQuery {
     @Min(1) private int pageNo = 1;
     @Min(1) @Max(200) private int pageSize = 20;
+    public enum Direction { ASC, DESC }
+    public record Sort(String fieldCode, Direction direction) { }
+    private List<Sort> sorts = List.of();
     private List<BusinessFieldFilter> filters = List.of();
 }

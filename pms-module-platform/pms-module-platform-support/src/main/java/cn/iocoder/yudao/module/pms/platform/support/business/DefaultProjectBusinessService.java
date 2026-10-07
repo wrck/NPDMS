@@ -30,6 +30,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     @Autowired protected M mapper;
     @Autowired protected BusinessDefaults defaults;
     private BusinessEntityBinding<E> binding;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi> fieldConfigurations;
     @Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi> dynamicForms;
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityFormApi> formPorts;
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityExtensionApi> extensionPorts;
@@ -47,8 +48,24 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     }
     @Override public final BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
     @Override public final BusinessModelViews.ModelDetailVO model() {
-        var actor = actor(); authorizeModelRead(actor, "detail");
-        return modelView(BusinessModelViews.ModelDetailVO.of(definition(), actor, defaults.permissions()));
+        var baseline=configurationModel(false);
+        return BusinessFieldConfigurations.apply(baseline,fieldConfiguration());
+    }
+    @Override public final BusinessModelViews.ModelDetailVO configurationModel(boolean write) {
+        var actor=actor();authorizeModelRead(actor,"detail");
+        if(write)defaults.permissions().requireWritable(definition(),actor,"operation:save");
+        return modelView(BusinessModelViews.ModelDetailVO.of(definition(),actor,defaults.permissions()));
+    }
+    private cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity configurationIdentity(){
+        return new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity(definition().ownerModule(),definition().entityType());
+    }
+    @Override public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration fieldConfiguration(){
+        configurationModel(false);var api=fieldConfigurations.getIfAvailable();
+        return api==null?new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of()):api.read(configurationIdentity(),actor());
+    }
+    @Override public final cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration saveFieldConfiguration(long version,List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields){
+        BusinessFieldConfigurations.validate(configurationModel(true),fields);
+        return fieldConfigurations.getObject().save(configurationIdentity(),actor(),version,fields);
     }
     @Override public final E input(Map<String,Object> values) { return binding.create(values); }
     @Override public final Map<String,Object> readableValues(E entity) { return binding.readable(entity); }
@@ -60,6 +77,13 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         var actor = actor(); authorizeModelRead(actor, "list");
         if (query == null || query.getPageNo() < 1 || query.getPageSize() < 1 || query.getPageSize() > 200)
             throw invalid("QUERY_INVALID", "Invalid page bounds");
+        var configured=model();
+        if(query.getFilters()!=null)for(var filter:query.getFilters()){
+            if(filter==null || configured.fields().stream().noneMatch(field->field.code().equals(filter.fieldCode())&&field.searchable()))throw invalid("FILTER_FIELD_FORBIDDEN","Field is not configured for querying");
+        }
+        if(query.getSorts()!=null)for(var sort:query.getSorts()){
+            if(sort==null || configured.fields().stream().noneMatch(field->field.code().equals(sort.fieldCode())&&field.sortable()))throw invalid("SORT_FIELD_FORBIDDEN","Field is not configured for sorting");
+        }
         var projects = defaults.projects().readableScopeIds(actor);
         if (projects == null || projects.isEmpty()) return new PageResult<>(List.of(), 0L);
         var result = selectPage(new BusinessReadQuery(actor.tenantId(), projects, query));

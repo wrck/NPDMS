@@ -18,6 +18,7 @@ class DirectVersionedBusinessBrowserMySqlTest extends DirectVersionedBusinessTes
     public static class BrowserController extends VersionedProjectBusinessController<NoteService,Note>{}
     @Test @EnabledIfSystemProperty(named="npdms.version.browser",matches="true")
     void browserDefaultVersionedBusiness() throws Exception {
+        installFieldConfiguration();
         ctx.registerBean(BrowserController.class);
         org.mockito.Mockito.when(versionDeliveries.list(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyInt(),org.mockito.ArgumentMatchers.anyInt())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(),0L));
         org.mockito.Mockito.when(versionDeliveries.completion(org.mockito.ArgumentMatchers.any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi.Completion(false,null));
@@ -34,7 +35,7 @@ class DirectVersionedBusinessBrowserMySqlTest extends DirectVersionedBusinessTes
                 cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);login();byte[] content;int status=200;
                 if(exchange.getRequestURI().getPath().equals("/fixture/context"))content=json.writeValueAsBytes(Map.of("definitionId",extension.id().toString()));
                 else if(exchange.getRequestURI().getPath().equals("/fixture/evidence")){
-                    var result=new LinkedHashMap<String,Object>();for(String table:List.of("it_version_note","it_version_note_revision","plt_entity_extension_value"))result.put(table,jdbc.queryForList("SELECT * FROM "+table+" ORDER BY id"));content=json.writeValueAsBytes(result);
+                    var result=new LinkedHashMap<String,Object>();for(String table:List.of("it_version_note","it_version_note_revision","plt_entity_extension_value","plt_business_field_configuration"))result.put(table,jdbc.queryForList("SELECT * FROM "+table+" ORDER BY id"));content=json.writeValueAsBytes(result);
                 }else{
                     var request=org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request(org.springframework.http.HttpMethod.valueOf(exchange.getRequestMethod()),exchange.getRequestURI()).content(exchange.getRequestBody().readAllBytes());
                     exchange.getRequestHeaders().forEach((name,values)->values.forEach(value->request.header(name,value)));

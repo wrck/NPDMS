@@ -11,6 +11,9 @@ import java.util.Set;
 /** Inherited business API. No caller-supplied owner, model name, Mapper or operation dispatcher. */
 public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> extends BusinessDeliverables {
     BusinessModelDescriptor definition();
+    BusinessModelViews.ModelDetailVO configurationModel(boolean write);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration fieldConfiguration();
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration saveFieldConfiguration(long version, java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields);
     BusinessModelViews.ModelDetailVO model();
     E input(Map<String,Object> values);
     Map<String,Object> readableValues(E entity);

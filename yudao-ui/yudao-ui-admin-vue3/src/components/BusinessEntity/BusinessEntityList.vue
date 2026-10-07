@@ -33,12 +33,13 @@
       </el-tooltip>
       <el-button :loading="listLoading" @click="emit('reload')">刷新</el-button>
     </div>
-    <el-table :data="rows" v-loading="listLoading" @row-click="(row: any) => emit('open', row)">
+    <el-table :data="rows" @sort-change="sortChanged" v-loading="listLoading" @row-click="(row: any) => emit('open', row)">
       <el-table-column
-        v-for="field in readableFields"
+        v-for="field in listFields"
         :key="field.code"
         :label="field.name"
         :prop="field.code"
+        :sortable="enableSorting && field.sortable ? 'custom' : false"
         min-width="140"
       >
         <template #default="{ row }">{{ displayValue(row.fieldValues[field.code], field.type) }}</template>
@@ -63,6 +64,7 @@ import type { BusinessEntityData, FieldVO, OperationVO, FieldFilter } from '@/ap
 
 defineOptions({ name: 'BusinessEntityList' })
 const props = defineProps<{
+  enableSorting?: boolean
   rows: BusinessEntityData[]
   readableFields: FieldVO[]
   createOperation?: OperationVO
@@ -70,15 +72,22 @@ const props = defineProps<{
   listError?: string
   sliceComplete?: boolean
 }>()
-const emit = defineEmits<{ create: []; open: [row: BusinessEntityData]; reload: []; 'load-more': []; search: [filters: FieldFilter[]] }>()
+const emit = defineEmits<{ create: []; open: [row: BusinessEntityData]; reload: []; 'load-more': []; sort: [sorts: Array<{fieldCode: string; direction: 'ASC' | 'DESC'}>]; search: [filters: FieldFilter[]] }>()
 
 const filterField = ref('')
 const filterValue = ref('')
 const filterError = ref('')
-const searchableFields = computed(() => props.readableFields.filter(field => !['TEXT_LIST', 'OBJECT_LIST'].includes(field.type)))
+const listFields = computed(() => props.readableFields.filter(field => field.listVisible !== false).slice().sort((a,b) => (a.displayOrder || 0) - (b.displayOrder || 0)))
+const sortChanged = ({prop,order}: {prop?: string; order?: string}) => {
+  if (!props.enableSorting) return
+  const field = props.readableFields.find(field => field.code === prop && field.sortable && field.readable)
+  if (!order) { emit('sort', []); return }
+  if (field && ['ascending','descending'].includes(order)) emit('sort', [{fieldCode:field.code,direction:order==='ascending'?'ASC':'DESC'}])
+}
+const searchableFields = computed(() => props.readableFields.filter(field => field.searchable !== false && !['TEXT_LIST', 'OBJECT_LIST'].includes(field.type)))
 const search = () => {
   filterError.value = ''
-  try { emit('search', buildBusinessListFilter(props.readableFields, filterField.value, filterValue.value)) }
+  try { emit('search', buildBusinessListFilter(searchableFields.value, filterField.value, filterValue.value)) }
   catch (error: any) { filterError.value = error.message }
 }
 const resetSearch = () => {

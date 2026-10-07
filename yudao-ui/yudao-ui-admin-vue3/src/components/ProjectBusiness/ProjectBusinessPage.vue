@@ -6,8 +6,9 @@
     </el-alert>
     <el-alert v-if="receipt" :title="`操作结果：${receipt.outcome}`" :type="receipt.outcome === 'FAILED' ? 'error' : 'success'" :closable="false" />
     <h3>{{ title || model?.title || '业务办理' }}</h3>
+    <ProjectBusinessFieldConfiguration v-if="!editing" ref="fieldConfiguration" :api="api" :disabled="readonly || !updateOperation?.executable || executing" @changed="state.load" />
     <BusinessEntityList v-if="!editing" :rows="rows" :readable-fields="readableFields" :create-operation="createOperation"
-      :list-loading="loading" :slice-complete="rows.length >= total" @reload="loadPage(true)" @search="filters => loadPage(true, filters)"
+      :enable-sorting="true" @sort="sorts => loadPage(true, undefined, sorts)" :list-loading="loading" :slice-complete="rows.length >= total" @reload="loadPage(true)" @search="filters => loadPage(true, filters)"
       @load-more="loadPage(false)" @create="create" @open="row => edit(row.ref.entityId)" />
     <template v-else>
       <ProjectBusinessContentForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues"
@@ -41,6 +42,7 @@ import { createProjectBusinessApi, type BusinessId } from '@/api/pms/platform/bu
 import BusinessEntityList from '../BusinessEntity/BusinessEntityList.vue'
 import ProjectBusinessContentForm from './ProjectBusinessContentForm.vue'
 import ProjectBusinessHistory from './ProjectBusinessHistory.vue'
+import ProjectBusinessFieldConfiguration from './ProjectBusinessFieldConfiguration.vue'
 import ProjectBusinessDeliveries from './ProjectBusinessDeliveries.vue'
 import { useProjectBusiness } from './useProjectBusiness'
 const props = withDefaults(defineProps<{ apiBase: string; title?: string; readonly?: boolean; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
@@ -60,7 +62,8 @@ watch(current,async row=>{
   finally{if(generation===presentationGeneration)formLoading.value=false}
 })
 const form = ref<InstanceType<typeof ProjectBusinessContentForm>>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
-const busy = computed(() => executing.value || confirming.value || formLoading.value || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
+const fieldConfiguration=ref<InstanceType<typeof ProjectBusinessFieldConfiguration>>()
+const busy = computed(() => executing.value || confirming.value || formLoading.value || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
 const effective = (action:OperationVO|undefined) => action ? {...action,executable:action.executable && (!props.operationAllowed || props.operationAllowed(action.code,current.value))} : undefined
 const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
 const updateOperation = computed(() => effective(state.operation('UPDATE'))), deleteOperation = computed(() => effective(state.operation('DELETE')))
@@ -106,7 +109,7 @@ const remove = async () => {
 const recoverOperation = async () => { const result=await state.recover();if(result)editing.value=result.outcome!=='DELETED' && !!current.value }
 const back = async () => { if(!busy.value && (!history.value || await history.value.requestLeave())){editing.value=false;loadPage(true)} }
 const reloadCurrent = async () => { if(current.value && (!history.value || await history.value.requestLeave()))await state.open(current.value.ref.entityId) }
-const requestLeave = () => !busy.value
+const requestLeave = async () => !busy.value && (!fieldConfiguration.value || await fieldConfiguration.value.requestLeave())
 onBeforeRouteLeave(requestLeave);onBeforeRouteUpdate(requestLeave)
 defineExpose({ requestLeave, reload:state.load })
 </script>

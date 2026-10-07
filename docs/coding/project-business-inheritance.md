@@ -76,3 +76,18 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 - `DirectBusinessCrudMySqlTest` 覆盖两业务 HTTP CRUD、显式 null、CAS、回执、统一材料及特殊 XML/API，真实 MySQL 已通过，包含只读删除与跨租户读取拒绝。
 - 两业务实际默认页面及公共归集已通过浏览器，旧页面兼容通过。见 [验收结果及边界](../generated/direct-business-inheritance-20261007/README.md)。
 - 全部生产实体迁入、生产登录/存储、模板连接及历史材料归集仍需分别验证，不以类数量或局部测试数代替完成结论。
+
+## 公共内容版本与字段配置（2026-10-07 增量）
+
+版本业务使用 `DefaultVersionedProjectBusinessService<M,E,RM,R>` 与 `VersionedProjectBusinessController<S,E>`。当前实体 E 和继承 E 的修订实体 R 各有独立业务表；R 实现 `MutableEntityRevision`。空 Service/Controller 即继承草稿、保存、冻结生效、复制、放弃、比较、历史与表单/扩展快照。普通 CRUD 和版本操作共享权限、项目范围、幂等回执、审计和 CAS。已有历史后禁止直接改当前正文或绕过版本直接改当前扩展。业务差异通过受保护钩子扩展。
+
+字段配置有两层，均在默认实现内完成：
+
+- 实体 `@BusinessModelField` 提供名称、读写、字典及 `displayOrder/listVisible/searchable/sortable` 默认值，父类字段自动继承。列表/对象集合不支持默认 SQL 查询和排序；非持久化字段也不会开放这两项能力。
+- `ProjectBusinessPage` 自带“字段配置”，允许调整名称、顺序、列表显示、查询及排序开关。配置由 `plt_business_field_configuration` 按租户与真实业务身份持久化，带 CAS、审计；空配置恢复代码默认。它只保存展示元数据，业务数据仍在独立实体表，未引入通用业务关联存储。
+- 默认 `GET /field-configuration/defaults`、`GET /field-configuration`、`PUT /field-configuration` 自动继承；保存沿用本业务默认更新权限，读取沿用本业务查询权限，无新增逐实体策略类。
+- 配置只能收紧代码声明的查询/排序能力，不能授予字段读取或写入权限。新标签不改变字段键和数据库列名。服务端按有效配置验证过滤和排序，即使手工绕过页面也不能查询被关闭的字段。
+- `POST /page` 支持 `sorts: [{fieldCode, direction: "ASC" | "DESC"}]`。字段键由服务端映射到 ORM 白名单列，枚举方向不拼接任意 SQL；默认增加 id 降序作为稳定分页尾序。复杂查询仍由业务 Mapper XML 实现并保持上述范围与受控字段约束。
+- 字段配置对话框支持失败保留输入、取消、恢复默认、并发冲突拒绝、业务切换隔离及未保存离开确认。表单布局继续复用已有已发布动态表单；字段配置表不复制表单 schema 或扩展字段值。
+
+部署本增量需执行前向迁移 `V400__business_field_configuration.sql`。截至本次增量提交，本地 H2 与组件运行检查已有结果；新版本的真实 MySQL、浏览器及 V400 MySQL 执行仍待完成，不能引用旧提交的通过结论替代。

@@ -73,7 +73,13 @@ public abstract class BusinessModelViews {
     }
 
     public record FieldVO(String code, String name, String type, boolean required,
-                          boolean readable, boolean writable) {
+                          boolean readable, boolean writable, int displayOrder, boolean listVisible,
+                          boolean searchable, boolean sortable) {
+        public FieldVO(String code,String name,String type,boolean required,boolean readable,boolean writable) {
+            this(code,name,type,required,readable,writable,0,readable,
+                    readable && !List.of("TEXT_LIST","OBJECT_LIST").contains(type),
+                    readable && !List.of("TEXT_LIST","OBJECT_LIST").contains(type));
+        }
     }
 
     public record CapabilityVO(String type, String configRef, boolean enabled) {
@@ -89,7 +95,8 @@ public abstract class BusinessModelViews {
             List<FieldVO> fields = descriptor.fields().stream()
                     .filter(field -> field.readable() || field.writable())
                     .map(field -> new FieldVO(field.code(), field.name(), field.type().name(),
-                            field.required(), field.readable(), field.writable()))
+                            field.required(), field.readable(), field.writable(),field.displayOrder(),field.listVisible(),field.searchable(),field.sortable()))
+                    .sorted(java.util.Comparator.comparingInt(FieldVO::displayOrder))
                     .toList();
             List<OperationVO> operations = descriptor.operations().stream()
                     .map(operation -> executableOf(descriptor, operation, actor, guard))

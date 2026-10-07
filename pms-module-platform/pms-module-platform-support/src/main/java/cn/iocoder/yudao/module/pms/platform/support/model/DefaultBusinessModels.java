@@ -7,6 +7,10 @@ import java.util.List;
 /** One explicit binding produces the complete ordinary model; optional operations describe only differences. */
 public final class DefaultBusinessModels {
     private DefaultBusinessModels() { }
+    private static boolean queryable(BusinessModelIntrospector.IntrospectedField field) {
+        var mapping=field.property().getAnnotation(com.baomidou.mybatisplus.annotation.TableField.class);
+        return BusinessFieldDescriptor.scalar(field.type()) && (mapping==null || mapping.exist());
+    }
     public static BusinessModelDeclaration project(String owner, String type, String stableCode, String title,
             String permissionPrefix, Class<? extends BaseProjectBusinessEntity> entity, BaseMapper<?> mapper,
             List<BusinessOperationDescriptor> additionalOperations) {
@@ -21,7 +25,10 @@ public final class DefaultBusinessModels {
                 .filter(field -> field.property().isAnnotationPresent(BusinessModelField.class)).map(field -> {
             var annotation = field.property().getAnnotation(BusinessModelField.class);
             return new BusinessFieldDescriptor(field.code(), annotation.name().isBlank() ? field.code() : annotation.name(),
-                    field.type(), field.required(), annotation.readable(), annotation.writable(), annotation.dictionaryRef().isBlank() ? null : annotation.dictionaryRef());
+                    field.type(), field.required(), annotation.readable(), annotation.writable(), annotation.dictionaryRef().isBlank() ? null : annotation.dictionaryRef(),
+                    annotation.displayOrder(),annotation.readable() && annotation.listVisible(),
+                    annotation.readable() && annotation.searchable() && queryable(field),
+                    annotation.readable() && annotation.sortable() && queryable(field));
         }).toList();
         var operations = new ArrayList<>(List.of(
                 new BusinessOperationDescriptor("create", 1, "新建", BusinessOperationDescriptor.StandardOperationKind.CREATE, permissionPrefix + ":create"),

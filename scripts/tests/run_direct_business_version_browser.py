@@ -62,6 +62,19 @@ def main():
                 page.get_by_role('button',name='返回列表',exact=True).click();page.get_by_role('button',name='确定',exact=True).click();expect(page.locator('.business-entity-list')).to_be_visible(timeout=15000)
                 page.locator('.business-entity-list .el-table__row').click();expect(panel.locator('h4')).to_contain_text('#3',timeout=15000);expect(field(panel,'标题')).to_have_value('Revised')
                 page.screenshot(path=str(OUT/'history.png'),full_page=True);result['checks'].append('copy and comparison, cancel/confirm discard, immutable deleted revision number, monotonically increasing next revision, cancel/confirm unsaved navigation')
+                page.get_by_role('button',name='返回列表',exact=True).click();expect(page.locator('.business-entity-list')).to_be_visible(timeout=15000)
+                page.get_by_role('button',name='字段配置',exact=True).click();configuration=page.get_by_role('dialog',name='业务字段配置')
+                title_row=configuration.locator('.el-table__row').filter(has=page.get_by_text('title',exact=True))
+                title_row.locator('input').first.fill('Configured title');page.get_by_role('button',name='保存配置',exact=True).click()
+                expect(configuration).not_to_be_visible(timeout=15000);expect(page.locator('.business-entity-list .el-table__header')).to_contain_text('Configured title')
+                configuration_row=shared.fixture('/fixture/evidence')['plt_business_field_configuration'][0]
+                assert configuration_row['version']==1 and any(field['code']=='title' and field['label']=='Configured title' for field in json.loads(configuration_row['fields_json']))
+                page.get_by_role('button',name='字段配置',exact=True).click();expect(configuration).to_be_visible(timeout=15000)
+                expect(configuration.locator('.el-table__row').filter(has=page.get_by_text('title',exact=True)).locator('input').first).to_have_value('Configured title')
+                configuration.get_by_role('button',name='恢复默认',exact=True).click();configuration.get_by_role('button',name='保存配置',exact=True).click()
+                expect(configuration).not_to_be_visible(timeout=15000);expect(page.locator('.business-entity-list .el-table__header')).to_contain_text('标题')
+                assert shared.fixture('/fixture/evidence')['plt_business_field_configuration'][0]['version']==2
+                result['checks'].append('inherited persisted tenant field configuration, renamed columns, reopen and reset with CAS')
                 page.wait_for_load_state('networkidle');network.extend({'url':response.url,'status':response.status,'body':response.text()} for response in responses)
                 assert not errors,errors;assert all(response['status']==200 and json.loads(response['body']).get('code')==0 for response in network),network
                 assert not any('/business-models/' in response['url'] or '/pms/entities/' in response['url'] for response in network)

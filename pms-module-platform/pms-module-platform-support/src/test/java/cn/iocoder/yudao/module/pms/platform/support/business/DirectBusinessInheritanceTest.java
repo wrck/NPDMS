@@ -115,6 +115,14 @@ class DirectBusinessInheritanceTest {
         assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,NoteController.class.getDeclaredMethods().length);
         verify(projects,atLeastOnce()).requireWritable(99L,new EntityActor(7L,42L,null),true);
     }
+    @Test void emptyBusinessPublishesInheritedListConfiguration() throws Exception {
+        var json=new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(context.getBean(NoteService.class).model());
+        var fields=json.get("fields");
+        var title=java.util.stream.StreamSupport.stream(fields.spliterator(),false).filter(field->field.get("code").asText().equals("title")).findFirst().orElseThrow();
+        assertTrue(title.path("listVisible").asBoolean(),"Default columns must be configured in the inherited model");
+        assertTrue(title.path("searchable").asBoolean());
+        assertTrue(title.path("sortable").asBoolean());
+    }
     @Test void emptyBusinessInheritsPublicFieldProviderWithoutAdapter() {
         var service=context.getBean(NoteService.class);
         service.create(service.input(Map.of("projectId",99,"title","Fields")),"fields-create");

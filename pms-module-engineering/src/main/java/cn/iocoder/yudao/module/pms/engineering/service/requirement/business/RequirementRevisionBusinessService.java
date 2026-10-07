@@ -41,7 +41,7 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
     @Override protected void authorizeReceipt(String operation,RequirementAnalysisRevisionDO row){access.lockScope(row.getProjectId(),actor());}
     @Override protected BusinessModelViews.ModelDetailVO modelView(BusinessModelViews.ModelDetailVO view) {
         return new BusinessModelViews.ModelDetailVO(view.ownerModule(),view.entityType(),view.stableCode(),view.title(),view.viewCode(),
-                view.fields().stream().map(f->new BusinessModelViews.FieldVO(f.code(),f.name(),f.type(),"projectId".equals(f.code())&&f.required(),f.readable(),f.writable())).toList(),view.operations(),view.capabilities());
+                view.fields().stream().map(f->new BusinessModelViews.FieldVO(f.code(),f.name(),f.type(),"projectId".equals(f.code())&&f.required(),f.readable(),f.writable(),f.displayOrder(),f.listVisible(),f.searchable(),f.sortable())).toList(),view.operations(),view.capabilities());
     }
     @Override protected List<BusinessOperationDescriptor> configureOperations(List<BusinessOperationDescriptor> operations) {
         return operations.stream().map(op->new BusinessOperationDescriptor(op.code(),op.version(),op.code().equals("delete")?"放弃草稿":op.name(),op.kind(),"pms:requirement-analysis:manage")).toList();

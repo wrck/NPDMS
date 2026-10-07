@@ -31,7 +31,7 @@ it('stale list responses cannot overwrite the next business page',async()=>{
 it('retains filters across continuation and refresh',async()=>{
  const state=useProjectBusiness(()=>api);await state.load();const filters=[{fieldCode:'title',operator:'LIKE',values:['abc']}] as any
  await state.loadPage(true,filters);filters[0].values[0]='changed';await state.loadPage(false);await state.loadPage(true)
- expect(api.page).toHaveBeenLastCalledWith(1,20,[{fieldCode:'title',operator:'LIKE',values:['abc']}])
+ expect(api.page).toHaveBeenLastCalledWith(1,20,[{fieldCode:'title',operator:'LIKE',values:['abc']}],[])
 })
 it('a definitive application rejection clears the first intent so corrected input can be submitted',async()=>{
  const state=useProjectBusiness(()=>api);await state.load();await state.open(11);vi.mocked(api.update).mockRejectedValueOnce('error').mockResolvedValue(saved as any)
@@ -44,4 +44,11 @@ it('custom action shares unknown-result recovery and never calls the CRUD delete
  await state.load();state.model.value!.operations.push({code:'confirm',kind:'DOMAIN_COMMAND',executable:true} as any);await state.open(11)
  await state.execute('confirm');const key=vi.mocked(api.action).mock.calls[0][3]
  await state.execute('confirm');expect(vi.mocked(api.action).mock.calls[1][3]).toBe(key);expect(api.remove).not.toHaveBeenCalled();expect(storage.size).toBe(0)
+})
+
+it('preserves controlled sorting across pagination and clears it on business change',async()=>{
+ const state=useProjectBusiness(()=>api);await state.load();const sorts=[{fieldCode:'title',direction:'ASC'}] as any
+ await state.loadPage(true,undefined,sorts);sorts[0].fieldCode='mutated';await state.loadPage(false)
+ expect(api.page).toHaveBeenLastCalledWith(2,20,[],[{fieldCode:'title',direction:'ASC'}])
+ await state.load();expect(api.page).toHaveBeenLastCalledWith(1,20,[],[])
 })

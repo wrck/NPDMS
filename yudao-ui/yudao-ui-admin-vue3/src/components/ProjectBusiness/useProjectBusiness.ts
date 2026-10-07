@@ -1,6 +1,6 @@
 import { computed, ref, shallowRef } from 'vue'
 import type { BusinessEntityData, BusinessOperationReceipt, FieldFilter, ModelDetailVO } from '@/api/pms/platform/businessmodel'
-import type { BusinessId, ProjectBusinessApi } from '@/api/pms/platform/business'
+import type { BusinessId, BusinessSort, ProjectBusinessApi } from '@/api/pms/platform/business'
 import { businessIntentStorageKey, readBusinessIntent, writeBusinessIntent, clearBusinessIntent,
   businessIntentFingerprint, type PendingBusinessIntent } from '../BusinessEntity/businessOperationIntent'
 
@@ -8,6 +8,7 @@ const message = (error: any, fallback: string) => error?.response?.data?.msg || 
 export function useProjectBusiness(api: () => ProjectBusinessApi) {
   const model = shallowRef<ModelDetailVO>(), current = shallowRef<BusinessEntityData>()
   const rows = shallowRef<BusinessEntityData[]>([]), total = ref(0), page = ref(1), filters = ref<FieldFilter[]>([])
+  const sorts = ref<BusinessSort[]>([])
   const error = ref(''), loading = ref(false), executing = ref(false), receipt = shallowRef<BusinessOperationReceipt>()
   const pending = shallowRef<PendingBusinessIntent>()
   let generation = 0, detailGeneration = 0
@@ -15,13 +16,14 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
   const operation = (kind: string) => model.value?.operations.find(item => item.kind === kind)
   const readableFields = computed(() => model.value?.fields.filter(field => field.readable) || [])
   const writableFields = computed(() => model.value?.fields.filter(field => field.writable) || [])
-  const loadPage = async (reset = true, search?: FieldFilter[]) => {
+  const loadPage = async (reset = true, search?: FieldFilter[], ordering?: BusinessSort[]) => {
     if (loading.value && !reset) return
+    if (ordering) sorts.value = ordering.map(sort => ({ ...sort }))
     if (search) filters.value = search.map(filter => ({ ...filter, values: [...(filter.values || [])] }))
     const active = ++generation, client = api(), next = reset ? 1 : page.value + 1
     loading.value = true; error.value = ''
     try {
-      const result = await client.page(next, 20, filters.value)
+      const result = await client.page(next, 20, filters.value, sorts.value)
       if (active !== generation || client.base !== api().base) return
       rows.value = reset ? result.list : [...rows.value, ...result.list]; total.value = result.total; page.value = next
     } catch (failure) { if (active === generation) error.value = message(failure, '业务列表读取失败') }
@@ -29,7 +31,7 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
   }
   const load = async () => {
     const client = api(), active = ++detailGeneration
-    ++generation; current.value = undefined; rows.value = []; model.value = undefined; receipt.value = undefined; filters.value = []; error.value = ''
+    ++generation; current.value = undefined; rows.value = []; model.value = undefined; receipt.value = undefined; filters.value = []; sorts.value = []; error.value = ''
     try {
       const detail = await client.model()
       if (active !== detailGeneration || client.base !== api().base) return
@@ -99,6 +101,6 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
     } catch (failure) { if (client.base === api().base) error.value = message(failure, '回执查询失败') }
     finally { executing.value = false }
   }
-  return { model, current, rows, total, filters, error, loading, executing, receipt, pending,
+  return { model, current, rows, total, filters, sorts, error, loading, executing, receipt, pending,
     readableFields, writableFields, operation, load, loadPage, open, execute, recover }
 }

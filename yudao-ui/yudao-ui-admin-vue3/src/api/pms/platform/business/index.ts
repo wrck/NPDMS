@@ -9,6 +9,9 @@ export interface DirectBusinessRevision {
   revisionNo:number;state:'DRAFT'|'FROZEN';effective:boolean;version:number;reason?:string;sourceRevisionId?:BusinessId;baseEntityVersion?:number
 }
 export interface RevisionFieldValue {readable:boolean;value:unknown}
+export interface BusinessFieldSetting { code: string; label?: string; displayOrder?: number; listVisible?: boolean; searchable?: boolean; sortable?: boolean }
+export interface BusinessFieldConfiguration { version: number; fields: BusinessFieldSetting[] }
+export interface BusinessSort { fieldCode: string; direction: 'ASC' | 'DESC' }
 export interface BusinessPage { list: BusinessEntityData[]; total: number }
 
 /** One client factory for every inherited business Controller; no catalog/operation-dispatch URL. */
@@ -27,8 +30,11 @@ export const createProjectBusinessApi = (prefix: string) => {
   return {
     base,
     model: () => request.get<ModelDetailVO>({ url: `${base}/model`, silentError: true }),
-    page: (pageNo: number, pageSize: number, filters: FieldFilter[]) =>
-      request.post<BusinessPage>({ url: `${base}/page`, data: { pageNo, pageSize, filters }, silentError: true }),
+    fieldDefaults: () => request.get<ModelDetailVO>({url:`${base}/field-configuration/defaults`,silentError:true}),
+    fieldConfiguration: () => request.get<BusinessFieldConfiguration>({url:`${base}/field-configuration`,silentError:true}),
+    saveFieldConfiguration: (configuration: BusinessFieldConfiguration) => request.put<BusinessFieldConfiguration>({url:`${base}/field-configuration`,data:configuration,silentError:true}),
+    page: (pageNo: number, pageSize: number, filters: FieldFilter[], sorts?: BusinessSort[]) =>
+      request.post<BusinessPage>({ url: `${base}/page`, data: { pageNo, pageSize, filters, ...(sorts?.length ? { sorts } : {}) }, silentError: true }),
     get: (id: BusinessId) => request.get<BusinessEntityData>({ url: entity(id), silentError: true }),
     revisions:(id:BusinessId)=>request.get<DirectBusinessRevision[]>({url:`${entity(id)}/revisions`,params:{limit:100},silentError:true}),
     revisionValues:(id:BusinessId,revisionId:BusinessId)=>request.get<Record<string,RevisionFieldValue>>({url:`${entity(id)}/revisions/${identity(revisionId)}`,silentError:true}),

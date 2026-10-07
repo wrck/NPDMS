@@ -34,7 +34,7 @@ public final class BusinessMapperQueries {
             var field = fields.stream().filter(item -> item.code().equals(filter.fieldCode())).findFirst()
                     .orElseThrow(() -> new BusinessContractException("FILTER_FIELD_UNKNOWN", "Unknown business filter field"));
             var exposure = field.property().getAnnotation(BusinessModelField.class);
-            if (exposure == null || !exposure.readable()) throw new BusinessContractException("FILTER_FIELD_FORBIDDEN", "Field is not readable");
+            if (exposure == null || !exposure.readable() || !exposure.searchable() || !cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessFieldDescriptor.scalar(field.type())) throw new BusinessContractException("FILTER_FIELD_FORBIDDEN", "Field is not readable");
             var values = filter.values() == null ? List.of() : filter.values();
             boolean unary = filter.operator() == cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessFieldFilter.Operator.IS_NULL
                     || filter.operator() == cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessFieldFilter.Operator.NOT_NULL;
@@ -62,6 +62,20 @@ public final class BusinessMapperQueries {
             }
         }
         predicates.accept(wrapper);
+        var sorts=criteria.getSorts()==null?List.<BusinessPageQuery.Sort>of():criteria.getSorts();
+        if(sorts.size()>5)throw new BusinessContractException("SORT_INVALID","At most five sort fields are allowed");
+        var seen=new java.util.HashSet<String>();
+        for(var sort:sorts){
+            if(sort==null || sort.direction()==null || !seen.add(sort.fieldCode()))throw new BusinessContractException("SORT_INVALID","Invalid or duplicate sort field");
+            var field=fields.stream().filter(item->item.code().equals(sort.fieldCode())).findFirst()
+                    .orElseThrow(()->new BusinessContractException("SORT_FIELD_UNKNOWN","Unknown business sort field"));
+            var exposure=field.property().getAnnotation(BusinessModelField.class);
+            if(exposure==null || !exposure.readable() || !exposure.sortable()
+                    || !cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessFieldDescriptor.scalar(field.type()))
+                throw new BusinessContractException("SORT_FIELD_FORBIDDEN","Field is not sortable");
+            wrapper.orderBy(true,sort.direction()==BusinessPageQuery.Direction.ASC,field.column());
+        }
+        // Stable pagination for equal values; clients never supply SQL column names.
         wrapper.orderByDesc("id");
         var page = mapper.selectPage(new Page<E>(criteria.getPageNo(), criteria.getPageSize()), wrapper);
         return new PageResult<>(page.getRecords(), page.getTotal());

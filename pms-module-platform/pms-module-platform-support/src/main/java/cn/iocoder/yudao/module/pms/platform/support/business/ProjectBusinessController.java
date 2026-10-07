@@ -27,6 +27,10 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
                             @NotNull Map<String,Object> values) { }
     public record MaterialEdit(@NotNull @PositiveOrZero Long version, @NotBlank @Size(max=255) String title) { }
 
+    public record FieldConfigurationWrite(@Min(0) long version,@NotNull java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields) { }
+    @GetMapping("/field-configuration/defaults") public CommonResult<BusinessModelViews.ModelDetailVO> fieldDefaults(){return success(service.configurationModel(false));}
+    @GetMapping("/field-configuration") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration> fieldConfiguration(){return success(service.fieldConfiguration());}
+    @PutMapping("/field-configuration") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration> saveFieldConfiguration(@Valid @RequestBody FieldConfigurationWrite request){return success(service.saveFieldConfiguration(request.version(),request.fields()));}
     @GetMapping("/model") public CommonResult<BusinessModelViews.ModelDetailVO> model() { return success(service.model()); }
     @GetMapping("/{id}") public CommonResult<BusinessEntityData> get(@PathVariable @Positive Long id) { return success(view(service.get(id))); }
     @PostMapping("/page") public CommonResult<PageResult<BusinessEntityData>> page(@Valid @RequestBody BusinessPageQuery query) {

@@ -59,6 +59,50 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         ctx.getBeanFactory().registerSingleton("versionDefaults",new BusinessDefaults(callers,new BusinessPermissions(ctx.getBean(PermissionApi.class),callers),new ProjectBusinessScopeAccess(scopes),ctx.getBean(jakarta.validation.Validator.class),new TransactionTemplate(ctx.getBean(PlatformTransactionManager.class)),ctx.getBean(OperationExecutionStore.class),ctx.getBean(OperationAuditApi.class),ctx.getBean(BusinessEventPort.class),List.of(mock(BusinessDeletionGuard.class)),()->versionDeliveries));
         ctx.registerBean(NoteService.class);ctx.registerBean(NoteController.class);notes=ctx.getBean(NoteService.class);
     }
+    @SuppressWarnings({"unchecked","rawtypes"})
+    protected void installFieldConfiguration(){
+        jdbc.execute("DROP TABLE IF EXISTS plt_business_field_configuration");
+        jdbc.execute("CREATE TABLE plt_business_field_configuration(id BIGINT PRIMARY KEY,tenant_id BIGINT NOT NULL,owner_module VARCHAR(64),entity_type VARCHAR(128),fields_json TEXT,version BIGINT,creator VARCHAR(64),updater VARCHAR(64),create_time TIMESTAMP,update_time TIMESTAMP,deleted BOOLEAN DEFAULT FALSE,UNIQUE(tenant_id,owner_module,entity_type))");
+        var sessions=new SqlSessionTemplate(ctx.getBean(org.apache.ibatis.session.SqlSessionFactory.class));
+        sessions.getConfiguration().addMapper(cn.iocoder.yudao.module.pms.platform.dal.mysql.businessconfiguration.BusinessFieldConfigurationMapper.class);
+        ctx.getBeanFactory().registerSingleton("businessFieldConfigurationMapper",sessions.getMapper(cn.iocoder.yudao.module.pms.platform.dal.mysql.businessconfiguration.BusinessFieldConfigurationMapper.class));
+        org.springframework.beans.factory.ObjectProvider<ProjectBusinessService<?>> services=mock(org.springframework.beans.factory.ObjectProvider.class);
+        when(services.orderedStream()).thenAnswer(call->java.util.stream.Stream.of(notes));
+        ctx.getBeanFactory().registerSingleton("directBusinessOwners",new cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners(services,ctx.getBean(BusinessCallerContext.class),ctx.getBean(ProjectScopeApi.class),mock(cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.class)));
+        ctx.registerBean(cn.iocoder.yudao.module.pms.platform.service.business.BusinessFieldConfigurationService.class);
+    }
+    @Test void inheritedFieldConfigurationPersistsWithCasAndCannotGrantQueryAccess(){
+        installFieldConfiguration();
+        var original=notes.fieldConfiguration();assertEquals(0,original.version());
+        var setting=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("title","自定义标题",5,false,false,false);
+        assertEquals(1,notes.saveFieldConfiguration(0,List.of(setting)).version());
+        var field=notes.model().fields().stream().filter(value->value.code().equals("title")).findFirst().orElseThrow();
+        assertEquals("自定义标题",field.name());assertFalse(field.listVisible());assertFalse(field.searchable());assertFalse(field.sortable());assertTrue(field.writable());
+        var query=new BusinessPageQuery();query.setFilters(List.of(new BusinessFieldFilter("title",BusinessFieldFilter.Operator.EQ,List.of("probe"))));
+        assertThrows(RuntimeException.class,()->notes.page(query));
+        assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(0,List.of()));
+        assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(1,List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("password",null,0,true,true,true))));
+        assertEquals(1,jdbc.queryForObject("SELECT version FROM plt_business_field_configuration",Integer.class));
+        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"it:version-note:update")).thenReturn(false);
+        assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(1,List.of()));
+        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"it:version-note:update")).thenReturn(true);
+        assertEquals(2,notes.saveFieldConfiguration(1,List.of()).version());
+        assertEquals("标题",notes.model().fields().stream().filter(value->value.code().equals("title")).findFirst().orElseThrow().name());
+        var api=ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
+        assertThrows(RuntimeException.class,()->api.read(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity("IT","versionNote"),new EntityActor(2L,9L,null)));
+    }
+    @Test void inheritedListSortUsesRealSqlAndStablePages(){
+        notes.create(notes.input(Map.of("projectId",20,"title","Zulu")),"sort-z");
+        notes.create(notes.input(Map.of("projectId",20,"title","Alpha")),"sort-a");
+        var query=new BusinessPageQuery();query.setPageSize(1);query.setSorts(List.of(new BusinessPageQuery.Sort("title",BusinessPageQuery.Direction.ASC)));
+        assertEquals("Alpha",notes.page(query).getList().getFirst().getTitle());query.setPageNo(2);
+        assertEquals("Zulu",notes.page(query).getList().getFirst().getTitle());
+        query.setSorts(List.of(new BusinessPageQuery.Sort("title",BusinessPageQuery.Direction.DESC)));query.setPageNo(1);
+        assertEquals("Zulu",notes.page(query).getList().getFirst().getTitle());
+        query.setSorts(List.of(new BusinessPageQuery.Sort("title desc; select 1",BusinessPageQuery.Direction.ASC)));
+        assertThrows(RuntimeException.class,()->notes.page(query));
+        assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM it_version_note",Integer.class));
+    }
     @Test void emptyServiceInheritsDraftSaveFreezeActivationAndReplay(){
         var created=notes.create(notes.input(Map.of("projectId",20,"title","Original")),"create-note");long id=created.entityRef().entityId();
         jdbc.update("UPDATE it_version_note SET updater='legacy',update_time='2000-01-01 00:00:00' WHERE id=?",id);
