@@ -34,6 +34,11 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/business/requirement-analyses', name: 'PmsInheritedRequirementAnalyses',
+    component: () => import('@/views/pms/business/requirement-analysis/index.vue'),
+    meta: { hidden: true, canTo: true, title: '需求分析' }
+  },
+  {
     path: '/pms/business/site-surveys',
     name: 'PmsInheritedSiteSurveys',
     component: () => import('@/views/pms/business/site-survey/index.vue'),

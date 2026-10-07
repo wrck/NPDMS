@@ -219,6 +219,7 @@ class RequirementAnalysisSpringPersistenceTest {
         @Bean ProjectWorkBindingFactApi bindings() {return mock(ProjectWorkBindingFactApi.class);}
         @Bean ProjectBusinessExecutionApi guard() {return mock(ProjectBusinessExecutionApi.class);}
         @Bean EntityFormApi forms() {return mock(EntityFormApi.class);}
+        @Bean cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials(){return mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.class);}
         @Bean RequirementAnalysisRevisionFiles files() {return mock(RequirementAnalysisRevisionFiles.class);}
         @Bean ProjectBusinessResultRecordingApi results() {return mock(ProjectBusinessResultRecordingApi.class);}
         @Bean InheritedRevisionAdapterFactory inherited() {return mock(InheritedRevisionAdapterFactory.class);}
