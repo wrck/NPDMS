@@ -205,6 +205,25 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
             catch(BusinessContractException denied) { /* Fail closed for this business type. */ }
         }
         query.setReadableBusinessTypes(Set.copyOf(readableTypes));
+        if(readableTypes.isEmpty())return new PageResult<>(List.of(),0L);
+        if(businessType==null){
+            // Owner state can hide individual records even when the model is readable. Apply
+            // pagination after those checks, otherwise a private first row hides later public rows.
+            long offset=(long)(pageNo-1)*pageSize,visibleCount=0;
+            var selected=new ArrayList<Record>();var decisions=new HashMap<Scope,Boolean>();
+            query.setPageNo(1);query.setPageSize(200);
+            while(true){
+                var candidates=materials.selectDefaultDeliveryList(query);
+                for(var row:candidates){
+                    if(!decisions.computeIfAbsent(scope(row),ignored->readable(row)))continue;
+                    if(visibleCount>=offset && selected.size()<pageSize)selected.add(view(row,!includeInactive));
+                    visibleCount++;
+                }
+                if(candidates.size()<200)break;
+                query.setPageNo(Math.incrementExact(query.getPageNo()));
+            }
+            return new PageResult<>(selected,visibleCount);
+        }
         var page=materials.selectDefaultDeliveryPage(query);
         // A project-wide collection must not reveal rows from business types the actor cannot read.
         var visible=page.getList().stream().filter(row->readable(row)).map(row->view(row,!includeInactive)).toList();

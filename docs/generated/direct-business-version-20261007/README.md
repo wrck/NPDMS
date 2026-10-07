@@ -40,3 +40,9 @@
 当前验证活动启动接口返回 `The invoking thread is not attached to an active Aeon`。本云端没有 Docker/MySQL，Chromium 启动受进程通信 socket 限制；因此没有用 H2、编译或模拟控件替代上述未运行项目。此阻塞不影响已确认代码改动和本地测试的真实性。
 
 可用验收入口：`scripts/tests/verify_direct_business_version_mysql.sh`、`scripts/tests/verify_native_delivery_stage2_mysql.sh` 及同目录的默认交付件隔离测试脚本。遵守脚本已有隔离库、用户、环境标记与 server UUID 检查，禁止指向共享/生产数据库。
+
+## 后续归集分页修复
+
+公共项目归集原先先按材料表分页，再过滤 Owner 不可读记录。当同业务类型的私有草稿占据第一页时，后续可读交付件会被隐藏，甚至错误返回总数 0。已用真实公共 Service 和权限端口反例复现（预期可读记录，实际空列表），再修复为按项目分批扫描、先做 Owner 可读判断后分页，总数只计算可读记录；同一请求内复用同一四项业务身份的授权判断。202 条跨原始页的回归通过。
+
+精确业务类型/实体 ID 的历史和完成判断仍保留原精确查询路径。公共归集为保证精确可见总数，需要扫描该项目匹配的材料元数据；每次 SQL 分批 200 条，不加载文件正文，也不暴露隐藏记录数量。此增量的 API/查询检查共 3 项通过，真实 MySQL/浏览器复验仍待执行。

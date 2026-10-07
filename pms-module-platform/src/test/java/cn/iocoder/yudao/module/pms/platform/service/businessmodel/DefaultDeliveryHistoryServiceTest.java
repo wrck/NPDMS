@@ -20,6 +20,24 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 /** Shared history authorization/projection; external ports are doubles, SQL is covered separately. */
 class DefaultDeliveryHistoryServiceTest {
+    @Test void collectionPaginatesAfterOwnerAuthorizationSoHiddenRowsDoNotHideLaterVisibleRows(){
+        var catalog=mock(BusinessModelCatalog.class);var callers=mock(BusinessCallerContext.class);var entities=mock(DeclaredBusinessDeliveryBridge.class);
+        var projects=mock(ProjectScopeApi.class);var materials=mock(DeliveryMaterialMapper.class);var model=mock(BusinessModelDescriptor.class);
+        when(model.ownerModule()).thenReturn("IT");when(model.entityType()).thenReturn("note");when(model.stableCode()).thenReturn("NOTE");
+        when(catalog.findByStableCode("NOTE")).thenReturn(Optional.of(model));when(catalog.all()).thenReturn(List.of(model));when(entities.supports("IT","note")).thenReturn(true);
+        when(callers.require()).thenReturn(new AbstractBusinessApplicationService.ResolvedCaller(7L,9L,null));
+        when(projects.resolveCurrent(any())).thenReturn(new ProjectScopeResult(99L,1L,Set.of(99L),Set.of()));when(entities.projectId(7L,"IT","note",11L)).thenReturn(99L);
+        doThrow(new BusinessContractException("ACCESS_DENIED","private draft")).when(entities).requireDefault(eq(7L),eq(9L),eq("IT"),eq("note"),eq(12L),eq(false),eq(false),isNull());
+        var rows=new ArrayList<DeliveryMaterialDO>();
+        for(long id=202;id>=1;id--){var row=new DeliveryMaterialDO();row.setId(id);row.setTenantId(7L);row.setProjectId(99L);row.setEntityId(id>1?12L:11L);row.setBusinessTypeCode("NOTE");row.setTypeCode("REPORT");row.setFileReferenceId(id);row.setFileArtifactId(id);row.setFileVersionNo(1);row.setStatus("ACTIVE");row.setDeleted(false);rows.add(row);}
+        java.util.function.Function<DefaultDeliveryListQuery,List<DeliveryMaterialDO>> select=query->{int start=(int)query.getOffset(),end=Math.min(rows.size(),start+query.getPageSize());return start>=rows.size()?List.of():rows.subList(start,end);};
+        when(materials.selectDefaultDeliveryPage(any())).thenAnswer(call->new PageResult<>(select.apply(call.getArgument(0)),(long)rows.size()));
+        when(materials.selectDefaultDeliveryList(any())).thenAnswer(call->select.apply(call.getArgument(0)));
+        var service=new DefaultBusinessDeliveryService(catalog,mock(BusinessAccessGuard.class),callers,entities,projects,mock(FileUploadApplicationService.class),mock(FileEvidenceApi.class),materials);
+        var page=service.list(99L,"REPORT",null,null,1,1);
+        assertEquals(List.of("1"),page.getList().stream().map(row->row.id()).toList());assertEquals(1L,page.getTotal());
+        assertTrue(service.list(99L,"REPORT",null,null,2,1).getList().isEmpty());
+    }
     @Test void historyUsesExactIdentityAndReadonlyRecordsWithoutChangingCurrentListOrCompletion(){
         var catalog=mock(BusinessModelCatalog.class);var guard=mock(BusinessAccessGuard.class);var callers=mock(BusinessCallerContext.class);
         var entities=mock(DeclaredBusinessDeliveryBridge.class);var projects=mock(ProjectScopeApi.class);var materials=mock(DeliveryMaterialMapper.class);
