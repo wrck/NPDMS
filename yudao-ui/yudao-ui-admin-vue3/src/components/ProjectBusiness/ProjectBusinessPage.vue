@@ -34,21 +34,23 @@
 import { computed, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
+import type { BusinessEntityData, OperationVO } from '@/api/pms/platform/businessmodel'
 import { createProjectBusinessApi, type BusinessId } from '@/api/pms/platform/business'
 import BusinessEntityList from '../BusinessEntity/BusinessEntityList.vue'
 import BusinessEntityForm from '../BusinessEntity/BusinessEntityForm.vue'
 import ProjectBusinessDeliveries from './ProjectBusinessDeliveries.vue'
 import { useProjectBusiness } from './useProjectBusiness'
-const props = withDefaults(defineProps<{ apiBase: string; title?: string; readonly?: boolean; deliverableType?: string }>(), { deliverableType: 'ATTACHMENT' })
+const props = withDefaults(defineProps<{ apiBase: string; title?: string; readonly?: boolean; deliverableType?: string; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT' })
 const api = computed(() => createProjectBusinessApi(props.apiBase)), message = useMessage()
 const state = useProjectBusiness(() => api.value)
 const { model, current, rows, total, error, loading, executing, receipt, pending, readableFields, writableFields, loadPage } = state
 const editing = ref(false), confirming = ref(false)
 const form = ref<InstanceType<typeof BusinessEntityForm>>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
 const busy = computed(() => executing.value || confirming.value || !!deliveries.value?.isBusy())
-const createOperation = computed(() => { const action=state.operation('CREATE'); return props.readonly && action ? { ...action, executable:false } : action })
-const updateOperation = computed(() => state.operation('UPDATE')), deleteOperation = computed(() => state.operation('DELETE'))
-const businessActions = computed(()=>model.value?.operations.filter(action=>action.kind==='DOMAIN_COMMAND') || [])
+const effective = (action:OperationVO|undefined) => action ? {...action,executable:action.executable && (!props.operationAllowed || props.operationAllowed(action.code,current.value))} : undefined
+const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
+const updateOperation = computed(() => effective(state.operation('UPDATE'))), deleteOperation = computed(() => effective(state.operation('DELETE')))
+const businessActions = computed(()=>model.value?.operations.filter(action=>action.kind==='DOMAIN_COMMAND').map(action=>effective(action)!) || [])
 const saveOperation = computed(() => current.value ? updateOperation.value : createOperation.value)
 const readonlyFields = computed(() => readableFields.value.filter(field => !field.writable))
 watch(() => props.apiBase, async () => { editing.value=false; await state.load() }, { immediate:true })
