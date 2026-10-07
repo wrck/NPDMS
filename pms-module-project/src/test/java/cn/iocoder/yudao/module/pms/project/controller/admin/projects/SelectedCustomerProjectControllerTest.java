@@ -17,7 +17,14 @@ class SelectedCustomerProjectControllerTest {
             var validator = factory.getValidator();
             var selected = new SelectedCustomerProjectCreateReqVO();
             fillRequired(selected);
-            assertTrue(validator.validate(selected).stream().anyMatch(v -> v.getPropertyPath().toString().equals("customerCode")));
+            assertTrue(validator.validate(selected).stream().anyMatch(v -> v.getPropertyPath().toString().equals("customerSelectionValid")));
+            selected.setContractId(66L); selected.setSalesOrderId(201L); selected.setSourceFingerprint("a".repeat(64));
+            assertTrue(validator.validate(selected).stream().anyMatch(v -> v.getPropertyPath().toString().equals("customerSelectionValid")));
+            selected.setCustomerCode("C-001");
+            assertTrue(validator.validate(selected).isEmpty(), "最终客户必须独立选择，名称仍由 CUS 主档读取");
+            selected.setSourceFingerprint(null);
+            assertFalse(validator.validate(selected).isEmpty(), "来源选择仍必须完整");
+            selected.setContractId(null); selected.setSalesOrderId(null);
             selected.setCustomerCode("C-001");
             assertTrue(validator.validate(selected).isEmpty());
             selected.setCustomerName("不能自由填写的名称");

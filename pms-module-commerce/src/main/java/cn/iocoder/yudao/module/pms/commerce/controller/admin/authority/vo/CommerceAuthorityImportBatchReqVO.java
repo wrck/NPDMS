@@ -87,13 +87,18 @@ public record CommerceAuthorityImportBatchReqVO(
             @PositiveOrZero BigDecimal orderQuantity,
             @PositiveOrZero BigDecimal openQuantity,
             @PositiveOrZero BigDecimal deliveredQuantity,
-            @NotBlank @Size(max = 32) String unitCode,
+            @Size(max = 32) String unitCode,
             @NotNull @Min(0) @Max(6) Integer unitScale,
             @NotBlank @Size(max = 32) String quantityStatus,
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
             @NotNull LocalDateTime sourceUpdatedAt,
             String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth,
             String customInfo) {
+        @AssertTrue(message = "确认数量必须提供计量单位")
+        public boolean isConfirmedUnitPresent() {
+            return !"CONFIRMED".equals(quantityStatus) || unitCode != null && !unitCode.isBlank();
+        }
+
         public SalesOrderLineRecord(
             String sourceRecordKey,
             String expectedPreviousSourceVersion,

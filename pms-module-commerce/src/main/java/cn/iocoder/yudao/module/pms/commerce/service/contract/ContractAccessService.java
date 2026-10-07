@@ -181,12 +181,18 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
                                 tenantId, orders.stream().map(SalesOrderDO::getId).toList()));
         return new CreationSourceDetail(contract, orders == null ? List.of() : List.copyOf(orders),
                 executions == null ? List.of() : List.copyOf(executions),
-                lineExecutionNos == null ? List.of() : List.copyOf(lineExecutionNos));
+                lineExecutionNos == null ? List.of() : List.copyOf(lineExecutionNos),
+                orderMapper.selectCreationRelationsByContract(new ContractRelatedOrderQuery(tenantId, contractId)));
     }
 
     public record CreationSourceDetail(ContractDO contract, List<SalesOrderDO> orders,
         List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
-        List<String> lineExecutionNos) {}
+        List<String> lineExecutionNos,
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO> orderContractRelations) {
+        public CreationSourceDetail(ContractDO contract, List<SalesOrderDO> orders,
+                List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
+                List<String> lineExecutionNos) { this(contract, orders, executionOrders, lineExecutionNos, List.of()); }
+    }
 
     private List<UserCompanyDepartmentScopeRespDTO> currentScopes(
             Long tenantId, Long subjectUserId, String correlationId) {

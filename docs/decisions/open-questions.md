@@ -1275,3 +1275,21 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Decision owner: 需求方
 - Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
 
+## 2026-10-06 本机项目来源创建与 Struts 只读历史档案
+
+- **BLOCKED_BY_SPEC：跨来源同号执行单**。同步销售订单头只保存 executionNo，没有 CRM 来源系统关联键；多个 sourceSystem 出现相同 executionNo 时无法证明唯一关系。本次只在唯一匹配时带入，歧义时拒绝，不按更新时间任选。后续需源系统明确关联键/映射。证据：CreationSourceResolver、DppmsOrderSyncAdapter 与本机取证报告 docs/generated/2026-10-06-project-creation-migration/audit.md。
+- **已确认：历史先迁只读档案；BLOCKED_BY_SPEC：激活新流程映射**。用户 2026-10-06 明确“先迁只读历史档案”。保留旧状态、人员、合同、产品与组关系；不将旧状态直接投影新阶段/Gate，不将组关系猜成父子树或项目组合。未来激活必须另行批准人员/组织/模板/状态与完成事实映射。本轮离线脚本与合成验证不依赖该未决映射。
+- **已确认：创建只取订单/执行单基本信息**。用户明确“创建项目不需要订单行ID，只需要订单和执行单的基本信息”。创建使用合同下同步销售订单头，唯一时自动带入，多条时按订单号选择；执行单由该订单 executionNo 关联，不独立选择。旧行 ID 仅作为旧系统取证事实，不加入创建请求。
+
+## 2026-10-06 真实项目试迁的客户身份口径
+
+### Q-PROJECT-CUSTOMER-20261006-001
+
+- Status: RESOLVED（2026-10-07 用户明确裁决）
+- Scope: 从真实旧项目中选择十项具有完整合同、执行单、订单及发货关系的代表项目，迁入本机隔离测试库并保持待指派。最初十项只是候选，不是锁定名单。此前只读档案是一般历史迁移默认路径；本次十项另有运行项目试迁授权，不把旧生命周期、人员和完成事实映射为新阶段或 Gate。
+- Resolution: 项目客户沿用最终客户含义，独立选择并校验 CUS 主档；合同与销售订单购货方另行保留。用户确认“沿用最终客户，并另外保留购货方关联”。
+- Identity evidence: CRM 执行单真实主键关联 new_account_id，再关联 AccountId/CUS 外部身份映射。购货方码和名称相等均不能替代最终客户身份。最初候选未解析身份的结论仅适用于该次候选；后续重选已取得可靠身份与来源关系。
+- Legacy evidence correction: 旧 projectcreate.jsp:309–310 的 column013 是可编辑文本，其非空检查位于注释块；不能称为旧系统强制必填。ProjectServiceImpl.putProperties:418–445 不以购货方覆盖最终客户。
+- Remaining execution boundary: 只用现有授权身份及公司＋办事处联合范围。不得扩大持久角色或组织范围，不绕过服务层权限；不足十项时报告实际合格数与最小现成身份需求。真实名单、原始业务快照及凭据不进入 Git。
+- Decision owner: 需求方。试迁授权已明确，不重复请求该授权。
+- Evidence: docs/generated/2026-10-06-project-creation-migration/README.md。

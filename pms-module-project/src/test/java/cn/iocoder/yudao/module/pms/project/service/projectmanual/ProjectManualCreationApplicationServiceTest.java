@@ -417,18 +417,27 @@ class ProjectManualCreationApplicationServiceTest {
     @SuppressWarnings("unchecked")
     void contractChainAppliesCrmAuthoritativeFieldsAndBindsInsideCreationOperation() {
         var base = command();
+        base.draft().setCustomerCode("C-001");
         var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
                 base.templateRevisionId(), base.candidateWatermark(), null, 66L,
-                base.idempotencyKey(), base.requestDigest());
+                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
         var resolution = new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
                 66L, "CT-1", "合同一", "CO-01", "公司一", "CRM项目名称", "客户项目名称A", "MAJOR",
                 "系统集成", "MKT", "市场一", "SYS", "系统一", "EXP", "拓展一", "IND", "行业一",
-                301L, "EX-1");
-        when(commerceSourceApi.resolveCreationSource(
+                301L, "EX-1", sourceOrder(), sourceExecution(), "a".repeat(64));
+        when(commerceSourceApi.resolveCreationSourceForUpdate(
                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
-                        1L, 66L, 7L))).thenReturn(resolution);
+                        1L, 66L, 7L, 201L, "a".repeat(64)))).thenReturn(resolution);
+        stubSourceCustomer();
         var matchDecision = decision();
-        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
+        when(projectAttributeResolutionService.resolveSourceInitial(any(), any(), any())).thenAnswer(invocation -> {
+            ProjectMasterDO sourceDraft = invocation.getArgument(0);
+            assertEquals("MAJOR", sourceDraft.getMajorProjectLevel());
+            assertEquals("CRM项目名称", sourceDraft.getProjectName());
+            assertEquals("C-001", sourceDraft.getCustomerCode());
+            assertEquals("MANUAL", sourceDraft.getSourceType());
+            return matchDecision;
+        });
         when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull()))
                 .thenReturn(project());
         when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
@@ -436,11 +445,14 @@ class ProjectManualCreationApplicationServiceTest {
                 new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
                         ((Supplier<Object>) invocation.getArgument(3)).get()));
 
-        service.create(command, actor());
+        service.createWithSelectedCustomer(command, actor());
 
         ArgumentCaptor<ProjectMasterDO> draftCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), eq(matchDecision), isNull());
         ProjectMasterDO created = draftCaptor.getValue();
+        assertEquals("C-001", created.getCustomerCode());
+        assertEquals(55L, created.getCustomerId());
+        assertEquals("ERP-BUYER-1", resolution.orderFacts().customerCode());
         assertEquals("客户项目名称A", created.getCustomerProjectName());
         assertEquals("MAJOR", created.getMajorProjectLevel());
         assertEquals("MKT", created.getMarketCode());
@@ -451,7 +463,7 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("行业一", created.getIndustryName());
         verify(commerceSourceApi).bindProjectCommerceSource(
                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
-                        1L, 100L, 66L, 7L, "key-1"));
+                        1L, 100L, 66L, 7L, "key-1", 201L, "a".repeat(64)));
     }
 
     @Test
@@ -461,16 +473,16 @@ class ProjectManualCreationApplicationServiceTest {
         base.draft().setContractNo("CT-X");
         var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
                 base.templateRevisionId(), base.candidateWatermark(), null, 66L,
-                base.idempotencyKey(), base.requestDigest());
-        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(
+                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
+        when(commerceSourceApi.resolveCreationSourceForUpdate(any())).thenReturn(
                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
-                        66L, "CT-1", "合同一", "CO-01", "公司一", null, null, null, null,
-                        null, null, null, null, null, null, null, null, null, null));
+                        66L, "CT-1", "合同一", "CO-01", "公司一", "来源项目", null, null, null,
+                        null, null, null, null, null, null, null, null, null, null, sourceOrder(), sourceExecution(), "a".repeat(64)));
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation ->
                 new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
                         ((Supplier<Object>) invocation.getArgument(3)).get()));
 
-        assertThrows(IllegalArgumentException.class, () -> service.create(command, actor()));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> service.create(command, actor()));
 
         verifyNoInteractions(projectCreationService);
         verify(commerceSourceApi, never()).bindProjectCommerceSource(any());
@@ -480,15 +492,17 @@ class ProjectManualCreationApplicationServiceTest {
     @SuppressWarnings("unchecked")
     void bindFailureEscapesCreationOperationForWholeTransactionRollback() {
         var base = command();
+        base.draft().setCustomerCode("C-001");
         var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
                 base.templateRevisionId(), base.candidateWatermark(), null, 66L,
-                base.idempotencyKey(), base.requestDigest());
-        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(
+                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
+        when(commerceSourceApi.resolveCreationSourceForUpdate(any())).thenReturn(
                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
-                        66L, "CT-1", "合同一", "CO-01", "公司一", null, null, null, null,
-                        null, null, null, null, null, null, null, null, null, null));
+                        66L, "CT-1", "合同一", "CO-01", "公司一", "来源项目", null, null, null,
+                        null, null, null, null, null, null, null, null, null, null, sourceOrder(), sourceExecution(), "a".repeat(64)));
+        stubSourceCustomer();
         var matchDecision = decision();
-        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
+        when(projectAttributeResolutionService.resolveSourceInitial(any(), any(), any())).thenReturn(matchDecision);
         when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull()))
                 .thenReturn(project());
         doThrow(new IllegalStateException("合同已关联其他项目")).when(commerceSourceApi)
@@ -518,6 +532,70 @@ class ProjectManualCreationApplicationServiceTest {
         service.create(command(), actor());
 
         verifyNoInteractions(commerceSourceApi);
+    }
+
+    @Test void sourcePreviewUsesCrmMajorLevelAndRejectsStaleSnapshot() {
+        var draft = command().draft();
+        draft.setCustomerCode("C-001");
+        var source = new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
+                66L, "CT-1", "合同", "CO-01", "公司一", "来源项目", "客户项目", "MAJOR", null,
+                null, null, null, null, null, null, null, null, 301L, "EX-1", sourceOrder(), sourceExecution(), "a".repeat(64));
+        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(source);
+        stubSourceCustomer();
+        service.previewWithSelectedCustomer(draft, 10L, 20L, actor(), 66L, 201L, "a".repeat(64));
+        verify(projectTemplateService).matchPreview(org.mockito.ArgumentMatchers.argThat(input ->
+                "MAJOR".equals(input.values().get("project.majorProjectLevel").value())
+                    && "来源项目".equals(input.values().get("project.projectName").value())));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> service.previewMatching(
+                command().draft(), 10L, 20L, actor(), 66L, 201L, "b".repeat(64)));
+        verifyNoInteractions(projectCreationService, platformFactService);
+    }
+
+    @Test void contractDoesNotReplaceFinalCustomerSelection() {
+        var base = command();
+        var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
+                base.templateRevisionId(), base.candidateWatermark(), null, 66L,
+                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
+        assertThrows(IllegalArgumentException.class, () -> service.createWithSelectedCustomer(command, actor()));
+        assertThrows(IllegalArgumentException.class, () -> service.previewWithSelectedCustomer(
+                base.draft(), 10L, 20L, actor(), 66L, 201L, "a".repeat(64)));
+        verifyNoInteractions(commerceSourceApi, customerQueryApi, platformFactService, projectCreationService);
+    }
+
+    @Test void sourcePreviewRequiresAvailableTenantFinalCustomerAndNeverFallsBackToBuyer() {
+        var draft = command().draft();
+        var source = new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
+                66L, "CT-1", "合同", "CO-01", "公司一", "来源项目", null, null, null,
+                null, null, null, null, null, null, null, null, 301L, "EX-1", sourceOrder(), sourceExecution(), "a".repeat(64));
+        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(source);
+        assertThrows(ServiceException.class, () -> service.previewMatching(
+                draft, 10L, 20L, actor(), 66L, 201L, "a".repeat(64)));
+        verifyNoInteractions(customerQueryApi);
+        draft.setCustomerCode("C-001");
+        for (var customer : java.util.Arrays.asList(null,
+                new CustomerSummaryDTO(55L, 1L, "C-001", "最终客户", null, "DISABLED", "CRM", 3L, null),
+                new CustomerSummaryDTO(55L, 2L, "C-001", "最终客户", null, "ENABLED", "CRM", 3L, null))) {
+            when(customerQueryApi.getCustomerByCode(new CustomerCodeQuery("C-001", 7L))).thenReturn(customer);
+            assertThrows(ServiceException.class, () -> service.previewMatching(
+                    draft, 10L, 20L, actor(), 66L, 201L, "a".repeat(64)));
+        }
+        verify(customerQueryApi, never()).getCustomerByCode(new CustomerCodeQuery("ERP-BUYER-1", 7L));
+        verifyNoInteractions(projectTemplateService, projectCreationService, platformFactService);
+    }
+
+    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.OrderFacts sourceOrder() {
+        return new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.OrderFacts(
+                201L, "SO-1", "ERP", "ORDER-1", "v1", "ERP-BUYER-1", "购货方", "01", null);
+    }
+
+    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ExecutionFacts sourceExecution() {
+        return new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ExecutionFacts(
+                "CRM", "SOURCE-P-1", "DEP-01", "SALES-1", "销售员", "最终用户", "代理商", null);
+    }
+
+    private void stubSourceCustomer() {
+        when(customerQueryApi.getCustomerByCode(new CustomerCodeQuery("C-001", 7L))).thenReturn(
+                new CustomerSummaryDTO(55L, 1L, "C-001", "来源客户", null, "ENABLED", "PLATFORM_TEMPORARY", 3L, null));
     }
 
     private ManualProjectCreateCommand command() {

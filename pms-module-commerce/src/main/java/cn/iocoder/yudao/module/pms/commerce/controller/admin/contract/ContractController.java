@@ -79,7 +79,8 @@ public class ContractController {
                 detail.orders().stream().map(o -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.Order(
                     o.getId(), o.getOrderNo(), o.getCompanyName(), o.getOrderCreateTime(),
                     sensitive ? o.getOrderAmount() : null, sensitive ? o.getCurrencyCode() : null,
-                    o.getSalesType(), o.getCustomerRequiredTime(), o.getExecutionNo())).toList(),
+                    o.getSalesType(), o.getCustomerRequiredTime(), o.getExecutionNo(),
+                    sensitive ? o.getCustomerCode() : null, sensitive ? o.getCustomerName() : null)).toList(),
                 detail.executionOrders().stream().map(e -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.ExecutionOrder(
                     e.getId(), e.getExecutionNo(), e.getSalesRepCode(), e.getSalesRepName(),
                     e.getMarketName(), e.getSystemName(), e.getExpendName(), e.getIndustryName(),
@@ -95,14 +96,14 @@ public class ContractController {
     @GetMapping("/{id}/creation-source")
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO> creationSource(
-            @PathVariable Long id) {
+            @PathVariable Long id, @RequestParam(required = false) Long salesOrderId) {
         return withTenant(() -> {
             Long userId = currentUserId();
             boolean sensitiveReadable = canReadSensitive(userId);
             var detail = accessService.getCreationSource(currentTenantId(), userId,
                     UUID.randomUUID().toString(), id);
             return success(cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO.from(
-                    detail, sensitiveReadable));
+                    detail, sensitiveReadable, salesOrderId));
         });
     }
 
