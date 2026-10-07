@@ -38,7 +38,9 @@ class EngineeringInheritedBusinessBrowserMySqlTest extends SurveyInheritedDelive
     @Override List<String> extraMapperPaths(){var paths=new ArrayList<>(super.extraMapperPaths());paths.add("requirement/RequirementAnalysisMapper.xml");return paths;}
     @Override void registerExtraBeans(SqlSessionTemplate sessions) {
         super.registerExtraBeans(sessions);
-        context.removeBeanDefinition(EntityExtensionApi.class.getName());
+        var extensionBeans=context.getBeanFactory().getBeanNamesForType(EntityExtensionApi.class,true,false);
+        assertEquals(1,extensionBeans.length,"Expected the parent fixture extension port");
+        context.removeBeanDefinition(extensionBeans[0]);
         context.register(EntityExtensionService.class,cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityProvider.class);
         context.registerBean(ProjectParticipantFactApi.class,()->{
             var participants=mock(ProjectParticipantFactApi.class);var fact=new ProjectParticipantFact(20L,17L,Set.of("PROJECT_MANAGER"),"PRIMARY","ACTIVE","S1",0L,3L);
