@@ -10,16 +10,14 @@
       :list-loading="loading" :slice-complete="rows.length >= total" @reload="loadPage(true)" @search="filters => loadPage(true, filters)"
       @load-more="loadPage(false)" @create="create" @open="row => edit(row.ref.entityId)" />
     <template v-else>
-      <BusinessEntityForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues"
-        :fields="model?.fields" :presentation="presentation" lossless-numbers :disabled="busy || !saveOperation?.executable || readonly || current?.available === false" />
-      <BusinessEntityForm v-if="current && extraFields.length" ref="extraForm" :writable-fields="extraFields" :initial-values="presentation?.extensions.fields"
-        lossless-numbers :disabled="busy || !saveOperation?.executable || readonly" />
+      <ProjectBusinessContentForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues"
+        :fields="model?.fields" :presentation="presentation" :disabled="busy || !saveOperation?.executable || readonly || !!current && versioned || current?.available === false" />
       <slot name="business-fields" :current="current" :execute="runAction" :busy="busy" :actions="businessActions" />
       <div class="business-actions">
-        <el-button type="primary" :loading="executing" :disabled="busy || readonly || !saveOperation?.executable || current?.available === false" @click="save">保存</el-button>
+        <el-button type="primary" :loading="executing" :disabled="busy || readonly || !!current && versioned || !saveOperation?.executable || current?.available === false" @click="save">保存</el-button>
         <el-button v-if="current && deleteOperation" type="danger" :disabled="busy || readonly || !deleteOperation.executable" @click="remove">删除</el-button>
         <slot name="actions" :current="current" :api="api" :reload="reloadCurrent" :busy="busy" :execute="runAction">
-          <template v-if="current"><el-button v-for="action in businessActions.filter(action=>!hiddenActions.includes(action.code))" :key="action.code" :disabled="busy || readonly || !action.executable" @click="runAction(action.code)">{{ action.name }}</el-button></template>
+          <template v-if="current"><el-button v-for="action in businessActions.filter(action=>!hiddenActions.includes(action.code) && !action.code.startsWith('revision-'))" :key="action.code" :disabled="busy || readonly || !action.executable" @click="runAction(action.code)">{{ action.name }}</el-button></template>
         </slot>
         <el-button v-if="current" :disabled="busy" @click="reloadCurrent">重新读取</el-button>
         <el-button :disabled="busy" @click="back">返回列表</el-button>
@@ -27,6 +25,7 @@
       <el-descriptions v-if="current && readonlyFields.length" title="只读信息" :column="2" border>
         <el-descriptions-item v-for="field in readonlyFields" :key="field.code" :label="field.name">{{ current.fieldValues[field.code] ?? '-' }}</el-descriptions-item>
       </el-descriptions>
+      <ProjectBusinessHistory v-if="current && versioned" ref="history" :api="api" :current="current" :fields="model?.fields || []" :actions="businessActions" :busy="executing || confirming" :readonly="readonly" :execute="runAction" />
       <ProjectBusinessDeliveries v-if="current" ref="deliveries" :key="String(current.ref.entityId)" :api="api" :entity-id="current.ref.entityId"
         :readonly="readonly || !updateOperation?.executable" :deliverable-type="deliverableType" />
       <slot name="details" :current="current" :api="api" />
@@ -37,10 +36,11 @@
 import { computed, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
-import type { BusinessEntityData, BusinessEntityFormData, FieldVO, OperationVO } from '@/api/pms/platform/businessmodel'
+import type { BusinessEntityData, BusinessEntityFormData, OperationVO } from '@/api/pms/platform/businessmodel'
 import { createProjectBusinessApi, type BusinessId } from '@/api/pms/platform/business'
 import BusinessEntityList from '../BusinessEntity/BusinessEntityList.vue'
-import BusinessEntityForm from '../BusinessEntity/BusinessEntityForm.vue'
+import ProjectBusinessContentForm from './ProjectBusinessContentForm.vue'
+import ProjectBusinessHistory from './ProjectBusinessHistory.vue'
 import ProjectBusinessDeliveries from './ProjectBusinessDeliveries.vue'
 import { useProjectBusiness } from './useProjectBusiness'
 const props = withDefaults(defineProps<{ apiBase: string; title?: string; readonly?: boolean; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
@@ -48,12 +48,9 @@ const api = computed(() => createProjectBusinessApi(props.apiBase)), message = u
 const state = useProjectBusiness(() => api.value)
 const { model, current, rows, total, error, loading, executing, receipt, pending, readableFields, writableFields, loadPage } = state
 const editing = ref(false), confirming = ref(false), formLoading=ref(false)
-const presentation=ref<BusinessEntityFormData>(), extraForm=ref<InstanceType<typeof BusinessEntityForm>>()
+const presentation=ref<BusinessEntityFormData>(), history=ref<InstanceType<typeof ProjectBusinessHistory>>()
+const versioned=computed(()=>!!model.value?.capabilities.some(capability=>capability.type==='CONTENT_HISTORY' && capability.enabled))
 let presentationGeneration=0
-const extraFields=computed<FieldVO[]>(()=>{
-  const mapped=new Set(Object.values(presentation.value?.layout?.binding.fieldBindings || {}))
-  return (presentation.value?.definitions || []).filter(field=>!mapped.has(field.code)).map(field=>({code:field.code,name:field.label,type:field.type,required:field.required,readable:true,writable:true}))
-})
 watch(current,async row=>{
   const generation=++presentationGeneration;presentation.value=undefined;formLoading.value=false
   if(!row?.available)return
@@ -62,8 +59,8 @@ watch(current,async row=>{
   catch(failure){if(generation===presentationGeneration)error.value='业务表单读取失败，请重新读取后再保存'}
   finally{if(generation===presentationGeneration)formLoading.value=false}
 })
-const form = ref<InstanceType<typeof BusinessEntityForm>>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
-const busy = computed(() => executing.value || confirming.value || formLoading.value || !!deliveries.value?.isBusy())
+const form = ref<InstanceType<typeof ProjectBusinessContentForm>>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
+const busy = computed(() => executing.value || confirming.value || formLoading.value || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
 const effective = (action:OperationVO|undefined) => action ? {...action,executable:action.executable && (!props.operationAllowed || props.operationAllowed(action.code,current.value))} : undefined
 const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
 const updateOperation = computed(() => effective(state.operation('UPDATE'))), deleteOperation = computed(() => effective(state.operation('DELETE')))
@@ -74,15 +71,10 @@ watch(() => props.apiBase, async () => { editing.value=false; await state.load()
 const create = () => { if (busy.value || props.readonly || !createOperation.value?.executable) return; current.value=undefined;editing.value=true }
 const edit = async (id: BusinessId) => { if (!busy.value && await state.open(id)) editing.value=true }
 const save = async () => {
-  if (busy.value || props.readonly) return
+  if (busy.value || props.readonly || current.value && versioned.value) return
   try {
-    const input=await form.value!.buildInput(),extras=await extraForm.value?.buildInput()
+    const input=await form.value!.buildInput()
     if(current.value && !presentation.value){message.warning('请先重新读取业务表单');return}
-    if(extras && Object.keys(extras).length){
-      const layoutPatch=input.$extensions as {values:Record<string,unknown>}|undefined
-      input.$extensions={definitionRevisionId:presentation.value!.layout?.binding.extensionDefinitionRevisionId ?? presentation.value!.extensions.definitionRevisionId,
-        expectedVersion:presentation.value!.extensions.version,values:{...layoutPatch?.values,...extras}}
-    }
     const formSave=!!current.value && (!!presentation.value?.layout || !!input.$extensions)
     const result=await state.execute(current.value ? formSave?'save-form':'save' : 'create',formSave?{values:input}:input)
     if(result && result.outcome!=='FAILED')editing.value=true
@@ -90,9 +82,10 @@ const save = async () => {
   catch { /* Field controls retain their validation messages. */ }
 }
 const runAction = async (code:string,values:Record<string,unknown> = {}) => {
-  if(busy.value || props.readonly || !current.value)return
+  const blocked=code.startsWith('revision-') ? executing.value || confirming.value || formLoading.value || !!deliveries.value?.isBusy() : busy.value
+  if(blocked || props.readonly || !current.value)return
   const action=businessActions.value.find(value=>value.code===code);if(!action?.executable)return
-  const changes=await form.value?.buildInput(),extraChanges=await extraForm.value?.buildInput();if(changes && Object.keys(changes).length || extraChanges && Object.keys(extraChanges).length){message.warning('请先保存当前修改，再执行业务操作');return}
+  const changes=versioned.value?undefined:await form.value?.buildInput();if(changes && Object.keys(changes).length){message.warning('请先保存当前修改，再执行业务操作');return}
   const selected=current.value;confirming.value=true
   try {
     try{await message.confirm(`确定执行“${action.name}”？`)}catch{return}
@@ -111,8 +104,8 @@ const remove = async () => {
   } finally {confirming.value=false}
 }
 const recoverOperation = async () => { const result=await state.recover();if(result)editing.value=result.outcome!=='DELETED' && !!current.value }
-const back = () => { if(!busy.value){editing.value=false;loadPage(true)} }
-const reloadCurrent = async () => { if(current.value)await state.open(current.value.ref.entityId) }
+const back = async () => { if(!busy.value && (!history.value || await history.value.requestLeave())){editing.value=false;loadPage(true)} }
+const reloadCurrent = async () => { if(current.value && (!history.value || await history.value.requestLeave()))await state.open(current.value.ref.entityId) }
 const requestLeave = () => !busy.value
 onBeforeRouteLeave(requestLeave);onBeforeRouteUpdate(requestLeave)
 defineExpose({ requestLeave, reload:state.load })

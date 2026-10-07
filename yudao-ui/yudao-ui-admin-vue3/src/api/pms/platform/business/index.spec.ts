@@ -46,3 +46,12 @@ it('forms and atomic extension saves use the same inherited business route',asyn
  expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/site-survey-business/9007199254740993/form',silentError:true})
  expect(request.post).toHaveBeenCalledWith({url:'/api/v1/pms/site-survey-business/9007199254740993/save-form',data:{values,version:2,idempotencyKey:'form-key'},silentError:true})
 })
+
+it('version history, form and comparison are inherited routes with lossless revision IDs',async()=>{
+ const api=createProjectBusinessApi('/api/v1/pms/version-notes')
+ await api.revisions('9007199254740993');await api.revisionValues('9007199254740993','9007199254740994');await api.revisionForm('9007199254740993','9007199254740994')
+ await api.compareRevisions('9007199254740993','9007199254740994','9007199254740995')
+ expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/version-notes/9007199254740993/revisions/9007199254740994',silentError:true})
+ expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/version-notes/9007199254740993/revisions/compare',params:{left:'9007199254740994',right:'9007199254740995'},silentError:true})
+ expect(()=>api.revisionValues(1,'../other')).toThrow()
+})

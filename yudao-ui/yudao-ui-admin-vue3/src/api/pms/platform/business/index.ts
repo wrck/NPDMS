@@ -4,16 +4,22 @@ import type { DeliveryRecord, DeliveryScope } from '../businessmodel/delivery'
 import { createAccessTicket, type FileBusinessKey } from '../file'
 
 export type BusinessId = string | number
+export interface DirectBusinessRevision {
+  ref:{entity:{tenantId:BusinessId;ownerModule:string;entityType:string;entityId:BusinessId};revisionId:BusinessId}
+  revisionNo:number;state:'DRAFT'|'FROZEN';effective:boolean;version:number;reason?:string;sourceRevisionId?:BusinessId;baseEntityVersion?:number
+}
+export interface RevisionFieldValue {readable:boolean;value:unknown}
 export interface BusinessPage { list: BusinessEntityData[]; total: number }
 
 /** One client factory for every inherited business Controller; no catalog/operation-dispatch URL. */
 export const createProjectBusinessApi = (prefix: string) => {
   const base = prefix.replace(/\/$/, '')
   if (!/^\/api\/v1\/pms\/[A-Za-z0-9_/-]+$/.test(base)) throw new Error('业务 API 路径不合法')
-  const entity = (id: BusinessId) => {
+  const identity = (id: BusinessId) => {
     if (typeof id === 'number' && !Number.isSafeInteger(id) || !/^[1-9][0-9]*$/.test(String(id))) throw new Error('业务实体 ID 不合法')
-    return `${base}/${id}`
+    return String(id)
   }
+  const entity=(id:BusinessId)=>`${base}/${identity(id)}`
   const material = (id: BusinessId, materialId: BusinessId) => {
     if (!/^[1-9][0-9]*$/.test(String(materialId))) throw new Error('交付件 ID 不合法')
     return `${entity(id)}/deliverables/${materialId}`
@@ -24,6 +30,10 @@ export const createProjectBusinessApi = (prefix: string) => {
     page: (pageNo: number, pageSize: number, filters: FieldFilter[]) =>
       request.post<BusinessPage>({ url: `${base}/page`, data: { pageNo, pageSize, filters }, silentError: true }),
     get: (id: BusinessId) => request.get<BusinessEntityData>({ url: entity(id), silentError: true }),
+    revisions:(id:BusinessId)=>request.get<DirectBusinessRevision[]>({url:`${entity(id)}/revisions`,params:{limit:100},silentError:true}),
+    revisionValues:(id:BusinessId,revisionId:BusinessId)=>request.get<Record<string,RevisionFieldValue>>({url:`${entity(id)}/revisions/${identity(revisionId)}`,silentError:true}),
+    revisionForm:(id:BusinessId,revisionId:BusinessId)=>request.get<BusinessEntityFormData>({url:`${entity(id)}/revisions/${identity(revisionId)}/form`,silentError:true}),
+    compareRevisions:(id:BusinessId,left:BusinessId,right:BusinessId)=>request.get<Array<{fieldCode:string;before:RevisionFieldValue;after:RevisionFieldValue}>>({url:`${entity(id)}/revisions/compare`,params:{left:identity(left),right:identity(right)},silentError:true}),
     form: (id: BusinessId) => request.get<BusinessEntityFormData>({url:`${entity(id)}/form`,silentError:true}),
     create: (values: Record<string, unknown>, key: string) =>
       request.post<BusinessOperationReceipt>({ url: base, data: { values, idempotencyKey: key }, silentError: true }),
