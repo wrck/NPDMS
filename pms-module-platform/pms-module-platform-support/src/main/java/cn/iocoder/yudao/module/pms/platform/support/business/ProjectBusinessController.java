@@ -45,6 +45,10 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
     @GetMapping("/receipts/{key}") public CommonResult<BusinessOperationReceipt> receipt(@PathVariable String key,@RequestParam String operation) {
         return success(service.receipt(operation,key));
     }
+    @GetMapping("/{id}/form") public CommonResult<BusinessFormData> form(@PathVariable @Positive Long id){return success(service.form(id));}
+    @PostMapping("/{id}/save-form") public CommonResult<BusinessOperationReceipt> saveForm(@PathVariable @Positive Long id,@Valid @RequestBody WriteBody request){
+        return success(service.saveForm(id,request.values(),request.version(),request.idempotencyKey()));
+    }
     @GetMapping("/{id}/deliverables/context") public CommonResult<DefaultBusinessDeliveryApi.Scope> deliveryContext(@PathVariable @Positive Long id) {
         return success(service.deliveryScope(id,null));
     }

@@ -20,5 +20,7 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     BusinessOperationReceipt update(Long id, E values, Set<String> changedFields, Long version, String idempotencyKey);
     BusinessOperationReceipt delete(Long id, Long version, String idempotencyKey);
     BusinessOperationReceipt receipt(String operation, String idempotencyKey);
+    BusinessFormData form(Long id);
+    BusinessOperationReceipt saveForm(Long id, Map<String,Object> values, Long version, String key);
     Long requireDeliveryAccess(Long id, boolean write, boolean lock);
 }

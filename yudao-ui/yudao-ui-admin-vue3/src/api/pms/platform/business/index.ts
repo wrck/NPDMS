@@ -1,5 +1,5 @@
 import request from '@/config/axios'
-import type { BusinessEntityData, BusinessOperationReceipt, ModelDetailVO, FieldFilter } from '../businessmodel'
+import type { BusinessEntityData, BusinessEntityFormData, BusinessOperationReceipt, ModelDetailVO, FieldFilter } from '../businessmodel'
 import type { DeliveryRecord, DeliveryScope } from '../businessmodel/delivery'
 import { createAccessTicket, type FileBusinessKey } from '../file'
 
@@ -24,6 +24,7 @@ export const createProjectBusinessApi = (prefix: string) => {
     page: (pageNo: number, pageSize: number, filters: FieldFilter[]) =>
       request.post<BusinessPage>({ url: `${base}/page`, data: { pageNo, pageSize, filters }, silentError: true }),
     get: (id: BusinessId) => request.get<BusinessEntityData>({ url: entity(id), silentError: true }),
+    form: (id: BusinessId) => request.get<BusinessEntityFormData>({url:`${entity(id)}/form`,silentError:true}),
     create: (values: Record<string, unknown>, key: string) =>
       request.post<BusinessOperationReceipt>({ url: base, data: { values, idempotencyKey: key }, silentError: true }),
     update: (id: BusinessId, values: Record<string, unknown>, version: number, key: string) =>

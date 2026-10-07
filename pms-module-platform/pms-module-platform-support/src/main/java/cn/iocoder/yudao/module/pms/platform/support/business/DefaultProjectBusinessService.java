@@ -26,10 +26,12 @@ import org.springframework.core.ResolvableType;
  * catalog/operation dispatcher is neither a dependency nor an enrollment prerequisite.
  */
 public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>, E extends BaseProjectBusinessEntity>
-        implements ProjectBusinessService<E> {
+        implements ProjectBusinessService<E>, EntityFieldProvider {
     @Autowired protected M mapper;
     @Autowired protected BusinessDefaults defaults;
     private BusinessEntityBinding<E> binding;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<EntityFormApi> formPorts;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<EntityExtensionApi> extensionPorts;
 
     @PostConstruct
     @SuppressWarnings("unchecked")
@@ -38,7 +40,10 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         if (type == null || !BaseProjectBusinessEntity.class.isAssignableFrom(type)) throw invalid("BUSINESS_TYPE_UNRESOLVED", "Service must bind its concrete entity");
         var identity = type.getDeclaredAnnotation(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.ProjectBusinessModel.class);
         if (identity == null) throw invalid("BUSINESS_IDENTITY_REQUIRED", "Entity must define its stable business identity");
-        binding = new BusinessEntityBinding<>((Class<E>) type, mapper, businessOperations(identity.permissionPrefix()), this::configureOperations);
+        var operations=new ArrayList<>(businessOperations(identity.permissionPrefix()));
+        operations.add(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("save-form",1,"保存表单",
+                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND,identity.permissionPrefix()+":update"));
+        binding = new BusinessEntityBinding<>((Class<E>) type, mapper, operations, this::configureOperations);
     }
     @Override public final BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
     @Override public final BusinessModelViews.ModelDetailVO model() {
@@ -126,6 +131,64 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             locked.setVersion(Math.incrementExact(version)); afterDelete(copy(locked));
             return saved(locked, "delete", ReceiptOutcome.DELETED);
             });
+        });
+    }
+
+    /** The service itself supplies common entity capabilities; no per-business provider or adapter. */
+    @Override public final String ownerModule(){return definition().ownerModule();}
+    @Override public final String entityType(){return definition().entityType();}
+    @Override public final List<EntityField> fields(){return definition().fields().stream()
+            .map(f->new EntityField(f.code(),f.type(),f.required())).toList();}
+    @Override public final Map<String,EntityFieldValue> read(EntityDataRef target,EntityActor caller){
+        requireProviderCaller(target,caller);var row=get(target.entity().entityId());var result=new LinkedHashMap<String,EntityFieldValue>();
+        readableValues(row).forEach((key,value)->result.put(key,EntityFieldValue.known(value)));return result;
+    }
+    @Override public final void requireReadable(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);get(target.entity().entityId());}
+    @Override public final Long concurrencyBasis(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);return get(target.entity().entityId()).getVersion();}
+    @Override public final boolean usesValidatedExtensionPatch(){return true;}
+    @Override public final void lockForWrite(EntityDataRef target,EntityActor caller,Long expectedVersion){
+        requireProviderCaller(target,caller);BusinessEntitySaveSupport.requireTransaction();
+        defaults.permissions().requireWritable(definition(),caller,"operation:save");
+        var observed=current(target.entity().entityId(),caller);defaults.projects().requireWritable(observed.getProjectId(),caller,true);
+        inBusinessOperation("save",observed,null,()->{var row=lock(observed.getId(),caller);requireVersion(row,expectedVersion);beforeUpdate(copy(row),copy(row));return null;});
+    }
+    private void requireProviderCaller(EntityDataRef target,EntityActor caller){
+        var actual=actor();
+        if(target==null || caller==null || !Objects.equals(actual.tenantId(),caller.tenantId()) || !Objects.equals(actual.userId(),caller.userId())
+                || target.isRevision() || !Objects.equals(target.entity().tenantId(),actual.tenantId())
+                || !ownerModule().equals(target.entity().ownerModule()) || !entityType().equals(target.entity().entityType()))
+            throw invalid("ENTITY_SCOPE_DENIED","Entity capability identity or caller differs from the bound service");
+    }
+    /** Existing revision businesses override only their historical storage identity. */
+    protected EntityDataRef formTarget(E row){return EntityDataRef.current(identity(row));}
+    private EntityFormApi formPort(){var port=formPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Form capability is unavailable");return port;}
+    private EntityExtensionApi extensionPort(){var port=extensionPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Extension capability is unavailable");return port;}
+    @Override public final BusinessFormData form(Long id){
+        var row=get(id);var target=formTarget(row);var caller=actor();var values=extensionPort().read(target,caller);var layout=formPort().layout(target,caller);
+        var definitionId=layout!=null && layout.binding().extensionDefinitionRevisionId()!=null?layout.binding().extensionDefinitionRevisionId():values.definitionRevisionId();
+        return new BusinessFormData(layout,values,definitionId==null?List.of():extensionPort().definition(definitionId,target.entity(),caller).fields());
+    }
+    @Override public final BusinessOperationReceipt saveForm(Long id,Map<String,Object> values,Long version,String key){
+        if(values==null)throw invalid("INPUT_REQUIRED","Business values are required");
+        var fixed=new LinkedHashMap<>(values);Object extension=fixed.remove("$extensions"),layout=fixed.remove("$binding");
+        var layoutPatch=layout==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(layout),BusinessFormData.BindingPatch.class);
+        var patch=extension==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(extension),BusinessEntitySaveSupport.ExtensionPatch.class);
+        return change("save-form",id,version,key,values,row->{
+            var before=copy(row);binding.patch(row,fixed);beforeUpdate(before,row);
+            if(layoutPatch!=null){
+                if(layoutPatch.expectedVersion()<0 || layoutPatch.formRevisionId()==null || layoutPatch.formRevisionId()<=0)
+                    throw invalid("INPUT_INVALID","Invalid form binding");
+                formPort().bind(new EntityFormApi.Bind(formTarget(row),actor(),version,layoutPatch.expectedVersion(),layoutPatch.formRevisionId(),
+                        layoutPatch.extensionDefinitionRevisionId(),layoutPatch.fieldBindings(),layoutPatch.bindRemainingFields()));
+            }
+            if(patch!=null){
+                if(patch.values()==null || patch.expectedVersion()<0)throw invalid("INPUT_INVALID","Invalid extension patch");
+                var target=formTarget(row);var existing=extensionPort().read(target,actor());
+                var merged=new LinkedHashMap<String,Object>();
+                if(Objects.equals(existing.definitionRevisionId(),patch.definitionRevisionId()))merged.putAll(existing.fields());
+                merged.putAll(patch.values());
+                extensionPort().save(new EntityExtensionApi.Save(target,actor(),version,patch.expectedVersion(),patch.definitionRevisionId(),merged));
+            }
         });
     }
 

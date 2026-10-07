@@ -37,3 +37,12 @@ it('custom business APIs share the client but retain explicit endpoint and prote
  expect(request.post).toHaveBeenCalledWith({url:'/api/v1/pms/site-survey-business/9007199254740993/confirm',data:{version:2,idempotencyKey:'key'},silentError:true})
  expect(()=>api.action('../delete',11,2,'key')).toThrow()
 })
+
+it('forms and atomic extension saves use the same inherited business route',async()=>{
+ const api=createProjectBusinessApi('/api/v1/pms/site-survey-business')
+ await api.form('9007199254740993')
+ const values={name:'survey',$extensions:{definitionRevisionId:'123',expectedVersion:1,values:{extra_flag:true}}}
+ await api.action('save-form','9007199254740993',2,'form-key',{values})
+ expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/site-survey-business/9007199254740993/form',silentError:true})
+ expect(request.post).toHaveBeenCalledWith({url:'/api/v1/pms/site-survey-business/9007199254740993/save-form',data:{values,version:2,idempotencyKey:'form-key'},silentError:true})
+})

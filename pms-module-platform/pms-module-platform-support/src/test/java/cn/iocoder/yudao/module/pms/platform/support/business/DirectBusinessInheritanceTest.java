@@ -115,6 +115,15 @@ class DirectBusinessInheritanceTest {
         assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,NoteController.class.getDeclaredMethods().length);
         verify(projects,atLeastOnce()).requireWritable(99L,new EntityActor(7L,42L,null),true);
     }
+    @Test void emptyBusinessInheritsPublicFieldProviderWithoutAdapter() {
+        var service=context.getBean(NoteService.class);
+        service.create(service.input(Map.of("projectId",99,"title","Fields")),"fields-create");
+        var provider=assertInstanceOf(EntityFieldProvider.class,service);
+        var target=EntityDataRef.current(new EntityRef(7L,"IT","directNote",11L));
+        assertEquals("Fields",provider.read(target,new EntityActor(7L,42L,null)).get("title").value());
+        assertFalse(provider.read(target,new EntityActor(7L,42L,null)).containsKey("internalSecret"));
+        assertThrows(RuntimeException.class,()->provider.read(target,new EntityActor(7L,999L,null)));
+    }
     @Test void inheritedControllerCallsItsOwnTypedServiceAndMapper() throws Exception {
         var mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class)).build();
         mvc.perform(post("/it/direct-notes").contentType("application/json")
