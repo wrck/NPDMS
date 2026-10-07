@@ -1,0 +1,38 @@
+{
+  "verifiedAt": "2026-10-07T13:37:04Z",
+  "codeCommit": "cd617a7ab72fbf61412797e8540138b176d5618f",
+  "browserCommit": "7482c287e01dcfef174d6214e19995519722aa2b",
+  "browserTree": "d7e33148e286c5e5c02f65d7b410577cf8f64ec0",
+  "rootJava": {
+    "common": 11,
+    "survey": 18,
+    "requirement": 14,
+    "failures": 0
+  },
+  "rootFrontendUniqueTests": 17,
+  "mysql": {
+    "requirement": 14,
+    "common": 16,
+    "failures": 0
+  },
+  "browser": {
+    "junit": 1,
+    "scenarios": 3,
+    "httpResponses": 73,
+    "allHttp200BusinessCode0": true,
+    "storedObjects": 2,
+    "fileVersions": 2,
+    "materialHistory": 4,
+    "activeMaterials": 3,
+    "revisionHistory": 3,
+    "oldBusinessModelsRequests": 0
+  },
+  "serverPackage": "PASS",
+  "typescript": "4 pre-existing errors; no full pass",
+  "limits": [
+    "fixture authentication/project/layout-schema/storage",
+    "no production migration or deployment",
+    "generic direct-inheritance versioning remains open",
+    "legacy task/menu routes retained"
+  ]
+}

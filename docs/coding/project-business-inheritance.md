@@ -6,8 +6,8 @@
 
 业务 Controller → 业务 Service → 业务 Mapper → 本业务实体/表。
 
-- `ProjectBusinessController<S,E>`：继承模型说明、列表、详情、创建、更新、删除、回执以及交付件 API。
-- `DefaultProjectBusinessService<M,E>`：直接持有本业务 Mapper，统一执行权限、项目范围、校验、事务、并发、幂等、审计及事件。
+- `ProjectBusinessController<S,E>`：继承模型说明、列表、详情、创建、更新、删除、回执、表单/扩展以及交付件 API。
+- `DefaultProjectBusinessService<M,E>`：直接持有本业务 Mapper，统一执行权限、项目范围、校验、事务、并发、幂等、审计及事件；Service 本身继承 `EntityFieldProvider`，不再为普通实体另写字段能力适配器。
 - `BusinessMapper<E>`：继承简单业务分页与 MyBatis-Plus 持久化。复杂 SQL 由本业务 Mapper XML 扩展。
 - `BaseProjectBusinessEntity`：继承项目、身份、租户、版本和审计字段。业务保留独立数据表。
 - `ProjectBusinessPage`：仅绑定业务 API 基地址，复用列表、表单、CRUD 和交付件组件；客户端由 `createProjectBusinessApi` 创建。
@@ -51,6 +51,8 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 - `PUT /{id}`：按明确提交的 values 字段更新；version 与 idempotencyKey 必填，显式 null 保留清空语义。
 - `DELETE /{id}`：version 参数与 Idempotency-Key 请求头；有关联交付件/历史引用时拒绝。
 - `GET /receipts/{key}?operation=...`：查询结果，不重新执行。
+- `GET /{id}/form`：读取已有布局、扩展定义与值；普通业务直接使用自身身份。
+- `POST /{id}/save-form`：与普通保存同样的 version/idempotencyKey/values；固定字段、`$extensions` 与可选 `$binding` 同一事务保存，失败一起回滚。扩展包含 definitionRevisionId、expectedVersion、values；布局包含 expectedVersion、formRevisionId、extensionDefinitionRevisionId、fieldBindings、bindRemainingFields。未提交的扩展字段保留，业务版本只推进一次。
 - `/{id}/deliverables...`：继承上传、读取、修改、删除、文件与完成判断。上传与完成判断核对 projectId、businessType、businessEntityKey、deliverableType。
 
 `ProjectDeliveryCollection` 按项目/交付件类型展示，通过 `/api/v1/pms/business-deliverables` 公共接口读取；服务端逐业务校验权限和项目范围，不要求旧模型工作台权限。旧归集页面和旧入口保持原有权限。
@@ -63,7 +65,9 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 - 重载 `selectPage(BusinessReadQuery)` 调用自身 Mapper XML；XML 必须保留服务端 tenantId/projectIds 条件，空项目集合拒绝查询。
 - 业务可新增专用 Controller 方法，直接调用对应 Service 方法；Service 可通过受保护的 `change(...)` 复用权限、锁、CAS、幂等与审计，再实施类型化实体变化。`businessOperations(...)` 仅说明该业务新增动作，不重复列出 CRUD。
 - 业务变化钩子不得更改控制字段，不在钩子中绕过事务或直接执行不可撤销的外部动作。必要外部副作用沿用 Outbox 等已批准机制。
-- 新页面提供 actions/details 插槽，特殊交互只添加差异，不复制整套页面或每业务建立 CRUD API 模块。
+- 存量修订模型通过 `formTarget(E)` 重载指向原逻辑键/修订键，保留已有布局和扩展值；普通新业务无须重载。
+- `copyDeliveries(sourceId,targetId,key)` 复用不可变文件版本，创建独立精确引用及统一交付件记录；不复制文件字节、不新增业务交付件适配器。
+- 新页面提供 actions/details/business-fields 插槽，特殊交互只添加差异，不复制整套页面或每业务建立 CRUD API 模块。`operationAllowed` 只能进一步收紧服务端操作可用性，不能授予权限；后端仍校验状态与权限。
 
 ## 当前证据与未完成项
 
