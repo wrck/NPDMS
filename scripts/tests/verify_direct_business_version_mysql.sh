@@ -26,7 +26,9 @@ services:
     ports: ['127.0.0.1:28474:3306']
     tmpfs: ['/var/lib/mysql']
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '--silent']
+      # The image uses a socket-only temporary server while initializing the database.
+      # Require TCP readiness so --wait cannot return for that temporary server.
+      test: ['CMD', 'mysqladmin', 'ping', '--protocol=TCP', '-h', '127.0.0.1', '-uroot', '--silent']
       interval: 2s
       timeout: 2s
       retries: 40

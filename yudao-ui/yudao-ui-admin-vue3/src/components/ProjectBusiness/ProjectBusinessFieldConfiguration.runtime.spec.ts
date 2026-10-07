@@ -11,11 +11,12 @@ const column=defineComponent({setup:(_,{slots})=>{const rows=inject<()=>any[]>('
 const input=defineComponent({props:['modelValue'],emits:['update:modelValue'],setup:(props,{emit})=>()=>h('input',{value:props.modelValue,onChange:(value:unknown)=>emit('update:modelValue',value)})})
 const dialog=defineComponent({props:['modelValue'],setup:(props,{slots})=>()=>props.modelValue?h('dialog',[slots.default?.(),slots.footer?.()]):null})
 it('saves the inherited configuration with CAS and keeps rejected edits for correction',async()=>{
- const api={base:'/test',fieldDefaults:vi.fn(async()=>({fields:[{code:'title',name:'Title',readable:true,writable:true,displayOrder:0,listVisible:true,searchable:true,sortable:true}]})),fieldConfiguration:vi.fn(async()=>({version:3,fields:[]})),saveFieldConfiguration:vi.fn().mockRejectedValueOnce(new Error('version conflict')).mockResolvedValue({version:4,fields:[]})}
+ const api={base:'/test',fieldDefaults:vi.fn(async()=>({fields:[{code:'title',name:'Title',readable:true,writable:true,displayOrder:0,listVisible:true,searchable:true,sortable:true}]})),fieldConfiguration:vi.fn(async()=>({version:3,fields:[{code:'title',label:null,displayOrder:null,listVisible:null,searchable:null,sortable:null}]})),saveFieldConfiguration:vi.fn().mockRejectedValueOnce(new Error('version conflict')).mockResolvedValue({version:4,fields:[]})}
  const changed=vi.fn(),mounted=mount(Configuration,{api,onChanged:changed},{ElDialog:dialog,ElTable:table,ElTableColumn:column,ElInput:input,ElInputNumber:input,ElCheckbox:passthrough})
  const click=async(label:string)=>{const target=all(mounted.root).find(node=>node.type==='button'&&textOf(node)===label)!;await (target.props!.onClick as Function)();await flush()}
  try{
   await click('字段配置');const title=all(mounted.root).find(node=>node.type==='input'&&node.props?.value==='Title')!
+  expect(title,'nullable configuration attributes inherit model defaults').toBeDefined()
   ;(title.props!.onChange as Function)('Configured title');await nextTick()
   confirm.mockRejectedValueOnce(new Error('cancel'));expect(await (mounted.vm as any).requestLeave()).toBe(false)
   confirm.mockResolvedValueOnce(undefined);expect(await (mounted.vm as any).requestLeave()).toBe(true)

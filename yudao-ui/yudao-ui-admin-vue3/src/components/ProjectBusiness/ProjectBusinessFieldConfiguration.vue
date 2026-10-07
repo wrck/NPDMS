@@ -38,7 +38,10 @@ const open=async()=>{
   const active=++generation,api=props.api;visible.value=true;loading.value=true;loaded.value=false;error.value=''
   try{const [model,configuration]=await Promise.all([api.fieldDefaults(),api.fieldConfiguration()]);if(active!==generation)return
     fields.value=model.fields;version.value=configuration.version
-    settings.value=defaults().map(field=>({...field,...configuration.fields.find(setting=>setting.code===field.code)}));initial.value=JSON.stringify(settings.value);loaded.value=true
+    settings.value=defaults().map(field=>{
+      const override=configuration.fields.find(setting=>setting.code===field.code)
+      return {...field,...Object.fromEntries(Object.entries(override||{}).filter(([,value])=>value!=null))}
+    });initial.value=JSON.stringify(settings.value);loaded.value=true
   }catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'字段配置读取失败'}
   finally{if(active===generation)loading.value=false}
 }
