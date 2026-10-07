@@ -47,6 +47,7 @@ def main():
                 field(page,'项目').fill('99');field(page,label).fill(value)
                 page.get_by_role('button',name='保存',exact=True).click()
                 expect(page.get_by_text('尚无有效上传',exact=True)).to_be_visible(timeout=15000)
+                expect(page.get_by_label('上传交付件')).to_be_enabled(timeout=15000)
                 page.get_by_label('上传交付件').set_input_files({'name':label+'.txt','mimeType':'text/plain','buffer':value.encode()})
                 expect(page.get_by_text('已有最新有效上传',exact=True)).to_be_visible(timeout=15000)
                 page.get_by_role('button',name='返回列表',exact=True).click()
