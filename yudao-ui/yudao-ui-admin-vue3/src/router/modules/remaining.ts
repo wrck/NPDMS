@@ -34,6 +34,12 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/business/site-surveys',
+    name: 'PmsInheritedSiteSurveys',
+    component: () => import('@/views/pms/business/site-survey/index.vue'),
+    meta: { hidden: true, canTo: true, title: '现场工勘' }
+  },
+  {
     path: '/pms/deliverables',
     name: 'PmsDefaultDeliverables',
     component: () => import('@/views/pms/platform/deliverables/index.vue'),

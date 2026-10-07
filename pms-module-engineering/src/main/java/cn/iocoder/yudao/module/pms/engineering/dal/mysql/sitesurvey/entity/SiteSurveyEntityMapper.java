@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * PMS 现场工勘 Mapper（FR-ENG-001）。
  */
 @Mapper
-public interface SiteSurveyEntityMapper extends ProjectScopedCodeMapper<SiteSurveyEntityDO> {
+public interface SiteSurveyEntityMapper extends ProjectScopedCodeMapper<SiteSurveyEntityDO>, cn.iocoder.yudao.module.pms.platform.support.business.BusinessMapper<SiteSurveyEntityDO> {
     java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SurveyResultInventoryQuery query);
 
