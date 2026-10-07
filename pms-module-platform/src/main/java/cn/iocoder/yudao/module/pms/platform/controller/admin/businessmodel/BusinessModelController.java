@@ -22,14 +22,9 @@ import cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef;
 import cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef;
 import cn.iocoder.yudao.module.pms.platform.api.entity.RevisionRef;
 import cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDispatcher;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,62 +45,13 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @Tag(name = "管理后台 - PMS 统一业务模型")
 @Validated
 @RequiredArgsConstructor
-public class BusinessModelController {
+public class BusinessModelController extends cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews {
 
     private final BusinessModelCatalog catalog;
     private final BusinessAccessGuard guard;
     private final BusinessEntityAccessPort accessPort;
     private final BusinessOperationDispatcher dispatcher;
     private final ObjectProvider<ExecutionBackendCapability> executionBackends;
-
-    /** 操作执行请求：身份由服务端确定；幂等键与并发依据由客户端携带。 */
-    @Data
-    public static class OperationExecuteReqVO {
-
-        @NotBlank
-        private String idempotencyKey;
-
-        private Long concurrencyBasis;
-
-        @Positive
-        private Long revisionId;
-
-        private OperationEntryKind entryKind;
-
-        @Pattern(regexp = "[A-Za-z0-9_.:-]{0,128}")
-        private String entryCorrelationId;
-
-        private Map<String, Object> input;
-
-        @JsonAnySetter
-        public void rejectUnknown(String name, Object value) {
-            throw new BusinessContractException("REQUEST_FIELD_UNKNOWN",
-                    "不支持的操作请求字段: " + name);
-        }
-    }
-
-    @Data
-    public static class PageQueryReqVO {
-
-        private String sceneCode;
-
-        private List<FieldFilterVO> filters;
-
-        @NotNull
-        @Positive
-        private Integer pageSize;
-
-        private String cursor;
-
-        @Data
-        public static class FieldFilterVO {
-            @NotBlank
-            private String fieldCode;
-            @NotNull
-            private BusinessFieldFilter.Operator operator;
-            private List<Object> values;
-        }
-    }
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:business-model:query')")
@@ -204,59 +150,4 @@ public class BusinessModelController {
         }
     }
 
-    public record ModelSummaryVO(String ownerModule, String entityType, String stableCode,
-                                 String title, String viewCode) {
-        static ModelSummaryVO of(BusinessModelDescriptor descriptor) {
-            return new ModelSummaryVO(descriptor.ownerModule(), descriptor.entityType(),
-                    descriptor.stableCode(), descriptor.title(), descriptor.viewCode());
-        }
-    }
-
-    public record OperationVO(String code, String name, int version, String kind,
-                              boolean executable, String reason) {
-    }
-
-    public record FieldVO(String code, String name, String type, boolean required,
-                          boolean readable, boolean writable) {
-    }
-
-    public record CapabilityVO(String type, String configRef, boolean enabled) {
-    }
-
-    public record ModelDetailVO(String ownerModule, String entityType, String stableCode,
-                                String title, String viewCode, List<FieldVO> fields,
-                                List<OperationVO> operations,
-                                List<CapabilityVO> capabilities) {
-
-        static ModelDetailVO of(BusinessModelDescriptor descriptor, EntityActor actor,
-                                BusinessAccessGuard guard) {
-            List<FieldVO> fields = descriptor.fields().stream()
-                    .filter(field -> field.readable() || field.writable())
-                    .map(field -> new FieldVO(field.code(), field.name(), field.type().name(),
-                            field.required(), field.readable(), field.writable()))
-                    .toList();
-            List<OperationVO> operations = descriptor.operations().stream()
-                    .map(operation -> executableOf(descriptor, operation, actor, guard))
-                    .toList();
-            List<CapabilityVO> capabilities = descriptor.capabilities().stream()
-                    .map(capability -> new CapabilityVO(capability.type().name(), capability.configRef(),
-                            capability.enabled()))
-                    .toList();
-            return new ModelDetailVO(descriptor.ownerModule(), descriptor.entityType(),
-                    descriptor.stableCode(), descriptor.title(), descriptor.viewCode(), fields, operations, capabilities);
-        }
-
-        private static OperationVO executableOf(BusinessModelDescriptor descriptor,
-                                                BusinessOperationDescriptor operation,
-                                                EntityActor actor, BusinessAccessGuard guard) {
-            try {
-                guard.requireWritable(descriptor, actor, "operation:" + operation.code());
-                return new OperationVO(operation.code(), operation.name(), operation.version(),
-                        operation.kind().name(), true, null);
-            } catch (BusinessContractException ex) {
-                return new OperationVO(operation.code(), operation.name(), operation.version(),
-                        operation.kind().name(), false, ex.getMessage());
-            }
-        }
-    }
 }

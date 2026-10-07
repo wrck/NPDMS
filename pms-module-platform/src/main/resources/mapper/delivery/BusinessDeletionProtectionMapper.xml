@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.BusinessDeletionProtectionMapper">
+    <select id="hasProtectedReferences" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM plt_delivery_material m
+            WHERE m.tenant_id=#{query.tenantId}
+              AND ((m.owner_module=#{query.ownerModule} AND m.entity_type=#{query.entityType} AND m.entity_id=#{query.entityId})
+                OR (m.source_owner_module=#{query.ownerModule} AND m.source_entity_type=#{query.entityType} AND m.source_entity_id=#{query.entityId}))
+              AND (m.deleted=b'0' OR m.archive_time IS NOT NULL
+                OR (m.archive_status IS NOT NULL AND m.archive_status &lt;&gt; 'NOT_REQUIRED')
+                OR EXISTS (SELECT 1 FROM plt_delivery_fulfillment f WHERE f.tenant_id=#{query.tenantId} AND f.material_id=m.id AND f.deleted=b'0')
+                OR EXISTS (SELECT 1 FROM plt_delivery_submission s WHERE s.tenant_id=#{query.tenantId} AND s.deleted=b'0' AND JSON_CONTAINS(s.material_ids_json,CAST(m.id AS JSON)))))
+          OR EXISTS (SELECT 1 FROM plt_delivery_requirement r WHERE r.tenant_id=#{query.tenantId}
+              AND r.owner_module=#{query.ownerModule} AND r.entity_type=#{query.entityType} AND r.entity_id=#{query.entityId})
+          OR EXISTS (SELECT 1 FROM plt_approval_attempt a WHERE a.tenant_id=#{query.tenantId}
+              AND a.owner_module=#{query.ownerModule} AND a.entity_type=#{query.entityType} AND a.entity_id=#{query.entityId})
+    </select>
+</mapper>

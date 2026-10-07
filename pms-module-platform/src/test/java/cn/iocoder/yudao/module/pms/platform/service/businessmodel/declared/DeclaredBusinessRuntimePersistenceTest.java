@@ -537,6 +537,9 @@ class DeclaredBusinessRuntimePersistenceTest {
         Runtime(boolean optimisticLock,int extension,boolean plain) throws Exception {this(optimisticLock,extension,plain,false);}
         Runtime(boolean optimisticLock,int extension,boolean plain,boolean capabilities) throws Exception {this(optimisticLock,extension,plain,capabilities,null,false);}
         Runtime(boolean optimisticLock, int extension, boolean plain, boolean capabilities,String alias,boolean delivery) throws Exception {
+            this(optimisticLock,extension,plain,capabilities,alias,delivery,false);
+        }
+        Runtime(boolean optimisticLock,int extension,boolean plain,boolean capabilities,String alias,boolean delivery,boolean secondDeliveryModel) throws Exception {
             String url=System.getProperty("npdms.declared.jdbcUrl","jdbc:mysql://127.0.0.1:27461/npdms_declared_framework?useSSL=false&allowPublicKeyRetrieval=true");
             if(!url.startsWith("jdbc:mysql://127.0.0.1:27461/npdms_declared_framework?")) throw new IllegalStateException("Exclusive test database required");
             source=new HikariDataSource();source.setJdbcUrl(url);source.setUsername("root");source.setPassword("");
@@ -552,6 +555,7 @@ class DeclaredBusinessRuntimePersistenceTest {
                     cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateMapper.class,
                     cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateRevisionMapper.class,
                     cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.PlatformDynamicFormInstanceMapper.class)) config.addMapper(mapper);
+            if(secondDeliveryModel) config.addMapper(DefaultDeliverySecondMapper.class);
             var interceptor=new MybatisPlusInterceptor();interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantDatabaseInterceptor(new TenantProperties())));
             if (optimisticLock) interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
             interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
@@ -576,6 +580,8 @@ class DeclaredBusinessRuntimePersistenceTest {
                         plain?sessions.getMapper(PlainDeclaredNoteMapper.class):sessions.getMapper(DeclaredNoteMapper.class),null,alias));
             }
             context.getBeanFactory().registerSingleton("declaration",contributor);
+            if(secondDeliveryModel) context.getBeanFactory().registerSingleton("secondDeliveryDeclaration",
+                    new DefaultDeliverySecondDeclaration(sessions.getMapper(DefaultDeliverySecondMapper.class)));
             context.getBeanFactory().registerSingleton("declaredIdentities",new BusinessEntityIdentityResolver(context));
             context.refresh();var spring=new SpringUtil();spring.setApplicationContext(context);spring.postProcessBeanFactory(context.getBeanFactory());
             declaration=contributor.declarations().getFirst();var contributors=context.getBeanProvider(BusinessModelContributor.class);
