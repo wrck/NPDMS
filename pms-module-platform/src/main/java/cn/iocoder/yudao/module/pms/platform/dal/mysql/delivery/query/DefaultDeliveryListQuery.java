@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data @EqualsAndHashCode(callSuper=true)
 public class DefaultDeliveryListQuery extends PageParam {
+    private boolean includeInactive;
     private Long tenantId;
     private Long projectId;
     private String deliverableType;

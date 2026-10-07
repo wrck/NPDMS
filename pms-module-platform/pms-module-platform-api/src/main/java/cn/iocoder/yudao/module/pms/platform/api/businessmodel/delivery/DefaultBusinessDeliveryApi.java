@@ -23,6 +23,8 @@ public interface DefaultBusinessDeliveryApi {
     Record upload(Scope scope, UploadFile file, String requestKey);
     PageResult<Record> list(Long projectId, String deliverableType, String businessType,
                             String businessEntityKey, int pageNo, int pageSize);
+    /** Read-only upload history of one exact business identity, including inactive material records. */
+    default PageResult<Record> history(Scope scope,int pageNo,int pageSize) { throw new UnsupportedOperationException("Delivery history is unavailable"); }
     Record get(Long id);
     FileEvidenceApi.Document file(Long id);
     Record edit(Long id, Long version, String title);

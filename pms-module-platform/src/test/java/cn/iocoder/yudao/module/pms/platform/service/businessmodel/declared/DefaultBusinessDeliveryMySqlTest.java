@@ -162,6 +162,18 @@ class DefaultBusinessDeliveryMySqlTest {
         assertThrows(BusinessContractException.class,()->deliveries.upload(scope,file("same\n"),key));
         assertFalse(deliveries.completion(scope).completed());assertEquals(1,count("plt_delivery_material"));
     }
+    @Test void historyReadsExistingMaterialRowsWithoutSnapshotsAndNeverCompletesWithdrawnUploads() {
+        var older=upload(first,"REPORT","older\n");var latest=upload(first,"REPORT","latest\n");
+        assertEquals(2,deliveries.history(scope(first,"REPORT"),1,20).getTotal());
+        deliveries.delete(Long.valueOf(latest.id()),latest.version());
+        var history=deliveries.history(scope(first,"REPORT"),1,20);assertEquals(2,history.getTotal());
+        assertEquals("WITHDRAWN",history.getList().stream().filter(row->row.id().equals(latest.id())).findFirst().orElseThrow().status());
+        assertFalse(history.getList().stream().filter(row->row.id().equals(latest.id())).findFirst().orElseThrow().editable());
+        assertEquals(older.id(),deliveries.completion(scope(first,"REPORT")).latest().id());
+        assertThrows(RuntimeException.class,()->deliveries.file(Long.valueOf(latest.id())));
+        deliveries.delete(Long.valueOf(older.id()),older.version());assertFalse(deliveries.completion(scope(first,"REPORT")).completed());
+        assertEquals(2,count("plt_delivery_material"));assertEquals(0,deliveries.history(scope(second,"REPORT"),1,20).getTotal());
+    }
     @Test void failedOrPendingOrUnavailableFilesDoNotCompleteAndLatestEffectiveFallbackIsStable() {
         assertThrows(RuntimeException.class,()->deliveries.upload(scope(first,"REPORT"),new MockMultipartFile("file","bad.txt","text/plain",new byte[]{0,1,2,3}),"bad"));
         assertEquals(0,count("plt_delivery_material"));assertEquals(0,count("plt_file_version"));assertFalse(deliveries.completion(scope(first,"REPORT")).completed());
@@ -185,6 +197,9 @@ class DefaultBusinessDeliveryMySqlTest {
         var firstRecord=upload(first,"REPORT","first\n");var secondRecord=upload(second,"REPORT","second\n");
         login(7,880002);assertEquals(List.of(firstRecord),deliveries.list(99L,"REPORT",null,null,1,20).getList());
         assertThrows(RuntimeException.class,()->deliveries.get(Long.valueOf(secondRecord.id())));
+        assertThrows(RuntimeException.class,()->deliveries.history(scope(second,"REPORT"),1,20));
+        assertEquals(List.of(firstRecord.id()),deliveries.history(scope(first,"REPORT"),1,20).getList().stream().map(row->row.id()).toList());
+        assertTrue(deliveries.history(scope(first,"REPORT"),1,20).getList().stream().noneMatch(row->row.editable()));
         assertThrows(RuntimeException.class,()->upload(first,"REPORT","reader write"));
         assertThrows(RuntimeException.class,()->deliveries.edit(Long.valueOf(firstRecord.id()),0L,"reader"));
         assertThrows(RuntimeException.class,()->deliveries.delete(Long.valueOf(firstRecord.id()),0L));login(7,880001);

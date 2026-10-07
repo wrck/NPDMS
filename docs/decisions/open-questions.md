@@ -1296,10 +1296,11 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-DEFAULT-BUSINESS-REVISION-DELIVERIES-20261007
 
-- Status: BLOCKED_BY_SPEC，仅限业务版本是否绑定交付件清单这一语义，不阻塞其他默认能力实施和验收。
+- Status: RESOLVED（2026-10-07 16:43 UTC 用户明确裁决）。
 - Area: 默认内容版本与统一交付件的关系。
 - Question: 冻结业务内容版本是否同时固定当时的交付件清单，历史版本只能读取当时那批交付件？
 - Existing confirmed contract: 交付件按 projectId、businessType、businessEntityKey、deliverableType 统一管理并按最新有效上传判断完成，保留已有不可变历史引用保护。
 - Current implementation: 公共内容版本已保存正文、扩展字段和表单布局；交付件仍独立管理上传历史。当前实现本身不构成业务裁决。
 - Why it blocks: 不能自行将当前上传完成判断改成修订完成判断，也不能未经业务裁决自动冻结、复制或更换交付件所属实体键。
-- Decision owner: 需求方。2026-10-07 16:29 UTC 已在主会话提问（Sentinel_78af7fa198708191912b2fcfac642b61），尚未收到裁决。
+- Resolution: 不增加独立交付件引用清单或冻结清单快照。需要时按交付件已有业务类型及业务实体 ID 定位上传历史，并保留项目/交付件类型筛选；当前完成判断仍只取最新有效上传。
+- Decision owner: 需求方。裁决来源 Sentinel_9c06dbf5c66081919f1e51fe3fc43f5b。原问题来源 Sentinel_78af7fa198708191912b2fcfac642b61。

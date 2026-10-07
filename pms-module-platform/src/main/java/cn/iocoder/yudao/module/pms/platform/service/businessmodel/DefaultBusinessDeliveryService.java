@@ -175,6 +175,14 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
 
     @Transactional(readOnly=true)
     public PageResult<Record> list(Long projectId,String deliverableType,String businessType,String businessEntityKey,int pageNo,int pageSize) {
+        return listRecords(projectId,deliverableType,businessType,businessEntityKey,pageNo,pageSize,false);
+    }
+    @Override @Transactional(readOnly=true)
+    public PageResult<Record> history(Scope scope,int pageNo,int pageSize) {
+        if(scope==null || scope.businessType()==null || scope.businessEntityKey()==null)throw invalid("历史查询必须指定业务类型和实体键");
+        return listRecords(scope.projectId(),scope.deliverableType(),scope.businessType(),scope.businessEntityKey(),pageNo,pageSize,true);
+    }
+    private PageResult<Record> listRecords(Long projectId,String deliverableType,String businessType,String businessEntityKey,int pageNo,int pageSize,boolean includeInactive) {
         if(projectId==null || projectId<=0 || pageNo<1 || pageSize<1 || pageSize>200) throw invalid("查询参数不合法");
         if(deliverableType!=null) type(deliverableType);
         if((businessType==null)!=(businessEntityKey==null)) throw invalid("业务类型和实体键须同时指定");
@@ -182,7 +190,7 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         if(scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(projectId)) throw invalid("项目不可见");
         if(businessType!=null) authorize(new Scope(projectId,businessType,businessEntityKey,deliverableType==null?"ATTACHMENT":deliverableType),false,false);
         var query=new DefaultDeliveryListQuery();query.setTenantId(caller.tenantId());query.setProjectId(projectId);query.setDeliverableType(deliverableType);
-        query.setBusinessType(businessType);query.setEntityId(businessEntityKey==null?null:entityId(businessEntityKey));query.setPageNo(pageNo);query.setPageSize(pageSize);
+        query.setIncludeInactive(includeInactive);query.setBusinessType(businessType);query.setEntityId(businessEntityKey==null?null:entityId(businessEntityKey));query.setPageNo(pageNo);query.setPageSize(pageSize);
         var actor=new cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor(caller.tenantId(),caller.userId(),"DELIVERY_COLLECTION");
         var readableTypes=new java.util.HashSet<String>();
         var allModels=new java.util.LinkedHashMap<String,BusinessModelDescriptor>();
@@ -199,7 +207,7 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         query.setReadableBusinessTypes(Set.copyOf(readableTypes));
         var page=materials.selectDefaultDeliveryPage(query);
         // A project-wide collection must not reveal rows from business types the actor cannot read.
-        var visible=page.getList().stream().filter(row->readable(row)).map(DefaultBusinessDeliveryService::view).toList();
+        var visible=page.getList().stream().filter(row->readable(row)).map(row->view(row,!includeInactive)).toList();
         return new PageResult<>(visible,(long)visible.size()==page.getList().size()?page.getTotal():visible.size());
     }
     private boolean readable(DeliveryMaterialDO row) {
@@ -247,10 +255,11 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
                 callers.require().userId().toString()))!=1) throw invalid("材料已改变或已被归档/引用，不能修改");
     }
     private static Scope scope(DeliveryMaterialDO row) {return new Scope(row.getProjectId(),row.getBusinessTypeCode(),row.getEntityId().toString(),row.getTypeCode());}
-    private static Record view(DeliveryMaterialDO row) {return new Record(row.getId().toString(),row.getProjectId(),row.getBusinessTypeCode(),
+    private static Record view(DeliveryMaterialDO row) {return view(row,true);}
+    private static Record view(DeliveryMaterialDO row,boolean editable) {return new Record(row.getId().toString(),row.getProjectId(),row.getBusinessTypeCode(),
             row.getEntityId().toString(),row.getTypeCode(),row.getTitle(),row.getFileName(),row.getFileReferenceId().toString(),
             row.getFileArtifactId().toString(),row.getFileVersionNo(),row.getCreateTime(),row.getVersion(),row.getStatus(),row.getOwnerModule(),row.getEntityType(),
-            row.getMaterialKind(),row.getSourceKind(),true);}
+            row.getMaterialKind(),row.getSourceKind(),editable && !Boolean.TRUE.equals(row.getDeleted()) && DeliveryMaterialDO.STATUS_ACTIVE.equals(row.getStatus()));}
     private static String digest(String value) {
         try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}
         catch(java.security.NoSuchAlgorithmException impossible){throw new IllegalStateException(impossible);}

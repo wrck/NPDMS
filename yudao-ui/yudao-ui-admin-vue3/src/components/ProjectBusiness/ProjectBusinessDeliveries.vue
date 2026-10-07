@@ -1,22 +1,24 @@
 <template>
   <section class="project-business-deliveries">
     <h3>交付件</h3>
+    <el-switch v-model="history" active-text="查看上传历史（只读）" :disabled="mutating" />
     <el-form inline>
       <el-form-item label="交付件类型"><el-input v-model="type" :disabled="mutating" /></el-form-item>
       <el-tag :type="completed ? 'success' : 'info'">{{ completed ? '已有最新有效上传' : '尚无有效上传' }}</el-tag>
     </el-form>
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
-    <input v-if="!readonly" ref="fileInput" type="file" aria-label="上传交付件" :disabled="mutating || !scope" @change="selectFile" />
-    <el-button v-if="pending && !readonly" :disabled="mutating" @click="upload">重试原上传</el-button>
+    <input v-if="!readonly && !history" ref="fileInput" type="file" aria-label="上传交付件" :disabled="mutating || !scope" @change="selectFile" />
+    <el-button v-if="pending && !readonly && !history" :disabled="mutating" @click="upload">重试原上传</el-button>
     <el-table :data="rows" v-loading="fetching || mutating" row-key="id">
       <el-table-column prop="deliverableType" label="交付件类型" />
       <el-table-column label="标题"><template #default="{ row }">
-        <el-input v-if="!readonly" v-model="titles[row.id]" :disabled="mutating" maxlength="255" />
+        <el-input v-if="!readonly && !history" v-model="titles[row.id]" :disabled="mutating" maxlength="255" />
         <span v-else>{{ row.title }}</span>
       </template></el-table-column>
-      <el-table-column label="文件"><template #default="{ row }"><el-button link @click="download(row)">{{ row.fileName }}</el-button></template></el-table-column>
+      <el-table-column label="文件"><template #default="{ row }"><el-button link :disabled="row.status!=='ACTIVE'" @click="download(row)">{{ row.fileName }}</el-button></template></el-table-column>
+      <el-table-column prop="status" label="状态" />
       <el-table-column prop="uploadedAt" label="上传时间" />
-      <el-table-column v-if="!readonly" label="操作"><template #default="{ row }">
+      <el-table-column v-if="!readonly && !history" label="操作"><template #default="{ row }">
         <el-button :disabled="mutating" link @click="edit(row)">保存标题</el-button>
         <el-button :disabled="mutating" link type="danger" @click="remove(row)">删除交付件</el-button>
       </template></el-table-column>
@@ -32,6 +34,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import type { ProjectBusinessApi, BusinessId } from '@/api/pms/platform/business'
 import type { DeliveryRecord, DeliveryScope } from '@/api/pms/platform/businessmodel/delivery'
 const props = withDefaults(defineProps<{ api: ProjectBusinessApi; entityId: BusinessId; readonly?: boolean; deliverableType?: string }>(), { deliverableType: 'ATTACHMENT' })
+const history=ref(false)
 const message = useMessage(), type = ref(props.deliverableType)
 const scope = ref<DeliveryScope>(), rows = ref<DeliveryRecord[]>([]), titles = ref<Record<string,string>>({})
 const completed = ref(false), error = ref(''), fetching = ref(false), mutating = ref(false), page = ref(1), total = ref(0)
@@ -39,14 +42,14 @@ const fileInput = ref<HTMLInputElement>(), pending = ref<{ file:File;scope:Deliv
 let generation = 0
 const failureMessage = (failure:any) => failure?.response?.data?.msg || failure?.message || '交付件操作失败'
 const refresh = async () => {
-  const active=++generation, client=props.api, id=props.entityId, deliverableType=type.value
+  const active=++generation, client=props.api, id=props.entityId, deliverableType=type.value,historical=history.value,currentPage=page.value
   fetching.value=true; error.value=''; scope.value=undefined; completed.value=false
   try {
     if(!/^[A-Za-z0-9_.:-]{1,64}$/.test(deliverableType))throw new Error('交付件类型不合法')
     const context=await client.deliveryContext(id)
     if(String(context.businessEntityKey)!==String(id) || !context.businessType || !/^[1-9][0-9]*$/.test(String(context.projectId)))throw new Error('交付件归属不匹配')
     const target={...context,deliverableType}
-    const [list,result]=await Promise.all([client.deliveries(id,deliverableType,page.value),client.completion(target)])
+    const [list,result]=await Promise.all([historical?client.deliveryHistory(id,deliverableType,currentPage):client.deliveries(id,deliverableType,currentPage),client.completion(target)])
     if(active!==generation)return
     scope.value=target;rows.value=list.list;total.value=list.total;completed.value=result.completed
     titles.value=Object.fromEntries(list.list.map(row=>[row.id,row.title]))
@@ -55,11 +58,11 @@ const refresh = async () => {
 }
 const selectFile = (event:Event) => {
   const file=(event.target as HTMLInputElement).files?.[0]
-  if(!file || !scope.value || props.readonly || mutating.value)return
+  if(!file || !scope.value || props.readonly || history.value || mutating.value)return
   pending.value={file,scope:{...scope.value},key:crypto.randomUUID()};upload()
 }
 const upload = async () => {
-  if(!pending.value || props.readonly || mutating.value)return
+  if(!pending.value || props.readonly || history.value || mutating.value)return
   const attempt=pending.value, active=generation, client=props.api
   mutating.value=true;error.value=''
   try {
@@ -69,13 +72,13 @@ const upload = async () => {
   finally{mutating.value=false}
 }
 const edit = async (row:DeliveryRecord) => {
-  if(props.readonly || mutating.value)return
+  if(props.readonly || history.value || mutating.value)return
   const client=props.api,id=props.entityId,active=generation,title=titles.value[row.id];mutating.value=true;error.value=''
   try{await client.editDelivery(id,row,title);if(active===generation)await refresh()}
   catch(failure){if(active===generation)error.value=failureMessage(failure)}finally{mutating.value=false}
 }
 const remove = async (row:DeliveryRecord) => {
-  if(props.readonly || mutating.value)return
+  if(props.readonly || history.value || mutating.value)return
   const client=props.api,id=props.entityId,active=generation;mutating.value=true;error.value=''
   try {
     try{await message.confirm('确定删除该交付件记录？归档或被引用的记录将由服务端保护。')}catch{return}
@@ -83,8 +86,9 @@ const remove = async (row:DeliveryRecord) => {
     await client.removeDelivery(id,row);if(active===generation)await refresh()
   }catch(failure){if(active===generation)error.value=failureMessage(failure)}finally{mutating.value=false}
 }
-const download=async(row:DeliveryRecord)=>{try{const ticket=await props.api.downloadDelivery(props.entityId,row);window.open(ticket.shortLivedUrl,'_blank','noopener')}catch(failure){error.value=failureMessage(failure)}}
+const download=async(row:DeliveryRecord)=>{const active=generation,client=props.api,id=props.entityId;try{const ticket=await client.downloadDelivery(id,row);if(active===generation)window.open(ticket.shortLivedUrl,'_blank','noopener')}catch(failure){if(active===generation)error.value=failureMessage(failure)}}
 watch(()=>[props.api.base,props.entityId,type.value],()=>{pending.value=undefined;page.value=1;rows.value=[];refresh()},{immediate:true})
+watch(history,()=>{page.value=1;rows.value=[];refresh()})
 onBeforeUnmount(()=>++generation)
 defineExpose({isBusy:()=>mutating.value,refresh})
 </script>

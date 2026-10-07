@@ -68,6 +68,10 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
             @RequestParam(required=false) String deliverableType,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="20") int pageSize) {
         return success(service.deliveries(id,deliverableType,pageNo,pageSize));
     }
+    @GetMapping("/{id}/deliverables/history") public CommonResult<PageResult<Record>> deliveryHistory(@PathVariable @Positive Long id,
+            @RequestParam(required=false) String deliverableType,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="20") int pageSize) {
+        return success(service.deliveryHistory(id,deliverableType,pageNo,pageSize));
+    }
     @GetMapping("/{id}/deliverables/completion") public CommonResult<DefaultBusinessDeliveryApi.Completion> completion(@PathVariable @Positive Long id,@RequestParam String deliverableType,
             @RequestParam @Positive Long projectId,@RequestParam String businessType,@RequestParam String businessEntityKey) {
         return success(service.deliveryCompletion(id,new DefaultBusinessDeliveryApi.Scope(projectId,businessType,businessEntityKey,deliverableType)));

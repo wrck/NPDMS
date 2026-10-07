@@ -31,6 +31,9 @@ public interface BusinessDeliverables {
         var scope=deliveryScope(entityId,type);
         return deliveryApi().list(scope.projectId(),type,scope.businessType(),scope.businessEntityKey(),page,size);
     }
+    default PageResult<Record> deliveryHistory(Long entityId,String type,int page,int size) {
+        return deliveryApi().history(deliveryScope(entityId,type),page,size);
+    }
     default DefaultBusinessDeliveryApi.Completion deliveryCompletion(Long entityId, String type) {
         return deliveryApi().completion(deliveryScope(entityId,type));
     }

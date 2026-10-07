@@ -121,8 +121,9 @@
               WHERE f.tenant_id=#{query.tenantId} AND f.material_id=#{query.materialId} AND f.deleted=b'0')
     </update>
     <sql id="defaultDeliveryPredicate">
-        m.tenant_id=#{query.tenantId} AND m.project_id=#{query.projectId} AND m.deleted=b'0'
-          AND m.material_kind='FILE' AND m.status='ACTIVE' AND m.source_kind IN ('UPLOAD','ASSOCIATED')
+        m.tenant_id=#{query.tenantId} AND m.project_id=#{query.projectId}
+          <if test="!query.includeInactive">AND m.deleted=b'0' AND m.status='ACTIVE'</if>
+          AND m.material_kind='FILE' AND m.source_kind IN ('UPLOAD','ASSOCIATED')
           AND EXISTS (SELECT 1 FROM plt_file_reference r WHERE r.tenant_id=#{query.tenantId}
             AND r.id=m.file_reference_id AND r.owner_context='PLT' AND r.object_type='DEFAULT_BUSINESS_DELIVERY')
           <choose><when test="query.readableBusinessTypes != null and query.readableBusinessTypes.size() > 0">

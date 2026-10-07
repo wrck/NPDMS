@@ -63,6 +63,8 @@ export const createProjectBusinessApi = (prefix: string) => {
     },
     deliveries: (id: BusinessId, deliverableType?: string, pageNo = 1) =>
       request.get<{ list: DeliveryRecord[]; total: number }>({ url: `${entity(id)}/deliverables`, params: { deliverableType, pageNo, pageSize: 20 }, silentError: true }),
+    deliveryHistory: (id: BusinessId, deliverableType?: string, pageNo = 1) =>
+      request.get<{ list: DeliveryRecord[]; total: number }>({ url: `${entity(id)}/deliverables/history`, params: { deliverableType, pageNo, pageSize: 20 }, silentError: true }),
     completion: (scope: DeliveryScope) => request.get<{ completed: boolean; latest?: DeliveryRecord }>({ url: `${entity(scope.businessEntityKey)}/deliverables/completion`, params: scope, silentError: true }),
     editDelivery: (id: BusinessId, row: DeliveryRecord, title: string) =>
       request.put<DeliveryRecord>({ url: material(id, row.id), data: { version: row.version, title }, silentError: true }),
