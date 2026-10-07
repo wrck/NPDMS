@@ -104,7 +104,7 @@ public class ExistingFileVersionAttachmentService {
         }
         providerLocks.stream().sorted(PROVIDER_LOCK_ORDER).forEach(ProviderLock::lock);
         for (int index = 0; index < items.size(); index++) {
-            requireAttachmentPolicies(sourcePolicies[index], targetPolicies[index]);
+            requireAttachmentPolicies(sourcePolicies[index], targetPolicies[index],items.get(index).target());
         }
         Map<Long, FileArtifactDO> artifacts = lockArtifacts(actor.tenantId(), items);
         Map<VersionKey, FileVersionDO> versions = lockVersions(actor.tenantId(), items);
@@ -252,9 +252,11 @@ public class ExistingFileVersionAttachmentService {
     }
 
     private void requireAttachmentPolicies(FileBusinessObjectPolicyFact sourcePolicy,
-                                           FileBusinessObjectPolicyFact targetPolicy) {
+                                           FileBusinessObjectPolicyFact targetPolicy, ExistingFileReferenceTarget target) {
+        boolean immutableBusiness="PLT".equals(target.ownerContext()) && "DEFAULT_BUSINESS_DELIVERY".equals(target.objectType())
+                && "IMMUTABLE".equals(targetPolicy.referenceMutability());
         if (!"IMMUTABLE".equals(sourcePolicy.referenceMutability())
-                || !"MUTABLE".equals(targetPolicy.referenceMutability())
+                || !"MUTABLE".equals(targetPolicy.referenceMutability()) && !immutableBusiness
                 || !"MULTIPLE".equals(targetPolicy.cardinality())) {
             throw exception(FILE_SCOPE_FORBIDDEN);
         }

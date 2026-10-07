@@ -11,6 +11,9 @@ import java.util.Objects;
 public interface BusinessDeliverables {
     DefaultBusinessDeliveryApi.Scope deliveryScope(Long entityId, String deliverableType);
     DefaultBusinessDeliveryApi deliveryApi();
+    default java.util.List<Record> copyDeliveries(Long sourceId,Long targetId,String requestKey) {
+        return deliveryApi().copy(new DefaultBusinessDeliveryApi.Copy(deliveryScope(sourceId,null),deliveryScope(targetId,null),requestKey));
+    }
     default Record uploadDelivery(Long entityId, String type, DefaultBusinessDeliveryApi.UploadFile file, String key) {
         return uploadDelivery(entityId,deliveryScope(entityId,type),file,key);
     }

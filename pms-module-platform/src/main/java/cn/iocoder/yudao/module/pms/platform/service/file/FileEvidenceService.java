@@ -37,6 +37,15 @@ public class FileEvidenceService implements FileEvidenceApi {
     }
 
     @Override @Transactional(propagation = Propagation.MANDATORY)
+    public Document inspectReference(Reference query) {
+        if(query==null || !Objects.equals(query.tenantId(),TenantContextHolder.getRequiredTenantId())
+                || java.util.stream.Stream.of(query.ownerContext(),query.objectType(),query.objectId(),query.purposeCode(),query.referenceKey()).anyMatch(value->value==null||value.isBlank()))
+            throw new IllegalArgumentException("FILE_DOCUMENT_QUERY_INVALID");
+        var reference=references.selectExact(new ExactFileReferenceQuery(query.tenantId(),query.ownerContext(),query.objectType(),query.objectId(),query.purposeCode(),query.referenceKey()));
+        return reference==null?null:inspectDocument(query.tenantId(),reference.getId());
+    }
+
+    @Override @Transactional(propagation = Propagation.MANDATORY)
     public Document inspectDocumentByArtifact(Long tenantId, Long artifactId, Integer versionNo) {
         if (!Objects.equals(tenantId, TenantContextHolder.getRequiredTenantId()) || artifactId == null || versionNo == null)
             throw new IllegalArgumentException("FILE_DOCUMENT_QUERY_INVALID");

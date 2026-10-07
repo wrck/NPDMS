@@ -36,7 +36,7 @@ public class DefaultBusinessDeliveryFilePolicy implements FileBusinessObjectPoli
         var caller=callers.require();
         if(!caller.tenantId().equals(query.tenantId()) || !caller.userId().equals(query.actorUserId())
                 || !ownerContext().equals(query.ownerContext()) || !objectType().equals(query.objectType())
-                || !Set.of(FileActionCodes.UPLOAD,FileActionCodes.READ,FileActionCodes.DOWNLOAD,FileActionCodes.PREVIEW).contains(query.requiredAction()))
+                || !Set.of(FileActionCodes.UPLOAD,FileActionCodes.REFERENCE,FileActionCodes.READ,FileActionCodes.DOWNLOAD,FileActionCodes.PREVIEW).contains(query.requiredAction()))
             throw new BusinessContractException("ACCESS_DENIED","文件调用上下文或动作不合法");
         DefaultBusinessDeliveryService.type(query.purposeCode());
         var owner=query.objectId()==null?new String[0]:query.objectId().split(":",4);
@@ -44,13 +44,13 @@ public class DefaultBusinessDeliveryFilePolicy implements FileBusinessObjectPoli
         var direct=directOwners==null?null:directOwners.getIfAvailable();
         if(direct!=null && direct.byIdentity(owner[1],owner[2]).isPresent()) {
             var access=direct.require(query.tenantId(),query.actorUserId(),owner[1],owner[2],DefaultBusinessDeliveryService.entityId(owner[3]),
-                    FileActionCodes.UPLOAD.equals(query.requiredAction()),lock,expectedScope);
+                    Set.of(FileActionCodes.UPLOAD,FileActionCodes.REFERENCE).contains(query.requiredAction()),lock,expectedScope);
             if(!DefaultBusinessDeliveryService.entityId(owner[0]).equals(access.projectId()))
                 throw new BusinessContractException("ACCESS_DENIED","文件业务实体已不属于原项目");
             return new FileBusinessObjectPolicyFact(true,access.scopeVersion(),"IMMUTABLE","MULTIPLE",Set.of("DOCUMENT"),MEDIA,52_428_800L,"INTERNAL");
         }
         Long scope=entities.requireDefault(query.tenantId(),query.actorUserId(),owner[1],owner[2],
-                DefaultBusinessDeliveryService.entityId(owner[3]),FileActionCodes.UPLOAD.equals(query.requiredAction()),lock,expectedScope);
+                DefaultBusinessDeliveryService.entityId(owner[3]),Set.of(FileActionCodes.UPLOAD,FileActionCodes.REFERENCE).contains(query.requiredAction()),lock,expectedScope);
         if(!DefaultBusinessDeliveryService.entityId(owner[0]).equals(entities.projectId(query.tenantId(),owner[1],owner[2],DefaultBusinessDeliveryService.entityId(owner[3]))))
             throw new BusinessContractException("ACCESS_DENIED","文件业务实体已不属于原项目");
         return new FileBusinessObjectPolicyFact(true,scope,"IMMUTABLE","MULTIPLE",Set.of("DOCUMENT"),MEDIA,52_428_800L,"INTERNAL");

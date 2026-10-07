@@ -16,6 +16,9 @@ public interface DefaultBusinessDeliveryApi {
     record UploadFile(String name, String mediaType, long size,
                       java.util.function.Supplier<java.io.InputStream> content) { }
     record Completion(boolean completed, Record latest) { }
+    record Copy(Scope source,Scope target,String requestKey) { }
+    /** Copies active references between two records of the same business/project; null type selects all types. */
+    default java.util.List<Record> copy(Copy request) { throw new UnsupportedOperationException("Shared delivery copy is unavailable"); }
     Scope context(String ownerModule, String entityType, String entityKey);
     Record upload(Scope scope, UploadFile file, String requestKey);
     PageResult<Record> list(Long projectId, String deliverableType, String businessType,

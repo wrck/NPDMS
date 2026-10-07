@@ -10,6 +10,9 @@ public interface FileEvidenceApi {
      * （如交付投影），登记统一材料时由此定位文件引用身份。
      */
     default Document inspectDocumentByArtifact(Long tenantId, Long artifactId, Integer versionNo) { return null; }
+    /** Exact reference lookup; a shared artifact can have many business references. */
+    record Reference(Long tenantId,String ownerContext,String objectType,String objectId,String purposeCode,String referenceKey) { }
+    default Document inspectReference(Reference reference) { return null; }
     record Document(Long referenceId, String ownerContext, String objectType, String objectId,
                     String purposeCode, String referenceKey, Long artifactId, Integer versionNo,
                     String sha256, String name, boolean available) { }

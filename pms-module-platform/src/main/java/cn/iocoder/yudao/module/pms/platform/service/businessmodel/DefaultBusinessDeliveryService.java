@@ -38,6 +38,8 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     private final DeliveryMaterialMapper materials;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners> directOwners;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi> fileArtifacts;
     private cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners direct() {
         return directOwners == null ? null : directOwners.getIfAvailable();
     }
@@ -119,7 +121,11 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
                 || !scope.deliverableType().equals(document.purposeCode()) || !slot.equals(document.referenceKey())) throw invalid("文件归属不匹配");
         if(!files.lockAndRevalidate(new FileEvidenceApi.Query(caller.tenantId(),document.artifactId(),document.versionNo(),document.ownerContext(),
                 document.objectType(),document.objectId(),document.purposeCode(),document.referenceKey(),document.sha256())).valid()) throw invalid("文件证据已失效");
-        var identity=digest("DEFAULT_UPLOAD:"+completed.referenceId());
+        return register(scope,model,document,SOURCE,document.name(),null);
+    }
+    private Record register(Scope scope,BusinessModelDescriptor model,FileEvidenceApi.Document document,String sourceKind,String title,Scope source) {
+        var caller=callers.require();
+        var identity=digest("DEFAULT_UPLOAD:"+document.referenceId());
         var existing=materials.selectDefaultUploadIdentityForUpdate(new DeliverySourceIdentityQuery(caller.tenantId(),identity));
         if(existing!=null) {
             if(Boolean.TRUE.equals(existing.getDeleted()) || !DeliveryMaterialDO.STATUS_ACTIVE.equals(existing.getStatus())) throw invalid("原上传记录已删除，重新上传须使用新的上传请求");
@@ -129,10 +135,44 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         row.setEntityId(entityId(scope.businessEntityKey()));row.setProjectId(scope.projectId());row.setBusinessTypeCode(model.stableCode());
         row.setTypeCode(scope.deliverableType());row.setMaterialKind(DeliveryMaterialDO.KIND_FILE);row.setSourceIdentityKey(identity);
         row.setFileReferenceId(document.referenceId());row.setFileArtifactId(document.artifactId());row.setFileVersionNo(document.versionNo());
-        row.setFileSha256(document.sha256());row.setFileName(document.name());row.setTitle(document.name());row.setSourceKind(SOURCE);
+        row.setFileSha256(document.sha256());row.setFileName(document.name());row.setTitle(title);row.setSourceKind(sourceKind);
+        if(source!=null){row.setSourceOwnerModule(model.ownerModule());row.setSourceEntityType(model.entityType());row.setSourceEntityId(entityId(source.businessEntityKey()));}
         row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);row.setArchiveStatus(DeliveryMaterialDO.ARCHIVE_NOT_REQUIRED);row.setVersion(0L);
         materials.insert(row);return view(materials.selectById(row.getId()));
     }
+    @Override @Transactional(rollbackFor=Exception.class)
+    public List<Record> copy(Copy request) {
+        if(request==null || request.source()==null || request.target()==null || request.requestKey()==null || !request.requestKey().matches("[A-Za-z0-9_.:-]{1,100}"))throw invalid("复制交付件参数无效");
+        var source=request.source();var target=request.target();
+        if(!Objects.equals(source.projectId(),target.projectId()) || !Objects.equals(source.businessType(),target.businessType())
+                || Objects.equals(source.businessEntityKey(),target.businessEntityKey()) || !Objects.equals(source.deliverableType(),target.deliverableType()))throw invalid("交付件复制必须保持项目和业务类型且使用不同实体键");
+        String authorizationType=source.deliverableType()==null?"ATTACHMENT":source.deliverableType();
+        authorize(new Scope(source.projectId(),source.businessType(),source.businessEntityKey(),authorizationType),false,true);
+        var targetModel=authorize(new Scope(target.projectId(),target.businessType(),target.businessEntityKey(),authorizationType),true,true);
+        var caller=callers.require();var result=new ArrayList<Record>();
+        for(int page=1;;page++) {
+            var records=list(source.projectId(),source.deliverableType(),source.businessType(),source.businessEntityKey(),page,200).getList();
+            for(var record:records) {
+                var document=file(Long.valueOf(record.id()));
+                var api=fileArtifacts.getObject();
+                var fact=api.inspect(new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery(document.artifactId(),document.versionNo(),document.ownerContext(),document.objectType(),document.objectId(),document.purposeCode(),document.referenceKey(),cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes.READ));
+                var scope=new Scope(target.projectId(),target.businessType(),target.businessEntityKey(),record.deliverableType());
+                String object=objectId(targetModel,target.businessEntityKey(),target.projectId());
+                String slot=UUID.nameUUIDFromBytes((caller.userId()+":"+request.requestKey()+":"+record.id()+":"+object).getBytes(StandardCharsets.UTF_8)).toString();
+                var observed=projects.resolveCurrent(new ProjectCurrentScopeQuery(caller.tenantId(),caller.userId(),target.projectId(),ProjectScopeApi.ACTION_MANAGE));
+                if(observed==null || observed.treeVersion()==null)throw invalid("复制目标权限失效");
+                var item=new cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionItem(
+                        new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery(document.artifactId(),document.versionNo(),document.ownerContext(),document.objectType(),document.objectId(),document.purposeCode(),document.referenceKey(),cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes.READ,fact.fileFactVersion(),fact.scopeVersion()),
+                        new cn.iocoder.yudao.module.pms.platform.api.file.dto.ExistingFileReferenceTarget("PLT",FILE_OBJECT_TYPE,object,record.deliverableType(),slot,observed.treeVersion()));
+                api.attachExistingVersions(new cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand("default-copy:"+slot,List.of(item)));
+                var copied=files.inspectReference(new FileEvidenceApi.Reference(caller.tenantId(),"PLT",FILE_OBJECT_TYPE,object,record.deliverableType(),slot));
+                if(copied==null || !copied.available() || !Objects.equals(copied.artifactId(),document.artifactId()) || !Objects.equals(copied.versionNo(),document.versionNo()) || !Objects.equals(copied.sha256(),document.sha256()))throw invalid("复制文件事实不一致");
+                result.add(register(scope,targetModel,copied,DeliveryMaterialDO.SOURCE_ASSOCIATED,record.title(),source));
+            }
+            if(records.size()<200)return List.copyOf(result);
+        }
+    }
+
     @Transactional(readOnly=true)
     public PageResult<Record> list(Long projectId,String deliverableType,String businessType,String businessEntityKey,int pageNo,int pageSize) {
         if(projectId==null || projectId<=0 || pageNo<1 || pageSize<1 || pageSize>200) throw invalid("查询参数不合法");
@@ -188,7 +228,7 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     public Record get(Long id) {return view(require(id,false,false));}
     private DeliveryMaterialDO require(Long id,boolean write,boolean lock) {
         var caller=callers.require();var row=materials.selectById(id);
-        if(row==null || !caller.tenantId().equals(row.getTenantId()) || !SOURCE.equals(row.getSourceKind())) throw invalid("交付件不存在");
+        if(row==null || !caller.tenantId().equals(row.getTenantId()) || !Set.of(SOURCE,DeliveryMaterialDO.SOURCE_ASSOCIATED).contains(row.getSourceKind())) throw invalid("交付件不存在");
         authorize(scope(row),write,lock);
         var document=files.inspectDocument(caller.tenantId(),row.getFileReferenceId());
         if(document==null || !FILE_OBJECT_TYPE.equals(document.objectType()) || !"PLT".equals(document.ownerContext())) throw invalid("材料由原业务管理");

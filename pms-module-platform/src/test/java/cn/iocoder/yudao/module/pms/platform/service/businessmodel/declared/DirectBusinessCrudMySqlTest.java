@@ -104,6 +104,12 @@ class DirectBusinessCrudMySqlTest {
                 new OutboxBusinessEventPort(context.getBean(PlatformTransactionalOutboxWriter.class)),
                 List.of(new PlatformBusinessDeletionGuard(runtime.sessions.getMapper(BusinessDeletionProtectionMapper.class))),()->fixture.deliveries);
         context.getBeanFactory().registerSingleton("directDefaults",ports);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl.class,()->new cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl(
+                context.getBean(cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry.class),
+                context.getBean(cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper.class),context.getBean(cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper.class),
+                context.getBean(cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper.class),context.getBean(cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService.class),null,permissions,null,null,null));
         context.registerBean(NoteService.class);context.registerBean(OtherService.class);context.registerBean(SpecialService.class);
         context.registerBean(cn.iocoder.yudao.module.pms.platform.controller.admin.business.ProjectBusinessDeliveryController.class);
         context.registerBean(NoteController.class);context.registerBean(OtherController.class);context.registerBean(SpecialController.class);
@@ -163,6 +169,24 @@ class DirectBusinessCrudMySqlTest {
         assertThrows(BusinessContractException.class,()->notes.uploadDelivery(first,new DefaultBusinessDeliveryApi.Scope(101L,"IT_DIRECT_NOTE",Long.toString(first),"REPORT"),data,"forged"));
         notes.deleteDelivery(first,Long.valueOf(material.id()),material.version());assertFalse(notes.deliveryCompletion(first,"REPORT").completed());
         assertEquals(ReceiptOutcome.DELETED,notes.delete(first,0L,"delete-after-material").outcome());
+    }
+    @Test void sharedCopyReusesImmutableFileVersionWithDistinctExactReferencesAndMaterialIdentity() throws Exception {
+        long source=createHttp("/api/v1/pms/it-direct-notes","{\"projectId\":99,\"title\":\"source\"}","copy-source");
+        long target=createHttp("/api/v1/pms/it-direct-notes","{\"projectId\":99,\"title\":\"target\"}","copy-target");
+        var data=new DefaultBusinessDeliveryApi.UploadFile("copy.txt","text/plain",5L,()->new java.io.ByteArrayInputStream("copy\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        var original=notes.uploadDelivery(source,"REPORT",data,"copy-upload");
+        var copied=notes.copyDeliveries(source,target,"copy-files");assertEquals(1,copied.size());var row=copied.getFirst();
+        assertEquals(original.fileArtifactId(),row.fileArtifactId());assertEquals(original.fileVersionNo(),row.fileVersionNo());
+        assertNotEquals(original.fileReferenceId(),row.fileReferenceId());assertEquals(Long.toString(target),row.businessEntityKey());assertEquals("ASSOCIATED",row.sourceKind());
+        assertEquals(2,fixture.count("plt_delivery_material"));assertEquals(1,fixture.count("plt_file_version"));
+        assertEquals(copied,notes.copyDeliveries(source,target,"copy-files"));assertEquals(2,fixture.count("plt_delivery_material"));
+        assertTrue(notes.deliveryCompletion(target,"REPORT").completed());
+        var document=notes.deliveryFile(target,Long.valueOf(row.id()));assertTrue(document.objectId().endsWith(":"+target));
+        assertThrows(RuntimeException.class,()->notes.copyDeliveries(source,source,"same"));
+        DefaultBusinessDeliveryMySqlTest.login(7,880002);
+        assertThrows(RuntimeException.class,()->notes.copyDeliveries(source,target,"reader-copy"));
+        assertEquals(2,fixture.count("plt_delivery_material"));
+        DefaultBusinessDeliveryMySqlTest.login(7,880001);
     }
     @Test void specialBusinessOverridesOnlyItsHookAndXmlAndAddsItsOwnApi() throws Exception {
         long id=createHttp("/api/v1/pms/it-direct-specials","{\"projectId\":99,\"title\":\"lower\"}","special-create");

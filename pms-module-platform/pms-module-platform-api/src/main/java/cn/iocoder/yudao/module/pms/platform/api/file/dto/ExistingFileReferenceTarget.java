@@ -35,8 +35,11 @@ public record ExistingFileReferenceTarget(
                 || "SATISFACTION_ATTACHMENT".equals(purposeCode));
         boolean requirementRevision = "SOL".equals(ownerContext) && "REQUIREMENT_ANALYSIS_REVISION".equals(objectType)
                 && purposeCode.startsWith("FORM_FIELD_ATTACHMENT/") && purposeCode.length() > "FORM_FIELD_ATTACHMENT/".length();
-        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision)
-                || !objectId.matches("[1-9][0-9]*")) {
+        boolean inheritedBusiness="PLT".equals(ownerContext) && "DEFAULT_BUSINESS_DELIVERY".equals(objectType)
+                && objectId.matches("[1-9][0-9]*:[A-Za-z][A-Za-z0-9_-]*:[A-Za-z][A-Za-z0-9_-]*:[1-9][0-9]*")
+                && purposeCode.matches("[A-Za-z0-9_.:-]{1,64}");
+        if ((!inheritedBusiness && !requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision)
+                || !inheritedBusiness && !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }
         try {
