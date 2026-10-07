@@ -41,9 +41,8 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         var identity = type.getDeclaredAnnotation(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.ProjectBusinessModel.class);
         if (identity == null) throw invalid("BUSINESS_IDENTITY_REQUIRED", "Entity must define its stable business identity");
         var operations=new ArrayList<>(businessOperations(identity.permissionPrefix()));
-        operations.add(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("save-form",1,"保存表单",
-                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND,identity.permissionPrefix()+":update"));
-        binding = new BusinessEntityBinding<>((Class<E>) type, mapper, operations, this::configureOperations);
+        operations.addAll(defaultOperations(identity.permissionPrefix()));
+        binding = new BusinessEntityBinding<>((Class<E>) type, mapper, operations, this::configureOperations,this::configureCapabilities);
     }
     @Override public final BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
     @Override public final BusinessModelViews.ModelDetailVO model() {
@@ -105,10 +104,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             return inBusinessOperation("save", before, proposed, () -> {
             E locked = lock(id, actor); requireVersion(locked, version);
             if (!binding.values(before).equals(binding.values(locked))) throw invalid("CONCURRENCY_CONFLICT", "Business changed while its scopes were locked");
-            validate(proposed,"save");
-            var nulls = new HashSet<String>(); binding.values(proposed).forEach((name,value) -> { if (value == null) nulls.add(name); });
-            persistUpdate(proposed, actor, version, nulls);
-            afterUpdate(copy(before), copy(proposed));
+            persistBusinessChange(before,proposed,"save");
             return saved(proposed, "save", ReceiptOutcome.SAVED);
             });
         });
@@ -120,7 +116,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             return inBusinessOperation("delete", observed, null, () -> {
             E locked = lock(id, actor); requireVersion(locked, version);
             if (!Objects.equals(observed.getProjectId(), locked.getProjectId())) throw invalid("CONCURRENCY_CONFLICT", "Business project changed");
-            beforeDelete(copy(locked));
+            requireFrameworkDelete(copy(locked));beforeDelete(copy(locked));
             if (defaults.deletionGuards().isEmpty()) throw invalid("DELETE_PROTECTION_UNAVAILABLE", "Shared reference protection is unavailable");
             for (var guard : defaults.deletionGuards()) {
                 guard.requireDeletable(identity(locked), actor);
@@ -139,20 +135,20 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     @Override public final String entityType(){return definition().entityType();}
     @Override public final List<EntityField> fields(){return definition().fields().stream()
             .map(f->new EntityField(f.code(),f.type(),f.required())).toList();}
-    @Override public final Map<String,EntityFieldValue> read(EntityDataRef target,EntityActor caller){
+    @Override public Map<String,EntityFieldValue> read(EntityDataRef target,EntityActor caller){
         requireProviderCaller(target,caller);var row=get(target.entity().entityId());var result=new LinkedHashMap<String,EntityFieldValue>();
         readableValues(row).forEach((key,value)->result.put(key,EntityFieldValue.known(value)));return result;
     }
-    @Override public final void requireReadable(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);get(target.entity().entityId());}
-    @Override public final Long concurrencyBasis(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);return get(target.entity().entityId()).getVersion();}
-    @Override public final boolean usesValidatedExtensionPatch(){return true;}
-    @Override public final void lockForWrite(EntityDataRef target,EntityActor caller,Long expectedVersion){
+    @Override public void requireReadable(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);get(target.entity().entityId());}
+    @Override public Long concurrencyBasis(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);return get(target.entity().entityId()).getVersion();}
+    @Override public boolean usesValidatedExtensionPatch(){return true;}
+    @Override public void lockForWrite(EntityDataRef target,EntityActor caller,Long expectedVersion){
         requireProviderCaller(target,caller);BusinessEntitySaveSupport.requireTransaction();
         defaults.permissions().requireWritable(definition(),caller,"operation:save");
         var observed=current(target.entity().entityId(),caller);defaults.projects().requireWritable(observed.getProjectId(),caller,true);
         inBusinessOperation("save",observed,null,()->{var row=lock(observed.getId(),caller);requireVersion(row,expectedVersion);beforeUpdate(copy(row),copy(row));return null;});
     }
-    private void requireProviderCaller(EntityDataRef target,EntityActor caller){
+    protected final void requireProviderCaller(EntityDataRef target,EntityActor caller){
         var actual=actor();
         if(target==null || caller==null || !Objects.equals(actual.tenantId(),caller.tenantId()) || !Objects.equals(actual.userId(),caller.userId())
                 || target.isRevision() || !Objects.equals(target.entity().tenantId(),actual.tenantId())
@@ -192,6 +188,21 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         });
     }
 
+    protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> defaultOperations(String prefix){
+        return List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("save-form",1,"保存表单",
+                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND,prefix+":update"));
+    }
+    protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding> configureCapabilities(
+            List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding> capabilities){return capabilities;}
+    protected final Class<E> entityClass(){return binding.type;}
+    protected final void patchBusinessFields(E entity,Map<String,Object> values){binding.patch(entity,values);}
+    protected final Map<String,Object> businessValues(E entity){return binding.values(entity);}
+    /** Normal saves and revision activation share the same validation, CAS, explicit-null and persistence hooks. */
+    protected final E persistBusinessChange(E before,E proposed,String operation){
+        checkIdentity(proposed,before);validate(proposed,operation);
+        var nulls=new HashSet<String>();binding.values(proposed).forEach((name,value)->{if(value==null)nulls.add(name);});
+        persistUpdate(proposed,actor(),before.getVersion(),nulls);afterUpdate(copy(before),copy(proposed));return proposed;
+    }
     /** Only additional business actions are listed here; standard CRUD and API enrollment remain inherited. */
     protected java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> businessOperations(String permissionPrefix) {
         return List.of();
@@ -255,6 +266,8 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected void afterCreate(E entity) { }
     protected void beforeUpdate(E current, E proposed) { }
     protected void afterUpdate(E before, E current) { }
+    protected void requireFrameworkDelete(E current) { }
+    protected void validateFramework(E entity,String operation) { }
     protected void beforeDelete(E current) { }
     protected void afterDelete(E deleted) { }
     protected void validateBusiness(E entity) { }
@@ -293,7 +306,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             requireReceiptAccess(existing.receipt(), operation, actor); return existing.receipt();
         });
     }
-    private BusinessOperationReceipt write(String operation, Long id, Long version, Map<String,Object> input,
+    protected final BusinessOperationReceipt write(String operation, Long id, Long version, Map<String,Object> input,
             String key, Function<EntityActor,BusinessOperationReceipt> action) {
         requireKey(key);
         if (id != null && (id <= 0 || version == null || version < 0)) throw invalid("CONCURRENCY_BASIS_REQUIRED", "Update/delete require identity and version");
@@ -332,8 +345,8 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     private OperationExecutionStore.OperationExecutionKey journalKey(EntityActor actor, String key) {
         return new OperationExecutionStore.OperationExecutionKey(actor.tenantId(), "crud:" + definition().ownerModule() + "/" + definition().entityType(), actor.userId(), key);
     }
-    private E current(Long id, EntityActor actor) { E row = mapper.selectById(id); checkRow(row,id,actor);afterRead(row);return row; }
-    private E lock(Long id, EntityActor actor) {
+    protected final E current(Long id, EntityActor actor) { E row = mapper.selectById(id); checkRow(row,id,actor);afterRead(row);return row; }
+    protected final E lock(Long id, EntityActor actor) {
         E row = binding.type.cast(DeclaredBusinessCurrentRows.lock(binding.mapping, new DeclaredCurrentRowQuery(actor.tenantId(), id)));
         checkRow(row,id,actor);afterRead(row);return row;
     }
@@ -348,16 +361,17 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     private void requireProject(E entity) {
         if (entity.getProjectId() == null || entity.getProjectId() <= 0) throw invalid("PROJECT_REQUIRED", "Business project is required");
     }
-    private void requireVersion(E row, Long version) {
+    protected final void requireVersion(E row, Long version) {
         if (version == null || !version.equals(row.getVersion())) throw invalid("CONCURRENCY_CONFLICT", "Business concurrency basis is stale");
     }
-    private void validate(E entity,String operation) {
+    protected final void validate(E entity,String operation) {
         var violations = defaults.validator().validate(entity,validationGroups(entity));
         if (!violations.isEmpty()) throw invalid("ENTITY_CONSTRAINT_INVALID", violations.stream().map(v -> v.getPropertyPath() + ": " + v.getMessage()).sorted().toList().toString());
-        validateBusiness(copy(entity),operation);
+        validateFramework(copy(entity),operation);validateBusiness(copy(entity),operation);
     }
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void persistUpdate(E entity, EntityActor actor, Long version, Set<String> nulls) {
+    protected final void persistUpdate(E entity, EntityActor actor, Long version, Set<String> nulls) {
+        entity.setUpdater(actor.userId().toString());entity.setUpdateTime(java.time.LocalDateTime.now());
         DeclaredBusinessEntityWriter.update((com.baomidou.mybatisplus.core.mapper.BaseMapper) mapper, entity, actor.tenantId(), version, nulls);
     }
     private Map<String,Object> inputValues(E source, Set<String> selected) {
@@ -368,9 +382,9 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         binding.create(values); // validate the same field/type whitelist for typed service callers
         return Collections.unmodifiableMap(values);
     }
-    private E copy(E source) { return BusinessEntityCopies.copy(source); }
+    protected final E copy(E source) { return BusinessEntityCopies.copy(source); }
     protected final EntityActor actor() { var caller = defaults.callers().require(); return new EntityActor(caller.tenantId(), caller.userId(), caller.entryCorrelationId()); }
-    private EntityRef identity(E entity) { return new EntityRef(entity.getTenantId(), definition().ownerModule(), definition().entityType(), entity.getId()); }
+    protected final EntityRef identity(E entity) { return new EntityRef(entity.getTenantId(), definition().ownerModule(), definition().entityType(), entity.getId()); }
     private BusinessOperationReceipt saved(E entity, String operation, ReceiptOutcome outcome) {
         return new BusinessOperationReceipt(outcome, identity(entity), entity.getVersion(), List.of(), null, null, operation, operationVersion(operation));
     }

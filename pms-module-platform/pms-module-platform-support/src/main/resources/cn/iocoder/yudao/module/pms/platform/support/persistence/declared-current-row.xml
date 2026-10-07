@@ -22,4 +22,16 @@
         WHERE id = #{entityId} AND tenant_id = #{tenantId} AND version = #{expectedVersion}
         @logicDelete@
     </update>
+    <!-- Revision numbering includes retained soft-deleted history. Invoked only for a bound revision Mapper. -->
+    <select id="__pmsMaxRevisionNo" resultType="java.lang.Integer" useCache="false" flushCache="true">
+        SELECT revision_no FROM @table@
+        WHERE tenant_id = #{tenantId} AND entity_id = #{entityId}
+        ORDER BY revision_no DESC LIMIT 1 FOR UPDATE
+    </select>
+    <select id="__pmsActiveRevisionsForUpdate" resultMap="@resultMap@" useCache="false" flushCache="true">
+        SELECT @columns@ FROM @table@
+        WHERE tenant_id = #{tenantId} AND entity_id = #{entityId}
+        @logicDelete@
+        ORDER BY id FOR UPDATE
+    </select>
 </mapper>

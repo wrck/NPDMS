@@ -28,6 +28,13 @@ public final class DeclaredBusinessCurrentRows {
         if (session(declaration).update(namespace(declaration) + ".__pmsDeleteCurrentEntity", command) != 1)
             throw new BusinessContractException("CONCURRENCY_CONFLICT", "Delete concurrency basis changed");
     }
+    public static java.util.List<BaseBusinessEntity> activeRevisionsForUpdate(BusinessModelDeclaration declaration,DeclaredCurrentRowQuery query) {
+        return session(declaration).selectList(namespace(declaration)+".__pmsActiveRevisionsForUpdate",query);
+    }
+    public static int maxRevisionNo(BusinessModelDeclaration declaration,DeclaredCurrentRowQuery query) {
+        Integer value=session(declaration).selectOne(namespace(declaration)+".__pmsMaxRevisionNo",query);
+        return value==null?0:value;
+    }
     private static String namespace(BusinessModelDeclaration declaration) {
         Object mapper = AopProxyUtils.getSingletonTarget(declaration.mapper());
         if (mapper == null) mapper = declaration.mapper();

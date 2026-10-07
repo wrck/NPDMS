@@ -11,7 +11,7 @@ final class BusinessEntityBinding<E extends BaseProjectBusinessEntity> {
     final Class<E> type;
     final BusinessModelDeclaration mapping;
     final List<BusinessModelIntrospector.IntrospectedField> fields;
-    BusinessEntityBinding(Class<E> type, BusinessMapper<E> mapper, List<BusinessOperationDescriptor> operations, java.util.function.UnaryOperator<List<BusinessOperationDescriptor>> configureOperations) {
+    BusinessEntityBinding(Class<E> type, BusinessMapper<E> mapper, List<BusinessOperationDescriptor> operations, java.util.function.UnaryOperator<List<BusinessOperationDescriptor>> configureOperations, java.util.function.UnaryOperator<List<BusinessCapabilityBinding>> configureCapabilities) {
         this.type = type;
         var annotation = type.getDeclaredAnnotation(ProjectBusinessModel.class);
         if (annotation == null) throw new BusinessContractException("BUSINESS_IDENTITY_REQUIRED", "Business entity must define its own stable identity");
@@ -20,7 +20,7 @@ final class BusinessEntityBinding<E extends BaseProjectBusinessEntity> {
         var descriptor=initial.descriptor();
         var configured=new BusinessModelDescriptor(descriptor.ownerModule(),descriptor.entityType(),descriptor.stableCode(),descriptor.contractVersion(),
                 descriptor.kind(),descriptor.title(),descriptor.authorizationPolicyRef(),descriptor.fields(),descriptor.relations(),
-                List.copyOf(configureOperations.apply(descriptor.operations())),descriptor.capabilities(),descriptor.viewCode(),descriptor.scopeBinding());
+                List.copyOf(configureOperations.apply(descriptor.operations())),List.copyOf(configureCapabilities.apply(descriptor.capabilities())),descriptor.viewCode(),descriptor.scopeBinding());
         mapping=new BusinessModelDeclaration(configured,type,mapper,null,annotation.nativeEntityType().isBlank()?null:annotation.nativeEntityType());
         for (String identity : List.of(annotation.ownerModule(), annotation.entityType(), annotation.stableCode()))
             if (!identity.matches("[A-Za-z][A-Za-z0-9_-]{0,127}"))
