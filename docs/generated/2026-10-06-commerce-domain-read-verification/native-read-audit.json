@@ -1,0 +1,211 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "models": [
+    "COM/contract",
+    "COM/salesOrder"
+  ],
+  "scope": {
+    "source": "ContractAccessService keeps currentAccessScope/currentCompanyCodes/currentProjectIds semantics; bounded root methods added. Native XML scope predicate reused locally across page/detail/keyset reads.",
+    "rules": [
+      "Current company codes come only from OrganizationScopeApi rows with non-null id/version and nonblank companyCode.",
+      "Company code comparisons remain binary exact; directory company scope does not additionally restrict by department.",
+      "Company entitlement OR native current ACTIVE project-contract relation; orders use existing order-contract/project-contract joins.",
+      "Empty combined scope closes. One unavailable scope source does not erase a separate native authorized path.",
+      "Native service called again on each read/list page; no positive scope caching."
+    ]
+  },
+  "projection": {
+    "contract": "Intersect current model catalog with ContractRespVO. contractType/customerCode/customerName/contractAmount/currencyCode masked to null unless pms:commerce:contract:sensitive-read. Extra raw catalog/source fields omitted.",
+    "salesOrder": "Intersect current model catalog with independent SalesOrderRespVO. Customer fields retain native independent-list behavior; orderAmount/currencyCode/internal source key and other unprojected fields omitted even for sensitive reader.",
+    "detail": "One native scoped-by-ID root query; no pre-authorization existence lookup. Contract detail service reuses getContractRoot and keeps its existing related-data behavior. Common root reader does not load related aggregates. Hidden/foreign/nonexistent IDs all produce the same ENTITY_SCOPE_DENIED diagnostic.",
+    "filters": "Only native public fields; hidden sensitive filters rejected. Supported EQ/NE/IN/LIKE(literal contains)/IS_NULL/NOT_NULL evaluated on authorized projected rows. Numeric EQ/IN ignore decimal scale; GT/GTE/LT/LTE rejected. Empty IN returns no matches."
+  },
+  "sharedExtension": "Existing BusinessEntityContentReader now opt-in supportsQueries/query; defaults preserve existing read-only implementations. DefaultBusinessEntityAccess routes read/query/collection target to unique source. One commerce component serves both roots and delegates authorization to shared guard and native service.",
+  "cursor": "Entity-bound native:<type>:<id>:<base64url(code)> keyset in native code collation and id tie order. One SELECT, LIMIT 201; inspect at most 200 authorized roots, return at most requested <=200 members. Sparse empty PARTIAL slices carry an advancing cursor. No COUNT or internal page loop. Scope is re-resolved on every request. Not a concurrent snapshot; ordering-code edits or inserts before cursor are not covered.",
+  "nativeSources": [
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadService.java",
+      "sha256": "a3b820c96d2db51fcbcfc0aac855b7288afe8c81ec97d2c8cc7167015353604d",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java",
+      "sha256": "577f1107cee9af76b5c82ec9d52269e4a65a1186d37469391ca6fc5d54f5a672",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractRespVO.java",
+      "sha256": "7dc12dc29f086ca809b97f1b20ff759c97278cc02124ba0d7ddd1118d8c8d12d",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/order/OrderController.java",
+      "sha256": "33f60ca03616103d6c981e25ba60f91215ad84833f8217fafce9ff30f4264365",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/order/vo/SalesOrderRespVO.java",
+      "sha256": "9ad1ee6e75da529f864c01a64dc5c093087932360b18a1fc0ab96287936bde41",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/ContractDO.java",
+      "sha256": "1775fef8ffb6c87c363b6197682dc7a52b3527608e24ba7e5fb72a03a2c4aabb",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/order/SalesOrderDO.java",
+      "sha256": "cc313f9e32d5f9717d78fa2d369eeb42e69a849c49aca9ca51ad99e3071ee2f6",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ContractMapper.java",
+      "sha256": "af190ded7937581207e94aefc40b6daca436925d415b07d6b915d3e1c99faa32",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/query/ContractRootReadPageQuery.java",
+      "sha256": "9b2409b1aa8cdaf55bb7576c8b4b17c121ddd99aca0bd9f5be0718d119b40923",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java",
+      "sha256": "709de0c60438d6e8e0ce8432ac144621cef50c21f70a50da112586cacfa64fb7",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderDetailScopeQuery.java",
+      "sha256": "d93255d469018a477502c1ecf56fabd228a39a54ef64c6568836f61b77b8f800",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderRootReadPageQuery.java",
+      "sha256": "c2ff688c38db7220720015927646803e3dafd12249af992d890c44f3c0a81bb0",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "sha256": "cedfa4be28159849dac89db665aa52c63ee94b55ca8525546c59a5e997f1b096",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessEntityContentReader.java",
+      "sha256": "2c0f593ff45eee16d5c11f690f35c2991598b66aa901ceb518ed6ad60e70151f",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+      "sha256": "d7db70fcf3398406c9ff8617eafa390795561601cf018d15812e631f3fb83f73",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml",
+      "sha256": "dad899b134aa2dc3560ea67bc3451ae21bed6df874022be629e440a07d0a07f9",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/contract/ProjectContractRelationMapper.xml",
+      "sha256": "eb0652f664b45d19fad4aacc462f0c388458c2b8983f89a5e542569dbb13e077",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "sha256": "2f0d9d570e74ceb57eafad5d960d3bca78c5e4a2d472008817fc69e75378f82d",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityContentReader.java",
+      "sha256": "d982427554b40fea281c64ffb9395b0e970f9ff2d0537f3fc3d1e19db0f6afd5",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "sha256": "2d242d3d0bb24e7922863c9f91241ff9d9009ac2c5a5320ddda3b8079d53bfd2",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/model/BusinessModelIntrospector.java",
+      "sha256": "08655cb98e410262547477ffbecd4f9a6592ea73d27098bff7a7f60468f25de5",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessModelContractAdvice.java",
+      "sha256": "8642b5a7e55ba4931fdedc36375ec97d55f64b4d0b32a8cc87fcf777c2d5da99",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/BusinessModelAccessConfiguration.java",
+      "sha256": "c0fb1d42a39aa978673def8bd2f76b76eb592bec5a4451c5498371cf30151c27",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/PermissionBusinessAccessGuard.java",
+      "sha256": "d74d10c9f3b099f3fb8ead03739e84d08dc89fcb0f892f41a04c6c5dadaae4e3",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/ProviderBusinessEntityContentReader.java",
+      "sha256": "e3afdb6640dfa9fa3ccb52e5ed0c09fdd088320dcba1f7a0738c029b2e434bb4",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/scope/ProjectScopeApiImpl.java",
+      "sha256": "5a952d0656d02a549bcbd61fc7e2e29f7c0a9385a6a5a16256e6774b6d891a1b",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectauthorization/ProjectAuthorizationController.java",
+      "sha256": "b973331805465c31eebc872543d4678607d2c5650f9e19fb86dbbaef1edaf4ec",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java",
+      "sha256": "6ea20e3ca92e45b94af37609fe01303189d52f365360e65744a250e07f35f613",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/OrganizationScopeApiImpl.java",
+      "sha256": "6f14cd4c8ee71502918bc76d60754427bfe7a8f7a6208db22e1cd3056229c3c5",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApiImpl.java",
+      "sha256": "caf7c36b86f2b7c645f63ffaaf6e1f2ff2268a75e24ed4b99597a735e4e6efc4",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/controller/admin/permission/PermissionController.java",
+      "sha256": "79fb35fcecc6cabc38032c33b2b229399b34034586447521268167d703b36f38",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/MenuServiceImpl.java",
+      "sha256": "19962f10b85461f5672c6f385eb8c7db0dd6a16384373bbb144f9170bcd57612",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/PermissionServiceImpl.java",
+      "sha256": "2118ef8b4a5e7ab1ad8fedf8789ea23d7a77d834c66d5a821d173b6d0fa3a1f5",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/RoleServiceImpl.java",
+      "sha256": "ace50b0b1970ac7f335198fae35810d685f68040650614cb6a1c4725a0ac2bc9",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    }
+  ],
+  "notRun": [
+    "整个后端测试树及79模型全量验收",
+    "前端/真实浏览器",
+    "全部存量Owner适配、默认运行视图和统一交付件桥接的整体验收",
+    "真实生产历史/生产库/部署/合并/提交/推送",
+    "生产负载、并发翻页及排序编码修改期间的快照一致性",
+    "完整迁移链：受原始V374第72行排序规则冲突阻塞"
+  ],
+  "finalGapEvidence": {
+    "combinedScopeHttp": "Seven actual both-model stages in finalTwoGaps; company-only/project-only/overlap, both masked/allowed, each route revoked, both routes revoked; same bearer.",
+    "physicalScan": "First9950 forbidden rows then50 visible rows. First plan is idx_sales_order_no tenant index lookup of10005 rows followed by BINARY company filter; following keysets scan38/21. LIMIT201 bounds rows sent, not rows examined.",
+    "sourceChanges": "No production changes after independent24 review; only test script/evidence increment."
+  },
+  "performanceRecommendation": "Keep current authorization predicates. Before any separately authorized optimization, benchmark native data distributions and evaluate forward index/query plans that preserve binary company matching and project OR semantics. No production indexes or historical migrations were changed."
+}

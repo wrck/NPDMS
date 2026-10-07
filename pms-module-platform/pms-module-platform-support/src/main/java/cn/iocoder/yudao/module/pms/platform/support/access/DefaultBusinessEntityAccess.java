@@ -96,9 +96,8 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
         actor.requireTenant(ref.entity());
         var descriptor = catalog.require(ref.entity().ownerModule(), ref.entity().entityType());
         guard.requireReadable(descriptor, actor, sceneCode);
-        var readers=contentReaders.stream().filter(reader -> reader.supports(descriptor.ownerModule(),descriptor.entityType())).toList();
-        if (readers.size()>1) throw new BusinessContractException("CONTENT_READER_CONFLICT", "业务内容读取来源必须唯一");
-        if (readers.size()==1) return readers.getFirst().read(ref,actor);
+        var reader = contentReader(descriptor);
+        if (reader != null) return reader.read(ref, actor);
         scopePolicies.stream().filter(p -> p.supports(descriptor.ownerModule(), descriptor.entityType()))
                 .forEach(p -> p.requireReadable(ref.entity(), actor));
         BusinessModelDeclaration declaration = persistence.require(
@@ -134,6 +133,8 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
         guard.requireReadable(descriptor, actor, query.sceneCode());
         BusinessModelDeclaration declaration = persistence.require(query.ownerModule(), query.entityType());
         requireReadableFilters(descriptor, query.filters());
+        var reader = contentReader(descriptor);
+        if (reader != null && reader.supportsQueries()) return reader.query(query, actor);
         List<?> rows = select(declaration, actor.tenantId(), scopedFilters(descriptor, actor, query.filters()), query.pageSize(), query.cursor());
         return slice(declaration, rows, query.pageSize(), actor);
     }
@@ -154,8 +155,21 @@ public class DefaultBusinessEntityAccess implements BusinessEntityAccessPort, Bu
                 ? List.of() : query.scopeFilters());
         scope.add(new BusinessFieldFilter(relation.targetJoinFieldCode(),
                 BusinessFieldFilter.Operator.EQ, List.of(query.entityId())));
+        var reader = contentReader(targetDeclaration.descriptor());
+        if (reader != null && reader.supportsQueries())
+            return reader.query(new BusinessEntityPageQuery("collection:" + query.relationCode(),
+                    relation.targetOwnerModule(), relation.targetEntityType(), scope, query.pageSize(), query.cursor()), actor);
         List<?> rows = select(targetDeclaration, actor.tenantId(), scopedFilters(targetDeclaration.descriptor(), actor, scope), query.pageSize(), query.cursor());
         return slice(targetDeclaration, rows, query.pageSize(), actor);
+    }
+
+    private cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityContentReader contentReader(
+            BusinessModelDescriptor descriptor) {
+        var readers = contentReaders.stream()
+                .filter(reader -> reader.supports(descriptor.ownerModule(), descriptor.entityType())).toList();
+        if (readers.size() > 1)
+            throw new BusinessContractException("CONTENT_READER_CONFLICT", "业务内容读取来源必须唯一");
+        return readers.isEmpty() ? null : readers.getFirst();
     }
 
     private void requirePageSize(int size) {

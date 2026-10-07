@@ -95,12 +95,9 @@
         FOR UPDATE
     </select>
 
-    <select id="selectByCompanyScope"
-            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
-        SELECT c.*
-        FROM com_contract c
-        WHERE c.tenant_id = #{query.tenantId}
-          AND c.deleted = 0
+    <sql id="rootReadScope">
+        <choose>
+          <when test="(query.companyCodes != null and !query.companyCodes.isEmpty()) or (query.projectIds != null and !query.projectIds.isEmpty())">
           AND (
           <if test="query.companyCodes != null and query.companyCodes.size() > 0">
             CAST(c.company_code AS BINARY) IN
@@ -115,6 +112,18 @@
                       <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>)
           </if>
           )
+          </when>
+          <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectByCompanyScope"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
+        SELECT c.*
+        FROM com_contract c
+        WHERE c.tenant_id = #{query.tenantId}
+          AND c.deleted = 0
+          <include refid="rootReadScope"/>
         <if test="query.contractNo != null and query.contractNo != ''">
           AND contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
         </if>
@@ -145,20 +154,7 @@
         WHERE c.tenant_id = #{query.tenantId}
           AND c.id = #{query.contractId}
           AND c.deleted = 0
-          AND (
-          <if test="query.companyCodes != null and query.companyCodes.size() > 0">
-            CAST(c.company_code AS BINARY) IN
-            <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">CAST(#{companyCode} AS BINARY)</foreach>
-          </if>
-          <if test="query.companyCodes != null and query.companyCodes.size() > 0 and query.projectIds != null and query.projectIds.size() > 0"> OR </if>
-          <if test="query.projectIds != null and query.projectIds.size() > 0">
-            EXISTS (SELECT 1 FROM com_project_contract_relation pcr
-                    WHERE pcr.tenant_id = c.tenant_id AND pcr.contract_id = c.id
-                      AND pcr.deleted = 0 AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL
-                      AND pcr.project_id IN
-                      <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>)
-          </if>
-          )
+          <include refid="rootReadScope"/>
         LIMIT 1
     </select>
 
@@ -167,20 +163,7 @@
         FROM com_contract c
         WHERE c.tenant_id = #{query.tenantId}
           AND c.deleted = 0
-          AND (
-          <if test="query.companyCodes != null and query.companyCodes.size() > 0">
-            CAST(c.company_code AS BINARY) IN
-            <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">CAST(#{companyCode} AS BINARY)</foreach>
-          </if>
-          <if test="query.companyCodes != null and query.companyCodes.size() > 0 and query.projectIds != null and query.projectIds.size() > 0"> OR </if>
-          <if test="query.projectIds != null and query.projectIds.size() > 0">
-            EXISTS (SELECT 1 FROM com_project_contract_relation pcr
-                    WHERE pcr.tenant_id = c.tenant_id AND pcr.contract_id = c.id
-                      AND pcr.deleted = 0 AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL
-                      AND pcr.project_id IN
-                      <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>)
-          </if>
-          )
+          <include refid="rootReadScope"/>
         <if test="query.contractNo != null and query.contractNo != ''">
           AND contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
         </if>
@@ -211,4 +194,17 @@
           AND deleted = 0
         FOR UPDATE
     </select>
+    <select id="selectRootReadPage"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
+        SELECT c.* FROM com_contract c
+        WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0
+        <include refid="rootReadScope"/>
+        <if test="query.afterId != null">
+          AND (c.contract_no &gt; #{query.afterCode}
+            OR (c.contract_no = #{query.afterCode} AND c.id &gt; #{query.afterId}))
+        </if>
+        ORDER BY c.contract_no, c.id
+        LIMIT #{query.limit}
+    </select>
+
 </mapper>

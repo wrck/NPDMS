@@ -16,6 +16,8 @@ public interface SalesOrderMapper extends BaseMapperX<SalesOrderDO> {
     SalesOrderDO selectBySourceForUpdate(@Param("query") AuthoritySourceLockQuery query);
     List<SalesOrderDO> selectByCompanyScope(@Param("query") SalesOrderCompanyScopeQuery query);
     Long selectCountByCompanyScope(@Param("query") SalesOrderCompanyScopeQuery query);
+    SalesOrderDO selectDetailByCompanyScope(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderDetailScopeQuery query);
+    List<SalesOrderDO> selectRootReadPage(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderRootReadPageQuery query);
     List<SalesOrderDO> selectRelatedByContract(@Param("query") ContractRelatedOrderQuery query);
     List<SalesOrderDO> selectCreationOrdersByContract(@Param("query") ContractCreationOrderQuery query);
 }
