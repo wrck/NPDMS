@@ -1,4 +1,5 @@
 -- Project-owned, read-only DPPMS evidence. No lifecycle, member, approval, file or delivery writes.
+-- V400 is already used by the domain-test migration lineage; this is a new forward migration.
 CREATE TABLE IF NOT EXISTS proj_legacy_detail_source (
   id BIGINT NOT NULL PRIMARY KEY, tenant_id BIGINT NOT NULL, project_id BIGINT NOT NULL,
   source_system VARCHAR(32) COLLATE utf8mb4_bin NOT NULL,

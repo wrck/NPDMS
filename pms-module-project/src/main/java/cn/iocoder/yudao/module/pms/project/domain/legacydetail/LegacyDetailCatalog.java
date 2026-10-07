@@ -1,8 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.domain.legacydetail;
 
 import cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.core.type.TypeReference;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import java.util.*;
@@ -17,7 +17,7 @@ public class LegacyDetailCatalog {
     private final Map<String, Domain> byCode;
     public LegacyDetailCatalog() {
         try (var input = new ClassPathResource("projectlegacy/dppms-detail-domains.json").getInputStream()) {
-            domains = List.copyOf(new ObjectMapper().readValue(input, new TypeReference<List<Domain>>() {}));
+            domains = List.copyOf(JsonUtils.parseObject(input.readAllBytes(), new TypeReference<List<Domain>>() {}.getType()));
             var map = new LinkedHashMap<String, Domain>();
             for (var domain : domains) {
                 if (map.put(domain.code(), domain) != null) throw new IllegalStateException("Duplicate legacy domain");

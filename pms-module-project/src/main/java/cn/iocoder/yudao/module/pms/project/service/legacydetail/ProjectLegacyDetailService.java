@@ -11,7 +11,7 @@ import cn.iocoder.yudao.module.pms.project.domain.legacydetail.*;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -91,11 +91,11 @@ public class ProjectLegacyDetailService {
         validateActor(actor);projects.getProject(projectId,actor);
         return mapper.selectProjectSources(new ProjectSourcesQuery(actor.tenantId(),projectId)).stream().map(source->{
             var snap=mapper.selectSnapshot(new SnapshotQuery(actor.tenantId(),source.getCurrentSnapshotId()));
-            if(snap==null) throw invalidParamException("LEGACY_HEAD_UNAVAILABLE");
+            if(snap==null || !Objects.equals(snap.getSourceId(),source.getId())) throw invalidParamException("LEGACY_HEAD_UNAVAILABLE");
             return new SourceView(source.getId(),"DPPMS",source.getSourceProjectKey(),source.getSourceContractNo(),snap.getId(),
                     snap.getChecksum(),snap.getSourceReadAt().toString(),snap.getCapturedAt().toString(),
                     JsonUtils.parseObject(snap.getDomainCountsJson(),new TypeReference<Map<String,Integer>>(){}),
-                    catalog.domains(),List.of("旧交付件及附件：用户明确暂不同步"));
+                    catalog.domains(),List.of("旧交付件及附件暂未同步"));
         }).toList();
     }
 
@@ -103,7 +103,7 @@ public class ProjectLegacyDetailService {
                                           String sourceKey,String parentDomain,String parentKey,
                                           int pageNo,int pageSize,ProjectAccessActor actor) {
         validateActor(actor);projects.getProject(projectId,actor);catalog.require(domain);
-        if (pageNo<1 || pageSize<1 || pageSize>100) fail("LEGACY_PAGE_INVALID");
+        if (pageNo<1 || pageSize<1 || pageSize>100 || (long)(pageNo-1)*pageSize>Integer.MAX_VALUE) fail("LEGACY_PAGE_INVALID");
         var source=mapper.selectProjectSources(new ProjectSourcesQuery(actor.tenantId(),projectId)).stream()
                 .filter(x->Objects.equals(x.getId(),sourceId)).findFirst().orElseThrow(()->invalidParamException("LEGACY_SOURCE_INACCESSIBLE"));
         var snapshot=mapper.selectSnapshot(new SnapshotQuery(actor.tenantId(),snapshotId==null?source.getCurrentSnapshotId():snapshotId));

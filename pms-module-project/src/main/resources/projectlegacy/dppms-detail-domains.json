@@ -2562,5 +2562,509 @@
         "label": "更新人"
       }
     ]
+  },
+  {
+    "code": "shipment-logistics",
+    "label": "来源发货物流",
+    "group": "设备与软件",
+    "sourceTable": "view_shipment_ems_4_pm",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "contract_code",
+        "label": "合同号"
+      },
+      {
+        "key": "receiveName",
+        "label": "收货人"
+      },
+      {
+        "key": "emsNum",
+        "label": "运单号"
+      },
+      {
+        "key": "emsCompany",
+        "label": "承运商"
+      },
+      {
+        "key": "packdate",
+        "label": "发货日期"
+      },
+      {
+        "key": "packId",
+        "label": "发货包编号"
+      }
+    ]
+  },
+  {
+    "code": "shipment-products",
+    "label": "来源发货产品及子设备",
+    "group": "设备与软件",
+    "sourceTable": "view_shipment_info_4_pm",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "contract_code",
+        "label": "合同号"
+      },
+      {
+        "key": "packId",
+        "label": "发货包编号"
+      },
+      {
+        "key": "barcode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "itemCode",
+        "label": "产品编码"
+      },
+      {
+        "key": "itemModel",
+        "label": "产品型号"
+      },
+      {
+        "key": "itemName",
+        "label": "产品名称"
+      },
+      {
+        "key": "barcode2",
+        "label": "子设备序列号"
+      },
+      {
+        "key": "itemCode2",
+        "label": "子产品编码"
+      },
+      {
+        "key": "itemModel2",
+        "label": "子产品型号"
+      },
+      {
+        "key": "itemName2",
+        "label": "子产品名称"
+      },
+      {
+        "key": "profitCenter",
+        "label": "利润中心"
+      }
+    ]
+  },
+  {
+    "code": "warranties",
+    "label": "来源维保信息",
+    "group": "设备与软件",
+    "sourceTable": "view_warranty",
+    "keyField": "newId",
+    "fields": [
+      {
+        "key": "newId",
+        "label": "来源唯一编号"
+      },
+      {
+        "key": "id",
+        "label": "来源发货编号"
+      },
+      {
+        "key": "contract_code",
+        "label": "合同号"
+      },
+      {
+        "key": "barcode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "comBarCode",
+        "label": "组合设备序列号"
+      },
+      {
+        "key": "item",
+        "label": "产品编码"
+      },
+      {
+        "key": "itemName",
+        "label": "产品名称"
+      },
+      {
+        "key": "describe_",
+        "label": "产品描述"
+      },
+      {
+        "key": "gradeName",
+        "label": "服务等级"
+      },
+      {
+        "key": "gradeCode",
+        "label": "服务等级编码"
+      },
+      {
+        "key": "packdate",
+        "label": "发货日期"
+      },
+      {
+        "key": "warranty",
+        "label": "维保内容"
+      },
+      {
+        "key": "warrantyMonth",
+        "label": "维保月数"
+      },
+      {
+        "key": "warrantyStartTime",
+        "label": "维保开始时间"
+      },
+      {
+        "key": "warrantyEndTime",
+        "label": "维保结束时间"
+      },
+      {
+        "key": "old_warrantyStartTime",
+        "label": "原维保开始时间"
+      },
+      {
+        "key": "old_warrantyEndTime",
+        "label": "原维保结束时间"
+      },
+      {
+        "key": "diff",
+        "label": "维保剩余天数"
+      },
+      {
+        "key": "old_diff",
+        "label": "原剩余天数"
+      },
+      {
+        "key": "contract_type",
+        "label": "合同类型编码"
+      },
+      {
+        "key": "contract_type_name",
+        "label": "合同类型"
+      },
+      {
+        "key": "project_name",
+        "label": "来源项目名称"
+      },
+      {
+        "key": "customer_name",
+        "label": "购货方"
+      },
+      {
+        "key": "finalCustomerName",
+        "label": "来源最终客户名称"
+      },
+      {
+        "key": "agentName",
+        "label": "代理商"
+      },
+      {
+        "key": "office_code",
+        "label": "办事处编码"
+      },
+      {
+        "key": "office_name",
+        "label": "办事处"
+      },
+      {
+        "key": "marketCode",
+        "label": "市场部编码"
+      },
+      {
+        "key": "marketName",
+        "label": "市场部"
+      },
+      {
+        "key": "systemId",
+        "label": "系统部编号"
+      },
+      {
+        "key": "systemName",
+        "label": "系统部"
+      },
+      {
+        "key": "barcode2",
+        "label": "子设备序列号"
+      },
+      {
+        "key": "item2",
+        "label": "子产品编码"
+      },
+      {
+        "key": "describe_2",
+        "label": "子产品描述"
+      },
+      {
+        "key": "itemName2",
+        "label": "子产品名称"
+      },
+      {
+        "key": "syncTime",
+        "label": "来源同步时间"
+      }
+    ]
+  },
+  {
+    "code": "device-relations",
+    "label": "来源主子设备关系",
+    "group": "设备与软件",
+    "sourceTable": "fb_shipment_barcode_relation",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源关系编号"
+      },
+      {
+        "key": "sn1",
+        "label": "主设备序列号"
+      },
+      {
+        "key": "item1",
+        "label": "主产品编码"
+      },
+      {
+        "key": "sn2",
+        "label": "子设备序列号"
+      },
+      {
+        "key": "item2",
+        "label": "子产品编码"
+      },
+      {
+        "key": "contract",
+        "label": "合同号"
+      },
+      {
+        "key": "createtime",
+        "label": "创建时间"
+      },
+      {
+        "key": "updatetime",
+        "label": "更新时间"
+      }
+    ]
+  },
+  {
+    "code": "factory-versions",
+    "label": "来源出厂软件版本",
+    "group": "设备与软件",
+    "sourceTable": "fb_soft_version",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "serial_number",
+        "label": "设备序列号"
+      },
+      {
+        "key": "conp",
+        "label": "CONP版本"
+      },
+      {
+        "key": "cpld",
+        "label": "CPLD版本"
+      },
+      {
+        "key": "boot",
+        "label": "BOOT版本"
+      },
+      {
+        "key": "pcb",
+        "label": "PCB版本"
+      }
+    ]
+  },
+  {
+    "code": "questionnaire-templates",
+    "label": "历史问卷模板",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_quesnaire_template_header",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原问卷模板编号"
+      },
+      {
+        "key": "questionnaireTemplateNum",
+        "label": "模板编码"
+      },
+      {
+        "key": "questionnaireTemplateName",
+        "label": "模板名称"
+      },
+      {
+        "key": "questionnaireScore",
+        "label": "总分"
+      },
+      {
+        "key": "questionnairePassScore",
+        "label": "合格分数"
+      },
+      {
+        "key": "questionnaireStatus",
+        "label": "原模板状态"
+      },
+      {
+        "key": "quesType",
+        "label": "问卷类型"
+      },
+      {
+        "key": "markIndexs",
+        "label": "评分指标"
+      },
+      {
+        "key": "effectiveStartTime",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveEndTime",
+        "label": "失效时间"
+      },
+      {
+        "key": "createdTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
+        "key": "updatedTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updatedPerson",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "questionnaire-questions",
+    "label": "历史问卷题目",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_quesnaire_template_line",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原题目编号"
+      },
+      {
+        "key": "questionContent",
+        "label": "题目内容"
+      },
+      {
+        "key": "questionNum",
+        "label": "题号"
+      },
+      {
+        "key": "questionRemark",
+        "label": "题目说明"
+      },
+      {
+        "key": "quesnaireTemplateHeaderId",
+        "label": "原问卷模板编号"
+      },
+      {
+        "key": "questionType",
+        "label": "题目类型"
+      },
+      {
+        "key": "questionTypeForCB",
+        "label": "回访题目类型"
+      },
+      {
+        "key": "questionScore",
+        "label": "题目分数"
+      },
+      {
+        "key": "questionStatus",
+        "label": "原题目状态"
+      },
+      {
+        "key": "effectiveStartTime",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveEndTime",
+        "label": "失效时间"
+      },
+      {
+        "key": "createdTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
+        "key": "updatedTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updatedPerson",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "questionnaire-options",
+    "label": "历史问卷选项",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_quesnaire_template_options",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原选项编号"
+      },
+      {
+        "key": "questionOptionsContent",
+        "label": "选项内容"
+      },
+      {
+        "key": "questionOptionNum",
+        "label": "选项序号"
+      },
+      {
+        "key": "questionOptionScore",
+        "label": "选项分数"
+      },
+      {
+        "key": "questionId",
+        "label": "原题目编号"
+      },
+      {
+        "key": "quesnaireTemplateHeaderId",
+        "label": "原问卷模板编号"
+      },
+      {
+        "key": "quesLineType",
+        "label": "原选项类型"
+      },
+      {
+        "key": "effectiveStartTime",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveEndTime",
+        "label": "失效时间"
+      },
+      {
+        "key": "createdTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
+        "key": "updatedTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updatedPerson",
+        "label": "更新人"
+      }
+    ]
   }
 ]

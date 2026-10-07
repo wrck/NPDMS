@@ -15,7 +15,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 public class LegacyDetailNormalizer {
     private final LegacyDetailCatalog catalog;
     private static final Pattern SECRET = Pattern.compile(
-            "(?i)(password|passwd|pwd\\s*[:=]|secret|token|private[ _-]?key|密码|口令|私钥|密钥|BEGIN[^\\r\\n]*PRIVATE KEY)");
+            "(?i)(password|passwd|pwd\\s*[:=]|secret|token|authorization\\s*[:=]|bearer\\s+|private[ _-]?key|密码|口令|私钥|密钥|BEGIN[^\\r\\n]*PRIVATE KEY)");
     private static final Pattern URL_CREDENTIAL = Pattern.compile("(?i)[a-z][a-z0-9+.-]*://[^\\s/]+:[^\\s/]+@");
     public static final String REDACTED = "[敏感内容已隐藏]";
     public record Record(String domain,String sourceTable,String sourceKey,String parentDomain,
@@ -25,9 +25,10 @@ public class LegacyDetailNormalizer {
     public Bundle normalize(LegacyDetailInput input) {
         if (input == null || input.records() == null || input.domainCounts() == null
                 || input.sourceReadAt() == null || input.sourceProjectKey() == null
-                || !input.sourceProjectKey().matches("[1-9][0-9]*")
-                || input.batchKey() == null || input.batchKey().isBlank()
-                || input.sourceContractNo() == null || input.sourceContractNo().isBlank()) fail("LEGACY_INPUT_INVALID");
+                || !input.sourceProjectKey().matches("[1-9][0-9]*") || input.sourceProjectKey().length() > 64
+                || input.batchKey() == null || input.batchKey().isBlank() || input.batchKey().length() > 128
+                || input.sourceContractNo() == null || input.sourceContractNo().isBlank()
+                || input.sourceContractNo().length() > 128 || input.records().size() > 10000) fail("LEGACY_INPUT_INVALID");
         var counts = new TreeMap<String,Integer>();
         for (var d : catalog.domains()) counts.put(d.code(),0);
         if (!counts.keySet().equals(input.domainCounts().keySet())) fail("LEGACY_DOMAIN_COVERAGE_INCOMPLETE");
@@ -50,7 +51,7 @@ public class LegacyDetailNormalizer {
             var values = new TreeMap<String,String>(); var redacted = new ArrayList<String>();
             for (var f : domain.fields()) {
                 var raw = item.values().get(f.key());
-                if (raw != null && (SECRET.matcher(raw).find() || URL_CREDENTIAL.matcher(raw).find())) {
+                if (raw != null && (REDACTED.equals(raw) || SECRET.matcher(raw).find() || URL_CREDENTIAL.matcher(raw).find())) {
                     values.put(f.key(),REDACTED);redacted.add(f.key());
                 } else values.put(f.key(),raw);
             }
@@ -63,6 +64,7 @@ public class LegacyDetailNormalizer {
                     item.parentSourceKey(),item.sourceUpdatedAt(),Collections.unmodifiableMap(values),List.copyOf(redacted),sha(JsonUtils.toJsonString(canonical))));
             counts.compute(item.domain(),(k,n)->n+1);
         }
+        if (counts.get("project") != 1) fail("LEGACY_PROJECT_ROOT_REQUIRED");
         if (!counts.equals(input.domainCounts())) fail("LEGACY_SOURCE_COUNT_MISMATCH");
         for (var item : result) if (item.parentDomain()!=null && !identities.contains(identity(item.parentDomain(),item.parentSourceKey())))
             fail("LEGACY_PARENT_NOT_IN_SNAPSHOT");

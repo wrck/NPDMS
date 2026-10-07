@@ -233,6 +233,8 @@
           @changed="handleContactsChanged"
         />
 
+        <ProjectLegacyDetailPanel v-if="detail?.id && visitedTabs.has('legacy-detail')" v-show="activeTab === 'legacy-detail'" :project-id="detail.id" />
+
         <ProjectAttributePanel
           v-if="detail?.id && activeTab === 'attributes'"
           :project="detail"
@@ -534,6 +536,7 @@ import DeliveryModuleTable from './DeliveryModuleTable.vue'
 import type { DeliveryModuleConfig } from './DeliveryModuleTable.vue'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import ProjectCustomerOverview from '@/views/pms/project/project-master-detail/components/ProjectCustomerOverview.vue'
+import ProjectLegacyDetailPanel from '@/views/pms/project/project-master-detail/components/ProjectLegacyDetailPanel.vue'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import type {
@@ -576,6 +579,7 @@ const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>(
 const TAB_KEYS = [
   'base',
   'customer',
+  'legacy-detail',
   'tree',
   'members',
   'tasks',
@@ -612,6 +616,7 @@ const visitedTabs = ref(new Set([requestedTab()]))
 const overviewSteps: { key: string; label: string; icon: string; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
   { key: 'customer', label: '客户与联系人', icon: 'ep:office-building' },
+  { key: 'legacy-detail', label: 'DPPMS 关联资料', icon: 'ep:collection', permission: ['pms:project:query'] },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },

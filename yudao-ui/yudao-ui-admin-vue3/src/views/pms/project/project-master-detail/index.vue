@@ -208,6 +208,8 @@
           @changed="handleContactsChanged"
         />
 
+        <ProjectLegacyDetailPanel v-if="detail?.id && visitedTabs.has('legacy-detail')" v-show="activeTab === 'legacy-detail'" :project-id="detail.id" />
+
         <!-- ============ 项目概览：设备清单（与 pms-inheritance/project-detail 同一配置驱动表格） ============ -->
         <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
           <DeliveryModuleTable :config="deliveryModules['equipment']" :project-id="detail.id" />
@@ -531,6 +533,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
+import ProjectLegacyDetailPanel from './components/ProjectLegacyDetailPanel.vue'
 import * as RiskApi from '@/api/pms/project/project-risk'
 import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
@@ -633,6 +636,7 @@ const requestedTab = (
     'stage-status',
     'stage',
     'customer',
+    'legacy-detail',
     'equipment',
     'sn-result',
     'config-log',
@@ -656,6 +660,7 @@ const visitedTabs = ref(new Set([requestedTab]))
 const overviewSteps: { key: string; label: string; icon: string; pending?: boolean; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
   { key: 'customer', label: '客户信息', icon: 'ep:office-building' },
+  { key: 'legacy-detail', label: 'DPPMS 关联资料', icon: 'ep:collection', permission: ['pms:project:query'] },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
