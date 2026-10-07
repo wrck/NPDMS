@@ -114,6 +114,64 @@ class DppmsOrderSyncAdapterTest {
         verifyNoInteractions(authority);
     }
 
+    @Test void opaqueOwnerRevisionUsesSourceTimeAndPreservesPredecessor() {
+        var stored=order();stored.setSourceVersion("migration-revision-1");
+        stored.setSourceUpdatedAt(LocalDateTime.of(2026,9,13,10,0));
+        when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            CommerceAuthorityBatchCommand command=inv.getArgument(0);
+            assertEquals("migration-revision-1",command.salesOrders().getFirst().expectedPreviousSourceVersion());
+            assertEquals(LocalDateTime.of(2026,9,14,10,0),command.salesOrders().getFirst().sourceUpdatedAt());
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        assertEquals("UPDATED",adapter.apply(batch(row("ORDER","1"))).getFirst().action());
+        verify(authority).ingestBatch(any());
+    }
+
+    @Test void staleTimeCannotReplaceOpaqueOwnerRevision() {
+        var stored=order();stored.setSourceVersion("migration-revision-1");
+        stored.setSourceUpdatedAt(LocalDateTime.of(2026,9,15,10,0));
+        when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        var change=adapter.preview(batch(row("ORDER","1"))).getFirst();
+        assertEquals("ISSUE",change.action());
+        assertTrue(change.message().contains("STALE_SOURCE_VERSION"));
+        verifyNoInteractions(authority);
+    }
+
+    @Test void changedVersionWithoutSourceClockIsRejected() {
+        var stored=order();stored.setSourceVersion("migration-revision-1");stored.setSourceUpdatedAt(null);
+        when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        var change=adapter.preview(batch(row("ORDER","1"))).getFirst();
+        assertEquals("ISSUE",change.action());
+        assertTrue(change.message().contains("SOURCE_TIME_MISSING"));
+        verifyNoInteractions(authority);
+    }
+
+    @Test void sameVersionPayloadConflictRemainsRejected() {
+        var stored=order();stored.setContractNo("EXISTING-CONTRACT");
+        when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        var change=adapter.preview(batch(row("ORDER","1"))).getFirst();
+        assertEquals("ISSUE",change.action());
+        assertTrue(change.message().contains("SOURCE_VERSION_PAYLOAD_CONFLICT"));
+        verifyNoInteractions(authority);
+    }
+
+    @Test void opaqueLineRevisionUsesSourceTimeAndPreservesOwner() {
+        var parent=order();when(mapper.selectOrders(any())).thenReturn(List.of(parent));
+        var line=new SalesOrderLineDO();line.setId(102L);line.setOrderId(101L);line.setTenantId(1L);
+        line.setSourceKey(ORDER_KEY+"|10");line.setSourceVersion("migration-line-revision-1");
+        line.setSourceUpdatedAt(LocalDateTime.of(2026,9,13,10,0));
+        when(mapper.selectLines(any())).thenReturn(List.of(line));
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            CommerceAuthorityBatchCommand command=inv.getArgument(0);
+            assertEquals("migration-line-revision-1",command.orderLines().getFirst().expectedPreviousSourceVersion());
+            assertEquals(ORDER_KEY,command.orderLines().getFirst().salesOrderSourceKey());
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        assertEquals("UPDATED",adapter.apply(batch(row("LINE","2"))).getFirst().action());
+        verify(authority).ingestBatch(any());
+    }
+
     private static Batch batch(Row... rows) { return new Batch("integration:1:99",List.of(rows),List.of(),true,"RETAIN",false,"UPSERT",false); }
     private static Row row(String object,String id) {
         Map<String,Object> fields=new LinkedHashMap<>(Map.of("erpSource","D365","companyCode","01","orderType","1",

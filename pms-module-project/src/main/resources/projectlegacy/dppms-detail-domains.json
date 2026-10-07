@@ -1,0 +1,2566 @@
+[
+  {
+    "code": "project",
+    "label": "原项目基本信息",
+    "group": "项目与人员",
+    "sourceTable": "pm_project_header",
+    "keyField": "projectId",
+    "fields": [
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "projectName",
+        "label": "原项目名称"
+      },
+      {
+        "key": "projectType",
+        "label": "原项目类型"
+      },
+      {
+        "key": "projectState",
+        "label": "原项目状态"
+      },
+      {
+        "key": "isback",
+        "label": "原跟踪标记"
+      },
+      {
+        "key": "column001",
+        "label": "原办事处编码"
+      },
+      {
+        "key": "column004",
+        "label": "市场部"
+      },
+      {
+        "key": "column005",
+        "label": "系统部"
+      },
+      {
+        "key": "column006",
+        "label": "拓展部"
+      },
+      {
+        "key": "column007",
+        "label": "行业"
+      },
+      {
+        "key": "column008",
+        "label": "原不跟踪原因"
+      },
+      {
+        "key": "column010",
+        "label": "原项目类别编码"
+      },
+      {
+        "key": "column011",
+        "label": "原签约方式编码"
+      },
+      {
+        "key": "column012",
+        "label": "原实施方式编码"
+      },
+      {
+        "key": "columno12_readonly",
+        "label": "原只读实施方式"
+      },
+      {
+        "key": "column013",
+        "label": "历史最终客户名称"
+      },
+      {
+        "key": "column014",
+        "label": "原退回原因"
+      },
+      {
+        "key": "customerProjectName",
+        "label": "客户项目名称"
+      },
+      {
+        "key": "salesType",
+        "label": "销售类型"
+      },
+      {
+        "key": "majorProjectLevel",
+        "label": "重大项目等级"
+      },
+      {
+        "key": "compId",
+        "label": "原公司编号"
+      },
+      {
+        "key": "projectStartTime",
+        "label": "原项目开始时间"
+      },
+      {
+        "key": "projectRefreshTime",
+        "label": "原项目刷新时间"
+      },
+      {
+        "key": "projectCloseTime",
+        "label": "原项目关闭时间"
+      },
+      {
+        "key": "disabled",
+        "label": "原停用标记"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "state",
+    "label": "原项目状态记录",
+    "group": "项目与人员",
+    "sourceTable": "pm_project_state",
+    "keyField": "projectId",
+    "fields": [
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "projectPlanState",
+        "label": "原计划状态"
+      },
+      {
+        "key": "projectplanTime",
+        "label": "原计划状态时间"
+      },
+      {
+        "key": "shipmentState",
+        "label": "原发货状态"
+      },
+      {
+        "key": "shipmentTime",
+        "label": "原发货状态时间"
+      },
+      {
+        "key": "executionState",
+        "label": "原实施状态"
+      },
+      {
+        "key": "executionStateTime",
+        "label": "原实施状态时间"
+      },
+      {
+        "key": "closeProcessState",
+        "label": "原关闭流程状态"
+      },
+      {
+        "key": "closeProcessStateTime",
+        "label": "原关闭流程状态时间"
+      }
+    ]
+  },
+  {
+    "code": "parties",
+    "label": "历史相关方",
+    "group": "项目与人员",
+    "sourceTable": "pm_project_related_party",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "partyRole",
+        "label": "相关方角色编码"
+      },
+      {
+        "key": "partyCode",
+        "label": "相关方编码"
+      },
+      {
+        "key": "partyName",
+        "label": "相关方名称"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "members",
+    "label": "历史人员与联系方式",
+    "group": "项目与人员",
+    "sourceTable": "pm_project_member",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "projectType",
+        "label": "原项目类型"
+      },
+      {
+        "key": "memberRole",
+        "label": "历史角色编码"
+      },
+      {
+        "key": "memberCode",
+        "label": "人员编码"
+      },
+      {
+        "key": "memberName",
+        "label": "姓名"
+      },
+      {
+        "key": "phoneNum",
+        "label": "联系电话"
+      },
+      {
+        "key": "email",
+        "label": "电子邮箱"
+      },
+      {
+        "key": "fromFlag",
+        "label": "人员来源"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "groups",
+    "label": "原项目组关系",
+    "group": "商务资料",
+    "sourceTable": "pm_project_group_relationship",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectGroupCode",
+        "label": "原项目组编码"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "mergeBranchMark",
+        "label": "合并/拆分标记"
+      },
+      {
+        "key": "smsProjectCode",
+        "label": "CRM项目编码"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "contracts",
+    "label": "来源合同关联",
+    "group": "商务资料",
+    "sourceTable": "pm_project_contract",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "projectGroupCode",
+        "label": "原项目组编码"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "executions",
+    "label": "来源执行单",
+    "group": "商务资料",
+    "sourceTable": "pm_project_property_from_sms",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "projectName",
+        "label": "原项目名称"
+      },
+      {
+        "key": "salesManCode",
+        "label": "销售人员编码"
+      },
+      {
+        "key": "salesManName",
+        "label": "销售人员姓名"
+      },
+      {
+        "key": "marketCode",
+        "label": "市场部编码"
+      },
+      {
+        "key": "marketName",
+        "label": "市场部"
+      },
+      {
+        "key": "systemId",
+        "label": "系统部来源编号"
+      },
+      {
+        "key": "systemName",
+        "label": "系统部"
+      },
+      {
+        "key": "expendId",
+        "label": "拓展部来源编号"
+      },
+      {
+        "key": "expendName",
+        "label": "拓展部"
+      },
+      {
+        "key": "industryId",
+        "label": "行业来源编号"
+      },
+      {
+        "key": "industryName",
+        "label": "行业"
+      },
+      {
+        "key": "officeCode",
+        "label": "办事处编码"
+      },
+      {
+        "key": "officeName",
+        "label": "办事处"
+      },
+      {
+        "key": "serviceTypeName",
+        "label": "服务类型"
+      },
+      {
+        "key": "channelName",
+        "label": "渠道类型"
+      },
+      {
+        "key": "engineeFee",
+        "label": "工程费用"
+      },
+      {
+        "key": "objId",
+        "label": "来源业务编号"
+      },
+      {
+        "key": "applyType",
+        "label": "申请类型"
+      },
+      {
+        "key": "corporationCode",
+        "label": "公司编码"
+      },
+      {
+        "key": "customerProjectName",
+        "label": "客户项目名称"
+      },
+      {
+        "key": "finalCustomerName",
+        "label": "来源最终客户名称"
+      },
+      {
+        "key": "agentName",
+        "label": "代理商"
+      },
+      {
+        "key": "projectMoney",
+        "label": "项目金额"
+      },
+      {
+        "key": "submitTime",
+        "label": "提交时间"
+      },
+      {
+        "key": "majorProjectLevel",
+        "label": "重大项目等级"
+      },
+      {
+        "key": "predBidDate",
+        "label": "预计投标日期"
+      },
+      {
+        "key": "linkmanName",
+        "label": "来源联系人"
+      },
+      {
+        "key": "linkmanTel",
+        "label": "来源联系电话"
+      },
+      {
+        "key": "dataSource",
+        "label": "来源系统"
+      }
+    ]
+  },
+  {
+    "code": "orders",
+    "label": "来源销售订单",
+    "group": "商务资料",
+    "sourceTable": "pm_order_data_from_erp",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "orderNumber",
+        "label": "销售订单号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "orderCreateTime",
+        "label": "订单创建时间"
+      },
+      {
+        "key": "customerRequireTime",
+        "label": "客户要求时间"
+      },
+      {
+        "key": "customerCode",
+        "label": "购货方编码"
+      },
+      {
+        "key": "customerName",
+        "label": "购货方名称"
+      },
+      {
+        "key": "projectName",
+        "label": "原项目名称"
+      },
+      {
+        "key": "orderComment",
+        "label": "订单备注"
+      },
+      {
+        "key": "orderType",
+        "label": "订单类型"
+      },
+      {
+        "key": "compCode",
+        "label": "公司编码"
+      },
+      {
+        "key": "salesType",
+        "label": "销售类型"
+      },
+      {
+        "key": "source",
+        "label": "来源系统"
+      },
+      {
+        "key": "syncTime",
+        "label": "来源同步时间"
+      }
+    ]
+  },
+  {
+    "code": "order-lines",
+    "label": "来源订单行",
+    "group": "商务资料",
+    "sourceTable": "pm_order_line_from_erp",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "orderNumber",
+        "label": "销售订单号"
+      },
+      {
+        "key": "lineNum",
+        "label": "订单行号"
+      },
+      {
+        "key": "itemCode",
+        "label": "产品编码"
+      },
+      {
+        "key": "itemDesc",
+        "label": "产品描述"
+      },
+      {
+        "key": "orderQuantity",
+        "label": "订单数量"
+      },
+      {
+        "key": "openQuantity",
+        "label": "未交数量"
+      },
+      {
+        "key": "bundleCode",
+        "label": "组合编码"
+      },
+      {
+        "key": "warrantyMonth",
+        "label": "保修月数"
+      },
+      {
+        "key": "lineType",
+        "label": "订单行类型"
+      },
+      {
+        "key": "compCode",
+        "label": "公司编码"
+      },
+      {
+        "key": "profitCenter",
+        "label": "利润中心"
+      },
+      {
+        "key": "realOrderExecNumber",
+        "label": "实际执行单号"
+      },
+      {
+        "key": "source",
+        "label": "来源系统"
+      },
+      {
+        "key": "syncTime",
+        "label": "来源同步时间"
+      }
+    ]
+  },
+  {
+    "code": "products",
+    "label": "原项目产品",
+    "group": "商务资料",
+    "sourceTable": "pm_project_product_line",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "itemCode",
+        "label": "产品编码"
+      },
+      {
+        "key": "itemName",
+        "label": "产品名称"
+      },
+      {
+        "key": "projectQuantity",
+        "label": "项目数量"
+      },
+      {
+        "key": "orderQuantity",
+        "label": "订单数量"
+      },
+      {
+        "key": "deliverQuantity",
+        "label": "已交数量"
+      },
+      {
+        "key": "openQuantity",
+        "label": "未交数量"
+      },
+      {
+        "key": "orderNumber",
+        "label": "销售订单号"
+      },
+      {
+        "key": "lineNum",
+        "label": "订单行号"
+      }
+    ]
+  },
+  {
+    "code": "plans",
+    "label": "来源销售计划",
+    "group": "商务资料",
+    "sourceTable": "pm_pb_plan_from_sms",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "batchCode",
+        "label": "计划批次"
+      },
+      {
+        "key": "basicDataName",
+        "label": "计划事件名称"
+      },
+      {
+        "key": "referenceEventName",
+        "label": "参考事件名称"
+      },
+      {
+        "key": "eventPlanHappenDate",
+        "label": "原计划时间"
+      },
+      {
+        "key": "afterDaysNum",
+        "label": "间隔天数"
+      },
+      {
+        "key": "eventActualFinishDate",
+        "label": "原实际完成时间"
+      },
+      {
+        "key": "marketingFeedback",
+        "label": "销售反馈"
+      },
+      {
+        "key": "dataSource",
+        "label": "来源系统"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "shipment-facts",
+    "label": "来源发货事实",
+    "group": "设备与软件",
+    "sourceTable": "fb_shipment_barcode",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "pack_id",
+        "label": "发货包编号"
+      },
+      {
+        "key": "item",
+        "label": "产品编码"
+      },
+      {
+        "key": "barcode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "com_barcode",
+        "label": "组合设备序列号"
+      },
+      {
+        "key": "rma_no",
+        "label": "RMA编号"
+      },
+      {
+        "key": "isRMA",
+        "label": "RMA标记"
+      },
+      {
+        "key": "item2",
+        "label": "副产品编码"
+      },
+      {
+        "key": "barcode2",
+        "label": "副设备序列号"
+      },
+      {
+        "key": "orderNumber",
+        "label": "销售订单号"
+      },
+      {
+        "key": "lineNum",
+        "label": "订单行号"
+      },
+      {
+        "key": "profitCenter",
+        "label": "利润中心"
+      },
+      {
+        "key": "soleAgentSuffix",
+        "label": "代理后缀"
+      },
+      {
+        "key": "warrantyStartDate",
+        "label": "保修开始日期"
+      },
+      {
+        "key": "warrantyMonth",
+        "label": "保修月数"
+      },
+      {
+        "key": "rmaBarcode",
+        "label": "RMA设备序列号"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "syncTime",
+        "label": "来源同步时间"
+      },
+      {
+        "key": "uuid",
+        "label": "来源唯一标识"
+      }
+    ]
+  },
+  {
+    "code": "installations",
+    "label": "历史设备安装及转移",
+    "group": "设备与软件",
+    "sourceTable": "pm_project_shipment",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "barcode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "itemCode",
+        "label": "产品编码"
+      },
+      {
+        "key": "itemModel",
+        "label": "产品型号"
+      },
+      {
+        "key": "itemName",
+        "label": "产品名称"
+      },
+      {
+        "key": "receiveName",
+        "label": "收货人"
+      },
+      {
+        "key": "emsNum",
+        "label": "运单号"
+      },
+      {
+        "key": "emsCompany",
+        "label": "承运商"
+      },
+      {
+        "key": "packdate",
+        "label": "发货日期"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "installAddress",
+        "label": "历史安装地址"
+      },
+      {
+        "key": "chProjectId",
+        "label": "原转移项目编号"
+      },
+      {
+        "key": "chContractNo",
+        "label": "原转移合同号"
+      },
+      {
+        "key": "transferProjectId",
+        "label": "目标转移项目编号"
+      },
+      {
+        "key": "transferContractNo",
+        "label": "目标转移合同号"
+      },
+      {
+        "key": "transferFlag",
+        "label": "原转移标记"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "software-changes",
+    "label": "历史软件变更批次",
+    "group": "设备与软件",
+    "sourceTable": "pm_project_soft_change_logs",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "changeVersion",
+        "label": "历史软件版本批次"
+      },
+      {
+        "key": "changeRemark",
+        "label": "软件变更说明"
+      },
+      {
+        "key": "latest",
+        "label": "来源最新标记"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      }
+    ]
+  },
+  {
+    "code": "software-versions",
+    "label": "历史软件版本",
+    "group": "设备与软件",
+    "sourceTable": "pm_project_soft_version",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "logId",
+        "label": "软件变更记录编号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "itemCode",
+        "label": "产品编码"
+      },
+      {
+        "key": "barCode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "conp",
+        "label": "CONP版本"
+      },
+      {
+        "key": "conpType",
+        "label": "CONP类型"
+      },
+      {
+        "key": "conpSeries",
+        "label": "CONP系列"
+      },
+      {
+        "key": "conpMark",
+        "label": "CONP标记"
+      },
+      {
+        "key": "conpBak",
+        "label": "历史CONP版本"
+      },
+      {
+        "key": "conpChange",
+        "label": "CONP变更标记"
+      },
+      {
+        "key": "cpld",
+        "label": "CPLD版本"
+      },
+      {
+        "key": "cpldBak",
+        "label": "历史CPLD版本"
+      },
+      {
+        "key": "cpldChange",
+        "label": "CPLD变更标记"
+      },
+      {
+        "key": "boot",
+        "label": "BOOT版本"
+      },
+      {
+        "key": "bootBak",
+        "label": "历史BOOT版本"
+      },
+      {
+        "key": "bootChange",
+        "label": "BOOT变更标记"
+      },
+      {
+        "key": "pcb",
+        "label": "PCB版本"
+      },
+      {
+        "key": "pcbBak",
+        "label": "历史PCB版本"
+      },
+      {
+        "key": "pcbChange",
+        "label": "PCB变更标记"
+      },
+      {
+        "key": "executeTime",
+        "label": "版本执行时间"
+      },
+      {
+        "key": "datastate",
+        "label": "原数据状态"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "tasks",
+    "label": "历史计划任务",
+    "group": "实施与维护",
+    "sourceTable": "pm_project_task",
+    "keyField": "taskId",
+    "fields": [
+      {
+        "key": "taskId",
+        "label": "历史任务编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "projectType",
+        "label": "原项目类型"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "taskTypeCode",
+        "label": "任务类别编码"
+      },
+      {
+        "key": "taskTypeId",
+        "label": "任务类型编号"
+      },
+      {
+        "key": "taskName",
+        "label": "历史任务名称"
+      },
+      {
+        "key": "eventPlanHappenDate",
+        "label": "原计划时间"
+      },
+      {
+        "key": "eventPlanHappenDateENG",
+        "label": "原工程计划时间"
+      },
+      {
+        "key": "planStartTime",
+        "label": "计划开始时间"
+      },
+      {
+        "key": "planEndTime",
+        "label": "计划结束时间"
+      },
+      {
+        "key": "actualStartTime",
+        "label": "实际开始时间"
+      },
+      {
+        "key": "eventActualFinishDate",
+        "label": "原实际完成时间"
+      },
+      {
+        "key": "priority",
+        "label": "原优先级"
+      },
+      {
+        "key": "progress",
+        "label": "原进度"
+      },
+      {
+        "key": "progressDesc",
+        "label": "原进度说明"
+      },
+      {
+        "key": "status",
+        "label": "原状态"
+      },
+      {
+        "key": "parentId",
+        "label": "上级任务编号"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "visibleFlag",
+        "label": "原可见标记"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "maintenance",
+    "label": "历史维护记录",
+    "group": "实施与维护",
+    "sourceTable": "pm_project_maintenance",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "projectName",
+        "label": "原项目名称"
+      },
+      {
+        "key": "projectType",
+        "label": "原项目类型"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "officeCode",
+        "label": "办事处编码"
+      },
+      {
+        "key": "compId",
+        "label": "原公司编号"
+      },
+      {
+        "key": "type",
+        "label": "原类型"
+      },
+      {
+        "key": "category",
+        "label": "分类"
+      },
+      {
+        "key": "subCategory",
+        "label": "子分类"
+      },
+      {
+        "key": "processTime",
+        "label": "处理时间"
+      },
+      {
+        "key": "processDesc",
+        "label": "处理说明"
+      },
+      {
+        "key": "processStep",
+        "label": "处理步骤"
+      },
+      {
+        "key": "remainProblem",
+        "label": "遗留问题"
+      },
+      {
+        "key": "transitHour",
+        "label": "在途工时"
+      },
+      {
+        "key": "processHour",
+        "label": "处理工时"
+      },
+      {
+        "key": "itemModel",
+        "label": "产品型号"
+      },
+      {
+        "key": "softVersion",
+        "label": "软件版本"
+      },
+      {
+        "key": "enabledFeatures",
+        "label": "已启用功能"
+      },
+      {
+        "key": "hasReport",
+        "label": "原报告标记"
+      },
+      {
+        "key": "quesnaireId",
+        "label": "问卷编号"
+      },
+      {
+        "key": "warrantyStatus",
+        "label": "保修状态"
+      },
+      {
+        "key": "industryName",
+        "label": "行业"
+      },
+      {
+        "key": "userOffice",
+        "label": "原所属办事处"
+      },
+      {
+        "key": "year",
+        "label": "年份"
+      },
+      {
+        "key": "quarter",
+        "label": "季度"
+      },
+      {
+        "key": "month",
+        "label": "月份"
+      },
+      {
+        "key": "wsCount",
+        "label": "WS数量"
+      },
+      {
+        "key": "wafCount",
+        "label": "WAF数量"
+      },
+      {
+        "key": "wsYearCount",
+        "label": "年度WS数量"
+      },
+      {
+        "key": "wafYearCount",
+        "label": "年度WAF数量"
+      },
+      {
+        "key": "warrantyInfo",
+        "label": "保修信息"
+      },
+      {
+        "key": "serviceInfo",
+        "label": "服务信息"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "callbacks",
+    "label": "历史回访",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_callback",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "instId",
+        "label": "历史流程实例编号"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "applyState",
+        "label": "历史申请状态"
+      },
+      {
+        "key": "applyBy",
+        "label": "历史申请人"
+      },
+      {
+        "key": "applyTime",
+        "label": "历史申请时间"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "callback-questionnaires",
+    "label": "历史回访问卷关联",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_callback_quesnaire",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "callBackId",
+        "label": "回访编号"
+      },
+      {
+        "key": "taskId",
+        "label": "历史任务编号"
+      },
+      {
+        "key": "quesnaireId",
+        "label": "问卷编号"
+      },
+      {
+        "key": "quesnaireVersion",
+        "label": "问卷版本"
+      },
+      {
+        "key": "quesnaireState",
+        "label": "历史问卷状态"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "questionnaires",
+    "label": "历史问卷答卷",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_quesnaire_result_header",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "evaluationHeaderId",
+        "label": "评价编号"
+      },
+      {
+        "key": "quesnaireTemplateHeaderId",
+        "label": "原问卷模板编号"
+      },
+      {
+        "key": "quesMarkScore",
+        "label": "历史问卷分数"
+      },
+      {
+        "key": "createdTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
+        "key": "updatedTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updatedPerson",
+        "label": "更新人"
+      },
+      {
+        "key": "quesMarkResult",
+        "label": "历史评价结果"
+      },
+      {
+        "key": "status",
+        "label": "原状态"
+      }
+    ]
+  },
+  {
+    "code": "questionnaire-answers",
+    "label": "历史问卷答案",
+    "group": "回访与审批",
+    "sourceTable": "pm_cl_quesnaire_result_line",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "quesnaireTemplateHeaderId",
+        "label": "原问卷模板编号"
+      },
+      {
+        "key": "quesnaireTemplateLineId",
+        "label": "原题目编号"
+      },
+      {
+        "key": "questionTemplateOptId",
+        "label": "原选项编号"
+      },
+      {
+        "key": "questionAnswer",
+        "label": "历史问卷答案"
+      },
+      {
+        "key": "questionScore",
+        "label": "历史题目分数"
+      },
+      {
+        "key": "quesnaireResultHeaderId",
+        "label": "问卷答卷编号"
+      },
+      {
+        "key": "createdTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
+        "key": "updatedTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updatedPerson",
+        "label": "更新人"
+      },
+      {
+        "key": "quesTypeForCB",
+        "label": "回访问卷类型"
+      },
+      {
+        "key": "quesEvaResult",
+        "label": "历史评价结果"
+      }
+    ]
+  },
+  {
+    "code": "approvals",
+    "label": "历史审批意见",
+    "group": "回访与审批",
+    "sourceTable": "fnd_act_hi_comment",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "objId",
+        "label": "来源业务编号"
+      },
+      {
+        "key": "procdefKey",
+        "label": "历史流程类型"
+      },
+      {
+        "key": "taskKey",
+        "label": "历史流程节点"
+      },
+      {
+        "key": "taskId",
+        "label": "历史任务编号"
+      },
+      {
+        "key": "instId",
+        "label": "历史流程实例编号"
+      },
+      {
+        "key": "assignee",
+        "label": "历史处理人"
+      },
+      {
+        "key": "assigneeTime",
+        "label": "历史处理时间"
+      },
+      {
+        "key": "nextAssignee",
+        "label": "历史下一处理人编码"
+      },
+      {
+        "key": "nextAssigneeName",
+        "label": "历史下一处理人"
+      },
+      {
+        "key": "result",
+        "label": "历史处理结果"
+      },
+      {
+        "key": "message",
+        "label": "历史处理意见"
+      }
+    ]
+  },
+  {
+    "code": "subcontracts",
+    "label": "历史分包",
+    "group": "分包资料",
+    "sourceTable": "pm_subcontract_project_header",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "subcontractName",
+        "label": "分包名称"
+      },
+      {
+        "key": "subcontractNo",
+        "label": "分包编号"
+      },
+      {
+        "key": "contractNos",
+        "label": "合同号集合"
+      },
+      {
+        "key": "projectIds",
+        "label": "原项目编号集合"
+      },
+      {
+        "key": "type",
+        "label": "原类型"
+      },
+      {
+        "key": "state",
+        "label": "原状态"
+      },
+      {
+        "key": "callbackState",
+        "label": "历史回访状态"
+      },
+      {
+        "key": "facilitatorId",
+        "label": "服务商来源编号"
+      },
+      {
+        "key": "facilitatorName",
+        "label": "服务商"
+      },
+      {
+        "key": "officeCode",
+        "label": "办事处编码"
+      },
+      {
+        "key": "profitDepCode",
+        "label": "利润部门编码"
+      },
+      {
+        "key": "isAccrued",
+        "label": "原预提标记"
+      },
+      {
+        "key": "isInvoiced",
+        "label": "原开票标记"
+      },
+      {
+        "key": "subcontractAmount",
+        "label": "分包金额"
+      },
+      {
+        "key": "reason",
+        "label": "原因"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "zrApproveTime",
+        "label": "历史审批时间"
+      },
+      {
+        "key": "orgId",
+        "label": "原组织编号"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "subcontract-payments",
+    "label": "历史分包付款",
+    "group": "分包资料",
+    "sourceTable": "pm_subcontract_project_payment",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "subcontractId",
+        "label": "分包来源编号"
+      },
+      {
+        "key": "ratio",
+        "label": "付款比例"
+      },
+      {
+        "key": "amount",
+        "label": "付款金额"
+      },
+      {
+        "key": "confirmTime",
+        "label": "历史确认时间"
+      },
+      {
+        "key": "paymentTime",
+        "label": "历史付款时间"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "sseId",
+        "label": "付款来源编号"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "subcontract-prices",
+    "label": "历史分包报价",
+    "group": "分包资料",
+    "sourceTable": "pm_subcontract_project_price",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "subcontractId",
+        "label": "分包来源编号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "engineeFee",
+        "label": "工程费用"
+      },
+      {
+        "key": "objId",
+        "label": "来源业务编号"
+      },
+      {
+        "key": "procType",
+        "label": "原业务类型"
+      },
+      {
+        "key": "price",
+        "label": "报价金额"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "incidents",
+    "label": "历史关联工单",
+    "group": "工单与许可",
+    "sourceTable": "pm_project_incident_table_from_itr",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "incidentId",
+        "label": "工单来源编号"
+      },
+      {
+        "key": "ticketNo",
+        "label": "工单编号"
+      },
+      {
+        "key": "STATUS",
+        "label": "原工单状态编码"
+      },
+      {
+        "key": "statusName",
+        "label": "原工单状态"
+      },
+      {
+        "key": "caseTopic",
+        "label": "工单主题"
+      },
+      {
+        "key": "memo",
+        "label": "说明"
+      },
+      {
+        "key": "principal",
+        "label": "原负责人编码"
+      },
+      {
+        "key": "principalName",
+        "label": "原负责人"
+      },
+      {
+        "key": "accepter",
+        "label": "原受理人编码"
+      },
+      {
+        "key": "accepterName",
+        "label": "原受理人"
+      },
+      {
+        "key": "processor",
+        "label": "原处理人编码"
+      },
+      {
+        "key": "processorName",
+        "label": "原处理人"
+      },
+      {
+        "key": "supplied",
+        "label": "供应信息"
+      },
+      {
+        "key": "questionType",
+        "label": "问题类型"
+      },
+      {
+        "key": "questionLevel",
+        "label": "问题级别"
+      },
+      {
+        "key": "title",
+        "label": "标题"
+      },
+      {
+        "key": "acceptTime",
+        "label": "历史受理时间"
+      },
+      {
+        "key": "productType",
+        "label": "产品类型"
+      },
+      {
+        "key": "productModel",
+        "label": "产品型号"
+      },
+      {
+        "key": "progress",
+        "label": "原进度"
+      },
+      {
+        "key": "questionReason",
+        "label": "问题原因"
+      },
+      {
+        "key": "solutionType",
+        "label": "解决类型"
+      },
+      {
+        "key": "solutions",
+        "label": "历史解决方案"
+      },
+      {
+        "key": "rmaNo",
+        "label": "RMA编号"
+      },
+      {
+        "key": "accidentNo",
+        "label": "故障编号"
+      },
+      {
+        "key": "caseType",
+        "label": "案例类型"
+      },
+      {
+        "key": "reasonFstType",
+        "label": "一级原因"
+      },
+      {
+        "key": "reasonSndType",
+        "label": "二级原因"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "barcode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "bulletinNo",
+        "label": "公告编号"
+      },
+      {
+        "key": "bugNo",
+        "label": "缺陷编号"
+      },
+      {
+        "key": "productLine",
+        "label": "产品线"
+      }
+    ]
+  },
+  {
+    "code": "licenses",
+    "label": "历史许可信息（不含许可密钥）",
+    "group": "工单与许可",
+    "sourceTable": "pm_project_license_info_from_license",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "sn",
+        "label": "设备序列号"
+      },
+      {
+        "key": "specModel",
+        "label": "许可规格"
+      },
+      {
+        "key": "contract",
+        "label": "合同号"
+      },
+      {
+        "key": "contractType",
+        "label": "合同类型"
+      },
+      {
+        "key": "item",
+        "label": "产品编码"
+      },
+      {
+        "key": "status",
+        "label": "原状态"
+      }
+    ]
+  },
+  {
+    "code": "notifications",
+    "label": "历史通知记录",
+    "group": "其他历史",
+    "sourceTable": "pm_project_notification",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "notifySubject",
+        "label": "通知主题"
+      },
+      {
+        "key": "notifyContent",
+        "label": "历史通知内容"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      }
+    ]
+  },
+  {
+    "code": "weekly",
+    "label": "历史周报",
+    "group": "其他历史",
+    "sourceTable": "pm_project_weekly",
+    "keyField": "weeklyId",
+    "fields": [
+      {
+        "key": "weeklyId",
+        "label": "周报编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "currentTask",
+        "label": "原当前任务"
+      },
+      {
+        "key": "taskStartTime",
+        "label": "任务开始时间"
+      },
+      {
+        "key": "taskEndTime",
+        "label": "任务结束时间"
+      },
+      {
+        "key": "taskDeviation",
+        "label": "任务偏差"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "weeklyStartTime",
+        "label": "周报开始日期"
+      },
+      {
+        "key": "weeklyEndTime",
+        "label": "周报结束日期"
+      },
+      {
+        "key": "weeklyState",
+        "label": "原周报状态"
+      }
+    ]
+  },
+  {
+    "code": "weekly-items",
+    "label": "历史周报内容",
+    "group": "其他历史",
+    "sourceTable": "pm_project_weekly_content",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "weeklyId",
+        "label": "周报编号"
+      },
+      {
+        "key": "optionDesc001",
+        "label": "内容"
+      },
+      {
+        "key": "optionDesc002",
+        "label": "补充说明"
+      },
+      {
+        "key": "optionType",
+        "label": "内容类型"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
+      },
+      {
+        "key": "effectiveTo",
+        "label": "失效时间"
+      }
+    ]
+  },
+  {
+    "code": "weekly-feedback",
+    "label": "历史周报反馈",
+    "group": "其他历史",
+    "sourceTable": "pm_project_weekly_feedback",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "weeklyId",
+        "label": "周报编号"
+      },
+      {
+        "key": "feedback",
+        "label": "反馈内容"
+      },
+      {
+        "key": "feedbacker",
+        "label": "历史反馈人"
+      },
+      {
+        "key": "feedbackTime",
+        "label": "历史反馈时间"
+      }
+    ]
+  },
+  {
+    "code": "instructions",
+    "label": "历史指导与反馈",
+    "group": "其他历史",
+    "sourceTable": "pm_project_instruction",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "instructionsInfo",
+        "label": "指导/反馈内容"
+      },
+      {
+        "key": "instructionsTime",
+        "label": "指导时间"
+      },
+      {
+        "key": "instructionsUser",
+        "label": "历史指导人"
+      },
+      {
+        "key": "dataType",
+        "label": "原记录类型"
+      },
+      {
+        "key": "instructionsId",
+        "label": "上级指导编号"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  },
+  {
+    "code": "real-products",
+    "label": "来源真实产品清单",
+    "group": "商务资料",
+    "sourceTable": "pm_project_product_line_real",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "productFirstName",
+        "label": "一级产品名称"
+      },
+      {
+        "key": "productName",
+        "label": "产品名称"
+      },
+      {
+        "key": "productSubCode",
+        "label": "子产品编码"
+      },
+      {
+        "key": "productSubModel",
+        "label": "子产品型号"
+      },
+      {
+        "key": "productSubName",
+        "label": "子产品名称"
+      },
+      {
+        "key": "num",
+        "label": "数量"
+      },
+      {
+        "key": "memo",
+        "label": "说明"
+      }
+    ]
+  },
+  {
+    "code": "lease-products",
+    "label": "来源租赁产品",
+    "group": "商务资料",
+    "sourceTable": "pm_project_product_lease_line_from_crm",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "productFirstName",
+        "label": "一级产品名称"
+      },
+      {
+        "key": "productName",
+        "label": "产品名称"
+      },
+      {
+        "key": "productSubCode",
+        "label": "子产品编码"
+      },
+      {
+        "key": "productSubModel",
+        "label": "子产品型号"
+      },
+      {
+        "key": "productSubName",
+        "label": "子产品名称"
+      },
+      {
+        "key": "num",
+        "label": "数量"
+      },
+      {
+        "key": "memo",
+        "label": "说明"
+      },
+      {
+        "key": "leaseDuration",
+        "label": "租赁时长"
+      },
+      {
+        "key": "dataSource",
+        "label": "来源系统"
+      }
+    ]
+  },
+  {
+    "code": "configured-products",
+    "label": "来源产品配置层级",
+    "group": "商务资料",
+    "sourceTable": "pm_project_product_config_level_info_from_crm",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "itemGroup",
+        "label": "产品组"
+      },
+      {
+        "key": "itemCode",
+        "label": "产品编码"
+      },
+      {
+        "key": "parentCode",
+        "label": "上级产品编码"
+      },
+      {
+        "key": "quantity",
+        "label": "数量"
+      },
+      {
+        "key": "bomPaths",
+        "label": "产品层级路径"
+      },
+      {
+        "key": "itemModel",
+        "label": "产品型号"
+      },
+      {
+        "key": "itemDesc",
+        "label": "产品描述"
+      },
+      {
+        "key": "level",
+        "label": "产品层级"
+      },
+      {
+        "key": "dataSource",
+        "label": "来源系统"
+      }
+    ]
+  },
+  {
+    "code": "supervision",
+    "label": "历史监理",
+    "group": "实施与维护",
+    "sourceTable": "pm_project_supervision",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "来源记录编号"
+      },
+      {
+        "key": "projectId",
+        "label": "原项目编号"
+      },
+      {
+        "key": "projectCode",
+        "label": "原项目编码"
+      },
+      {
+        "key": "projectName",
+        "label": "原项目名称"
+      },
+      {
+        "key": "channel",
+        "label": "渠道"
+      },
+      {
+        "key": "officeCode",
+        "label": "办事处编码"
+      },
+      {
+        "key": "type",
+        "label": "原类型"
+      },
+      {
+        "key": "processTime",
+        "label": "处理时间"
+      },
+      {
+        "key": "state",
+        "label": "原状态"
+      },
+      {
+        "key": "isDelete",
+        "label": "原删除标记"
+      },
+      {
+        "key": "quesnaireId",
+        "label": "问卷编号"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      }
+    ]
+  }
+]

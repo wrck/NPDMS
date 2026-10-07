@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper">
+  <select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO">
+    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'
+      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE
+  </select>
+  <select id="selectProjectSources" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO">
+    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} ORDER BY id
+  </select>
+  <select id="selectSnapshot" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySnapshotDO">
+    SELECT * FROM proj_legacy_detail_snapshot WHERE tenant_id=#{query.tenantId} AND id=#{query.id}
+  </select>
+  <select id="selectBatch" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySnapshotDO">
+    SELECT * FROM proj_legacy_detail_snapshot WHERE tenant_id=#{query.tenantId} AND source_id=#{query.sourceId} AND batch_key=#{query.batchKey}
+  </select>
+  <insert id="insertSource">
+    INSERT INTO proj_legacy_detail_source(id,tenant_id,project_id,source_system,source_project_key,source_contract_no,current_snapshot_id,version)
+    VALUES(#{id},#{tenantId},#{projectId},'DPPMS',#{sourceProjectKey},#{sourceContractNo},NULL,#{version})
+  </insert>
+  <insert id="appendSnapshot">
+    INSERT INTO proj_legacy_detail_snapshot(id,tenant_id,source_id,batch_key,checksum,source_read_at,captured_at,operator_user_id,domain_counts_json,record_count)
+    VALUES(#{id},#{tenantId},#{sourceId},#{batchKey},#{checksum},#{sourceReadAt},#{capturedAt},#{operatorUserId},#{domainCountsJson},#{recordCount})
+  </insert>
+  <insert id="appendRecord">
+    INSERT INTO proj_legacy_detail_record(id,tenant_id,snapshot_id,domain_code,source_table,source_key,parent_domain,parent_source_key,source_updated_at,checksum,payload_json,redacted_fields_json)
+    VALUES(#{id},#{tenantId},#{snapshotId},#{domainCode},#{sourceTable},#{sourceKey},#{parentDomain},#{parentSourceKey},#{sourceUpdatedAt},#{checksum},#{payloadJson},#{redactedFieldsJson})
+  </insert>
+  <update id="updateHead">
+    UPDATE proj_legacy_detail_source SET current_snapshot_id=#{query.snapshotId},version=version+1
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND version=#{query.expectedVersion}
+  </update>
+  <sql id="recordScope">
+    tenant_id=#{query.tenantId} AND snapshot_id=#{query.snapshotId} AND domain_code=#{query.domainCode}
+    <if test="query.sourceKey != null">AND source_key=#{query.sourceKey}</if>
+    <if test="query.parentDomain != null">AND parent_domain=#{query.parentDomain} AND parent_source_key=#{query.parentSourceKey}</if>
+  </sql>
+  <select id="countRecords" resultType="long">
+    SELECT COUNT(*) FROM proj_legacy_detail_record WHERE <include refid="recordScope"/>
+  </select>
+  <select id="selectRecords" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO">
+    SELECT * FROM proj_legacy_detail_record WHERE <include refid="recordScope"/> ORDER BY source_key,id
+    LIMIT #{query.offset},#{query.limit}
+  </select>
+</mapper>
