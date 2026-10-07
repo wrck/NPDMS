@@ -13,9 +13,14 @@ import java.util.List;
 import org.springframework.core.ResolvableType;
 
 /** Simple SQL uses only trusted ORM columns and bound values; no model registry or operation dispatcher. */
-final class BusinessMapperQueries {
+public final class BusinessMapperQueries {
     private BusinessMapperQueries() { }
     static <E extends BaseProjectBusinessEntity> PageResult<E> page(BusinessMapper<E> mapper, BusinessReadQuery query) {
+        return page(mapper,query,wrapper->{});
+    }
+    /** Mapper-owned additional predicates; HTTP never supplies this callback or SQL identifiers. */
+    public static <E extends BaseProjectBusinessEntity> PageResult<E> page(BusinessMapper<E> mapper,BusinessReadQuery query,
+            java.util.function.Consumer<QueryWrapper<E>> predicates) {
         var criteria = query.criteria();
         if (query.tenantId() == null || criteria == null || criteria.getPageNo() < 1 || criteria.getPageSize() < 1 || criteria.getPageSize() > 200)
             throw new BusinessContractException("QUERY_INVALID", "Invalid tenant or page bounds");
@@ -56,6 +61,7 @@ final class BusinessMapperQueries {
                 case NOT_NULL -> wrapper.isNotNull(column);
             }
         }
+        predicates.accept(wrapper);
         wrapper.orderByDesc("id");
         var page = mapper.selectPage(new Page<E>(criteria.getPageNo(), criteria.getPageSize()), wrapper);
         return new PageResult<>(page.getRecords(), page.getTotal());

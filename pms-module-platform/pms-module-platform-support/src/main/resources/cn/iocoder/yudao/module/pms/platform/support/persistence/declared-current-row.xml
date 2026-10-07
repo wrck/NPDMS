@@ -14,11 +14,11 @@
             parameterType="cn.iocoder.yudao.module.pms.platform.support.persistence.DeclaredCurrentRowQuery"
             useCache="false" flushCache="true">
         SELECT @columns@ FROM @table@
-        WHERE id = #{entityId} AND tenant_id = #{tenantId} AND deleted = b'1'
+        WHERE id = #{entityId} AND tenant_id = #{tenantId} AND deleted = 1
         FOR UPDATE
     </select>
     <update id="__pmsDeleteCurrentEntity">
-        UPDATE @table@ SET deleted = b'1', version = version + 1, updater = #{updater}, update_time = NOW(3)
+        UPDATE @table@ SET deleted = 1, version = version + 1, updater = #{updater}, update_time = NOW(3)
         WHERE id = #{entityId} AND tenant_id = #{tenantId} AND version = #{expectedVersion}
         @logicDelete@
     </update>

@@ -42,17 +42,17 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     }
     @Override public final BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
     @Override public final BusinessModelViews.ModelDetailVO model() {
-        var actor = actor(); defaults.permissions().requireReadable(definition(), actor, "detail");
-        return BusinessModelViews.ModelDetailVO.of(definition(), actor, defaults.permissions());
+        var actor = actor(); authorizeModelRead(actor, "detail");
+        return modelView(BusinessModelViews.ModelDetailVO.of(definition(), actor, defaults.permissions()));
     }
     @Override public final E input(Map<String,Object> values) { return binding.create(values); }
     @Override public final Map<String,Object> readableValues(E entity) { return binding.readable(entity); }
     @Override public final E get(Long id) {
-        var actor = actor(); defaults.permissions().requireReadable(definition(), actor, "detail");
+        var actor = actor(); authorizeModelRead(actor, "detail");
         E row = current(id, actor); defaults.projects().requireReadable(row.getProjectId(), actor); return row;
     }
     @Override public final PageResult<E> page(BusinessPageQuery query) {
-        var actor = actor(); defaults.permissions().requireReadable(definition(), actor, "list");
+        var actor = actor(); authorizeModelRead(actor, "list");
         if (query == null || query.getPageNo() < 1 || query.getPageSize() < 1 || query.getPageSize() > 200)
             throw invalid("QUERY_INVALID", "Invalid page bounds");
         var projects = defaults.projects().readableScopeIds(actor);
@@ -155,6 +155,25 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         });
     }
 
+    /** Additional multi-row domain operation: keeps shared authorization, locks, idempotency and receipt verification. */
+    protected final BusinessOperationReceipt businessAction(String operation,Long id,Long version,String key,
+            Map<String,Object> intent,ReceiptOutcome outcome,Function<E,E> command) {
+        if(Set.of("create","save","delete").contains(operation))throw invalid("BUSINESS_OPERATION_INVALID","Use the inherited CRUD operation");
+        return write(operation,id,version,intent,key,actor->{
+            E before=current(id,actor);defaults.projects().requireWritable(before.getProjectId(),actor,true);requireVersion(before,version);
+            return inBusinessOperation(operation,before,null,()->{
+                E locked=lock(id,actor);requireVersion(locked,version);
+                if(!Objects.equals(before.getProjectId(),locked.getProjectId()))throw invalid("CONCURRENCY_CONFLICT","Business scope changed");
+                E result=command.apply(copy(locked));
+                checkRow(result,result==null?null:result.getId(),actor);
+                if(!Objects.equals(locked.getProjectId(),result.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","Domain result changed project");
+                E actual=current(result.getId(),actor);
+                if(!Objects.equals(actual.getProjectId(),result.getProjectId()) || !Objects.equals(actual.getVersion(),result.getVersion()))throw invalid("BUSINESS_RESULT_INVALID","Domain result differs from persisted identity");
+                return saved(actual,operation,outcome);
+            });
+        });
+    }
+
     /** Override only existing business permission names/availability; inherited CRUD implementations remain shared. */
     protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> configureOperations(
             List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> operations) { return operations; }
@@ -163,6 +182,9 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected Long generatedId() { return null; }
     protected long initialVersion() { return 0L; }
     protected void afterRead(E entity) { }
+    protected void authorizeModelRead(EntityActor actor,String scene) { defaults.permissions().requireReadable(definition(),actor,scene); }
+    protected BusinessModelViews.ModelDetailVO modelView(BusinessModelViews.ModelDetailVO view) { return view; }
+    protected boolean publishDefaultEvent(String operation) { return true; }
     protected void authorizeReceipt(String operation,E entity) { }
     protected void afterChange(String operation,E before,E current) { }
     protected Class<?>[] validationGroups(E entity) { return new Class<?>[]{jakarta.validation.groups.Default.class}; }
@@ -187,7 +209,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     @Override public final Long requireDeliveryAccess(Long id, boolean write, boolean lock) {
         var actor = actor();
         if (write) defaults.permissions().requireWritable(definition(), actor, "operation:save");
-        else defaults.permissions().requireReadable(definition(), actor, "delivery");
+        else authorizeModelRead(actor, "delivery");
         E row = current(id, actor);
         if (write) defaults.projects().requireWritable(row.getProjectId(), actor, lock);
         else defaults.projects().requireReadable(row.getProjectId(), actor);
@@ -229,7 +251,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             defaults.journal().complete(journalKey, definition().entityType(), result.entityRef().entityId().toString(), result);
             defaults.audit().record(actor.tenantId(), actor.userId(), key, operation, definition().entityType(),
                     result.entityRef().entityId().toString(), "SUCCESS", Map.of("outcome", result.outcome().name()));
-            defaults.events().append(new BusinessEventRecord(UUID.randomUUID().toString(), result.entityRef(), BusinessEventKind.CHANGED,
+            if(publishDefaultEvent(operation))defaults.events().append(new BusinessEventRecord(UUID.randomUUID().toString(), result.entityRef(), BusinessEventKind.CHANGED,
                     result.newConcurrencyBasis().toString(), key, Map.of("operation", operation, "operationVersion", operationVersion(operation)), 0L));
             return result;
         });
