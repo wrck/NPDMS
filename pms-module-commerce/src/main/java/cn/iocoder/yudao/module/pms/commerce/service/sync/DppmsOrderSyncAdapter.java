@@ -142,6 +142,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                         throw new IllegalArgumentException("同一批次订单主档字段冲突");
                     }
                     action = decision(old == null ? null : old.getSourceVersion(), version,
+                            old == null ? null : old.getSourceUpdatedAt(), time,
                             old == null ? null : canonicalizer.orderPayload(old), canonicalizer.orderPayload(fact));
                     id = old == null ? null : old.getId();
                     if (!"UNCHANGED".equals(action)) incomingOrders.put(targetKey, fact);
@@ -171,6 +172,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     if (previous != null && !canonicalizer.linePayload(previous).equals(canonicalizer.linePayload(fact)))
                         throw new IllegalArgumentException("同一批次订单行字段冲突");
                     action = decision(old == null ? null : old.getSourceVersion(), version,
+                            old == null ? null : old.getSourceUpdatedAt(), time,
                             old == null ? null : canonicalizer.linePayload(old, parentKey), canonicalizer.linePayload(fact));
                     id = old == null ? null : old.getId();
                     if (!"UNCHANGED".equals(action)) incomingLines.put(targetKey, fact);
@@ -192,13 +194,17 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 hasOrderRows,hasLineRows);
     }
 
-    private static String decision(String oldVersion, String version, String oldPayload, String payload) {
+    private static String decision(String oldVersion, String version, LocalDateTime oldSourceTime,
+                                   LocalDateTime sourceTime, String oldPayload, String payload) {
         if (oldVersion == null) return "CREATED";
         if (oldVersion.equals(version)) {
             if (!Objects.equals(oldPayload, payload)) throw new IllegalArgumentException("SOURCE_VERSION_PAYLOAD_CONFLICT: 同版本内容不同");
             return "UNCHANGED";
         }
-        if (LocalDateTime.parse(version).isBefore(LocalDateTime.parse(oldVersion)))
+        // Owner sourceVersion is an opaque revision token; ordering uses the separate source clock.
+        if (oldSourceTime == null)
+            throw new IllegalArgumentException("SOURCE_TIME_MISSING: existing source timestamp is required");
+        if (sourceTime.isBefore(oldSourceTime))
             throw new IllegalArgumentException("STALE_SOURCE_VERSION: 来源版本早于目标版本");
         return "UPDATED";
     }

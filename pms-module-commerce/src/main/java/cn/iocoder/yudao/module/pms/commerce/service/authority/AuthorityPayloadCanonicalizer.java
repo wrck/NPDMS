@@ -74,6 +74,8 @@ public class AuthorityPayloadCanonicalizer {
         value.put("orderComment", row.getOrderComment());
         value.put("orderCreateTime", time(row.getOrderCreateTime()));
         value.put("customerRequiredTime", time(row.getCustomerRequiredTime()));
+        value.put("contractNo", row.getContractNo());
+        value.put("executionNo", row.getExecutionNo());
         return JsonUtils.toJsonString(value);
     }
 
@@ -173,6 +175,8 @@ public class AuthorityPayloadCanonicalizer {
         value.put("orderComment", fact.orderComment());
         value.put("orderCreateTime", time(fact.orderCreateTime()));
         value.put("customerRequiredTime", time(fact.customerRequiredTime()));
+        value.put("contractNo", fact.contractNo());
+        value.put("executionNo", fact.executionNo());
         return value;
     }
 
