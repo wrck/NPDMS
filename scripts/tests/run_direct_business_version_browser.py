@@ -41,7 +41,7 @@ def main():
                 assert configured['code']==0,configured
                 page.get_by_role('button',name='重新读取',exact=True).click();expect(panel.get_by_role('button',name='发起修订',exact=True)).to_be_enabled()
                 panel.get_by_label('修订原因').fill('First');confirm(page,'发起修订');expect(panel.locator('h4')).to_contain_text('草稿',timeout=15000)
-                field(panel,'标题').fill('Revised');field(panel,'扩展标志').click();page.get_by_role('option',name='否',exact=True).click()
+                field(panel,'标题').fill('Revised');panel.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='扩展标志')).locator('.el-select').click();page.get_by_role('option',name='否',exact=True).click()
                 confirm(page,'保存修订');expect(panel.get_by_role('button',name='冻结并生效',exact=True)).to_be_enabled(timeout=15000)
                 assert shared.fixture('/fixture/evidence')['it_version_note'][0]['title']=='Original'
                 confirm(page,'冻结并生效');expect(panel.locator('h4')).to_contain_text('冻结只读',timeout=15000)
@@ -51,8 +51,8 @@ def main():
                 page.screenshot(path=str(OUT/'frozen.png'),full_page=True);result['checks'].append('empty business classes inherit actual revision APIs, form/extension save, immutable freeze and current activation')
                 confirm(page,'从此版本复制');expect(panel.locator('h4')).to_contain_text('草稿',timeout=15000)
                 field(panel,'标题').fill('Alternative');confirm(page,'保存修订');expect(panel.get_by_role('button',name='放弃修订',exact=True)).to_be_enabled(timeout=15000)
-                panel.get_by_label('比较左版本').click();page.get_by_role('option',name='#1',exact=True).click()
-                panel.get_by_label('比较右版本').click();page.get_by_role('option',name='#2',exact=True).click();panel.get_by_role('button',name='比较',exact=True).click()
+                panel.locator('.el-form--inline .el-select').nth(0).click();page.get_by_role('option',name='#1',exact=True).click()
+                panel.locator('.el-form--inline .el-select').nth(1).click();page.get_by_role('option',name='#2',exact=True).click();panel.get_by_role('button',name='比较',exact=True).click()
                 expect(panel.get_by_text('"Alternative"',exact=True)).to_be_visible(timeout=15000)
                 panel.get_by_role('button',name='放弃修订',exact=True).click();page.get_by_role('button',name='取消',exact=True).click();assert len(shared.fixture('/fixture/evidence')['it_version_note_revision'])==2
                 confirm(page,'放弃修订');expect(panel.locator('h4')).to_contain_text('冻结只读',timeout=15000)
