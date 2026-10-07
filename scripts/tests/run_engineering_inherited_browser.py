@@ -85,7 +85,9 @@ def main():
                 copied=shared.fixture('/fixture/evidence');revisions=copied['sol_requirement_analysis_revision'];assert len(revisions)==2 and revisions[1]['source_revision_id']==revisions[0]['id'],copied
                 assert revisions[0]['entity_id']==revisions[1]['entity_id'] and revisions[1]['revision_state']=='DRAFT'
                 requirement_extensions=[row for row in copied['plt_entity_extension_value'] if row['entity_type']=='REQUIREMENT_ANALYSIS']
-                assert len(requirement_extensions)==2 and all(json.loads(row['values_json'])['CUSTOM_FLAG'] is True for row in requirement_extensions)
+                assert len(requirement_extensions)==3 and all(json.loads(row['values_json'])['CUSTOM_FLAG'] is True for row in requirement_extensions)
+                assert {int(row['revision_id']) for row in requirement_extensions}=={0,int(revisions[0]['id']),int(revisions[1]['id'])}
+                assert all(int(row['entity_id'])==int(revisions[0]['entity_id']) for row in requirement_extensions)
                 assert copied['storedObjects']==copied['fileVersions']==2 and len(copied['plt_delivery_material'])==3,copied
                 source,copied_material=copied['plt_delivery_material'][1:];assert source['file_artifact_id']==copied_material['file_artifact_id'] and source['file_reference_id']!=copied_material['file_reference_id']
                 assert copied_material['source_kind']=='ASSOCIATED'
