@@ -14,7 +14,7 @@
     </el-table>
     <template v-if="selected && values && presentation">
       <h4>修订 #{{selected.revisionNo}} · {{selected.state==='DRAFT'?'草稿':'冻结只读'}}</h4>
-      <ProjectBusinessContentForm ref="editor" :fields="fields" :writable-fields="fields.filter(field=>field.writable)" :presentation="presentation" :initial-values="values"
+      <ProjectBusinessContentForm ref="editor" :fields="fields" :writable-fields="writableFields" :presentation="presentation" :initial-values="values"
         :disabled="blocked || readonly || selected.state!=='DRAFT' || !allowed('revision-save')" />
       <el-button v-if="selected.state==='DRAFT'" :disabled="blocked || !allowed('revision-save')" @click="perform('revision-save')">保存修订</el-button>
       <el-button v-if="selected.state==='DRAFT'" :disabled="blocked || !allowed('revision-complete')" @click="perform('revision-complete')">冻结并生效</el-button>
@@ -41,6 +41,7 @@ const message=useMessage(),rows=ref<DirectBusinessRevision[]>([]),selected=ref<D
 const loading=ref(false),working=ref(false),error=ref(''),reason=ref(''),left=ref(''),right=ref('')
 const differences=ref<Array<{fieldCode:string;before:RevisionFieldValue;after:RevisionFieldValue}>>()
 let generation=0
+const writableFields=computed(()=>props.fields.filter(field=>field.writable))
 const blocked=computed(()=>props.busy||loading.value||working.value)
 const allowed=(code:string)=>!props.readonly && props.actions.some(action=>action.code===code&&action.executable)
 const format=(value:RevisionFieldValue)=>value.readable?JSON.stringify(value.value):'不可读'

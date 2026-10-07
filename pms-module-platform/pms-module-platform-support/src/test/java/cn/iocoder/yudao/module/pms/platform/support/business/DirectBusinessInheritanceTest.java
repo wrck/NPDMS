@@ -124,6 +124,15 @@ class DirectBusinessInheritanceTest {
         assertFalse(provider.read(target,new EntityActor(7L,42L,null)).containsKey("internalSecret"));
         assertThrows(RuntimeException.class,()->provider.read(target,new EntityActor(7L,999L,null)));
     }
+    @Test void emptyBusinessAlsoInheritsPublishedFormCompatibilityPolicy(){
+        var provider=assertInstanceOf(cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessObjectPolicyProvider.class,context.getBean(NoteService.class));
+        var key=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey("IT","directNote");
+        var field=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormFieldDescriptor("title","input",false,true,"any",null,128,null,List.of());
+        var query=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionPolicyQuery(7L,42L,key,1L,2L,1,3,"directNote",cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE,List.of(field));
+        assertEquals(key,provider.providerKey());assertTrue(provider.inspectRevisionCompatibility(query).allowed());
+        var invalid=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionPolicyQuery(7L,42L,key,1L,2L,1,3,"anotherOwner",query.action(),List.of(field));
+        assertFalse(provider.inspectRevisionCompatibility(invalid).allowed());
+    }
     @Test void inheritedControllerCallsItsOwnTypedServiceAndMapper() throws Exception {
         var mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class)).build();
         mvc.perform(post("/it/direct-notes").contentType("application/json")

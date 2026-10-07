@@ -26,10 +26,11 @@ import org.springframework.core.ResolvableType;
  * catalog/operation dispatcher is neither a dependency nor an enrollment prerequisite.
  */
 public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>, E extends BaseProjectBusinessEntity>
-        implements ProjectBusinessService<E>, EntityFieldProvider {
+        implements ProjectBusinessService<E>, EntityFieldProvider, cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessObjectPolicyProvider {
     @Autowired protected M mapper;
     @Autowired protected BusinessDefaults defaults;
     private BusinessEntityBinding<E> binding;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi> dynamicForms;
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityFormApi> formPorts;
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityExtensionApi> extensionPorts;
 
@@ -155,6 +156,44 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
                 || !ownerModule().equals(target.entity().ownerModule()) || !entityType().equals(target.entity().entityType()))
             throw invalid("ENTITY_SCOPE_DENIED","Entity capability identity or caller differs from the bound service");
     }
+    @Override public cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey providerKey(){
+        return new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey(ownerModule(),entityType());
+    }
+    @Override public cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact inspectRevisionCompatibility(
+            cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionPolicyQuery query){
+        var caller=actor();var action=query.action();
+        boolean allowed=Objects.equals(query.tenantId(),caller.tenantId()) && Objects.equals(query.actorUserId(),caller.userId())
+                && providerKey().equals(query.providerKey()) && formUsage().equals(query.requiredUsage())
+                && query.revisionFactVersion()!=null && query.revisionFactVersion()>=0
+                && (action==cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_BINDING_PUBLISH
+                    || action==cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE)
+                && query.fields().stream().allMatch(field->!field.controlledFile() && field.valueType()!=null && Set.of("any","number","boolean","array").contains(field.valueType()));
+        // Content belongs to the real entity/revision. Files belong to the shared delivery component, not a synthetic form instance.
+        return new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact(action,allowed,allowed?null:"BUSINESS_FORM_INCOMPATIBLE",
+                query.revisionFactVersion()==null?0L:query.revisionFactVersion().longValue(),"DEFAULT_ENTITY_FIELDS");
+    }
+    @Override public cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact inspectInstanceOwnerPolicy(
+            cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstancePolicyQuery query){
+        return new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact(query.action(),false,"ENTITY_FORM_HAS_NO_SEPARATE_INSTANCE",0L,"ENTITY_ONLY");
+    }
+    @Override public cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact lockAndRevalidateInstanceOwnerPolicy(
+            cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyRevalidationQuery query){
+        return new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact(query.expectedFact().action(),false,"ENTITY_FORM_HAS_NO_SEPARATE_INSTANCE",0L,"ENTITY_ONLY");
+    }
+    private void validateConfiguredForm(E row,String operation){
+        if("create".equals(operation) || row.getId()==null)return;
+        var formApi=formPorts.getIfAvailable();if(formApi==null)return;var target=formTarget(row);var layout=formApi.layout(target,actor());if(layout==null)return;
+        var port=dynamicForms.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Published form validation is unavailable");
+        var fixed=businessValues(row);var extras=extensionPort().read(target,actor()).fields();var values=new LinkedHashMap<String,Object>();
+        layout.binding().fieldBindings().forEach((field,property)->{if(fixed.containsKey(property))values.put(field,fixed.get(property));else if(extras.containsKey(property))values.put(field,extras.get(property));});
+        var query=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery(actor().tenantId(),actor().userId(),
+                new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey(target.entity().ownerModule(),target.entity().entityType()),
+                layout.binding().formRevisionId(),configuredFormUsage(row,target),cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE,layout.formVersion());
+        @SuppressWarnings("unchecked") Map<String,Object> normalized=JsonUtils.parseObject(JsonUtils.toJsonString(values),Map.class);
+        var result=port.validateRevisionValues(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionValuesQuery(query,normalized));
+        if(result==null || !"VALID".equals(result.result()))throw invalid("BUSINESS_FORM_INVALID","Configured form validation failed");
+    }
+    protected String configuredFormUsage(E row,EntityDataRef target){return target.entity().entityType();}
     /** Existing revision businesses override only their historical storage identity. */
     protected EntityDataRef formTarget(E row){return EntityDataRef.current(identity(row));}
     private EntityFormApi formPort(){var port=formPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Form capability is unavailable");return port;}
@@ -164,28 +203,33 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         var definitionId=layout!=null && layout.binding().extensionDefinitionRevisionId()!=null?layout.binding().extensionDefinitionRevisionId():values.definitionRevisionId();
         return new BusinessFormData(layout,values,definitionId==null?List.of():extensionPort().definition(definitionId,target.entity(),caller).fields());
     }
-    @Override public final BusinessOperationReceipt saveForm(Long id,Map<String,Object> values,Long version,String key){
+    protected record FormWrite(Map<String,Object> fixed,BusinessFormData.BindingPatch binding,BusinessEntitySaveSupport.ExtensionPatch extension){}
+    protected final FormWrite formWrite(Map<String,Object> values){
         if(values==null)throw invalid("INPUT_REQUIRED","Business values are required");
         var fixed=new LinkedHashMap<>(values);Object extension=fixed.remove("$extensions"),layout=fixed.remove("$binding");
-        var layoutPatch=layout==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(layout),BusinessFormData.BindingPatch.class);
-        var patch=extension==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(extension),BusinessEntitySaveSupport.ExtensionPatch.class);
-        return change("save-form",id,version,key,values,row->{
-            var before=copy(row);binding.patch(row,fixed);beforeUpdate(before,row);
-            if(layoutPatch!=null){
-                if(layoutPatch.expectedVersion()<0 || layoutPatch.formRevisionId()==null || layoutPatch.formRevisionId()<=0)
-                    throw invalid("INPUT_INVALID","Invalid form binding");
-                formPort().bind(new EntityFormApi.Bind(formTarget(row),actor(),version,layoutPatch.expectedVersion(),layoutPatch.formRevisionId(),
-                        layoutPatch.extensionDefinitionRevisionId(),layoutPatch.fieldBindings(),layoutPatch.bindRemainingFields()));
-            }
-            if(patch!=null){
-                if(patch.values()==null || patch.expectedVersion()<0)throw invalid("INPUT_INVALID","Invalid extension patch");
-                var target=formTarget(row);var existing=extensionPort().read(target,actor());
-                var merged=new LinkedHashMap<String,Object>();
-                if(Objects.equals(existing.definitionRevisionId(),patch.definitionRevisionId()))merged.putAll(existing.fields());
-                merged.putAll(patch.values());
-                extensionPort().save(new EntityExtensionApi.Save(target,actor(),version,patch.expectedVersion(),patch.definitionRevisionId(),merged));
-            }
-        });
+        return new FormWrite(fixed,layout==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(layout),BusinessFormData.BindingPatch.class),
+                extension==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(extension),BusinessEntitySaveSupport.ExtensionPatch.class));
+    }
+    protected final void storeFormWrite(EntityDataRef target,Long version,FormWrite input){
+        var layout=input.binding();EntityFormApi.Binding bound=null;
+        if(layout!=null){
+            if(layout.expectedVersion()<0 || layout.formRevisionId()==null || layout.formRevisionId()<=0)throw invalid("INPUT_INVALID","Invalid form binding");
+            bound=formPort().bind(new EntityFormApi.Bind(target,actor(),version,layout.expectedVersion(),layout.formRevisionId(),layout.extensionDefinitionRevisionId(),layout.fieldBindings(),layout.bindRemainingFields()));
+        }
+        var patch=input.extension();if(patch==null)return;
+        if(patch.values()==null || patch.expectedVersion()<0)throw invalid("INPUT_INVALID","Invalid extension patch");
+        var existing=extensionPort().read(target,actor());var definition=patch.definitionRevisionId()!=null?patch.definitionRevisionId():bound!=null?bound.extensionDefinitionRevisionId():existing.definitionRevisionId();
+        var merged=new LinkedHashMap<String,Object>();if(Objects.equals(existing.definitionRevisionId(),definition))merged.putAll(existing.fields());merged.putAll(patch.values());
+        // Lossless text number controls are converted using the published definition, never arbitrary property names.
+        var schema=extensionPort().definition(definition,target.entity(),actor());
+        for(var field:schema.fields())if(field.type()==EntityField.Type.NUMBER && merged.get(field.code()) instanceof String text){
+            try{merged.put(field.code(),text.isBlank()?null:new java.math.BigDecimal(text));}catch(NumberFormatException invalid){throw invalid("INPUT_INVALID","Invalid number for extension: "+field.code());}
+        }
+        extensionPort().save(new EntityExtensionApi.Save(target,actor(),version,patch.expectedVersion(),definition,merged));
+    }
+    @Override public final BusinessOperationReceipt saveForm(Long id,Map<String,Object> values,Long version,String key){
+        var input=formWrite(values);
+        return change("save-form",id,version,key,values,row->{var before=copy(row);binding.patch(row,input.fixed());beforeUpdate(before,row);storeFormWrite(formTarget(row),version,input);});
     }
 
     protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> defaultOperations(String prefix){
@@ -367,7 +411,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected final void validate(E entity,String operation) {
         var violations = defaults.validator().validate(entity,validationGroups(entity));
         if (!violations.isEmpty()) throw invalid("ENTITY_CONSTRAINT_INVALID", violations.stream().map(v -> v.getPropertyPath() + ": " + v.getMessage()).sorted().toList().toString());
-        validateFramework(copy(entity),operation);validateBusiness(copy(entity),operation);
+        validateFramework(copy(entity),operation);validateBusiness(copy(entity),operation);validateConfiguredForm(entity,operation);
     }
     @SuppressWarnings({"rawtypes", "unchecked"})
     protected final void persistUpdate(E entity, EntityActor actor, Long version, Set<String> nulls) {

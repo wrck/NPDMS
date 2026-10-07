@@ -23,6 +23,7 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
     @Autowired protected RM revisionMapper;
     @Autowired private ObjectProvider<EntityExtensionApi> extensions;
     @Autowired private ObjectProvider<EntityFormApi> forms;
+    private final ThreadLocal<EntityRef> activating=new ThreadLocal<>();
     private Class<R> revisionClass;
     private BusinessModelDeclaration revisionBinding;
     @PostConstruct @SuppressWarnings("unchecked")
@@ -31,6 +32,9 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
         if(type==null || !entityClass().isAssignableFrom(type) || !MutableEntityRevision.class.isAssignableFrom(type))
             throw invalid("REVISION_MAPPING_INVALID","Revision entity must inherit its typed business fields and revision contract");
         revisionClass=(Class<R>)type;revisionBinding=new BusinessModelDeclaration(definition(),type,revisionMapper,null);
+    }
+    @Override protected EntityDataRef formTarget(E row){
+        return revisionClass!=null && revisionClass.isInstance(row)?EntityDataRef.revision(revisionClass.cast(row).revisionRef()):super.formTarget(row);
     }
     @Override protected List<BusinessOperationDescriptor> defaultOperations(String prefix){
         var result=new ArrayList<>(super.defaultOperations(prefix));
@@ -63,14 +67,8 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
     @Override public BusinessOperationReceipt saveRevision(Long id,Long version,Long revisionId,Long revisionVersion,Map<String,Object> values,String key){
         return revisionWrite("revision-save",id,version,key,intent(revisionId,revisionVersion,values),row->{
             var reference=new RevisionRef(identity(row),revisionId);var draft=lockedRevision(reference,actor());requireRevisionVersion(draft,revisionVersion);
-            var fixed=new LinkedHashMap<>(values);Object extra=fixed.remove("$extensions");
-            if(extra!=null){
-                var patch=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(extra),BusinessEntitySaveSupport.ExtensionPatch.class);
-                var target=EntityDataRef.revision(reference);var previous=extensionApi().read(target,actor());var merged=new LinkedHashMap<String,Object>();
-                if(Objects.equals(previous.definitionRevisionId(),patch.definitionRevisionId()))merged.putAll(previous.fields());merged.putAll(Objects.requireNonNull(patch.values()));
-                extensionApi().save(new EntityExtensionApi.Save(target,actor(),revisionVersion,patch.expectedVersion(),patch.definitionRevisionId(),merged));
-            }
-            return save(reference,Math.toIntExact(revisionVersion),fixed,actor());
+            requireDraft(draft);var input=formWrite(values);storeFormWrite(EntityDataRef.revision(reference),revisionVersion,input);
+            return save(reference,Math.toIntExact(revisionVersion),input.fixed(),actor());
         });
     }
     @Override public BusinessOperationReceipt completeRevision(Long id,Long version,Long revisionId,Long revisionVersion,String key){
@@ -139,10 +137,14 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
         var proposed=copy(current);var values=new LinkedHashMap<String,Object>();var snapshot=businessValues(asBusiness(frozen));
         definition().fields().stream().filter(BusinessFieldDescriptor::writable).forEach(field->values.put(field.code(),snapshot.get(field.code())));patchBusinessFields(proposed,values);
         beforeUpdate(copy(current),proposed);if(!Objects.equals(proposed.getProjectId(),current.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","Revision cannot move its business project");
-        persistBusinessChange(current,proposed,"revision-complete");
+        var previousActivation=activating.get();activating.set(ref.entity());
+        try{
+            extensionApi().copy(EntityDataRef.revision(ref),EntityDataRef.current(ref.entity()),current.getVersion(),caller);
+            formApi().copy(EntityDataRef.revision(ref),EntityDataRef.current(ref.entity()),current.getVersion(),caller);
+            persistBusinessChange(current,proposed,"revision-complete");
+        }finally{if(previousActivation==null)activating.remove();else activating.set(previousActivation);}
         if(effective!=null){effective.setEffective(false);persistRevision(effective,caller);}frozen.setEffective(true);persistRevision(frozen,caller);
-        extensionApi().copy(EntityDataRef.revision(ref),EntityDataRef.current(ref.entity()),proposed.getVersion(),caller);
-        formApi().copy(EntityDataRef.revision(ref),EntityDataRef.current(ref.entity()),proposed.getVersion(),caller);return frozen.revisionMetadata();
+        return frozen.revisionMetadata();
     }
     @Override public void discard(RevisionRef ref,EntityActor caller){
         var current=requireEntity(ref.entity(),caller,true);authorizeRevision("revision-discard",caller);var draft=lockedRevision(ref,caller);requireDraft(draft);beforeRevisionDiscard(copy(current),draft);
@@ -155,7 +157,12 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
     @Override public void requireReadable(EntityDataRef target,EntityActor caller){if(target.isRevision())read(target,caller);else super.requireReadable(target,caller);}
     @Override public Long concurrencyBasis(EntityDataRef target,EntityActor caller){if(!target.isRevision())return super.concurrencyBasis(target,caller);requireEntity(target.entity(),caller,false);return revision(new RevisionRef(target.entity(),target.revisionId()),caller).getVersion();}
     @Override public void lockForWrite(EntityDataRef target,EntityActor caller,Long expectedVersion){
-        if(!target.isRevision()){super.lockForWrite(target,caller,expectedVersion);return;}
+        if(!target.isRevision()){
+            super.lockForWrite(target,caller,expectedVersion);
+            if(!target.entity().equals(activating.get()) && DeclaredBusinessCurrentRows.maxRevisionNo(revisionBinding,new DeclaredCurrentRowQuery(caller.tenantId(),target.entity().entityId()))>0)
+                throw invalid("REVISION_REQUIRED","Current form and extension writes must use a revision");
+            return;
+        }
         requireEntity(target.entity(),caller,true);authorizeRevision("revision-save",caller);var row=lockedRevision(new RevisionRef(target.entity(),target.revisionId()),caller);requireDraft(row);requireRevisionVersion(row,expectedVersion);
     }
     @Override protected final void validateFramework(E entity,String operation){

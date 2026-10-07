@@ -136,4 +136,24 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertThrows(RuntimeException.class,()->notes.createRevision(id,0L,null,null,"denied-draft"));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM it_version_note_revision",Integer.class));
         assertEquals("Readonly",notes.get(id).getTitle());
     }
+    @Test void publishedLayoutValidationIsInheritedAndExtensionApiCannotBypassRevisionHistory(){
+        var created=notes.create(notes.input(Map.of("projectId",20,"title","Configured")),"configured-note");long id=created.entityRef().entityId();
+        var layout=new EntityFormApi.Layout(new EntityFormApi.Binding(1L,null,Map.of("caption","title"),0),1L,1,1,"FORM_CREATE_ELEMENT_PLUS","3.4.0","3.2.38","{}","[]",List.of());
+        when(ctx.getBean(EntityFormApi.class).layout(any(),any())).thenReturn(layout);
+        var forms=ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi.class);
+        when(forms.validateRevisionValues(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormValidationFact("INVALID",List.of("MAX_LENGTH")));
+        assertThrows(RuntimeException.class,()->notes.update(id,notes.input(Map.of("title","Too long")),Set.of("title"),0L,"invalid-layout"));assertEquals("Configured",notes.get(id).getTitle());
+        verify(forms).validateRevisionValues(argThat(query->"Too long".equals(query.values().get("caption")) && "versionNote".equals(query.revision().requiredUsage())));
+        when(forms.validateRevisionValues(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormValidationFact("VALID",List.of()));
+        notes.createRevision(id,0L,null,null,"configured-draft");
+        var tx=new TransactionTemplate(ctx.getBean(PlatformTransactionManager.class));
+        assertThrows(RuntimeException.class,()->tx.execute(status->{notes.lockForWrite(EntityDataRef.current(created.entityRef()),new EntityActor(1L,9L,"bypass"),0L);return null;}));
+    }
+    @Test void numericExtensionTextUsesPublishedTypeAndRemainsNumeric(){
+        var actor=new EntityActor(1L,9L,"numeric-extension");var api=ctx.getBean(EntityExtensionApi.class);
+        var definition=api.publishDefinition(1L,"IT","versionNote",List.of(new EntityExtensionApi.Definition("amount","Amount",EntityField.Type.NUMBER,false,null,List.of())),actor);
+        var created=notes.create(notes.input(Map.of("projectId",20,"title","Numeric")),"numeric-note");long id=created.entityRef().entityId();
+        notes.saveForm(id,Map.of("$extensions",Map.of("definitionRevisionId",definition.id(),"expectedVersion",0,"values",Map.of("amount","12.5"))),0L,"numeric-form");
+        assertEquals(0,new java.math.BigDecimal(notes.form(id).extensions().fields().get("amount").toString()).compareTo(new java.math.BigDecimal("12.5")));
+    }
 }
