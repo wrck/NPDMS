@@ -24,6 +24,8 @@ def upload(page,name,body):
 
 def main():
     shared.prepare()
+    main_path=FIX/'main.ts'
+    main_path.write_text(main_path.read_text().replace("import ElementPlus", "import formCreate from '@form-create/element-ui';import ElementPlus").replace('app.use(ElementPlus);','app.use(ElementPlus);app.use(formCreate);'))
     (FIX/'Fixture.vue').write_text('''<template><div>
       <button @click="mode='survey'">工勘业务</button><button @click="mode='requirement'">需求分析业务</button><button @click="mode='collection'">交付件归集</button>
       <Survey v-if="mode==='survey'"/><Requirement v-else-if="mode==='requirement'"/><Collection v-else/>
@@ -55,8 +57,8 @@ def main():
                 created=shared.fixture('/fixture/evidence');assert len(created['sol_site_survey'])==1 and len(created['sol_site_survey_material'])==1,created
                 assert int(created['sol_site_survey'][0]['id'])>9007199254740991
                 page.get_by_role('button',name='删除',exact=True).click();page.get_by_role('button',name='取消',exact=True).click()
-                field(page,'工勘名称').fill('继承工勘已编辑')
-                with page.expect_response(lambda r:r.request.method=='PUT' and '/site-survey-business/' in r.url) as save:
+                field(page,'工勘名称').fill('继承工勘已编辑');page.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='工勘扩展标志')).get_by_role('switch').click()
+                with page.expect_response(lambda r:r.request.method=='POST' and '/save-form' in r.url and '/site-survey-business/' in r.url) as save:
                     page.get_by_role('button',name='保存',exact=True).click()
                 assert save.value.json()['code']==0;expect(page.get_by_role('button',name='保存',exact=True)).to_be_enabled()
                 upload(page,'survey.txt','Survey record\n');act(page,'确认工勘')
@@ -65,13 +67,14 @@ def main():
                 act(page,'归档工勘');expect(page.get_by_role('button',name='归档工勘',exact=True)).to_be_disabled(timeout=15000)
                 survey=shared.fixture('/fixture/evidence');assert survey['sol_site_survey'][0]['status']==3 and survey['sol_site_survey'][0]['name']=='继承工勘已编辑',survey
                 assert len(survey['sol_site_survey_material'])==1
+                assert json.loads(survey['plt_entity_extension_value'][0]['values_json'])['extra_flag'] is True
                 page.screenshot(path=str(OUT/'survey.png'),full_page=True);result['checks'].append('survey existing table/bigint identity/child material/create/edit/cancel delete/upload/confirm/archive/read-only state')
                 page.get_by_role('button',name='需求分析业务',exact=True).click();page.get_by_role('button',name='新建',exact=True).click();field(page,'项目').fill('20')
                 page.get_by_role('button',name='保存',exact=True).click();expect(page.get_by_label('上传交付件')).to_be_enabled(timeout=15000)
                 draft=shared.fixture('/fixture/evidence');assert len(draft['sol_requirement_analysis'])==0 and len(draft['sol_requirement_analysis_revision'])==1,draft
-                field(page,'项目背景').fill('项目背景');field(page,'项目目标').fill('项目目标');field(page,'网络拓扑').fill('网络拓扑')
+                page.locator('.el-form-item').filter(has=page.locator('.el-form-item__label',has_text='需求扩展标志')).get_by_role('switch').click();field(page,'项目背景').fill('项目背景');field(page,'项目目标').fill('项目目标');field(page,'网络拓扑').fill('网络拓扑')
                 field(page,'业务设备明细').fill('[{"deviceName":"设备","serialNumber":"SN-RA","businessName":"业务"}]')
-                with page.expect_response(lambda r:r.request.method=='PUT' and '/requirement-analysis-business/' in r.url) as save:
+                with page.expect_response(lambda r:r.request.method=='POST' and '/save-form' in r.url and '/requirement-analysis-business/' in r.url) as save:
                     page.get_by_role('button',name='保存',exact=True).click()
                 assert save.value.json()['code']==0;expect(page.get_by_role('button',name='保存',exact=True)).to_be_enabled()
                 upload(page,'requirement.txt','Requirement report\n');act(page,'完成并生效')
@@ -81,6 +84,8 @@ def main():
                 expect(page.get_by_text('已有最新有效上传',exact=True)).to_be_visible(timeout=15000)
                 copied=shared.fixture('/fixture/evidence');revisions=copied['sol_requirement_analysis_revision'];assert len(revisions)==2 and revisions[1]['source_revision_id']==revisions[0]['id'],copied
                 assert revisions[0]['entity_id']==revisions[1]['entity_id'] and revisions[1]['revision_state']=='DRAFT'
+                requirement_extensions=[row for row in copied['plt_entity_extension_value'] if row['entity_type']=='REQUIREMENT_ANALYSIS']
+                assert len(requirement_extensions)==2 and all(json.loads(row['values_json'])['CUSTOM_FLAG'] is True for row in requirement_extensions)
                 assert copied['storedObjects']==copied['fileVersions']==2 and len(copied['plt_delivery_material'])==3,copied
                 source,copied_material=copied['plt_delivery_material'][1:];assert source['file_artifact_id']==copied_material['file_artifact_id'] and source['file_reference_id']!=copied_material['file_reference_id']
                 assert copied_material['source_kind']=='ASSOCIATED'

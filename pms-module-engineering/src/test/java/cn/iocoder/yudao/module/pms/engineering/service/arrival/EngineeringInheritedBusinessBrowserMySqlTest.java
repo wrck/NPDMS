@@ -38,6 +38,8 @@ class EngineeringInheritedBusinessBrowserMySqlTest extends SurveyInheritedDelive
     @Override List<String> extraMapperPaths(){var paths=new ArrayList<>(super.extraMapperPaths());paths.add("requirement/RequirementAnalysisMapper.xml");return paths;}
     @Override void registerExtraBeans(SqlSessionTemplate sessions) {
         super.registerExtraBeans(sessions);
+        context.removeBeanDefinition(EntityExtensionApi.class.getName());
+        context.register(EntityExtensionService.class,cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityProvider.class);
         context.registerBean(ProjectParticipantFactApi.class,()->{
             var participants=mock(ProjectParticipantFactApi.class);var fact=new ProjectParticipantFact(20L,17L,Set.of("PROJECT_MANAGER"),"PRIMARY","ACTIVE","S1",0L,3L);
             when(participants.inspect(any())).thenReturn(fact);when(participants.lockAndRevalidate(any())).thenReturn(fact);return participants;
@@ -53,6 +55,18 @@ class EngineeringInheritedBusinessBrowserMySqlTest extends SurveyInheritedDelive
     }
     @Override void initializeExtraOwners(SqlSessionTemplate sessions) {
         super.initializeExtraOwners(sessions);
+        var extensionApi=context.getBean(EntityExtensionApi.class);var actor=new EntityActor(7L,17L,"browser-forms");
+        var surveyDefinition=extensionApi.publishDefinition(7L,"SOL","SITE_SURVEY",List.of(new EntityExtensionApi.Definition("extra_flag","工勘扩展标志",EntityField.Type.BOOLEAN,false,null,List.of())),actor).id();
+        var requirementDefinition=extensionApi.publishDefinition(7L,"SOL","REQUIREMENT_ANALYSIS",List.of(new EntityExtensionApi.Definition("CUSTOM_FLAG","需求扩展标志",EntityField.Type.BOOLEAN,false,null,List.of())),actor).id();
+        when(context.getBean(EntityFormApi.class).layout(any(),any())).thenAnswer(invocation->{
+            EntityDataRef ref=invocation.getArgument(0);boolean survey=ref.entity().entityType().equals("SITE_SURVEY");
+            String fixed=survey?"name":"projectBackground",title=survey?"工勘名称":"项目背景",extra=survey?"extra_flag":"CUSTOM_FLAG",extraTitle=survey?"工勘扩展标志":"需求扩展标志";
+            return new EntityFormApi.Layout(new EntityFormApi.Binding(1L,survey?surveyDefinition:requirementDefinition,Map.of(fixed,fixed,extra,extra),0),1L,1,1,"FORM_CREATE","1","1","{}",
+                    "[{\"type\":\"input\",\"field\":\""+fixed+"\",\"title\":\""+title+"\"},{\"type\":\"switch\",\"field\":\""+extra+"\",\"title\":\""+extraTitle+"\"}]",List.of());
+        });
+        var businessForms=context.getBean(cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi.class);
+        when(businessForms.inspectRevisionForUsage(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact(7L,null,1L,1L,1,1,"SITE_SURVEY",null,"FORM_CREATE","1","1","{}","[]",List.of(),null));
+        when(businessForms.validateRevisionValues(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormValidationFact("VALID",List.of()));
         org.springframework.test.util.ReflectionTestUtils.setField(context.getBean(FileArtifactApi.class),"attachmentService",context.getBean(ExistingFileVersionAttachmentService.class));
         jdbc.execute("CREATE UNIQUE INDEX uk_ra_revision ON sol_requirement_analysis_revision(tenant_id,entity_id,revision_no)");
         jdbc.execute("CREATE UNIQUE INDEX uk_ra_project_revision ON sol_requirement_analysis_revision(tenant_id,project_id,revision_no)");
@@ -75,7 +89,7 @@ class EngineeringInheritedBusinessBrowserMySqlTest extends SurveyInheritedDelive
                     login(7L);byte[] content;int status=200;
                     if(exchange.getRequestURI().getPath().equals("/fixture/evidence")) {
                         var evidence=new LinkedHashMap<String,Object>();
-                        for(String table:List.of("sol_site_survey","sol_site_survey_material","sol_site_survey_condition","sol_requirement_analysis","sol_requirement_analysis_revision","plt_delivery_material"))evidence.put(table,jdbc.queryForList("SELECT * FROM "+table+" ORDER BY id"));
+                        for(String table:List.of("sol_site_survey","sol_site_survey_material","sol_site_survey_condition","sol_requirement_analysis","sol_requirement_analysis_revision","plt_entity_extension_value","plt_delivery_material"))evidence.put(table,jdbc.queryForList("SELECT * FROM "+table+" ORDER BY id"));
                         evidence.put("storedObjects",stored.size());evidence.put("fileVersions",jdbc.queryForObject("SELECT COUNT(*) FROM plt_file_version",Integer.class));content=json.writeValueAsBytes(evidence);
                     }else {
                         var request=browserRequest(exchange.getRequestMethod(),exchange.getRequestURI().toString(),exchange.getRequestHeaders().getFirst("Content-Type"),exchange.getRequestBody().readAllBytes());
