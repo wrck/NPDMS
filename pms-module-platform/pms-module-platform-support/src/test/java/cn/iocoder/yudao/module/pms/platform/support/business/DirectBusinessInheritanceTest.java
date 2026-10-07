@@ -115,6 +115,20 @@ class DirectBusinessInheritanceTest {
         assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,NoteController.class.getDeclaredMethods().length);
         verify(projects,atLeastOnce()).requireWritable(99L,new EntityActor(7L,42L,null),true);
     }
+    @Test void twoEmptyBusinessServicesShareConfigurationWithoutPerEntityAdapters(){
+        var api=mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
+        var configurations=new HashMap<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity,cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration>();
+        when(api.read(any(),any())).thenAnswer(call->configurations.getOrDefault(call.getArgument(0),new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of())));
+        when(api.save(any(),any(),anyLong(),any())).thenAnswer(call->{var result=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(1,call.getArgument(3));configurations.put(call.getArgument(0),result);return result;});
+        context.getBeanFactory().registerSingleton("fieldConfigurations",api);
+        var first=context.getBean(NoteService.class);var second=context.getBean(OtherService.class);
+        first.saveFieldConfiguration(0,List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("title","Note title",0,true,false,true)));
+        second.saveFieldConfiguration(0,List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("description","Other text",0,true,true,false)));
+        assertEquals(2,configurations.size());
+        assertEquals("Note title",first.model().fields().stream().filter(field->field.code().equals("title")).findFirst().orElseThrow().name());
+        assertEquals("Other text",second.model().fields().stream().filter(field->field.code().equals("description")).findFirst().orElseThrow().name());
+        assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,OtherService.class.getDeclaredMethods().length);
+    }
     @Test void emptyBusinessPublishesInheritedListConfiguration() throws Exception {
         var json=new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(context.getBean(NoteService.class).model());
         var fields=json.get("fields");

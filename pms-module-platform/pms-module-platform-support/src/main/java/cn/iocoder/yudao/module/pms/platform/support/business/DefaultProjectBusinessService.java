@@ -53,7 +53,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     }
     @Override public final BusinessModelViews.ModelDetailVO configurationModel(boolean write) {
         var actor=actor();authorizeModelRead(actor,"detail");
-        if(write)defaults.permissions().requireWritable(definition(),actor,"operation:save");
+        if(write)defaults.permissions().requireWritable(definition(),actor,"operation:configure-fields");
         return modelView(BusinessModelViews.ModelDetailVO.of(definition(),actor,defaults.permissions()));
     }
     private cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity configurationIdentity(){
@@ -258,7 +258,9 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
 
     protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> defaultOperations(String prefix){
         return List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("save-form",1,"保存表单",
-                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND,prefix+":update"));
+                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND,prefix+":update"),
+                new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor("configure-fields",1,"字段配置",
+                cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.CONFIGURE,prefix+":configure"));
     }
     protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding> configureCapabilities(
             List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessCapabilityBinding> capabilities){return capabilities;}

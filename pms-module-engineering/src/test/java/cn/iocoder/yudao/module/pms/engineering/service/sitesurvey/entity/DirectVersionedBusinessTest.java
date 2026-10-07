@@ -83,9 +83,9 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(0,List.of()));
         assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(1,List.of(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("password",null,0,true,true,true))));
         assertEquals(1,jdbc.queryForObject("SELECT version FROM plt_business_field_configuration",Integer.class));
-        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"it:version-note:update")).thenReturn(false);
-        assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(1,List.of()));
-        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"it:version-note:update")).thenReturn(true);
+        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"it:version-note:configure")).thenReturn(false);
+        assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(1,List.of()),"Ordinary business update permission must not grant tenant-wide configuration");
+        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"it:version-note:configure")).thenReturn(true);
         assertEquals(2,notes.saveFieldConfiguration(1,List.of()).version());
         assertEquals("标题",notes.model().fields().stream().filter(value->value.code().equals("title")).findFirst().orElseThrow().name());
         var api=ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);

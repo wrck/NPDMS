@@ -47,6 +47,12 @@ class RequirementInheritedBusinessTest extends RequirementAnalysisSpringPersiste
                 ctx.getBean(OperationAuditApi.class),ctx.getBean(BusinessEventPort.class),List.of(mock(BusinessDeletionGuard.class)),()->delivery);
         ctx.getBeanFactory().registerSingleton("revisionDefaults",defaults);ctx.registerBean(RequirementRevisionBusinessService.class);business=ctx.getBean(RequirementRevisionBusinessService.class);
     }
+    @Test void projectManagePermissionDoesNotGrantTenantFieldConfiguration() {
+        when(ctx.getBean(PermissionApi.class).hasAnyPermissions(9L,"pms:requirement-analysis:configure")).thenReturn(false);
+        assertThrows(RuntimeException.class,()->business.configurationModel(true));
+        assertFalse(business.model().operations().stream().filter(op->op.code().equals("configure-fields")).findFirst().orElseThrow().executable());
+        assertTrue(business.model().operations().stream().filter(op->op.code().equals("save")).findFirst().orElseThrow().executable());
+    }
     @Test void inheritedDraftSaveCompletionAndCopyRetainCurrentAndFrozenSemantics() {
         var draft=business.create(business.input(Map.of("projectId",20)),"direct-create");Long id=draft.entityRef().entityId();
         assertTrue(id>9007199254740991L);assertEquals(0,count("sol_requirement_analysis"));assertEquals(1L,draft.newConcurrencyBasis());

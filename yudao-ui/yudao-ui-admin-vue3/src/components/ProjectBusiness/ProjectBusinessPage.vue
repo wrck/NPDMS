@@ -6,7 +6,7 @@
     </el-alert>
     <el-alert v-if="receipt" :title="`操作结果：${receipt.outcome}`" :type="receipt.outcome === 'FAILED' ? 'error' : 'success'" :closable="false" />
     <h3>{{ title || model?.title || '业务办理' }}</h3>
-    <ProjectBusinessFieldConfiguration v-if="!editing" ref="fieldConfiguration" :api="api" :disabled="readonly || !updateOperation?.executable || executing" @changed="state.load" />
+    <ProjectBusinessFieldConfiguration v-if="!editing" ref="fieldConfiguration" :api="api" :disabled="readonly || !configurationOperation?.executable || executing" @changed="state.load" />
     <BusinessEntityList v-if="!editing" :rows="rows" :readable-fields="readableFields" :create-operation="createOperation"
       :enable-sorting="true" @sort="sorts => loadPage(true, undefined, sorts)" :list-loading="loading" :slice-complete="rows.length >= total" @reload="loadPage(true)" @search="filters => loadPage(true, filters)"
       @load-more="loadPage(false)" @create="create" @open="row => edit(row.ref.entityId)" />
@@ -66,6 +66,8 @@ const fieldConfiguration=ref<InstanceType<typeof ProjectBusinessFieldConfigurati
 const busy = computed(() => executing.value || confirming.value || formLoading.value || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
 const effective = (action:OperationVO|undefined) => action ? {...action,executable:action.executable && (!props.operationAllowed || props.operationAllowed(action.code,current.value))} : undefined
 const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
+// Tenant metadata is not a current-record state action. Server configuration permission is authoritative.
+const configurationOperation = computed(() => state.operation('CONFIGURE'))
 const updateOperation = computed(() => effective(state.operation('UPDATE'))), deleteOperation = computed(() => effective(state.operation('DELETE')))
 const businessActions = computed(()=>model.value?.operations.filter(action=>action.kind==='DOMAIN_COMMAND' && action.code!=='save-form').map(action=>effective(action)!) || [])
 const saveOperation = computed(() => current.value ? updateOperation.value : createOperation.value)

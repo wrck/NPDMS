@@ -44,7 +44,7 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
                 view.fields().stream().map(f->new BusinessModelViews.FieldVO(f.code(),f.name(),f.type(),"projectId".equals(f.code())&&f.required(),f.readable(),f.writable(),f.displayOrder(),f.listVisible(),f.searchable(),f.sortable())).toList(),view.operations(),view.capabilities());
     }
     @Override protected List<BusinessOperationDescriptor> configureOperations(List<BusinessOperationDescriptor> operations) {
-        return operations.stream().map(op->new BusinessOperationDescriptor(op.code(),op.version(),op.code().equals("delete")?"放弃草稿":op.name(),op.kind(),"pms:requirement-analysis:manage")).toList();
+        return operations.stream().map(op->op.kind()==BusinessOperationDescriptor.StandardOperationKind.CONFIGURE?op:new BusinessOperationDescriptor(op.code(),op.version(),op.code().equals("delete")?"放弃草稿":op.name(),op.kind(),"pms:requirement-analysis:manage")).toList();
     }
     @Override protected List<BusinessOperationDescriptor> businessOperations(String prefix) {
         return List.of(new BusinessOperationDescriptor("complete",1,"完成并生效",BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND,prefix+":manage"),

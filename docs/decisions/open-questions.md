@@ -1293,3 +1293,13 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Remaining execution boundary: 只用现有授权身份及公司＋办事处联合范围。不得扩大持久角色或组织范围，不绕过服务层权限；不足十项时报告实际合格数与最小现成身份需求。真实名单、原始业务快照及凭据不进入 Git。
 - Decision owner: 需求方。试迁授权已明确，不重复请求该授权。
 - Evidence: docs/generated/2026-10-06-project-creation-migration/README.md。
+
+### Q-DEFAULT-BUSINESS-REVISION-DELIVERIES-20261007
+
+- Status: BLOCKED_BY_SPEC，仅限业务版本是否绑定交付件清单这一语义，不阻塞其他默认能力实施和验收。
+- Area: 默认内容版本与统一交付件的关系。
+- Question: 冻结业务内容版本是否同时固定当时的交付件清单，历史版本只能读取当时那批交付件？
+- Existing confirmed contract: 交付件按 projectId、businessType、businessEntityKey、deliverableType 统一管理并按最新有效上传判断完成，保留已有不可变历史引用保护。
+- Current implementation: 公共内容版本已保存正文、扩展字段和表单布局；交付件仍独立管理上传历史。当前实现本身不构成业务裁决。
+- Why it blocks: 不能自行将当前上传完成判断改成修订完成判断，也不能未经业务裁决自动冻结、复制或更换交付件所属实体键。
+- Decision owner: 需求方。2026-10-07 16:29 UTC 已在主会话提问（Sentinel_78af7fa198708191912b2fcfac642b61），尚未收到裁决。
