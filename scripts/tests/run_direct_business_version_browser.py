@@ -17,7 +17,8 @@ def select_comparison_version(panel,label,version):
     # Element Plus keeps both select popups mounted during their transition.
     # Resolve the specific combobox's controlled listbox, never a page-wide option.
     control=panel.get_by_role('combobox',name=label,exact=True)
-    control.click();listbox_id=control.get_attribute('aria-controls')
+    panel.locator('.el-select').filter(has=panel.page.get_by_role('combobox',name=label,exact=True)).click()
+    listbox_id=control.get_attribute('aria-controls')
     assert listbox_id, 'Comparison combobox must identify its listbox'
     panel.page.locator('[id="'+listbox_id+'"]').get_by_role('option',name=version,exact=True).click()
 
