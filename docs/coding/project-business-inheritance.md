@@ -1,6 +1,6 @@
 # 项目业务直接继承主干
 
-状态：实现与验证中。依据：[2026-10-07 用户确认目标及新增主干决定](../decisions/2026-10-07-unified-business-default-implementation.md)。本说明不表示所有生产业务已经迁移。
+状态：默认继承链已通过隔离 SQL/MVC 与真实浏览器闭环；生产实体接入仍在推进。依据：[2026-10-07 用户确认目标及新增主干决定](../decisions/2026-10-07-unified-business-default-implementation.md)。本说明不表示所有生产业务已经迁移。
 
 ## 入口与依赖方向
 
@@ -69,5 +69,6 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 
 - 两个空 Service/Controller 的 Spring 泛型注入、独立 HTTP 创建/读取、特殊钩子、权限拒绝、回执重放、公共上传调用及错误实体类型拒绝已有单元证据；Mapper 在这些检查中使用测试替身，不能算真实 SQL 验收。
 - 公共前端客户端和操作状态已有运行测试；真实传递依赖类型检查仍遇到四项旧文件错误，未称全量类型检查通过。
-- `DirectBusinessCrudMySqlTest` 覆盖两业务 HTTP CRUD、显式 null、CAS、回执、统一材料及特殊 XML/API，代码已编译，真实 MySQL 结果尚待执行。
-- 完整浏览器、全部生产实体迁入、模板连接及历史材料归集仍需分别验证，不以类数量或局部测试数代替完成结论。
+- `DirectBusinessCrudMySqlTest` 覆盖两业务 HTTP CRUD、显式 null、CAS、回执、统一材料及特殊 XML/API，真实 MySQL 已通过，包含只读删除与跨租户读取拒绝。
+- 两业务实际默认页面及公共归集已通过浏览器，旧页面兼容通过。见 [验收结果及边界](../generated/direct-business-inheritance-20261007/README.md)。
+- 全部生产实体迁入、生产登录/存储、模板连接及历史材料归集仍需分别验证，不以类数量或局部测试数代替完成结论。

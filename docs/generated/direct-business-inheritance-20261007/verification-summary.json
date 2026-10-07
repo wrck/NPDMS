@@ -1,0 +1,32 @@
+{
+  "productCommit": "28617c7993b0c6edfc04c7e9def582cc02388510",
+  "finalBrowserCommit": "d36aba0aafd0fd6f5847035c9a6e533ca8699c03",
+  "verifiedAtUtc": "2026-10-07T08:43:42Z",
+  "javaFocusedPassed": 28,
+  "frontendFocusedPassed": 10,
+  "sqlMvcAndBrowserFinalCombination": {
+    "commit": "28617c7993b0c6edfc04c7e9def582cc02388510",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "browserTeardownRecheck": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "recordedRequests": 54,
+    "allHttp200AndBusinessCodeZero": true,
+    "captureErrors": 0,
+    "oldModelApiRequests": 0,
+    "targetClosedError": false
+  },
+  "backendPackage": "BUILD SUCCESS (skipTests)",
+  "typecheck": "4 existing dependency errors; not a full pass",
+  "boundaries": [
+    "Authentication, project scope and storage providers are fixture ports",
+    "No production entity migration acceptance",
+    "No real local project data migrated by this work"
+  ]
+}
