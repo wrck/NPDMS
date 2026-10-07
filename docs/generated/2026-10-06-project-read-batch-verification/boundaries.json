@@ -1,0 +1,102 @@
+{
+  "publication": "NOT_COMMITTED_NOT_PUSHED",
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "productionReadBindingsAdded": [
+    "IMP/configuration",
+    "IMP/jointTest",
+    "IMP/installation",
+    "COM/deliveryScope"
+  ],
+  "nativeOperationsOpened": [],
+  "protectedAndKnoUnchanged": [
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "sameBytes": true,
+      "sha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/ai/knowledge/document/index.ts",
+      "sameBytes": true,
+      "sha256": "5eabcb3f1746b6d39c55f2b2a7cd9d7aae70c2fac5a8ffbcc2b6bb30334d8c69"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/ai/knowledge/knowledge/index.ts",
+      "sameBytes": true,
+      "sha256": "da79c39c1cf1b3afb1a7533ce62e05aa44a8a367edc128faf1bb50d3878579ff"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/ai/knowledge/segment/index.ts",
+      "sameBytes": true,
+      "sha256": "81ada19cfe0b1c67668bc0d005bdb15fd23aaba45ac579515c8221760adfcf24"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/document/form/ProcessStep.vue",
+      "sameBytes": true,
+      "sha256": "d518a3a74246dc95cc16de9d80a02ad84a55862cfd57092f6698e5f86aa63ad7"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/document/form/SplitStep.vue",
+      "sameBytes": true,
+      "sha256": "b31e12e605867498d8a326b321b5e482ef5f9e5ba54efee78e67e03b789a1061"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/document/form/UploadStep.vue",
+      "sameBytes": true,
+      "sha256": "3033a9005f2cec9967798941cd8580d226c37e9de08414da47b02fe0acc2d802"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/document/form/index.vue",
+      "sameBytes": true,
+      "sha256": "48334ce0cd58f40d323e9686a88916241e183dbadea17004551ec2eee9b4e8b8"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/document/index.vue",
+      "sameBytes": true,
+      "sha256": "198fb20b9f54d61ea7c1381ac8c423e4dd9c64d3bd2359dc6a4eb840383a8f03"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/knowledge/KnowledgeForm.vue",
+      "sameBytes": true,
+      "sha256": "3635f6537ce3058297efe8f08b9c1bf65256237b97513cc090bade4879fc5080"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/knowledge/index.vue",
+      "sameBytes": true,
+      "sha256": "cddaaeca9f587155de01fa7ea9bc8e9d22f13758e21c616b5838877ac87f3f40"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/knowledge/retrieval/index.vue",
+      "sameBytes": true,
+      "sha256": "b202f57556332c126df9890e5c478fcbb1452243f1cc7edd8774497108bb4189"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/segment/KnowledgeSegmentForm.vue",
+      "sameBytes": true,
+      "sha256": "98af68532c0b6c21b27190cbe64d6a5bf4434076dd2b7ea4aae6a3d2b7705147"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/ai/knowledge/segment/index.vue",
+      "sameBytes": true,
+      "sha256": "2018ce35715343566b80374ef10c728daf2db59a60d501ae10c65d60b5919eb9"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/index.vue",
+      "sameBytes": true,
+      "sha256": "4eb1ea6fe47af3c835902648dc086158eecfe51c13bb2d34145d93d53c79ad7c"
+    }
+  ],
+  "deniedFilesStillAbsent": [
+    "DeliveryEntityAccessPolicy.java",
+    "SiteSurveyDeliveryAccessPolicy.java"
+  ],
+  "migrationAndNativeServiceAndUploadHookFilesUnchanged": true,
+  "scopeBoundCountDerivedFromPreviousInventory": 49,
+  "remainingMissingCount": 30,
+  "countsAreNotFull79RuntimeAcceptance": true,
+  "ownComposeRemoved": true,
+  "sharedOriginalContainers": [
+    "3a13c98cd92bd9cada8cbf39648a3b4b2a8f0b5a17ec17ddce7f2b2c2babd46b running",
+    "42a6bcb3a7867076a577d3465f1a199ecfb2b530e6073716de20986df235c32f running"
+  ],
+  "testDependency": "yudao-server only test-scope starter; no production business-module dependency added"
+}

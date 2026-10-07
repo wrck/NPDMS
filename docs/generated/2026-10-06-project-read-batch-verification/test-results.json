@@ -1,0 +1,546 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "sourceState": "PRIVATE_UNCOMMITTED_CURRENT",
+  "warning": "Current28 overlaps historical13. Counts must not be added.",
+  "redAfterFirstTwoBindings": {
+    "tests": 28,
+    "passed": 17,
+    "failed": 2,
+    "errors": 9,
+    "skipped": 0,
+    "xmlSha256": "956eda80d7e3b0cda08628a0657a9c3c86403e712e9bc99bc9e28515ed89ec06",
+    "logSha256": "db5474826082440e460370a1dd7d2556abc805e3ced4838233a3bf3dbf25d84a",
+    "cases": [
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[3]",
+        "model": "IMP/installation",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[3]",
+        "model": "IMP/installation",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+      },
+      {
+        "name": "projectBindingsDoNotAdmitUnresolvedArrivalAcceptance",
+        "model": "IMP/arrivalAcceptance",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyNativeFileWritesRemainDenied(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyNativeFileWritesRemainDenied(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "deliveryScopeNativeProjectQueryAndHistoryRemainConsistentWithCommonRead",
+        "model": "COM/deliveryScope",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[3]",
+        "model": "IMP/installation",
+        "status": "FAIL",
+        "exception": "org.opentest4j.AssertionFailedError",
+        "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown."
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "FAIL",
+        "exception": "org.opentest4j.AssertionFailedError",
+        "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown."
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[3]",
+        "model": "IMP/installation",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[3]",
+        "model": "IMP/installation",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "ERROR",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+        "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+      }
+    ]
+  },
+  "greenCurrent": {
+    "tests": 28,
+    "passed": 28,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "xmlSha256": "aa0fbb19a64bf0c27b8eb949c14089c748e86ddb3f8dbf18cf666626decaee8a",
+    "logSha256": "2c6026ae517af55e60eddddd119553979896e37fcea0b7085ec872c99791916e",
+    "cases": [
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "projectBindingsDoNotAdmitUnresolvedArrivalAcceptance",
+        "model": "IMP/arrivalAcceptance",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyNativeFileWritesRemainDenied(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyNativeFileWritesRemainDenied(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "deliveryScopeNativeProjectQueryAndHistoryRemainConsistentWithCommonRead",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[1]",
+        "model": "IMP/configuration",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[2]",
+        "model": "IMP/jointTest",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[3]",
+        "model": "IMP/installation",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[4]",
+        "model": "COM/deliveryScope",
+        "status": "PASS"
+      }
+    ]
+  },
+  "redSources": [
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "sha256": "6c5b4512063627f5b61e87821f27cd952e987b9115a4c9a7f6d664a4eca06d7e"
+    },
+    {
+      "path": "yudao-server/pom.xml",
+      "sha256": "6529aea01621bcfe124032fa06696f43139fed1825029a2af042b9ceebd9bdeb"
+    },
+    {
+      "path": "yudao-server/src/test/java/cn/iocoder/yudao/server/businessmodel/LegacyProjectBusinessReadMySqlTest.java",
+      "sha256": "829aa1ec8089d6bc523b84e443bad4c19f23638c4e2c30593ebf843b27d30ed9"
+    },
+    {
+      "path": "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh",
+      "sha256": "a4c486a23f7b8c885ba46e166c2ee7fda19e96960822df3bf634ddc414aeba55"
+    }
+  ],
+  "greenChangedSources": [
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "sha256": "3a8aa5206ad20147977c4ea858066d0ba7d483d9d4874fed24d025b494c512ad",
+      "status": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "yudao-server/pom.xml",
+      "sha256": "6529aea01621bcfe124032fa06696f43139fed1825029a2af042b9ceebd9bdeb",
+      "status": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "yudao-server/src/test/java/cn/iocoder/yudao/server/businessmodel/LegacyProjectBusinessReadMySqlTest.java",
+      "sha256": "829aa1ec8089d6bc523b84e443bad4c19f23638c4e2c30593ebf843b27d30ed9",
+      "status": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh",
+      "sha256": "a4c486a23f7b8c885ba46e166c2ee7fda19e96960822df3bf634ddc414aeba55",
+      "status": "PRIVATE_CHANGE"
+    }
+  ],
+  "sameTestPomAndRunnerForExpandedRedAndGreen": true,
+  "newEntityEvidence": {
+    "IMP/installation": {
+      "before": [
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[3]",
+          "model": "IMP/installation",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[3]",
+          "model": "IMP/installation",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[3]",
+          "model": "IMP/installation",
+          "status": "FAIL",
+          "exception": "org.opentest4j.AssertionFailedError",
+          "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown."
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[3]",
+          "model": "IMP/installation",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[3]",
+          "model": "IMP/installation",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: IMP_INSTALLATION"
+        }
+      ],
+      "after": [
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[3]",
+          "model": "IMP/installation",
+          "status": "PASS"
+        }
+      ]
+    },
+    "COM/deliveryScope": {
+      "before": [
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+        },
+        {
+          "name": "deliveryScopeNativeProjectQueryAndHistoryRemainConsistentWithCommonRead",
+          "model": "COM/deliveryScope",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "FAIL",
+          "exception": "org.opentest4j.AssertionFailedError",
+          "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown."
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "ERROR",
+          "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException",
+          "reason": "默认访问缺少范围声明: COM_DELIVERY_SCOPE"
+        }
+      ],
+      "after": [
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "deliveryScopeNativeProjectQueryAndHistoryRemainConsistentWithCommonRead",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessWrites(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[4]",
+          "model": "COM/deliveryScope",
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "firstTwoHistoricalEvidence": "../2026-10-06-imp-project-read-verification/test-results.json",
+  "fixtureFailuresPreserved": "../2026-10-06-imp-project-read-verification/test-results.json",
+  "testInfrastructure": "exclusive tmpfs MySQL27601; actual production declarations/mappers/system role permission services; ProjectScope API facts controlled; no cache proxies/full app login",
+  "notRun": [
+    "normal application JAR rebuild/full Tomcat/login/UI/browser at currentsource",
+    "actual full ProjectScope tree/grant algorithm and Redis cache proxies",
+    "full79 production catalog runtime or full backend regression",
+    "remaining30 closed scope adapters",
+    "KNO and history SQL/repair/skip/deployment/project history migration/old stage contract repair"
+  ]
+}

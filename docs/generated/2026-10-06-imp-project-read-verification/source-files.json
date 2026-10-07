@@ -1,0 +1,112 @@
+[
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+    "sha256": "6c5b4512063627f5b61e87821f27cd952e987b9115a4c9a7f6d664a4eca06d7e",
+    "status": "PRIVATE_CHANGE"
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/LegacyEngineeringProjectReadMySqlTest.java",
+    "sha256": "3abcdc5f769ed12b0c0054b917c27988b8bbba1ffe877bf068fbf4e0623800a4",
+    "status": "PRIVATE_CHANGE"
+  },
+  {
+    "path": "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh",
+    "sha256": "fafb4d2ca0dc4077cc1e16c036840997c184176be5b96da99fed1c49a800ba31",
+    "status": "PRIVATE_CHANGE"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/OwnerProjectReadScopePolicy.java",
+    "sha256": "e098df3d627512ec9613c6fe2ee93b6b1e641283337ac407ad4304f343b32452",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/ProjectBusinessScopeAccess.java",
+    "sha256": "d03190d089d33aacb1e6c3e70ee33bd699f02cf3a05dcd563b5976389cc7dae6",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/PermissionBusinessAccessGuard.java",
+    "sha256": "d74d10c9f3b099f3fb8ead03739e84d08dc89fcb0f892f41a04c6c5dadaae4e3",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/BusinessModelAccessConfiguration.java",
+    "sha256": "c0fb1d42a39aa978673def8bd2f76b76eb592bec5a4451c5498371cf30151c27",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+    "sha256": "81b913711888b6ccc68acf2edfe53411866350474774192ad9263ccb67fae1c3",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+    "sha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/configuration/ConfigurationDO.java",
+    "sha256": "f7a7603273a3161a157397c778ad39826493399fa2a839490659ede3850bac36",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/jointtest/JointTestDO.java",
+    "sha256": "43f47a0cef999f8bb28cc67cfc6c1f40abde6598b879aba8d3e50fa84950812b",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/configuration/ConfigurationMapper.java",
+    "sha256": "8d451857e62abcab07da9e84ec4d4e57b68a04dce72b22b3921856cc7f5df9ad",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/jointtest/JointTestMapper.java",
+    "sha256": "d643d8d0c3b4f1d0ec7d8f61018d0bcbc66353186b633bb98d3edfe1d23ccf4e",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/resources/mapper/configuration/ConfigurationMapper.xml",
+    "sha256": "353f972eed12ede71ba57c3bb4d8cffa3d7e8701f3d58c9ec1138e7e5eec256c",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/resources/mapper/jointtest/JointTestMapper.xml",
+    "sha256": "7182588968db4a0de40be164c5df0faf9f0222d1fb57d1832d91914412a348f5",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentOwners.java",
+    "sha256": "0358eda91ccc4d6acd05ba227d19552794f2220661e301eb78af8a4a7221407e",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentAccess.java",
+    "sha256": "8d809a1ea62e7fbb8775dd14ae921f2dd293c49f7a43bef74979d06a6378c093",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApiImpl.java",
+    "sha256": "caf7c36b86f2b7c645f63ffaaf6e1f2ff2268a75e24ed4b99597a735e4e6efc4",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/PermissionServiceImpl.java",
+    "sha256": "2118ef8b4a5e7ab1ad8fedf8789ea23d7a77d834c66d5a821d173b6d0fa3a1f5",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/RoleServiceImpl.java",
+    "sha256": "ace50b0b1970ac7f335198fae35810d685f68040650614cb6a1c4725a0ac2bc9",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/MenuServiceImpl.java",
+    "sha256": "19962f10b85461f5672c6f385eb8c7db0dd6a16384373bbb144f9170bcd57612",
+    "status": "UNCHANGED_FROM_BASE"
+  },
+  {
+    "path": "sql/migrations/V1__yudao_platform.sql",
+    "sha256": "1e78255b50c4afe687fc60bde7414e2aefe4376e017801a93d909862e1c6f222",
+    "status": "UNCHANGED_FROM_BASE"
+  }
+]

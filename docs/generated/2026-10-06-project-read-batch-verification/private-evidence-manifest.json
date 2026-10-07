@@ -1,0 +1,107 @@
+{
+  "logsAndReceiptsAndHistoricalSource": [
+    {
+      "path": ".run/imp-project-reads-20261006/compose.yaml",
+      "sha256": "a195112cbf0761a5478d0afce6c22fc5265e71c62da7be7339dc8cbcce212947"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-green/TEST-cn.iocoder.yudao.server.businessmodel.LegacyProjectBusinessReadMySqlTest.xml",
+      "sha256": "aa0fbb19a64bf0c27b8eb949c14089c748e86ddb3f8dbf18cf666626decaee8a"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-green/mysql.log",
+      "sha256": "2c6026ae517af55e60eddddd119553979896e37fcea0b7085ec872c99791916e"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-green/source-files.json",
+      "sha256": "74b6e6bda91ddf0e4863235a3f6e3b6329b4a422226edd9f8d0290dddb88e387"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-red/TEST-cn.iocoder.yudao.server.businessmodel.LegacyProjectBusinessReadMySqlTest.xml",
+      "sha256": "956eda80d7e3b0cda08628a0657a9c3c86403e712e9bc99bc9e28515ed89ec06"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-red/mysql.log",
+      "sha256": "db5474826082440e460370a1dd7d2556abc805e3ced4838233a3bf3dbf25d84a"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-red/source-files.json",
+      "sha256": "1d10288111dcf402c79cbce18d87977dc45f095988de267a14f845ab077994b4"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/expanded-red-source-files.json",
+      "sha256": "1d10288111dcf402c79cbce18d87977dc45f095988de267a14f845ab077994b4"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/green/LegacyEngineeringProjectReadMySqlTest.java",
+      "sha256": "3abcdc5f769ed12b0c0054b917c27988b8bbba1ffe877bf068fbf4e0623800a4"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.engineering.model.LegacyEngineeringProjectReadMySqlTest.xml",
+      "sha256": "5ba306531489821bd81f114b404a7babb448bf458e965229e80847410d925e7b"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/green/mysql.log",
+      "sha256": "37bc343d9361729f9de4ff9924707c5369293ffddb3673e4ad85c8dfba3658fd"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/initial-fixture-failure/TEST-cn.iocoder.yudao.module.pms.engineering.model.LegacyEngineeringProjectReadMySqlTest.xml",
+      "sha256": "51dc45eadd7e0d0fb71ed10d3c8c31145326a507b812595e69a8d30cba5f32b3"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/initial-fixture-failure/mysql.log",
+      "sha256": "1253c57e6e27c5bc170c47be49f9f5a2dad3fcc8f82b9c1eec15cb50ea512315"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/mysql.log",
+      "sha256": "2c6026ae517af55e60eddddd119553979896e37fcea0b7085ec872c99791916e"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.engineering.model.LegacyEngineeringProjectReadMySqlTest.xml",
+      "sha256": "1d887e9758037442b6529e1793f18a35c375d293da16faff3559404c981f37fb"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/red/mysql.log",
+      "sha256": "cb1d20ef60e718fba21ea62405b7597ba5a3ca53f77526de5e21ba96023039ee"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/red/source-files.json",
+      "sha256": "551d5eb6408207079c96e5dbd507b781af61db33e89f49b0fc8a5db14e35d628"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/red-source-files.json",
+      "sha256": "551d5eb6408207079c96e5dbd507b781af61db33e89f49b0fc8a5db14e35d628"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/remaining32-source-inventory.json",
+      "sha256": "6aef35bfeb8d11d370b793bc1f8b898b5a792fd649782c3e43e79b998425edeb"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/system-fixture-startup-failure/TEST-cn.iocoder.yudao.module.pms.engineering.model.LegacyEngineeringProjectReadMySqlTest.xml",
+      "sha256": "4f45337fe12457cbad512aef12680ca18ac8b371caae06502dafd819fd15cf35"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/system-fixture-startup-failure/mysql.log",
+      "sha256": "66e64664ec4cab0602d7dc6413cf7d8b0b18d001e275a2586182bd760fd9198a"
+    },
+    {
+      "path": ".run/imp-project-reads-20261006/system-fixture-startup-failure/source-files.json",
+      "sha256": "a8cb42e7c82b4f1cd85df91b5efe66acb8f231821d9509c318caf6caff937efc"
+    }
+  ],
+  "compiledClasses": [
+    {
+      "path": "pms-module-platform/target/classes/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.class",
+      "sha256": "23aa6f18b7cb48378c4f17ec032d3ce31bd0c686a604a431c8675492bd48be21"
+    },
+    {
+      "path": "yudao-server/target/test-classes/cn/iocoder/yudao/server/businessmodel/LegacyProjectBusinessReadMySqlTest.class",
+      "sha256": "0d1dd77ad8d9fad02d5a5a41d07c6bcb69a699c6a30d305a9ccd8f4e9d18ac7b"
+    },
+    {
+      "path": "yudao-server/target/test-classes/cn/iocoder/yudao/server/businessmodel/LegacyProjectBusinessReadMySqlTest$Model.class",
+      "sha256": "8fd799c84d29cf8739d0c3b42634dc3205fb29f7ed66e80146eebd766ecffcd9"
+    }
+  ],
+  "implementationPatchSha256": "8c722d51a9963c49f2ac37228b11e9a2b7004f4f167c0bb33b99717d0c5c5a0e"
+}

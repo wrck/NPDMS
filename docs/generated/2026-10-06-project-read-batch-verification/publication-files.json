@@ -1,0 +1,104 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "state": "UNCOMMITTED_UNSTAGED_NOT_PUSHED",
+  "implementationFiles": 4,
+  "evidenceFilesIncludingThisManifest": 15,
+  "files": [
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "kind": "IMPLEMENTATION",
+      "sha256": "3a8aa5206ad20147977c4ea858066d0ba7d483d9d4874fed24d025b494c512ad"
+    },
+    {
+      "path": "yudao-server/pom.xml",
+      "kind": "IMPLEMENTATION",
+      "sha256": "6529aea01621bcfe124032fa06696f43139fed1825029a2af042b9ceebd9bdeb"
+    },
+    {
+      "path": "yudao-server/src/test/java/cn/iocoder/yudao/server/businessmodel/LegacyProjectBusinessReadMySqlTest.java",
+      "kind": "IMPLEMENTATION",
+      "sha256": "829aa1ec8089d6bc523b84e443bad4c19f23638c4e2c30593ebf843b27d30ed9"
+    },
+    {
+      "path": "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh",
+      "kind": "IMPLEMENTATION",
+      "sha256": "a4c486a23f7b8c885ba46e166c2ee7fda19e96960822df3bf634ddc414aeba55"
+    },
+    {
+      "path": "docs/generated/2026-10-06-imp-project-read-verification/boundaries.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "0ecb1607aebb9a4c976ccd737dc150127f7f62a889480f5ecc7709e12cab9cbc"
+    },
+    {
+      "path": "docs/generated/2026-10-06-imp-project-read-verification/implementation.patch",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "ca4ff339f6fdef7e3ac56787cf3b26e6ba25d460aeaf13f81b4a5dd8328ed8e6"
+    },
+    {
+      "path": "docs/generated/2026-10-06-imp-project-read-verification/private-evidence-manifest.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "8f428529cd5be328352d6ed3158181465fe6ef1ac7b76a027905604346a35d45"
+    },
+    {
+      "path": "docs/generated/2026-10-06-imp-project-read-verification/source-files.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "522c9cae67e9855188f064d32d24c4ff440303a87bf54bf232f2d842e77ef286"
+    },
+    {
+      "path": "docs/generated/2026-10-06-imp-project-read-verification/summary.md",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "d6200d0379180952c25aef7d4bea06273a4e89cd8c40ae65400df16f19cf2a12"
+    },
+    {
+      "path": "docs/generated/2026-10-06-imp-project-read-verification/test-results.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "4a246c1ff3daa76a4f2ffa010f7d533a0a437566578fdd9f075c06debf0b6337"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/boundaries.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "6d0eb7ce1ce038b1dde7c8ce03e4795a97993b151c959c9bff64b026a05530fd"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/implementation.patch",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "8c722d51a9963c49f2ac37228b11e9a2b7004f4f167c0bb33b99717d0c5c5a0e"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/private-evidence-manifest.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "9c2bcae5a58a0b49c791fb9aaf211dfadb067d24fbc1892625d0ef50b86226d3"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/remaining32-classification.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "d8e5f0f18d0f9f12dbd0b49557687ba2c110503ce9a85b5393617f49fd389d24"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/remaining32-classification.md",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "2f3190c615bd050103df0a6a18ca0b09e0326f37d20f21b34d9a8730d5adcafa"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/source-files.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "74b6e6bda91ddf0e4863235a3f6e3b6329b4a422226edd9f8d0290dddb88e387"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/summary.md",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "115692293c6554d1fc72d8111379e76b6ca41c272af95546f77a8914515e65d0"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/test-results.json",
+      "kind": "GENERATED_EVIDENCE",
+      "sha256": "6324b4545b48f4ed07b2ef7eb744733565d52a1103a2e9002fc07061937cb5b5"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-read-batch-verification/publication-files.json",
+      "kind": "MANIFEST",
+      "sha256": null,
+      "note": "Self hash omitted to avoid recursion"
+    }
+  ]
+}
