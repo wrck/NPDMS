@@ -90,7 +90,7 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 - `POST /page` 支持 `sorts: [{fieldCode, direction: "ASC" | "DESC"}]`。字段键由服务端映射到 ORM 白名单列，枚举方向不拼接任意 SQL；默认增加 id 降序作为稳定分页尾序。复杂查询仍由业务 Mapper XML 实现并保持上述范围与受控字段约束。
 - 字段配置对话框支持失败保留输入、取消、恢复默认、并发冲突拒绝、业务切换隔离及未保存离开确认。表单布局继续复用已有已发布动态表单；字段配置表不复制表单 schema 或扩展字段值。
 
-部署本增量需执行前向迁移 `V400__business_field_configuration.sql` 和 `V401__business_field_configuration_permissions.sql`。后者仅登记两项存量业务可分配配置权限，不自动授予任何角色。截至本次增量提交，本地 H2 与组件运行检查已有结果；新版本的真实 MySQL、浏览器及 V400 MySQL 执行仍待完成，不能引用旧提交的通过结论替代。
+部署本增量需执行前向迁移 `V400__business_field_configuration.sql` 和 `V401__business_field_configuration_permissions.sql`。后者仅登记两项存量业务可分配配置权限，不自动授予任何角色。本增量的适用隔离 MySQL、版本化真实浏览器及 V400/V401 首次/幂等执行已完成，准确来源、复验范围和夹具边界见[增量验收结果](../generated/direct-business-version-20261007/README.md)。这不代表生产部署或所有存量实体迁入完成。
 
 ### 交付件与内容版本的已确认边界
 
