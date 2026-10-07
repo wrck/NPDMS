@@ -25,6 +25,12 @@ import static org.mockito.Mockito.*;
 
 /** One new typed business inherits revisions without catalog registration, a custom provider or dispatcher. */
 class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
+    // Match the persistence fixture's mock maker. Mixing its SUBCLASS mocks with inline
+    // interface mocks can make Mockito resolve the wrong handler under enabled assertions.
+    private static <T> T mock(Class<T> type) {
+        return org.mockito.Mockito.mock(type,org.mockito.Mockito.withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));
+    }
+
     @Data @EqualsAndHashCode(callSuper=true) @TableName("it_version_note")
     @ProjectBusinessModel(ownerModule="IT",entityType="versionNote",stableCode="IT_VERSION_NOTE",name="Version note",permissionPrefix="it:version-note")
     public static class Note extends BaseProjectBusinessEntity {
@@ -90,6 +96,13 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertEquals("标题",notes.model().fields().stream().filter(value->value.code().equals("title")).findFirst().orElseThrow().name());
         var api=ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
         assertThrows(RuntimeException.class,()->api.read(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity("IT","versionNote"),new EntityActor(2L,9L,null)));
+    }
+    @Test void browserDeliveryPortsCanBeStubbedAfterFieldConfigurationInstallation(){
+        installFieldConfiguration();
+        when(versionDeliveries.list(any(),any(),any(),any(),anyInt(),anyInt())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(),0L));
+        when(versionDeliveries.completion(any())).thenReturn(new DefaultBusinessDeliveryApi.Completion(false,null));
+        assertEquals(0L,versionDeliveries.list(20L,"REPORT","IT_VERSION_NOTE","1",1,20).getTotal());
+        assertFalse(versionDeliveries.completion(new DefaultBusinessDeliveryApi.Scope(20L,"IT_VERSION_NOTE","1","REPORT")).completed());
     }
     @Test void inheritedListSortUsesRealSqlAndStablePages(){
         notes.create(notes.input(Map.of("projectId",20,"title","Zulu")),"sort-z");
