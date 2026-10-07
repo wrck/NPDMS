@@ -30,7 +30,7 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         ctx.getBean(org.apache.ibatis.session.SqlSessionFactory.class).getConfiguration().addInterceptor(pagination);
         var callers=ctx.getBean(BusinessCallerContext.class);var scopes=ctx.getBean(ProjectScopeApi.class);
         when(scopes.resolveAllCurrent(any())).thenReturn(Set.of(20L));
-        delivery=mock(DefaultBusinessDeliveryApi.class);protection=mock(BusinessDeletionGuard.class);
+        delivery=mock(DefaultBusinessDeliveryApi.class,withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));protection=mock(BusinessDeletionGuard.class,withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));
         var defaults=new BusinessDefaults(callers,new BusinessPermissions(ctx.getBean(PermissionApi.class),callers),
                 new ProjectBusinessScopeAccess(scopes),ctx.getBean(jakarta.validation.Validator.class),
                 new TransactionTemplate(ctx.getBean(PlatformTransactionManager.class)),ctx.getBean(OperationExecutionStore.class),
@@ -73,5 +73,34 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertThrows(BusinessContractException.class,()->business.delete(id,created.newConcurrencyBasis(),"delete"));
         assertEquals("protected",business.get(id).getName());
         verify(protection).requireDeletable(argThat(ref->ref.entityType().equals("siteSurvey")),any());
+    }
+    @Test void inheritedFormSaveKeepsNativeExtensionsAndChildrenAtomic() {
+        var legacy=create();long id=legacy.entityRef().entityId();var form=business.form(id);
+        assertEquals(false,form.extensions().fields().get("extra_flag"));
+        var patch=Map.<String,Object>of("name","with extension","$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",form.extensions().version(),"values",Map.of("extra_flag",true)));
+        var saved=business.saveForm(id,patch,legacy.newConcurrencyBasis(),"form-save");
+        assertEquals(true,business.form(id).extensions().fields().get("extra_flag"));assertEquals("with extension",business.get(id).getName());
+        assertEquals("SN-1",business.get(id).getSelectedMaterials().getFirst().getSn());
+        assertEquals(saved,business.saveForm(id,patch,legacy.newConcurrencyBasis(),"form-save"));
+        var invalid=Map.<String,Object>of("name","must rollback","$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",business.form(id).extensions().version(),"values",Map.of("extra_flag","invalid boolean")));
+        assertThrows(RuntimeException.class,()->business.saveForm(id,invalid,saved.newConcurrencyBasis(),"bad-form"));
+        assertEquals("with extension",business.get(id).getName());assertEquals(true,business.form(id).extensions().fields().get("extra_flag"));
+        var frozen=business.confirm(id,saved.newConcurrencyBasis(),"form-confirm");
+        assertThrows(RuntimeException.class,()->business.saveForm(id,Map.of("name","frozen"),frozen.newConcurrencyBasis(),"frozen-form"));
+    }
+    @Test void inheritedLocationAndDeadlineKeepDomainPortsAndStateGuards() {
+        var created=business.create(business.input(values("location")),"location-create");long id=created.entityRef().entityId();
+        var locations=ctx.getBean(cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService.class);
+        when(locations.maintain(any(),any(),any(),any(),any(),any())).thenReturn(new cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService.LocationFact(10L,2L,11L,3L,12L,4L,"RESOLVED","{}","{}"));
+        var command=new cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand(999L,null,null,null,"ignored","ignored","ignored","ignored",List.of());
+        var located=business.maintainLocation(id,0L,"location-change","新机房",command);
+        assertEquals(10L,business.get(id).getAddressId());assertEquals("新机房",business.get(id).getLocation());
+        verify(locations).maintain(eq(20L),eq("SITE_SURVEY"),eq(id),eq(0L),eq("新机房"),eq(command));
+        assertThrows(RuntimeException.class,()->business.update(id,business.input(Map.of("location","raw")),Set.of("location"),located.newConcurrencyBasis(),"raw-location"));
+        var date=java.time.LocalDate.of(2027,1,15);var deadline=business.updateDeadline(id,located.newConcurrencyBasis(),"deadline-change",8L,date);
+        verify(ctx.getBean(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class)).updateFromSurvey(argThat(c->c.projectId().equals(20L)&&c.expectedProjectVersion().equals(8L)&&c.endDate().equals(date)));
+        assertEquals(date,business.get(id).getRequiredEndDate());
+        var confirmed=business.confirm(id,deadline.newConcurrencyBasis(),"loc-confirm");
+        assertThrows(RuntimeException.class,()->business.updateDeadline(id,confirmed.newConcurrencyBasis(),"locked-deadline",8L,date));
     }
 }
