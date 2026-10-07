@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import request from '@/config/axios'
 import { createProjectBusinessApi } from './index'
+import { listDeliveries } from './deliveryCollection'
 vi.mock('@/config/axios',()=>({default:{get:vi.fn(),post:vi.fn(),put:vi.fn(),delete:vi.fn()}}))
 vi.mock('../file',()=>({createAccessTicket:vi.fn()}))
 beforeEach(()=>vi.resetAllMocks())
@@ -23,4 +24,9 @@ it('uploads all four ownership fields to the business endpoint',async()=>{
  await api.upload(scope,new File(['a'],'note.txt'),'upload-key');const sent=vi.mocked(request.post).mock.calls[0][0]
  expect(sent.url).toBe('/api/v1/pms/direct-notes/11/deliverables');for(const [key,value] of Object.entries(scope))expect(sent.data.get(key)).toBe(String(value))
  expect(sent.headers['Idempotency-Key']).toBe('upload-key')
+})
+
+it('project collection uses shared material API without the old model-workbench permission gate',async()=>{
+ await listDeliveries({projectId:99,deliverableType:'REPORT'})
+ expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/business-deliverables',params:{projectId:99,deliverableType:'REPORT'},silentError:true})
 })

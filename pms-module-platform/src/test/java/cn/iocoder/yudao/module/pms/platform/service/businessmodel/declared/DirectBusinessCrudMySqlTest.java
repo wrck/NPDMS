@@ -105,11 +105,12 @@ class DirectBusinessCrudMySqlTest {
                 List.of(new PlatformBusinessDeletionGuard(runtime.sessions.getMapper(BusinessDeletionProtectionMapper.class))),()->fixture.deliveries);
         context.getBeanFactory().registerSingleton("directDefaults",ports);
         context.registerBean(NoteService.class);context.registerBean(OtherService.class);context.registerBean(SpecialService.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.controller.admin.business.ProjectBusinessDeliveryController.class);
         context.registerBean(NoteController.class);context.registerBean(OtherController.class);context.registerBean(SpecialController.class);
         var owners=new DirectBusinessOwners(context.getBeanProvider(ResolvableType.forClass(ProjectBusinessService.class)),caller,runtime.projectApi,fixture.projects);
         context.getBeanFactory().registerSingleton("directBusinessOwners",owners);
         notes=context.getBean(NoteService.class);others=context.getBean(OtherService.class);specials=context.getBean(SpecialService.class);
-        mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class),context.getBean(OtherController.class),context.getBean(SpecialController.class)).build();
+        mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class),context.getBean(OtherController.class),context.getBean(SpecialController.class),context.getBean(cn.iocoder.yudao.module.pms.platform.controller.admin.business.ProjectBusinessDeliveryController.class)).build();
         // New direct business APIs require their own permissions, not the old model workbench gate.
         runtime.jdbc.update("DELETE rm FROM system_role_menu rm JOIN system_menu m ON m.id=rm.menu_id WHERE rm.role_id=701 AND m.permission IN ('pms:business-model:operate','pms:business-model:query')");
         assertTrue(context.getBean(BusinessModelCatalog.class).find("IT","directNote").isEmpty());
@@ -146,10 +147,19 @@ class DirectBusinessCrudMySqlTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.businessType").value("IT_DIRECT_NOTE"));
         var data=new DefaultBusinessDeliveryApi.UploadFile("other.txt","text/plain",6L,()->new java.io.ByteArrayInputStream("other\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         others.uploadDelivery(second,"REPORT",data,"other-upload");
+        mvc.perform(get("/api/v1/pms/business-deliverables").param("projectId","99").param("deliverableType","REPORT"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(2));
         assertEquals(2,fixture.count("plt_delivery_material"));assertTrue(notes.deliveryCompletion(first,"REPORT").completed());
         assertTrue(others.deliveryCompletion(second,"REPORT").completed());assertEquals(2,fixture.deliveries.list(99L,"REPORT",null,null,1,20).getTotal());
         assertEquals("DELETE_REFERENCED_ENTITY",assertThrows(BusinessContractException.class,()->notes.delete(first,0L,"protected-delete")).getErrorCode());
         var material=notes.deliveries(first,"REPORT",1,20).getList().getFirst();
+        DefaultBusinessDeliveryMySqlTest.login(7,880002);
+        mvc.perform(get("/api/v1/pms/business-deliverables").param("projectId","99").param("deliverableType","REPORT"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(2));
+        assertThrows(Exception.class,()->mvc.perform(delete("/api/v1/pms/business-deliverables/"+material.id()).param("version","0")));
+        DefaultBusinessDeliveryMySqlTest.login(8,880001);
+        assertThrows(Exception.class,()->mvc.perform(get("/api/v1/pms/business-deliverables/"+material.id())));
+        DefaultBusinessDeliveryMySqlTest.login(7,880001);
         assertThrows(BusinessContractException.class,()->notes.uploadDelivery(first,new DefaultBusinessDeliveryApi.Scope(101L,"IT_DIRECT_NOTE",Long.toString(first),"REPORT"),data,"forged"));
         notes.deleteDelivery(first,Long.valueOf(material.id()),material.version());assertFalse(notes.deliveryCompletion(first,"REPORT").completed());
         assertEquals(ReceiptOutcome.DELETED,notes.delete(first,0L,"delete-after-material").outcome());

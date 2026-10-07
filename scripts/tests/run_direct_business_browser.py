@@ -22,7 +22,7 @@ def main():
       <Page v-else :key="mode" :api-base="'/api/v1/pms/it-direct-'+mode" deliverable-type="REPORT" />
     </div></template><script setup>
       import {ref} from 'vue';import Page from '@/components/ProjectBusiness/ProjectBusinessPage.vue';
-      import Collection from '@/views/pms/platform/deliverables/index.vue';const mode=ref('notes');
+      import Collection from '@/components/ProjectBusiness/ProjectDeliveryCollection.vue';const mode=ref('notes');
     </script>''')
     # Use real confirmation controls, including cancellation, rather than an always-confirm test stub.
     ports=(FIX/'ports.ts').read_text().replace("export const useMessage=()=>({success:()=>{},error:()=>{},warning:()=>{},confirm:async()=>{}});", "import {ElMessageBox} from 'element-plus';export const useMessage=()=>({success:()=>{},error:()=>{},warning:()=>{},confirm:(text)=>ElMessageBox.confirm(text,'确认',{confirmButtonText:'确定',cancelButtonText:'取消'})});")

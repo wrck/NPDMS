@@ -53,6 +53,8 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 - `GET /receipts/{key}?operation=...`：查询结果，不重新执行。
 - `/{id}/deliverables...`：继承上传、读取、修改、删除、文件与完成判断。上传与完成判断核对 projectId、businessType、businessEntityKey、deliverableType。
 
+`ProjectDeliveryCollection` 按项目/交付件类型展示，通过 `/api/v1/pms/business-deliverables` 公共接口读取；服务端逐业务校验权限和项目范围，不要求旧模型工作台权限。旧归集页面和旧入口保持原有权限。
+
 交付件仍进入同一个 `plt_delivery_material`，没有新增第二张交付件业务表。新旧入口使用相同文件校验、归集、有效性、并发及历史引用保护。此版本没有完成全部旧原生材料的归集迁移。
 
 ## 特殊业务

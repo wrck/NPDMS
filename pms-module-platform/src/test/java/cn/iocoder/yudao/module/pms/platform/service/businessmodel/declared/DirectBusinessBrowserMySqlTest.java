@@ -16,7 +16,7 @@ class DirectBusinessBrowserMySqlTest extends DirectBusinessCrudMySqlTest {
     void inheritedPagesCreateEditUploadCollectAndDelete() throws Exception {
         var json=tools.jackson.databind.json.JsonMapper.builder().addModule(new cn.iocoder.yudao.framework.jackson.config.YudaoJacksonAutoConfiguration().timestampSupportModuleBean()).build();
         var context=fixture.context;
-        var http=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class),context.getBean(OtherController.class),context.getBean(SpecialController.class),context.getBean(DefaultBusinessDeliveryController.class))
+        var http=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class),context.getBean(OtherController.class),context.getBean(SpecialController.class),context.getBean(cn.iocoder.yudao.module.pms.platform.controller.admin.business.ProjectBusinessDeliveryController.class))
                 .setMessageConverters(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter(json))
                 .setControllerAdvice(new BusinessModelContractAdvice(),new cn.iocoder.yudao.framework.web.core.handler.GlobalExceptionHandler("direct-business",mock(cn.iocoder.yudao.framework.common.biz.infra.logger.ApiErrorLogCommonApi.class))).build();
         var server=com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1",27462),0);
