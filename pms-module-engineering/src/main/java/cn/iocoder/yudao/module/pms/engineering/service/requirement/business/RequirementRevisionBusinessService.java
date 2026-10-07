@@ -84,7 +84,7 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
     public BusinessOperationReceipt copyRevision(Long id,Long version,String key,String reason) {
         var intent=new LinkedHashMap<String,Object>();intent.put("reason",reason);
         return businessAction("copy",id,version,key,intent,ReceiptOutcome.SAVED,row->{
-            var result=versions.create(row.entityRef(),row.revisionRef(),reason,actor());return mapper.selectById(result.ref().revisionId());
+            var result=versions.create(row.entityRef(),row.revisionRef(),reason,actor());copyDeliveries(row.getId(),result.ref().revisionId(),"revision-copy-"+result.ref().revisionId());return mapper.selectById(result.ref().revisionId());
         });
     }
     private void draft(RequirementAnalysisRevisionDO row){if(!"DRAFT".equals(row.getRevisionState()))throw exception(REQUIREMENT_STATUS_INVALID);}
