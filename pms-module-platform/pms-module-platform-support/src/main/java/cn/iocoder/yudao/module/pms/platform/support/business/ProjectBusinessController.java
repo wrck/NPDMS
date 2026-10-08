@@ -23,6 +23,8 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @Validated
 public abstract class ProjectBusinessController<S extends ProjectBusinessService<E>, E extends BaseProjectBusinessEntity> {
     @Autowired protected S service;
+    /** Framework discovery only; no HTTP mapping and no command dispatch. */
+    public ProjectBusinessService<?> businessService(){return service;}
     public record WriteBody(@NotBlank @Size(max=128) String idempotencyKey, @PositiveOrZero Long version,
                             @NotNull Map<String,Object> values) { }
     public record MaterialEdit(@NotNull @PositiveOrZero Long version, @NotBlank @Size(max=255) String title) { }

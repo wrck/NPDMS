@@ -16,5 +16,17 @@ public record BusinessEventRecord(
         String orderBasis,
         String causationId,
         Map<String, Object> payload,
-        long sequence) {
+        long sequence,
+        ProjectChange projectChange) {
+    public BusinessEventRecord(String eventId, EntityRef sourceRef, BusinessEventKind kind,
+            String orderBasis, String causationId, Map<String,Object> payload, long sequence) {
+        this(eventId,sourceRef,kind,orderBasis,causationId,payload,sequence,null);
+    }
+    /** Trusted persisted project identity, not browser input or an instruction to advance a task. */
+    public record ProjectChange(Long projectId, Long actorId) {
+        public ProjectChange {
+            if(projectId==null || projectId<=0 || actorId!=null && actorId<=0)
+                throw new IllegalArgumentException("BUSINESS_PROJECT_CHANGE_INVALID");
+        }
+    }
 }

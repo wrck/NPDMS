@@ -23,6 +23,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class ProjectStageBusinessQueryService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.taskbusiness.DefaultProjectBusinessRuntimeProviders> defaultProviders;
     private final ProjectManualCreationService projects;
     private final ProjectRuntimeGraphMapper graph;
     private final BusinessViewQueryApi views;
@@ -102,7 +104,10 @@ public class ProjectStageBusinessQueryService {
                     || !Objects.equals(binding.getComponentKey(), view.componentKey())
                     || !Set.of("PUBLISHED", "DISABLED").contains(view.status()))
                 return unavailable(projectId, stageCode, stage, contract, "VIEW_IDENTITY_MISMATCH");
-            var matches = providers.stream().filter(p -> owner.equals(p.ownerContext()) && type.equals(p.objectType())).toList();
+            var allProviders=new java.util.ArrayList<>(providers);
+            if(defaultProviders!=null && defaultProviders.getIfAvailable()!=null)defaultProviders.getObject().stageProviders().stream()
+                    .filter(p->providers.stream().noneMatch(existing->existing.ownerContext().equals(p.ownerContext()) && existing.objectType().equals(p.objectType()))).forEach(allProviders::add);
+            var matches = allProviders.stream().filter(p -> owner.equals(p.ownerContext()) && type.equals(p.objectType())).toList();
             if (matches.size() != 1)
                 return unavailable(projectId, stageCode, stage, contract, "STAGE_OWNER_PROVIDER_UNAVAILABLE");
             String strategy = binding.getParameters() == null ? "" : binding.getParameters().path("instanceResolutionStrategy").asText();

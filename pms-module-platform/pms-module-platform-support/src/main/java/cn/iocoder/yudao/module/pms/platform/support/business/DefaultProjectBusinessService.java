@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.pms.platform.support.persistence.*;
 import cn.iocoder.yudao.module.pms.platform.support.service.BusinessEntitySaveSupport;
 import cn.iocoder.yudao.module.pms.platform.support.service.OperationExecutionStore;
 import jakarta.annotation.PostConstruct;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
@@ -45,6 +47,61 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         var operations=new ArrayList<>(businessOperations(identity.permissionPrefix()));
         operations.addAll(defaultOperations(identity.permissionPrefix()));
         binding = new BusinessEntityBinding<>((Class<E>) type, mapper, operations, this::configureOperations,this::configureCapabilities);
+    }
+    /** Configuration metadata only. A persisted plain record is a save result, not an approval or task transition. */
+    protected String runtimeNativeObjectType(){return binding.mapping.nativeEntityType();}
+    protected Map<String,String> runtimeFactLabels(){return Map.of("BUSINESS_RECORD_SAVED","业务记录已保存");}
+    protected Map<String,Boolean> runtimeFacts(E row){return Map.of("BUSINESS_RECORD_SAVED",true);}
+    protected boolean runtimeHandlingCompleted(E row){return true;}
+    protected java.time.LocalDateTime runtimeFormedAt(E row){return row.getUpdateTime()==null?row.getCreateTime():row.getUpdateTime();}
+    protected record RuntimeResult(Map<String,Boolean> facts,boolean completed,java.time.LocalDateTime formedAt) { }
+    protected RuntimeResult runtimeResult(E row){return new RuntimeResult(runtimeFacts(row),runtimeHandlingCompleted(row),runtimeFormedAt(row));}
+    @Override public final ProjectBusinessRuntimeApi.Definition runtimeDefinition(){
+        return new ProjectBusinessRuntimeApi.Definition(new ProjectBusinessRuntimeApi.Type(ownerModule(),entityType()),definition().stableCode(),definition().title(),runtimeFactLabels(),runtimeNativeObjectType());
+    }
+    private void requireRuntimeScope(Long tenant,Long project,ProjectBusinessRuntimeApi.Type type){
+        if(tenant==null || !Objects.equals(tenant,TenantContextHolder.getTenantId()) || project==null || project<=0
+                || type==null || !ownerModule().equals(type.ownerModule()) || !entityType().equals(type.entityType()))
+            throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime identity differs from the bound business");
+    }
+    private ProjectBusinessRuntimeApi.Observation runtimeObservation(E row){
+        if(row.getVersion()==null || row.getVersion()<0)throw invalid("BUSINESS_RUNTIME_VERSION_INVALID","Missing runtime concurrency basis");
+        var result=runtimeResult(copy(row));var facts=result.facts();
+        if(facts==null || !runtimeFactLabels().keySet().containsAll(facts.keySet()))throw invalid("BUSINESS_RUNTIME_FACT_INVALID","Undeclared runtime fact");
+        return new ProjectBusinessRuntimeApi.Observation(row.getId(),definition().stableCode()+":"+row.getId()+":"+row.getVersion(),facts,result.completed(),result.formedAt());
+    }
+    @Override public final ProjectBusinessRuntimeApi.Observation runtimeObservation(ProjectBusinessRuntimeApi.Query query,boolean lock){
+        requireRuntimeScope(query.tenantId(),query.projectId(),query.type());
+        if(query.entityId()==null || query.entityId()<=0)throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime entity is required");
+        if(lock)BusinessEntitySaveSupport.requireTransaction();
+        E row=lock?binding.type.cast(DeclaredBusinessCurrentRows.lock(binding.mapping,new DeclaredCurrentRowQuery(query.tenantId(),query.entityId()))):mapper.selectById(query.entityId());
+        checkRow(row,query.entityId(),new EntityActor(query.tenantId(),0L,EntityActor.SYSTEM_OBSERVER));
+        if(Boolean.TRUE.equals(row.getDeleted()) || !query.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime business project differs");
+        // Deliberately expose boolean facts only. Do not impersonate a user to read private draft form content.
+        return runtimeObservation(row);
+    }
+    @Override public final List<ProjectBusinessRuntimeApi.Reference> runtimeCandidates(ProjectBusinessRuntimeApi.Candidates query){
+        requireRuntimeScope(query.tenantId(),query.projectId(),query.type());
+        return selectRuntimeCandidates(new BusinessMapper.RuntimeCandidates(query.tenantId(),query.projectId(),query.afterId(),query.limit())).stream().map(row->{
+            if(Boolean.TRUE.equals(row.getDeleted()) || !query.tenantId().equals(row.getTenantId()) || !query.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Foreign runtime candidate");
+            return new ProjectBusinessRuntimeApi.Reference(row.getId(),runtimeObservation(row).factVersion());
+        }).toList();
+    }
+    protected List<E> selectRuntimeCandidates(BusinessMapper.RuntimeCandidates query){return mapper.selectRuntimeCandidates(query);}
+    @Override public final Set<String> runtimeActions(ProjectBusinessRuntimeApi.UserContext context){
+        var caller=actor();requireRuntimeScope(context.tenantId(),context.projectId(),context.type());
+        if(!Objects.equals(caller.tenantId(),context.tenantId()) || !Objects.equals(caller.userId(),context.userId()))throw invalid("ACCESS_DENIED","Runtime view actor differs");
+        defaults.projects().requireReadable(context.projectId(),caller);var model=model();var actions=new HashSet<String>();actions.add("QUERY");
+        for(var operation:model.operations())if(operation.executable())actions.add(operation.code());
+        return Set.copyOf(actions);
+    }
+    @Override public final ProjectBusinessRuntimeApi.Observation runtimeForUser(ProjectBusinessRuntimeApi.UserContext context,Long id,boolean lock,String expectedVersion){
+        runtimeActions(context);var row=get(id);
+        if(!context.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime view project differs");
+        if(lock){BusinessEntitySaveSupport.requireTransaction();row=lock(id,actor());if(!context.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime view project changed");}
+        var observed=runtimeObservation(row);
+        if(lock && !Objects.equals(expectedVersion,observed.factVersion()))throw invalid("CONCURRENCY_CONFLICT","Runtime fact changed");
+        return observed;
     }
     @Override public final BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
     @Override public final BusinessModelViews.ModelDetailVO model() {
@@ -86,6 +143,11 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         }
         var projects = defaults.projects().readableScopeIds(actor);
         if (projects == null || projects.isEmpty()) return new PageResult<>(List.of(), 0L);
+        if(query.getProjectId()!=null){
+            if(query.getProjectId()<=0)throw invalid("QUERY_INVALID","Invalid project identity");
+            if(!projects.contains(query.getProjectId()))return new PageResult<>(List.of(),0L);
+            projects=Set.of(query.getProjectId());
+        }
         var result = selectPage(new BusinessReadQuery(actor.tenantId(), projects, query));
         if (result == null || result.getList() == null || result.getList().size() > query.getPageSize())
             throw invalid("QUERY_RESULT_INVALID", "Business query returned an invalid page");
@@ -397,8 +459,17 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             defaults.journal().complete(journalKey, definition().entityType(), result.entityRef().entityId().toString(), result);
             defaults.audit().record(actor.tenantId(), actor.userId(), key, operation, definition().entityType(),
                     result.entityRef().entityId().toString(), "SUCCESS", Map.of("outcome", result.outcome().name()));
-            if(publishDefaultEvent(operation))defaults.events().append(new BusinessEventRecord(UUID.randomUUID().toString(), result.entityRef(), BusinessEventKind.CHANGED,
-                    result.newConcurrencyBasis().toString(), key, Map.of("operation", operation, "operationVersion", operationVersion(operation)), 0L));
+            if(publishDefaultEvent(operation)) {
+                // Use the persisted identity, including soft-deleted rows, never a project ID from request input.
+                E persisted=result.outcome()==ReceiptOutcome.DELETED
+                        ? binding.type.cast(DeclaredBusinessCurrentRows.lockDeletedForReceipt(binding.mapping,
+                            new DeclaredCurrentRowQuery(actor.tenantId(),result.entityRef().entityId())))
+                        : current(result.entityRef().entityId(),actor);
+                checkRow(persisted,result.entityRef().entityId(),actor);
+                defaults.events().append(new BusinessEventRecord(UUID.randomUUID().toString(), result.entityRef(), BusinessEventKind.CHANGED,
+                        result.newConcurrencyBasis().toString(), key, Map.of("operation", operation, "operationVersion", operationVersion(operation)), 0L,
+                        new BusinessEventRecord.ProjectChange(persisted.getProjectId(),actor.userId())));
+            }
             return result;
         });
     }

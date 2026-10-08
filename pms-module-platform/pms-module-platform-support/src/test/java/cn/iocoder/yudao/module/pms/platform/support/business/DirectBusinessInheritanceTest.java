@@ -115,6 +115,35 @@ class DirectBusinessInheritanceTest {
         assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,NoteController.class.getDeclaredMethods().length);
         verify(projects,atLeastOnce()).requireWritable(99L,new EntityActor(7L,42L,null),true);
     }
+    @Test void defaultRuntimeMapperUsesConcreteEntityColumnsAndExactScope(){
+        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(new org.apache.ibatis.builder.MapperBuilderAssistant(new com.baomidou.mybatisplus.core.MybatisConfiguration(),"runtime"),Note.class);
+        doCallRealMethod().when(notes).selectRuntimeCandidates(any());
+        doAnswer(call->{
+            var page=call.getArgument(0,com.baomidou.mybatisplus.core.metadata.IPage.class);
+            var wrapper=call.getArgument(1,com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper.class);
+            assertTrue(wrapper.getSqlSegment().contains("tenant_id"));assertTrue(wrapper.getSqlSegment().contains("project_id"));
+            assertTrue(wrapper.getSqlSegment().contains("ORDER BY id ASC"));
+            assertTrue(wrapper.getParamNameValuePairs().containsValue(7L));assertTrue(wrapper.getParamNameValuePairs().containsValue(99L));assertTrue(wrapper.getParamNameValuePairs().containsValue(10L));
+            page.setRecords(List.of());return page;
+        }).when(notes).selectPage(any(),any());
+        assertTrue(notes.selectRuntimeCandidates(new BusinessMapper.RuntimeCandidates(7L,99L,10L,20)).isEmpty());
+        assertThrows(IllegalArgumentException.class,()->notes.selectRuntimeCandidates(new BusinessMapper.RuntimeCandidates(7L,99L,-1L,20)));
+    }
+    @Test void runtimeFactsAreInheritedAndNeverExposePrivateBodyOrForeignProject(){
+        var service=context.getBean(NoteService.class);service.create(service.input(Map.of("projectId",99,"title","Private")),"runtime-create");
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        try{
+            var type=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Type("IT","directNote");
+            var query=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(7L,99L,type,11L);
+            var result=service.runtimeObservation(query,false);assertEquals(Map.of("BUSINESS_RECORD_SAVED",true),result.facts());assertTrue(result.handlingCompleted());
+            assertThrows(RuntimeException.class,()->service.runtimeObservation(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(7L,100L,type,11L),false));
+            assertThrows(RuntimeException.class,()->service.runtimeObservation(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(8L,99L,type,11L),false));
+            assertThrows(RuntimeException.class,()->service.runtimeObservation(query,true));
+            assertThrows(RuntimeException.class,()->service.runtimeActions(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserContext(7L,43L,99L,type)));
+            var events=org.mockito.ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventRecord.class);
+            verify(context.getBean(BusinessDefaults.class).events()).append(events.capture());assertEquals(99L,events.getValue().projectChange().projectId());
+        }finally{cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
+    }
     @Test void twoEmptyBusinessServicesShareConfigurationWithoutPerEntityAdapters(){
         var api=mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
         var configurations=new HashMap<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity,cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration>();

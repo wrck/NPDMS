@@ -118,6 +118,20 @@ public class TaskBusinessCompletionEvaluator {
         return new Result(unmet.isEmpty(), List.copyOf(unmet), evidence);
     }
 
+    /** An explicitly configured successful upload is real handling; unrelated uploads and constants are not. */
+    public static boolean hasCompletedHandling(boolean ownerHandled,String nodeKey,List<TaskBusinessLinkFact> links,RuleProgram... programs){
+        if(ownerHandled)return true;
+        for(var program:programs){if(program==null)continue;
+            for(var leaf:program.leaves()){
+                String source=leaf.parameters().path("sourceNodeKey").asText();String code=leaf.parameters().path("factCode").asText();
+                if("BUSINESS_FACT".equals(leaf.predicate()) && (source.isBlank() || source.equals(nodeKey))
+                        && cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.deliveryFact(code)
+                        && links.stream().anyMatch(link->Boolean.TRUE.equals(link.completionFacts().get(code))))return true;
+            }
+        }
+        return false;
+    }
+
     public static RuleFact businessFact(RuleProgram.Leaf leaf, List<TaskBusinessLinkFact> links,
                                   List<Map<String, Object>> criteria, List<String> invalid) {
         // No implicit Owner fact aliases, no native status or unsupported predicate fallback.
@@ -132,6 +146,8 @@ public class TaskBusinessCompletionEvaluator {
         List<Map<String, Object>> results = new ArrayList<>();
         for (TaskBusinessLinkFact link : links) {
             Boolean value = link.completionFacts().get(code);
+            if(value==null && cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.deliveryFact(code)
+                    && Boolean.TRUE.equals(link.completionFacts().get(cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.DELIVERY_COMPLETE)))value=false;
             if (value == null) {
                 available = false;
                 invalid.add("BUSINESS_FACT_UNKNOWN:" + code + ":" + link.objectId());

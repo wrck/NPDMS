@@ -11,7 +11,7 @@
       :enable-sorting="true" @sort="sorts => loadPage(true, undefined, sorts)" :list-loading="loading" :slice-complete="rows.length >= total" @reload="loadPage(true)" @search="filters => loadPage(true, filters)"
       @load-more="loadPage(false)" @create="create" @open="row => edit(row.ref.entityId)" />
     <template v-else>
-      <ProjectBusinessContentForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues"
+      <ProjectBusinessContentForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues || scopedInitial"
         :fields="model?.fields" :presentation="presentation" :disabled="busy || !saveOperation?.executable || readonly || !!current && versioned || current?.available === false" />
       <slot name="business-fields" :current="current" :execute="runAction" :busy="busy" :actions="businessActions" />
       <div class="business-actions">
@@ -21,7 +21,7 @@
           <template v-if="current"><el-button v-for="action in businessActions.filter(action=>!hiddenActions.includes(action.code) && !action.code.startsWith('revision-'))" :key="action.code" :disabled="busy || readonly || !action.executable" @click="runAction(action.code)">{{ action.name }}</el-button></template>
         </slot>
         <el-button v-if="current" :disabled="busy" @click="reloadCurrent">重新读取</el-button>
-        <el-button :disabled="busy" @click="back">返回列表</el-button>
+        <el-button v-if="!initialEntityId" :disabled="busy" @click="back">返回列表</el-button>
       </div>
       <el-descriptions v-if="current && readonlyFields.length" title="只读信息" :column="2" border>
         <el-descriptions-item v-for="field in readonlyFields" :key="field.code" :label="field.name">{{ current.fieldValues[field.code] ?? '-' }}</el-descriptions-item>
@@ -45,10 +45,12 @@ import ProjectBusinessHistory from './ProjectBusinessHistory.vue'
 import ProjectBusinessFieldConfiguration from './ProjectBusinessFieldConfiguration.vue'
 import ProjectBusinessDeliveries from './ProjectBusinessDeliveries.vue'
 import { useProjectBusiness } from './useProjectBusiness'
-const props = withDefaults(defineProps<{ apiBase: string; title?: string; readonly?: boolean; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
+const props = withDefaults(defineProps<{ apiBase: string; title?: string; readonly?: boolean; initialEntityId?: BusinessId; scopeProjectId?: BusinessId; allowedActions?: string[]; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
 const api = computed(() => createProjectBusinessApi(props.apiBase)), message = useMessage()
-const state = useProjectBusiness(() => api.value)
-const { model, current, rows, total, error, loading, executing, receipt, pending, readableFields, writableFields, loadPage } = state
+const state = useProjectBusiness(() => api.value, () => props.scopeProjectId)
+const { model, current, rows, total, error, loading, executing, receipt, pending, readableFields, writableFields: allWritableFields, loadPage } = state
+const writableFields=computed(()=>allWritableFields.value.filter(field=>props.scopeProjectId==null || field.code!=='projectId'))
+const scopedInitial=computed(()=>props.scopeProjectId==null?undefined:{projectId:props.scopeProjectId})
 const editing = ref(false), confirming = ref(false), formLoading=ref(false)
 const presentation=ref<BusinessEntityFormData>(), history=ref<InstanceType<typeof ProjectBusinessHistory>>()
 const versioned=computed(()=>!!model.value?.capabilities.some(capability=>capability.type==='CONTENT_HISTORY' && capability.enabled))
@@ -64,21 +66,27 @@ watch(current,async row=>{
 const form = ref<InstanceType<typeof ProjectBusinessContentForm>>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
 const fieldConfiguration=ref<InstanceType<typeof ProjectBusinessFieldConfiguration>>()
 const busy = computed(() => executing.value || confirming.value || formLoading.value || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
-const effective = (action:OperationVO|undefined) => action ? {...action,executable:action.executable && (!props.operationAllowed || props.operationAllowed(action.code,current.value))} : undefined
+const effective = (action:OperationVO|undefined) => action ? {...action,executable:action.executable && (props.allowedActions==null || props.allowedActions.includes(action.code)) && (!props.operationAllowed || props.operationAllowed(action.code,current.value))} : undefined
 const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
 // Tenant metadata is not a current-record state action. Server configuration permission is authoritative.
-const configurationOperation = computed(() => state.operation('CONFIGURE'))
+const configurationOperation = computed(() => {const action=state.operation('CONFIGURE');return action?{...action,executable:action.executable && (props.allowedActions==null || props.allowedActions.includes(action.code))}:undefined})
 const updateOperation = computed(() => effective(state.operation('UPDATE'))), deleteOperation = computed(() => effective(state.operation('DELETE')))
 const businessActions = computed(()=>model.value?.operations.filter(action=>action.kind==='DOMAIN_COMMAND' && action.code!=='save-form').map(action=>effective(action)!) || [])
 const saveOperation = computed(() => current.value ? updateOperation.value : createOperation.value)
 const readonlyFields = computed(() => readableFields.value.filter(field => !field.writable))
-watch(() => props.apiBase, async () => { editing.value=false; await state.load() }, { immediate:true })
+let contextGeneration=0
+watch(() => [props.apiBase,props.scopeProjectId,props.initialEntityId], async () => {
+  const active=++contextGeneration,id=props.initialEntityId
+  editing.value=false;await state.load()
+  if(active===contextGeneration && id!=null && await state.open(id) && active===contextGeneration)editing.value=true
+}, { immediate:true })
 const create = () => { if (busy.value || props.readonly || !createOperation.value?.executable) return; current.value=undefined;editing.value=true }
 const edit = async (id: BusinessId) => { if (!busy.value && await state.open(id)) editing.value=true }
 const save = async () => {
-  if (busy.value || props.readonly || current.value && versioned.value) return
+  if (busy.value || props.readonly || !saveOperation.value?.executable || current.value && versioned.value) return
   try {
     const input=await form.value!.buildInput()
+    if(!current.value && props.scopeProjectId!=null)input.projectId=props.scopeProjectId
     if(current.value && !presentation.value){message.warning('请先重新读取业务表单');return}
     const formSave=!!current.value && (!!presentation.value?.layout || !!input.$extensions)
     const result=await state.execute(current.value ? formSave?'save-form':'save' : 'create',formSave?{values:input}:input)
@@ -109,10 +117,11 @@ const remove = async () => {
   } finally {confirming.value=false}
 }
 const recoverOperation = async () => { const result=await state.recover();if(result)editing.value=result.outcome!=='DELETED' && !!current.value }
-const back = async () => { if(await requestLeave() && (!history.value || await history.value.requestLeave())){editing.value=false;loadPage(true)} }
-const reloadCurrent = async () => { if(current.value && await requestLeave() && (!history.value || await history.value.requestLeave()))await state.open(current.value.ref.entityId) }
+const back = async () => { if(await requestLeave()){editing.value=false;loadPage(true)} }
+const reloadCurrent = async () => { if(current.value && await requestLeave())await state.open(current.value.ref.entityId) }
 const requestLeave = async () => {
   if(busy.value || fieldConfiguration.value && !await fieldConfiguration.value.requestLeave())return false
+  if(history.value && !await history.value.requestLeave())return false
   if(!editing.value || props.readonly || current.value && versioned.value || !form.value)return true
   try{if(!Object.keys(await form.value.buildInput()).length)return true}catch{/* Invalid unsaved input still requires an explicit discard. */}
   confirming.value=true

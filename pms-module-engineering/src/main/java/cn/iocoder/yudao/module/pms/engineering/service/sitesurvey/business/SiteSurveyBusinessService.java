@@ -31,6 +31,13 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     @org.springframework.beans.factory.annotation.Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService> locations;
     @org.springframework.beans.factory.annotation.Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi> deadlines;
 
+    @Override protected Map<String,String> runtimeFactLabels(){return Map.of("SURVEY_CONFIRMED","工勘已确认","SURVEY_ARCHIVED","工勘已归档");}
+    @Override protected Map<String,Boolean> runtimeFacts(SiteSurveyEntityDO row){
+        if(row.getStatus()==null || !Set.of(0,1,2,3).contains(row.getStatus()))throw exception(SITE_SURVEY_STATUS_INVALID);
+        return Map.of("SURVEY_CONFIRMED",Set.of(1,3).contains(row.getStatus()),"SURVEY_ARCHIVED",Integer.valueOf(3).equals(row.getStatus()));
+    }
+    @Override protected boolean runtimeHandlingCompleted(SiteSurveyEntityDO row){return Boolean.TRUE.equals(runtimeFacts(row).get("SURVEY_CONFIRMED"));}
+    @Override protected LocalDateTime runtimeFormedAt(SiteSurveyEntityDO row){return row.getConfirmedAt();}
     @Override protected List<BusinessOperationDescriptor> businessOperations(String prefix) {
         return List.of(operation("confirm","确认工勘",prefix),operation("reject","驳回工勘",prefix),operation("archive","归档工勘",prefix),operation("location","维护工勘地点",prefix),operation("deadline","更新项目期限",prefix));
     }

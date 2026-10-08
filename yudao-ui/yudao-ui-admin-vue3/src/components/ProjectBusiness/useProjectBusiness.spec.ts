@@ -52,3 +52,10 @@ it('preserves controlled sorting across pagination and clears it on business cha
  expect(api.page).toHaveBeenLastCalledWith(2,20,[],[{fieldCode:'title',direction:'ASC'}])
  await state.load();expect(api.page).toHaveBeenLastCalledWith(1,20,[],[])
 })
+
+it('embedded views constrain the page and reject a foreign project detail',async()=>{
+ const state=useProjectBusiness(()=>api,()=>99);await state.load();expect(api.page).toHaveBeenLastCalledWith(1,20,[],[],99)
+ vi.mocked(api.get).mockResolvedValue({...row,fieldValues:{title:'allowed',projectId:99}});expect(await state.open(11)).toBe(true)
+ vi.mocked(api.get).mockResolvedValue({...row,fieldValues:{title:'foreign',projectId:100}});expect(await state.open(11)).toBe(false)
+ expect(state.current.value?.fieldValues.title).toBe('allowed');expect(state.error.value).toContain('不属于当前项目')
+})

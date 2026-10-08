@@ -31,6 +31,20 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
     private final RequirementAnalysisRevisionFiles files;
     private final EngineeringRuleReevaluationEvents events;
     private interface DraftInput { }
+    @Override protected List<RequirementAnalysisRevisionDO> selectRuntimeCandidates(BusinessMapper.RuntimeCandidates query){
+        var scope=new RequirementProjectQuery(query.tenantId(),query.projectId());var row=history.selectDraft(scope);if(row==null)row=history.selectEffective(scope);
+        return row==null || query.afterId()!=null && row.getId()<=query.afterId()?List.of():List.of(row);
+    }
+    @Override protected String runtimeNativeObjectType(){return "REQUIREMENT_ANALYSIS";}
+    @Override protected Map<String,String> runtimeFactLabels(){return Map.of("REQUIREMENT_ANALYSIS_COMPLETED","需求分析版本已完成");}
+    @Override protected Map<String,Boolean> runtimeFacts(RequirementAnalysisRevisionDO row){
+        if(!Set.of("DRAFT","FROZEN").contains(row.getRevisionState())
+                || "FROZEN".equals(row.getRevisionState()) && (row.getFrozenAt()==null || row.getFrozenBy()==null))
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        return Map.of("REQUIREMENT_ANALYSIS_COMPLETED","FROZEN".equals(row.getRevisionState()));
+    }
+    @Override protected boolean runtimeHandlingCompleted(RequirementAnalysisRevisionDO row){return Boolean.TRUE.equals(runtimeFacts(row).get("REQUIREMENT_ANALYSIS_COMPLETED"));}
+    @Override protected java.time.LocalDateTime runtimeFormedAt(RequirementAnalysisRevisionDO row){return row.getFrozenAt();}
     @Override protected EntityDataRef formTarget(RequirementAnalysisRevisionDO row){return EntityDataRef.revision(row.revisionRef());}
     @Override protected void afterChange(String operation,RequirementAnalysisRevisionDO before,RequirementAnalysisRevisionDO row){if("save-form".equals(operation))afterUpdate(before,row);}
     @Override protected Long generatedId(){return IdWorker.getId();}

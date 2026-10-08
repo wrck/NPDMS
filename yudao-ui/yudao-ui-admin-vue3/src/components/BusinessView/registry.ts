@@ -171,6 +171,7 @@ export const resolveStandaloneBusinessEntityView = (viewCode: string | undefined
   return adapter ? { component: adapter.component, resolve: adapter.standaloneProps! } : undefined
 }
 
+const directComponent=markRaw(defineAsyncComponent(()=>import('./DirectBusinessView.vue')))
 const declaredComponent = markRaw(defineAsyncComponent(() => import('./DeclaredBusinessView.vue')))
 export const resolveBusinessView = (target: BusinessViewTarget) => {
   const registration = target.registration
@@ -184,6 +185,15 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
       item.ownerContext === registration.ownerContext &&
       item.viewSource === registration.viewSource
   )
+  if(!adapter && registration.componentKey.startsWith('DIRECT_BUSINESS_') && registration.componentVersion==='1'
+      && registration.viewSource==='PAGE' && registration.dynamicFormRevisionId==null && !target.presentation
+      && positiveId(target.resolvedContext.project?.id)
+      && (target.resolvedContext.businessObjectId==null || positiveId(target.resolvedContext.businessObjectId))){
+    const readonly=target.readonly===true || registration.status==='DISABLED'
+    return {component:directComponent,props:{ownerModule:registration.ownerContext,entityType:registration.entityType,
+      stableCode:registration.componentKey.slice('DIRECT_BUSINESS_'.length),projectId:target.resolvedContext.project!.id,
+      entityId:target.resolvedContext.businessObjectId,readonly,allowedActions:readonly?[]:[...target.allowedActions]}}
+  }
   if (!adapter && registration.componentKey.startsWith('DECLARED_BUSINESS_') && registration.componentVersion === '1'
       && registration.viewSource === 'PAGE' && registration.dynamicFormRevisionId == null && !target.presentation
       && positiveId(target.resolvedContext.businessObjectId)) {

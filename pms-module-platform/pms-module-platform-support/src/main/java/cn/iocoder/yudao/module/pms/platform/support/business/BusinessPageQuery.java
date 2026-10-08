@@ -9,6 +9,7 @@ import lombok.Data;
 /** Default business query. A business may subclass it for its own XML query parameters. */
 @Data
 public class BusinessPageQuery {
+    @jakarta.validation.constraints.Positive private Long projectId;
     @Min(1) private int pageNo = 1;
     @Min(1) @Max(200) private int pageSize = 20;
     public enum Direction { ASC, DESC }

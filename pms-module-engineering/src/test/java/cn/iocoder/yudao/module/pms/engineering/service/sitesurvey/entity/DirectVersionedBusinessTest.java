@@ -118,6 +118,9 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
     }
     @Test void emptyServiceInheritsDraftSaveFreezeActivationAndReplay(){
         var created=notes.create(notes.input(Map.of("projectId",20,"title","Original")),"create-note");long id=created.entityRef().entityId();
+        var runtimeQuery=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(1L,20L,new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Type("IT","versionNote"),id);
+        assertFalse(notes.runtimeObservation(runtimeQuery,false).facts().get("BUSINESS_CONTENT_EFFECTIVE"));
+        assertEquals(id,notes.runtimeCandidates(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Candidates(1L,20L,runtimeQuery.type(),null,20)).getFirst().entityId());
         jdbc.update("UPDATE it_version_note SET updater='legacy',update_time='2000-01-01 00:00:00' WHERE id=?",id);
         var draftReceipt=notes.createRevision(id,0L,null,"Correction","create-revision");
         var draft=notes.revisions(id,null,20).getFirst();assertEquals("DRAFT",draft.state().name());assertEquals("Original",notes.get(id).getTitle());
@@ -128,6 +131,7 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         notes.completeRevision(id,0L,draft.ref().revisionId(),1L,"complete-revision");
         assertEquals("Revised",notes.get(id).getTitle());assertEquals(1L,notes.get(id).getVersion());
         assertEquals("9",notes.get(id).getUpdater());assertTrue(notes.get(id).getUpdateTime().isAfter(java.time.LocalDateTime.of(2020,1,1,0,0)));
+        assertTrue(notes.runtimeObservation(runtimeQuery,false).facts().get("BUSINESS_CONTENT_EFFECTIVE"));
         var frozen=notes.revisions(id,null,20).getFirst();assertTrue(frozen.effective());assertEquals("FROZEN",frozen.state().name());
         assertThrows(RuntimeException.class,()->notes.saveRevision(id,1L,frozen.ref().revisionId(),(long)frozen.version(),Map.of("title","Tamper"),"frozen-write"));
         assertEquals(0,NoteService.class.getDeclaredMethods().length);

@@ -5,7 +5,7 @@ import { businessIntentStorageKey, readBusinessIntent, writeBusinessIntent, clea
   businessIntentFingerprint, type PendingBusinessIntent } from '../BusinessEntity/businessOperationIntent'
 
 const message = (error: any, fallback: string) => error?.response?.data?.msg || error?.message || fallback
-export function useProjectBusiness(api: () => ProjectBusinessApi) {
+export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () => BusinessId | undefined = () => undefined) {
   const model = shallowRef<ModelDetailVO>(), current = shallowRef<BusinessEntityData>()
   const rows = shallowRef<BusinessEntityData[]>([]), total = ref(0), page = ref(1), filters = ref<FieldFilter[]>([])
   const sorts = ref<BusinessSort[]>([])
@@ -23,7 +23,8 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
     const active = ++generation, client = api(), next = reset ? 1 : page.value + 1
     loading.value = true; error.value = ''
     try {
-      const result = await client.page(next, 20, filters.value, sorts.value)
+      const scope=projectId()
+      const result = await (scope==null?client.page(next,20,filters.value,sorts.value):client.page(next,20,filters.value,sorts.value,scope))
       if (active !== generation || client.base !== api().base) return
       rows.value = reset ? result.list : [...rows.value, ...result.list]; total.value = result.total; page.value = next
     } catch (failure) { if (active === generation) error.value = message(failure, '业务列表读取失败') }
@@ -44,6 +45,7 @@ export function useProjectBusiness(api: () => ProjectBusinessApi) {
       const data = await client.get(id)
       if (active !== detailGeneration || client.base !== api().base) return false
       if (!data.available || String(data.ref.entityId) !== String(id)) throw new Error('业务读取身份不匹配或已不可用')
+      if(projectId()!=null && String(data.fieldValues.projectId)!==String(projectId()))throw new Error('业务记录不属于当前项目')
       current.value = data; return true
     } catch (failure) { if (active === detailGeneration) error.value = message(failure, '业务读取失败'); return false }
   }

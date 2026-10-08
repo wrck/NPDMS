@@ -153,14 +153,23 @@ class DefaultBusinessDeliveryMySqlTest {
         assertEquals("first",runtime.jdbc.queryForObject("SELECT title FROM it_declared_note WHERE id=?",String.class,first.entityId()));
         assertEquals(0L,runtime.jdbc.queryForObject("SELECT version FROM it_declared_note WHERE id=?",Long.class,first.entityId()));
     }
+    long ruleWakeups(){return runtime.jdbc.queryForObject("SELECT COUNT(*) FROM plt_outbox_event WHERE event_type='ProjectRuleReevaluationRequested'",Long.class);}
+    @Test void rolledBackUploadLeavesNoRuleWakeupOrDeliveryRecord(){
+        long before=ruleWakeups();
+        new TransactionTemplate(context.getBean(DataSourceTransactionManager.class)).execute(status->{upload(first,"REPORT","rollback\n");status.setRollbackOnly();return null;});
+        assertEquals(before,ruleWakeups());assertEquals(0,count("plt_delivery_material"));
+    }
     @Test void retriesPreserveOneActualRecordAndDifferentBytesCannotReplaySuccess() {
+        long before=ruleWakeups();
         String key="same-upload";var scope=scope(second,"REPORT");
         var first=deliveries.upload(scope,file("same\n"),key);assertEquals(first,deliveries.upload(scope,file("same\n"),key));
+        assertEquals(before+1,ruleWakeups(),"An upload replay must not add another rule wakeup");
         assertThrows(RuntimeException.class,()->deliveries.upload(scope,file("changed\n"),key));
         assertEquals(1,count("plt_delivery_material"));assertEquals(1,count("plt_file_version"));
         deliveries.delete(Long.valueOf(first.id()),first.version());
         assertThrows(BusinessContractException.class,()->deliveries.upload(scope,file("same\n"),key));
         assertFalse(deliveries.completion(scope).completed());assertEquals(1,count("plt_delivery_material"));
+        assertEquals(before+2,ruleWakeups(),"Only the successful upload and withdrawal wake rules");
     }
     @Test void historyReadsExistingMaterialRowsWithoutSnapshotsAndNeverCompletesWithdrawnUploads() {
         var older=upload(first,"REPORT","older\n");var latest=upload(first,"REPORT","latest\n");

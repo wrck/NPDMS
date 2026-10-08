@@ -46,6 +46,14 @@ public class OutboxBusinessEventPort implements BusinessEventPort {
                         eventType(event.kind()), JsonUtils.toJsonString(payload)),
                 event.sourceRef().entityType(), event.sourceRef().entityId().toString(),
                 LocalDateTime.now());
+        if(event.projectChange()!=null) {
+            var change=event.projectChange();
+            var wake=cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.create(
+                    event.sourceRef().tenantId(),change.projectId(),change.actorId(),event.eventId());
+            outboxWriter.write(event.sourceRef().tenantId(),new PlatformCommandExecutionApi.BusinessEvent(
+                    wake.eventId(),cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.EVENT_TYPE,
+                    JsonUtils.toJsonString(wake)),"Project",change.projectId().toString(),LocalDateTime.now());
+        }
     }
 
     private static String eventType(BusinessEventKind kind) {

@@ -32,8 +32,8 @@ export const createProjectBusinessApi = (prefix: string) => {
     fieldDefaults: () => request.get<ModelDetailVO>({url:`${base}/field-configuration/defaults`,silentError:true}),
     fieldConfiguration: () => request.get<BusinessFieldConfiguration>({url:`${base}/field-configuration`,silentError:true}),
     saveFieldConfiguration: (configuration: BusinessFieldConfiguration) => request.put<BusinessFieldConfiguration>({url:`${base}/field-configuration`,data:configuration,silentError:true}),
-    page: (pageNo: number, pageSize: number, filters: FieldFilter[], sorts?: BusinessSort[]) =>
-      request.post<BusinessPage>({ url: `${base}/page`, data: { pageNo, pageSize, filters, ...(sorts?.length ? { sorts } : {}) }, silentError: true }),
+    page: (pageNo: number, pageSize: number, filters: FieldFilter[], sorts?: BusinessSort[], projectId?: BusinessId) =>
+      request.post<BusinessPage>({ url: `${base}/page`, data: { pageNo, pageSize, filters, ...(sorts?.length ? { sorts } : {}), ...(projectId == null ? {} : { projectId: identity(projectId) }) }, silentError: true }),
     get: (id: BusinessId) => request.get<BusinessEntityData>({ url: entity(id), silentError: true }),
     revisions:(id:BusinessId,beforeId?:BusinessId)=>request.get<DirectBusinessRevision[]>({url:`${entity(id)}/revisions`,params:{limit:100,...(beforeId===undefined?{}:{beforeId:identity(beforeId)})},silentError:true}),
     revisionValues:(id:BusinessId,revisionId:BusinessId)=>request.get<Record<string,RevisionFieldValue>>({url:`${entity(id)}/revisions/${identity(revisionId)}`,silentError:true}),
@@ -76,3 +76,9 @@ export const createProjectBusinessApi = (prefix: string) => {
   }
 }
 export type ProjectBusinessApi = ReturnType<typeof createProjectBusinessApi>
+
+export interface DirectBusinessView {ownerModule:string;entityType:string;stableCode:string;apiBase:string}
+export const getDirectBusinessView = (code:string) => {
+  if(!/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(code))throw new Error('业务类型不合法')
+  return request.get<DirectBusinessView>({url:`/api/v1/pms/business-defaults/${code}/view`,silentError:true})
+}

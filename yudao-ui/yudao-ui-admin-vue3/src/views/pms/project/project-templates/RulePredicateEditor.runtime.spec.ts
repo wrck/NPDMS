@@ -172,3 +172,31 @@ describe('business fact source editing', () => {
     view.app.unmount()
   })
 })
+
+it('edits an exact delivery type and preserves it when the selected source supports default deliveries', async () => {
+  const state = reactive<{ parameters: JsonObject }>({ parameters: { factCode: 'BUSINESS_DELIVERY_UPLOADED:ATTACHMENT', quantifier: 'ALL' } })
+  const host = defineComponent({ setup() {
+    provide(ruleBusinessSourcesKey, computed(() => [
+      { key: 'note', label: '记录', ownerContext: 'IT', objectType: 'note' },
+      { key: 'other', label: '其他', ownerContext: 'IT', objectType: 'other' }
+    ]))
+    return () => h(RulePredicateEditor, { predicate: 'BUSINESS_FACT', parameters: state.parameters, fields: [],
+      facts: [{ ownerContext: 'IT', objectType: 'note', factCode: 'BUSINESS_DELIVERY_UPLOADED:ATTACHMENT', label: '指定类型交付件' }],
+      onChange: (_type, value) => { state.parameters = value } })
+  } })
+  const view = mount(host, {}, { ElSelect: passthrough, ElOption: passthrough, ElInput: passthrough })
+  try {
+    const input = find(view.root, node => node.props?.['aria-label'] === '指定交付件类型')!
+    ;(input.props!['onUpdate:modelValue'] as Function)('REPORT')
+    await nextTick()
+    expect(state.parameters.factCode).toBe('BUSINESS_DELIVERY_UPLOADED:REPORT')
+    const source = find(view.root, node => node.props?.['aria-label'] === '业务结果来源节点')!
+    ;(source.props!['onUpdate:modelValue'] as Function)('note')
+    await nextTick()
+    expect(state.parameters.factCode).toBe('BUSINESS_DELIVERY_UPLOADED:REPORT')
+    expect(encodeTree(decodeTree({ predicate: 'BUSINESS_FACT', parameters: state.parameters })).parameters).toEqual(state.parameters)
+    ;(source.props!['onUpdate:modelValue'] as Function)('other')
+    await nextTick()
+    expect(state.parameters.factCode).toBe('')
+  } finally { view.app.unmount() }
+})

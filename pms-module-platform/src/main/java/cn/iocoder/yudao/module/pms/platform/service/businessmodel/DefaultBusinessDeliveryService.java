@@ -36,6 +36,8 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     private final FileUploadApplicationService uploads;
     private final FileEvidenceApi files;
     private final DeliveryMaterialMapper materials;
+    @org.springframework.beans.factory.annotation.Autowired
+    private cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi businessEvents;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners> directOwners;
     @org.springframework.beans.factory.annotation.Autowired
@@ -138,7 +140,7 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         row.setFileSha256(document.sha256());row.setFileName(document.name());row.setTitle(title);row.setSourceKind(sourceKind);
         if(source!=null){row.setSourceOwnerModule(model.ownerModule());row.setSourceEntityType(model.entityType());row.setSourceEntityId(entityId(source.businessEntityKey()));}
         row.setStatus(DeliveryMaterialDO.STATUS_ACTIVE);row.setArchiveStatus(DeliveryMaterialDO.ARCHIVE_NOT_REQUIRED);row.setVersion(0L);
-        materials.insert(row);return view(materials.selectById(row.getId()));
+        materials.insert(row);changed(row);return view(materials.selectById(row.getId()));
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public List<Record> copy(Copy request) {
@@ -234,12 +236,17 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     }
     @Override @Transactional(readOnly=true)
     public Completion completion(Scope scope) {
-        authorize(scope,false,false);int page=1;
+        var model=authorize(scope,false,false);int page=1;
         while(true) {
             var records=list(scope.projectId(),scope.deliverableType(),scope.businessType(),scope.businessEntityKey(),page++,200);
             for(var record:records.getList()) {
                 var file=files.inspectDocument(callers.require().tenantId(),Long.valueOf(record.fileReferenceId()));
-                if(file!=null && file.available()) return new Completion(true,record);
+                var row=materials.selectById(Long.valueOf(record.id()));
+                if(row!=null && Objects.equals(row.getTenantId(),callers.require().tenantId())
+                        && Objects.equals(row.getProjectId(),scope.projectId()) && Objects.equals(row.getBusinessTypeCode(),scope.businessType())
+                        && Objects.equals(row.getEntityId(),entityId(scope.businessEntityKey())) && Objects.equals(row.getTypeCode(),scope.deliverableType())
+                        && Objects.equals(row.getOwnerModule(),model.ownerModule()) && Objects.equals(row.getEntityType(),model.entityType())
+                        && DefaultDeliveryEvidence.available(row,file)) return new Completion(true,record);
             }
             if(records.getList().size()<200) return new Completion(false,null);
         }
@@ -272,6 +279,16 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         if(version==null || version<0) throw invalid("材料版本必填");
         if(materials.mutateDefaultDelivery(new DefaultDeliveryMutationQuery(callers.require().tenantId(),row.getId(),version,title,delete,
                 callers.require().userId().toString()))!=1) throw invalid("材料已改变或已被归档/引用，不能修改");
+        changed(row);
+    }
+    private void changed(DeliveryMaterialDO row) {
+        var caller=callers.require();
+        var wake=cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.create(
+                caller.tenantId(),row.getProjectId(),caller.userId(),"delivery:"+row.getId());
+        businessEvents.append("DeliveryMaterial",row.getId().toString(),
+                new cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent(
+                    wake.eventId(),cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested.EVENT_TYPE,
+                    cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(wake)));
     }
     private static Scope scope(DeliveryMaterialDO row) {return new Scope(row.getProjectId(),row.getBusinessTypeCode(),row.getEntityId().toString(),row.getTypeCode());}
     private static Record view(DeliveryMaterialDO row) {return view(row,true);}

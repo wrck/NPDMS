@@ -33,6 +33,14 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
             throw invalid("REVISION_MAPPING_INVALID","Revision entity must inherit its typed business fields and revision contract");
         revisionClass=(Class<R>)type;revisionBinding=new BusinessModelDeclaration(definition(),type,revisionMapper,null);
     }
+    @Override protected Map<String,String> runtimeFactLabels(){return Map.of("BUSINESS_CONTENT_EFFECTIVE","业务内容已有生效版本");}
+    private R runtimeEffective(E row){
+        var caller=new EntityActor(row.getTenantId(),0L,EntityActor.SYSTEM_OBSERVER);
+        return org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
+                ?effective(lockedHistory(identity(row),caller)):revisionMapper.selectEffective(new BusinessRevisionMapper.Effective(row.getTenantId(),row.getId()));
+    }
+    @Override protected RuntimeResult runtimeResult(E row){var current=runtimeEffective(row);boolean completed=current!=null && current.revisionState()==Revision.State.FROZEN;
+        return new RuntimeResult(Map.of("BUSINESS_CONTENT_EFFECTIVE",completed),completed,current==null?null:current.revisionMetadata().frozenAt());}
     @Override protected EntityDataRef formTarget(E row){
         return revisionClass!=null && revisionClass.isInstance(row)?EntityDataRef.revision(revisionClass.cast(row).revisionRef()):super.formTarget(row);
     }
