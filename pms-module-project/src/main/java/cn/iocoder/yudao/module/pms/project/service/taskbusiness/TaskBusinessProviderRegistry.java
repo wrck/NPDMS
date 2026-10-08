@@ -14,6 +14,10 @@ public class TaskBusinessProviderRegistry {
                                     String ownerContext, String objectType) { }
 
     private final List<TaskBusinessObjectProvider> providers;
+    @org.springframework.beans.factory.annotation.Autowired
+    public TaskBusinessProviderRegistry(List<TaskBusinessObjectProvider> providers,org.springframework.beans.factory.ObjectProvider<DefaultProjectBusinessRuntimeProviders> defaults) {
+        this(defaults.getIfAvailable()==null?providers:defaults.getObject().withDefaults(providers));
+    }
     public TaskBusinessProviderRegistry(List<TaskBusinessObjectProvider> providers) {
         this.providers = List.copyOf(providers);
     }
@@ -31,7 +35,7 @@ public class TaskBusinessProviderRegistry {
 
     /** Independent rule publication: at least one unambiguous registered Owner declares the fact. */
     public boolean supportsCompletionFact(String factCode) {
-        return factCode != null && providers.stream().anyMatch(p -> p.completionFactCodes().contains(factCode)
+        return factCode != null && providers.stream().anyMatch(p -> p.supportsCompletionFact(factCode)
                 && supportsCompletionFact(p.ownerContext(), p.objectType(), factCode));
     }
 
@@ -40,7 +44,7 @@ public class TaskBusinessProviderRegistry {
         if (ownerContext == null || objectType == null || factCode == null) return false;
         var matches = providers.stream().filter(p -> ownerContext.equals(p.ownerContext())
                 && objectType.equals(p.objectType())).toList();
-        return matches.size() == 1 && matches.getFirst().completionFactCodes().contains(factCode);
+        return matches.size() == 1 && matches.getFirst().supportsCompletionFact(factCode);
     }
 
     /** An existing task fact does not imply that its Owner implements the stage-receiver contract. */

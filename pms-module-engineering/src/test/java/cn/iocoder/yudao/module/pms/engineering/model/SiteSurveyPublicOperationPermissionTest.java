@@ -10,7 +10,12 @@ import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.*;
 import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisBusinessPermissionPolicy;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.ObjectProvider;
 import java.util.*;
 import java.util.stream.Stream;
@@ -29,6 +34,7 @@ class SiteSurveyPublicOperationPermissionTest {
     RequirementAnalysisBusinessPermissionPolicy requirementPolicy;
     BusinessModelDescriptor descriptor;
     @BeforeEach void setup() {
+        login(actor.tenantId(), actor.userId());
         permissions=mock(PermissionApi.class); common=mock(PermissionCommonApi.class); routeGranted=true;
         when(permissions.hasAnyPermissions(eq(1001L),any(String[].class))).thenAnswer(call ->
                 Arrays.stream((String[])call.getRawArguments()[1]).anyMatch(grants::contains));
@@ -40,6 +46,32 @@ class SiteSurveyPublicOperationPermissionTest {
         guard=new PermissionBusinessAccessGuard(common,policies);
         descriptor=new BusinessModelDescriptor("SOL","siteSurvey","SOL_SITE_SURVEY",1,BusinessModelKind.AGGREGATE_ROOT,
                 "工勘","pms:sol-site-survey:query",List.of(),List.of(),SiteSurveyBusinessApplicationService.operations(),List.of(),"sol_site_survey");
+    }
+    @AfterEach void close() { SecurityContextHolder.clearContext(); TenantContextHolder.clear(); }
+    private void login(long tenant, long user) {
+        TenantContextHolder.setTenantId(tenant);
+        var principal = new LoginUser(); principal.setId(user); principal.setTenantId(tenant); principal.setUserType(2);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
+    }
+    @Test void missingOrMismatchedAuthenticatedIdentityDeniesBeforeOwnerPermissionChecks() {
+        grants.addAll(Set.of("pms:sol-site-survey:query", "pms:sol-site-survey:create"));
+        SecurityContextHolder.clearContext();
+        assertIdentityDenied();
+        login(1L, 1002L);
+        assertIdentityDenied();
+        login(2L, 1001L);
+        TenantContextHolder.setTenantId(1L);
+        assertIdentityDenied();
+        login(1L, 1001L);
+        TenantContextHolder.setTenantId(2L);
+        assertIdentityDenied();
+        verifyNoInteractions(permissions, common);
+    }
+    private void assertIdentityDenied() {
+        assertEquals("ACCESS_DENIED", assertThrows(BusinessContractException.class,
+                () -> guard.requireReadable(descriptor, actor, "detail")).getErrorCode());
+        assertEquals("ACCESS_DENIED", assertThrows(BusinessContractException.class,
+                () -> guard.requireWritable(descriptor, actor, "operation:create")).getErrorCode());
     }
     @Test void queryPermissionNeverMakesAllOwnerOperationsExecutable() {
         grants.add("pms:sol-site-survey:query");

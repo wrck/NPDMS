@@ -30,6 +30,6 @@ public interface RequirementAnalysisMapper extends BaseMapperX<cn.iocoder.yudao.
     int clearEffective(@Param("update") RequirementActivationUpdate update);
     int makeEffective(@Param("update") RequirementActivationUpdate update);
 
-    /** 放弃未冻结草稿：先把修订号改写为行内唯一负值占位释放唯一键，再逻辑删除。 */
+    /** 放弃未冻结草稿：逻辑删除释放活动唯一槽，保留原修订号（V399）。 */
     int discardDraft(@Param("query") RequirementRevisionQuery query);
 }

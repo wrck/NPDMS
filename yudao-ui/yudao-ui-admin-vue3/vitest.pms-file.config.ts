@@ -17,10 +17,13 @@ export default defineConfig({
     })
   ],
   test: {
-    // These suites use node:test; integration-code-regression runs them separately.
+    // These suites use node:test and must run separately with node --test.
     exclude: [
       ...configDefaults.exclude,
       'tests/theme-init.test.mjs',
+      'src/components/BusinessView/operationClient.node.test.mjs',
+      'src/components/BusinessView/operationClient.selfReview.node.test.mjs',
+      'src/components/BusinessView/operationPresentation.node.test.mjs',
       'src/components/PmsLocationSelector/locationSelector.spec.ts',
       'src/views/pms/asset/location/location-contract.spec.ts',
       'src/views/pms/engineering/installation/installationForm.spec.ts',

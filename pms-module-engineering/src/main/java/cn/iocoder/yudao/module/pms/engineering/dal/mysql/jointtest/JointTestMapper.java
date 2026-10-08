@@ -12,6 +12,9 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface JointTestMapper extends ProjectScopedCodeMapper<JointTestDO> {
+    JointTestDO selectAttachmentOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery query);
+
 
     default PageResult<JointTestDO> selectPage(JointTestPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<JointTestDO>()

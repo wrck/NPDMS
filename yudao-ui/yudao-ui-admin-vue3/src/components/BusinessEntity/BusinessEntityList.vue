@@ -1,6 +1,21 @@
 <template>
   <div class="business-entity-list">
     <el-alert v-if="listError" :title="listError" type="error" :closable="false" show-icon />
+    <el-form inline @submit.prevent="search">
+      <el-form-item label="筛选字段">
+        <el-select v-model="filterField" placeholder="选择字段" style="width: 180px">
+          <el-option v-for="field in searchableFields" :key="field.code" :label="field.name" :value="field.code" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="筛选值">
+        <el-input v-model="filterValue" placeholder="文本包含匹配，其他字段精确匹配" clearable />
+      </el-form-item>
+      <el-form-item>
+        <el-button native-type="submit" type="primary" :loading="listLoading">查询</el-button>
+        <el-button :disabled="listLoading" @click="resetSearch">重置</el-button>
+      </el-form-item>
+      <el-alert v-if="filterError" :title="filterError" type="warning" :closable="false" />
+    </el-form>
     <div class="toolbar">
       <el-tooltip
         :disabled="!!createOperation?.executable"
@@ -18,12 +33,13 @@
       </el-tooltip>
       <el-button :loading="listLoading" @click="emit('reload')">刷新</el-button>
     </div>
-    <el-table :data="rows" v-loading="listLoading" @row-click="(row: any) => emit('open', row)">
+    <el-table :data="rows" @sort-change="sortChanged" v-loading="listLoading" @row-click="(row: any) => emit('open', row)">
       <el-table-column
-        v-for="field in readableFields.slice(0, 8)"
+        v-for="field in listFields"
         :key="field.code"
         :label="field.name"
         :prop="field.code"
+        :sortable="enableSorting && field.sortable ? 'custom' : false"
         min-width="140"
       >
         <template #default="{ row }">{{ displayValue(row.fieldValues[field.code], field.type) }}</template>
@@ -42,10 +58,13 @@
 </template>
 
 <script setup lang="ts">
-import type { BusinessEntityData, FieldVO, OperationVO } from '@/api/pms/platform/businessmodel'
+import { computed, ref } from 'vue'
+import { buildBusinessListFilter } from './businessListFilter'
+import type { BusinessEntityData, FieldVO, OperationVO, FieldFilter } from '@/api/pms/platform/businessmodel'
 
 defineOptions({ name: 'BusinessEntityList' })
-defineProps<{
+const props = defineProps<{
+  enableSorting?: boolean
   rows: BusinessEntityData[]
   readableFields: FieldVO[]
   createOperation?: OperationVO
@@ -53,7 +72,27 @@ defineProps<{
   listError?: string
   sliceComplete?: boolean
 }>()
-const emit = defineEmits<{ create: []; open: [row: BusinessEntityData]; reload: []; 'load-more': [] }>()
+const emit = defineEmits<{ create: []; open: [row: BusinessEntityData]; reload: []; 'load-more': []; sort: [sorts: Array<{fieldCode: string; direction: 'ASC' | 'DESC'}>]; search: [filters: FieldFilter[]] }>()
+
+const filterField = ref('')
+const filterValue = ref('')
+const filterError = ref('')
+const listFields = computed(() => props.readableFields.filter(field => field.listVisible !== false).slice().sort((a,b) => (a.displayOrder || 0) - (b.displayOrder || 0)))
+const sortChanged = ({prop,order}: {prop?: string; order?: string}) => {
+  if (!props.enableSorting) return
+  const field = props.readableFields.find(field => field.code === prop && field.sortable && field.readable)
+  if (!order) { emit('sort', []); return }
+  if (field && ['ascending','descending'].includes(order)) emit('sort', [{fieldCode:field.code,direction:order==='ascending'?'ASC':'DESC'}])
+}
+const searchableFields = computed(() => props.readableFields.filter(field => field.searchable !== false && !['TEXT_LIST', 'OBJECT_LIST'].includes(field.type)))
+const search = () => {
+  filterError.value = ''
+  try { emit('search', buildBusinessListFilter(searchableFields.value, filterField.value, filterValue.value)) }
+  catch (error: any) { filterError.value = error.message }
+}
+const resetSearch = () => {
+  filterField.value = ''; filterValue.value = ''; filterError.value = ''; emit('search', [])
+}
 
 const displayValue = (value: unknown, type: string) => {
   if (value == null || value === '') return '-'

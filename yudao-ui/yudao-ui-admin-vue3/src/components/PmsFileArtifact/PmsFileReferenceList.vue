@@ -66,7 +66,7 @@ import PmsFileVersionDrawer from './PmsFileVersionDrawer.vue'
 const props = withDefaults(
   defineProps<
     FileBusinessKey & {
-      artifactId?: number
+      artifactId?: FileApi.FileId
       versionNo?: number
       editable?: boolean
       ownerExecutionContext?: JsonObject
@@ -85,6 +85,9 @@ const errorText = ref('')
 const downloading = ref(false)
 const historyRef = ref<InstanceType<typeof PmsFileVersionDrawer>>()
 const detachAttempt = ref<{ signature: string; idempotencyKey: string }>()
+let loadSequence = 0
+let ownerGeneration = 0
+let detachSequence = 0
 const businessKey = computed<FileBusinessKey>(() => ({
   ownerContext: props.ownerContext,
   objectType: props.objectType,
@@ -94,24 +97,37 @@ const businessKey = computed<FileBusinessKey>(() => ({
 }))
 
 const load = async () => {
+  const sequence = ++loadSequence
+  const selectedKey = { ...businessKey.value }
+  const selectedArtifactId = props.artifactId
   artifact.value = undefined
   errorText.value = ''
-  if (!props.artifactId) return
+  if (!selectedKey.objectId || !selectedKey.referenceKey) { loading.value = false; return }
   loading.value = true
   try {
-    artifact.value = await FileApi.getArtifact(props.artifactId, businessKey.value)
-    emit('loaded', artifact.value)
+    const discovered = selectedArtifactId ? undefined : await FileApi.getReference(selectedKey)
+    if (sequence !== loadSequence) return
+    const id = selectedArtifactId || discovered?.artifactId
+    if (!id) return
+    const current = await FileApi.getArtifact(id, selectedKey)
+    if (sequence !== loadSequence) return
+    artifact.value = current || undefined
+    if (current) emit('loaded', current)
   } catch {
-    errorText.value = '文件事实已变化，请刷新业务页面后重试。'
+    if (sequence === loadSequence) errorText.value = '文件事实已变化，请刷新业务页面后重试。'
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 const openAccess = async (operation: FileAccessOperation) => {
   if (!artifact.value || downloading.value) return
   const selected = artifact.value
+  const generation = ownerGeneration
+  const selectedKey = { ...businessKey.value }
+  const isCurrent = () => generation === ownerGeneration
   const target = operation === 'PREVIEW' ? window.open('about:blank', '_blank') : null
-  if (operation === 'PREVIEW' && !target) return message.warning('浏览器已阻止新窗口，请允许弹窗后重试')
+  if (operation === 'PREVIEW' && !target)
+    return message.warning('浏览器已阻止新窗口，请允许弹窗后重试')
   if (target) target.opener = null
   downloading.value = operation === 'DOWNLOAD'
   errorText.value = ''
@@ -120,68 +136,104 @@ const openAccess = async (operation: FileAccessOperation) => {
       selected.artifactId,
       props.versionNo || selected.reference.versionNo,
       operation,
-      businessKey.value
+      selectedKey
     )
+    if (!isCurrent()) {
+      target?.close()
+      return
+    }
     if (operation === 'DOWNLOAD') {
       // A cross-origin navigation may display the file inline. Download the authorized
       // bytes via the existing Blob helper without forwarding application credentials.
       // https://developer.mozilla.org/en-US/docs/Web/API/Response/blob
       const response = await fetch(ticket.shortLivedUrl, { credentials: 'omit' })
+      if (!isCurrent()) return
       if (!response.ok) throw new Error('FILE_DOWNLOAD_FAILED')
-      download.file(await response.blob(), selected.name)
+      const blob = await response.blob()
+      if (!isCurrent()) return
+      download.file(blob, selected.name)
     } else {
       target!.location.replace(ticket.shortLivedUrl)
     }
   } catch {
     target?.close()
-    errorText.value = operation === 'DOWNLOAD'
-      ? '文件下载未完成，请检查权限、存储连接及跨域配置后重试。'
-      : '文件预览未完成，请刷新文件信息后重试。'
+    if (!isCurrent()) return
+    errorText.value =
+      operation === 'DOWNLOAD'
+        ? '文件下载未完成，请检查权限、存储连接及跨域配置后重试。'
+        : '文件预览未完成，请刷新文件信息后重试。'
   } finally {
-    downloading.value = false
+    if (isCurrent()) downloading.value = false
   }
 }
 const detach = async () => {
   if (!artifact.value) return
   const selected = artifact.value.reference
+  const generation = ownerGeneration
+  const sequence = ++detachSequence
+  const isCurrent = () => generation === ownerGeneration && sequence === detachSequence
   const selectedKey = { ...businessKey.value }
   const execution = props.ownerExecutionContext
-    ? structuredClone(toRaw(props.ownerExecutionContext)) : undefined
-  const prompt = await message.prompt('请输入解绑原因', '解除材料引用')
-  const signature = JSON.stringify([
-    selected.referenceId,
-    selected.referenceVersion,
-    selectedKey,
-    execution,
-    prompt.value
-  ])
-  if (detachAttempt.value?.signature !== signature) {
-    detachAttempt.value = { signature, idempotencyKey: generateUUID() }
+    ? structuredClone(toRaw(props.ownerExecutionContext))
+    : undefined
+  try {
+    const prompt = await message.prompt('请输入解绑原因', '解除材料引用')
+    if (!isCurrent()) return
+    const signature = JSON.stringify([
+      selected.referenceId,
+      selected.referenceVersion,
+      selectedKey,
+      execution,
+      prompt.value
+    ])
+    if (detachAttempt.value?.signature !== signature) {
+      detachAttempt.value = { signature, idempotencyKey: generateUUID() }
+    }
+    const selectedAttempt = detachAttempt.value
+    const result = await FileApi.detachReference(
+      selected.referenceId,
+      selected.referenceVersion,
+      selectedKey,
+      prompt.value,
+      selectedAttempt.idempotencyKey,
+      execution
+    )
+    if (!isCurrent() || detachAttempt.value !== selectedAttempt) return
+    detachAttempt.value = undefined
+    message.success('材料引用已解除')
+    artifact.value = undefined
+    emit('detached', { ...result, referenceKey: selectedKey.referenceKey })
+  } catch (error) {
+    if (isCurrent()) throw error
   }
-  const result = await FileApi.detachReference(
-    selected.referenceId,
-    selected.referenceVersion,
-    selectedKey,
-    prompt.value,
-    detachAttempt.value.idempotencyKey,
-    execution
-  )
-  detachAttempt.value = undefined
-  message.success('材料引用已解除')
-  artifact.value = undefined
-  emit('detached', { ...result, referenceKey: selectedKey.referenceKey })
 }
 const statusLabel = (status: string) =>
   ({ ACTIVE: '已绑定', DETACHED: '已解绑', ARCHIVED: '已归档' })[status] || status
 
 watch(
-  () => [props.artifactId, props.versionNo, props.objectId, props.referenceKey],
+  () => [
+    props.artifactId,
+    props.versionNo,
+    props.ownerContext,
+    props.objectType,
+    props.objectId,
+    props.purposeCode,
+    props.referenceKey
+  ],
   () => {
+    ++ownerGeneration
+    ++detachSequence
     detachAttempt.value = undefined
+    downloading.value = false
     load()
   },
-  { immediate: true }
+  { immediate: true, flush: 'sync' }
 )
+onBeforeUnmount(() => {
+  ++loadSequence
+  ++ownerGeneration
+  ++detachSequence
+})
 defineExpose({ refresh: load, detach })
 </script>
 

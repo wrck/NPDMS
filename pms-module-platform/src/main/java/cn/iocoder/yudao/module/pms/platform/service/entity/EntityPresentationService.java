@@ -18,21 +18,39 @@ public class EntityPresentationService implements EntityPresentationApi {
     private final DynamicFormTemplateMapper templates;
     private final DynamicFormTemplateRevisionMapper revisions;
     private final DynamicFormSchemaService schemas;
+    private final cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners owners;
 
     @Override
     @Transactional(readOnly = true)
     public List<Presentation> list(Query query) {
         query.actor().requireTenant(query.target().entity());
         registry.requireReadable(query.target(), query.actor());
-        if (query.categoryCode() == null || query.categoryCode().isBlank()) throw new IllegalArgumentException("Presentation category required");
+        return catalog(query.actor().tenantId(),query.categoryCode());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Presentation> listForType(TypeQuery query) {
+        if(query==null || query.actor()==null || query.type()==null || query.projectId()==null || query.projectId()<=0)
+            throw new IllegalArgumentException("Business presentation scope required");
+        var service=owners.byIdentity(query.type().ownerModule(),query.type().entityType())
+                .orElseThrow(()->new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("ACCESS_DENIED","Unknown inherited business"));
+        // The default service verifies the supplied actor against its trusted caller and project scope.
+        service.runtimeActions(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserContext(
+                query.actor().tenantId(),query.actor().userId(),query.projectId(),query.type()));
+        return catalog(query.actor().tenantId(),query.categoryCode());
+    }
+
+    private List<Presentation> catalog(Long tenantId,String categoryCode) {
+        if (categoryCode == null || categoryCode.isBlank()) throw new IllegalArgumentException("Presentation category required");
         List<Presentation> result = new ArrayList<>();
         for (int offset = 0; ; offset += 100) {
-            var page = templates.selectPage(new DynamicFormTemplatePageQuery(query.actor().tenantId(), null,
-                    query.categoryCode(), "ENABLED", true, offset, 100));
+            var page = templates.selectPage(new DynamicFormTemplatePageQuery(tenantId, null,
+                    categoryCode, "ENABLED", true, offset, 100));
             for (var template : page) {
-                var revision = revisions.selectByRow(new DynamicFormRevisionRowQuery(query.actor().tenantId(), template.getCurrentPublishedRevisionId()));
+                var revision = revisions.selectByRow(new DynamicFormRevisionRowQuery(tenantId, template.getCurrentPublishedRevisionId()));
                 if (revision == null || !"PUBLISHED".equals(revision.getStatusCode())
-                        || !Objects.equals(revision.getTenantId(), query.actor().tenantId())
+                        || !Objects.equals(revision.getTenantId(), tenantId)
                         || !Objects.equals(revision.getTemplateId(), template.getId())) continue;
                 DynamicFormSchemaService.SchemaFields schema;
                 try {

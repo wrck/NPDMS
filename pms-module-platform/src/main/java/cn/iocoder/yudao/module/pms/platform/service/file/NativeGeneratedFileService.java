@@ -6,6 +6,9 @@ import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractEx
 import cn.iocoder.yudao.module.pms.platform.api.file.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryMaterialMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialIdLockQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMaterialDO;
+import cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryOwnerAccess;
 import cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialService;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -13,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import java.util.List;
 
 @Service @RequiredArgsConstructor
 public class NativeGeneratedFileService implements NativeGeneratedFileApi {
@@ -23,6 +27,7 @@ public class NativeGeneratedFileService implements NativeGeneratedFileApi {
     private final FileEvidenceApi evidence;
     private final FileAccessTicketService tickets;
     private final PermissionApi permissions;
+    private final DeliveryOwnerAccess owners;
 
     @Override @Transactional(rollbackFor=Exception.class)
     public RegisteredFile create(NativeGeneratedFileCommand command) {
@@ -50,15 +55,32 @@ public class NativeGeneratedFileService implements NativeGeneratedFileApi {
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public String requestDownload(String ownerModule,String entityType,Long entityId,Long materialId) {
+        if(ownerModule==null || entityType==null || entityId==null || entityId<=0 || materialId==null || materialId<=0
+                || SecurityFrameworkUtils.getLoginUserId()==null || SecurityFrameworkUtils.getLoginUserId()<=0)
+            throw new BusinessContractException("NATIVE_FILE_ACCESS_DENIED","Authenticated native owner required");
         var material=materialMapper.selectById(materialId);
-        if(material==null || !TenantContextHolder.getRequiredTenantId().equals(material.getTenantId())
-                || !((ownerModule.equals(material.getSourceOwnerModule()) && entityType.equals(material.getSourceEntityType()) && entityId.equals(material.getSourceEntityId()))
-                || (ownerModule.equals(material.getOwnerModule()) && entityType.equals(material.getEntityType()) && entityId.equals(material.getEntityId()))))
+        if(!belongsTo(material,ownerModule,entityType,entityId))
             throw new BusinessContractException("NATIVE_FILE_ACCESS_DENIED","Material does not belong to this native owner");
+        // Match native withdrawal lock order; recheck a current row before any access ticket can be issued.
+        owners.require(ownerModule,entityType,entityId,material.getTypeCode(),false,true);
+        var rows=materialMapper.selectMaterialsForUpdate(new DeliveryMaterialIdLockQuery(TenantContextHolder.getRequiredTenantId(),List.of(materialId)));
+        if(rows.size()!=1 || !belongsTo(rows.getFirst(),ownerModule,entityType,entityId)
+                || !DeliveryMaterialDO.STATUS_ACTIVE.equals(rows.getFirst().getStatus()) || !"FILE".equals(rows.getFirst().getMaterialKind()))
+            throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","Material unavailable");
+        material=rows.getFirst();
         var document=evidence.inspectDocument(TenantContextHolder.getRequiredTenantId(),material.getFileReferenceId());
-        if(document==null || !document.available())throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","File unavailable");
+        if(document==null || !document.available() || !Objects.equals(material.getFileArtifactId(),document.artifactId())
+                || !Objects.equals(material.getFileVersionNo(),document.versionNo()) || !Objects.equals(material.getFileSha256(),document.sha256())
+                || !ownerModule.equals(document.ownerContext()) || !entityType.equals(document.objectType()) || !entityId.toString().equals(document.objectId()))
+            throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","File unavailable");
         return tickets.create(new FileAccessTicketService.AccessCommand(TenantContextHolder.getRequiredTenantId(),SecurityFrameworkUtils.getLoginUserId(),
                 document.artifactId(),document.versionNo(),FileActionCodes.DOWNLOAD,document.ownerContext(),document.objectType(),document.objectId(),
                 document.purposeCode(),document.referenceKey())).getShortLivedUrl();
+    }
+
+    private boolean belongsTo(DeliveryMaterialDO material,String module,String type,Long id) {
+        return material!=null && TenantContextHolder.getRequiredTenantId().equals(material.getTenantId())
+                && ((module.equals(material.getSourceOwnerModule()) && type.equals(material.getSourceEntityType()) && id.equals(material.getSourceEntityId()))
+                || (module.equals(material.getOwnerModule()) && type.equals(material.getEntityType()) && id.equals(material.getEntityId())));
     }
 }

@@ -1,0 +1,772 @@
+[
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-2.log",
+    "bytes": 518,
+    "sha256": "d934a39158b6e318f5ea80897b83d41052ed205659b9d56354ef92fb22590d69"
+  },
+  {
+    "path": ".run/owner-followup-20261006/v374-readonly-preflight.sql",
+    "bytes": 938,
+    "sha256": "5f41ff8f1ebd83eac5e6cc35a782ca0718e7f1912d6bd81315e3cb26c616e832"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-joint.json",
+    "bytes": 36940,
+    "sha256": "604b354f461f0be102fec8fc25de6b2b4fb39e1a4244313944e4378e6fd2034f"
+  },
+  {
+    "path": ".run/owner-followup-20261006/missing-helper-setup-failure-full-tomcat-acceptance.log",
+    "bytes": 1619,
+    "sha256": "563f09e99bb872fd40a8bf70e570c7f0a6dd8b20f91e607a1da495f3c762296c"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-joint-with-access.log",
+    "bytes": 312,
+    "sha256": "d28cd838d4821048473dfd3937acca23662425a3c9bbf593c869a238403b9cc5"
+  },
+  {
+    "path": ".run/owner-followup-20261006/v374-preflight.log",
+    "bytes": 459,
+    "sha256": "4122fcb2ad4ff51a1ccc224efca9aa2cb54faecd6d6b32d1adc2701607ff51c4"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-4.json",
+    "bytes": 52013,
+    "sha256": "e728e0240692cc026fad17e044a656cce60d55bf75e59925a2ad8409e60528dc"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser-run-final.log",
+    "bytes": 1943,
+    "sha256": "398d99c369efebd9f9a50155c05b85ae24741ac73f4f018a35be090be06b62ff"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser-run.log",
+    "bytes": 3921,
+    "sha256": "5347f243dc494f196cfd42c4129ceaf311809696f3e6542253617161ad7c1a64"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-c41.json",
+    "bytes": 50878,
+    "sha256": "09fa47ca861424c1e7aaa79653b88f4d9d991043cf209219bd8d0d14eb03b3bf"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-application.log",
+    "bytes": 21059,
+    "sha256": "2d1bb062ce12576b0a1d1d99d6a6d9ddf3262689a013919a18511bb16fe864bd"
+  },
+  {
+    "path": ".run/owner-followup-20261006/missing-helper-setup-failure-full-tomcat-acceptance.json",
+    "bytes": 933,
+    "sha256": "ec3645e17b9d1243d2a54f1f47891ebad33d1883189c4866a2b09759cd34419a"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-joint-with-access.json",
+    "bytes": 38646,
+    "sha256": "1d0c372636337492e7d8da42fd17a8c4434953e300ba60cdd733102fdc34836a"
+  },
+  {
+    "path": ".run/owner-followup-20261006/parent-reader-red.log",
+    "bytes": 70050,
+    "sha256": "88641365e60a2b369b8962ddc32a297d40e24d45b7acf7d16a7ceead0d8c2828"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-final-normal-jar.log",
+    "bytes": 22300,
+    "sha256": "5e3c274a6840b595a3a3e0be39491c3a9f5d3b8358bd08cbfc46ef3374199a88"
+  },
+  {
+    "path": ".run/owner-followup-20261006/v374-collation-red.log",
+    "bytes": 262,
+    "sha256": "4891ce196a3324b5b3f5ba81cbd6883d1d30f441cac5dbe50ecf001e6ace08d7"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-owner-switch-first-green.log",
+    "bytes": 319,
+    "sha256": "020ad5d7e0f8eaaca96ebf08fc88db94bffa4ae6ca7b1e9a57f982b192cdfb93"
+  },
+  {
+    "path": ".run/owner-followup-20261006/v374-collation-green.log",
+    "bytes": 135,
+    "sha256": "3cf2a14ccd36b3da24811b25698cb9640b76e92fa657531ee90432249a7ba512"
+  },
+  {
+    "path": ".run/owner-followup-20261006/spring-args.json",
+    "bytes": 2807,
+    "sha256": "7033504e89d661e46c84690fb025d7c76a7e3cec274927dafdea06c9bf588ea2"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-joint.log",
+    "bytes": 300,
+    "sha256": "a03291cffa294afc71795b520f3f7142d7ddd87445735b3d947933fd0682ccd6"
+  },
+  {
+    "path": ".run/owner-followup-20261006/joint-package.log",
+    "bytes": 233812,
+    "sha256": "6c6d5e57b467c6a7ad319c7c8b349750fcccdb0da11cb7882258e6a7392cf9f2"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-5.json",
+    "bytes": 53367,
+    "sha256": "ec3bc0949857a84f8d77bb87c6563a6eb8225f0dcad6529f2cc8dda5810062fe"
+  },
+  {
+    "path": ".run/owner-followup-20261006/jdk21-setup-failure-full-tomcat-acceptance.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-acceptance.json",
+    "bytes": 21265,
+    "sha256": "ce10fbd4b57dbb28495179b466461b97e63a52ce8909ba6e76b62da4c1682580"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-acceptance.log",
+    "bytes": 107,
+    "sha256": "0ed81e668d746b7d6b9ff9d1cf305ac0302d31cd81067a5910e09533b634e508"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-process.json",
+    "bytes": 3048,
+    "sha256": "334efba64fb3aff4820caa3cd2dad792811d81af281d15e25855ddc6d8fac5ca"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-cold-fixture-failure.log",
+    "bytes": 660,
+    "sha256": "1c9c21226696a664fe5806779275f27c5bf018eb992b63535e4b2332bef5d0ec"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser-run-2.log",
+    "bytes": 1926,
+    "sha256": "92c337a38c4c17a05150149a1a50ecc5f353df9889a4e35c1213befb159f4a52"
+  },
+  {
+    "path": ".run/owner-followup-20261006/jdk21-setup-failure-full-tomcat-process.json",
+    "bytes": 3042,
+    "sha256": "acbb6c0cfbb721ea52922cb30e4f22824cfba91b5c05645a15bbef1dbd5f6e8e"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-process.log",
+    "bytes": 26591,
+    "sha256": "1fede330946f57c48b5371f3e7e19ecaf74f33dedb85151dabea961b17906930"
+  },
+  {
+    "path": ".run/owner-followup-20261006/jdk21-setup-failure-full-tomcat-acceptance.json",
+    "bytes": 512,
+    "sha256": "cd515546585463163a61b948ba70053412ab6309223fa48563c097753480e2c0"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native33-preservation.json",
+    "bytes": 11157,
+    "sha256": "d13504765be0e76d4a7600164a8bb8716e5f552e97df92ec2d0cfcd41f511c58"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-tomcat-cold-fixture-failure.json",
+    "bytes": 2638,
+    "sha256": "71109586eb5249ac93aa048cff2adb85f6317e289198592efc426cfe997078c7"
+  },
+  {
+    "path": ".run/owner-followup-20261006/parent-reader-red-real.log",
+    "bytes": 46858,
+    "sha256": "623912a29f14201266c70ef42e706b241807af67489a11439f048304702ecddf"
+  },
+  {
+    "path": ".run/owner-followup-20261006/RuntimeProbe.java",
+    "bytes": 10355,
+    "sha256": "8a10dbc44fe9519ae7438c81438c7e09990d8e4611201ee4c6669e517742ff47"
+  },
+  {
+    "path": ".run/owner-followup-20261006/v374-preflight-session.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-owner-switch-first-green.json",
+    "bytes": 7198,
+    "sha256": "8d01dcde9c5d57c6410ddec224133425cd33a9788c358f046779de9df2d46582"
+  },
+  {
+    "path": ".run/owner-followup-20261006/CatalogProbe.java",
+    "bytes": 2069,
+    "sha256": "497117257e59ad171b72c73f7f14796a5ec1b21b4a40bef6d8a3ab17732d5745"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe.json",
+    "bytes": 50158,
+    "sha256": "d75db5c5f1eef20637b08b1e576abe886e50e0a2614a8e78c0a8836912564521"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-owner-switch-extended.json",
+    "bytes": 9008,
+    "sha256": "cf84125db1e1ffd36a0730548ca7ed8c319717d62f2dc2bef75572468f5bffa2"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-4.log",
+    "bytes": 23959,
+    "sha256": "01385764cc35c418fef3987deffbc27f77f28621d6bdb87bda797221cda2bb44"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-owner-switch-red.json",
+    "bytes": 7467,
+    "sha256": "08493350328ca3436b7e461e6bed73cb3e23eb2fb5e3e6d84e2404eca898edd5"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser-run-diagnostic.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".run/owner-followup-20261006/jdk21-setup-failure-full-tomcat-process.log",
+    "bytes": 1620,
+    "sha256": "3650a9e35d172be935a8ee3ad06b036a598ee488e7d373ea99a0d26dd85b084e"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-7.log",
+    "bytes": 22295,
+    "sha256": "ebfbaffaf37531b43895c010775c5ce09eac11638f0c191c51c42bed5385d2d9"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser-run-3.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".run/owner-followup-20261006/spring-probe-application.log",
+    "bytes": 99141,
+    "sha256": "6badb52849c97bf9b852bcd209853b33be37b9baee7dbd4edf89bb94a17b350b"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-final-selectors.json",
+    "bytes": 1154,
+    "sha256": "f2c1bd83203bffb171b42894184a968d50b794da23eb93a4eaf783802000ec82"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-6.json",
+    "bytes": 51448,
+    "sha256": "3c91859add4d07d7ab5baba64bad84205310b55c4790ca966fef97bac3e9b043"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe.log",
+    "bytes": 1076,
+    "sha256": "3181f4a9a261773681b88a3da7b45a60d908d71a18f6025763a40bff32948ddd"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-owner-switch-extended.log",
+    "bytes": 316,
+    "sha256": "185377ecb6eb00bafe1eeaed59584275c4190bce640a67256a617bf8701f001c"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-joint-final.json",
+    "bytes": 36949,
+    "sha256": "e079fbf53fed931abda6df1b1e1aabbd7259c76372fe45fc3234b8361681772e"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-owner-switch-red.log",
+    "bytes": 311,
+    "sha256": "9c838728677f1e99246d60d62f3d8adb7e09a73373603472c3a1ce77da8a5074"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current.json",
+    "bytes": 160430,
+    "sha256": "f75155ee3814b966d47830f5389ba6b275fd91d86c67980b38b0b34a3edc82ef"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-5.log",
+    "bytes": 27576,
+    "sha256": "6222014db871f755c0a0d649caf6f18181e8a674a5c82aab04f3d9c5109fc4ad"
+  },
+  {
+    "path": ".run/owner-followup-20261006/parent-reader-green.log",
+    "bytes": 45331,
+    "sha256": "382bb0d11ba8be5f5369ed1f14a29b3c534281e21038e78f747589c55415746a"
+  },
+  {
+    "path": ".run/owner-followup-20261006/ui-joint-final.log",
+    "bytes": 306,
+    "sha256": "4ed0d5f4e2f7800061f9467f5fdbf40e852fbca452dd85cf6b189c96f7a18177"
+  },
+  {
+    "path": ".run/owner-followup-20261006/catalog.json",
+    "bytes": 243534,
+    "sha256": "d85a0ce46f7eafb4100a6af36607012b8c472df3e7242844ae1ae2eb53d76ef1"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-migration.log",
+    "bytes": 336398,
+    "sha256": "b9615188cdd304c9eab413f6f26bfb671c58b3bcd635b6c79dfb1552e82348fa"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-3.log",
+    "bytes": 24245,
+    "sha256": "50c2cbda2dc018bef893933bfe6210fbe4683b80fca66f8d6b6b49fa7da1dbae"
+  },
+  {
+    "path": ".run/owner-followup-20261006/runtime-probe-6.log",
+    "bytes": 30257,
+    "sha256": "0ec10a5571987216f2b8bd5fbb95f611ecb8d045db3b2d4131ad4e15ff9031b8"
+  },
+  {
+    "path": ".run/owner-followup-20261006/protected-and-kno.json",
+    "bytes": 3113,
+    "sha256": "a31e226a0d9a5508980d9ca6de3d4ac96c2d45ffe4ab74a9ec9d239630608120"
+  },
+  {
+    "path": ".run/owner-followup-20261006/full-migration-callback.log",
+    "bytes": 354414,
+    "sha256": "d2f2ea361152c8055df8de42e8bd7b4b252f9714bb80fe4b6c113d51f81622ed"
+  },
+  {
+    "path": ".run/owner-followup-20261006/callbacks/beforeEachMigrate.sql",
+    "bytes": 46,
+    "sha256": "6a1ef73887128222fb5fc3f9aabce343dc6adc18b5e7c2ad27e38705e65dbc85"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-stage2-current/command.log",
+    "bytes": 1734,
+    "sha256": "d4049d014d16fd35c62869b7ffc50c015af665ca14f266d352dccd571bf009c7"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-stage2-current/capture.json",
+    "bytes": 1628,
+    "sha256": "1bf1053b9e88b763ee38e99da9d87f6e3a9d9510bc757e6c3273ed4625c0db87"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-two-current/command.log",
+    "bytes": 1692,
+    "sha256": "6051ea2c6227c65cb5f67d8ca064ed5d5fe325c6c8c4f6d45612d75036d401ac"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-two-current/capture.json",
+    "bytes": 755,
+    "sha256": "0fdab855719e4e7026279826e07e0dedea455ec0af4ce608b21fae87e5a41401"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-arrival-current/command.log",
+    "bytes": 1636,
+    "sha256": "31913e07413244a425e202a0c5e901cd46769d4f219507402ae9dfe9ce9b7c7d"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-arrival-current/capture.json",
+    "bytes": 928,
+    "sha256": "5fde8af3ee1190e2d5a0d22d96384da322a2d957400d1d248347ede0f1d130bb"
+  },
+  {
+    "path": ".run/owner-followup-20261006/parent-reader-red-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+    "bytes": 76803,
+    "sha256": "32f7938a9dc5c4c8bb2aee1ff7535e908ba38eba7cae4e69635eb197b599fc38"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser/result.json",
+    "bytes": 460,
+    "sha256": "deafa1094a053fa5dc4234482b0890518d550372bafbc7153b92221dfb1b6f48"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser/final-form-timeout.json",
+    "bytes": 511,
+    "sha256": "f3a1d7e9ebf7df9e84f5d2d26fa57aead2edb2ae559066e23aef9afd8646c7d9"
+  },
+  {
+    "path": ".run/owner-followup-20261006/browser/vite.log",
+    "bytes": 73,
+    "sha256": "d6748a8092c691fc64923e31803e621ea9a7e9fe25a16e0d5153faef552b8440"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFileBatchTest.xml",
+    "bytes": 94411,
+    "sha256": "debc0a51cbe18567b9b915bbc8dc0227035fc92e5a4f850c4dcb92e48de1e4da"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionCustomerDocumentServiceTest.xml",
+    "bytes": 96791,
+    "sha256": "928dc0136e5855ee0184ae0d32450b2c6c1a2017f12b7e64e528c53e84586f7d"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalDeliveryRegistrationTest.xml",
+    "bytes": 95046,
+    "sha256": "6339b1adb596ff846961a98d7b075d15660679a81d0fb27f33b75358e0a99d58"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeSerialServiceTest.xml",
+    "bytes": 96766,
+    "sha256": "70ea1dae3624ef40d7bc36f8e5c7fcc8a8456c0187ae38b5a731fdcbf6b811ac"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentAccessTest.xml",
+    "bytes": 95765,
+    "sha256": "9b7720b3c565a83550c16aa57f3e90a0c8938d5677f30ba6662decdffbd4f2e3"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.TemplateSiteSurveyOperationInputTest.xml",
+    "bytes": 103402,
+    "sha256": "e1773e581a30f670c194a66c5add16b565c81947815256896734bca0520d5506"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.delivery.SolutionDeliveryEvidenceProviderTest.xml",
+    "bytes": 94650,
+    "sha256": "97eb8909748d1acaab3d83b8a1159cf6abef815b86971d2eab346f6b752e86c4"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryEvidenceProviderTest.xml",
+    "bytes": 95564,
+    "sha256": "b2716e17db697731b2d7336a55dd35a32c929c631d89e81ad0faf2892ae1a468"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryCommandTest.xml",
+    "bytes": 94685,
+    "sha256": "0602678f4fa82781ae00b378e630780dce2d1e874228facc74141996b04bbaeb"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.training.TrainingConfirmationGrantServiceTest.xml",
+    "bytes": 96524,
+    "sha256": "318b95216c701939f8ac6a740ae7f15f7f9d2feb2a604e947a437ea7d2cd5b3b"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceRequestVersionContractTest.xml",
+    "bytes": 95057,
+    "sha256": "3226c77599ef94248eb0132293200bb608271ab2737dcb3a663a25c645aa60a0"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessResultSourceTest.xml",
+    "bytes": 95913,
+    "sha256": "1815cafaeecf39ca2e783e0f125ddc062b4dd16eaed831ab0c50a635b74f588f"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.materialexchange.MaterialExchangeReservedIntegrationTest.xml",
+    "bytes": 94591,
+    "sha256": "87f97d32e6f765ebf09ef083ffc5fdbdf6d9232fd76586ad58500e05781f7f24"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalFilePolicyProviderTest.xml",
+    "bytes": 96865,
+    "sha256": "033849fd8ee5047098341424993b381fb25afcb83b97c0a427da0545e6befea1"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.training.TrainingServiceTest.xml",
+    "bytes": 95160,
+    "sha256": "9307ee25513310d12dd56b2210d833f847bd448a102f7f5be1d0391d39c2f0e8"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.framework.DeclaredBusinessRuntimePersistenceTest.xml",
+    "bytes": 99170,
+    "sha256": "b6a97f9b5e14f8fa416d76eac86636b4668072e9b01445e17c83699bf55b7459"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyOperationEntryPolicyTest.xml",
+    "bytes": 94173,
+    "sha256": "4bb63d069a43ae719c6cce5c4a0c99b5c66b97b4c8e96e1b38d6cee884c2b58d"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalNativeDeliveryAccessTest.xml",
+    "bytes": 95211,
+    "sha256": "2763366a54440ebcb6e504f4d35422efceb489722e0514dda1ebbe99e45a6101"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyBusinessModelPersistenceTest.xml",
+    "bytes": 95964,
+    "sha256": "8648b828d65d7f4e284619837b45be6b721d091c20c2d916e9cfb1f8517add2c"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.model.SiteSurveyPublicOperationPermissionTest.xml",
+    "bytes": 95771,
+    "sha256": "9ceb2183eecbf116b5fae8c884e46e2bb4ae7204a1341c7029f29680dfa01b28"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTransactionTest.xml",
+    "bytes": 94602,
+    "sha256": "caa8cf731c3e0c93d6b6dbec6f4d2c78e1820450c3a896e3cbbb66e7c8a8223e"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.configuration.ConfigurationLocalLifecycleTest.xml",
+    "bytes": 94879,
+    "sha256": "d81a6c2d53f9f6f83c0d1563289c7acece66e16a6b40b71f581acbe5d8bbbb9c"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewServiceTest.xml",
+    "bytes": 95922,
+    "sha256": "a8abff6797238b5d385bb5fd3c34901da5a4e07cd89f00e9b30c52257e24623b"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGeneratedFilePolicyTest.xml",
+    "bytes": 94670,
+    "sha256": "7d61d60f1888814213b0d57827cc335a8f3d5f184a21b5dff46f250b177d4f25"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDeliveryAccessTest.xml",
+    "bytes": 95035,
+    "sha256": "72dfd2875ac2d8805bea62d7c94bbf891b834653740991ecf3457310611d50e4"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.jointtest.JointTestLocalLifecycleTest.xml",
+    "bytes": 94840,
+    "sha256": "50bde89a5101e12b5f901fe70aac5bb0ae5fe39363d151a6adbfa8dfc2cf2d48"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.delivery.TrainingDeliveryEvidenceProviderTest.xml",
+    "bytes": 94863,
+    "sha256": "964d272009f4d8071b362166b1ecfd020d34854af3d99433d866ff77f3ded695"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.outsource.OutsourceSurveyExecutionTest.xml",
+    "bytes": 94754,
+    "sha256": "92b19a9c5f8dfe5ec0814374e2441b1d4d5a3094415178294185ab9822e8badd"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGenerateDocumentTest.xml",
+    "bytes": 94501,
+    "sha256": "a8fc6d23044366d4defe18cb7092d7fd3d2f1296bf7e3550f7ad8120b983fcca"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-asset/TEST-cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadServiceTest.xml",
+    "bytes": 81745,
+    "sha256": "d2082afad82d351d77b48449f1ec8a1bc38905c109a95f01b57d4ae957767486"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/yudao-module-system/TEST-cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApiImplTest.xml",
+    "bytes": 80817,
+    "sha256": "7c39b7bca7caf4f121b1e6fb570a77ecdd99be3173df9e6415ede1a13bf47c5b"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform-support/TEST-cn.iocoder.yudao.module.pms.platform.support.service.BusinessEntityIdentityResolverTest.xml",
+    "bytes": 54341,
+    "sha256": "aa7047c357e22d047c9c172181bfa57d684a53af0509386af0ce2954590ab9be"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform-support/TEST-cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDispatcherRecoveryTest.xml",
+    "bytes": 54819,
+    "sha256": "8deaff76b9066768d25efcfa7c270d0b85e68d7bf623d0db8a4253785851f878"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredBusinessRuntimePersistenceTest.xml",
+    "bytes": 109671,
+    "sha256": "65ae9b5df580ea8f009b1c970f66c83751f12ae9d156b37a0523f28d9aa70893"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileContentValidationTest.xml",
+    "bytes": 78355,
+    "sha256": "012bccb5f1e7263ea8aa27a562961b77006d968c02501b18072b0b18b51e2b3a"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredCapabilitiesRuntimePersistenceTest.xml",
+    "bytes": 85697,
+    "sha256": "23c908f5bb75a8a4641090f37262ef4b89be0a8872a2b4a295b14955008c9193"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceAuthorizationTest.xml",
+    "bytes": 76590,
+    "sha256": "c64580e526586973071f51325d4241fe189c25ae11e65fb9c37dd99716b54863"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityCapabilityCopyTest.xml",
+    "bytes": 77085,
+    "sha256": "f7537aaa3df03974653ca1a05fd81245c351a85e503713eced596360825bfed1"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityExtensionValidationTest.xml",
+    "bytes": 77065,
+    "sha256": "317e108fdea1fb41366bb875c05d2fe4bed2796c1d29bd2e01ef73d4fe510d66"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceBatchMapperTest.xml",
+    "bytes": 77740,
+    "sha256": "dea1d258f4d4496c22bc71c15183d9723860c1bc81e616089fa29cf5a67304ee"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileAccessTicketServiceTest.xml",
+    "bytes": 76541,
+    "sha256": "da7e8e2f56bc7e14a7237b083e09a0b4c3705443813f047414b5f94b505d3f83"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest.xml",
+    "bytes": 81462,
+    "sha256": "c0b19b02a807f0cd19d3d91d524fea7dd9f25009e2350e7eadd417f01907d144"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileArtifactApiImplTest.xml",
+    "bytes": 78810,
+    "sha256": "0fa330ce4ba4f3100a592af723558062dfcb8c42026be02834295699739a27e4"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredLoginRuntimePersistenceTest.xml",
+    "bytes": 98685,
+    "sha256": "63bf0b0a6ddf88b266faee7747f5f22ccf19f7cd30ba93a5d1b18d30adafb78d"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceDiscoveryPersistenceTest.xml",
+    "bytes": 80610,
+    "sha256": "c78532f5eab261e87598ed6aabcae42aac5e02aefc91fb4b0e5f86fe46e6bf0e"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileContractAndMapperTest.xml",
+    "bytes": 77559,
+    "sha256": "c1ac5b9f976f9e95926cf70ae5b82964316f558050e0934b1df5a047b8929dd2"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOperationRecoveryRuntimePersistenceTest.xml",
+    "bytes": 79851,
+    "sha256": "240f56c96bf69472bbff0e12e4654f885e74a9cd882c149d415687baf38f3046"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.controller.admin.businessmodel.BusinessModelDetailContractTest.xml",
+    "bytes": 77212,
+    "sha256": "b87b2b2dde76dc7e18778f1e36c4c75e3a990463a77a1cc6d3ec32582bc25572"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliverySourceReuseTest.xml",
+    "bytes": 80078,
+    "sha256": "d16f67fef2d71913da6602698dc16ecc9b2f91b30d84ed9ccf548ab9e6b0399b"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadServiceTest.xml",
+    "bytes": 76936,
+    "sha256": "d90db13838d8aa354919034d187d93bf4bb9f7fd11edd2e086b4a1a7c907a96f"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredViewDeliveryRuntimePersistenceTest.xml",
+    "bytes": 80150,
+    "sha256": "b38bb380c3f2895468a7d658f12df7b167a00a213a64bd947737986776d886a1"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeclaredBusinessDeliveryBridgeSpringContextTest.xml",
+    "bytes": 76598,
+    "sha256": "706865f0e5c03f347573302f2cb1be07331098bd946e6a799c3ed532982caa67"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileUploadInitializationServiceTest.xml",
+    "bytes": 77444,
+    "sha256": "68a9734124468be46cfa56c8812e6aff0e96b3c83af2ed47f9fa4a271c721593"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryOwnerAccessTest.xml",
+    "bytes": 77914,
+    "sha256": "9ea9634cd72ddcf5cad1fc914e0249faab065b949ebb9c280ecd9b9dfe00823c"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+    "bytes": 79208,
+    "sha256": "459018b0f052019e09a29c60cb6cc42c3dac906a1e48f087777a97eed1ad671f"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.file.FileReferenceSetPolicyBatchTest.xml",
+    "bytes": 77039,
+    "sha256": "f9788d186b180355ddeaf399232c7d4fb86c4286b6831a3dc75d977cd16c8665"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProviderAuthorizationTest.xml",
+    "bytes": 77424,
+    "sha256": "790a1ede74bcb7c8862592c7b1176cde20329abb55cc3f731c04adf8c32bbe40"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormBindingTest.xml",
+    "bytes": 77247,
+    "sha256": "b4bd2ace96d11b476ecb2dafdd75516d30ca76903ce078b3b1e6eef27d42b87d"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryRequirementServiceTest.xml",
+    "bytes": 79733,
+    "sha256": "ffbbc8c69eb48c1c5456baf7fa0a57945581becbc6c7089bf62b15e94114b209"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-platform/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialServiceTest.xml",
+    "bytes": 77756,
+    "sha256": "e28c6bc1c259b89743ef738a9863f9171a3e0e2dc9d4ea3080df5b4fec4b39b1"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.DeliverableChecklistNativeDeliveryTest.xml",
+    "bytes": 92374,
+    "sha256": "dfa94701eacf4c57b386bcf65ec7f166faada50c204e1eac72549fb72ba9aaa7"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccessTest.xml",
+    "bytes": 92407,
+    "sha256": "a285f814437f046dddb73c779123e8319d03edd8f915f3c52b7e6594bfed46be"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentTest.xml",
+    "bytes": 91435,
+    "sha256": "add8fba2b858501f7d00ac4fae836a9230b985f48efbac0f3e86ccbba4dccc7e"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.completioncertificate.CompletionCertificateServiceTest.xml",
+    "bytes": 92098,
+    "sha256": "259bdd413912ed8e8eb4eedc6e8a49296f8bdd278daa263768d8c71e3d6d3528"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportCommandServiceTest.xml",
+    "bytes": 90570,
+    "sha256": "3493380f4418c4e2544f9ccd28d761aaaa6646380d57ca535a47911a1135d414"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseFilePolicyProviderTest.xml",
+    "bytes": 90381,
+    "sha256": "6d7bb7228385d30826fbf076de13b8cb744a54b23a41871f5b2b91d91a6d8c04"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultDecisionServiceTest.xml",
+    "bytes": 90776,
+    "sha256": "5434934015c6cc907e91a38d7167a4870a58166f034def01f466a85e8e162cae"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseReservationServiceTest.xml",
+    "bytes": 90564,
+    "sha256": "d31a89369c6dd33f497b189a991e74af804f3fbf9608984e64a2de7cda10a862"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptance.AcceptanceResultDeliveryAccessTest.xml",
+    "bytes": 92195,
+    "sha256": "3634e08cc6dbf8cd8158bdd9c8b21d828151f384fe9fcea17239b21bc583ab59"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultFilePolicyProviderTest.xml",
+    "bytes": 91335,
+    "sha256": "ee6b771f727e0904e0261c3557efdaffa9e04f0b2f67e57ca4bb6f24c0453171"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseSubmissionServiceTest.xml",
+    "bytes": 91153,
+    "sha256": "a424ccbdc0a6aefa6ba7942df4ebc21a8209b1d3c0a56ad4d750d8c79ab3af03"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.archivedocument.ArchiveDocumentNativeDeliveryTest.xml",
+    "bytes": 92217,
+    "sha256": "b2726666ff365930d9b9a0f12db25461a563255890acb0370597ba157d2b921a"
+  },
+  {
+    "path": ".run/owner-followup-20261006/package-current/pms-module-acceptance/TEST-cn.iocoder.yudao.module.pms.acceptance.service.acceptance.LegacyAcceptanceAttachmentTest.xml",
+    "bytes": 91589,
+    "sha256": "ddba0cdbbac4ca1949c30c2d191661a6ef8bd9e20fd07f90cd0ad389f42cb674"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-stage2-current/native-delivery-stage2-20261006/native-six-browser.json",
+    "bytes": 65387,
+    "sha256": "1568ae91f71d5235ff971bdb86dc1bc30cf96b2d007a5dbf0421a738a46857c6"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-stage2-current/surefire/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeAttachmentDeliveryMySqlTest.xml",
+    "bytes": 221653,
+    "sha256": "347d73fee4026e53a69cb62ab58469465ec0f340ad3d78b41a39c4aac91233af"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-two-current/native-delivery-two-20261006/native-two-browser.json",
+    "bytes": 11358,
+    "sha256": "7c7023c98c0c325091ee8e492bd3aa2010c41820042ad16cc06de16781d92168"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-two-current/surefire/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeTwoDeliveryMySqlTest.xml",
+    "bytes": 132056,
+    "sha256": "3070da08df0873498ff810f6ac96ea68ee3ea6a2a3545b6da92d2c7d3190c9d5"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-arrival-current/native-delivery-20261006/checklist-browser.json",
+    "bytes": 9984,
+    "sha256": "36e6760e575415825beb29de8254436d2bb222669aceabd8a4fa829cccbfcb12"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-arrival-current/native-delivery-20261006/arrival-browser.json",
+    "bytes": 12613,
+    "sha256": "58f4aa2e325e0b626f714e472b0d1fa81c668786aae567c227f76213edcc5384"
+  },
+  {
+    "path": ".run/owner-followup-20261006/native-arrival-current/surefire/pms-module-engineering/TEST-cn.iocoder.yudao.module.pms.engineering.service.arrival.NativeArrivalDeliveryMySqlTest.xml",
+    "bytes": 126316,
+    "sha256": "90c00f2acab2f0c870f0194456218508545b32fbe7cb52eacb63396a38753d12"
+  }
+]

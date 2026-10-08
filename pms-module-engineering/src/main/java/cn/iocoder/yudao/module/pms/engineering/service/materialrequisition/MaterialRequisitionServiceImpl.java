@@ -7,6 +7,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialrequisit
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialrequisition.vo.MaterialRequisitionSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialrequisition.MaterialRequisitionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialrequisition.MaterialRequisitionMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentKind;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +34,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 @Slf4j
 public class MaterialRequisitionServiceImpl implements MaterialRequisitionService {
+    @Resource
+    private NativeAttachmentRegistration attachments;
+
 
     @Resource
     private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
@@ -90,6 +97,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createMaterialRequisition(MaterialRequisitionSaveReqVO createReqVO) {
+        attachments.requireLegacyUnchanged(null,createReqVO.getAttachmentFiles());
         if (createReqVO.getEquipmentId() != null) {
             deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
         }
@@ -113,7 +121,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Transactional(rollbackFor = Exception.class)
     public void updateMaterialRequisition(MaterialRequisitionSaveReqVO updateReqVO) {
         // 1. 校验存在
-        MaterialRequisitionDO existing = validateMaterialRequisitionExists(updateReqVO.getId());
+        MaterialRequisitionDO existing = lockMaterialRequisition(updateReqVO.getId());
         Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
         if (equipmentId != null) {
             deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
@@ -127,15 +135,20 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
             throw exception(MATERIAL_REQ_CODE_DUPLICATE, updateReqVO.getCode());
         }
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
+        attachments.requireLegacyUnchanged(existing.getAttachmentFiles(),updateReqVO.getAttachmentFiles());
+        attachments.requireSameProject(NativeAttachmentKind.MATERIAL_REQUISITION,existing.getId(),existing.getProjectId(),updateReqVO.getProjectId());
         MaterialRequisitionDO update = BeanUtils.toBean(updateReqVO, MaterialRequisitionDO.class);
-        materialRequisitionMapper.updateById(update);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
+        if (materialRequisitionMapper.updateById(update) != 1) throw exception(MATERIAL_REQ_VERSION_NOT_MATCH);
+        attachments.register(NativeAttachmentKind.MATERIAL_REQUISITION,update.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteMaterialRequisition(Long id) {
         // 1. 校验存在
-        MaterialRequisitionDO existing = validateMaterialRequisitionExists(id);
+        MaterialRequisitionDO existing = lockMaterialRequisition(id);
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可删除
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 删除
@@ -165,10 +178,11 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Transactional(rollbackFor = Exception.class)
     public void submitMaterialRequisition(Long id) {
         // 1. 校验存在
-        MaterialRequisitionDO entity = validateMaterialRequisitionExists(id);
+        MaterialRequisitionDO entity = lockMaterialRequisition(id);
         // 2. 状态校验：0 草稿 / 4 已驳回 → 1 已提交
         validateStatus(entity, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 更新状态
+        attachments.register(NativeAttachmentKind.MATERIAL_REQUISITION,entity.getId());
         updateStatus(entity, STATUS_SUBMITTED, null, null, null);
     }
 
@@ -176,7 +190,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Transactional(rollbackFor = Exception.class)
     public void approveMaterialRequisition(MaterialRequisitionApproveReqVO reqVO) {
         // 1. 校验存在
-        MaterialRequisitionDO entity = validateMaterialRequisitionExists(reqVO.getId());
+        MaterialRequisitionDO entity = lockMaterialRequisition(reqVO.getId());
         // 2. 状态校验：1 已提交 / 2 审批中 可审批
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 根据审批动作决定目标状态
@@ -189,7 +203,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Transactional(rollbackFor = Exception.class)
     public void withdrawMaterialRequisition(Long id) {
         // 1. 校验存在
-        MaterialRequisitionDO entity = validateMaterialRequisitionExists(id);
+        MaterialRequisitionDO entity = lockMaterialRequisition(id);
         // 2. 状态校验：1 已提交 / 2 审批中 → 5 已撤回
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 更新状态
@@ -200,7 +214,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     @Transactional(rollbackFor = Exception.class)
     public void terminateMaterialRequisition(Long id) {
         // 1. 校验存在
-        MaterialRequisitionDO entity = validateMaterialRequisitionExists(id);
+        MaterialRequisitionDO entity = lockMaterialRequisition(id);
         // 2. 状态校验：非 3 已通过 / 非 6 已终止 可终止
         if (Objects.equals(entity.getStatus(), STATUS_PASSED)
                 || Objects.equals(entity.getStatus(), STATUS_TERMINATED)) {
@@ -252,7 +266,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
         if (newStatus == STATUS_PASSED || newStatus == STATUS_REJECTED || newStatus == STATUS_DRAFT) {
             entity.setApproveTime(LocalDateTime.now());
         }
-        materialRequisitionMapper.updateById(entity);
+        if (materialRequisitionMapper.updateById(entity) != 1) throw exception(MATERIAL_REQ_VERSION_NOT_MATCH);
     }
 
     private void validateCodeUnique(String code, Long excludeId) {
@@ -280,7 +294,7 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
     }
 
     private void validateVersion(MaterialRequisitionDO entity, Integer version) {
-        if (version != null && !Objects.equals(entity.getVersion(), version)) {
+        if (version != null && (entity.getVersion() == null || entity.getVersion().longValue() != version.longValue())) {
             throw exception(MATERIAL_REQ_VERSION_NOT_MATCH);
         }
     }
@@ -293,4 +307,10 @@ public class MaterialRequisitionServiceImpl implements MaterialRequisitionServic
         }
         throw exception(MATERIAL_REQ_STATUS_INVALID);
     }
+    private MaterialRequisitionDO lockMaterialRequisition(Long id) {
+        var row=materialRequisitionMapper.selectAttachmentOwnerForUpdate(new NativeAttachmentOwnerLockQuery(TenantContextHolder.getRequiredTenantId(),id));
+        if(row==null)throw exception(MATERIAL_REQ_NOT_EXISTS);
+        return row;
+    }
+
 }

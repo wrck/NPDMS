@@ -62,6 +62,8 @@ public class DeliveryMaterialDO extends TenantBaseDO {
     private String title;
     private String sourceKind;
     private String status;
+    /** Public material CAS version, independent of file versions and business revisions. */
+    private Long version = 0L;
     /** 归档补偿事实：NOT_REQUIRED/PENDING_COMPENSATION/ARCHIVED/INVALID。 */
     private String archiveStatus;
     private String archiveFailureCode;

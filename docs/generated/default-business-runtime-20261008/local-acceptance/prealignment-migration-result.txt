@@ -1,0 +1,8 @@
+migrations	failures
+342	0
+version	script	success
+373.5	V373_5__delivery_migration_comparison_collation.sql	1
+374	V374__p06r_unified_delivery_data_migration.sql	1
+401	V401__business_field_configuration_permissions.sql	1
+COLLATION_NAME	COLUMN_COMMENT
+utf8mb4_unicode_ci	

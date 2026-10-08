@@ -86,9 +86,12 @@ public class FileQueryService {
     }
 
     public FileReferenceRespVO getReference(ArtifactQuery query, Actor actor) {
-        ValidatedKey key = validate(query, actor, FileActionCodes.READ);
+        ValidatedKey key = validateReferenceKey(query, actor, FileActionCodes.READ);
         if (!canRead(key)) return null;
-        return toReference(requireReference(referenceMapper.selectExact(key.referenceQuery()), key.artifactId()));
+        FileReferenceDO reference = referenceMapper.selectExact(key.referenceQuery());
+        // Discovery needs only the complete stable key. A supplied artifact ID remains a strict identity check.
+        if (key.artifactId() != null) reference = requireReference(reference, key.artifactId());
+        return reference == null ? null : toReference(reference);
     }
 
     private boolean canRead(ValidatedKey key) {
@@ -128,9 +131,14 @@ public class FileQueryService {
     }
 
     private ValidatedKey validate(ArtifactQuery query, Actor actor, String action) {
+        if (query == null || query.artifactId() == null) throw exception(FILE_COMMAND_INVALID);
+        return validateReferenceKey(query, actor, action);
+    }
+
+    private ValidatedKey validateReferenceKey(ArtifactQuery query, Actor actor, String action) {
         if (query == null || actor == null || actor.tenantId() == null || actor.tenantId() < 0
                 || actor.actorUserId() == null || actor.actorUserId() <= 0
-                || query.artifactId() == null || query.artifactId() <= 0) {
+                || (query.artifactId() != null && query.artifactId() <= 0)) {
             throw exception(FILE_COMMAND_INVALID);
         }
         try {

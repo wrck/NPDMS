@@ -17,6 +17,30 @@ public final class DeclaredBusinessCurrentRows {
     private DeclaredBusinessCurrentRows() { }
 
     public static BaseBusinessEntity lock(BusinessModelDeclaration declaration, DeclaredCurrentRowQuery query) {
+        return session(declaration).selectOne(namespace(declaration) + ".__pmsCurrentEntityForUpdate", query);
+    }
+    /** Internal receipt recovery only; ordinary reads never include deleted rows. */
+    public static BaseBusinessEntity lockDeletedForReceipt(BusinessModelDeclaration declaration, DeclaredCurrentRowQuery query) {
+        return session(declaration).selectOne(namespace(declaration) + ".__pmsDeletedEntityForReceipt", query);
+    }
+    public record DeleteCommand(Long tenantId, Long entityId, Long expectedVersion, String updater) { }
+    public static void delete(BusinessModelDeclaration declaration, DeleteCommand command) {
+        if (session(declaration).update(namespace(declaration) + ".__pmsDeleteCurrentEntity", command) != 1)
+            throw new BusinessContractException("CONCURRENCY_CONFLICT", "Delete concurrency basis changed");
+    }
+    public static java.util.List<BaseBusinessEntity> activeRevisionsForUpdate(BusinessModelDeclaration declaration,DeclaredCurrentRowQuery query) {
+        return session(declaration).selectList(namespace(declaration)+".__pmsActiveRevisionsForUpdate",query);
+    }
+    public static int maxRevisionNo(BusinessModelDeclaration declaration,DeclaredCurrentRowQuery query) {
+        Integer value=session(declaration).selectOne(namespace(declaration)+".__pmsMaxRevisionNo",query);
+        return value==null?0:value;
+    }
+    private static String namespace(BusinessModelDeclaration declaration) {
+        Object mapper = AopProxyUtils.getSingletonTarget(declaration.mapper());
+        if (mapper == null) mapper = declaration.mapper();
+        return ((MybatisMapperProxy<?>) Proxy.getInvocationHandler(mapper)).getMapperInterface().getName();
+    }
+    private static org.apache.ibatis.session.SqlSession session(BusinessModelDeclaration declaration) {
         if (!TransactionSynchronizationManager.isActualTransactionActive())
             throw new BusinessContractException("TRANSACTION_REQUIRED", "Current entity read requires a transaction");
         Object mapper = declaration.mapper();
@@ -55,6 +79,6 @@ public final class DeclaredBusinessCurrentRows {
                         configuration.getSqlFragments()).parse();
             }
         }
-        return session.selectOne(statement, query);
+        return session;
     }
 }

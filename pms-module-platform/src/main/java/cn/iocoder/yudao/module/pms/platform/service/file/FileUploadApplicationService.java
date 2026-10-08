@@ -672,7 +672,7 @@ public class FileUploadApplicationService {
         String referenceKey = limitedText(command.referenceKey(), 128);
         String fileName = limitedText(command.fileName(), 256);
         String categoryCode = limitedText(command.categoryCode(), 64);
-        String mediaType = normalizeMediaType(command.declaredMediaType());
+        String mediaType = FileContentPolicyService.normalizeDeclaration(command.declaredMediaType());
         normalizeDigest(command.clientSha256());
         return new ValidatedInitialization(mode, idempotencyKey, ownerContext, objectType, objectId,
                 purposeCode, referenceKey, fileName, categoryCode, mediaType,
@@ -681,8 +681,11 @@ public class FileUploadApplicationService {
 
     private void validatePolicy(ValidatedInitialization command, long declaredSizeBytes,
                                 FileBusinessObjectPolicyFact policy) {
-        if (!policy.allowedCategoryCodes().contains(command.categoryCode())
-                || !normalizedMediaTypes(policy.allowedMediaTypes()).contains(command.declaredMediaType())) {
+        Set<String> allowedMedia = normalizedMediaTypes(policy.allowedMediaTypes());
+        boolean mediaAllowed = FileContentPolicyService.isUnknownDeclaration(command.declaredMediaType())
+                ? FileContentPolicyService.supportsUnknownDeclaration(command.fileName(), allowedMedia)
+                : allowedMedia.contains(command.declaredMediaType());
+        if (!policy.allowedCategoryCodes().contains(command.categoryCode()) || !mediaAllowed) {
             throw exception(FILE_SCOPE_FORBIDDEN);
         }
         long maxBytes = Math.min(PLATFORM_MAX_BYTES, policy.maxSizeBytes());

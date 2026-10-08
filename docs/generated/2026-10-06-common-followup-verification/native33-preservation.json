@@ -1,0 +1,200 @@
+[
+  {
+    "path": "docs/generated/native-delivery-two-20261006/acceptance-acceptance-browser.png",
+    "upstreamSha256": "dd273d8e2aa2f0b402a9ffb6aff30e3fb3933c18644082c65b9cda5bba42e015",
+    "currentSha256": "dd273d8e2aa2f0b402a9ffb6aff30e3fb3933c18644082c65b9cda5bba42e015",
+    "sameBytes": true
+  },
+  {
+    "path": "docs/generated/native-delivery-two-20261006/engineering-briefing-browser.png",
+    "upstreamSha256": "1a8ec8fd21476c9253cebcff855a3baf12261a74e697c870a01db9342c5ed2b7",
+    "currentSha256": "1a8ec8fd21476c9253cebcff855a3baf12261a74e697c870a01db9342c5ed2b7",
+    "sameBytes": true
+  },
+  {
+    "path": "docs/generated/native-delivery-two-20261006/handoff.md",
+    "upstreamSha256": "a31aa8cc8fdbd532f7b9691dcd6b49cc38fb077c5d80d170979a9ed3a12fc8a3",
+    "currentSha256": "a31aa8cc8fdbd532f7b9691dcd6b49cc38fb077c5d80d170979a9ed3a12fc8a3",
+    "sameBytes": true
+  },
+  {
+    "path": "docs/generated/native-delivery-two-20261006/native-two-browser.json",
+    "upstreamSha256": "b1e98703e2e9fcaab58fe23edbf0bc300ebd381a7ba5409e6290d431dbf7ebd5",
+    "currentSha256": "b1e98703e2e9fcaab58fe23edbf0bc300ebd381a7ba5409e6290d431dbf7ebd5",
+    "sameBytes": true
+  },
+  {
+    "path": "docs/generated/native-delivery-two-20261006/test-results.json",
+    "upstreamSha256": "b6ea44743d150994adb19441b391f134481a1eb1efc03aec0110074d12e86c7e",
+    "currentSha256": "b6ea44743d150994adb19441b391f134481a1eb1efc03aec0110074d12e86c7e",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/acceptance/AcceptanceMapper.java",
+    "upstreamSha256": "d476bb8bcbef297898f4c1a26c8f654826c250b84e6f6125e84f00c1cf3cd682",
+    "currentSha256": "d476bb8bcbef297898f4c1a26c8f654826c250b84e6f6125e84f00c1cf3cd682",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/acceptance/query/AcceptanceOwnerLockQuery.java",
+    "upstreamSha256": "a05ed8d61a147afce30c174fa16e5646b2a174c82e1d916175c83b5d96231c96",
+    "currentSha256": "a05ed8d61a147afce30c174fa16e5646b2a174c82e1d916175c83b5d96231c96",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/AcceptanceServiceImpl.java",
+    "upstreamSha256": "2296e3587c523e7b7ce287a6e1d2e9f52ab390cc2722a7f5a360417e27eb31e6",
+    "currentSha256": "2296e3587c523e7b7ce287a6e1d2e9f52ab390cc2722a7f5a360417e27eb31e6",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentDeliveryAccess.java",
+    "upstreamSha256": "b948611118af5d5a1e5dae4d6f958636e8b0133371b1029738a4dce666c5935e",
+    "currentSha256": "b948611118af5d5a1e5dae4d6f958636e8b0133371b1029738a4dce666c5935e",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentFilePolicy.java",
+    "upstreamSha256": "dfdc85dad8b4591fb6ca47844bcbd2f970357defb4c8f48f8669eb41fdafaebc",
+    "currentSha256": "dfdc85dad8b4591fb6ca47844bcbd2f970357defb4c8f48f8669eb41fdafaebc",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentRegistration.java",
+    "upstreamSha256": "c98df0195b070d8c8e715b6287571d0a5a597efa2a979907e86000eddf135e49",
+    "currentSha256": "c98df0195b070d8c8e715b6287571d0a5a597efa2a979907e86000eddf135e49",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentSources.java",
+    "upstreamSha256": "15fa94856259b2edb051e3cfe3023d66f9ebbed34a9613b82035a2f03dfb1bcc",
+    "currentSha256": "15fa94856259b2edb051e3cfe3023d66f9ebbed34a9613b82035a2f03dfb1bcc",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/main/resources/mapper/acceptance/AcceptanceMapper.xml",
+    "upstreamSha256": "6fd00f4c47d54c04646bf54aaa3e4a6359a714908d6f982910d8fbabb7aee4e2",
+    "currentSha256": "6fd00f4c47d54c04646bf54aaa3e4a6359a714908d6f982910d8fbabb7aee4e2",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentTest.java",
+    "upstreamSha256": "4941caf738855fd4998b8dfc774c4aa84ded7e8210a32bea814d5858fa9a773c",
+    "currentSha256": "4941caf738855fd4998b8dfc774c4aa84ded7e8210a32bea814d5858fa9a773c",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadServiceTest.java",
+    "upstreamSha256": "d9eeb3298fefd289d561a6fc4240b55cc385e23bbbe0f0b3a94cf80c3bcff3e7",
+    "currentSha256": "d9eeb3298fefd289d561a6fc4240b55cc385e23bbbe0f0b3a94cf80c3bcff3e7",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/BriefingAttachmentDeliveryAccess.java",
+    "upstreamSha256": "0e3789dccb6f10a1800e70cd3f952112fcabffe46df92ff141dd0dc960aa0dc3",
+    "currentSha256": "0e3789dccb6f10a1800e70cd3f952112fcabffe46df92ff141dd0dc960aa0dc3",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentAccess.java",
+    "upstreamSha256": "25da9d82d5c8016bb83a08ef9e6cb59a0b73a466512448b6cbf56108ffca7705",
+    "currentSha256": "25da9d82d5c8016bb83a08ef9e6cb59a0b73a466512448b6cbf56108ffca7705",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentFilePolicy.java",
+    "upstreamSha256": "1ffc570204297e307614e4ab882ae69bc45b91de39dd13ba22b0b7de0985070a",
+    "currentSha256": "1ffc570204297e307614e4ab882ae69bc45b91de39dd13ba22b0b7de0985070a",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentKind.java",
+    "upstreamSha256": "9034c568a1a8d9e91e626ecf5e59078e05aeffbc57261e5abc88e9eeda62981b",
+    "currentSha256": "9034c568a1a8d9e91e626ecf5e59078e05aeffbc57261e5abc88e9eeda62981b",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentPolicies.java",
+    "upstreamSha256": "47e3fa74ba6b936c637eeed70c5f58375dd623693f782c8639c96bd7d595206b",
+    "currentSha256": "47e3fa74ba6b936c637eeed70c5f58375dd623693f782c8639c96bd7d595206b",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentRegistration.java",
+    "upstreamSha256": "360828edcf093a62f4699f7f71ff191816529b7beab05ce43a738134d9af8cff",
+    "currentSha256": "360828edcf093a62f4699f7f71ff191816529b7beab05ce43a738134d9af8cff",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentSources.java",
+    "upstreamSha256": "0ab7a0429983e0f4c312673dc2fa3f71f89ecea06c30691e64bf177937e7a047",
+    "currentSha256": "0ab7a0429983e0f4c312673dc2fa3f71f89ecea06c30691e64bf177937e7a047",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingServiceImpl.java",
+    "upstreamSha256": "908cdef30d706703bbc96fba3f68379b9e6e75693b91bb49f7f8856c5bc1deb3",
+    "currentSha256": "908cdef30d706703bbc96fba3f68379b9e6e75693b91bb49f7f8856c5bc1deb3",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeAttachmentDeliveryMySqlTest.java",
+    "upstreamSha256": "3edb62104f204637c4e2cfec2e815845d713d1d80d26c063c839c16bebf32735",
+    "currentSha256": "3948d80be1a0c12a2dd4fffbbaf4ddce3354201a9030a9863c8db0b4eee8df50",
+    "sameBytes": false
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeTwoDeliveryMySqlTest.java",
+    "upstreamSha256": "bad3629efb633fc2eb64b4d2e69cc0e943fc5ae34f87e2c1619cdd603fa39b28",
+    "currentSha256": "bad3629efb633fc2eb64b4d2e69cc0e943fc5ae34f87e2c1619cdd603fa39b28",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentAccessTest.java",
+    "upstreamSha256": "7935ebb8a86e232f18f348328c5dbf1883d087394e700817cb99127371f40cbb",
+    "currentSha256": "7935ebb8a86e232f18f348328c5dbf1883d087394e700817cb99127371f40cbb",
+    "sameBytes": true
+  },
+  {
+    "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingGenerateDocumentTest.java",
+    "upstreamSha256": "dfc61032252b9b2844b166ec1f19d39ff76d92098c96b3bb7faba0dbea55a35a",
+    "currentSha256": "dfc61032252b9b2844b166ec1f19d39ff76d92098c96b3bb7faba0dbea55a35a",
+    "sameBytes": true
+  },
+  {
+    "path": "scripts/tests/run_native_two_delivery_browser.py",
+    "upstreamSha256": "baaee04ce401e331021ea6414df3376aa89bab8e944aa85b44d09efd7274ed53",
+    "currentSha256": "baaee04ce401e331021ea6414df3376aa89bab8e944aa85b44d09efd7274ed53",
+    "sameBytes": true
+  },
+  {
+    "path": "scripts/tests/verify_native_delivery_two_mysql.sh",
+    "upstreamSha256": "535448b435cc5b34fa8636b480bd3cc9ddabc1a56e5d585743dedd604ec2debd",
+    "currentSha256": "535448b435cc5b34fa8636b480bd3cc9ddabc1a56e5d585743dedd604ec2debd",
+    "sameBytes": true
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+    "upstreamSha256": "2e123a44966700111bd770f27dbafe20e979288450a79209a93afe38b4dfa6f3",
+    "currentSha256": "2e123a44966700111bd770f27dbafe20e979288450a79209a93afe38b4dfa6f3",
+    "sameBytes": true
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/AdditionalNativeAttachments.runtime.spec.ts",
+    "upstreamSha256": "4871233a66c3b52f59d195c13e441f1f7f9dd3a5b07331c48cdf8654356e08f8",
+    "currentSha256": "4871233a66c3b52f59d195c13e441f1f7f9dd3a5b07331c48cdf8654356e08f8",
+    "sameBytes": true
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/AdditionalNativeAttachments.vue",
+    "upstreamSha256": "a1c46f1b1e278228c0a37babee3f925eb9ed8c6b194890da800010d826b1d539",
+    "currentSha256": "a1c46f1b1e278228c0a37babee3f925eb9ed8c6b194890da800010d826b1d539",
+    "sameBytes": true
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+    "upstreamSha256": "3826f6c7149777f169ca233aa0eed2d6008489e40894610cc664b99a84565dea",
+    "currentSha256": "3826f6c7149777f169ca233aa0eed2d6008489e40894610cc664b99a84565dea",
+    "sameBytes": true
+  }
+]

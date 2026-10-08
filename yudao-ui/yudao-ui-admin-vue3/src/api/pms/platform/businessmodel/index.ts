@@ -15,6 +15,10 @@ export interface ModelSummaryVO {
 export type FieldType = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'DATE' | 'DATETIME' | 'TEXT_LIST' | 'OBJECT_LIST'
 
 export interface FieldVO {
+  displayOrder?: number
+  listVisible?: boolean
+  searchable?: boolean
+  sortable?: boolean
   code: string
   name: string
   type: FieldType
@@ -88,7 +92,7 @@ export interface BusinessEntitySlice {
   unavailableReason?: string
 }
 
-export type ReceiptOutcome = 'SAVED' | 'ACCEPTED' | 'APPROVAL_PENDING' | 'EFFECTED' | 'FAILED'
+export type ReceiptOutcome = 'DELETED' | 'SAVED' | 'ACCEPTED' | 'APPROVAL_PENDING' | 'EFFECTED' | 'FAILED'
 
 export interface ResultReference {
   kind: 'FILE' | 'APPROVAL' | 'RESULT' | 'COMMAND'
@@ -174,10 +178,15 @@ export const newIdempotencyKey = () => crypto.randomUUID()
 
 
 export interface BusinessEntityFormData {
+  context?: Record<string, unknown>
   layout?: {
     binding: { formRevisionId: string | number; extensionDefinitionRevisionId?: string | number; fieldBindings: Record<string, string>; version: number }
+    templateId?: string | number
+    revisionNo?: number
+    formVersion?: number
     formConfJson: string
     formRulesJson: string
+    fields?: Array<{fieldKey:string;componentType:string;controlledFile:boolean;required:boolean;valueType?:string;maxLength?:number;allowedValues?:string[]}>
   }
   extensions: { definitionRevisionId?: string | number; fields: Record<string, unknown>; version: number }
   definitions: Array<{ code: string; label: string; type: FieldType; required: boolean; maxLength?: number; allowedValues?: string[] }>

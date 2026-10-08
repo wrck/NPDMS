@@ -122,6 +122,7 @@
     <el-alert v-if="detailError" :title="detailError" type="error" :closable="false">
       <el-button @click="openForm(form)">重新加载</el-button>
     </el-alert>
+    <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" class="mb-12px" />
     <el-descriptions v-if="form.id && !detailError" title="当前记录审核信息" :column="2" border class="mb-16px" data-testid="solution-review-result">
       <el-descriptions-item label="状态"><dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="form.status ?? ''" /></el-descriptions-item>
       <el-descriptions-item label="记录版本">{{ form.version ?? '—' }}</el-descriptions-item>
@@ -142,10 +143,10 @@
           :disabled="!!form.id"
         />
       </el-form-item>
-      <SolutionChapterForm v-model="form" :read-only="readOnly" :saving="saving" @save="save" @submit-review="submitReview" />
+      <SolutionChapterForm v-model="form" v-model:pending-files="pendingCustomerFiles" :read-only="readOnly" :saving="saving" @save="save" @submit-review="submitReview" />
     </el-form>
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存草稿</el-button>
     </template>
   </Dialog>
@@ -178,6 +179,8 @@ import { checkPermi } from '@/utils/permission'
 import { buildRecordName } from '../recordNaming'
 import { formatDate } from '@/utils/formatTime'
 import SolutionChapterForm from './SolutionChapterForm.vue'
+import { saveCustomerSolutionDocuments } from '../solution-reviewed/saveCustomerSolutionDocuments'
+import type { DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 
 defineOptions({ name: 'PmsEngSolution' })
 const props = defineProps<{ projectId?: number }>()
@@ -190,11 +193,19 @@ const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? 
 const formVisible = ref(false)
 const detailLoading = ref(false)
 const detailError = ref('')
+const saveError = ref('')
 let detailSequence = 0
 const formRef = ref()
 const form = ref<SolutionVO>({ projectId: 0, name: '', reviewLevel: 0, status: 0 })
 const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:sol-solution:update'])
-const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
+const readOnly = computed(() => saving.value || detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
+const pendingCustomerFiles = ref<File[]>([])
+const customerAttempts: DeliveryUploadAttempt[] = []
+let savedCustomerDraft: string | undefined
+const parseEnvelope = (raw?: string): Record<string, unknown> => {
+  try { const value = raw ? JSON.parse(raw) : null; return value && typeof value === 'object' && !Array.isArray(value) ? value : {} }
+  catch { return {} }
+}
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },
@@ -247,6 +258,9 @@ const load = async () => {
   }
 }
 const openForm = async (row?: SolutionVO) => {
+  if (saving.value) return
+  pendingCustomerFiles.value = []; customerAttempts.splice(0); savedCustomerDraft = undefined
+  saveError.value = ''
   const sequence = ++detailSequence
   detailError.value = ''
   detailLoading.value = !!row?.id
@@ -296,15 +310,43 @@ const openForm = async (row?: SolutionVO) => {
 }
 watch(formVisible, visible => { if (!visible) ++detailSequence })
 onBeforeUnmount(() => { ++detailSequence })
+const draftFingerprint = () => JSON.stringify({ ...form.value, version: undefined })
+const persistDraftAndCustomerFiles = async () => {
+  const withFiles = pendingCustomerFiles.value.length > 0 && parseEnvelope(form.value.remark).hasCustomerPlan === 'yes'
+  if (!withFiles) {
+    if (form.value.id) await SolutionApi.updateSolution(form.value)
+    else form.value.id = await SolutionApi.createSolution(form.value)
+    return
+  }
+  if (savedCustomerDraft !== draftFingerprint()) {
+    const existingId = form.value.id, previousVersion = form.value.version
+    if (existingId) await SolutionApi.updateSolution(form.value)
+    else form.value.id = await SolutionApi.createSolution(form.value)
+    const current = await SolutionApi.getSolution(form.value.id!)
+    if (!current || current.id !== form.value.id || current.status !== 0 || current.version === undefined
+      || (existingId && previousVersion !== undefined && current.version !== previousVersion + 1)) {
+      throw new Error('方案版本或状态已变化，请刷新后重试')
+    }
+    form.value.version = current.version
+    savedCustomerDraft = draftFingerprint()
+  }
+  const { attached } = await saveCustomerSolutionDocuments({ id: form.value.id!, version: form.value.version! }, pendingCustomerFiles.value, customerAttempts)
+  form.value.version = attached.version
+  form.value.remark = JSON.stringify({ ...parseEnvelope(form.value.remark), hasCustomerPlan: 'yes', customerPlanUrl: attached.customerPlanUrl })
+  pendingCustomerFiles.value = []; customerAttempts.splice(0); savedCustomerDraft = undefined
+}
 const save = async () => {
   if (readOnly.value) return
   await formRef.value.validate()
   saving.value = true
+  saveError.value = ''
   try {
-    form.value.id ? await SolutionApi.updateSolution(form.value) : await SolutionApi.createSolution(form.value)
+    await persistDraftAndCustomerFiles()
     message.success('保存成功')
     formVisible.value = false
     await load()
+  } catch (error: any) {
+    saveError.value = error?.message || '保存失败，请重试'
   } finally {
     saving.value = false
   }
@@ -314,13 +356,15 @@ const submitReview = async () => {
   if (readOnly.value) return
   await formRef.value.validate()
   saving.value = true
+  saveError.value = ''
   try {
-    if (!form.value.id) form.value.id = (await SolutionApi.createSolution(form.value)) as unknown as number
-    else await SolutionApi.updateSolution(form.value)
+    await persistDraftAndCustomerFiles()
     await SolutionApi.submitSolution(form.value.id!)
     message.success('已提交审核；等待服务经理进行审核')
     formVisible.value = false
     await load()
+  } catch (error: any) {
+    saveError.value = error?.message || '保存或提交失败，请重试'
   } finally {
     saving.value = false
   }

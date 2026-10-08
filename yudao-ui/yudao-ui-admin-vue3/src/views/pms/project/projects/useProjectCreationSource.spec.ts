@@ -73,3 +73,29 @@ it('does not overwrite a final customer selected while the source response is pe
   expect(state.creationSource.value?.resolved.customerCode).toBe('C-1')
   wrapper.app.unmount()
 })
+
+it('preserves an independently selected final customer across contract and order reloads', async () => {
+  vi.mocked(getContractCreationSource).mockResolvedValue(source(1))
+  const { form, state, wrapper } = setup()
+  form.customerCode = 'FINAL-1'; form.customerName = 'Final customer'
+  await state.selectContract(1, contract(1))
+  await state.selectSalesOrder(10)
+  expect(form.customerCode).toBe('FINAL-1')
+  expect(form.customerName).toBe('Final customer')
+  await state.selectContract(undefined)
+  expect(form.customerCode).toBe('FINAL-1')
+  expect(form.customerName).toBe('Final customer')
+  wrapper.app.unmount()
+})
+
+it('preserves the final customer while rejecting a failed source refresh', async () => {
+  vi.mocked(getContractCreationSource).mockRejectedValue(new Error('offline'))
+  const { form, state, wrapper } = setup()
+  form.customerCode = 'FINAL-1'; form.customerName = 'Final customer'
+  await state.selectContract(1, contract(1))
+  expect(form.customerCode).toBe('FINAL-1')
+  expect(form.customerName).toBe('Final customer')
+  expect(form.sourceFingerprint).toBeUndefined()
+  expect(state.sourceReady.value).toBe(false)
+  wrapper.app.unmount()
+})

@@ -53,21 +53,21 @@
       </h4>
       <el-form label-width="120px" class="mb-8px">
         <el-form-item v-for="field in writableFields" :key="field.code" :label="field.name">
-          <el-switch v-if="field.type === 'BOOLEAN'" v-model="editForm[field.code]" />
-          <el-input-number v-else-if="field.type === 'NUMBER'" v-model="editForm[field.code]" />
+          <el-switch v-if="field.type === 'BOOLEAN'" :model-value="booleanValue(editForm[field.code])" @update:model-value="value => editForm[field.code] = value" />
+          <el-input-number v-else-if="field.type === 'NUMBER'" :model-value="numberValue(editForm[field.code])" @update:model-value="value => editForm[field.code] = value" />
           <el-date-picker
             v-else-if="field.type === 'DATE'"
-            v-model="editForm[field.code]"
+            :model-value="textValue(editForm[field.code])" @update:model-value="value => editForm[field.code] = value"
             type="date"
             value-format="YYYY-MM-DD"
           />
           <el-date-picker
             v-else-if="field.type === 'DATETIME'"
-            v-model="editForm[field.code]"
+            :model-value="textValue(editForm[field.code])" @update:model-value="value => editForm[field.code] = value"
             type="datetime"
             value-format="YYYY-MM-DD'T'HH:mm:ss"
           />
-          <el-input v-else v-model="editForm[field.code]" />
+          <el-input v-else :model-value="textValue(editForm[field.code])" @update:model-value="value => editForm[field.code] = value" />
         </el-form-item>
         <el-form-item v-if="selected.state === 'DRAFT'">
           <el-button type="primary" :loading="saving" @click="saveDraft">保存修订</el-button>
@@ -113,6 +113,9 @@ const revisions = ref<RevisionVO[]>([])
 const selected = ref<RevisionVO>()
 const createReason = ref('')
 const editForm = ref<Record<string, unknown>>({})
+const booleanValue = (value: unknown) => typeof value === 'boolean' ? value : undefined
+const numberValue = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : undefined
+const textValue = (value: unknown) => typeof value === 'string' ? value : undefined
 
 const writableFields = computed(() => (props.fields ?? []).filter((field) => field.writable))
 const hasOpenDraft = computed(() => revisions.value.some((revision) => revision.state === 'DRAFT'))

@@ -79,6 +79,7 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteArrival(Long id) {
         ArrivalDO existing = validateArrivalExists(id);
+        deliveryRegistration.requireDelete(existing);
         validateStatus(existing, 0, 2);
         if (arrivalMapper.deleteEditable(new ArrivalEditableDeleteQuery(id, existing.getVersion())) != 1) {
             throw exception(ARRIVAL_VERSION_NOT_MATCH);

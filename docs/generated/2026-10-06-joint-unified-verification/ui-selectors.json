@@ -1,0 +1,15 @@
+[
+  "src/api/pms/engineering/requestTime.spec.ts",
+  "src/api/pms/platform/file/fileId.runtime.spec.ts",
+  "src/components/BusinessEntity/useBusinessEntity.runtime.spec.ts",
+  "src/components/BusinessView/presentationHost.runtime.spec.ts",
+  "src/components/DeliveryArtifact/DeliveryUploader.runtime.spec.ts",
+  "src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts",
+  "src/views/pms/acceptance/deliverable-checklist/ChecklistAttachments.runtime.spec.ts",
+  "src/views/pms/engineering/arrival/arrivalWorkspace.runtime.spec.ts",
+  "src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts",
+  "src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts",
+  "src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts",
+  "src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts",
+  "src/views/pms/engineering/solution/solutionWorkspace.runtime.spec.ts"
+]

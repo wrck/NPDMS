@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessAccessGuard;
 import cn.iocoder.yudao.module.pms.platform.api.delivery.DeliveryMaterialUploadPolicyValidator;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.NativeOwnerActionRequest;
 import cn.iocoder.yudao.module.pms.platform.api.entity.*;
 import org.springframework.beans.factory.ObjectProvider;
 import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
@@ -47,6 +48,20 @@ public class DeliveryOwnerAccess {
     public Long require(String module, String type, Long id, String purpose, boolean write, boolean lock) {
         return require(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
                 module, type, id, purpose, write, lock, null);
+    }
+
+    /** A native transition needs its explicit Owner authority; generic/project write access is insufficient. */
+    public void requireNativeOwnerAction(Long tenant, Long actor, NativeOwnerActionRequest action, String purpose) {
+        if (!Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || actor == null || actor <= 0
+                || !Objects.equals(actor, SecurityFrameworkUtils.getLoginUserId()) || action == null
+                || action.ownerModule() == null || action.entityType() == null || action.entityId() == null
+                || action.action() == null || action.expectedOwnerVersion() == null) throw denied();
+        var custom = owners.stream().filter(p -> action.ownerModule().equals(p.ownerModule())
+                && p.supportsEntityType(action.entityType())).toList();
+        if (custom.size() != 1) throw denied();
+        Long lockedVersion = custom.getFirst().requireNativeOwnerAction(tenant, actor, action.entityType(),
+                action.entityId().toString(), purpose, action.action(), action.expectedOwnerVersion());
+        if (!Objects.equals(action.expectedOwnerVersion(), lockedVersion)) throw denied();
     }
 
     public Long projectId(String module, String type, Long id) {

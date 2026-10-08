@@ -1,3 +1,4 @@
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import JointTest from './index.vue'
@@ -68,16 +69,14 @@ it('requires a nonblank failure reason and submits its trimmed text', async () =
   } finally { mounted.app.unmount() }
 })
 
-it('keeps the string upload contract when reopening a record with no evidence', async () => {
+it('keeps empty legacy attachment metadata when reopening a record with no evidence', async () => {
   const mounted = render()
   try {
     mounted.state.openForm({ id: 9, projectId: 1, code: 'JT-NO-EVIDENCE', testCase: 'local check', status: 1, version: 2, evidenceUrl: null })
     await flush()
     const uploader = uploaders(mounted.root)[0]
-    expect(uploader.props?.modelValue).toBe('')
-    const emitValue = uploader.props?.['onUpdate:modelValue'] as (value: string) => void
-    emitValue('local-evidence-url')
+    expect(uploader.props?.legacy).toBe('')
     await mounted.state.save()
-    expect(JointTestApi.updateJointTest).toHaveBeenCalledWith(expect.objectContaining({ evidenceUrl: 'local-evidence-url', status: 1, version: 2 }))
+    expect(JointTestApi.updateJointTest).toHaveBeenCalledWith(expect.objectContaining({ evidenceUrl: '', status: 1, version: 2 }))
   } finally { mounted.app.unmount() }
 })

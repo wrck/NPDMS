@@ -1,4 +1,4 @@
-import { initializeUpload, completeUpload } from '@/api/pms/platform/file'
+import { initializeUpload, completeUpload, type FileId } from '@/api/pms/platform/file'
 import { registerMaterial, type EntityOwnerParam, type DeliveryMaterialVO, type DeliveryTypeVO } from '@/api/pms/platform/delivery'
 
 /** One recoverable attempt shared by manual uploads and generated business documents. */
@@ -12,7 +12,7 @@ export interface DeliveryUploadAttempt {
   initKey: string
   completeKey: string
   initialized?: Awaited<ReturnType<typeof initializeUpload>>
-  referenceId?: number
+  referenceId?: FileId
   material?: DeliveryMaterialVO
 }
 export const createDeliveryUploadAttempt = (owner: EntityOwnerParam, type: DeliveryTypeVO,

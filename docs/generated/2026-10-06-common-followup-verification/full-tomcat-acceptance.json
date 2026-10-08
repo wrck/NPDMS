@@ -1,0 +1,731 @@
+{
+  "passed": true,
+  "status": "PASS",
+  "schema": "original migrations failed at V374; V373 plus partial V374",
+  "securityMockEnable": false,
+  "testScopeJarOrMockMvc": false,
+  "cases": [
+    {
+      "name": "actual password login writer",
+      "method": "POST",
+      "path": "/admin-api/system/auth/login",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "authenticated": true
+      }
+    },
+    {
+      "name": "actual password login reader",
+      "method": "POST",
+      "path": "/admin-api/system/auth/login",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "authenticated": true
+      }
+    },
+    {
+      "name": "actual password login no_role",
+      "method": "POST",
+      "path": "/admin-api/system/auth/login",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "authenticated": true
+      }
+    },
+    {
+      "name": "actual password login no_owner",
+      "method": "POST",
+      "path": "/admin-api/system/auth/login",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "authenticated": true
+      }
+    },
+    {
+      "name": "anonymous method authorization",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 401,
+        "data": null,
+        "msg": "账号未登录"
+      }
+    },
+    {
+      "name": "role-less method authorization",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "没有该操作权限"
+      }
+    },
+    {
+      "name": "reader native Owner detail",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "data": {
+          "ownerModule": "SOL",
+          "entityType": "siteSurvey",
+          "stableCode": "SOL_SITE_SURVEY",
+          "title": "现场工勘",
+          "viewCode": "sol_site_survey",
+          "fields": [
+            {
+              "code": "projectId",
+              "name": "项目编号",
+              "type": "NUMBER",
+              "required": false,
+              "readable": true,
+              "writable": false
+            },
+            {
+              "code": "code",
+              "name": "工勘编码",
+              "type": "TEXT",
+              "required": true,
+              "readable": true,
+              "writable": false
+            },
+            {
+              "code": "name",
+              "name": "工勘名称",
+              "type": "TEXT",
+              "required": true,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "surveyDate",
+              "name": "勘察日期",
+              "type": "DATE",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "surveyorUserId",
+              "name": "工勘责任人",
+              "type": "NUMBER",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "location",
+              "name": "位置",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "powerSupply",
+              "name": "供电",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "cabinet",
+              "name": "机柜",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "networkPort",
+              "name": "网络端口",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "fiber",
+              "name": "光纤",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "module",
+              "name": "模块",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "cable",
+              "name": "线缆",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "ground",
+              "name": "接地",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "constructionResource",
+              "name": "施工资源",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "conclusion",
+              "name": "工勘结论",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "status",
+              "name": "状态",
+              "type": "NUMBER",
+              "required": false,
+              "readable": true,
+              "writable": false
+            },
+            {
+              "code": "remark",
+              "name": "备注",
+              "type": "TEXT",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "outsourceRequired",
+              "name": "是否委外",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "cabinetReady",
+              "name": "机柜就绪",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "cableReady",
+              "name": "线缆就绪",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "moduleReady",
+              "name": "模块就绪",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "originalModule",
+              "name": "原厂模块",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "manufacturerInstallation",
+              "name": "厂商安装",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "railTrayRequired",
+              "name": "需要导轨托盘",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "materialMatches",
+              "name": "材料匹配",
+              "type": "BOOLEAN",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "requiredEndDate",
+              "name": "要求结束日期",
+              "type": "DATE",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "powerTypes",
+              "name": "电源类型",
+              "type": "TEXT_LIST",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "powerEnvironments",
+              "name": "供电环境",
+              "type": "TEXT_LIST",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "networkPortTypes",
+              "name": "网络端口类型",
+              "type": "TEXT_LIST",
+              "required": false,
+              "readable": true,
+              "writable": true
+            },
+            {
+              "code": "selectedMaterials",
+              "name": "选定材料",
+              "type": "OBJECT_LIST",
+              "required": false,
+              "readable": true,
+              "writable": true
+            }
+          ],
+          "operations": [
+            {
+              "code": "create",
+              "name": "创建草稿",
+              "version": 1,
+              "kind": "CREATE",
+              "executable": false,
+              "reason": "业务操作权限不足: SOL_SITE_SURVEY create"
+            },
+            {
+              "code": "save",
+              "name": "保存草稿",
+              "version": 1,
+              "kind": "UPDATE",
+              "executable": false,
+              "reason": "业务操作权限不足: SOL_SITE_SURVEY save"
+            },
+            {
+              "code": "delete",
+              "name": "删除草稿",
+              "version": 1,
+              "kind": "DOMAIN_COMMAND",
+              "executable": false,
+              "reason": "业务操作权限不足: SOL_SITE_SURVEY delete"
+            },
+            {
+              "code": "confirm",
+              "name": "确认工勘",
+              "version": 1,
+              "kind": "DOMAIN_COMMAND",
+              "executable": false,
+              "reason": "业务操作权限不足: SOL_SITE_SURVEY confirm"
+            },
+            {
+              "code": "reject",
+              "name": "驳回工勘",
+              "version": 1,
+              "kind": "DOMAIN_COMMAND",
+              "executable": false,
+              "reason": "业务操作权限不足: SOL_SITE_SURVEY reject"
+            },
+            {
+              "code": "archive",
+              "name": "归档工勘",
+              "version": 1,
+              "kind": "DOMAIN_COMMAND",
+              "executable": false,
+              "reason": "业务操作权限不足: SOL_SITE_SURVEY archive"
+            }
+          ],
+          "capabilities": [
+            {
+              "type": "DYNAMIC_FORM",
+              "configRef": null,
+              "enabled": true
+            }
+          ]
+        },
+        "msg": ""
+      }
+    },
+    {
+      "name": "authenticated wrong tenant",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey",
+      "tenant": 121,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "您无权访问该租户的数据"
+      }
+    },
+    {
+      "name": "reader cannot write",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "没有该操作权限"
+      }
+    },
+    {
+      "name": "routing permission cannot replace native Owner permission",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "没有该操作权限"
+      }
+    },
+    {
+      "name": "writer outside current Owner scope",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "没有该操作权限"
+      }
+    },
+    {
+      "name": "native missing location fails after insert and rolls back",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 1011001004,
+        "data": null,
+        "msg": "工勘地点不能为空"
+      }
+    },
+    {
+      "name": "actual native Owner create in common transaction",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "data": {
+          "outcome": "SAVED",
+          "entityRef": {
+            "tenantId": 1,
+            "ownerModule": "SOL",
+            "entityType": "siteSurvey",
+            "entityId": "2107425999380320258"
+          },
+          "newConcurrencyBasis": 1,
+          "references": [
+            {
+              "kind": "COMMAND",
+              "ownerModule": "SOL",
+              "value": "{\"id\":\"2107425999380320258\",\"projectId\":\"1002\",\"version\":1,\"state\":\"0\",\"deleted\":false}"
+            }
+          ],
+          "recoveryState": null,
+          "failureReason": null,
+          "operationCode": "create",
+          "operationVersion": 1
+        },
+        "msg": ""
+      }
+    },
+    {
+      "name": "actual cached permission and idempotent replay",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "data": {
+          "outcome": "SAVED",
+          "entityRef": {
+            "tenantId": 1,
+            "ownerModule": "SOL",
+            "entityType": "siteSurvey",
+            "entityId": "2107425999380320258"
+          },
+          "newConcurrencyBasis": 1,
+          "references": [
+            {
+              "kind": "COMMAND",
+              "ownerModule": "SOL",
+              "value": "{\"id\":\"2107425999380320258\",\"projectId\":\"1002\",\"version\":1,\"state\":\"0\",\"deleted\":false}"
+            }
+          ],
+          "recoveryState": null,
+          "failureReason": null,
+          "operationCode": "create",
+          "operationVersion": 1
+        },
+        "msg": ""
+      }
+    },
+    {
+      "name": "actual GET receipt recovery",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create/receipt?operationVersion=1&idempotencyKey=cloud-full-76f38d5b6d78-create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "data": {
+          "outcome": "SAVED",
+          "entityRef": {
+            "tenantId": 1,
+            "ownerModule": "SOL",
+            "entityType": "siteSurvey",
+            "entityId": "2107425999380320258"
+          },
+          "newConcurrencyBasis": 1,
+          "references": [
+            {
+              "kind": "COMMAND",
+              "ownerModule": "SOL",
+              "value": "{\"id\":\"2107425999380320258\",\"projectId\":\"1002\",\"version\":1,\"state\":\"0\",\"deleted\":false}"
+            }
+          ],
+          "recoveryState": null,
+          "failureReason": null,
+          "operationCode": "create",
+          "operationVersion": 1
+        },
+        "msg": ""
+      }
+    },
+    {
+      "name": "unknown intent recovery does not execute or reserve",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create/receipt?operationVersion=1&idempotencyKey=never-sent-76f38d5b6d78",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "data": null,
+        "msg": ""
+      }
+    },
+    {
+      "name": "receipt stays bound to its original operation",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/save/receipt?operationVersion=1&idempotencyKey=cloud-full-76f38d5b6d78-create",
+      "tenant": 1,
+      "httpStatus": 400,
+      "body": {
+        "code": 1010006000,
+        "data": null,
+        "msg": "IDEMPOTENCY_INTENT_MISMATCH: Receipt is not bound to this operation"
+      }
+    },
+    {
+      "name": "actual native Owner save with CAS",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/save?entityId=2107425999380320258",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 0,
+        "data": {
+          "outcome": "SAVED",
+          "entityRef": {
+            "tenantId": 1,
+            "ownerModule": "SOL",
+            "entityType": "siteSurvey",
+            "entityId": "2107425999380320258"
+          },
+          "newConcurrencyBasis": 2,
+          "references": [
+            {
+              "kind": "COMMAND",
+              "ownerModule": "SOL",
+              "value": "{\"id\":\"2107425999380320258\",\"projectId\":\"1002\",\"version\":2,\"state\":\"0\",\"deleted\":false}"
+            }
+          ],
+          "recoveryState": null,
+          "failureReason": null,
+          "operationCode": "save",
+          "operationVersion": 1
+        },
+        "msg": ""
+      }
+    },
+    {
+      "name": "actual stale CAS rolls back",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/save?entityId=2107425999380320258",
+      "tenant": 1,
+      "httpStatus": 409,
+      "body": {
+        "code": 1010006001,
+        "data": null,
+        "msg": "并发依据过期，请重新读取后再保存"
+      }
+    },
+    {
+      "name": "replay rechecks revoked Owner scope",
+      "method": "POST",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "没有该操作权限"
+      }
+    },
+    {
+      "name": "receipt recovery rechecks revoked Owner scope",
+      "method": "GET",
+      "path": "/admin-api/api/v1/pms/business-models/SOL/siteSurvey/operations/create/receipt?operationVersion=1&idempotencyKey=cloud-full-76f38d5b6d78-create",
+      "tenant": 1,
+      "httpStatus": 200,
+      "body": {
+        "code": 403,
+        "data": null,
+        "msg": "没有该操作权限"
+      }
+    }
+  ],
+  "counts": [
+    {
+      "label": "before denied writes",
+      "sol_site_survey": 0,
+      "plt_idempotency_record": 0,
+      "plt_operation_audit": 9,
+      "plt_outbox_event": 2
+    },
+    {
+      "label": "after denied writes",
+      "sol_site_survey": 0,
+      "plt_idempotency_record": 0,
+      "plt_operation_audit": 9,
+      "plt_outbox_event": 2
+    },
+    {
+      "label": "after native failure following insert",
+      "sol_site_survey": 0,
+      "plt_idempotency_record": 0,
+      "plt_operation_audit": 9,
+      "plt_outbox_event": 2
+    },
+    {
+      "label": "after successful create",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 2,
+      "plt_operation_audit": 11,
+      "plt_outbox_event": 7
+    },
+    {
+      "label": "after idempotent replay",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 2,
+      "plt_operation_audit": 11,
+      "plt_outbox_event": 7
+    },
+    {
+      "label": "after receipt recovery",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 2,
+      "plt_operation_audit": 11,
+      "plt_outbox_event": 7
+    },
+    {
+      "label": "after unknown and wrong-operation recovery",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 2,
+      "plt_operation_audit": 11,
+      "plt_outbox_event": 7
+    },
+    {
+      "label": "after successful save",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 4,
+      "plt_operation_audit": 13,
+      "plt_outbox_event": 12
+    },
+    {
+      "label": "after rejected stale CAS",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 4,
+      "plt_operation_audit": 13,
+      "plt_outbox_event": 12
+    },
+    {
+      "label": "after revoked Owner replay and recovery",
+      "sol_site_survey": 1,
+      "plt_idempotency_record": 4,
+      "plt_operation_audit": 13,
+      "plt_outbox_event": 12
+    }
+  ],
+  "limitations": [
+    "V374 collation failure blocks complete migration acceptance",
+    "isolated SQL users/roles/menu grants and one project membership are test fixture data",
+    "Quartz, Redis MQ consumers and external device operations disabled; permission cache proxies remain active"
+  ],
+  "jarSha256": "b44682167c73d1f06fece78d4273dc9f49568c1f590d52266c31cdee2ced40bc",
+  "nativeFanoutContract": {
+    "successfulWriteDelta": {
+      "createdSubject": 1,
+      "commonLedger": 1,
+      "PROJECT_RESULT_FANOUTLedger": 1,
+      "audits": 2,
+      "outbox": 5
+    },
+    "reason": "native rule reevaluation/result/change fanout remains alongside one common pms.business.changed event"
+  },
+  "completedAtUtc": "2026-10-06T11:01:38.085961+00:00"
+}

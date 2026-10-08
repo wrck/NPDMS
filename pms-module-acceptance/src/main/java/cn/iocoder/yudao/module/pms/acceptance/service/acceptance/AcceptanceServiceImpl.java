@@ -72,20 +72,21 @@ public class AcceptanceServiceImpl implements AcceptanceService {
 
     @Resource
     private AcceptanceMapper acceptanceMapper;
+    @Resource private LegacyAcceptanceAttachmentRegistration attachments;
     @Resource
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
     @Resource
     private DeliverableChecklistMapper deliverableChecklistMapper;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public Long createAcceptance(AcceptanceSaveReqVO createReqVO) {
         // 插入；编码由系统按项目编码自动生成
         AcceptanceDO entity = BeanUtils.toBean(createReqVO, AcceptanceDO.class);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 AcceptanceRecordCodeGenerator.ACCEPTANCE, acceptanceMapper));
-        if (entity.getStatus() == null) {
-            entity.setStatus(STATUS_DRAFT);
-        }
+        entity.setStatus(STATUS_DRAFT);
+        entity.setVersion(0L);
         if (entity.getAcceptanceType() == null) {
             entity.setAcceptanceType("PRELIMINARY");
         }
@@ -94,8 +95,11 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void updateAcceptance(AcceptanceSaveReqVO updateReqVO) {
-        AcceptanceDO existing = validateExists(updateReqVO.getId());
+        AcceptanceDO existing = lockAttachmentOwner(updateReqVO.getId());
+        if(updateReqVO.getVersion()!=null&&!Objects.equals(existing.getVersion(),updateReqVO.getVersion().longValue()))throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("LEGACY_ACCEPTANCE_VERSION_MISMATCH","Stale native Owner version");
+        attachments.sameProject(existing.getId(),existing.getProjectId(),updateReqVO.getProjectId());
         // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
@@ -103,12 +107,15 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         AcceptanceDO updateObj = BeanUtils.toBean(updateReqVO, AcceptanceDO.class);
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
-        acceptanceMapper.updateById(updateObj);
+        updateObj.setVersion(existing.getVersion());
+        updateChecked(updateObj);
+        attachments.register(updateObj.getId(),false);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void deleteAcceptance(Long id) {
-        AcceptanceDO existing = validateExists(id);
+        AcceptanceDO existing = lockAttachmentOwner(id);
         // 仅草稿或已驳回状态允许删除
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
@@ -128,8 +135,9 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void submitAcceptance(Long id) {
-        AcceptanceDO entity = validateExists(id);
+        AcceptanceDO entity = lockAttachmentOwner(id);
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
         }
@@ -137,12 +145,15 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         updateObj.setId(id);
         updateObj.setStatus(STATUS_PENDING_SUBMIT);
         updateObj.setApplyTime(LocalDateTime.now());
-        acceptanceMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        attachments.register(id,true);
+        updateChecked(updateObj);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void approveAcceptance(Long id) {
-        AcceptanceDO entity = validateExists(id);
+        AcceptanceDO entity = lockAttachmentOwner(id);
         if (!Objects.equals(entity.getStatus(), STATUS_PENDING_SUBMIT)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
         }
@@ -150,8 +161,9 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void passAcceptance(Long id) {
-        AcceptanceDO entity = validateExists(id);
+        AcceptanceDO entity = lockAttachmentOwner(id);
         if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
         }
@@ -161,12 +173,14 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         updateObj.setId(id);
         updateObj.setStatus(STATUS_PASSED);
         updateObj.setApproveTime(LocalDateTime.now());
-        acceptanceMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        updateChecked(updateObj);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void rejectAcceptance(Long id) {
-        AcceptanceDO entity = validateExists(id);
+        AcceptanceDO entity = lockAttachmentOwner(id);
         if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
         }
@@ -174,12 +188,14 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         updateObj.setId(id);
         updateObj.setStatus(STATUS_REJECTED);
         updateObj.setApproveTime(LocalDateTime.now());
-        acceptanceMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        updateChecked(updateObj);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void archiveAcceptance(Long id) {
-        AcceptanceDO entity = validateExists(id);
+        AcceptanceDO entity = lockAttachmentOwner(id);
         if (!Objects.equals(entity.getStatus(), STATUS_PASSED)) {
             throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
         }
@@ -187,7 +203,8 @@ public class AcceptanceServiceImpl implements AcceptanceService {
         updateObj.setId(id);
         updateObj.setStatus(STATUS_ARCHIVED);
         updateObj.setArchiveTime(LocalDateTime.now());
-        acceptanceMapper.updateById(updateObj);
+        updateObj.setVersion(entity.getVersion());
+        updateChecked(updateObj);
     }
 
     /**
@@ -208,10 +225,12 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     }
 
     private void updateStatus(Long id, int status) {
+        var existing=lockAttachmentOwner(id);
         AcceptanceDO updateObj = new AcceptanceDO();
         updateObj.setId(id);
         updateObj.setStatus(status);
-        acceptanceMapper.updateById(updateObj);
+        updateObj.setVersion(existing.getVersion());
+        updateChecked(updateObj);
     }
 
     private AcceptanceDO validateExists(Long id) {
@@ -226,4 +245,9 @@ public class AcceptanceServiceImpl implements AcceptanceService {
     }
 
 
+    private AcceptanceDO lockAttachmentOwner(Long id){
+        var row=acceptanceMapper.selectOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.AcceptanceOwnerLockQuery(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),id));
+        if(row==null)throw exception(ACC_ACCEPTANCE_NOT_EXISTS);return row;
+    }
+    private void updateChecked(AcceptanceDO row){if(acceptanceMapper.updateById(row)!=1)throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("LEGACY_ACCEPTANCE_VERSION_MISMATCH","Native CAS failed");}
 }

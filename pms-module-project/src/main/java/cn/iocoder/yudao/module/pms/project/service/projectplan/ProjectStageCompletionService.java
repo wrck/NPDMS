@@ -128,7 +128,8 @@ public class ProjectStageCompletionService {
                 } else {
                     var owner = business.lockStageCompletionFacts(tenantId,execution,binding);
                     if (owner == null || owner.facts() == null || owner.facts().links().isEmpty()) return new Completion(0,true);
-                    if (!owner.hasCompletedHandling()) continue;
+                    if (!TaskBusinessCompletionEvaluator.hasCompletedHandling(owner.hasCompletedHandling(),definition.getNodeKey(),owner.facts().links(),
+                            definition.getCompletionRuleKey()==null?null:snapshot.getRulePrograms().get(definition.getCompletionRuleKey()),definition.getExitRuleKey()==null?null:snapshot.getRulePrograms().get(definition.getExitRuleKey()))) continue;
                     ownerLinks = owner.facts().links();
                 }
             }

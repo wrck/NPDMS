@@ -337,7 +337,7 @@ const loadPage = async () => {
     rows.value = result.list
     total.value = Number(result.total)
   } catch {
-    listError.value = '割接任务服务尚未接入（服务端点未注册，待割接业务 Owner 正式接入后开放），任务列表无法加载；这不代表项目没有割接任务。'
+    listError.value = '任务列表未成功刷新，请检查连接或稍后重试；这不代表项目没有割接任务。'
   } finally {
     loading.value = false
   }

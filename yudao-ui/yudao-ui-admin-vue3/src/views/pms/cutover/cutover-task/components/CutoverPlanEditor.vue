@@ -278,6 +278,7 @@ const completeStandardUpload = async (
 }
 const resolveFileFact = async (selection: FileSelection) => {
   const artifact = await FileApi.getArtifact(selection.artifactId, fileKey(selection.referenceKey))
+  if (!artifact) throw new Error('文件信息暂不可用，请重新读取后重试')
   const versions = await FileApi.getVersions(selection.artifactId, { ...fileKey(selection.referenceKey), pageSize: 20 })
   const version = versions.items.find((row) => row.versionNo === selection.versionNo)
   if (!version) throw new Error('PLT 未返回刚完成的方案文件版本')

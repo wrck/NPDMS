@@ -1,0 +1,114 @@
+[
+  {
+    "class": "cn/iocoder/yudao/module/pms/platform/service/file/NativeGeneratedFileService.class",
+    "module": "pms-module-platform",
+    "jarClassSha256": "39d507ed50459c0bfbab7e9e85631cf4faf269d521835d931e55704748ea40e2",
+    "compiledClassSha256": "39d507ed50459c0bfbab7e9e85631cf4faf269d521835d931e55704748ea40e2",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/platform/service/businessmodel/BusinessModelAccessConfiguration.class",
+    "module": "pms-module-platform",
+    "jarClassSha256": "99ab61e9d2ac1d01b551c0a52202197dca6278b160c17b7f39df98553281769d",
+    "compiledClassSha256": "99ab61e9d2ac1d01b551c0a52202197dca6278b160c17b7f39df98553281769d",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialWithdrawalService.class",
+    "module": "pms-module-platform",
+    "jarClassSha256": "957d5b64dbbaa9b9adbf8c69d3e6a6acc1818e5eac7e8c456c3b14862e52db0a",
+    "compiledClassSha256": "957d5b64dbbaa9b9adbf8c69d3e6a6acc1818e5eac7e8c456c3b14862e52db0a",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.class",
+    "module": "pms-module-platform",
+    "jarClassSha256": "ad9f0560298c9a93e3a8148da721212d2a56b71882c5cad2f3a7b4fa3ecb573d",
+    "compiledClassSha256": "ad9f0560298c9a93e3a8148da721212d2a56b71882c5cad2f3a7b4fa3ecb573d",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFulfillmentService.class",
+    "module": "pms-module-platform",
+    "jarClassSha256": "7da6de3cbdfc05bafcd10a3169deddcfe44bdcc346feebe397835de1376698d2",
+    "compiledClassSha256": "7da6de3cbdfc05bafcd10a3169deddcfe44bdcc346feebe397835de1376698d2",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentRegistration.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "1be35c1521c79ea9ab81616242491907b5307e16782fe2473503ccffdbbe808d",
+    "compiledClassSha256": "1be35c1521c79ea9ab81616242491907b5307e16782fe2473503ccffdbbe808d",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentKind.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "c4cd5f66da3191d1309b3c17107d7387fa95289e5078fb45fcd7f754676cad61",
+    "compiledClassSha256": "c4cd5f66da3191d1309b3c17107d7387fa95289e5078fb45fcd7f754676cad61",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentFilePolicy.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "403a19e2e1782362b28d5f9f40c4ac73c005db22bdd73cae6f62c1b5b8dd407f",
+    "compiledClassSha256": "403a19e2e1782362b28d5f9f40c4ac73c005db22bdd73cae6f62c1b5b8dd407f",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentPolicies.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "c1b1a80e9388fadd2a993041cb6295de9c416e867ad6154799aa4f8bb42c83db",
+    "compiledClassSha256": "c1b1a80e9388fadd2a993041cb6295de9c416e867ad6154799aa4f8bb42c83db",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentAccess.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "96b1098969e7a05b0d84047bda9ec153c20f8b57649673232b668639fca5e89e",
+    "compiledClassSha256": "96b1098969e7a05b0d84047bda9ec153c20f8b57649673232b668639fca5e89e",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentAccess$Owner.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "3eb8753c1402bb371c074133331d46b99aab4d34f24e179fd1a9e8f997d3d232",
+    "compiledClassSha256": "3eb8753c1402bb371c074133331d46b99aab4d34f24e179fd1a9e8f997d3d232",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/engineering/service/attachment/supplemental/SupplementalAttachmentSources.class",
+    "module": "pms-module-engineering",
+    "jarClassSha256": "380a6c6c46d52da6da34772a28e4c5f43e197ed134c1ff80a35bddef800418ad",
+    "compiledClassSha256": "380a6c6c46d52da6da34772a28e4c5f43e197ed134c1ff80a35bddef800418ad",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentRegistration.class",
+    "module": "pms-module-acceptance",
+    "jarClassSha256": "2483968b5740d47682db5ef94501cd5e1635af683c46aaed4e0e427361752c3e",
+    "compiledClassSha256": "2483968b5740d47682db5ef94501cd5e1635af683c46aaed4e0e427361752c3e",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentDeliveryAccess.class",
+    "module": "pms-module-acceptance",
+    "jarClassSha256": "f25d36b41e8508bb4bc3411837cc5a078a9431396ab130eb8014019855cf46d8",
+    "compiledClassSha256": "f25d36b41e8508bb4bc3411837cc5a078a9431396ab130eb8014019855cf46d8",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentFilePolicy.class",
+    "module": "pms-module-acceptance",
+    "jarClassSha256": "b4b15b5ca5a7744307405574876a6941ca9230025909ebeb8062246312aba622",
+    "compiledClassSha256": "b4b15b5ca5a7744307405574876a6941ca9230025909ebeb8062246312aba622",
+    "sameBytes": true
+  },
+  {
+    "class": "cn/iocoder/yudao/module/pms/acceptance/service/acceptance/LegacyAcceptanceAttachmentSources.class",
+    "module": "pms-module-acceptance",
+    "jarClassSha256": "d413462dee45fd3f141a01c8d1a7e7a04aba3e329df6ecb84fead172d10d61bc",
+    "compiledClassSha256": "d413462dee45fd3f141a01c8d1a7e7a04aba3e329df6ecb84fead172d10d61bc",
+    "sameBytes": true
+  }
+]

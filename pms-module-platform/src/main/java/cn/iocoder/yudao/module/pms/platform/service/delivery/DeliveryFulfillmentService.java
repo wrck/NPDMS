@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryFulf
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMaterialDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryRequirementDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryFulfillmentMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryMaterialMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialIdLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementMaterialQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryFulfillmentIdentityQuery;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +20,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DeliveryFulfillmentService {
     private final DeliveryFulfillmentMapper mapper;
+    private final DeliveryMaterialMapper materials;
 
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void associate(DeliveryRequirementDO requirement, DeliveryMaterialDO material) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (requirement == null || material == null) throw new BusinessContractException(
@@ -27,6 +31,14 @@ public class DeliveryFulfillmentService {
                 || requirement.getProjectId() == null || !requirement.getProjectId().equals(material.getProjectId())
                 || !DeliveryMaterialDO.STATUS_ACTIVE.equals(material.getStatus())) {
             throw new BusinessContractException("DELIVERY_MATERIAL_OWNER_MISMATCH", "只能关联本项目有效材料");
+        }
+        // A caller may hold an older ACTIVE object while public withdrawal has already committed.
+        // Serialize both commands on the material row and validate its current tenant/project/status.
+        var locked = materials.selectMaterialsForUpdate(new DeliveryMaterialIdLockQuery(tenantId, java.util.List.of(material.getId())));
+        if (locked.size() != 1 || !tenantId.equals(locked.getFirst().getTenantId())
+                || !requirement.getProjectId().equals(locked.getFirst().getProjectId())
+                || !DeliveryMaterialDO.STATUS_ACTIVE.equals(locked.getFirst().getStatus())) {
+            throw new BusinessContractException("DELIVERY_MATERIAL_OWNER_MISMATCH", "当前材料已失效或归属已变化");
         }
         DeliveryFulfillmentDO existing = mapper.selectIdentity(new DeliveryFulfillmentIdentityQuery(TenantContextHolder.getRequiredTenantId(), requirement.getId(), material.getId()));
         if (existing != null) {

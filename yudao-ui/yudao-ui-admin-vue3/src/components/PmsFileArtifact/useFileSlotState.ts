@@ -1,20 +1,20 @@
 import { reactive } from 'vue'
-import type { FileArtifactVO, FileUploadMode } from '@/api/pms/platform/file'
+import type { FileArtifactVO, FileId, FileUploadMode } from '@/api/pms/platform/file'
 import type { DetachedFileSlot, FileSelection } from './types'
 
 export interface FileSlotState {
-  artifactId?: number
+  artifactId?: FileId
   referenceKey?: string
   referenceVersion?: number
 }
 
-export const resolveFileUploadMode = (artifactId?: number): FileUploadMode =>
+export const resolveFileUploadMode = (artifactId?: FileId): FileUploadMode =>
   artifactId ? 'ADD_VERSION' : 'CREATE_ARTIFACT'
 
 export const useFileSlotState = () => {
   const state = reactive<FileSlotState>({})
 
-  const reset = (artifactId?: number, referenceKey?: string) => {
+  const reset = (artifactId?: FileId, referenceKey?: string) => {
     state.artifactId = artifactId
     state.referenceKey = referenceKey
     state.referenceVersion = undefined

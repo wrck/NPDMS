@@ -1,0 +1,2170 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "current": {
+    "totals": {
+      "tests": 54,
+      "passed": 54,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest",
+        "counts": {
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 2
+        },
+        "xml": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+        "xmlSha256": "18c980de2c0f8b11afb77f873891ed9b5d4ecbe727d248f2ba924090ed354ff8",
+        "cases": [
+          {
+            "name": "shouldMaskSensitiveFieldsInPageWithoutIndependentPermission",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldExposeSensitiveFieldsInDetailWithIndependentPermission",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest",
+        "counts": {
+          "tests": 33,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 33
+        },
+        "xml": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+        "xmlSha256": "38e49058c92bb53d32e1dbcf7cb0a9b696e760a39170cf57d2c5b966b2781ed5",
+        "cases": [
+          {
+            "name": "hiddenForeignAndNonexistentIdsShareTheSameDenial(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "hiddenForeignAndNonexistentIdsShareTheSameDenial(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "existingReadOnlyContentProviderDoesNotOpenAnUnscopedGenericList",
+            "status": "PASS"
+          },
+          {
+            "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "sensitiveNumericFiltersUseTheSameProjectedValueWithoutScaleArtifacts",
+            "status": "PASS"
+          },
+          {
+            "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "contractSensitiveFieldsMatchNativeDetailAndRevokeImmediately",
+            "status": "PASS"
+          },
+          {
+            "name": "sparseLargeFilterHasBoundedWorkAndResumableCursorWithoutOmissions",
+            "status": "PASS"
+          },
+          {
+            "name": "boundedNativePagesDoNotTruncateAtTwoHundredAndCursorRechecksAuthorization",
+            "status": "PASS"
+          },
+          {
+            "name": "independentOrderProjectionNeverAddsMoneyEvenForSensitiveReader",
+            "status": "PASS"
+          },
+          {
+            "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "duplicateContentOriginsFailClosedForListAndDetail",
+            "status": "PASS"
+          },
+          {
+            "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "deletingPriorRowDoesNotSkipTheNextAuthorizedCursorRow(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "deletingPriorRowDoesNotSkipTheNextAuthorizedCursorRow(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "keyCursorUsesNativeCollationAndUniqueIdForTiedCodes(Model)[1]",
+            "status": "PASS"
+          },
+          {
+            "name": "keyCursorUsesNativeCollationAndUniqueIdForTiedCodes(Model)[2]",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeFixtureProvesCompanyCaseDepartmentUnionAndSensitiveContractProjection",
+            "status": "PASS"
+          },
+          {
+            "name": "changingOrderContractRelationshipClosesProjectVisibility",
+            "status": "PASS"
+          },
+          {
+            "name": "ambiguousLargeOrderDirectoryUsesOneScopedDetailLookup",
+            "status": "PASS"
+          },
+          {
+            "name": "currentCommerceReaderDoesNotSubstituteCurrentRowsForRevisionIdentity",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest",
+        "counts": {
+          "tests": 14,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 14
+        },
+        "xml": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+        "xmlSha256": "6e21993e58f1541a83f755ab1bcbf130084fc1425ba5c918a06ab5fbf9e37114",
+        "cases": [
+          {
+            "name": "shouldAllowOrderReadByProjectScopeWithoutCompanyScope",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldUseCompanyScopeAndAllLockedContractFilters",
+            "status": "PASS"
+          },
+          {
+            "name": "creationSourceWithoutOrdersSkipsExecutionAndLineQueries",
+            "status": "PASS"
+          },
+          {
+            "name": "deviceContractScopeWithoutAuthorizationDoesNotReadContracts",
+            "status": "PASS"
+          },
+          {
+            "name": "creationSourceResolvesFullChainWithinCompanyScope",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldReturnContractDetailAggregateAfterCompanyCheck",
+            "status": "PASS"
+          },
+          {
+            "name": "projectOverviewFailsClosedWhenScopeOwnerUnavailable",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldAllowOrderReadByCompanyScopeWhenProjectScopeIsUnavailable",
+            "status": "PASS"
+          },
+          {
+            "name": "projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant",
+            "status": "PASS"
+          },
+          {
+            "name": "deviceContractScopeUsesBothAuthoritativeScopes",
+            "status": "PASS"
+          },
+          {
+            "name": "creationSourceRejectsContractOutsideScopeBeforeReadingChain",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldAllowContractReadByProjectScopeWithoutCompanyScope",
+            "status": "PASS"
+          },
+          {
+            "name": "projectOverviewRejectsInvisibleProjectBeforeReadingCommerce",
+            "status": "PASS"
+          },
+          {
+            "name": "shouldReturnEmptyWithoutEitherOwnerScope",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+        "counts": {
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 3
+        },
+        "xml": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+        "xmlSha256": "2c14710afd4b4b74008e31a938ce1ae5a1a6e7db6993b5f581f98bdae6f761e5",
+        "cases": [
+          {
+            "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+            "status": "PASS"
+          },
+          {
+            "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+            "status": "PASS"
+          },
+          {
+            "name": "productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+        "counts": {
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 2
+        },
+        "xml": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+        "xmlSha256": "39cb531fdc6868a8ea7a4be099f4bda1e7fbfe7d943bd69569bed9c9cefd275f",
+        "cases": [
+          {
+            "name": "publicReadRetainsCatalogTargetAndNativeBasisAndPreservesFalseZeroArrays",
+            "status": "PASS"
+          },
+          {
+            "name": "ownerPermissionOrRevisionMembershipDenialPrecedesAnyContentRead",
+            "status": "PASS"
+          }
+        ]
+      }
+    ]
+  },
+  "historical": {
+    "red": {
+      "totals": {
+        "tests": 43,
+        "passed": 20,
+        "failures": 0,
+        "errors": 20,
+        "skipped": 3
+      },
+      "suites": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+          "xmlSha256": "62ae7310174cba768d7382f7d1aa49406a3746e3b85f7da2be58efd116afd05f",
+          "cases": [
+            {
+              "name": "shouldMaskSensitiveFieldsInPageWithoutIndependentPermission",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldExposeSensitiveFieldsInDetailWithIndependentPermission",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest",
+          "counts": {
+            "tests": 22,
+            "failures": 0,
+            "errors": 20,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+          "xmlSha256": "3310e8cfd2d8296a568f91c76791d5dd6676bd3f202443d6af45d8f6c23b550b",
+          "cases": [
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "contractSensitiveFieldsMatchNativeDetailAndRevokeImmediately",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              }
+            },
+            {
+              "name": "boundedNativePagesDoNotTruncateAtTwoHundredAndCursorRechecksAuthorization",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              }
+            },
+            {
+              "name": "independentOrderProjectionNeverAddsMoneyEvenForSensitiveReader",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              }
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[1]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_CONTRACT",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/contract"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[2]",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              },
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "nativeFixtureProvesCompanyCaseDepartmentUnionAndSensitiveContractProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "changingOrderContractRelationshipClosesProjectVisibility",
+              "status": "ERROR",
+              "error": {
+                "message": "默认访问缺少范围声明: COM_SALES_ORDER",
+                "type": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+              }
+            },
+            {
+              "name": "currentCommerceReaderDoesNotSubstituteCurrentRowsForRevisionIdentity",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest",
+          "counts": {
+            "tests": 14,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 14
+          },
+          "xml": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+          "xmlSha256": "b853213b41f69e6d0cf184320ee32b2b6d0c253a38a141d9b7f69371e1f545a2",
+          "cases": [
+            {
+              "name": "shouldAllowOrderReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldUseCompanyScopeAndAllLockedContractFilters",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceWithoutOrdersSkipsExecutionAndLineQueries",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeWithoutAuthorizationDoesNotReadContracts",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceResolvesFullChainWithinCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnContractDetailAggregateAfterCompanyCheck",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewFailsClosedWhenScopeOwnerUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowOrderReadByCompanyScopeWhenProjectScopeIsUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeUsesBothAuthoritativeScopes",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceRejectsContractOutsideScopeBeforeReadingChain",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowContractReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewRejectsInvisibleProjectBeforeReadingCommerce",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnEmptyWithoutEitherOwnerScope",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 3,
+            "passed": 0
+          },
+          "xml": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+          "xmlSha256": "60a47b01ae4db80d300aa060c3cbd0da195583d0318c3e8cfc00975a2c70813a",
+          "cases": [
+            {
+              "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+              "status": "SKIP",
+              "skip": {
+                "message": "System property [npdms.declared.exclusive] does not exist"
+              }
+            },
+            {
+              "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+              "status": "SKIP",
+              "skip": {
+                "message": "System property [npdms.declared.exclusive] does not exist"
+              }
+            },
+            {
+              "name": "productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader",
+              "status": "SKIP",
+              "skip": {
+                "message": "System property [npdms.declared.exclusive] does not exist"
+              }
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+          "xmlSha256": "b3121c9c7a62f2d421fbf22221c49859388566599433723d0753762f8675d067",
+          "cases": [
+            {
+              "name": "publicReadRetainsCatalogTargetAndNativeBasisAndPreservesFalseZeroArrays",
+              "status": "PASS"
+            },
+            {
+              "name": "ownerPermissionOrRevisionMembershipDenialPrecedesAnyContentRead",
+              "status": "PASS"
+            }
+          ]
+        }
+      ],
+      "build": "FAILURE",
+      "log": ".run/commerce-domain-reads-20261006/red/mysql.log",
+      "logSha256": "4e82ecca6eaff54c8529397fb168489df0579d82b0c2edf1bb2f517030e091b1",
+      "sourceSnapshot": ".run/commerce-domain-reads-20261006/red/source-files.json",
+      "sourceSnapshotSha256": "8b0d2b709076ced78f2a544a8a30d9818881d4eb69e000a39847a9e2cf45ea26",
+      "sourceCopies": ".run/commerce-domain-reads-20261006/red/source",
+      "finishedAt": "2026-10-06T12:17:00Z"
+    },
+    "first-green": {
+      "totals": {
+        "tests": 43,
+        "passed": 40,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      },
+      "suites": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+          "xmlSha256": "f354e74c3f1d9182e57720d3c788bf7a7b2b6da82df0c40526067af8a6e8b688",
+          "cases": [
+            {
+              "name": "shouldMaskSensitiveFieldsInPageWithoutIndependentPermission",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldExposeSensitiveFieldsInDetailWithIndependentPermission",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest",
+          "counts": {
+            "tests": 22,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 22
+          },
+          "xml": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+          "xmlSha256": "97359ea46b48f638c0a9828adbb71c946670643731d9d1073909e4033f1481ec",
+          "cases": [
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "contractSensitiveFieldsMatchNativeDetailAndRevokeImmediately",
+              "status": "PASS"
+            },
+            {
+              "name": "boundedNativePagesDoNotTruncateAtTwoHundredAndCursorRechecksAuthorization",
+              "status": "PASS"
+            },
+            {
+              "name": "independentOrderProjectionNeverAddsMoneyEvenForSensitiveReader",
+              "status": "PASS"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "nativeFixtureProvesCompanyCaseDepartmentUnionAndSensitiveContractProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "changingOrderContractRelationshipClosesProjectVisibility",
+              "status": "PASS"
+            },
+            {
+              "name": "currentCommerceReaderDoesNotSubstituteCurrentRowsForRevisionIdentity",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest",
+          "counts": {
+            "tests": 14,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 14
+          },
+          "xml": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+          "xmlSha256": "eedad6c86cdf0d9a616ddc6d0c8f57daa8e3e023b058d58486bbc181e3512805",
+          "cases": [
+            {
+              "name": "shouldAllowOrderReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldUseCompanyScopeAndAllLockedContractFilters",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceWithoutOrdersSkipsExecutionAndLineQueries",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeWithoutAuthorizationDoesNotReadContracts",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceResolvesFullChainWithinCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnContractDetailAggregateAfterCompanyCheck",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewFailsClosedWhenScopeOwnerUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowOrderReadByCompanyScopeWhenProjectScopeIsUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeUsesBothAuthoritativeScopes",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceRejectsContractOutsideScopeBeforeReadingChain",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowContractReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewRejectsInvisibleProjectBeforeReadingCommerce",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnEmptyWithoutEitherOwnerScope",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 3,
+            "passed": 0
+          },
+          "xml": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+          "xmlSha256": "697b038e7c0c3eac64a68c5979aa6f1bae920b36ca79cd09fe890bc0f162cee6",
+          "cases": [
+            {
+              "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+              "status": "SKIP",
+              "skip": {
+                "message": "System property [npdms.declared.exclusive] does not exist"
+              }
+            },
+            {
+              "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+              "status": "SKIP",
+              "skip": {
+                "message": "System property [npdms.declared.exclusive] does not exist"
+              }
+            },
+            {
+              "name": "productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader",
+              "status": "SKIP",
+              "skip": {
+                "message": "System property [npdms.declared.exclusive] does not exist"
+              }
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+          "xmlSha256": "a1261982b8fb0441a2c101a89639e59ad7b266ea9b6d44413295690fe3fc5aeb",
+          "cases": [
+            {
+              "name": "publicReadRetainsCatalogTargetAndNativeBasisAndPreservesFalseZeroArrays",
+              "status": "PASS"
+            },
+            {
+              "name": "ownerPermissionOrRevisionMembershipDenialPrecedesAnyContentRead",
+              "status": "PASS"
+            }
+          ]
+        }
+      ],
+      "build": "SUCCESS",
+      "log": ".run/commerce-domain-reads-20261006/first-green/mysql.log",
+      "logSha256": "4363754014a14a4bd3af85d7c0f6c507b60f140504bfe7f77387ac58b3d79c1f",
+      "sourceSnapshot": ".run/commerce-domain-reads-20261006/first-green/source-files.json",
+      "sourceSnapshotSha256": "dd79508d7afc9e6290ba431731027a44254720672c0e69baa36997defc8f44cc",
+      "sourceCopies": ".run/commerce-domain-reads-20261006/first-green/source",
+      "finishedAt": "2026-10-06T12:19:39Z"
+    },
+    "previous46": {
+      "totals": {
+        "tests": 46,
+        "passed": 46,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "suites": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+          "xmlSha256": "996f36816d63be836e3fb673540923b417d22ee4404151df7be41ea58a8ebb30",
+          "cases": [
+            {
+              "name": "shouldMaskSensitiveFieldsInPageWithoutIndependentPermission",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldExposeSensitiveFieldsInDetailWithIndependentPermission",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest",
+          "counts": {
+            "tests": 25,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 25
+          },
+          "xml": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+          "xmlSha256": "67aebddc72b93af8d6fbd6195d2b955ab97a7007ead473d2ea4b5b79d430208f",
+          "cases": [
+            {
+              "name": "existingReadOnlyContentProviderDoesNotOpenAnUnscopedGenericList",
+              "status": "PASS"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "sensitiveNumericFiltersUseTheSameProjectedValueWithoutScaleArtifacts",
+              "status": "PASS"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "contractSensitiveFieldsMatchNativeDetailAndRevokeImmediately",
+              "status": "PASS"
+            },
+            {
+              "name": "boundedNativePagesDoNotTruncateAtTwoHundredAndCursorRechecksAuthorization",
+              "status": "PASS"
+            },
+            {
+              "name": "independentOrderProjectionNeverAddsMoneyEvenForSensitiveReader",
+              "status": "PASS"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "duplicateContentOriginsFailClosedForListAndDetail",
+              "status": "PASS"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[1]",
+              "status": "PASS",
+              "entity": "COM/contract"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[2]",
+              "status": "PASS",
+              "entity": "COM/salesOrder"
+            },
+            {
+              "name": "nativeFixtureProvesCompanyCaseDepartmentUnionAndSensitiveContractProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "changingOrderContractRelationshipClosesProjectVisibility",
+              "status": "PASS"
+            },
+            {
+              "name": "currentCommerceReaderDoesNotSubstituteCurrentRowsForRevisionIdentity",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest",
+          "counts": {
+            "tests": 14,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 14
+          },
+          "xml": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+          "xmlSha256": "97e0f106d0af531d65bf7f36ccdfc85fccf5bf0a94bccc194ee56aa2e0c0c091",
+          "cases": [
+            {
+              "name": "shouldAllowOrderReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldUseCompanyScopeAndAllLockedContractFilters",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceWithoutOrdersSkipsExecutionAndLineQueries",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeWithoutAuthorizationDoesNotReadContracts",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceResolvesFullChainWithinCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnContractDetailAggregateAfterCompanyCheck",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewFailsClosedWhenScopeOwnerUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowOrderReadByCompanyScopeWhenProjectScopeIsUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeUsesBothAuthoritativeScopes",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceRejectsContractOutsideScopeBeforeReadingChain",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowContractReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewRejectsInvisibleProjectBeforeReadingCommerce",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnEmptyWithoutEitherOwnerScope",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 3
+          },
+          "xml": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+          "xmlSha256": "cc6f9065ee6bd0e7396c0e5e71e39d9dc916cb87113fd6e203a7aaf5eb95e446",
+          "cases": [
+            {
+              "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+              "status": "PASS"
+            },
+            {
+              "name": "productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+          "xmlSha256": "1e78d5cb02f16997f5ffd156e3b86fd744a425b20c9d3cd0cff5affc7e8b9e9d",
+          "cases": [
+            {
+              "name": "publicReadRetainsCatalogTargetAndNativeBasisAndPreservesFalseZeroArrays",
+              "status": "PASS"
+            },
+            {
+              "name": "ownerPermissionOrRevisionMembershipDenialPrecedesAnyContentRead",
+              "status": "PASS"
+            }
+          ]
+        }
+      ],
+      "build": "SUCCESS",
+      "log": ".run/commerce-domain-reads-20261006/green/mysql.log",
+      "logSha256": "90f969af604488cfeeb77700beda5a15acf69db2cf2d27f90faac38baa979713",
+      "sourceSnapshot": ".run/commerce-domain-reads-20261006/green/source-files.json",
+      "sourceSnapshotSha256": "9a88c87f2e2c54a13ef7c4b5f3d137b001ab9f51842493fad20421a35c7f919a",
+      "sourceCopies": ".run/commerce-domain-reads-20261006/green/source",
+      "finishedAt": "2026-10-06T12:23:22Z"
+    },
+    "expandedRed": {
+      "totals": {
+        "tests": 52,
+        "passed": 46,
+        "failures": 6,
+        "errors": 0,
+        "skipped": 0
+      },
+      "suites": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+          "xmlSha256": "4178606f87cd688813a846b3c81f15f3ea6324b6223060cb06341684b2efb3fa",
+          "cases": [
+            {
+              "name": "shouldMaskSensitiveFieldsInPageWithoutIndependentPermission",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldExposeSensitiveFieldsInDetailWithIndependentPermission",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest",
+          "counts": {
+            "tests": 31,
+            "failures": 6,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 25
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+          "xmlSha256": "f696fc0887bf9dd4a209c0be3009d49d537812373fca1d50a06131701ecc46fd",
+          "cases": [
+            {
+              "name": "hiddenForeignAndNonexistentIdsShareTheSameDenial(Model)[1]",
+              "status": "FAIL",
+              "message": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown."
+            },
+            {
+              "name": "hiddenForeignAndNonexistentIdsShareTheSameDenial(Model)[2]",
+              "status": "FAIL",
+              "message": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown."
+            },
+            {
+              "name": "existingReadOnlyContentProviderDoesNotOpenAnUnscopedGenericList",
+              "status": "PASS"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "sensitiveNumericFiltersUseTheSameProjectedValueWithoutScaleArtifacts",
+              "status": "PASS"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "contractSensitiveFieldsMatchNativeDetailAndRevokeImmediately",
+              "status": "PASS"
+            },
+            {
+              "name": "sparseLargeFilterHasBoundedWorkAndResumableCursorWithoutOmissions",
+              "status": "FAIL",
+              "message": "One sparse request must not scan an unbounded directory: 102 ==> expected: <true> but was: <false>"
+            },
+            {
+              "name": "boundedNativePagesDoNotTruncateAtTwoHundredAndCursorRechecksAuthorization",
+              "status": "PASS"
+            },
+            {
+              "name": "independentOrderProjectionNeverAddsMoneyEvenForSensitiveReader",
+              "status": "PASS"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "duplicateContentOriginsFailClosedForListAndDetail",
+              "status": "PASS"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "deletingPriorRowDoesNotSkipTheNextAuthorizedCursorRow(Model)[1]",
+              "status": "FAIL",
+              "message": "Offset cursor must not omit the remaining authorized row ==> expected: <[11]> but was: <[]>"
+            },
+            {
+              "name": "deletingPriorRowDoesNotSkipTheNextAuthorizedCursorRow(Model)[2]",
+              "status": "FAIL",
+              "message": "Offset cursor must not omit the remaining authorized row ==> expected: <[11]> but was: <[]>"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "nativeFixtureProvesCompanyCaseDepartmentUnionAndSensitiveContractProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "changingOrderContractRelationshipClosesProjectVisibility",
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguousLargeOrderDirectoryUsesOneScopedDetailLookup",
+              "status": "FAIL",
+              "message": "Detail must not walk the authorized directory: 101 ==> expected: <true> but was: <false>"
+            },
+            {
+              "name": "currentCommerceReaderDoesNotSubstituteCurrentRowsForRevisionIdentity",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest",
+          "counts": {
+            "tests": 14,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 14
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+          "xmlSha256": "1e2ab6d0ae8ba8c55f5c838d94cb009fceca13eb4d340e7dd1741351f4432a06",
+          "cases": [
+            {
+              "name": "shouldAllowOrderReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldUseCompanyScopeAndAllLockedContractFilters",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceWithoutOrdersSkipsExecutionAndLineQueries",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeWithoutAuthorizationDoesNotReadContracts",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceResolvesFullChainWithinCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnContractDetailAggregateAfterCompanyCheck",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewFailsClosedWhenScopeOwnerUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowOrderReadByCompanyScopeWhenProjectScopeIsUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeUsesBothAuthoritativeScopes",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceRejectsContractOutsideScopeBeforeReadingChain",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowContractReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewRejectsInvisibleProjectBeforeReadingCommerce",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnEmptyWithoutEitherOwnerScope",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 3
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+          "xmlSha256": "7c63b9f0bebec67401d6d875b7a2a22cca72263ef0c1728e09184b9641994447",
+          "cases": [
+            {
+              "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+              "status": "PASS"
+            },
+            {
+              "name": "productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+          "xmlSha256": "816375c7fd21a8c45d624763625986bee5501a93149284b54bb3cae75eca54ae",
+          "cases": [
+            {
+              "name": "publicReadRetainsCatalogTargetAndNativeBasisAndPreservesFalseZeroArrays",
+              "status": "PASS"
+            },
+            {
+              "name": "ownerPermissionOrRevisionMembershipDenialPrecedesAnyContentRead",
+              "status": "PASS"
+            }
+          ]
+        }
+      ]
+    },
+    "expandedGreen52": {
+      "totals": {
+        "tests": 52,
+        "passed": 52,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "suites": [
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+          "xmlSha256": "0a90f1a6c56df51bff2352f390bfff7b3c71f094ae6b72d431a6f08e3e418074",
+          "cases": [
+            {
+              "name": "shouldMaskSensitiveFieldsInPageWithoutIndependentPermission",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldExposeSensitiveFieldsInDetailWithIndependentPermission",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest",
+          "counts": {
+            "tests": 31,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 31
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+          "xmlSha256": "38a3f09888660aa5e9807b5207b4a0744a100ee3e188df91081a4e66c5740a1d",
+          "cases": [
+            {
+              "name": "hiddenForeignAndNonexistentIdsShareTheSameDenial(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "hiddenForeignAndNonexistentIdsShareTheSameDenial(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "existingReadOnlyContentProviderDoesNotOpenAnUnscopedGenericList",
+              "status": "PASS"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "nativePermissionRevocationClosesBothListAndDetail(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "sensitiveNumericFiltersUseTheSameProjectedValueWithoutScaleArtifacts",
+              "status": "PASS"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "projectRelationshipUsesNativeUnionAndCurrentValidity(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "contractSensitiveFieldsMatchNativeDetailAndRevokeImmediately",
+              "status": "PASS"
+            },
+            {
+              "name": "sparseLargeFilterHasBoundedWorkAndResumableCursorWithoutOmissions",
+              "status": "PASS"
+            },
+            {
+              "name": "boundedNativePagesDoNotTruncateAtTwoHundredAndCursorRechecksAuthorization",
+              "status": "PASS"
+            },
+            {
+              "name": "independentOrderProjectionNeverAddsMoneyEvenForSensitiveReader",
+              "status": "PASS"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "readBridgeDoesNotAdmitAnyBusinessWriteEvenForNativeWriters(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "filtersOnlyObserveNativePublicProjectionAndCannotWidenOwnerScope(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantAndAuthenticatedActorCannotBeSubstituted(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "duplicateContentOriginsFailClosedForListAndDetail",
+              "status": "PASS"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "companyListDetailCursorAndNativeProjectionStayConsistent(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "deletingPriorRowDoesNotSkipTheNextAuthorizedCursorRow(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "deletingPriorRowDoesNotSkipTheNextAuthorizedCursorRow(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "revokedMalformedAndUnavailableOrganizationScopeFailClosed(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[1]",
+              "status": "PASS"
+            },
+            {
+              "name": "movingCurrentCompanyClosesOldOwnerWithoutCachedPositiveAccess(Model)[2]",
+              "status": "PASS"
+            },
+            {
+              "name": "nativeFixtureProvesCompanyCaseDepartmentUnionAndSensitiveContractProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "changingOrderContractRelationshipClosesProjectVisibility",
+              "status": "PASS"
+            },
+            {
+              "name": "ambiguousLargeOrderDirectoryUsesOneScopedDetailLookup",
+              "status": "PASS"
+            },
+            {
+              "name": "currentCommerceReaderDoesNotSubstituteCurrentRowsForRevisionIdentity",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest",
+          "counts": {
+            "tests": 14,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 14
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+          "xmlSha256": "e55d86a337baa5e18dbfe243022fd6779f51b0a756f96309d7da028b2c4be18d",
+          "cases": [
+            {
+              "name": "shouldAllowOrderReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldUseCompanyScopeAndAllLockedContractFilters",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceWithoutOrdersSkipsExecutionAndLineQueries",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeWithoutAuthorizationDoesNotReadContracts",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceResolvesFullChainWithinCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnContractDetailAggregateAfterCompanyCheck",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewFailsClosedWhenScopeOwnerUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowOrderReadByCompanyScopeWhenProjectScopeIsUnavailable",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant",
+              "status": "PASS"
+            },
+            {
+              "name": "deviceContractScopeUsesBothAuthoritativeScopes",
+              "status": "PASS"
+            },
+            {
+              "name": "creationSourceRejectsContractOutsideScopeBeforeReadingChain",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldAllowContractReadByProjectScopeWithoutCompanyScope",
+              "status": "PASS"
+            },
+            {
+              "name": "projectOverviewRejectsInvisibleProjectBeforeReadingCommerce",
+              "status": "PASS"
+            },
+            {
+              "name": "shouldReturnEmptyWithoutEitherOwnerScope",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 3
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+          "xmlSha256": "41a6d53907cc32a1b40c64e9b6f9439d1b0279e7c51cd2b15616254db89985e9",
+          "cases": [
+            {
+              "name": "explicitTenantCatalogKeepsNativePermissionTenantIsolationAndReadableProjection",
+              "status": "PASS"
+            },
+            {
+              "name": "tenantCompatibilityCannotOverrideNewDeclaredProjectScope",
+              "status": "PASS"
+            },
+            {
+              "name": "productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "class": "cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest",
+          "counts": {
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "passed": 2
+          },
+          "xml": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+          "xmlSha256": "a14d519b856b05b7f2b1e83b1e8f03f71fc640d6d02a6ad49c889d49ab1cc9d2",
+          "cases": [
+            {
+              "name": "publicReadRetainsCatalogTargetAndNativeBasisAndPreservesFalseZeroArrays",
+              "status": "PASS"
+            },
+            {
+              "name": "ownerPermissionOrRevisionMembershipDenialPrecedesAnyContentRead",
+              "status": "PASS"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scopeNotes": [
+    "54 current JUnit cases; older 46/52 snapshots overlap and are not cumulative.",
+    "JUnit scope ports are controlled; the 149-request separate normal-JAR acceptance uses real OrganizationScope/ProjectScope and real login/cache proxies.",
+    "Role-menu and user-role changes after warm login use production HTTP; no SQL role changes or manual Redis clearing.",
+    "Project VIEW grant/revoke use production authorization HTTP. Organization and commerce ownership facts are synthetic SQL fixture changes in the exclusive database.",
+    "Original V374 remains failed; HTTP PASS on V373 plus partial V374 is not complete migration PASS.",
+    "Final95 HTTP independently adds both-active company/project union, overlap deduplication, each-route/both-route revocations and amount masking. It runs in the same exclusive environment as 10000-row authorization-sparse sample.",
+    "The sparse sample returned 50 authorized IDs over3pages; actual RowsExamined10005/38/21, native SQL22.668706/0.891211/0.651081ms. No constant physical scan bound is claimed; no production index/migration changed."
+  ],
+  "currentSourceFiles": [
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadService.java",
+      "sha256": "a3b820c96d2db51fcbcfc0aac855b7288afe8c81ec97d2c8cc7167015353604d",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java",
+      "sha256": "577f1107cee9af76b5c82ec9d52269e4a65a1186d37469391ca6fc5d54f5a672",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractRespVO.java",
+      "sha256": "7dc12dc29f086ca809b97f1b20ff759c97278cc02124ba0d7ddd1118d8c8d12d",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/order/OrderController.java",
+      "sha256": "33f60ca03616103d6c981e25ba60f91215ad84833f8217fafce9ff30f4264365",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/order/vo/SalesOrderRespVO.java",
+      "sha256": "9ad1ee6e75da529f864c01a64dc5c093087932360b18a1fc0ab96287936bde41",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/ContractDO.java",
+      "sha256": "1775fef8ffb6c87c363b6197682dc7a52b3527608e24ba7e5fb72a03a2c4aabb",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/order/SalesOrderDO.java",
+      "sha256": "cc313f9e32d5f9717d78fa2d369eeb42e69a849c49aca9ca51ad99e3071ee2f6",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ContractMapper.java",
+      "sha256": "af190ded7937581207e94aefc40b6daca436925d415b07d6b915d3e1c99faa32",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/query/ContractRootReadPageQuery.java",
+      "sha256": "9b2409b1aa8cdaf55bb7576c8b4b17c121ddd99aca0bd9f5be0718d119b40923",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java",
+      "sha256": "709de0c60438d6e8e0ce8432ac144621cef50c21f70a50da112586cacfa64fb7",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderDetailScopeQuery.java",
+      "sha256": "d93255d469018a477502c1ecf56fabd228a39a54ef64c6568836f61b77b8f800",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderRootReadPageQuery.java",
+      "sha256": "c2ff688c38db7220720015927646803e3dafd12249af992d890c44f3c0a81bb0",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "sha256": "cedfa4be28159849dac89db665aa52c63ee94b55ca8525546c59a5e997f1b096",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessEntityContentReader.java",
+      "sha256": "2c0f593ff45eee16d5c11f690f35c2991598b66aa901ceb518ed6ad60e70151f",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+      "sha256": "d7db70fcf3398406c9ff8617eafa390795561601cf018d15812e631f3fb83f73",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml",
+      "sha256": "dad899b134aa2dc3560ea67bc3451ae21bed6df874022be629e440a07d0a07f9",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/contract/ProjectContractRelationMapper.xml",
+      "sha256": "eb0652f664b45d19fad4aacc462f0c388458c2b8983f89a5e542569dbb13e077",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "sha256": "2f0d9d570e74ceb57eafad5d960d3bca78c5e4a2d472008817fc69e75378f82d",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessReadMySqlTest.java",
+      "sha256": "845ff3397aaeef794da79efeed664c8315349f2682c20d49e3b087cebaafcf6c",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityContentReader.java",
+      "sha256": "d982427554b40fea281c64ffb9395b0e970f9ff2d0537f3fc3d1e19db0f6afd5",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "sha256": "2d242d3d0bb24e7922863c9f91241ff9d9009ac2c5a5320ddda3b8079d53bfd2",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/model/BusinessModelIntrospector.java",
+      "sha256": "08655cb98e410262547477ffbecd4f9a6592ea73d27098bff7a7f60468f25de5",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessModelContractAdvice.java",
+      "sha256": "8642b5a7e55ba4931fdedc36375ec97d55f64b4d0b32a8cc87fcf777c2d5da99",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/BusinessModelAccessConfiguration.java",
+      "sha256": "c0fb1d42a39aa978673def8bd2f76b76eb592bec5a4451c5498371cf30151c27",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/PermissionBusinessAccessGuard.java",
+      "sha256": "d74d10c9f3b099f3fb8ead03739e84d08dc89fcb0f892f41a04c6c5dadaae4e3",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/ProviderBusinessEntityContentReader.java",
+      "sha256": "e3afdb6640dfa9fa3ccb52e5ed0c09fdd088320dcba1f7a0738c029b2e434bb4",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/scope/ProjectScopeApiImpl.java",
+      "sha256": "5a952d0656d02a549bcbd61fc7e2e29f7c0a9385a6a5a16256e6774b6d891a1b",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectauthorization/ProjectAuthorizationController.java",
+      "sha256": "b973331805465c31eebc872543d4678607d2c5650f9e19fb86dbbaef1edaf4ec",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java",
+      "sha256": "6ea20e3ca92e45b94af37609fe01303189d52f365360e65744a250e07f35f613",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "scripts/tests/verify_commerce_domain_reads_mysql.sh",
+      "sha256": "12c79e07daf17106a6c2cf9fe9ae7f2a01d2a1cb6b3a758e7b6241cdc6d705e5",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "scripts/tests/verify_commerce_real_login.py",
+      "sha256": "7471388df93465f1ac4dd7a54e9bde1dac566d7eea2980e807a79af8f7a367b2",
+      "role": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "sql/migrations/V1__yudao_platform.sql",
+      "sha256": "1e78255b50c4afe687fc60bde7414e2aefe4376e017801a93d909862e1c6f222",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/OrganizationScopeApiImpl.java",
+      "sha256": "6f14cd4c8ee71502918bc76d60754427bfe7a8f7a6208db22e1cd3056229c3c5",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApiImpl.java",
+      "sha256": "caf7c36b86f2b7c645f63ffaaf6e1f2ff2268a75e24ed4b99597a735e4e6efc4",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/controller/admin/permission/PermissionController.java",
+      "sha256": "79fb35fcecc6cabc38032c33b2b229399b34034586447521268167d703b36f38",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/MenuServiceImpl.java",
+      "sha256": "19962f10b85461f5672c6f385eb8c7db0dd6a16384373bbb144f9170bcd57612",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/PermissionServiceImpl.java",
+      "sha256": "2118ef8b4a5e7ab1ad8fedf8789ea23d7a77d834c66d5a821d173b6d0fa3a1f5",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/RoleServiceImpl.java",
+      "sha256": "ace50b0b1970ac7f335198fae35810d685f68040650614cb6a1c4725a0ac2bc9",
+      "role": "UNCHANGED_NATIVE_BASIS"
+    }
+  ],
+  "notRun": [
+    "整个后端测试树及79模型全量验收",
+    "前端/真实浏览器",
+    "全部存量Owner适配、默认运行视图和统一交付件桥接的整体验收",
+    "真实生产历史/生产库/部署/合并/提交/推送",
+    "生产负载、并发翻页及排序编码修改期间的快照一致性",
+    "完整迁移链：受原始V374第72行排序规则冲突阻塞"
+  ],
+  "realLogin": {
+    "status": "PASS",
+    "requests": 149,
+    "evidence": "real-login-acceptance.json",
+    "sha256": "93665d643774d07ac4a2c5e609dddcb75b094427a9ef46ec984326974d71bd4e",
+    "jarSha256": "ecd3a00d89113f940c5207a3fa9ea6d154b8df24984e19bd3803bb97985e3f73",
+    "metrics": [
+      {
+        "name": "10k original-schema detail",
+        "selects": 1,
+        "elapsedMs": 356.8
+      },
+      {
+        "name": "10k original-schema sparse filter",
+        "requests": 51,
+        "maxSelectsPerRequest": 1,
+        "foundIds": [
+          909999
+        ],
+        "elapsedMs": 48178.1
+      }
+    ],
+    "firstRunAssertionMismatch": {
+      "status": "FAIL",
+      "requests": 7,
+      "reason": "Script expected internal ACCESS_DENIED name; existing production advice maps it to HTTP 403 / code 1010006005. Corrected to exact external error-code assertion, no authorization change.",
+      "evidence": ".run/commerce-real-login-20261006/first-http-run/acceptance.json"
+    },
+    "originalRawEvidence": ".run/commerce-real-login-20261006/final/acceptance.json"
+  },
+  "migration": {
+    "status": "FAIL",
+    "exclusiveFreshDatabase": "npdms_commerce_boot",
+    "version": "374",
+    "sqlState": "HY000",
+    "errorCode": 1267,
+    "line": 72,
+    "unchanged": true,
+    "repairedOrSkipped": false,
+    "evidence": ".run/commerce-real-login-20261006/final/flyway.log"
+  },
+  "finalGapVerification": {
+    "status": "PASS",
+    "requests": 95,
+    "mode": "FINAL_TWO_GAPS",
+    "evidence": "real-login-acceptance.json#finalTwoGaps",
+    "sha256": "93665d643774d07ac4a2c5e609dddcb75b094427a9ef46ec984326974d71bd4e",
+    "rawEvidence": ".run/commerce-final-gaps-20261006/acceptance.json",
+    "testScriptSha256": "7471388df93465f1ac4dd7a54e9bde1dac566d7eea2980e807a79af8f7a367b2",
+    "jarSha256": "ecd3a00d89113f940c5207a3fa9ea6d154b8df24984e19bd3803bb97985e3f73",
+    "combinedStages": [
+      {
+        "label": "both company/project paths; overlap once; amounts masked",
+        "authorizedIds": [
+          896010,
+          896011,
+          896040
+        ],
+        "sensitiveRead": false,
+        "bothModelsChecked": true
+      },
+      {
+        "label": "both company/project paths; overlap once; amounts allowed",
+        "authorizedIds": [
+          896010,
+          896011,
+          896040
+        ],
+        "sensitiveRead": true,
+        "bothModelsChecked": true
+      },
+      {
+        "label": "company path revoked; project and overlap remain",
+        "authorizedIds": [
+          896010,
+          896040
+        ],
+        "sensitiveRead": true,
+        "bothModelsChecked": true
+      },
+      {
+        "label": "company path restored; both paths active",
+        "authorizedIds": [
+          896010,
+          896011,
+          896040
+        ],
+        "sensitiveRead": true,
+        "bothModelsChecked": true
+      },
+      {
+        "label": "project path revoked; company and overlap remain",
+        "authorizedIds": [
+          896010,
+          896011
+        ],
+        "sensitiveRead": true,
+        "bothModelsChecked": true
+      },
+      {
+        "label": "company path remains; sensitive role revoked",
+        "authorizedIds": [
+          896010,
+          896011
+        ],
+        "sensitiveRead": false,
+        "bothModelsChecked": true
+      },
+      {
+        "label": "both company/project paths revoked",
+        "authorizedIds": [],
+        "sensitiveRead": false,
+        "bothModelsChecked": true
+      }
+    ],
+    "authorizationSparse": {
+      "sampleRows": 10000,
+      "authorizedSampleRows": 50,
+      "unauthorizedSampleRows": 9950,
+      "distribution": "9950 company B rows precede 50 authorized CLOUD_SPARSE rows in native order",
+      "schema": "original migrations failed at V374; V373 plus partial V374",
+      "nativeTenantRows": 10005,
+      "claim": "Returned native rows <=201 and cursor coverage tested; physical scan cost is measured, not bounded by LIMIT.",
+      "coveragePassed": true,
+      "totalRowsExamined": 10064,
+      "totalNativeSqlMs": 24.210998,
+      "totalRequestMs": 400.2,
+      "syntheticFixture": {
+        "path": ".run/commerce-final-gaps-20261006/authorization-sparse-fixture.sql",
+        "sha256": "a4396a8fd1841bbcb3cbfefe17fd3ed1f919f305950ef01e02dc2530d7639417",
+        "rows": 10000
+      }
+    },
+    "production11Unchanged": true,
+    "previous54JUnitNotRerun": true,
+    "original149NotRerunOrAddedTo95": true
+  }
+}

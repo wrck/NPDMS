@@ -184,7 +184,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="fileUrl">
-            <UploadFile v-model="form.fileUrl!" />
+            <AdditionalNativeAttachments kind="briefing" :entity-id="form.id" :legacy="form.fileUrl" :readonly="form.status !== 0 || !checkPermi(['pms:sol-briefing:update'])" @changed="attachmentOwnerChanged" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -292,6 +292,8 @@
 </template>
 
 <script setup lang="ts">
+import AdditionalNativeAttachments from '@/views/pms/engineering/attachment/AdditionalNativeAttachments.vue'
+import { checkPermi } from '@/utils/permission'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { getGeneratedBriefingFileTicket } from '@/api/pms/engineering/briefing'
 const downloadBriefingFile = async (url: string) => {
@@ -374,6 +376,7 @@ const openEdit = async (row: BriefingVO) => {
   Object.assign(form, detail)
   formVisible.value = true
 }
+const attachmentOwnerChanged = (owner: { version?: number; status?: number }) => { form.version = owner.version; form.status = owner.status }
 const save = async () => {
   await formRef.value.validate()
   saving.value = true

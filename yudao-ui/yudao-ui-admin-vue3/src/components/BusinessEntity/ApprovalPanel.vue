@@ -291,8 +291,8 @@ onMounted(load)
 
 const statusLabel = (status: string) =>
   ({ PENDING: '进行中', APPROVED: '已批准', REJECTED: '已驳回', WITHDRAWN: '已撤回' })[status] ?? status
-const statusTagType = (status: string) =>
-  ({ PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', WITHDRAWN: 'info' })[status] ?? 'info'
+const statusTagType = (status: string): 'warning' | 'success' | 'danger' | 'info' =>
+  ({ PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', WITHDRAWN: 'info' } as const)[status] ?? 'info'
 const effectStatusLabel = (status: string) =>
   ({ SUCCESS: '成功', PENDING_RECOVERY: '待恢复', FAILED: '失败' })[status] ?? status
 </script>

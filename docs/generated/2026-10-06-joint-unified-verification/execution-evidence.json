@@ -1,0 +1,164 @@
+{
+  "rawLogsRemainPrivateAndUncommitted": [
+    {
+      "path": ".run/joint-20261006/ui-default-config-failure/ui-joint-final.log",
+      "sha256": "7a39f726cb118c030a44154bdd4d9c70d115064d335e1e5ae12f4623b2987295",
+      "bytes": 109
+    },
+    {
+      "path": ".run/joint-20261006/ui-default-config-failure/ui-joint-final.json",
+      "sha256": "49f9d6039723e3f649dd12ea6fe765ca0c35b75e05dc47d2ab147527024c149f",
+      "bytes": 10244
+    },
+    {
+      "path": ".run/joint-20261006/joint-package-1.log",
+      "sha256": "98573842a3870c578d84afb5faab4a06f4105956a1dc6ea11b2df400dcb9913c",
+      "bytes": 341181
+    },
+    {
+      "path": ".run/joint-20261006/joint-package-2.log",
+      "sha256": "5979526a5c37df5b557371c2fac3f65d6a0539fd77f01ee65dc665414fd5bb41",
+      "bytes": 212383
+    },
+    {
+      "path": ".run/joint-20261006/joint-package-final.log",
+      "sha256": "036b95f26720e5a05e39faeac76bfd793263a06ad77baa1ec26dfd349680c846",
+      "bytes": 190729
+    },
+    {
+      "path": ".run/joint-20261006/cas-discovery-mysql-1.log",
+      "sha256": "3aa16af2a608437bab85dcf3c76a87de24b8b1db70b0081856de87265f5ac71f",
+      "bytes": 88094
+    },
+    {
+      "path": ".run/joint-20261006/cas-discovery-mysql-2.log",
+      "sha256": "a9c63e3a5faea72c3e0243bffa36006438b0149896211d8805a07368f7c9554d",
+      "bytes": 45447
+    },
+    {
+      "path": ".run/joint-20261006/cas-discovery-mysql-3.log",
+      "sha256": "dd606694e5cebb62531debca1b286ca3786f19de2aae623de0e6ce3cc990aca5",
+      "bytes": 190352
+    },
+    {
+      "path": ".run/joint-20261006/cas-discovery-mysql-4.log",
+      "sha256": "187c1019c20ba3f4664b3b171908d3542a08e925eb1b3f84c23421b838196671",
+      "bytes": 47361
+    },
+    {
+      "path": ".run/joint-20261006/native-download-race-red.log",
+      "sha256": "9e3d32c19e469b7673314ef9504bcfbfdb97b9a49a6f8e1694743abbd36d8813",
+      "bytes": 54210
+    },
+    {
+      "path": ".run/joint-20261006/native-download-race-red-2.log",
+      "sha256": "f71b8e34a03429c2529c9a1d0e1e129fa9fbf030768809e5ddf8d6b005f53efd",
+      "bytes": 47724
+    },
+    {
+      "path": ".run/joint-20261006/full-migration.log",
+      "sha256": "e1116aae79659b1ba21194da53923b732cc7d7e5638f1afe5ff16fb6197519d4",
+      "bytes": 336398
+    },
+    {
+      "path": ".run/joint-20261006/native-stage2-run.log",
+      "sha256": "77ef8834964663bf43ef95dcc88f21c54b2fd43117186cd455efd0c996114623",
+      "bytes": 1734
+    },
+    {
+      "path": ".run/joint-20261006/native-stage1-run.log",
+      "sha256": "f3835349adb7d7300bb813dd5238b39ba7df8b3bd9cbaa7c31593b613e9a5f37",
+      "bytes": 1635
+    },
+    {
+      "path": ".run/joint-20261006/declared-browser-run.log",
+      "sha256": "df60269548fcccccc66eb359c778251bfbf334a6181eadb6aab90115771a4ea7",
+      "bytes": 1161
+    },
+    {
+      "path": ".run/joint-20261006/ui-joint-1.log",
+      "sha256": "471347546b6628ddfc8798248e1f7f71211fd8787facf1b00162fd811c77cbce",
+      "bytes": 459
+    },
+    {
+      "path": ".run/joint-20261006/ui-joint-final.log",
+      "sha256": "eca43660fe0b7781f5b325e07d48115da49e713dea4fa45f53e9e3b8d585fe59",
+      "bytes": 300
+    },
+    {
+      "path": ".run/joint-20261006/full-tomcat-final-stdout.log",
+      "sha256": "e77c38db38bae47bfd92ed4c8bbe0ec649760b6594beaf5552f2d2455233b2a7",
+      "bytes": 26596
+    },
+    {
+      "path": ".run/joint-20261006/full-tomcat-final-application.log",
+      "sha256": "dcc574e4d3b5565f88decf0326389f2ac83a02ad37973e2f67121d438f44b7ae",
+      "bytes": 21064
+    },
+    {
+      "path": ".run/joint-20261006/full-tomcat-final-acceptance-run-2.log",
+      "sha256": "0ed81e668d746b7d6b9ff9d1cf305ac0302d31cd81067a5910e09533b634e508",
+      "bytes": 107
+    }
+  ],
+  "failureAndSetupRecords": [
+    {
+      "run": "ui-final-default-config",
+      "status": "SETUP_FAILURE",
+      "passedCases": 14,
+      "failedAssertions": 0,
+      "unloadedSuites": 10,
+      "reason": "Bare default Vitest externalized Element Plus CSS; rerun with repository vitest.pms-file.config.ts; all 13 suites/78 cases pass without source/assertion edits"
+    },
+    {
+      "run": "joint-package-1",
+      "status": "SETUP_FAILURE",
+      "observedPlatformTests": 180,
+      "failures": 0,
+      "errors": 53,
+      "skipped": 3,
+      "reason": "Fixed-port declared fixture MySQL 27461/Redis 27464 absent; later created verified exclusive project; no assertion weakened"
+    },
+    {
+      "run": "cas-discovery-mysql-1",
+      "status": "SETUP_FAILURE",
+      "tests": 26,
+      "errors": 10,
+      "reason": "H2 4000-character columns exceeded MySQL row limit; corrected MySQL fixture column width"
+    },
+    {
+      "run": "cas-discovery-mysql-3 and native-download-race-red-1",
+      "status": "SETUP_FAILURE",
+      "reason": "Plain Spring fixture lacked Boot Duration conversion for mocked file ticket bean; provided Boot shared conversion service"
+    },
+    {
+      "run": "native-download-race-red-2",
+      "status": "EXPECTED_FAIL_BEFORE_FIX",
+      "tests": 2,
+      "failures": 2,
+      "errors": 0
+    },
+    {
+      "run": "full-tomcat-final-first-launch",
+      "status": "SETUP_FAILURE",
+      "details": {
+        "status": "SETUP_FAILURE",
+        "cause": "shutdown helper treated exited zombie as live; no current jar launched",
+        "oldPid": 296050,
+        "oldPidState": "Z; exited",
+        "healthWaiterTerminatedPids": [],
+        "businessRequestsAttempted": 0
+      }
+    },
+    {
+      "run": "full-original-migration",
+      "status": "FAIL",
+      "reason": "V374 line72 MySQL1267; unchanged historical SQL"
+    }
+  ],
+  "sourceHashesBeforeRed": {
+    "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/NativeGeneratedFileService.java": "aa036bc6acfaa537a0c55514ba2f8c8b999a027f21d6985e723a7896bd00c45c",
+    "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialWithdrawalPersistenceTest.java": "76c1ccd11fb3df124ebd4403a2dc80353ed915f8ad5dd4270106f6ef1218f57a"
+  },
+  "snapshotWarning": "Prior UI 77-case log remains historical; the explicit current 78-case/13-file JSON selection is the current evidence; neither is added. Prior 543/540 package snapshot predates the current native download lock fix and expanded CAS test fixture; current 558/555 package supersedes it, rather than adding counts."
+}

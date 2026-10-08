@@ -16,20 +16,24 @@ public final class BusinessEntityIdentityResolver {
         synchronized (this) {
             if (mappings != null) return mappings;
             Map<String,String> values=new LinkedHashMap<>();
+            Set<String> declaredIdentities=new HashSet<>();
             for(String name:beans.getBeanNamesForType(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelContributor.class,false,false)) {
                 var contributor=beans.getBean(name,cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelContributor.class);
                 for(var declaration:contributor.declarations()) {
-                    if(declaration.nativeEntityType()==null || declaration.nativeEntityType().isBlank()) continue;
                     var model=declaration.descriptor();
-                    put(values,model.ownerModule()+"/"+model.entityType(),declaration.nativeEntityType());
+                    String key=model.ownerModule()+"/"+model.entityType();
+                    declaredIdentities.add(key);
+                    if(declaration.nativeEntityType()==null || declaration.nativeEntityType().isBlank()) continue;
+                    put(values,key,declaration.nativeEntityType());
                 }
             }
             Set<String> serviceIdentities=new HashSet<>();
             for (String name: beans.getBeanNamesForType(AbstractBusinessApplicationService.class, false, false)) {
                 var identity=beans.findAnnotationOnBean(name, BusinessEntityService.class, false);
-                if (identity == null || identity.nativeEntityType().isBlank()) continue;
+                if (identity == null) continue;
                 String key=identity.ownerModule()+"/"+identity.entityType();
-                String nativeKey=identity.ownerModule()+"/"+identity.nativeEntityType();
+                declaredIdentities.add(key);
+                if (identity.nativeEntityType().isBlank()) continue;
                 if (!serviceIdentities.add(key))
                     throw new BusinessContractException("IDENTITY_MAPPING_CONFLICT", "业务身份映射必须唯一: "+key);
                 put(values,key,identity.nativeEntityType());
@@ -38,7 +42,7 @@ public final class BusinessEntityIdentityResolver {
             for(var mapping:values.entrySet()) {
                 String owner=mapping.getKey().substring(0,mapping.getKey().indexOf('/'));
                 String nativeKey=owner+"/"+mapping.getValue();
-                if(!nativeIdentities.add(nativeKey) || !nativeKey.equals(mapping.getKey()) && values.containsKey(nativeKey))
+                if(!nativeIdentities.add(nativeKey) || !nativeKey.equals(mapping.getKey()) && declaredIdentities.contains(nativeKey))
                     throw new BusinessContractException("IDENTITY_MAPPING_CONFLICT","Ambiguous declared/native identity: "+nativeKey);
             }
             mappings=Map.copyOf(values);

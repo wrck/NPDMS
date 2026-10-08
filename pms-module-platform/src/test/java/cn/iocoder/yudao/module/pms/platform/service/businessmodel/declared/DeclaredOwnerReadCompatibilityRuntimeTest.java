@@ -59,4 +59,34 @@ class DeclaredOwnerReadCompatibilityRuntimeTest {
         assertFalse(compatibility.supports("IT","declaredNote"));
         assertEquals("ENTITY_SCOPE_DENIED",assertThrows(BusinessContractException.class,()->runtime.access.read(EntityDataRef.current(new EntityRef(7L,"IT","declaredNote",980101L)),actor(),"detail")).getErrorCode());
     }
+
+    @Test void productionAccessAndCollectionAliasesResolveTheSameAuthorizedParentReader() {
+        var source=runtime.declaration.descriptor();
+        var child=new BusinessModelDescriptor(source.ownerModule(),source.entityType(),source.stableCode(),1,source.kind(),source.title(),source.authorizationPolicyRef(),source.fields(),source.relations(),List.of(),List.of(),null,null);
+        var parent=new BusinessModelDescriptor("IT","parent","IT_PARENT",1,source.kind(),"Parent",source.authorizationPolicyRef(),source.fields(),List.of(),List.of(),List.of(),null,null);
+        var declarations=List.of(new BusinessModelDeclaration(child,DeclaredNoteDO.class,runtime.declaration.mapper(),null),new BusinessModelDeclaration(parent,DeclaredNoteDO.class,runtime.declaration.mapper(),null));
+        runtime.jdbc.update("INSERT INTO it_declared_note(id,tenant_id,project_ref,title,version) VALUES(100,7,0,'authorized parent',0)");
+        try(var context=new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.registerBean(BusinessModelContributor.class,()->()->declarations);
+            context.registerBean(BusinessModelCatalog.class,()->new BusinessModelRegistry(context.getBeanProvider(BusinessModelContributor.class)));
+            context.registerBean(BusinessEntityPersistenceRegistry.class,()->new BusinessEntityPersistenceRegistry(context.getBeanProvider(BusinessModelContributor.class)));
+            context.registerBean(BusinessAccessGuard.class,()->runtime.guard);
+            context.registerBean(cn.iocoder.yudao.module.pms.platform.support.service.BusinessCallerContext.class,cn.iocoder.yudao.module.pms.platform.service.businessmodel.TenantCallerContext::new);
+            context.registerBean(cn.iocoder.yudao.module.pms.platform.support.service.OperationExecutionStore.class,()->org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.support.service.OperationExecutionStore.class));
+            context.registerBean(cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventPort.class,()->org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventPort.class));
+            context.registerBean(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class,()->org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class));
+            context.registerBean(org.springframework.transaction.PlatformTransactionManager.class,()->new org.springframework.jdbc.datasource.DataSourceTransactionManager(runtime.source));
+            context.registerBean("parentTenantScope",BusinessEntityScopePolicy.class,()->new OwnerTenantReadScopePolicy(Set.of("IT/parent"),context.getBean(BusinessModelCatalog.class),context.getBean(BusinessEntityPersistenceRegistry.class)));
+            context.registerBean("childParentScope",BusinessEntityScopePolicy.class,()->new OwnerParentReadScopePolicy(Set.of("IT/declaredNote"),"projectRef","IT","parent",context.getBean(BusinessModelCatalog.class),context.getBean(BusinessEntityPersistenceRegistry.class),context.getBeanProvider(BusinessEntityAccessPort.class)));
+            context.register(cn.iocoder.yudao.module.pms.platform.service.businessmodel.BusinessModelAccessConfiguration.class);
+            context.refresh();
+            var access=context.getBean(BusinessEntityAccessPort.class);
+            assertSame(access,context.getBean(cn.iocoder.yudao.module.pms.platform.api.businessmodel.collection.BusinessCollectionPort.class));
+            var page=new BusinessEntityPageQuery("list","IT","declaredNote",List.of(),10,null);
+            assertEquals(List.of(980101L),access.query(page,actor()).members().stream().map(row->row.ref().entityId()).toList());
+            assertEquals("tenant catalog",access.read(EntityDataRef.current(new EntityRef(7L,"IT","declaredNote",980101L)),actor(),"detail").fieldValues().get("title"));
+            login(7,880003);assertEquals("ACCESS_DENIED",assertThrows(BusinessContractException.class,()->access.query(page,actor())).getErrorCode());
+            login(8,880002);assertTrue(access.query(page,actor()).members().isEmpty());
+        }
+    }
 }

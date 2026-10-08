@@ -24,7 +24,7 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.DYNA
 @Component
 public class DynamicFormBusinessObjectPolicyProviderRegistry {
 
-    private final List<DynamicFormBusinessObjectPolicyProvider> providers;
+    private final java.util.function.Supplier<List<DynamicFormBusinessObjectPolicyProvider>> providers;
     private final org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.support.capability.DeclaredBusinessCapabilityAdapterFactory> declared;
     private final Object transactionResourceKey = new Object();
     private final Object revisionTransactionResourceKey = new Object();
@@ -32,12 +32,17 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
     public DynamicFormBusinessObjectPolicyProviderRegistry(List<DynamicFormBusinessObjectPolicyProvider> providers) {
         this(providers,null);
     }
-    @org.springframework.beans.factory.annotation.Autowired
     public DynamicFormBusinessObjectPolicyProviderRegistry(List<DynamicFormBusinessObjectPolicyProvider> providers,
             org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.support.capability.DeclaredBusinessCapabilityAdapterFactory> declared) {
-        this.providers=List.copyOf(providers);this.declared=declared;
+        var fixed=List.copyOf(providers);this.providers=()->fixed;this.declared=declared;
     }
 
+    /** Business Services also own form policy; resolve lazily to avoid a Service -> forms -> registry -> Service cycle. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public DynamicFormBusinessObjectPolicyProviderRegistry(org.springframework.beans.factory.ObjectProvider<DynamicFormBusinessObjectPolicyProvider> providers,
+            org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.support.capability.DeclaredBusinessCapabilityAdapterFactory> declared){
+        this.providers=()->providers.orderedStream().toList();this.declared=declared;
+    }
     public DynamicFormPolicyFact inspectRevision(DynamicFormRevisionPolicyQuery query) {
         DynamicFormPolicyFact fact = usable(
                 invoke(() -> provider(query.providerKey()).inspectRevisionCompatibility(query)), query.action());
@@ -174,7 +179,7 @@ public class DynamicFormBusinessObjectPolicyProviderRegistry {
 
     private DynamicFormBusinessObjectPolicyProvider provider(DynamicFormProviderKey key) {
         if (key == null) throw exception(DYNAMIC_FORM_PROVIDER_UNAVAILABLE);
-        List<DynamicFormBusinessObjectPolicyProvider> matches = providers.stream()
+        List<DynamicFormBusinessObjectPolicyProvider> matches = providers.get().stream()
                 .filter(provider -> key.equals(provider.providerKey())).toList();
         var defaults=declared==null?null:declared.getIfAvailable();
         if(matches.isEmpty() && defaults!=null && defaults.supports(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef(1L,key.ownerContext(),key.objectType(),1L)))

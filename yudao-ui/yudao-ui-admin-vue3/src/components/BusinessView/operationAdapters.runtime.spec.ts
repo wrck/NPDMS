@@ -6,17 +6,20 @@ import * as Report from '@/api/pms/acceptance/acceptance-report'
 import { OperationClient, routeSelection } from './operationClient'
 
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
-vi.mock('@/config/axios/service', () => ({ service: vi.fn() }))
+vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } } }))
 const vector = { task: { projectId: 1, taskId: 2, executionContractId: 3, contractVersion: 1,
   planVersionId: 4, executionId: 5 }, stage: null }
 const surveyResultCodes: Record<string, string> = { CREATE: 'SURVEY_DRAFT_SAVED', UPDATE: 'SURVEY_DRAFT_SAVED',
   DELETE: 'SURVEY_DELETED', CONFIRM: 'SURVEY_CONFIRMED', REJECT: 'SURVEY_REJECTED', ARCHIVE: 'SURVEY_ARCHIVED' }
+const surveyReceipt = (action: string) => ({ outcome: 'EFFECTED', newConcurrencyBasis: 4,
+  entityRef: { tenantId: 7, ownerModule: 'SOL', entityType: 'siteSurvey', entityId: 8 },
+  references: [{ kind: 'COMMAND', ownerModule: 'SOL', value: JSON.stringify({ id: 8, projectId: 1, version: 4, state: 'DRAFT', deleted: action === 'DELETE' }) }] })
 // 受信适配器按实际契约校验返回正文；fake回执必须满足各Owner的validateResult，而不是通用占位值。
 function resultFor(code: string) {
   const action = code.split('.')[2]
   if (code.startsWith('SOL.SITE_SURVEY.')) return { ownerContext: 'SOL', objectType: 'SITE_SURVEY',
     resultCode: surveyResultCodes[action], objectId: '8', objectVersion: 4, businessFactVersion: 'v4',
-    revisionId: null, replayed: false, response: { id: 8, version: 4, deleted: action === 'DELETE' } }
+    revisionId: null, replayed: false, response: { id: 8, version: 4, deleted: action === 'DELETE', operationReceipt: surveyReceipt(action) } }
   if (code.startsWith('SOL.REQUIREMENT_ANALYSIS.')) return { ownerContext: 'SOL', objectType: 'REQUIREMENT_ANALYSIS',
     resultCode: action === 'COMPLETE' ? 'REQUIREMENT_ANALYSIS_COMPLETED' : 'REQUIREMENT_ANALYSIS_DRAFT_SAVED',
     objectId: '8', revisionId: '8', objectVersion: 4, businessFactVersion: 'v4', replayed: false,
@@ -87,10 +90,12 @@ describe('all registered workbench operations use the controlled route', () => {
       if (action === 'PUBLISH' || action === 'UPDATE_DRAFT') expect(route.submit.mock.calls[0][1].input.reportVersionId).toBe(89)
     })
   }
-  it('keeps an unmarked standalone request on the original API', async () => {
+  it('routes standalone survey writes through the current public business receipt API', async () => {
     const data = { projectId: 1, name: 'x', code: 's' }
-    await Survey.createSiteSurvey(data)
-    expect(request.post).toHaveBeenCalledWith({ url: '/api/v1/pms/site-surveys/create', data })
+    vi.mocked(request.post).mockResolvedValue(surveyReceipt('CREATE') as never)
+    await Survey.createSiteSurvey(data, 'standalone-key')
+    expect(request.post).toHaveBeenCalledWith(expect.objectContaining({ url: '/api/v1/pms/business-models/SOL/siteSurvey/operations/create',
+      data: expect.objectContaining({ idempotencyKey: 'standalone-key', entryKind: 'INDEPENDENT' }) }))
   })
   it('never falls back to the original API when the controlled command fails', async () => {
     const route = clientFor('SOL.SITE_SURVEY.UPDATE')

@@ -1,0 +1,1511 @@
+{
+  "catalogRuntime" : [ {
+    "key" : "CUT/cutoverTask",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverTask",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "CUT/cutoverAssessment",
+    "scopePolicies" : [ "legacyCutoverTaskChildren:cn.iocoder.yudao.module.pms.platform.support.access.OwnerParentReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverAssessment",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.beans.factory.NoUniqueBeanDefinitionException: No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort' available: expected single matching bean but found 2: businessEntityAccessPort,businessCollectionPort"
+    }
+  }, {
+    "key" : "CUT/cutoverPlanRevision",
+    "scopePolicies" : [ "legacyCutoverTaskChildren:cn.iocoder.yudao.module.pms.platform.support.access.OwnerParentReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverPlanRevision",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.beans.factory.NoUniqueBeanDefinitionException: No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort' available: expected single matching bean but found 2: businessEntityAccessPort,businessCollectionPort"
+    }
+  }, {
+    "key" : "CUT/cutoverApprovalInstance",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverApprovalInstance",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "CUT/cutoverChecklist",
+    "scopePolicies" : [ "legacyCutoverTaskChildren:cn.iocoder.yudao.module.pms.platform.support.access.OwnerParentReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverChecklist",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.beans.factory.NoUniqueBeanDefinitionException: No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort' available: expected single matching bean but found 2: businessEntityAccessPort,businessCollectionPort"
+    }
+  }, {
+    "key" : "CUT/cutoverClosure",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverClosure",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "CUT/cutoverConfigurationRevision",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverConfigurationRevision",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "CUT/cutoverSpareApplicationReference",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUT",
+      "entityType" : "cutoverSpareApplicationReference",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "CUS/customerMaster",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUS",
+      "entityType" : "customerMaster",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "CUS/customerContact",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUS",
+      "entityType" : "customerContact",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "CUS/customerServiceLevel",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "CUS",
+      "entityType" : "customerServiceLevel",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PRJ/project",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "project",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PRJ/portfolio",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "portfolio",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PRJ/projectRisk",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "projectRisk",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PRJ/projectTemplate",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "projectTemplate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PRJ/projectSite",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "projectSite",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "PRJ/splitRequest",
+    "scopePolicies" : [ "legacyParentProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "splitRequest",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "PRJ/treeVersion",
+    "scopePolicies" : [ "legacyTreeRootReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "treeVersion",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PRJ/treeChange",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "treeChange",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "PRJ/teamBatchChange",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "teamBatchChange",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PRJ/stageSuggestionRule",
+    "scopePolicies" : [ "legacyTenantCatalogReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerTenantReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "stageSuggestionRule",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PRJ/taskAssignment",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "taskAssignment",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PRJ/planVersion",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "planVersion",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "PRJ/projectClosure",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "projectClosure",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PRJ/governanceAction",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "governanceAction",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PRJ/exitRecord",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PRJ",
+      "entityType" : "exitRecord",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "SOL/requirement",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "requirement",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "SOL/requirementAnalysis",
+    "scopePolicies" : [ "requirementAnalysisBusinessScopePolicy:cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisBusinessScopePolicy" ],
+    "contentReaders" : [ "providerBusinessEntityContentReader:cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReader" ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "REQUIREMENT_ANALYSIS",
+      "entityId" : 1
+    },
+    "specializedService" : "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisBusinessApplicationService",
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "SOL/siteSurvey",
+    "scopePolicies" : [ "siteSurveyBusinessScopePolicy:cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessScopePolicy" ],
+    "contentReaders" : [ "providerBusinessEntityContentReader:cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReader" ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "SITE_SURVEY",
+      "entityId" : 1
+    },
+    "specializedService" : "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessApplicationService",
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "SOL/solution",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "solution",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "SOL/constructionPlan",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "constructionPlan",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "SOL/stagePlanBatch",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "stagePlanBatch",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "IMP/training",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "training",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "IMP/arrival",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "arrival",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "IMP/arrivalAcceptance",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "arrivalAcceptance",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "IMP/deliveryEvidence",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "deliveryEvidence",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "IMP/installation",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "installation",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "IMP/jointTest",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "jointTest",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "IMP/deliverable",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "deliverable",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "IMP/materialExchange",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "materialExchange",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "IMP/materialRequisition",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "materialRequisition",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.jdbc.BadSqlGrammarException: \n### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'product_name' in 'field list'\n### The error may exist in cn/iocoder/yudao/module/pms/engineering/dal/mysql/materialrequisition/MaterialRequisitionMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT id, project_id, code, name, requisition_type, equipment_id, product_name, product_code, specification, quantity, unit, needed_date, warehouse_id, warehouse_name, stock_status, attachment_files, trigger_source, trigger_ref_id, applicant_user_id, apply_time, approver_user_id, approve_time, approve_opinion, approve_action, bpm_process_instance_id, status, remark, version, tenant_id, create_time, update_time, creator, updater, deleted FROM imp_eng_material_requisition WHERE deleted = 0 AND (tenant_id = ? AND project_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)) AND tenant_id = 1 ORDER BY id ASC LIMIT ?\n### Cause: java.sql.SQLSyntaxErrorException: Unknown column 'product_name' in 'field list'\n; bad SQL grammar []"
+    }
+  }, {
+    "key" : "IMP/externalProcurement",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "externalProcurement",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.jdbc.BadSqlGrammarException: \n### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'product_name' in 'field list'\n### The error may exist in cn/iocoder/yudao/module/pms/engineering/dal/mysql/externalprocurement/ExternalProcurementMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT id, project_id, code, name, procurement_type, product_name, product_code, specification, brand, product_model, quantity, unit, unit_price, total_price, currency, supplier_name, supplier_contact, supplier_phone, needed_date, expected_delivery_date, attachment_files, trigger_source, trigger_ref_id, applicant_user_id, apply_time, approver_user_id, approve_time, approve_opinion, approve_action, bpm_process_instance_id, status, remark, version, tenant_id, create_time, update_time, creator, updater, deleted FROM imp_eng_external_procurement WHERE deleted = 0 AND (tenant_id = ? AND project_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)) AND tenant_id = 1 ORDER BY id ASC LIMIT ?\n### Cause: java.sql.SQLSyntaxErrorException: Unknown column 'product_name' in 'field list'\n; bad SQL grammar []"
+    }
+  }, {
+    "key" : "RES/outsourceRequest",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "RES",
+      "entityType" : "outsourceRequest",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PLT/authorization",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "authorization",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "SOL/briefing",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "briefing",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "IMP/configuration",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "configuration",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "IMP/issue",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "issue",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "IMP/risk",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "risk",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "SOL/resourceReady",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "resourceReady",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "SOL/scheduleBackward",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SOL",
+      "entityType" : "scheduleBackward",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "IMP/docTemplate",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "IMP",
+      "entityType" : "docTemplate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PLT/formTemplate",
+    "scopePolicies" : [ "legacyTenantCatalogReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerTenantReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "formTemplate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "PLT/formInstance",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "formInstance",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "KNO/announcement",
+    "scopePolicies" : [ "legacyTenantCatalogReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerTenantReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "KNO",
+      "entityType" : "announcement",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "SRV/inspectionRule",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "SRV",
+      "entityType" : "inspectionRule",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PLT/authorizationGrant",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "authorizationGrant",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PLT/businessViewRevision",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "businessViewRevision",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PLT/collectionTemplate",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "collectionTemplate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PLT/collectionTask",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "collectionTask",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "PLT/deliveryRequirement",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "PLT",
+      "entityType" : "deliveryRequirement",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "COM/contract",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "COM",
+      "entityType" : "contract",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "COM/salesOrder",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "COM",
+      "entityType" : "salesOrder",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "COM/deliveryScope",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "COM",
+      "entityType" : "deliveryScope",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "COM/authorityCandidate",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "COM",
+      "entityType" : "authorityCandidate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "COM/crmExecutionOrder",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "COM",
+      "entityType" : "crmExecutionOrder",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "AST/device",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "AST",
+      "entityType" : "device",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "AST/site",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "AST",
+      "entityType" : "site",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "AST/assetProductOfficial",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "AST",
+      "entityType" : "assetProductOfficial",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "AST/assetProductType",
+    "scopePolicies" : [ ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "AST",
+      "entityType" : "assetProductType",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "SCOPE_POLICY_NOT_DECLARED"
+    }
+  }, {
+    "key" : "ACC/acceptance",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "acceptance",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "ACC/acceptanceActivity",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "acceptanceActivity",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "ACC/acceptanceScopeBinding",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "acceptanceScopeBinding",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "ACC/archiveDocument",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "archiveDocument",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "ACC/completionCertificate",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "completionCertificate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.jdbc.BadSqlGrammarException: \n### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'service_type' in 'field list'\n### The error may exist in cn/iocoder/yudao/module/pms/acceptance/dal/mysql/completioncertificate/CompletionCertificateMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT id, project_id, code, name, certificate_no, customer_id, completion_date, customer_confirm_user_id, customer_confirm_time, archive_time, reject_reason, content, attachment_url, service_type, engineer_user_id, engineer_name, engineer_contact, customer_unit, contract_no, item_arrival, item_install, item_cutover, item_training, item_docs, customer_sign_url, customer_sign_date, vendor_sign_url, vendor_sign_date, status, remark, version, tenant_id, create_time, update_time, creator, updater, deleted FROM acc_completion_certificate WHERE deleted = 0 AND (tenant_id = ? AND project_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)) AND tenant_id = 1 ORDER BY id ASC LIMIT ?\n### Cause: java.sql.SQLSyntaxErrorException: Unknown column 'service_type' in 'field list'\n; bad SQL grammar []"
+    }
+  }, {
+    "key" : "ACC/deliverableChecklist",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "deliverableChecklist",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  }, {
+    "key" : "ACC/normalClosureApplication",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "normalClosureApplication",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "ACC/satisfactionCollectionTask",
+    "scopePolicies" : [ "legacyDirectProjectReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerProjectReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "satisfactionCollectionTask",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 0
+    }
+  }, {
+    "key" : "ACC/satisfactionQuestionnaire",
+    "scopePolicies" : [ "legacySatisfactionQuestionnaires:cn.iocoder.yudao.module.pms.platform.support.access.OwnerParentReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "satisfactionQuestionnaire",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "REJECTED_OR_FAILED",
+      "reason" : "org.springframework.beans.factory.NoUniqueBeanDefinitionException: No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityAccessPort' available: expected single matching bean but found 2: businessEntityAccessPort,businessCollectionPort"
+    }
+  }, {
+    "key" : "ACC/satisfactionQuestionnaireTemplate",
+    "scopePolicies" : [ "legacyTenantCatalogReads:cn.iocoder.yudao.module.pms.platform.support.access.OwnerTenantReadScopePolicy" ],
+    "contentReaders" : [ ],
+    "scopeBinding" : null,
+    "nativeIdentity" : {
+      "tenantId" : 1,
+      "ownerModule" : "ACC",
+      "entityType" : "satisfactionQuestionnaireTemplate",
+      "entityId" : 1
+    },
+    "specializedService" : null,
+    "query" : {
+      "status" : "PASS",
+      "size" : 1
+    }
+  } ],
+  "nativeBeans" : {
+    "cn.iocoder.yudao.module.pms.platform.api.entity.EntityFieldProvider" : [ {
+      "bean" : "requirementAnalysisEntityProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider",
+      "ownerModule" : "SOL",
+      "entityType" : "REQUIREMENT_ANALYSIS"
+    }, {
+      "bean" : "siteSurveyEntityProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyEntityProvider",
+      "ownerModule" : "SOL",
+      "entityType" : "SITE_SURVEY"
+    } ],
+    "cn.iocoder.yudao.module.pms.platform.api.entity.EntityVersionProvider" : [ {
+      "bean" : "requirementAnalysisEntityProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider",
+      "ownerModule" : "SOL",
+      "entityType" : "REQUIREMENT_ANALYSIS"
+    } ],
+    "cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyProvider" : [ {
+      "bean" : "arrivalFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalFilePolicyProvider",
+      "ownerContext" : "IMP",
+      "objectType" : "ARRIVAL"
+    }, {
+      "bean" : "briefingGeneratedFilePolicy",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.briefing.BriefingGeneratedFilePolicy",
+      "ownerContext" : "SOL",
+      "objectType" : "BRIEFING_DOCUMENT"
+    }, {
+      "bean" : "constructionPlanChangeFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanChangeFilePolicyProvider",
+      "ownerContext" : "SOL",
+      "objectType" : "CONSTRUCTION_PLAN_CHANGE"
+    }, {
+      "bean" : "preparationFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationFilePolicyProvider",
+      "ownerContext" : "SOL",
+      "objectType" : "SITE_SURVEY_ITEM"
+    }, {
+      "bean" : "requirementAnalysisFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisFilePolicyProvider",
+      "ownerContext" : "SOL",
+      "objectType" : "REQUIREMENT_ANALYSIS_SECTION"
+    }, {
+      "bean" : "requirementAnalysisRevisionFilePolicy",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisRevisionFilePolicy",
+      "ownerContext" : "SOL",
+      "objectType" : "REQUIREMENT_ANALYSIS_REVISION"
+    }, {
+      "bean" : "trainingGeneratedFilePolicy",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.training.TrainingGeneratedFilePolicy",
+      "ownerContext" : "IMP",
+      "objectType" : "TRAINING_RECORD"
+    }, {
+      "bean" : "deliveryFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryFilePolicyProvider",
+      "ownerContext" : "PLT",
+      "objectType" : "DELIVERY_MATERIAL"
+    }, {
+      "bean" : "dynamicFormFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormFilePolicyProvider",
+      "ownerContext" : "PLATFORM",
+      "objectType" : "DYNAMIC_FORM_INSTANCE"
+    }, {
+      "bean" : "platformExportFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.platform.service.export.PlatformExportFilePolicyProvider",
+      "ownerContext" : "PLATFORM",
+      "objectType" : "EXPORT_TASK"
+    }, {
+      "bean" : "collectionLogFilePolicy",
+      "class" : "cn.iocoder.yudao.module.pms.platform.service.file.CollectionLogFilePolicy",
+      "ownerContext" : "PLT",
+      "objectType" : "CollectionTask"
+    }, {
+      "bean" : "projectDeliverableFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableFilePolicyProvider",
+      "ownerContext" : "ACC",
+      "objectType" : "PROJECT_DELIVERABLE"
+    }, {
+      "bean" : "acceptanceReportFileBusinessObjectPolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.acceptance.service.acceptancereport.AcceptanceReportFileBusinessObjectPolicyProvider",
+      "ownerContext" : "ACC",
+      "objectType" : "ACCEPTANCE_REPORT_VERSION"
+    }, {
+      "bean" : "checklistAttachmentFilePolicy",
+      "class" : "cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentFilePolicy",
+      "ownerContext" : "ACC",
+      "objectType" : "DELIVERABLE_CHECKLIST"
+    }, {
+      "bean" : "satisfactionResponseFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResponseFilePolicyProvider",
+      "ownerContext" : "ACC",
+      "objectType" : "SATISFACTION_RESPONSE"
+    }, {
+      "bean" : "satisfactionResultFilePolicyProvider",
+      "class" : "cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.SatisfactionResultFilePolicyProvider",
+      "ownerContext" : "ACC",
+      "objectType" : "SATISFACTION_RESULT"
+    }, {
+      "bean" : "configurationAttachments",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentFilePolicy",
+      "ownerContext" : "IMP",
+      "objectType" : "configuration"
+    }, {
+      "bean" : "jointtestAttachments",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentFilePolicy",
+      "ownerContext" : "IMP",
+      "objectType" : "jointTest"
+    }, {
+      "bean" : "externalprocurementAttachments",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentFilePolicy",
+      "ownerContext" : "IMP",
+      "objectType" : "externalProcurement"
+    }, {
+      "bean" : "outsourceAttachments",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentFilePolicy",
+      "ownerContext" : "RES",
+      "objectType" : "outsourceRequest"
+    }, {
+      "bean" : "materialrequisitionAttachments",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentFilePolicy",
+      "ownerContext" : "IMP",
+      "objectType" : "materialRequisition"
+    }, {
+      "bean" : "materialexchangeAttachments",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentFilePolicy",
+      "ownerContext" : "IMP",
+      "objectType" : "materialExchange"
+    } ],
+    "cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider" : [ {
+      "bean" : "cutoverCompletionProvider",
+      "class" : "cn.iocoder.yudao.module.pms.cutover.service.taskbusiness.CutoverCompletionProvider",
+      "ownerContext" : "CUT",
+      "objectType" : "CUTOVER_TASK"
+    }, {
+      "bean" : "projectAssignmentCompletionProvider",
+      "class" : "cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectAssignmentCompletionProvider",
+      "ownerContext" : "PROJ",
+      "objectType" : "PROJECT_ASSIGNMENT"
+    }, {
+      "bean" : "constructionPlanTaskBusinessObjectProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.ConstructionPlanTaskBusinessObjectProvider",
+      "ownerContext" : "PLN",
+      "objectType" : "CONSTRUCTION_PLAN"
+    }, {
+      "bean" : "requirementAnalysisEntityBusinessObjectProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.RequirementAnalysisEntityBusinessObjectProvider",
+      "ownerContext" : "SOL",
+      "objectType" : "REQUIREMENT_ANALYSIS"
+    }, {
+      "bean" : "siteSurveyTaskBusinessObjectProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.SiteSurveyTaskBusinessObjectProvider",
+      "ownerContext" : "SOL",
+      "objectType" : "SITE_SURVEY"
+    }, {
+      "bean" : "solutionApprovalCompletionProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.SolutionApprovalCompletionProvider",
+      "ownerContext" : "SOL",
+      "objectType" : "IMPLEMENTATION_SOLUTION"
+    }, {
+      "bean" : "stagePlanApprovalCompletionProvider",
+      "class" : "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.StagePlanApprovalCompletionProvider",
+      "ownerContext" : "PLN",
+      "objectType" : "STAGE_PLAN"
+    }, {
+      "bean" : "acceptanceTaskBusinessObjectProvider",
+      "class" : "cn.iocoder.yudao.module.pms.acceptance.service.taskbusiness.AcceptanceTaskBusinessObjectProvider",
+      "ownerContext" : "ACC",
+      "objectType" : "ACCEPTANCE"
+    } ]
+  },
+  "legacyStages" : [ {
+    "id" : 994009100115,
+    "project_id" : 1002,
+    "stage_code" : "S0",
+    "status" : "PENDING",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  }, {
+    "id" : 994009100155,
+    "project_id" : 1002,
+    "stage_code" : "S1",
+    "status" : "ACTIVE",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  }, {
+    "id" : 994009100195,
+    "project_id" : 1002,
+    "stage_code" : "S2",
+    "status" : "PENDING",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  }, {
+    "id" : 994009100235,
+    "project_id" : 1002,
+    "stage_code" : "S3",
+    "status" : "PENDING",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  }, {
+    "id" : 994009100275,
+    "project_id" : 1002,
+    "stage_code" : "S4",
+    "status" : "PENDING",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  }, {
+    "id" : 994009100315,
+    "project_id" : 1002,
+    "stage_code" : "S5",
+    "status" : "PENDING",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  }, {
+    "id" : 994009100355,
+    "project_id" : 1002,
+    "stage_code" : "S6",
+    "status" : "PENDING",
+    "graph_version" : null,
+    "definition_revision_id" : null
+  } ],
+  "legacyContracts" : 0,
+  "legacyStageAssertion" : {
+    "expected" : "CURRENT_STAGE_CONTRACT_REQUIRED",
+    "actual" : "java.lang.IllegalStateException: CURRENT_STAGE_CONTRACT_REQUIRED",
+    "pass" : true
+  },
+  "frozenStageControl" : {
+    "status" : "PASS",
+    "contracts" : 1,
+    "bindingType" : "STAGE_NATIVE",
+    "graphVersion" : 1,
+    "rolledBack" : true
+  },
+  "controlRowsAfterRollback" : 0,
+  "legacyOutboxDelivery" : {
+    "completed" : false,
+    "row" : {
+      "status" : "PENDING",
+      "retry_count" : 1,
+      "next_retry_time" : "2026-10-06T10:42:30.637"
+    }
+  },
+  "legacyContractsAfter" : 0
+}

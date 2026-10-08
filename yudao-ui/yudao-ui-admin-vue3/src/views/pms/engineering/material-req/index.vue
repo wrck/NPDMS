@@ -269,7 +269,8 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles!" />
+            <NativeAttachments :key="String(form.id || 'new')" kind="materialRequisition" :entity-id="form.id"
+              :readonly="![0, 4].includes(form.status ?? -1) || !checkPermi(['pms:imp-material-req:update'])" :legacy="form.attachmentFiles" @changed="attachmentOwnerChanged" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -327,6 +328,7 @@
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
+    <NativeAttachments v-if="current.id" kind="materialRequisition" :entity-id="current.id" :readonly="true" :legacy="current.attachmentFiles" />
   </Dialog>
 
   <!-- 审批对话框 -->
@@ -363,6 +365,8 @@
 </template>
 
 <script setup lang="ts">
+import { checkPermi } from '@/utils/permission'
+import NativeAttachments from '../attachment/NativeAttachments.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
@@ -478,6 +482,10 @@ const openEdit = async (row: MaterialRequisitionVO) => {
   const detail = await MaterialReqApi.getMaterialRequisition(row.id!)
   Object.assign(form, detail)
   formVisible.value = true
+}
+const attachmentOwnerChanged = (saved: { version?: number; status?: number; configLogUrl?: string }) => {
+  form.version = saved.version
+  form.status = saved.status
 }
 const save = async () => {
   if (saving.value) return

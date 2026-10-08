@@ -34,6 +34,23 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/business/requirement-analyses', name: 'PmsInheritedRequirementAnalyses',
+    component: () => import('@/views/pms/business/requirement-analysis/index.vue'),
+    meta: { hidden: true, canTo: true, title: '需求分析' }
+  },
+  {
+    path: '/pms/business/site-surveys',
+    name: 'PmsInheritedSiteSurveys',
+    component: () => import('@/views/pms/business/site-survey/index.vue'),
+    meta: { hidden: true, canTo: true, title: '现场工勘' }
+  },
+  {
+    path: '/pms/deliverables',
+    name: 'PmsDefaultDeliverables',
+    component: () => import('@/views/pms/platform/deliverables/index.vue'),
+    meta: { hidden: true, canTo: true, title: '项目交付件归集' }
+  },
+  {
     // 统一业务实体默认页面：目录驱动的独立入口，不进入生产菜单/字典，测试装配实体也由此承载。
     path: '/pms/business-entity/:ownerModule?/:entityType?',
     name: 'PmsBusinessEntityBrowser',

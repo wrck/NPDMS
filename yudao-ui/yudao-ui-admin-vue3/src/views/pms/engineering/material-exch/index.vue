@@ -245,7 +245,8 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="原因附件" prop="reasonFiles">
-            <UploadFile v-model="form.reasonFiles!" />
+            <NativeAttachments :key="String(form.id || 'new')" kind="materialExchange" :entity-id="form.id"
+              :readonly="![0, 4].includes(form.status ?? -1) || !checkPermi(['pms:imp-material-exch:update'])" :legacy="form.reasonFiles" @changed="attachmentOwnerChanged" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -297,6 +298,7 @@
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
+    <NativeAttachments v-if="current.id" kind="materialExchange" :entity-id="current.id" :readonly="true" :legacy="current.reasonFiles" />
     <el-table v-if="current.serials?.length" :data="current.serials" border max-height="360" class="mt-4">
       <el-table-column prop="orderNo" label="订单号" min-width="140" />
       <el-table-column prop="lineNo" label="行号" width="80" />
@@ -347,6 +349,8 @@
 </template>
 
 <script setup lang="ts">
+import { checkPermi } from '@/utils/permission'
+import NativeAttachments from '../attachment/NativeAttachments.vue'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
@@ -500,6 +504,10 @@ const openEdit = async (row: MaterialExchangeVO) => {
   }
   pickerKey.value++
   formVisible.value = true
+}
+const attachmentOwnerChanged = (saved: { version?: number; status?: number; configLogUrl?: string }) => {
+  form.version = saved.version
+  form.status = saved.status
 }
 const save = async () => {
   if (saving.value) return

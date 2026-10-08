@@ -37,6 +37,7 @@ public class BusinessModelAccessConfiguration {
     }
 
     @Bean
+    @org.springframework.context.annotation.Primary
     public BusinessEntityAccessPort businessEntityAccessPort(BusinessModelCatalog catalog,
                                                              BusinessEntityPersistenceRegistry persistence,
                                                              BusinessAccessGuard guard,
@@ -62,6 +63,26 @@ public class BusinessModelAccessConfiguration {
             BusinessEntityPersistenceRegistry persistence, BusinessAccessGuard guard,
             OperationExecutionStore executionStore, BusinessEventPort eventPort,
             OperationAuditApi auditApi, ObjectProvider<TransactionOperations> transactionOperations,
+            org.springframework.transaction.PlatformTransactionManager transactionManager,
+            ObjectProvider<EntityExtensionApi> extensionApi,
+            cn.iocoder.yudao.module.pms.platform.support.access.DeclaredBusinessScopeSupport declaredScopes,
+            BusinessEntityAccessPort entityAccess,
+            ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi> deliveryPort,
+            jakarta.validation.Validator validator,
+            ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessDeletionGuard> deletionGuards) {
+        var defaults = defaultBusinessApplicationService(callerContext, catalog, persistence, guard,
+                executionStore, eventPort, auditApi, transactionOperations, transactionManager, extensionApi, declaredScopes);
+        defaults.configureDefaultCapabilities(entityAccess, deliveryPort::getObject);
+        defaults.configureValidation(validator, deletionGuards.orderedStream().toList());
+        return defaults;
+    }
+
+    /** Existing isolated runtimes may configure capability ports after constructing their local context. */
+    public DefaultBusinessApplicationService defaultBusinessApplicationService(
+            BusinessCallerContext callerContext, BusinessModelCatalog catalog,
+            BusinessEntityPersistenceRegistry persistence, BusinessAccessGuard guard,
+            OperationExecutionStore executionStore, BusinessEventPort eventPort, OperationAuditApi auditApi,
+            ObjectProvider<TransactionOperations> transactionOperations,
             org.springframework.transaction.PlatformTransactionManager transactionManager,
             ObjectProvider<EntityExtensionApi> extensionApi,
             cn.iocoder.yudao.module.pms.platform.support.access.DeclaredBusinessScopeSupport declaredScopes) {

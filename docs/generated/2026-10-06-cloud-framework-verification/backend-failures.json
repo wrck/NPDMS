@@ -1,0 +1,1151 @@
+[
+  {
+    "class": "cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationServiceTest",
+    "tests": 15,
+    "failures": 4,
+    "errors": 3,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationServiceTest.xml",
+    "sha256": "0a65d3dac786d46487dc50c4caa5a86e62bfe19f63cbfc0d45147b9dd1b2dc7d",
+    "testSources": [
+      {
+        "path": "pms-module-customer/src/test/java/cn/iocoder/yudao/module/pms/customer/service/customer/CustomerApplicationServiceTest.java",
+        "sha256": "2f34e59af856e7a91e5b036862de3a56cc04ca7f36e9a986cb578dc17a6da3fd",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "duplicateCodeStopsBeforeInsert",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.framework.common.exception.ServiceException> but was: <java.lang.IllegalArgumentException>"
+      },
+      {
+        "name": "createsTemporaryCustomerWithReconciliationFacts",
+        "status": "ERROR",
+        "reason": "客户创建命令不完整"
+      },
+      {
+        "name": "classificationDenialHasNoWriteSideEffect",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <java.lang.IllegalStateException> but was: <java.lang.IllegalArgumentException>"
+      },
+      {
+        "name": "createsPlatformCustomerInsidePlatformCommand",
+        "status": "ERROR",
+        "reason": "客户创建命令不完整"
+      },
+      {
+        "name": "sameRequestReplayReturnsReplayedResultWithoutWrites",
+        "status": "ERROR",
+        "reason": "客户创建命令不完整"
+      },
+      {
+        "name": "sameKeyDifferentPayloadMapsToStableConflict",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.framework.common.exception.ServiceException> but was: <java.lang.IllegalArgumentException>"
+      },
+      {
+        "name": "duplicateCrmMappingStopsBeforeInsert",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.framework.common.exception.ServiceException> but was: <java.lang.IllegalArgumentException>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisSpringPersistenceTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 9,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisSpringPersistenceTest.xml",
+    "sha256": "c2bff9a1123532708270388db7740f495a9707530344c2bb712cb3fa69f0b09e",
+    "testSources": [
+      {
+        "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisSpringPersistenceTest.java",
+        "sha256": "f736c2ec07eaf8e55a9407d8c8e5715fa154328e4bc2e0ea44bc77951f484849",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "springDiscoversRealOwnerAndTransactionalProviders",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "completeFrozenReplayAndStaleSaveDoNotProduceAdditionalEvents",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "replayConflictAndRevokedPermissionPreservePersistedFacts",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "eventFailureRollsBackFreezeActivationExtensionsLedgerAuditAndOutbox",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "extensionAndBodyFailuresRollBackAllTables",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "mismatchedControlledOperationObjectOrNodeRejectsBeforeLedgerReservation",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "concurrentSavesWithOneVersionHaveOneWinner",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "concurrentSaveAndCompleteWithOneVersionHaveOneWinner",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      },
+      {
+        "name": "originalPlatformApiReadsTheSamePersistentNativeReceipt",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisEntityProvider': Unsatisfied dependency expressed through constructor parameter 4: Error creating bean with name 'files': Unsatisfied dependency expressed through field 'materials': No qualifying bean of type 'cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.engineering.service.requirement.TemplateRequirementOperationInputTest",
+    "tests": 15,
+    "failures": 0,
+    "errors": 4,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.engineering.service.requirement.TemplateRequirementOperationInputTest.xml",
+    "sha256": "c77d72bac10d8e0bceb3cd4d114b448b33006633354fd9980265ab1e96656b4d",
+    "testSources": [
+      {
+        "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/TemplateRequirementOperationInputTest.java",
+        "sha256": "ab1b114644a960d8020ae6d128f8c2a74a3644db66d4bfc47cbd492f8a72ebe4",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "originalCommandsRetainTheirBusinessInputAndRevision(String, String)[1]",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt.references()\" because \"<parameter1>\" is null"
+      },
+      {
+        "name": "originalCommandsRetainTheirBusinessInputAndRevision(String, String)[2]",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt.references()\" because \"<parameter1>\" is null"
+      },
+      {
+        "name": "originalCommandsRetainTheirBusinessInputAndRevision(String, String)[3]",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt.references()\" because \"<parameter1>\" is null"
+      },
+      {
+        "name": "originalCommandsRetainTheirBusinessInputAndRevision(String, String)[4]",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt.references()\" because \"<parameter1>\" is null"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.SyncRunTransactionTest",
+    "tests": 23,
+    "failures": 0,
+    "errors": 23,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.integration.sync.SyncRunTransactionTest.xml",
+    "sha256": "9ef687e4fb57c217d3d2e5d07581f273284cc7769e972b86f41d18e93d4fa756",
+    "testSources": [
+      {
+        "path": "pms-module-integration/src/test/java/cn/iocoder/yudao/module/pms/integration/sync/SyncRunTransactionTest.java",
+        "sha256": "0fdffe1d434ee70f088c5cd6ba024eff67438a551e9ad64ab290304a98e1db98",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "mappingResetUpsertsBySourceIdWithoutClearingTargetsOrOtherTaskMappings",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "skipPreservesBusinessAndBindingThenUpsertUpdatesSameId",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "mappingResetWriteFailureRollsBackMappingRemovalAndBusinessUpdate",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "exactPrimaryKeyPreviewCommitReplayAndPolicyFreeze",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "evidenceFailureRollsBackOwnerAndMappingWithoutAdvancingCheckpoint",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "emptyReplacementSnapshotNeverClearsExistingTargets",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "previewDoesNotWriteBusinessMappingOrCheckpoint",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "businessMappingCheckpointAndSuccessCommitTogetherAndReplayIsNoOp",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "frameworkNonTransactionalSynchronizationDoesNotCacheOldPageProgress",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "pagedPreviewTraversesBothObjectsWithoutBusinessBindingsOrCheckpoint",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "failedPageRollsBackAndAssociatedRetryStartsAtLastCommittedCursor",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "sameTaskCanRebuildMismatchedIdsOnlyAfterPreviewAndExplicitConfirmation",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "automaticallyPagesSparseIdsAndCompletesParentsBeforeChildren",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "secondAdapterUsesTheSamePreviewCommitMappingAndReplayEngine",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "runListsAndMaintenanceDoNotSortLargeEvidencePayloads",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "replacementInvalidatesOtherTasksMappingsAndSchedule",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "appendRejectsExistingAndDoesNotCommitNewRows",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "pagedSnapshotPreservesScheduleAndRetryRejectsChangedConfiguration",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "mappingResetStillRejectsSameCodeWithDifferentPrimaryKeyAndKeepsOldMapping",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "invalidOrMismatchedSourcePrimaryKeysAreRejected",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "equivalentLegacyRowsShareTargetAndKeepEverySourceBindingAcrossPages",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "replacementFailureRestoresOriginalRowsMappingsAndCheckpoint",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      },
+      {
+        "name": "duplicateTaskPreflightPointsToExistingTaskAndSaveReportsConflict",
+        "status": "ERROR",
+        "reason": "Error creating bean with name 'cn.iocoder.yudao.module.pms.integration.sync.SyncRunService': Unsatisfied dependency expressed through constructor parameter 4: No qualifying bean of type 'cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.GenericSyncJdbcStore' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngineTest",
+    "tests": 23,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngineTest.xml",
+    "sha256": "a3352a4060b811088bd52c6296db759ded61458ad83e9845803ea48324decb98",
+    "testSources": [
+      {
+        "path": "pms-module-integration/src/test/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngineTest.java",
+        "sha256": "e01a4ddd3cfe53b17d5c9051f8fab8598bd0e155ea0b3b5cf78a689ba2379a54",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "contractSourceQueryDeduplicatesAndUsesLatestNonemptySupplementWithoutCrossCompanyGuessing",
+        "status": "ERROR",
+        "reason": "StatementCallback; bad SQL grammar [SELECT e.*,CASE WHEN u.company_code IS NOT NULL THEN (SELECT r.`currency_name` FROM sms_ofst_contract_head_sap r WHERE r.contract_num=e.contract_no AND r.`currency_name` IS NOT NULL AND CAST(r.`currency_name` AS CHAR)<>'' ORDER BY r.update_time DESC,r.id DESC LIMIT 1) ELSE NULL END AS `currency_name`,CASE WHEN u.company_code IS NOT NULL THEN (SELECT r.`currency_name` FROM sms_ofst_contract_head_sap r WHERE r.contract_num=e.contract_no AND r.`currency_name` IS NOT NULL AND CAST(r.`currency_name` AS CHAR)<>'' ORDER BY r.update_time DESC,r.id DESC LIMIT 1) ELSE NULL END AS `currency_code`,CASE WHEN u.company_code IS NOT NULL THEN (SELECT r.`contract_money_amount` FROM sms_ofst_contract_head_sap r WHERE r.contract_num=e.contract_no AND r.`contract_money_amount` IS NOT NULL AND CAST(r.`contract_money_amount` AS CHAR)<>'' ORDER BY r.update_time DESC,r.id DESC LIMIT 1) ELSE NULL END AS `contract_amount`,CASE WHEN u.company_code IS NOT NULL THEN (SELECT r.`contract_create_date` FROM sms_ofst_contract_head_sap r WHERE r.contract_num=e.contract_no AND r.`contract_create_date` IS NOT NULL AND CAST(r.`contract_create_date` AS CHAR)<>'' ORDER BY r.update_time"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceContractTest",
+    "tests": 11,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceContractTest.xml",
+    "sha256": "2fa451c5392f19d1db60d9f151ad7cd44e56ba0bf57009609220b3e584fdc514",
+    "testSources": [
+      {
+        "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/api/migration/PlatformMigrationEvidenceContractTest.java",
+        "sha256": "ac4d75e808015e498f0d4f0f461fe616f01ee3baea3e9bd243d60b89872664a1",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "exposesEightWriteActionsAndOneCursorQuery",
+        "status": "FAIL",
+        "reason": "expected: <[createImportBatch, completeReconciliation, pageSourceRecords, closeMigrationIssue, markStagedReady, appendMigrationIssue, appendSourceRecord, appendExternalMapping, claimStagedBatch]> but was: <[appendSourceRecord, appendExternalMapping, closeMigrationIssue, createImportBatch, appendMigrationIssue, completeReconciliation, claimStagedBatch, appendExternalMappings, appendSourceRecords, markStagedReady, pageSourceRecords]>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.file.FileContractAndMapperTest",
+    "tests": 7,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.platform.file.FileContractAndMapperTest.xml",
+    "sha256": "250d0fcf88e52e07ffb078b80a17625a9d5aa203e550a0ecf14ca261dae1bf93",
+    "testSources": [
+      {
+        "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileContractAndMapperTest.java",
+        "sha256": "e00978d272b93412b6f64e055c6ae862720db23d7fc6ba32ee0b10374cba2a40",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "exposesOnlyScenarioMapperMethodsAndNoGenericCrud",
+        "status": "FAIL",
+        "reason": "expected: <[updateAvailabilityIfMatch, selectByInfraFileIdForUpdate, selectOne, insert, selectCursor, selectForUpdate]> but was: <[selectByInfraFileIdForUpdate, selectOne, selectCursor, updateAvailabilityIfMatch, insert, selectForUpdate, selectByTenantAndId]>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.platform.service.entity.EntityCapabilityCopyTest",
+    "tests": 4,
+    "failures": 2,
+    "errors": 2,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.EntityCapabilityCopyTest.xml",
+    "sha256": "38cbffcf1458dd9bfa08bd01401b6acffddf1cca0ad5d4775d20acc6372faf87",
+    "testSources": [
+      {
+        "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityCapabilityCopyTest.java",
+        "sha256": "61137dccabdef4160f420571b8cc8cb417c574bca0e8573169cd70732db3ae73",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "activatingRevisionWithoutExtensionsClearsOnlyMutableTarget",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.entity()\" because \"<local1>\" is null"
+      },
+      {
+        "name": "activatingFormlessRevisionDoesNotKeepPreviousCurrentLayout",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.entity()\" because \"<local1>\" is null"
+      },
+      {
+        "name": "emptySourceCannotBypassFrozenTargetProtection",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <java.lang.IllegalStateException> but was: <java.lang.NullPointerException>"
+      },
+      {
+        "name": "requiredDefinitionStillAppliesWhenNoValueRowHasEverBeenSaved",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.framework.common.exception.ServiceException> but was: <java.lang.NullPointerException>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApiImplTest",
+    "tests": 4,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApiImplTest.xml",
+    "sha256": "879cb090541e09a11cfc1e2a9c4935250a3c092f91a882475ece2f6c04b08d37",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/api/contact/ProjectContactContextApiImplTest.java",
+        "sha256": "ceaeb8aad7534ea51b9f0063437d4c9eb4cabd3a20ea2f5e8a49fd8760210df6",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "closedProjectManagerKeepsHistoryReadButCannotWrite",
+        "status": "FAIL",
+        "reason": "expected: <false> but was: <true>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectClosurePolicyFreezeTest",
+    "tests": 4,
+    "failures": 1,
+    "errors": 2,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectClosurePolicyFreezeTest.xml",
+    "sha256": "6bcb91f6cadecb04630148a3554e34b4463dc84225e12272eac678866a87b99e",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectClosurePolicyFreezeTest.java",
+        "sha256": "d6a2ca79281299c523ea7175dea2dfd9d0eb451bafce55b6b0d4f82a46d36ddf",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "initializationFailurePropagatesFromSameTransactionalCreation",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <java.lang.IllegalStateException> but was: <java.lang.NullPointerException>"
+      },
+      {
+        "name": "freezesExactPublishedJsonBeforeRootInsertAndCannotFollowLaterTemplateChange",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.toRuntimeContent()\" because \"<local8>\" is null"
+      },
+      {
+        "name": "absentPolicyOverridesUntrustedDraftWithNull",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.toRuntimeContent()\" because \"<local8>\" is null"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImplTest",
+    "tests": 25,
+    "failures": 4,
+    "errors": 3,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImplTest.xml",
+    "sha256": "4835e70896b70387285b783591f937c244e82269ccb5fc5399fd21baf363f872",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationServiceImplTest.java",
+        "sha256": "fe38d8853fecd5a873d8fe1b51e73a255d4e377369ad4727c11eb2b3340d3dd6",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "manualSelectionTakesEffectWithTwoPhaseNamespaceWrite",
+        "status": "FAIL",
+        "reason": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6], Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "unlinkedHistoricalProjectKeepsOriginalCustomerEditing",
+        "status": "ERROR",
+        "reason": "\nUnfinished stubbing detected here:\n-> at cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImplTest.manualSelectionTakesEffectWithTwoPhaseNamespaceWrite(ProjectManualCreationServiceImplTest.java:327)\n\nE.g. thenReturn() may be missing.\nExamples of correct stubbing:\n    when(mock.isOk()).thenReturn(true);\n    when(mock.isOk()).thenThrow(exception);\n    doThrow(exception).when(mock).someVoidMethod();\nHints:\n 1. missing thenReturn()\n 2. you are trying to stub a final method, which is not supported\n 3. you are stubbing the behaviour of another mock inside before 'thenReturn' instruction is completed, possibly on another thread\n"
+      },
+      {
+        "name": "disabledCustomerBlocksCreationBeforeAllocatingProjectCode",
+        "status": "FAIL",
+        "reason": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6], Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "updateIgnoresImmutableFields",
+        "status": "ERROR",
+        "reason": "\nUnfinished stubbing detected here:\n-> at cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImplTest.disabledCustomerBlocksCreationBeforeAllocatingProjectCode(ProjectManualCreationServiceImplTest.java:300)\n\nE.g. thenReturn() may be missing.\nExamples of correct stubbing:\n    when(mock.isOk()).thenReturn(true);\n    when(mock.isOk()).thenThrow(exception);\n    doThrow(exception).when(mock).someVoidMethod();\nHints:\n 1. missing thenReturn()\n 2. you are trying to stub a final method, which is not supported\n 3. you are stubbing the behaviour of another mock inside before 'thenReturn' instruction is completed, possibly on another thread\n"
+      },
+      {
+        "name": "autoDefaultBindsUniqueMatchedTemplate",
+        "status": "FAIL",
+        "reason": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "creationAssignsServiceManagerAndOrderOfficeRelation",
+        "status": "ERROR",
+        "reason": "\nUnfinished stubbing detected here:\n-> at cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImplTest.autoDefaultBindsUniqueMatchedTemplate(ProjectManualCreationServiceImplTest.java:474)\n\nE.g. thenReturn() may be missing.\nExamples of correct stubbing:\n    when(mock.isOk()).thenReturn(true);\n    when(mock.isOk()).thenThrow(exception);\n    doThrow(exception).when(mock).someVoidMethod();\nHints:\n 1. missing thenReturn()\n 2. you are trying to stub a final method, which is not supported\n 3. you are stubbing the behaviour of another mock inside before 'thenReturn' instruction is completed, possibly on another thread\n"
+      },
+      {
+        "name": "childFreezesItsSelectedRevisionAndPlanWithoutReadingParentTemplate",
+        "status": "FAIL",
+        "reason": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerQueryServiceTest",
+    "tests": 5,
+    "failures": 1,
+    "errors": 1,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerQueryServiceTest.xml",
+    "sha256": "368d737c265eabbcf119e1cfc5e937293b18b98fadb05ad6459a3398647dcbfd",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectServiceManagerQueryServiceTest.java",
+        "sha256": "9751bf3b3fa4fb217ae7a1d34153cad3c2070e647778da44f72555ffeceb9954",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "candidateQueryUsesExactProjectCompanyAndDepartmentScope",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.project.service.projectmember.ValidationInitialAssignmentPolicy.permitsCandidates(cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard$Actor, cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO)\" because \"this.validationInitialAssignmentPolicy\" is null"
+      },
+      {
+        "name": "candidateQueryRejectsSiteOutsideCurrentProjectScope",
+        "status": "FAIL",
+        "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.framework.common.exception.ServiceException> but was: <java.lang.NullPointerException>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerCandidateServiceTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectManagerCandidateServiceTest.xml",
+    "sha256": "be4c857d4602ce01627f14dd5ff70429bb72d704e7e555ef743777e13ce4fe81",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmember/ProjectManagerCandidateServiceTest.java",
+        "sha256": "4596268a2aa19c13b7c8ffe490bc6f48e6ec9d7f8691976bed07f35f1108371c",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "candidatesUseProjectCompanyAndFixedRoleAfterAuthorization",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectById(java.io.Serializable)\" because \"this.projectMapper\" is null"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateCandidateWatermarkTest",
+    "tests": 2,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateCandidateWatermarkTest.xml",
+    "sha256": "43e3c37c9a4403b3a9f631f8f00a351d551cf815c2bcb0027cdfebe26dcc8f07",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/ProjectTemplateCandidateWatermarkTest.java",
+        "sha256": "e0eeb8c429136f1c5c9899428e4f5992a0d2edc26ba7617886a7c0caabd2a5fc",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "fullFactsChangeWatermarkEvenWithSameOutcomeButOrderDoesNot",
+        "status": "FAIL",
+        "reason": "expected: not equal but was: <e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateMatchRuleEvaluatorTest",
+    "tests": 9,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateMatchRuleEvaluatorTest.xml",
+    "sha256": "a1e6367c8d22dbc258b05ace2bfd618cd010cc95de6ca230054b78ef800ed287",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/ProjectTemplateMatchRuleEvaluatorTest.java",
+        "sha256": "98b33988e5d9b566c654b3498c06540e5584fd7f9a8af115b60eed75bb6102ad",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "rejectsRuntimeOnlyFieldsEvenWhenCallerProvidesThem",
+        "status": "FAIL",
+        "reason": "expected: <UNKNOWN> but was: <MATCHED>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateExecutionConfigurationCompilationTest",
+    "tests": 13,
+    "failures": 3,
+    "errors": 1,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateExecutionConfigurationCompilationTest.xml",
+    "sha256": "f8f4b4a98c3e4173e736e0a1b5932b0193cdcf8003bc54d4ecb2aa2a3d20053f",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplateExecutionConfigurationCompilationTest.java",
+        "sha256": "ea084e3542803faf4d5f6a3fed614705bd320582b119ce4e7abad307e4ba150e",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "explicitActionDisambiguatesSharedPermissionWithoutChoosingLatestVersion",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "legacyFormatCannotCarryNewExecutionAndTheFrozenActionCannotDiverge",
+        "status": "ERROR",
+        "reason": "Cannot invoke \"cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.getTasks()\" because \"<local2>\" is null"
+      },
+      {
+        "name": "permissionShorthandFreezesExactOperationAndRulesWithoutModifyingTheDraft",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "displayOrderCanDifferFromTheCanonicalRuntimeOperationOrder",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateExecutionConfigurationPersistenceTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateExecutionConfigurationPersistenceTest.xml",
+    "sha256": "98e0936f53d9aaa93306cfacb9501244d5d82022e5499bc6a245d2967de376ff",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplateExecutionConfigurationPersistenceTest.java",
+        "sha256": "dd38ea9c49531cf9b30b288dae971ae7e5c4d88578049561b97738a8ab8029ec",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "savedPermissionShorthandCanPublishAndReadWithoutModifyingTheDraft",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplatePresentationRoutesTest",
+    "tests": 24,
+    "failures": 3,
+    "errors": 1,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplatePresentationRoutesTest.xml",
+    "sha256": "72827fdf172991ed8db96bd6e45296267341bdd04a77ee612333db8722532158",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplatePresentationRoutesTest.java",
+        "sha256": "c931d2d093982134d27b9e6dc5d8bce634a9fbf96234bd133df7131edaa36a49",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "readerUsesOnlyFrozenContentAndRejectsMalformedParameterMeaning",
+        "status": "ERROR",
+        "reason": "EXECUTION_SNAPSHOT_V2_REQUIRED"
+      },
+      {
+        "name": "pageOnlyAndPageWithOperationFreezeAndRoundTripWithoutReinterpreting(boolean)[1]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "pageOnlyAndPageWithOperationFreezeAndRoundTripWithoutReinterpreting(boolean)[2]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "stageCanDisplayTheSameOwnerPageWithoutGeneratingATask",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateSnapshotConsumersTest",
+    "tests": 8,
+    "failures": 3,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateSnapshotConsumersTest.xml",
+    "sha256": "dd182ec4358383f0214eb1db29efd5464f262132fedc2cc55a6b4307812ebed3",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplateSnapshotConsumersTest.java",
+        "sha256": "927782a70854144d212ca70df55a1a3c0c5c5d310aa6ac1865c1de3fe2cc5b73",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "typedSchedulerCannotBypassNewFormatValidationEvenWithNoActiveRounds",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "supportedNewAndLegacyHistoryRetainsItsOwnNamesAndDoesNotEmitEvents",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "supportedTypedSnapshotWithoutTimeConditionsDoesNotInventTimerEvents",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionSnapshotTest",
+    "tests": 45,
+    "failures": 42,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionSnapshotTest.xml",
+    "sha256": "84119e46219f4036ac9fd0087a5c8ab51cb50481a012991f129f2b83fb36a604",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplateVersionSnapshotTest.java",
+        "sha256": "7feb67cd5ffa44db9fd8932fbae7da3e769eb2162a3a19484eb24a7d330cfebd",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "requiresInlineDecisionTableAndKeepsItsExactDefinition",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "operationProgramsMustBeTheSameVersionLocalPrograms",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "preservesOriginalCompilationFormatUntilPublicationWiringIsReady",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "preservesEveryCompiledFieldWithoutTouchingTheDesignerOrLegacyHash",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsUnknownModelFieldsRatherThanDiscardingConfiguration(String)[1]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsUnknownModelFieldsRatherThanDiscardingConfiguration(String)[2]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsUnknownModelFieldsRatherThanDiscardingConfiguration(String)[3]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsUnknownModelFieldsRatherThanDiscardingConfiguration(String)[4]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsUnknownModelFieldsRatherThanDiscardingConfiguration(String)[5]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[1]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[2]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[3]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[4]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[5]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[6]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[7]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[8]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[9]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[10]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[11]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[12]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[13]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[14]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[15]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[16]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[17]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[18]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[19]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[20]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[21]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[22]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[23]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsBrokenFrozenClosure(String)[24]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[1]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[2]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[3]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[4]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[5]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[6]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[7]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[8]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "rejectsMissingOrNullFrozenCollectionsInsteadOfApplyingDefaults(String)[9]",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionedCompilationTest",
+    "tests": 8,
+    "failures": 8,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionedCompilationTest.xml",
+    "sha256": "ee52fc830e43f2b0c09c0cc0c7a2f7b7e7d277b80252b475b179982b6d32f6d1",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplateVersionedCompilationTest.java",
+        "sha256": "eb15624f6a8c8eef43b4e25e89d6a92806adf4b06c3eabb43eadade40ff58fa5",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "versionedCompilerFreezesEverythingWithoutInvokingTheLegacyHasher",
+        "status": "FAIL",
+        "reason": "[Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "incompleteNewSnapshotReturnsPublicationIssueRatherThanDefaulting",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "changedRulesProduceDifferentFrozenContentAndDoNotMutateThePreviousVersion(String)[1]",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "changedRulesProduceDifferentFrozenContentAndDoNotMutateThePreviousVersion(String)[2]",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "changedRulesProduceDifferentFrozenContentAndDoNotMutateThePreviousVersion(String)[3]",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "changedRulesProduceDifferentFrozenContentAndDoNotMutateThePreviousVersion(String)[4]",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "changedRulesProduceDifferentFrozenContentAndDoNotMutateThePreviousVersion(String)[5]",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      },
+      {
+        "name": "legacyCompilerAndHashRemainCompatible",
+        "status": "FAIL",
+        "reason": "expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionedPublicationTest",
+    "tests": 25,
+    "failures": 0,
+    "errors": 17,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateVersionedPublicationTest.xml",
+    "sha256": "c2b38db16320e8c6c9120386b763d16a11158e8964f06b632b6b17d04eb33796",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/TemplateVersionedPublicationTest.java",
+        "sha256": "4d6f0f4c9031b77bc9d5182243dca43645b28f3eb003d4e3e53cebf24fddad52",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "publicCopyCreatesOnlyANewDraftAndPreservesBothFrozenDocuments",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[1]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[2]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[3]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[4]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[5]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[6]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[7]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[8]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[9]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[10]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[11]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[12]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "refusesBrokenVersionedPublicationOnReadAndCopy(String)[13]",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "validCopyReturnsIndependentFrozenDesignerWithoutRecompilation",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "newestValidVersionIsMatchedWithoutRecompilationAndCorruptionDoesNotSelectAnOlderOne",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      },
+      {
+        "name": "appendsCompleteVersionsAndNeverUpdatesPublishedOrDraftContent",
+        "status": "ERROR",
+        "reason": "模板发布校验未通过：deliverables[0].configuration[DELIVERABLE_CONFIGURATION_REQUIRED]: 交付件需要配置材料来源、最少数量和自动判定条件"
+      }
+    ]
+  },
+  {
+    "class": "cn.iocoder.yudao.module.pms.project.service.rule.PreparationRelativeWaitSampleTest",
+    "tests": 4,
+    "failures": 2,
+    "errors": 0,
+    "skipped": 0,
+    "report": ".run/cloud-20261006/full-backend-collected-reports/TEST-cn.iocoder.yudao.module.pms.project.service.rule.PreparationRelativeWaitSampleTest.xml",
+    "sha256": "2a22843747aa82eb7f24ad1282d488ec5f0df33290290a1d86e14527ceeb75a1",
+    "testSources": [
+      {
+        "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/rule/PreparationRelativeWaitSampleTest.java",
+        "sha256": "1ecfe8fa2dcb52e3ff5f3c60e3c69a80c583de3a6bc286c5fe6de9f966da3b8a",
+        "version": "HEAD_UNCHANGED_AT_THIS_RUN"
+      }
+    ],
+    "cases": [
+      {
+        "name": "reworkUsesOnlyCurrentRoundTimesAndLeavesOldEvidenceUnchanged",
+        "status": "FAIL",
+        "reason": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "draftReopensCompilesAndFreezesWithoutCreatingAnotherRuleSource",
+        "status": "FAIL",
+        "reason": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  }
+]

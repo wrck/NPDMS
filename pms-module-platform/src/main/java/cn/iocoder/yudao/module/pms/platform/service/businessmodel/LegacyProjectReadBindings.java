@@ -20,6 +20,7 @@ public class LegacyProjectReadBindings {
     @Bean public OwnerProjectReadScopePolicy legacyDirectProjectReads(BusinessModelCatalog catalog,
             BusinessEntityPersistenceRegistry persistence, ProjectBusinessScopeAccess projects) {
         return new OwnerProjectReadScopePolicy(Set.of(
+                    "COM/deliveryScope",
                     "CUT/cutoverTask",
                     "ACC/acceptance",
                     "ACC/acceptanceActivity",
@@ -38,6 +39,9 @@ public class LegacyProjectReadBindings {
                     "SOL/scheduleBackward",
                     "IMP/training",
                     "IMP/arrival",
+                    "IMP/configuration",
+                    "IMP/jointTest",
+                    "IMP/installation",
                     "IMP/deliveryEvidence",
                     "IMP/deliverable",
                     "IMP/materialExchange",

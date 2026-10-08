@@ -32,6 +32,7 @@ class BriefingGenerateDocumentTest {
     void setUp() {
         ReflectionTestUtils.setField(service, "briefingMapper", mapper);
         ReflectionTestUtils.setField(service, "generatedFiles", generatedFiles);
+        ReflectionTestUtils.setField(service,"attachments",mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentRegistration.class));
         TenantContextHolder.setTenantId(1L);
         cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
                 new cn.iocoder.yudao.framework.security.core.LoginUser().setId(9L).setTenantId(1L),new org.springframework.mock.web.MockHttpServletRequest());
@@ -45,7 +46,7 @@ class BriefingGenerateDocumentTest {
         row.setSourceSnapshot("WBS基线v3");
         row.setStatus(BriefingServiceImpl.STATUS_DRAFT);
         row.setVersion(2L);
-        when(mapper.selectById(1L)).thenReturn(row);
+        when(mapper.selectFileOwnerForUpdate(any())).thenReturn(row);
         when(mapper.updateById(any(BriefingDO.class))).thenReturn(1);
     }
 

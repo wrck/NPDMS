@@ -15,7 +15,7 @@
         <el-descriptions-item label="订单项目名称">{{ source.resolved.projectName ?? '—' }}</el-descriptions-item>
         <el-descriptions-item label="关联执行单">{{ source.resolved.executionNo ?? '未关联' }}</el-descriptions-item>
         <el-descriptions-item label="订单购货方">{{ source.resolved.customerName ?? '—' }}（{{ source.resolved.customerCode ?? '—' }}）</el-descriptions-item>
-        <el-descriptions-item label="来源最终客户">{{ execution?.finalCustomerName ?? '—' }}</el-descriptions-item>
+        <el-descriptions-item label="来源最终客户">当前来源接口未提供</el-descriptions-item>
         <el-descriptions-item label="客户项目名称">{{ source.resolved.customerProjectName ?? '—' }}</el-descriptions-item>
         <el-descriptions-item label="重大项目级别">{{ source.resolved.majorProjectLevel ?? '—' }}</el-descriptions-item>
         <el-descriptions-item label="下单时间">{{ source.resolved.orderCreateTime ? formatDate(source.resolved.orderCreateTime) : '—' }}</el-descriptions-item>

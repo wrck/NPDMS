@@ -43,6 +43,11 @@ public class DeclaredBusinessDeliveryBridge {
     public Long require(Long tenant,Long actor,String owner,String type,Long id,boolean write,boolean lock,Long expectedScope) {
         var declaration=persistence.require(owner,type);var model=declaration.descriptor();
         if(!model.capabilities().stream().anyMatch(cap->cap.type()==BusinessCapabilityType.DELIVERY && cap.enabled())) throw DeliveryOwnerAccess.denied();
+        return requireDefault(tenant,actor,owner,type,id,write,lock,expectedScope);
+    }
+    /** Ordinary uploads inherit the default entity authorization; no DELIVERY declaration or adapter is needed. */
+    public Long requireDefault(Long tenant,Long actor,String owner,String type,Long id,boolean write,boolean lock,Long expectedScope) {
+        var declaration=persistence.require(owner,type);
         var service=operations.capabilityService(owner,type);
         var target=EntityDataRef.current(new EntityRef(tenant,owner,type,id));var user=new EntityActor(tenant,actor,"DELIVERY_ACCESS");
         if(write) {

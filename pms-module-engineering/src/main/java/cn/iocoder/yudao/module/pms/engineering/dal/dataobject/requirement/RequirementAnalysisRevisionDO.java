@@ -14,19 +14,20 @@ import java.time.LocalDateTime;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("sol_requirement_analysis_revision")
+@TableName(value="sol_requirement_analysis_revision",autoResultMap=true)
+@cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.ProjectBusinessModel(ownerModule="SOL",entityType="requirementAnalysisRevision",stableCode="SOL_REQUIREMENT_ANALYSIS_REVISION",name="需求分析",permissionPrefix="pms:requirement-analysis",nativeEntityType="REQUIREMENT_ANALYSIS_REVISION")
 public class RequirementAnalysisRevisionDO extends RequirementAnalysisDO implements EntityRevision {
-    private Long entityId;
-    private Integer revisionNo;
-    private Long sourceRevisionId;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="逻辑实体ID",writable=false) private Long entityId;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="修订号",writable=false) private Integer revisionNo;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="来源修订",writable=false) private Long sourceRevisionId;
     private Long baseEffectiveRevisionId;
     private Integer baseEntityVersion;
-    private String revisionState;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="修订状态",writable=false) private String revisionState;
     private Integer draftMarker;
-    private Integer effectiveMarker;
-    private String changeReason;
-    private Long frozenBy;
-    private LocalDateTime frozenAt;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="当前生效",writable=false) private Integer effectiveMarker;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="变更原因",writable=false) private String changeReason;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="冻结人",writable=false) private Long frozenBy;
+    @cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelField(name="冻结时间",writable=false) private LocalDateTime frozenAt;
     private Long projectTemplateId;
     private Long projectTemplateRevisionId;
     private String executionSnapshot;

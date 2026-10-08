@@ -99,11 +99,7 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
 
     public ContractDetail getContractDetail(Long tenantId, Long subjectUserId, String correlationId,
                                              Long contractId) {
-        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
-        if (scope.empty()) throw inaccessible();
-        ContractDO contract = contractMapper.selectDetailByCompanyScope(
-                new ContractDetailScopeQuery(tenantId, contractId, scope.companyCodes(), scope.projectIds()));
-        if (contract == null) throw inaccessible();
+        ContractDO contract = getContractRoot(tenantId, subjectUserId, correlationId, contractId);
         List<SalesOrderDO> orders = orderMapper.selectRelatedByContract(
                 new ContractRelatedOrderQuery(tenantId, contractId));
         List<ProjectContractRelationDO> relations = projectRelationMapper.selectCurrentByContract(
@@ -111,6 +107,55 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
         return new ContractDetail(contract, orders == null ? List.of() : List.copyOf(orders),
                 relations == null ? List.of() : List.copyOf(relations));
     }
+
+    public ContractDO getContractRoot(Long tenantId, Long subjectUserId, String correlationId, Long contractId) {
+        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
+        if (scope.empty()) throw inaccessible();
+        ContractDO contract = contractMapper.selectDetailByCompanyScope(
+                new ContractDetailScopeQuery(tenantId, contractId, scope.companyCodes(), scope.projectIds()));
+        if (contract == null) throw inaccessible();
+        return contract;
+    }
+
+    public SalesOrderDO getSalesOrderRoot(Long tenantId, Long subjectUserId, String correlationId, Long orderId) {
+        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
+        if (scope.empty()) throw inaccessible();
+        SalesOrderDO order = orderMapper.selectDetailByCompanyScope(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderDetailScopeQuery(
+                        tenantId, orderId, scope.companyCodes(), scope.projectIds()));
+        if (order == null) throw inaccessible();
+        return order;
+    }
+
+    public List<ContractDO> readContractRoots(Long tenantId, Long subjectUserId, String correlationId,
+                                             RootReadCursor cursor, int limit) {
+        checkedRootRead(limit, cursor);
+        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
+        if (scope.empty()) return List.of();
+        return contractMapper.selectRootReadPage(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractRootReadPageQuery(
+                        tenantId, scope.companyCodes(), scope.projectIds(), cursor == null ? null : cursor.code(),
+                        cursor == null ? null : cursor.id(), limit));
+    }
+
+    public List<SalesOrderDO> readSalesOrderRoots(Long tenantId, Long subjectUserId, String correlationId,
+                                               RootReadCursor cursor, int limit) {
+        checkedRootRead(limit, cursor);
+        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
+        if (scope.empty()) return List.of();
+        return orderMapper.selectRootReadPage(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderRootReadPageQuery(
+                        tenantId, scope.companyCodes(), scope.projectIds(), cursor == null ? null : cursor.code(),
+                        cursor == null ? null : cursor.id(), limit));
+    }
+
+    private void checkedRootRead(int limit, RootReadCursor cursor) {
+        if (limit < 1 || limit > 201) throw new IllegalArgumentException("COMMERCE_QUERY_LIMIT_INVALID");
+        if (cursor != null && (cursor.code() == null || cursor.id() == null || cursor.id() <= 0))
+            throw new IllegalArgumentException("COMMERCE_QUERY_CURSOR_INVALID");
+    }
+
+    public record RootReadCursor(String code, Long id) {}
 
     public PageResult<SalesOrderDO> pageSalesOrders(Long tenantId, Long subjectUserId, String correlationId,
                                                      SalesOrderSearch criteria) {

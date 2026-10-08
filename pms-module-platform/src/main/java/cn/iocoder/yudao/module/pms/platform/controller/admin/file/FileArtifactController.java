@@ -142,7 +142,7 @@ public class FileArtifactController {
     @Operation(summary = "按完整业务稳定键查询文件引用")
     @PreAuthorize("@ss.hasPermission('pms:file:query')")
     public CommonResult<FileReferenceRespVO> getReference(
-            @RequestParam Long artifactId,
+            @RequestParam(required = false) Long artifactId,
             @RequestParam @NotBlank @Size(max = 32) String ownerContext,
             @RequestParam @NotBlank @Size(max = 64) String objectType,
             @RequestParam @NotBlank @Size(max = 128) String objectId,

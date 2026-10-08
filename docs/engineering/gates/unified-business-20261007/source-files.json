@@ -1,0 +1,81 @@
+{
+  "commit": "834a6a5b2246a9ba1d291dec4ee3157bffd35426",
+  "files": [
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/configuration/ConfigurationController.java",
+      "sha256": "426d0c0bf6df8dc8f7a46d05959f824584276d4c24ac227a6484db52f420f275"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "sha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/configuration/ConfigurationServiceImpl.java",
+      "sha256": "352728a1df91e1782d83eef747be16f33d133e46892c5e6d2642698251e9fe00"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityPageQuery.java",
+      "sha256": "f1b4de02be80bd9f26ae7989854216095dd505c7830a84cd26538caa1a8cc561"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/model/BusinessOperationDescriptor.java",
+      "sha256": "3935361d9dd40ab736107770fb78a3ae89a6ad4258d8d9f7bbd7eaed5ebbb22d"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DeclaredBusinessScopeSupport.java",
+      "sha256": "054ae0fdb11b054b7c08c6540cef495d4e3c70ec306c9eb9ecf983d872cb31d0"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "sha256": "2d242d3d0bb24e7922863c9f91241ff9d9009ac2c5a5320ddda3b8079d53bfd2"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/entity/BaseBusinessEntity.java",
+      "sha256": "5311b0a61abc068f6885cc788fc89c399bb3bad06d21807d93f97d0d19e6c68a"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/model/BusinessModelIntrospector.java",
+      "sha256": "08655cb98e410262547477ffbecd4f9a6592ea73d27098bff7a7f60468f25de5"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessOperationDispatcher.java",
+      "sha256": "cbb240d4fdb4f5564e13c87407be77c16baa67bc1f086385d69bd9d60e24d176"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/DefaultBusinessApplicationService.java",
+      "sha256": "67a596e50bc659c5c27f71e8125f6428ed3a182e2ccbbac2755369d508a675c7"
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/ExtensibleBusinessApplicationService.java",
+      "sha256": "0ac9a04f48edf6e85d9879769645ec89598773af380ccd4321b86ea8aeddaaa3"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessModelController.java",
+      "sha256": "c01e873c06f02b307261d37a37e4035a1f194301e46fec1398833da7f6c68a60"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/BusinessModelRegistry.java",
+      "sha256": "479e79ea6eadc8c3231340207f1e80ffa1d1daddb4a56ee3f871dca5be624809"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "sha256": "3a8aa5206ad20147977c4ea858066d0ba7d483d9d4874fed24d025b494c512ad"
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java",
+      "sha256": "7bc13fcaf306be198a1dcf7792c554815740ed7cb6847ef6d55784eb83c93b86"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityForm.vue",
+      "sha256": "cad72480faa2c300d57147f800eb6537e0b228609e405a161e87097b6a1e50ae"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityHost.vue",
+      "sha256": "c5aaffb2a9f5232cfc6d0f90e036b9ea09c121433cc9d3b3e2daa64abca2376c"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityList.vue",
+      "sha256": "778619f950c65c0c796214d6afbb6deafd6b6f3a61e0e8fbfad2580b0cb31290"
+    }
+  ]
+}

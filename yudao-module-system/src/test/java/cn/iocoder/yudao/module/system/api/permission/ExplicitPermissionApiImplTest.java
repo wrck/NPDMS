@@ -69,7 +69,9 @@ class ExplicitPermissionApiImplTest {
     void tearDown() {
         TenantContextHolder.clear();
         if (jdbc != null) {
-            jdbc.execute("SHUTDOWN");
+            // Release this unique in-memory database when JdbcTemplate closes its connection.
+            // SHUTDOWN closes the statement itself and H2 2.4 then fails during statement cleanup.
+            jdbc.execute("SET DB_CLOSE_DELAY 0");
         }
         if (context != null) {
             context.close();

@@ -33,9 +33,15 @@ public final class BusinessModelIntrospector {
     private static final ClassValue<List<IntrospectedField>> CACHE = new ClassValue<>() {
         @Override
         protected List<IntrospectedField> computeValue(Class<?> type) {
-            return discover(type);
+            return discover(type, false);
         }
     };
+
+    private static final ClassValue<List<IntrospectedField>> AGGREGATE_CACHE = new ClassValue<>() {
+        @Override protected List<IntrospectedField> computeValue(Class<?> type) { return discover(type, true); }
+    };
+    /** Opt-in public aggregate fields; ordinary persistence discovery continues to exclude child-table properties. */
+    public static List<IntrospectedField> aggregateFields(Class<?> entityType) { return AGGREGATE_CACHE.get(entityType); }
 
     private BusinessModelIntrospector() {
     }
@@ -62,7 +68,7 @@ public final class BusinessModelIntrospector {
                 .column();
     }
 
-    private static List<IntrospectedField> discover(Class<?> entityType) {
+    private static List<IntrospectedField> discover(Class<?> entityType, boolean includeAggregateFields) {
         if (!BaseBusinessEntity.class.isAssignableFrom(entityType)) {
             throw new BusinessContractException("ENTITY_NOT_UNIFIED",
                     "实体未继承统一业务基类: " + entityType.getName());
@@ -81,7 +87,8 @@ public final class BusinessModelIntrospector {
                     continue;
                 }
                 TableField tableField = property.getAnnotation(TableField.class);
-                if (tableField != null && !tableField.exist()) {
+                if (tableField != null && !tableField.exist()
+                        && (!includeAggregateFields || !property.isAnnotationPresent(BusinessModelField.class))) {
                     continue;
                 }
                 String code = property.getName();

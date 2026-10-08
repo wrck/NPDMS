@@ -171,6 +171,31 @@ class CommerceAuthorityIngestServiceTest {
     }
 
     @Test
+    void sameSourceVersionCannotChangeContractOrExecution() {
+        var current=orderRowWithChain("O-1","V1");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        for (var incoming:List.of(orderWithChain("O-1","V1","V1","CT-2","EX-1"),
+                orderWithChain("O-1","V1","V1","CT-1","EX-2"))) {
+            var error=assertThrows(CommerceAuthorityIngestException.class,()->service.ingest(
+                    batch("EV-CHAIN-CONFLICT","B-CHAIN-CONFLICT",List.of(),List.of(incoming),List.of())));
+            assertEquals(SOURCE_VERSION_PAYLOAD_CONFLICT,error.getCode());
+        }
+        verify(salesOrderMapper,never()).updateOwnerByVersion(any());
+    }
+
+    @Test
+    void idempotencyDigestIncludesContractAndExecution() {
+        var canonicalizer=new AuthorityPayloadCanonicalizer();
+        var original=batch("EV-CHAIN-DIGEST","B-CHAIN-DIGEST",List.of(),
+                List.of(orderWithChain("O-1",null,"V1","CT-1","EX-1")),List.of());
+        for (var incoming:List.of(orderWithChain("O-1",null,"V1","CT-2","EX-1"),
+                orderWithChain("O-1",null,"V1","CT-1","EX-2"))) {
+            assertNotEquals(canonicalizer.batchDigest(original),canonicalizer.batchDigest(
+                    batch("EV-CHAIN-DIGEST","B-CHAIN-DIGEST",List.of(),List.of(incoming),List.of())));
+        }
+    }
+
+    @Test
     void versionAdvanceRewritesOrderChainColumns() {
         SalesOrderDO current = orderRow("O-1", "V1");
         current.setContractNo("CT-OLD");
@@ -188,17 +213,16 @@ class CommerceAuthorityIngestServiceTest {
     }
 
     @Test
-    void replaySkipsChainColumnDriftUntilVersionAdvance() {
-        // 链路列(contractNo/executionNo)不参与同版本载荷判定：版本未推进的存量行在首轮同步不得
-        // 被误判为同版本载荷冲突，新列只随下一次来源版本推进全量重写。
+    void replayRejectsChainColumnDriftWithoutOwnerWrite() {
         SalesOrderDO current = orderRowWithChain("O-1", "V2");
         current.setContractNo("CT-2");
         when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
 
-        CommerceAuthorityBatchResult result = service.ingest(batch("EV-O-CONF", "B-O-CONF", List.of(),
-                List.of(orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1")), List.of()));
+        CommerceAuthorityIngestException error = assertThrows(CommerceAuthorityIngestException.class,
+                () -> service.ingest(batch("EV-O-CONF", "B-O-CONF", List.of(),
+                        List.of(orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1")), List.of())));
 
-        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, result.decision());
+        assertEquals(SOURCE_VERSION_PAYLOAD_CONFLICT, error.getCode());
         verify(salesOrderMapper, never()).updateOwnerByVersion(any());
     }
 

@@ -1,0 +1,19 @@
+package cn.iocoder.yudao.module.pms.platform.support.business;
+
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessFieldFilter;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import java.util.List;
+import lombok.Data;
+
+/** Default business query. A business may subclass it for its own XML query parameters. */
+@Data
+public class BusinessPageQuery {
+    @jakarta.validation.constraints.Positive private Long projectId;
+    @Min(1) private int pageNo = 1;
+    @Min(1) @Max(200) private int pageSize = 20;
+    public enum Direction { ASC, DESC }
+    public record Sort(String fieldCode, Direction direction) { }
+    private List<Sort> sorts = List.of();
+    private List<BusinessFieldFilter> filters = List.of();
+}

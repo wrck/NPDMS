@@ -9,6 +9,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { FileId } from '@/api/pms/platform/file'
 import { type DeliveryMaterialVO, type DeliveryTypeVO } from '@/api/pms/platform/delivery'
 import { createDeliveryUploadAttempt, uploadDeliveryFile, type DeliveryUploadAttempt } from './uploadDeliveryFile'
 
@@ -24,7 +25,7 @@ const file = ref<File>()
 const fileInput = ref<HTMLInputElement>()
 const busy = ref(false)
 const error = ref('')
-const uploadedReferenceId = ref<number>()
+const uploadedReferenceId = ref<FileId>()
 const attempt = ref<DeliveryUploadAttempt>()
 const accept = computed(() => {
   try { return (JSON.parse(props.type.allowedMediaJson) as string[]).map(value => value.includes('/') || value.startsWith('.') ? value : `.${value}`).join(',') }

@@ -237,7 +237,7 @@ export const completeMigrationReconciliation = (
 ) => request.post<MigrationBatchVO>({ url: `${baseUrl}/batches/${batchId}/actions/complete-reconciliation`, data })
 
 export const closeMigrationIssue = (
-  issueId: number,
+  issueId: string | number,
   data: {
     ruleVersion: string
     targetResult: Record<string, unknown>

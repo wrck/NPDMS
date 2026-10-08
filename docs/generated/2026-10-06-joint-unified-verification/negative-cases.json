@@ -1,0 +1,201 @@
+{
+  "nativeDownloadBeforeFix": {
+    "productionSource": "ffa43d9:NativeGeneratedFileService.java (exact native checkpoint bytes)",
+    "sourceHashes": {
+      "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/NativeGeneratedFileService.java": "aa036bc6acfaa537a0c55514ba2f8c8b999a027f21d6985e723a7896bd00c45c",
+      "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialWithdrawalPersistenceTest.java": "76c1ccd11fb3df124ebd4403a2dc80353ed915f8ad5dd4270106f6ef1218f57a"
+    },
+    "totals": {
+      "tests": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 0
+    },
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest",
+        "tests": 2,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 0,
+        "xml": {
+          "path": ".run/joint-20261006/native-download-red-2-evidence/TEST-cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest.xml",
+          "sha256": "754083cf2805bf57495be594cc071f3627486080bae76384623ea21a1676030e",
+          "bytes": 75958
+        },
+        "cases": [
+          {
+            "name": "nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket",
+            "status": "FAIL",
+            "reason": "download must acquire its actual Owner before file authorization ==> expected: <true> but was: <false>",
+            "type": "org.opentest4j.AssertionFailedError"
+          },
+          {
+            "name": "nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket",
+            "status": "FAIL",
+            "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown.",
+            "type": "org.opentest4j.AssertionFailedError"
+          }
+        ]
+      }
+    ]
+  },
+  "fixedByFinalSource": {
+    "file": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/NativeGeneratedFileService.java",
+    "sha256": "474f1746c1729826222c86beeeb3ccccd548b6fd505ead5a79c2adfc519e1c6b",
+    "assertions": [
+      "actual Owner locked before file authorization",
+      "current material row locked and ACTIVE rechecked after competing withdrawal",
+      "no access ticket issued for withdrawn/wrong tenant",
+      "frozen artifact/version/digest and actual native file Owner matched"
+    ]
+  },
+  "associationAndWithdrawal": {
+    "suites": [
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalMySqlIntegrationTest",
+        "cases": [
+          {
+            "name": "simultaneousAssociationAndWithdrawalCannotLeaveWithdrawnMaterialWithAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "auditAndOutboxFailuresRollBackMaterialVersionAndLedgerAndAllowRetry",
+            "status": "PASS"
+          },
+          {
+            "name": "bothMaterialLockOrdersRejectTheLosingConcurrentCommand",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "missingPrincipalWrongTenantAndRolelessAreDeniedWithoutLedgerReservation",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawalInsideOuterTransactionRollsBackWithItsCaller",
+            "status": "PASS"
+          },
+          {
+            "name": "associationOuterRollbackAndCrossTenantNeverLeaveAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "staleActiveMaterialCannotBeAssociatedAfterWithdrawal",
+            "status": "PASS"
+          }
+        ]
+      },
+      {
+        "class": "cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryMaterialWithdrawalPersistenceTest",
+        "cases": [
+          {
+            "name": "simultaneousAssociationAndWithdrawalCannotLeaveWithdrawnMaterialWithAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "auditAndOutboxFailuresRollBackMaterialVersionAndLedgerAndAllowRetry",
+            "status": "PASS"
+          },
+          {
+            "name": "bothMaterialLockOrdersRejectTheLosingConcurrentCommand",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadRechecksWithdrawalAfterOwnerLockBeforeIssuingATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "missingPrincipalWrongTenantAndRolelessAreDeniedWithoutLedgerReservation",
+            "status": "PASS"
+          },
+          {
+            "name": "withdrawalInsideOuterTransactionRollsBackWithItsCaller",
+            "status": "PASS"
+          },
+          {
+            "name": "associationOuterRollbackAndCrossTenantNeverLeaveAnActiveRelation",
+            "status": "PASS"
+          },
+          {
+            "name": "nativeDownloadLocksCurrentMaterialAndRejectsWithdrawnAndWrongTenantWithoutATicket",
+            "status": "PASS"
+          },
+          {
+            "name": "staleActiveMaterialCannotBeAssociatedAfterWithdrawal",
+            "status": "PASS"
+          }
+        ]
+      }
+    ]
+  },
+  "nativeFinalActionViewOnly": {
+    "enumOrder": [
+      "CONFIGURATION",
+      "JOINT_TEST",
+      "EXTERNAL_PROCUREMENT",
+      "OUTSOURCE",
+      "MATERIAL_REQUISITION",
+      "MATERIAL_EXCHANGE"
+    ],
+    "cases": [
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[3]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[4]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[5]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyQueryPermission(NativeAttachmentKind)[6]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[3]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[4]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[5]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeFinalActionCannotCollectWithOnlyViewProjectScope(NativeAttachmentKind)[6]",
+        "status": "PASS"
+      }
+    ],
+    "expected": "Every final command rejected and no material registered; configuration/joint-test preceding start is a distinct original native operation."
+  }
+}

@@ -185,7 +185,8 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="证据附件" prop="evidenceUrl"><UploadFile v-model="form.evidenceUrl!" :disabled="readOnly" :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']" /></el-form-item>
+          <el-form-item label="证据附件" prop="evidenceUrl"><NativeAttachments :key="String(form.id || 'new')" kind="jointTest" :entity-id="form.id"
+              :readonly="readOnly" :legacy="form.evidenceUrl" @changed="attachmentOwnerChanged" /></el-form-item>
         </el-col>
         <el-col v-if="form.exceptionRecord" :span="24">
           <el-form-item label="异常记录"><el-input :model-value="form.exceptionRecord" type="textarea" :rows="4" readonly data-testid="joint-test-exception" /></el-form-item>
@@ -219,6 +220,7 @@
 </template>
 
 <script setup lang="ts">
+import NativeAttachments from '../attachment/NativeAttachments.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
@@ -330,12 +332,16 @@ const openForm = (row?: JointTestVO) => {
       version: undefined,
       status: 0,
       ...row,
-      // Keep UploadFile on the existing string API contract for NULL legacy evidence.
+      // Keep empty legacy metadata when reopening a record without evidence.
       evidenceUrl: row?.evidenceUrl ?? ''
   }
   syncMetaFromForm()
   loadDeviceInfo()
   formVisible.value = true
+}
+const attachmentOwnerChanged = (saved: { version?: number; status?: number; configLogUrl?: string }) => {
+  form.value.version = saved.version
+  form.value.status = saved.status
 }
 const save = async () => {
   if (readOnly.value) return

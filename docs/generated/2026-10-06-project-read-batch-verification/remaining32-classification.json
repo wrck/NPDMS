@@ -1,0 +1,962 @@
+{
+  "inputSnapshot": "d4fca642 plus previous private configuration/jointTest read bindings",
+  "inputMissing": 32,
+  "selected": 2,
+  "keptClosed": 30,
+  "counts": {
+    "NON_PROJECT_CATALOG": 8,
+    "STRICT_NATIVE_OWNER": 7,
+    "DOMAIN_SCOPE": 6,
+    "IMPLEMENT_SHARED_PROJECT_READ": 2,
+    "PARENT_OR_MULTI_OWNER": 7,
+    "DEFERRED_OWNER": 2
+  },
+  "decisionScope": "Bounded applicability of shared project read policy; not completion of native modules.",
+  "rows": [
+    {
+      "key": "AST/assetProductOfficial",
+      "permission": "pms:imp-material-exch:query",
+      "entityPath": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/product/AssetProductOfficialDO.java",
+      "ownershipFields": [],
+      "priorReason": "资产/产品目录或设备Owner，不能推定ProjectScope",
+      "nativeServiceReferences": [],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "无projectId；现目录权限为pms:imp-material-exch:query，不能等同资产目录原生读取授权。",
+      "evidence": [
+        {
+          "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/product/AssetProductOfficialDO.java",
+          "sha256": "d23beac872cdcfc092885982b235979bdadf1aae337e53262ad924d70fe86714"
+        }
+      ]
+    },
+    {
+      "key": "AST/assetProductType",
+      "permission": "pms:asset-product-type:controlled-import",
+      "entityPath": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/producttype/AssetProductTypeDO.java",
+      "ownershipFields": [],
+      "priorReason": "资产/产品目录或设备Owner，不能推定ProjectScope",
+      "nativeServiceReferences": [
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeQueryService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeImportRejectedException.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeConflictRecordService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeSourceFailureWriter.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeImportWriter.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "无projectId；声明controlled-import导入权限，受控目录读取/冲突投影需独立来源映射。",
+      "evidence": [
+        {
+          "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/producttype/AssetProductTypeDO.java",
+          "sha256": "310d73c58b4b62410cb9fd8b6a9db3764c5dc16e25e0db0a91ce861cdd18631e"
+        }
+      ]
+    },
+    {
+      "key": "AST/device",
+      "permission": "pms:device:query",
+      "entityPath": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/device/DeviceDO.java",
+      "ownershipFields": [
+        "String contractNo",
+        "Long projectId",
+        "Long projectAssignmentVersion",
+        "Long customerId",
+        "Long customerAssignmentVersion"
+      ],
+      "priorReason": "资产/产品目录或设备Owner，不能推定ProjectScope",
+      "nativeServiceReferences": [
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/version/DeviceNetworkVersionService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/shipment/DeviceShipmentService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/producttype/AssetProductTypeImportWriter.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/location/DeviceLocationEffectiveService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogQueryService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/warranty/DeviceWarrantyQueryService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceArchiveService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceArchiveServiceImpl.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/ProjectDeviceSelectionService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceQueryService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/assignment/DeviceProjectAssignmentService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/assignment/DeviceRelationshipQueryService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/assignment/DeviceCustomerAssignmentService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/assignment/DeviceAssignedProjectionJob.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/projection/DeviceProjectionReconciliationService.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/assembly/DeviceAssemblyService.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "设备有可空projectId并另有客户/合同/组织归属，不能把当前项目字段作为唯一读取授权。",
+      "evidence": [
+        {
+          "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/device/DeviceDO.java",
+          "sha256": "b6a96bc7c8686b61ba47bf9e91aed3599e5685cf54752a282210ce9f472f416d"
+        }
+      ]
+    },
+    {
+      "key": "AST/site",
+      "permission": "pms:asset-location:query",
+      "entityPath": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/location/SiteDO.java",
+      "ownershipFields": [
+        "Long customerId"
+      ],
+      "priorReason": "资产/产品目录或设备Owner，不能推定ProjectScope",
+      "nativeServiceReferences": [
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/location/AssetLocationAdminServiceImpl.java",
+        "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/location/DeviceLocationEffectiveService.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "站点是客户/地点Owner，只有customerId；工程项目与物理站点不是同一个范围。",
+      "evidence": [
+        {
+          "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/location/SiteDO.java",
+          "sha256": "dc3fb7364d12f51ae4eb225f77c70340e0600afd9fb4c05c36577d4aee251e7b"
+        }
+      ]
+    },
+    {
+      "key": "COM/authorityCandidate",
+      "permission": "pms:commerce:authority:reconcile",
+      "entityPath": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/authority/AuthorityCandidateDO.java",
+      "ownershipFields": [
+        "String matchedOwnerType",
+        "Long matchedOwnerId",
+        "String matchedOwnerSourceVersion"
+      ],
+      "priorReason": "合同/订单/CRM授权候选Owner，需商业域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityCandidateService.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "权威候选是对账决策输入，权限为authority:reconcile；matchedOwner关系不形成公共读取范围。",
+      "evidence": [
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/authority/AuthorityCandidateDO.java",
+          "sha256": "0aeb10b3761ef1ca574a9fb9346dda1917ef6ec6184afae0f458c7d677fbb15a"
+        }
+      ]
+    },
+    {
+      "key": "COM/contract",
+      "permission": "pms:commerce:contract:query",
+      "entityPath": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/ContractDO.java",
+      "ownershipFields": [
+        "String contractNo",
+        "String contractType",
+        "Long customerId",
+        "String customerCode",
+        "String customerName",
+        "String contractName",
+        "BigDecimal contractAmount",
+        "LocalDateTime contractCreateTime",
+        "String projectName",
+        "String projectCode"
+      ],
+      "priorReason": "合同/订单/CRM授权候选Owner，需商业域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractRelationCommandService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityWriteService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/AuthorityPayloadCanonicalizer.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java"
+      ],
+      "classification": "DOMAIN_SCOPE",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "合同读取经ContractAccessService组织/公司/合同可见集合，不具有单一projectId。",
+      "evidence": [
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/ContractDO.java",
+          "sha256": "1775fef8ffb6c87c363b6197682dc7a52b3527608e24ba7e5fb72a03a2c4aabb"
+        },
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+          "sha256": "2d629b3b1f5f6ae7c088ec52fea8e76c213578d5b038c808b31e6071b9ea5aea"
+        }
+      ]
+    },
+    {
+      "key": "COM/crmExecutionOrder",
+      "permission": "pms:commerce:contract:query",
+      "entityPath": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/executionorder/CrmExecutionOrderDO.java",
+      "ownershipFields": [
+        "String projectCode",
+        "String projectName",
+        "Long primaryProjectId",
+        "String customerProjectName",
+        "String finalCustomerName",
+        "String projectManagerCode",
+        "String projectManagerName",
+        "String projectType",
+        "String majorProjectLevel",
+        "BigDecimal projectAmount",
+        "BigDecimal afProjectAmount"
+      ],
+      "priorReason": "合同/订单/CRM授权候选Owner，需商业域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/sync/DppmsExecutionOrderSyncAdapter.java"
+      ],
+      "classification": "DOMAIN_SCOPE",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "primaryProjectId是商务执行单关联，原生查询沿合同/组织授权；不推为独占Project Owner。",
+      "evidence": [
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/executionorder/CrmExecutionOrderDO.java",
+          "sha256": "fea8f428137c345a21be1e16d3fc06a8252436597db10b2092571d129608314d"
+        },
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+          "sha256": "2d629b3b1f5f6ae7c088ec52fea8e76c213578d5b038c808b31e6071b9ea5aea"
+        }
+      ]
+    },
+    {
+      "key": "COM/deliveryScope",
+      "permission": "pms:commerce:scope:query",
+      "entityPath": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDO.java",
+      "ownershipFields": [
+        "Long projectId",
+        "String projectCode",
+        "String projectName",
+        "String projectCompanyCode",
+        "String projectCompanyName",
+        "String projectDepartmentCode",
+        "String projectDepartmentName",
+        "String projectCustomerCode",
+        "String projectCustomerName",
+        "String projectManagerEmployeeNo",
+        "String projectManagerName",
+        "String scopeStatus"
+      ],
+      "priorReason": "合同/订单/CRM授权候选Owner，需商业域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeView.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeConflictNotifier.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeCommandService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeCompatibilityService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeQueryService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/AssignedDeliveryScopeQueryService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeLineFactService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java"
+      ],
+      "classification": "IMPLEMENT_SHARED_PROJECT_READ",
+      "decision": "IMPLEMENT_THIS_BATCH",
+      "reason": "DeliveryScopeDO.projectId+租户；目录/控制器scope:query相同；原生page明确PROJECT_VIEW及租户/历史参数。",
+      "evidence": [
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDO.java",
+          "sha256": "fc805a229057bb19a7312865db2a030940119aeb478d3684fddfaf479bf03f9b"
+        },
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/scope/DeliveryScopeController.java",
+          "sha256": "97d9742439cfb5dd060e4b8a00cd7dbb92149b64f18c77ffddd7d015877c6f4c"
+        },
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeQueryService.java",
+          "sha256": "92d0f586727f22185b7565cfe53564c3a52530ac46fa1909a5dde16cd7742a06"
+        },
+        {
+          "path": "pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeMapper.xml",
+          "sha256": "2c4954554cbf5d7fedc08f3fa84954234de6ce989736bf401d45c6cae8d0abda"
+        }
+      ]
+    },
+    {
+      "key": "COM/salesOrder",
+      "permission": "pms:commerce:contract:query",
+      "entityPath": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/order/SalesOrderDO.java",
+      "ownershipFields": [
+        "String contractNo",
+        "Long customerId",
+        "String customerCode",
+        "String customerName",
+        "String sourceProjectName",
+        "LocalDateTime customerRequiredTime"
+      ],
+      "priorReason": "合同/订单/CRM授权候选Owner，需商业域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityWriteService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/AuthorityPayloadCanonicalizer.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/sync/DppmsOrderSyncAdapter.java"
+      ],
+      "classification": "DOMAIN_SCOPE",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "订单按ContractAccessService合同/公司范围读取，没有单一Project Owner。",
+      "evidence": [
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/order/SalesOrderDO.java",
+          "sha256": "cc313f9e32d5f9717d78fa2d369eeb42e69a849c49aca9ca51ad99e3071ee2f6"
+        },
+        {
+          "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+          "sha256": "2d629b3b1f5f6ae7c088ec52fea8e76c213578d5b038c808b31e6071b9ea5aea"
+        }
+      ]
+    },
+    {
+      "key": "CUS/customerContact",
+      "permission": "pms:customer-contact:query",
+      "entityPath": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/contact/CustomerContactMasterDO.java",
+      "ownershipFields": [
+        "Long customerId",
+        "String customerName"
+      ],
+      "priorReason": "客户/联系人/服务级别Owner，需客户域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/contact/CustomerContactMasterService.java"
+      ],
+      "classification": "DOMAIN_SCOPE",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "联系人经customerId所属客户授权，不能凭租户或未证明的项目关系放行。",
+      "evidence": [
+        {
+          "path": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/contact/CustomerContactMasterDO.java",
+          "sha256": "bed4203a0a83c73f55e56cf4b431abb5a7a43065b9ff922fb53fd0ed11cc017e"
+        }
+      ]
+    },
+    {
+      "key": "CUS/customerMaster",
+      "permission": "pms:customer:query",
+      "entityPath": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/customer/CustomerMasterDO.java",
+      "ownershipFields": [
+        "String customerLevel"
+      ],
+      "priorReason": "客户/联系人/服务级别Owner，需客户域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/outbox/CustomerOutboxPayloadFactory.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/query/CustomerResponseService.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/query/CustomerDetailService.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/query/CustomerQueryService.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/customer/CustomerApplicationServiceImpl.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/location/CustomerLocationReferenceService.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/history/CustomerHistoryService.java"
+      ],
+      "classification": "DOMAIN_SCOPE",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "客户组织/办事处/业务Owner范围；没有projectId，需客户公开读取契约。",
+      "evidence": [
+        {
+          "path": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/customer/CustomerMasterDO.java",
+          "sha256": "18e4d122f92b2b8e7ccd7e660437ffe73c3c083da606b5a304b2ca4aff2a60b6"
+        }
+      ]
+    },
+    {
+      "key": "CUS/customerServiceLevel",
+      "permission": "pms:service-level:query",
+      "entityPath": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/servicelevel/CustomerServiceLevelDO.java",
+      "ownershipFields": [
+        "Long customerId"
+      ],
+      "priorReason": "客户/联系人/服务级别Owner，需客户域原生范围",
+      "nativeServiceReferences": [
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/servicelevel/CustomerServiceLevelServiceImpl.java",
+        "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/service/servicelevel/CustomerServiceLevelService.java"
+      ],
+      "classification": "DOMAIN_SCOPE",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "等级按授权客户、组织及不可变等级版本读取，不能以Project VIEW替代。",
+      "evidence": [
+        {
+          "path": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/servicelevel/CustomerServiceLevelDO.java",
+          "sha256": "25ddba53059c5be0192c3a5950e78c4fddcc865c5a85377c5ba0c6d99f112480"
+        }
+      ]
+    },
+    {
+      "key": "CUT/cutoverApprovalInstance",
+      "permission": "pms:cutover-task:query-approval",
+      "entityPath": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalInstanceDO.java",
+      "ownershipFields": [
+        "Long taskId",
+        "Long projectId",
+        "Long initiatorProjectScopeVersion"
+      ],
+      "priorReason": "应通过cutoverTask或审批原生Owner授权；尚无显式父级范围适配",
+      "nativeServiceReferences": [
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureQueryService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureApplicationService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/domain/CutoverApprovalEligibilityPolicy.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/CutoverApprovalNotificationService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/CutoverExternalNotificationRequestFactory.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/notification/external/CutoverExternalApprovalNotificationTransactionExecutor.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "原生detail区分发起人、当前合格审批人、终态摘要与改派投影；query+PROJECT_VIEW不足以返回完整目录字段。",
+      "evidence": [
+        {
+          "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/approval/CutoverApprovalInstanceDO.java",
+          "sha256": "7f4c499bd9ff116654e6220f0aa85ce125bfb20316cc505376b386ab3a433498"
+        },
+        {
+          "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalQueryService.java",
+          "sha256": "3ddfaec260e213f26f96b6d385497042a5264b20675b0c8446d2e7bb0a4ce319"
+        }
+      ]
+    },
+    {
+      "key": "CUT/cutoverClosure",
+      "permission": "pms:cutover-task:query-closure",
+      "entityPath": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/closure/CutoverClosureDO.java",
+      "ownershipFields": [
+        "Long taskId",
+        "Long projectId",
+        "Long taskVersionAtP6",
+        "String deviceScopeWatermark"
+      ],
+      "priorReason": "应通过cutoverTask关闭记录Owner；尚无显式父级范围适配",
+      "nativeServiceReferences": [
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureQueryService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureApplicationService.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "原生detail先授权Task项目并requireSource校验任务/项目/冻结方案/审批/版本一致性；直接projectId绕过来源检查。",
+      "evidence": [
+        {
+          "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/closure/CutoverClosureDO.java",
+          "sha256": "06cd2385075d0a0825ee874f55d7a90e43114aeb1c6e0414a0395ba4bb99a7b2"
+        },
+        {
+          "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/closure/CutoverClosureQueryService.java",
+          "sha256": "a29911017a37261863aa3b7e350b7741c63000323b5c781201199e688b6b6433"
+        }
+      ]
+    },
+    {
+      "key": "CUT/cutoverConfigurationRevision",
+      "permission": "pms:cutover-config:query",
+      "entityPath": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/configuration/CutoverConfigurationRevisionDO.java",
+      "ownershipFields": [],
+      "priorReason": "配置修订/有效版本Owner未适配",
+      "nativeServiceReferences": [
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/configuration/CutoverConfigurationServiceImpl.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/taskv2/CutoverTaskQueryService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/taskv2/CutoverTaskApplicationService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/checklist/CutoverChecklistConfigurationQueryService.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/checklist/CutoverNavigationDecisionQueryService.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "配置修订无项目字段；需要配置发布/有效版本/目录Owner策略，而非Project Owner。",
+      "evidence": [
+        {
+          "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/configuration/CutoverConfigurationRevisionDO.java",
+          "sha256": "bd72b7645709d11b616dc2d079f40fdaeeeeeb54a93055a5523d43c16d73230d"
+        }
+      ]
+    },
+    {
+      "key": "CUT/cutoverSpareApplicationReference",
+      "permission": "pms:cutover-task:query",
+      "entityPath": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/spare/CutoverSpareApplicationReferenceDO.java",
+      "ownershipFields": [
+        "Long cutoverTaskId",
+        "Long projectId",
+        "String platformRequestId",
+        "String externalRequestId",
+        "String requestContextSnapshot"
+      ],
+      "priorReason": "备件申请引用需原始申请/任务Owner，不能按租户开放",
+      "nativeServiceReferences": [],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "备件申请引用同时持有cutoverTaskId、platformRequestId、externalRequestId与来源上下文；冗余projectId不代替原任务/申请授权。",
+      "evidence": [
+        {
+          "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/spare/CutoverSpareApplicationReferenceDO.java",
+          "sha256": "284a43cdb66bb15ebaaba1e7f8a885e62901d811c9675f377506c8db7a2dfc73"
+        }
+      ]
+    },
+    {
+      "key": "IMP/arrivalAcceptance",
+      "permission": "pms:arrival-acceptance:query",
+      "entityPath": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/arrivalacceptance/ArrivalAcceptanceDO.java",
+      "ownershipFields": [
+        "Long projectId",
+        "Integer batchRootMarker",
+        "Long projectVersion",
+        "Long projectParticipantFactVersion",
+        "Long projectScopeVersion",
+        "Long deliveryScopeVersion",
+        "String expectedScopeSnapshot",
+        "String scopeWatermark",
+        "Long projectFactVersion"
+      ],
+      "priorReason": "到货根的子记录范围未绑定",
+      "nativeServiceReferences": [
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceQueryService.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceApplicationService.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceCommandService.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/evidence/ArrivalEvidenceRetryService.java"
+      ],
+      "classification": "DEFERRED_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "到货验收QueryService与RequestContext明确COM/AST依赖接通前不注册生产实现；仅声明/Controller契约不能证明生产受信范围已可用。",
+      "evidence": [
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/arrivalacceptance/ArrivalAcceptanceDO.java",
+          "sha256": "77e749bbc433f5e88dc114baf6f3dea225dbaddb5d21ff209aae0587527082b5"
+        },
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrivalacceptance/ArrivalAcceptanceQueryService.java",
+          "sha256": "08c2cab722f12b77919d79f589d3e49559e78476d367996267125bf900d3f04e"
+        },
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/arrivalacceptance/ArrivalAcceptanceRequestContext.java",
+          "sha256": "33590be1ce6dd86a08c2241ecee486620defa2a0f6b8d414bebaff1776ee7641"
+        }
+      ]
+    },
+    {
+      "key": "IMP/docTemplate",
+      "permission": "pms:imp-doc-template:query",
+      "entityPath": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/doctemplate/DocTemplateDO.java",
+      "ownershipFields": [
+        "Long parentTemplateId"
+      ],
+      "priorReason": "文档模板目录范围未适配，不能凭租户推定",
+      "nativeServiceReferences": [
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/doctemplate/DocTemplateService.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/doctemplate/DocTemplateServiceImpl.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "业务文档模板只有parentTemplateId，无Project Owner；模板发布与目录范围需单独策略。",
+      "evidence": [
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/doctemplate/DocTemplateDO.java",
+          "sha256": "ee53fb931782c197298e2d58c8e9cec27b3785a639ac701e209fb6a8615bced3"
+        }
+      ]
+    },
+    {
+      "key": "IMP/installation",
+      "permission": "pms:imp-installation:query",
+      "entityPath": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/installation/InstallationDO.java",
+      "ownershipFields": [
+        "Long projectId"
+      ],
+      "priorReason": "具有projectId，但通用读取没有显式Owner绑定；原生服务/文件策略不能代替它",
+      "nativeServiceReferences": [
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/installation/InstallationServiceImpl.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/installation/InstallationService.java"
+      ],
+      "classification": "IMPLEMENT_SHARED_PROJECT_READ",
+      "decision": "IMPLEMENT_THIS_BATCH",
+      "reason": "旧imp_eng_installation记录的DO.projectId+租户、Controllerquery与目录权限相同；原生Mapper无更宽公共授权替代，新增公共Project VIEW裁剪。新InstallationRecord设备分配/确认流程未改造。",
+      "evidence": [
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/installation/InstallationDO.java",
+          "sha256": "ca8e4ce4b6957a20d9e7f1e637dd5554feb3c57605809aa2f59325c18d8f0384"
+        },
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/installation/InstallationController.java",
+          "sha256": "4ecb09678a49e3391dd4bf945eae1e1547fea67202e0ad2b8346e84b9671f57c"
+        },
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/installation/InstallationServiceImpl.java",
+          "sha256": "dcf827d04f24c2b7721f302de4450f2d4be746173ef19917b081a38f331047ec"
+        },
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/installation/InstallationMapper.java",
+          "sha256": "bf3f382fa463f5acd1089e4599497c2fcd10145c3f154fbe64886a5ead21a1a9"
+        }
+      ]
+    },
+    {
+      "key": "PLT/authorization",
+      "permission": "pms:plt-authorization:query",
+      "entityPath": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/authorization/AuthorizationDO.java",
+      "ownershipFields": [
+        "Long projectId",
+        "Long deviceId",
+        "String deviceSerial",
+        "String deviceModel"
+      ],
+      "priorReason": "敏感授权根需原生Owner范围",
+      "nativeServiceReferences": [
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/authorization/AuthorizationService.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/authorization/AuthorizationServiceImpl.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "设备授权必须保留用户/设备/协议/命令模板/有效期约束，projectId不能授权凭据目录。",
+      "evidence": [
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/authorization/AuthorizationDO.java",
+          "sha256": "589d4a428407933c44d9fb5deb34b0f40963509b6cac273b083dc363c6b26314"
+        }
+      ]
+    },
+    {
+      "key": "PLT/authorizationGrant",
+      "permission": "pms:project:authorization:query",
+      "entityPath": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/authorization/AuthorizationGrantDO.java",
+      "ownershipFields": [
+        "String scopeCode"
+      ],
+      "priorReason": "敏感授权凭据需原生请求/响应/任务范围",
+      "nativeServiceReferences": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/authorization/AuthorizationGrantService.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "Grant是主体、资源、动作、范围及有效期凭据，非Project业务根；需原生授权维护与可见策略。",
+      "evidence": [
+        {
+          "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/authorization/AuthorizationGrantDO.java",
+          "sha256": "4273f5b1ea037417d979beaa5aa80516e731575b716ae183281ada2d1a56241e"
+        }
+      ]
+    },
+    {
+      "key": "PLT/businessViewRevision",
+      "permission": "pms:business-view:query",
+      "entityPath": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/businessview/BusinessViewRevisionDO.java",
+      "ownershipFields": [
+        "String ownerContext"
+      ],
+      "priorReason": "业务视图修订需发布Owner/不可变版本范围",
+      "nativeServiceReferences": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessview/BusinessViewApplicationService.java"
+      ],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "业务视图不可变修订按发布Owner/版本授权，ownerContext不是项目字段。",
+      "evidence": [
+        {
+          "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/businessview/BusinessViewRevisionDO.java",
+          "sha256": "13a21ef20a69a403d6f7470f5e18f13f4b48ed79c1e8a8488874224c8f1d20a6"
+        }
+      ]
+    },
+    {
+      "key": "PLT/collectionTask",
+      "permission": "pms:device-collection:query",
+      "entityPath": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/collection/CollectionTaskDO.java",
+      "ownershipFields": [
+        "String platformTaskId",
+        "String projectId",
+        "String deviceId",
+        "String deviceName",
+        "String externalTaskId"
+      ],
+      "priorReason": "归集任务的文件策略已存在；通用任务读取范围仍未绑定",
+      "nativeServiceReferences": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/collection/TemporaryCollectionDispatchService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/collection/CollectionCallbackService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/collection/CollectionTaskService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/collection/CollectionTaskReconciliationService.java"
+      ],
+      "classification": "STRICT_NATIVE_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "旧task.projectId是String且任务依赖设备/协议/命令/凭证/有效期授权，不能转换后只套Project VIEW。",
+      "evidence": [
+        {
+          "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/collection/CollectionTaskDO.java",
+          "sha256": "671bf44ce41f636fd39e7cd3572a2bdb1a6137a113f11dff7cdbb6cfcbd2df31"
+        }
+      ]
+    },
+    {
+      "key": "PLT/collectionTemplate",
+      "permission": "pms:collection-template:query",
+      "entityPath": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/collection/CollectionTemplateDO.java",
+      "ownershipFields": [
+        "String ownerContext",
+        "String deviceModel"
+      ],
+      "priorReason": "归集模板原生Owner范围未适配",
+      "nativeServiceReferences": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/collection/CollectionTemplateService.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "采集模板按ownerContext/设备/发布版本选择，无Project Owner。",
+      "evidence": [
+        {
+          "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/collection/CollectionTemplateDO.java",
+          "sha256": "16259f723db4d09adf948fd37a43010a41093ef4082e610baefc5b8ca971fe48"
+        }
+      ]
+    },
+    {
+      "key": "PLT/deliveryRequirement",
+      "permission": "pms:project:query",
+      "entityPath": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/delivery/DeliveryRequirementDO.java",
+      "ownershipFields": [
+        "String ownerModule",
+        "String taskCode",
+        "Long projectId"
+      ],
+      "priorReason": "要求归属业务/项目/冻结来源的范围尚未绑定",
+      "nativeServiceReferences": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFulfillmentService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryTemplateFrozenService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryRequirementService.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/fact/DefaultBusinessFactPort.java"
+      ],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "交付要求有业务Owner、任务码、项目/冻结来源多种身份；不能把要求行当业务body或仅靠projectId授权。",
+      "evidence": [
+        {
+          "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/delivery/DeliveryRequirementDO.java",
+          "sha256": "25bf3210ff84e4a71e79a99fda1a2b693b488f0fce6dcc53da9292d4e462139a"
+        }
+      ]
+    },
+    {
+      "key": "PLT/formInstance",
+      "permission": "pms:plt-form-instance:query",
+      "entityPath": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/forminstance/FormInstanceDO.java",
+      "ownershipFields": [
+        "Long projectId"
+      ],
+      "priorReason": "原生动态表单API有独立Owner/执行范围；目录投影未绑定",
+      "nativeServiceReferences": [
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/forminstance/FormInstanceServiceImpl.java",
+        "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/forminstance/FormInstanceService.java"
+      ],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "旧FormInstance目录不等于新动态表单Owner实例；需保留模板/执行Owner/字段模式与原生范围。",
+      "evidence": [
+        {
+          "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/forminstance/FormInstanceDO.java",
+          "sha256": "416f061f4c540c52c842bff261cc0fed10baff3c2056569dd4c95291ea0abccb"
+        }
+      ]
+    },
+    {
+      "key": "PRJ/portfolio",
+      "permission": "pms:portfolio:query",
+      "entityPath": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/portfolio/ProjectPortfolioDO.java",
+      "ownershipFields": [
+        "Long ownerUserId"
+      ],
+      "priorReason": "项目组合独立Owner，不能套项目树范围",
+      "nativeServiceReferences": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/portfolio/ProjectPortfolioServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/portfolio/ProjectPortfolioService.java"
+      ],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "项目组合独立于项目树，ownerUserId不映射Project VIEW；需要组合Owner/成员范围。",
+      "evidence": [
+        {
+          "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/portfolio/ProjectPortfolioDO.java",
+          "sha256": "36d867b9075c7b79521f663551e9c106e398475f0e1dd689028133fb7632a986"
+        }
+      ]
+    },
+    {
+      "key": "PRJ/project",
+      "permission": "pms:project:query",
+      "entityPath": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectmanual/ProjectMasterDO.java",
+      "ownershipFields": [
+        "String projectCode",
+        "Long codeRootId",
+        "Integer projectSequence",
+        "String projectName",
+        "Long parentId",
+        "Long rootId",
+        "Long customerId",
+        "String customerCode",
+        "String customerName",
+        "String projectType",
+        "String projectCategory",
+        "String majorProjectLevel",
+        "String customerProjectName",
+        "String contractNo",
+        "LocalDateTime projectStartTime",
+        "java.time.LocalDate projectEndDate",
+        "LocalDateTime projectRefreshTime",
+        "LocalDateTime projectCloseTime",
+        "Long taskTreeVersion",
+        "Long taskProgressVersion"
+      ],
+      "priorReason": "项目根须保留ProjectScope与生命周期；通用读取未绑定，创建/详情/迁移属独立活动",
+      "nativeServiceReferences": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectprogress/ProjectProgressSnapshotService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectprogress/ProjectProgressPolicyService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskbusiness/TaskBusinessAccess.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskbusiness/ProjectOperationContextResolver.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskbusiness/ProjectBusinessFactSourceService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/rule/ProjectRuleFields.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageGateProcessContextResolver.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageAdvanceApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageGateWorkbenchService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectclosureguard/ProjectClosureGuardService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeViewSanitizer.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeProjectionService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeQueryService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/runtimegraph/ProjectRuntimeGraphResolver.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/runtimegraph/ProjectChildWaitFacts.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectplan/ProjectPlanInitializationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectplan/ProjectPlanDraftService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectplan/ProjectCurrentStageService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/batchchange/TeamBatchChangeServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectattribute/ProjectAttributeSourceCorrectionService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectattribute/ProjectAttributeClassificationApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectattribute/ProjectAttributeResolutionService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/deliverable/ProjectAcceptanceContextService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/deliverable/ProjectDeliverableRuleService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/operation/ProjectResultSubscriptionContext.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/operation/ProjectOperationRuleEvaluator.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectauthorization/ProjectAuthorizationGuard.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/portfolio/ProjectPortfolioServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/ProjectTemplateSelectionService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskQueryService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskLifecycleService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskNativeBindingHostProvider.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskProgressService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskAssignmentService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskCommandService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectServiceManagerQueryService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectTaskSatisfactionSnapshot.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManagerAssignmentApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectCustomerCorrectionService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectChildCreationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectChildDraftFactory.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectclosure/ProjectClosureServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectclosure/ProjectClosureStateAdapter.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceHistoryQueryService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/ProjectGovernanceGuardService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectstage/ProjectAcceptanceStageEntryService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectsplit/ProjectSplitDraftService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectsplit/ProjectSplitApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectsplit/ProjectSplitPreviewService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmember/ValidationInitialAssignmentPolicy.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmember/ProjectManagerMemberApplicationService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmember/OrdinaryProjectMemberService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/normalclosure/NormalClosureAccess.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/provider/ProjectTreeGovernanceGuardProvider.java"
+      ],
+      "classification": "DEFERRED_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "项目根创建/详情/历史迁移是已声明独立活动，本段不接入或改造其业务查询/生命周期。",
+      "evidence": [
+        {
+          "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectmanual/ProjectMasterDO.java",
+          "sha256": "60c56f9767bbe1ec46a8a0bc896aef989ac016dbf512744cc45bab968ea0de5b"
+        }
+      ]
+    },
+    {
+      "key": "PRJ/projectTemplate",
+      "permission": "pms:project-template:query",
+      "entityPath": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/ProjectTemplateDO.java",
+      "ownershipFields": [],
+      "priorReason": "模板发布/版本目录Owner尚未显式适配",
+      "nativeServiceReferences": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/ProjectTemplateServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/ProjectTemplateV2ServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/ProjectTemplateService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationServiceImpl.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "项目模板是租户目录/发布版本而非项目实例；不可将无projectId的模板映射到项目树。",
+      "evidence": [
+        {
+          "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/ProjectTemplateDO.java",
+          "sha256": "4b35b1192e86d41ea4601ac63f71aa40c3ff1bbb79558460d4b7bebc9112de68"
+        }
+      ]
+    },
+    {
+      "key": "PRJ/taskAssignment",
+      "permission": "pms:project-task:query",
+      "entityPath": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/taskworkbench/ProjectTaskAssignmentDO.java",
+      "ownershipFields": [
+        "Long projectTaskId"
+      ],
+      "priorReason": "任务分派需原始项目/任务接收者Owner",
+      "nativeServiceReferences": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskQueryService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskMaintenanceService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskExecutionPolicy.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskNativeBindingHostProvider.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskAssignmentService.java"
+      ],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "分派只持有projectTaskId，原Task有执行/责任人范围且不是现79目录中的父模型；不能猜projectId或复用不存在的父目录身份。",
+      "evidence": [
+        {
+          "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/taskworkbench/ProjectTaskAssignmentDO.java",
+          "sha256": "787e21ac4722a3e840399661d91ecf750ba90730a9e467d6a3ef2f20942b6d55"
+        }
+      ]
+    },
+    {
+      "key": "PRJ/teamBatchChange",
+      "permission": "pms:team-batch-change:query",
+      "entityPath": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/batchchange/TeamBatchChangeDO.java",
+      "ownershipFields": [
+        "String scopeType"
+      ],
+      "priorReason": "批量团队动作需原始项目/版本范围",
+      "nativeServiceReferences": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/batchchange/TeamBatchChangeServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/batchchange/TeamBatchChangeService.java"
+      ],
+      "classification": "PARENT_OR_MULTI_OWNER",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "批次ALL/SELECTED横跨项目与用户移交明细，没有唯一Project Owner，需批次/明细集合范围。",
+      "evidence": [
+        {
+          "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/batchchange/TeamBatchChangeDO.java",
+          "sha256": "34295f0164f85808a1710aa793f5495e9074e2907af0370d3b07ac4b9e917ffc"
+        }
+      ]
+    },
+    {
+      "key": "SRV/inspectionRule",
+      "permission": "pms:inspection-rule:query",
+      "entityPath": "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/dataobject/inspectionrule/InspectionRuleDO.java",
+      "ownershipFields": [],
+      "priorReason": "服务规则目录，需原生规则Owner范围",
+      "nativeServiceReferences": [
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/model/ServiceBusinessModelContributor.java",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/InspectionRulePublicationTransactionService.java",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/inspectionrule/InspectionRuleRevisionServiceImpl.java",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/inspectionrule/InspectionRuleMapper.java"
+      ],
+      "classification": "NON_PROJECT_CATALOG",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "巡检规则为发布/版本目录，无Project Owner；需服务域规则目录/版本授权。",
+      "evidence": [
+        {
+          "path": "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/dataobject/inspectionrule/InspectionRuleDO.java",
+          "sha256": "397331589d50eab5518f5325777991c124df08063077cd9535c532bf35164b55"
+        }
+      ]
+    }
+  ]
+}

@@ -58,6 +58,15 @@ public class SiteSurveyEntityFormService {
         validateValues(row, request.getFormRevisionId(), request.getFormRevisionVersion(), extras, bindingChanged);
     }
 
+    /** Validate an inherited aggregate save without reloading and overwriting the proposed child values. */
+    public void validateInheritedSave(SiteSurveyEntityDO row, boolean creating) {
+        SiteSurveyEntityBusinessValues.validate(businessValues(row),row.getProjectId());
+        if(creating)return;
+        var layout=bindings.layout(target(row),actor());
+        if(layout!=null)validateValues(row,layout.binding().formRevisionId(),layout.formVersion(),
+                extensions.read(target(row),actor()).fields(),false);
+    }
+
     public void validate(SiteSurveyEntityDO row, boolean binding) {
         details.load(row);
         var layout = bindings.layout(target(row), actor());

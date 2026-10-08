@@ -280,7 +280,8 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles!" />
+            <NativeAttachments :key="String(form.id || 'new')" kind="outsourceRequest" :entity-id="form.id"
+              :readonly="![0, 4].includes(form.status ?? -1) || !checkPermi(['pms:res-outsource:update'])" :legacy="form.attachmentFiles" @changed="attachmentOwnerChanged" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -343,6 +344,7 @@
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
+    <NativeAttachments v-if="current.id" kind="outsourceRequest" :entity-id="current.id" :readonly="true" :legacy="current.attachmentFiles" />
   </Dialog>
 
   <!-- 审批对话框 -->
@@ -379,6 +381,8 @@
 </template>
 
 <script setup lang="ts">
+import { checkPermi } from '@/utils/permission'
+import NativeAttachments from '../attachment/NativeAttachments.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
@@ -494,6 +498,10 @@ const openEdit = async (row: OutsourceRequestVO) => {
   const detail = await OutsourceApi.getOutsourceRequest(row.id!)
   Object.assign(form, detail, { siteSurveyExecution: undefined })
   formVisible.value = true
+}
+const attachmentOwnerChanged = (saved: { version?: number; status?: number; configLogUrl?: string }) => {
+  form.version = saved.version
+  form.status = saved.status
 }
 const save = async () => {
   if (saving.value) return

@@ -1,0 +1,799 @@
+{
+  "baseline": "834a6a5b2246a9ba1d291dec4ee3157bffd35426",
+  "method": "Static constructor enumeration, not runtime acceptance and not a count of business roots",
+  "descriptor_constructor_count": 79,
+  "empty_operations": 77,
+  "implicit_null_scope": 79,
+  "models": [
+    {
+      "owner": "ACC",
+      "entity": "acceptance",
+      "stable_code": "ACC_ACCEPTANCE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 89,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "acceptanceActivity",
+      "stable_code": "ACC_ACCEPTANCE_ACTIVITY",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 107,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "acceptanceScopeBinding",
+      "stable_code": "ACC_ACCEPTANCE_SCOPE_BINDING",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 122,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "archiveDocument",
+      "stable_code": "ACC_ARCHIVE_DOCUMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 136,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "completionCertificate",
+      "stable_code": "ACC_COMPLETION_CERTIFICATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 152,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "deliverableChecklist",
+      "stable_code": "ACC_DELIVERABLE_CHECKLIST",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 171,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "normalClosureApplication",
+      "stable_code": "ACC_NORMAL_CLOSURE_APPLICATION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 188,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "satisfactionCollectionTask",
+      "stable_code": "ACC_SATISFACTION_COLLECTION_TASK",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 208,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "satisfactionQuestionnaire",
+      "stable_code": "ACC_SATISFACTION_QUESTIONNAIRE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 225,
+      "args": 12
+    },
+    {
+      "owner": "ACC",
+      "entity": "satisfactionQuestionnaireTemplate",
+      "stable_code": "ACC_SATISFACTION_QUESTIONNAIRE_TEMPLATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "line": 240,
+      "args": 12
+    },
+    {
+      "owner": "CUS",
+      "entity": "customerMaster",
+      "stable_code": "CUS_CUSTOMER_MASTER",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/model/CustomerBusinessModelContributor.java",
+      "line": 51,
+      "args": 12
+    },
+    {
+      "owner": "CUS",
+      "entity": "customerContact",
+      "stable_code": "CUS_CUSTOMER_CONTACT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/model/CustomerBusinessModelContributor.java",
+      "line": 74,
+      "args": 12
+    },
+    {
+      "owner": "CUS",
+      "entity": "customerServiceLevel",
+      "stable_code": "CUS_CUSTOMER_SERVICE_LEVEL",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/model/CustomerBusinessModelContributor.java",
+      "line": 90,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "project",
+      "stable_code": "PRJ_PROJECT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 116,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "portfolio",
+      "stable_code": "PRJ_PORTFOLIO",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 143,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "projectRisk",
+      "stable_code": "PRJ_PROJECT_RISK",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 157,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "projectTemplate",
+      "stable_code": "PRJ_PROJECT_TEMPLATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 175,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "projectSite",
+      "stable_code": "PRJ_PROJECT_SITE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 186,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "splitRequest",
+      "stable_code": "PRJ_SPLIT_REQUEST",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 201,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "treeVersion",
+      "stable_code": "PRJ_TREE_VERSION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 218,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "treeChange",
+      "stable_code": "PRJ_TREE_CHANGE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 231,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "teamBatchChange",
+      "stable_code": "PRJ_TEAM_BATCH_CHANGE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 246,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "stageSuggestionRule",
+      "stable_code": "PRJ_STAGE_SUGGESTION_RULE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 261,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "taskAssignment",
+      "stable_code": "PRJ_TASK_ASSIGNMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 274,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "planVersion",
+      "stable_code": "PRJ_PLAN_VERSION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 286,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "projectClosure",
+      "stable_code": "PRJ_CLOSURE_RECORD",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 301,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "governanceAction",
+      "stable_code": "PRJ_GOVERNANCE_ACTION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 318,
+      "args": 12
+    },
+    {
+      "owner": "PRJ",
+      "entity": "exitRecord",
+      "stable_code": "PRJ_EXIT_RECORD",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/model/ProjectBusinessModelContributor.java",
+      "line": 337,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverTask",
+      "stable_code": "CUT_TASK",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 78,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverAssessment",
+      "stable_code": "CUT_ASSESSMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 100,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverPlanRevision",
+      "stable_code": "CUT_PLAN_REVISION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 115,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverApprovalInstance",
+      "stable_code": "CUT_APPROVAL_INSTANCE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 131,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverChecklist",
+      "stable_code": "CUT_CHECKLIST",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 147,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverClosure",
+      "stable_code": "CUT_CLOSURE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 161,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverConfigurationRevision",
+      "stable_code": "CUT_CONFIGURATION_REVISION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 179,
+      "args": 12
+    },
+    {
+      "owner": "CUT",
+      "entity": "cutoverSpareApplicationReference",
+      "stable_code": "CUT_SPARE_APPLICATION_REFERENCE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/model/CutoverBusinessModelContributor.java",
+      "line": 194,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "requirement",
+      "stable_code": "SOL_REQUIREMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 202,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "requirementAnalysis",
+      "stable_code": "SOL_REQUIREMENT_ANALYSIS",
+      "operation_expression": "List.of(\n                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor(\"create\", 1, \"创建草稿\", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.CREATE),\n                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor(\"save\", 1, \"保存草稿\", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.UPDATE),\n                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor(\"complete\", 1, \"完成并生效\", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND),\n                        new cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor(\"copy\", 1, \"复制为新草稿\", cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND))",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 218,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "siteSurvey",
+      "stable_code": "SOL_SITE_SURVEY",
+      "operation_expression": "cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.SiteSurveyBusinessApplicationService.operations()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 235,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "solution",
+      "stable_code": "SOL_SOLUTION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 243,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "constructionPlan",
+      "stable_code": "SOL_CONSTRUCTION_PLAN",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 258,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "stagePlanBatch",
+      "stable_code": "SOL_STAGE_PLAN_BATCH",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 266,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "training",
+      "stable_code": "IMP_TRAINING",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 277,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "arrival",
+      "stable_code": "IMP_ARRIVAL",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 295,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "arrivalAcceptance",
+      "stable_code": "IMP_ARRIVAL_ACCEPTANCE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 310,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "deliveryEvidence",
+      "stable_code": "IMP_DELIVERY_EVIDENCE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 326,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "installation",
+      "stable_code": "IMP_INSTALLATION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 342,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "jointTest",
+      "stable_code": "IMP_JOINT_TEST",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 358,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "deliverable",
+      "stable_code": "IMP_DELIVERABLE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 374,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "materialExchange",
+      "stable_code": "IMP_MATERIAL_EXCHANGE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 391,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "materialRequisition",
+      "stable_code": "IMP_MATERIAL_REQUISITION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 411,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "externalProcurement",
+      "stable_code": "IMP_EXTERNAL_PROCUREMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 430,
+      "args": 12
+    },
+    {
+      "owner": "RES",
+      "entity": "outsourceRequest",
+      "stable_code": "RES_OUTSOURCE_REQUEST",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 450,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "authorization",
+      "stable_code": "PLT_AUTHORIZATION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 468,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "briefing",
+      "stable_code": "SOL_BRIEFING",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 486,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "configuration",
+      "stable_code": "IMP_CONFIGURATION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 503,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "issue",
+      "stable_code": "IMP_ISSUE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 517,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "risk",
+      "stable_code": "IMP_RISK",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 533,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "resourceReady",
+      "stable_code": "SOL_RESOURCE_READY",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 550,
+      "args": 12
+    },
+    {
+      "owner": "SOL",
+      "entity": "scheduleBackward",
+      "stable_code": "SOL_SCHEDULE_BACKWARD",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 564,
+      "args": 12
+    },
+    {
+      "owner": "IMP",
+      "entity": "docTemplate",
+      "stable_code": "IMP_DOC_TEMPLATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 575,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "formTemplate",
+      "stable_code": "PLT_FORM_TEMPLATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 588,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "formInstance",
+      "stable_code": "PLT_FORM_INSTANCE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 598,
+      "args": 12
+    },
+    {
+      "owner": "KNO",
+      "entity": "announcement",
+      "stable_code": "KNO_ANNOUNCEMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "line": 612,
+      "args": 12
+    },
+    {
+      "owner": "COM",
+      "entity": "contract",
+      "stable_code": "COM_CONTRACT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "line": 61,
+      "args": 12
+    },
+    {
+      "owner": "COM",
+      "entity": "salesOrder",
+      "stable_code": "COM_SALES_ORDER",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "line": 79,
+      "args": 12
+    },
+    {
+      "owner": "COM",
+      "entity": "deliveryScope",
+      "stable_code": "COM_DELIVERY_SCOPE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "line": 101,
+      "args": 12
+    },
+    {
+      "owner": "COM",
+      "entity": "authorityCandidate",
+      "stable_code": "COM_AUTHORITY_CANDIDATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "line": 122,
+      "args": 12
+    },
+    {
+      "owner": "COM",
+      "entity": "crmExecutionOrder",
+      "stable_code": "COM_CRM_EXECUTION_ORDER",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/model/CommerceBusinessModelContributor.java",
+      "line": 139,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "authorizationGrant",
+      "stable_code": "PLT_AUTHORIZATION_GRANT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/model/PlatformBusinessModelContributor.java",
+      "line": 61,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "businessViewRevision",
+      "stable_code": "PLT_BUSINESS_VIEW_REVISION",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/model/PlatformBusinessModelContributor.java",
+      "line": 82,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "collectionTemplate",
+      "stable_code": "PLT_COLLECTION_TEMPLATE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/model/PlatformBusinessModelContributor.java",
+      "line": 97,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "collectionTask",
+      "stable_code": "PLT_COLLECTION_TASK",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/model/PlatformBusinessModelContributor.java",
+      "line": 114,
+      "args": 12
+    },
+    {
+      "owner": "PLT",
+      "entity": "deliveryRequirement",
+      "stable_code": "PLT_DELIVERY_REQUIREMENT",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/model/PlatformBusinessModelContributor.java",
+      "line": 141,
+      "args": 12
+    },
+    {
+      "owner": "SRV",
+      "entity": "inspectionRule",
+      "stable_code": "SRV_INSPECTION_RULE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/model/ServiceBusinessModelContributor.java",
+      "line": 40,
+      "args": 12
+    },
+    {
+      "owner": "AST",
+      "entity": "device",
+      "stable_code": "AST_DEVICE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/model/AssetBusinessModelContributor.java",
+      "line": 56,
+      "args": 12
+    },
+    {
+      "owner": "AST",
+      "entity": "site",
+      "stable_code": "AST_SITE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/model/AssetBusinessModelContributor.java",
+      "line": 84,
+      "args": 12
+    },
+    {
+      "owner": "AST",
+      "entity": "assetProductOfficial",
+      "stable_code": "AST_PRODUCT_OFFICIAL",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/model/AssetBusinessModelContributor.java",
+      "line": 95,
+      "args": 12
+    },
+    {
+      "owner": "AST",
+      "entity": "assetProductType",
+      "stable_code": "AST_PRODUCT_TYPE",
+      "operation_expression": "List.of()",
+      "scope_expression": "null (legacy constructor)",
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/model/AssetBusinessModelContributor.java",
+      "line": 107,
+      "args": 12
+    }
+  ]
+}

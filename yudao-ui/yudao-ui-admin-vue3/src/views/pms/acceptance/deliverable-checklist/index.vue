@@ -119,7 +119,7 @@
   </ContentWrap>
 
   <Dialog v-model="formVisible" :title="form.id ? '编辑交付件' : '新增交付件'" width="780px">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+    <el-form ref="formRef" :model="form" :rules="rules" :disabled="readOnly || saving" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
@@ -150,7 +150,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="版本" prop="version"><el-input v-model="form.version" /></el-form-item>
+          <el-form-item label="数据版本" prop="version"><span>{{ form.version ?? '保存后生成' }}</span></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="提交日期" prop="submittedDate">
@@ -169,7 +169,9 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl!" />
+            <ChecklistAttachments v-if="form.id" :key="form.id" :entity-id="form.id" :readonly="readOnly" @changed="attachmentsChanged" />
+            <span v-else>保存后可上传附件，自动归入同一核对清单</span>
+            <a v-for="url in legacyAttachments" :key="url" :href="url" target="_blank" rel="noopener">查看历史附件</a>
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -179,18 +181,20 @@
         </el-col>
       </el-row>
     </el-form>
-    <DeliveryPanel v-if="form.id" owner-module="ACC" entity-type="deliverableChecklist" :entity-id="form.id" :readonly="true" />
+    <DeliveryPanel v-if="form.id" :key="`${form.id}-${deliveryEpoch}`" owner-module="ACC" entity-type="deliverableChecklist" :entity-id="form.id" :readonly="true" />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button type="primary" :loading="saving" :disabled="readOnly" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import ChecklistAttachments from './ChecklistAttachments.vue'
+import { checkPermi } from '@/utils/permission'
 import ProjectDeliverablesPanel from '@/views/pms/project/project-master-detail/components/ProjectDeliverablesPanel.vue'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as DeliverableChecklistApi from '@/api/pms/acceptance/deliverable-checklist'
@@ -214,6 +218,13 @@ const query = reactive({
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<DeliverableChecklistVO>({ projectId: undefined!, name: '' })
+const deliveryEpoch = ref(0)
+const readOnly = computed(() => !!form.id && (form.status !== 0 || !checkPermi(['pms:acc-deliverable-checklist:update'])))
+const legacyAttachments = computed(() => (form.deliverableUrl || form.attachmentUrl || '').split(',').filter(Boolean))
+const attachmentsChanged = (owner?: DeliverableChecklistVO) => {
+  if (owner && owner.id === form.id) { form.version = owner.version; form.status = owner.status }
+  deliveryEpoch.value += 1
+}
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   name: [{ required: true, message: '请输入交付件名称' }],
@@ -238,7 +249,8 @@ const openForm = (row?: DeliverableChecklistVO) => {
       projectId: undefined,
       name: '',
       deliverableType: 'REQUIRED',
-      version: '',
+      version: undefined,
+      deliverableUrl: '',
       signedFlag: false,
       validFlag: true,
       submittedDate: '',
@@ -252,14 +264,16 @@ const openForm = (row?: DeliverableChecklistVO) => {
   formVisible.value = true
 }
 const save = async () => {
+  if (readOnly.value || saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id
-      ? await DeliverableChecklistApi.updateDeliverableChecklist(form)
-      : await DeliverableChecklistApi.createDeliverableChecklist(form)
+    if (form.id) await DeliverableChecklistApi.updateDeliverableChecklist(form)
+    else form.id = await DeliverableChecklistApi.createDeliverableChecklist(form)
+    const current = await DeliverableChecklistApi.getDeliverableChecklist(form.id!)
+    Object.assign(form, current)
+    deliveryEpoch.value += 1
     message.success('保存成功')
-    formVisible.value = false
     await load()
   } finally {
     saving.value = false

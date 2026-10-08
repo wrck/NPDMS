@@ -1,0 +1,137 @@
+{
+  "scope": "real Chromium + production legacy solution Vue and existing customer upload/attach helper; mocked HTTP only; no production backend/database/login acceptance",
+  "passed": true,
+  "counts": {
+    "ownerSaves": 1,
+    "initUploads": 1,
+    "completeUploads": 1,
+    "nativeAttachments": 2
+  },
+  "failedOwner": {
+    "id": 9,
+    "projectId": 20,
+    "name": "原生客户方案浏览器夹具",
+    "code": "SOL-9",
+    "status": 0,
+    "version": 3,
+    "solutionType": "IMPLEMENTATION",
+    "remark": "{\"hasCustomerPlan\":\"yes\",\"customerPlanUrl\":\"https://legacy/old.pdf\",\"hardwareInvolved\":\"\",\"softwareDebug\":\"\",\"trainingPurpose\":\"preserve\",\"trainingContent\":\"\",\"archive\":\"\",\"business\":[]}",
+    "team": "[]",
+    "inventory": "[]",
+    "interfacePlan": "[]",
+    "ipPlan": "[]",
+    "topology": "{\"asIsUrl\":\"\",\"toBeChanged\":\"\",\"toBeUrl\":\"\",\"deploy\":[],\"software\":[]}"
+  },
+  "savedOwner": {
+    "id": 9,
+    "projectId": 20,
+    "name": "原生客户方案浏览器夹具",
+    "code": "SOL-9",
+    "status": 0,
+    "version": 4,
+    "solutionType": "IMPLEMENTATION",
+    "remark": "{\"hasCustomerPlan\": \"yes\", \"customerPlanUrl\": \"/api/v1/pms/solutions/9/customer-files/51/customer.txt\", \"hardwareInvolved\": \"\", \"softwareDebug\": \"\", \"trainingPurpose\": \"preserve\", \"trainingContent\": \"\", \"archive\": \"\", \"business\": []}",
+    "team": "[]",
+    "inventory": "[]",
+    "interfacePlan": "[]",
+    "ipPlan": "[]",
+    "topology": "{\"asIsUrl\":\"\",\"toBeChanged\":\"\",\"toBeUrl\":\"\",\"deploy\":[],\"software\":[]}"
+  },
+  "materialFixture": [
+    {
+      "id": 51,
+      "ownerModule": "SOL",
+      "entityType": "solution",
+      "entityId": 9,
+      "typeCode": "IMPLEMENTATION_PLAN",
+      "materialKind": "FILE",
+      "fileName": "customer.txt",
+      "fileVersionNo": 1,
+      "sourceKind": "UPLOAD",
+      "status": "ACTIVE"
+    }
+  ],
+  "pageErrors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/pms/sol-solution/page",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/pms/sol-solution/get",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/delivery/types",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/delivery/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/delivery/materials",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/delivery/allowed-actions",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/pms/sol-solution/update",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/pms/sol-solution/get",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/delivery/types",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/files:init-upload",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/files/31:complete-upload",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/solutions/9/customer-files",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pms/delivery/types",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/solutions/9/customer-files",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/pms/sol-solution/page",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/pms/sol-solution/get",
+      "status": 200
+    }
+  ]
+}

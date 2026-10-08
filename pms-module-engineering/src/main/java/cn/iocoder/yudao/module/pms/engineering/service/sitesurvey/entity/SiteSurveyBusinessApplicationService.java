@@ -106,7 +106,11 @@ public class SiteSurveyBusinessApplicationService extends DefaultBusinessApplica
     }
 
     @Override protected LockedAggregate<BaseBusinessEntity> lockAggregate(ResolvedCaller caller,BusinessOperationRequest request) {
-        reserveExecution(caller,request);
+        try { reserveExecution(caller,request); }
+        catch(ReplayedOperation replay) {
+            requireCurrentReceiptAccess(caller,request,replay.receipt());
+            throw replay;
+        }
         if ("create".equals(request.operationCode())) return new LockedAggregate<>(null,null);
         var observed=identity(caller,request);
         var locked=mapper.selectTaskObjectForUpdate(new SiteSurveyEntityTaskObjectQuery(caller.tenantId(),observed.getProjectId(),observed.getId()));
@@ -114,6 +118,17 @@ public class SiteSurveyBusinessApplicationService extends DefaultBusinessApplica
                 || !Objects.equals(locked.getId(),request.targetRef().entity().entityId())) throw invalid("ENTITY_NOT_FOUND","当前工勘不存在");
         if (!Objects.equals(locked.getVersion(),request.concurrencyBasis())) throw invalid("CONCURRENCY_CONFLICT","工勘并发依据过期");
         return new LockedAggregate<>(locked,locked.getVersion());
+    }
+
+    @Override protected void requireReceiptOwnerAccess(ResolvedCaller caller,BusinessOperationRequest request,
+                                                       BusinessOperationReceipt receipt) {
+        // The native identity query includes soft-deleted targets for immutable delete/replay receipts.
+        var row=mapper.selectOperationIdentity(new SiteSurveyOperationIdentityQuery(caller.tenantId(),receipt.entityRef().entityId()));
+        if(row==null || !caller.tenantId().equals(row.getTenantId()) || !receipt.entityRef().entityId().equals(row.getId()))
+            throw invalid("ENTITY_NOT_FOUND","回执工勘不存在");
+        if(!permissions.hasAnyPermissions(caller.userId(),permission(request.operationCode()))) throw exception(FORBIDDEN);
+        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(caller.tenantId(),caller.userId(),row.getProjectId(),ProjectScopeApi.ACTION_MANAGE));
+        if(scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(row.getProjectId())) throw exception(FORBIDDEN);
     }
 
     @Override protected BusinessOperationReceipt domainCommand(ResolvedCaller caller,BusinessOperationRequest request,LockedAggregate<BaseBusinessEntity> locked) {
@@ -140,7 +155,8 @@ public class SiteSurveyBusinessApplicationService extends DefaultBusinessApplica
             var payload=new Result(id.toString(),projectId.toString(),version,state,deleted);
             return new BusinessOperationReceipt("confirm".equals(request.operationCode()) || "archive".equals(request.operationCode())
                     ? ReceiptOutcome.EFFECTED : ReceiptOutcome.SAVED,ref,version,
-                    List.of(new ResultReference(ResultReference.Kind.COMMAND,"SOL",JsonUtils.toJsonString(payload))),null,null);
+                    List.of(new ResultReference(ResultReference.Kind.COMMAND,"SOL",JsonUtils.toJsonString(payload))),null,null,
+                    request.operationCode(),request.operationVersion());
         });
     }
 

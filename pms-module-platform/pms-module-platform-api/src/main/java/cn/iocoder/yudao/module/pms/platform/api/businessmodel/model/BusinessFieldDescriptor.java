@@ -13,5 +13,17 @@ public record BusinessFieldDescriptor(
         boolean required,
         boolean readable,
         boolean writable,
-        String dictionaryRef) {
+        String dictionaryRef,
+        int displayOrder,
+        boolean listVisible,
+        boolean searchable,
+        boolean sortable) {
+    public BusinessFieldDescriptor(String code,String name,EntityField.Type type,boolean required,
+            boolean readable,boolean writable,String dictionaryRef) {
+        this(code,name,type,required,readable,writable,dictionaryRef,0,readable,
+                readable && scalar(type),readable && scalar(type));
+    }
+    public static boolean scalar(EntityField.Type type) {
+        return type != EntityField.Type.TEXT_LIST && type != EntityField.Type.OBJECT_LIST;
+    }
 }

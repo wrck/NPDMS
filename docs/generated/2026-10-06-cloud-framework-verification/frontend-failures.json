@@ -1,0 +1,96 @@
+{
+  "originalRun": {
+    "tests": 122,
+    "passed": 115,
+    "failed": 7,
+    "suites": 12,
+    "log": ".run/cloud-20261006/public-ui-final.log"
+  },
+  "diagnosticRun": {
+    "tests": 16,
+    "passed": 15,
+    "failed": 1,
+    "assertionsChanged": false,
+    "temporaryCopyRemoved": true,
+    "log": ".run/cloud-20261006/native-ui-mock-diagnostic-2.log",
+    "source": ".run/cloud-20261006/operationAdapters.diagnostic.spec.ts"
+  },
+  "failures": [
+    {
+      "case": "routes survey CREATE with object-specific version and no nested execution",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:88",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'entityRef')",
+      "cause": "Fake native operation response lacks response.operationReceipt, required by the checkpoint public operation receipt contract.",
+      "diagnosis": "PASS in fixture-only temporary copy; every original assertion retained; no production API or protected page edited.",
+      "supportingProductionSource": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java:94",
+      "status": "ORIGINAL_TEST_STILL_FAILS; FIXTURE_UPDATE_PENDING_NATIVE_ACTIVITY"
+    },
+    {
+      "case": "routes survey UPDATE with object-specific version and no nested execution",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:88",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'entityRef')",
+      "cause": "Fake native operation response lacks response.operationReceipt, required by the checkpoint public operation receipt contract.",
+      "diagnosis": "PASS in fixture-only temporary copy; every original assertion retained; no production API or protected page edited.",
+      "supportingProductionSource": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java:94",
+      "status": "ORIGINAL_TEST_STILL_FAILS; FIXTURE_UPDATE_PENDING_NATIVE_ACTIVITY"
+    },
+    {
+      "case": "routes survey DELETE with object-specific version and no nested execution",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:88",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'entityRef')",
+      "cause": "Fake native operation response lacks response.operationReceipt, required by the checkpoint public operation receipt contract.",
+      "diagnosis": "PASS in fixture-only temporary copy; every original assertion retained; no production API or protected page edited.",
+      "supportingProductionSource": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java:94",
+      "status": "ORIGINAL_TEST_STILL_FAILS; FIXTURE_UPDATE_PENDING_NATIVE_ACTIVITY"
+    },
+    {
+      "case": "routes survey CONFIRM with object-specific version and no nested execution",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:88",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'entityRef')",
+      "cause": "Fake native operation response lacks response.operationReceipt, required by the checkpoint public operation receipt contract.",
+      "diagnosis": "PASS in fixture-only temporary copy; every original assertion retained; no production API or protected page edited.",
+      "supportingProductionSource": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java:94",
+      "status": "ORIGINAL_TEST_STILL_FAILS; FIXTURE_UPDATE_PENDING_NATIVE_ACTIVITY"
+    },
+    {
+      "case": "routes survey REJECT with object-specific version and no nested execution",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:88",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'entityRef')",
+      "cause": "Fake native operation response lacks response.operationReceipt, required by the checkpoint public operation receipt contract.",
+      "diagnosis": "PASS in fixture-only temporary copy; every original assertion retained; no production API or protected page edited.",
+      "supportingProductionSource": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java:94",
+      "status": "ORIGINAL_TEST_STILL_FAILS; FIXTURE_UPDATE_PENDING_NATIVE_ACTIVITY"
+    },
+    {
+      "case": "routes survey ARCHIVE with object-specific version and no nested execution",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:88",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'entityRef')",
+      "cause": "Fake native operation response lacks response.operationReceipt, required by the checkpoint public operation receipt contract.",
+      "diagnosis": "PASS in fixture-only temporary copy; every original assertion retained; no production API or protected page edited.",
+      "supportingProductionSource": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java:94",
+      "status": "ORIGINAL_TEST_STILL_FAILS; FIXTURE_UPDATE_PENDING_NATIVE_ACTIVITY"
+    },
+    {
+      "case": "keeps an unmarked standalone request on the original API",
+      "source": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/operationAdapters.runtime.spec.ts",
+      "sourceSha256": "161a25ddb5bc54236f9c12fb622fefb9de9bc15158cf277caad58e024a20ba3f",
+      "runtimeSource": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts:84",
+      "failure": "TypeError: Cannot read properties of undefined (reading 'transformResponse')",
+      "cause": "Axios service mock has no defaults. Fixing mocks exposes an additional route expectation mismatch: legacy /site-surveys/create versus current public /business-models/SOL/siteSurvey/operations/create.",
+      "diagnosis": "STILL_FAIL in fixture-only temporary copy; every original assertion retained. This is also a routing contract discrepancy, not solely a mock defect.",
+      "status": "ORIGINAL_TEST_STILL_FAILS; CONTRACT_RECONCILIATION_PENDING_NATIVE_ACTIVITY"
+    }
+  ]
+}

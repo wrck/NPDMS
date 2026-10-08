@@ -12,6 +12,9 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface ConfigurationMapper extends ProjectScopedCodeMapper<ConfigurationDO> {
+    ConfigurationDO selectAttachmentOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery query);
+
 
     default PageResult<ConfigurationDO> selectPage(ConfigurationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ConfigurationDO>()

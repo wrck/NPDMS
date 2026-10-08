@@ -81,6 +81,7 @@ const keyOf = (referenceKey: string) => ({
 
 const completeUpload = async (selection: FileSelection) => {
   const artifact = await FileApi.getArtifact(selection.artifactId, keyOf(selection.referenceKey))
+  if (!artifact) throw new Error('文件信息暂不可用，请重新读取后重试')
   const versions = await FileApi.getVersions(selection.artifactId, {
     ...keyOf(selection.referenceKey),
     pageSize: 20
@@ -110,7 +111,7 @@ watch(
     try {
       artifactName.value = (
         await FileApi.getArtifact(artifactId, keyOf(evidence.referenceKey))
-      ).name
+      )?.name || '文件信息暂不可用'
     } catch {
       artifactName.value = '文件信息暂不可用'
     }

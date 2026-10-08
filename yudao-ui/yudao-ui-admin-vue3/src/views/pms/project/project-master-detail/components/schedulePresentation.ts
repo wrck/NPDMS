@@ -145,7 +145,8 @@ export const stageItemIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) =
       return `计划开始不得早于前一阶段【${from.phaseName || from.phaseCode}】计划结束`
   }
   const acceptance = (input.stages || []).find(
-    (stage: { stageId?: number }) => stage.stageId === item.phaseId && stage.acceptanceTime
+    (stage: { stageId?: number; acceptanceTime?: string }) =>
+      stage.stageId === item.phaseId && stage.acceptanceTime
   )
   if (acceptance && planEnd > String(acceptance.acceptanceTime).slice(0, 10))
     return '计划结束不得晚于计划验收时间'

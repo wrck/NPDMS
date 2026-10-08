@@ -9,4 +9,8 @@
         WHERE project_id = #{projectId}
           AND code IS NOT NULL
     </select>
+    <select id="selectAttachmentOwnerForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO">
+        SELECT * FROM imp_eng_configuration
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.id} AND deleted = 0 FOR UPDATE
+    </select>
 </mapper>

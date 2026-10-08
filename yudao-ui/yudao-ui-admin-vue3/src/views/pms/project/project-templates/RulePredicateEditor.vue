@@ -128,7 +128,7 @@
         <el-option v-if="missingSource" :value="String(parameters.sourceNodeKey)" label="来源节点已移除，请重新选择" disabled />
       </el-select>
       <el-select
-        :model-value="parameters.factCode"
+        :model-value="deliveryFact ? deliveryPrefix + 'ATTACHMENT' : parameters.factCode"
         :disabled="disabled"
         filterable
         aria-label="原模块业务事实"
@@ -142,6 +142,9 @@
           :label="`${fact.label} · ${fact.ownerContext}`"
         />
       </el-select>
+      <el-input v-if="deliveryFact" :model-value="String(parameters.factCode).slice(deliveryPrefix.length)"
+        :disabled="disabled" aria-label="指定交付件类型" placeholder="交付件类型编码，如 REPORT"
+        @update:model-value="set('factCode', deliveryPrefix + $event)" />
       <el-select
         :model-value="parameters.quantifier"
         :disabled="disabled"
@@ -214,6 +217,8 @@ const absoluteTime = computed(() => {
 })
 const setAbsoluteTime = (date: Date | null) =>
   emit('change', 'TIME_REACHED', { at: date && !Number.isNaN(date.getTime()) ? date.toISOString() : '' })
+const deliveryPrefix='BUSINESS_DELIVERY_UPLOADED:'
+const deliveryFact=computed(()=>typeof props.parameters.factCode==='string' && props.parameters.factCode.startsWith(deliveryPrefix))
 const sources = inject(ruleBusinessSourcesKey, computed(() => []))
 const selectedSource = computed(() => sources.value.find((item) => item.key === props.parameters.sourceNodeKey))
 const missingSource = computed(() => !!props.parameters.sourceNodeKey && !selectedSource.value)
@@ -225,7 +230,7 @@ const selectSource = (key: string) => {
   if (key !== '$current') parameters.sourceNodeKey = key
   else delete parameters.sourceNodeKey
   const source = sources.value.find((item) => item.key === key)
-  if (source && !props.facts.some((fact) => fact.factCode === parameters.factCode
+  if (source && !props.facts.some((fact) => (fact.factCode === parameters.factCode || deliveryFact.value && fact.factCode===deliveryPrefix+'ATTACHMENT')
     && fact.ownerContext === source.ownerContext && fact.objectType === source.objectType))
     parameters.factCode = ''
   emit('change', 'BUSINESS_FACT', parameters)

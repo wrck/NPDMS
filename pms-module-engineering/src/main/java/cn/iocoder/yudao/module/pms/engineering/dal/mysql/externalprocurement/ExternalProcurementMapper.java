@@ -11,6 +11,9 @@ import java.util.List;
 
 @Mapper
 public interface ExternalProcurementMapper extends BaseMapperX<ExternalProcurementDO> {
+    ExternalProcurementDO selectAttachmentOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery query);
+
 
     default PageResult<ExternalProcurementDO> selectPage(ExternalProcurementPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ExternalProcurementDO>()

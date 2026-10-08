@@ -14,10 +14,24 @@ class EntityPresentationServiceTest {
     final DynamicFormTemplateMapper templates = mock(DynamicFormTemplateMapper.class);
     final DynamicFormTemplateRevisionMapper revisions = mock(DynamicFormTemplateRevisionMapper.class);
     final DynamicFormSchemaService schemas = mock(DynamicFormSchemaService.class);
-    final EntityPresentationService service = new EntityPresentationService(registry, templates, revisions, schemas);
+    final cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners owners=mock(cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners.class);
+    final EntityPresentationService service = new EntityPresentationService(registry, templates, revisions, schemas,owners);
     final EntityPresentationApi.Query query = new EntityPresentationApi.Query(
             EntityDataRef.revision(new RevisionRef(new EntityRef(1L,"SOL","REQUIREMENT_ANALYSIS",9L),10L)),
             new EntityActor(1L,7L,null),"REQUIREMENT_ANALYSIS");
+
+    @Test @SuppressWarnings({"rawtypes","unchecked"}) void newRecordNamedConfigurationsRequireTrustedBusinessAndProjectScope(){
+        var owner=mock(cn.iocoder.yudao.module.pms.platform.support.business.ProjectBusinessService.class);
+        when(owners.byIdentity("IT","note")).thenReturn((Optional)Optional.of(owner));
+        when(templates.selectPage(any())).thenReturn(List.of());
+        var type=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Type("IT","note");
+        var input=new EntityPresentationApi.TypeQuery(new EntityActor(1L,7L,null),type,20L,"note");
+        assertTrue(service.listForType(input).isEmpty());
+        verify(owner).runtimeActions(argThat(context->context.tenantId().equals(1L)&&context.userId().equals(7L)&&context.projectId().equals(20L)&&context.type().equals(type)));
+        verifyNoInteractions(registry);
+        reset(templates);doThrow(new SecurityException("denied")).when(owner).runtimeActions(any());
+        assertThrows(SecurityException.class,()->service.listForType(input));verifyNoInteractions(templates);
+    }
 
     @Test void listingRequiresBusinessReadScopeAndDoesNotCreateBindings() {
         when(templates.selectPage(any())).thenReturn(List.of());

@@ -13,13 +13,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class JointTestLocalLifecycleTest {
+    @org.junit.jupiter.api.BeforeEach void nativeAttachmentPorts() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"attachments",
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration.class));
+    }
+    @org.junit.jupiter.api.AfterEach void clearNativeTenant() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+
     private final JointTestMapper mapper = mock(JointTestMapper.class);
     private final JointTestServiceImpl service = new JointTestServiceImpl();
     private JointTestDO row;
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "jointTestMapper", mapper);
         row = new JointTestDO(); row.setId(1L); row.setProjectId(7L); row.setCode("JT-TEST"); row.setStatus(1); row.setVersion(4L);
-        when(mapper.selectById(1L)).thenReturn(row);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
     }
 
     @Test void failureRecordsItsReasonWithTheLoadedOptimisticVersion() {

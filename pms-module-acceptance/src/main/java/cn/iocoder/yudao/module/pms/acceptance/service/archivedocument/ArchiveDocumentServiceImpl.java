@@ -181,7 +181,7 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
     }
 
 
-    private void validateUnifiedPointer(Long id,String url) {
+    @Override public void validateUnifiedPointer(Long id,String url) {
         if(url==null || !url.startsWith("/api/v1/pms/archive-documents/"))return; // legacy addresses remain readable.
         var match=java.util.regex.Pattern.compile("^/api/v1/pms/archive-documents/(\\d+)/files/(\\d+)$").matcher(url);
         if(!match.matches() || !String.valueOf(id).equals(match.group(1)))throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("DELIVERY_FILE_OWNER_INVALID","Current document belongs to another native root");

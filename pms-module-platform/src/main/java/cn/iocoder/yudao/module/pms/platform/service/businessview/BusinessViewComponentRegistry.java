@@ -22,8 +22,12 @@ public class BusinessViewComponentRegistry {
 
     @org.springframework.beans.factory.annotation.Autowired
     public BusinessViewComponentRegistry(List<BusinessViewComponentProvider> providers,
-            org.springframework.beans.factory.ObjectProvider<DeclaredBusinessViewProviderFactory> defaults) {
-        this(withDefaults(providers,defaults.getIfAvailable()));
+            org.springframework.beans.factory.ObjectProvider<DeclaredBusinessViewProviderFactory> defaults,
+            org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessViews> direct) {
+        this(withDirect(withDefaults(providers,defaults.getIfAvailable()),direct.getIfAvailable()));
+    }
+    private static List<BusinessViewComponentProvider> withDirect(List<BusinessViewComponentProvider> providers,cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessViews direct){
+        var result=new ArrayList<>(providers);if(direct!=null)result.addAll(direct.providers());return result;
     }
     private static List<BusinessViewComponentProvider> withDefaults(List<BusinessViewComponentProvider> owners,DeclaredBusinessViewProviderFactory defaults) {
         var providers=new ArrayList<>(owners);

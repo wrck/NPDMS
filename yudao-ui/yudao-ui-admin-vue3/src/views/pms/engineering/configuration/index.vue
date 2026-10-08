@@ -118,7 +118,8 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="配置日志" prop="configLogUrl"><UploadFile v-model="form.configLogUrl!" :disabled="readOnly" :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']" /></el-form-item>
+          <el-form-item label="配置日志" prop="configLogUrl"><NativeAttachments :key="String(form.id || 'new')" kind="configuration" :entity-id="form.id"
+              :readonly="readOnly" :legacy="form.configLogUrl" @changed="attachmentOwnerChanged" /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="调试结果" prop="debugResult">
@@ -141,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import NativeAttachments from '../attachment/NativeAttachments.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import ManualCollectionDialog from './ManualCollectionDialog.vue'
 import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
@@ -199,10 +201,15 @@ const openForm = (row?: ConfigurationVO) => {
       version: undefined,
       status: 0,
       ...row,
-      // Keep UploadFile on the existing string API contract for NULL legacy logs.
+      // Keep empty legacy metadata when reopening a record without a log.
       configLogUrl: row?.configLogUrl ?? ''
   }
   formVisible.value = true
+}
+const attachmentOwnerChanged = (saved: { version?: number; status?: number; configLogUrl?: string }) => {
+  form.value.version = saved.version
+  form.value.status = saved.status
+  form.value.configLogUrl = saved.configLogUrl ?? ''
 }
 const save = async () => {
   if (readOnly.value) return

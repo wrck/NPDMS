@@ -49,6 +49,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.junit.jupiter.api.*;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import javax.sql.DataSource;
 import java.lang.reflect.*;
 import java.util.*;
@@ -61,11 +64,16 @@ class DeclaredBusinessRuntimePersistenceTest {
     JdbcTemplate jdbc;
     BusinessOperationDispatcher dispatcher;
     @BeforeEach void open() {
-        TenantContextHolder.setTenantId(7L);
+        login();
         context=new AnnotationConfigApplicationContext(Config.class);
         jdbc=context.getBean(JdbcTemplate.class); dispatcher=context.getBean(BusinessOperationDispatcher.class);
     }
-    @AfterEach void close() { if(context!=null) { if(jdbc!=null) jdbc.execute("SHUTDOWN"); context.close(); } TenantContextHolder.clear(); }
+    @AfterEach void close() { if(context!=null) { if(jdbc!=null) jdbc.execute("SHUTDOWN"); context.close(); } SecurityContextHolder.clearContext(); TenantContextHolder.clear(); }
+    private static void login() {
+        TenantContextHolder.setTenantId(7L);
+        var principal = new LoginUser(); principal.setId(9L); principal.setTenantId(7L); principal.setUserType(2);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
+    }
     BusinessOperationRequest create(String key,Map<String,Object> values) {
         return new BusinessOperationRequest("create",1,null,"TEST","fieldNote",values,key,null,OperationEntryKind.INDEPENDENT,"framework-test");
     }
@@ -157,7 +165,7 @@ class DeclaredBusinessRuntimePersistenceTest {
     }
     @Test void concurrentTransactionsWithOneVersionHaveExactlyOneWinner() throws Exception {
         var receipt=create();var start=new CountDownLatch(1);var pool=Executors.newFixedThreadPool(2);
-        try {var jobs=new ArrayList<Future<Boolean>>();for(int i=0;i<2;i++){int index=i;jobs.add(pool.submit(()->{TenantContextHolder.setTenantId(7L);try {start.await();dispatcher.dispatch(save(receipt,0L,"race-"+index));return true;}catch(RuntimeException failed){return false;}finally{TenantContextHolder.clear();}}));}
+        try {var jobs=new ArrayList<Future<Boolean>>();for(int i=0;i<2;i++){int index=i;jobs.add(pool.submit(()->{login();try {start.await();dispatcher.dispatch(save(receipt,0L,"race-"+index));return true;}catch(RuntimeException failed){return false;}finally{SecurityContextHolder.clearContext();TenantContextHolder.clear();}}));}
             start.countDown();int winners=0;for(var job:jobs)if(job.get(20,TimeUnit.SECONDS))winners++;assertEquals(1,winners);
             assertEquals(1L,jdbc.queryForObject("SELECT version FROM test_field_note",Long.class));
             assertEquals(2L,counts().get("plt_idempotency_record"));assertEquals(2L,counts().get("plt_operation_audit"));assertEquals(2L,counts().get("plt_outbox_event"));

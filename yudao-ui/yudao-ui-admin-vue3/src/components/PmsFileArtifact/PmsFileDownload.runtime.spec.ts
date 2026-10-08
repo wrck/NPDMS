@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import PmsFileReferenceList from './PmsFileReferenceList.vue'
 import * as FileApi from '@/api/pms/platform/file'
 import download from '@/utils/download'
@@ -98,4 +98,26 @@ describe('controlled file access uses the requested operation', () => {
       expect(download.file).toHaveBeenCalledTimes(1)
     } finally { mounted.app.unmount() }
   })
+  it.each(['ticket', 'bytes', 'blob'] as const)('ignores old %s access after an Owner switch', async point => {
+    let reply!: (value: any) => void
+    const pending = new Promise<any>(resolve => { reply = resolve })
+    if (point === 'ticket') vi.mocked(FileApi.createAccessTicket).mockReturnValueOnce(pending)
+    else if (point === 'bytes') vi.mocked(fetch).mockReturnValueOnce(pending)
+    else vi.mocked(fetch).mockResolvedValueOnce({ ok: true, blob: () => pending } as Response)
+    const owner = ref(key.objectId)
+    const host = defineComponent({ setup: () => () => h(PmsFileReferenceList, { ...key, objectId: owner.value, artifactId: 9 }) })
+    const mounted = mount(host)
+    try {
+      await flush()
+      const downloadRequest = (findButton(mounted.root, '下载')!.props!.onClick as () => Promise<void>)()
+      await flush(); owner.value = '42'; await flush()
+      reply(point === 'ticket' ? { shortLivedUrl: 'https://storage.test/old-owner' }
+        : point === 'bytes' ? { ok: true, blob: async () => new Blob(['old']) } : new Blob(['old']))
+      await downloadRequest
+      expect(download.file).not.toHaveBeenCalled()
+      expect(textOf(mounted.root)).not.toContain('文件下载未完成')
+      if (point === 'ticket') expect(fetch).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
 })

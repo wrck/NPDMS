@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import type { FileId } from '@/api/pms/platform/file'
 
 export type DurationCalculationBasis = 'DATE_RANGE' | 'DURATION_FROM_START'
 export type DurationChangeStatus =
@@ -33,7 +34,7 @@ export interface ConstructionPlanChangeVO {
   reasonType: string
   reasonDetail?: string
   customerEvidenceRequired: boolean
-  customerEvidenceFileId?: number
+  customerEvidenceFileId?: FileId
   customerEvidenceFileVersion?: number
   customerEvidenceReferenceKey?: string
   processDefinitionKey?: string
@@ -80,7 +81,7 @@ export interface CreateDurationChangeReqVO extends DurationInput {
   expectedProjectVersion: number
   reasonType: string
   reasonDetail?: string
-  customerEvidenceFileId?: number
+  customerEvidenceFileId?: FileId
   customerEvidenceFileVersion?: number
   customerEvidenceReferenceKey?: string
 }
@@ -93,7 +94,7 @@ export interface PatchDurationChangeReqVO {
   durationDays?: number | null
   reasonType?: string
   reasonDetail?: string | null
-  customerEvidenceFileId?: number | null
+  customerEvidenceFileId?: FileId | null
   customerEvidenceFileVersion?: number | null
   customerEvidenceReferenceKey?: string | null
 }

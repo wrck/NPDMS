@@ -205,7 +205,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         requireEntity(draft, ref.entity());
         // 已冻结修订是不可变历史；只有未冻结的草稿工作区可以放弃。
         if (!"DRAFT".equals(draft.getRevisionState())) throw exception(REQUIREMENT_STATUS_INVALID);
-        // 先把修订号改写为行内唯一负值占位释放 (tenant,entity,revision_no) 唯一键，再逻辑删除草稿行。
+        // V399 活动唯一槽在逻辑删除时释放；原修订号和历史内容不改写。
         if (mapper.discardDraft(new RequirementRevisionQuery(actor.tenantId(), ref.revisionId())) != 1) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }

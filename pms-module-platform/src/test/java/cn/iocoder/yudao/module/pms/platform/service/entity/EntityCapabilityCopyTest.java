@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.entity.query.EntityValueQu
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateRevisionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormSchemaService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,6 +25,12 @@ class EntityCapabilityCopyTest {
     private final EntityDataRef source = EntityDataRef.revision(new RevisionRef(entity, 21L));
     private final EntityDataRef current = EntityDataRef.current(entity);
     private final EntityExtensionService extensions = new EntityExtensionService(mapper, registry, mock(PermissionApi.class), audit);
+
+    @BeforeEach void nativeIdentity() {
+        // These copy tests use an already native Owner identity, so normalization preserves the target.
+        when(registry.nativeRef(any(EntityDataRef.class))).thenAnswer(call -> call.getArgument(0));
+        when(registry.nativeRef(any(EntityRef.class))).thenAnswer(call -> call.getArgument(0));
+    }
 
     @Test void activatingRevisionWithoutExtensionsClearsOnlyMutableTarget() {
         var values = new EntityExtensionValueDO();

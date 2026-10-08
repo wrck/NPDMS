@@ -24,6 +24,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class MaterialExchangeSerialServiceTest {
+    @org.junit.jupiter.api.BeforeEach void nativeAttachmentPorts() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"attachments",
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration.class));
+    }
+    @org.junit.jupiter.api.AfterEach void clearNativeTenant() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+
     private final MaterialExchangeMapper mapper = mock(MaterialExchangeMapper.class);
     private final MaterialExchangeSerialMapper serialMapper = mock(MaterialExchangeSerialMapper.class);
     private final ProjectDeviceSelectionApi devices = mock(ProjectDeviceSelectionApi.class);
@@ -44,7 +51,7 @@ class MaterialExchangeSerialServiceTest {
         });
         var existing = new MaterialExchangeDO(); existing.setId(100L); existing.setProjectId(10L);
         existing.setCode("EX-1"); existing.setStatus(0); existing.setVersion(3L);
-        when(mapper.selectByIdForUpdate(100L)).thenReturn(existing);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(existing);
         when(mapper.updateById(any(MaterialExchangeDO.class))).thenReturn(1);
     }
 
@@ -79,14 +86,14 @@ class MaterialExchangeSerialServiceTest {
         var request = request(); request.setId(100L); request.setVersion(3);
         service.updateMaterialExchange(request);
         var order = inOrder(mapper, serialMapper);
-        order.verify(mapper).selectByIdForUpdate(100L);
+        order.verify(mapper).selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any());
         order.verify(mapper).updateById(any(MaterialExchangeDO.class));
         order.verify(serialMapper).deleteByExchange(any());
         order.verify(serialMapper, times(2)).insert(any(MaterialExchangeSerialDO.class));
     }
 
     @Test void completedApplicationCannotRewriteSnapshots() {
-        var row = mapper.selectByIdForUpdate(100L); row.setStatus(3);
+        var row = mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any()); row.setStatus(3);
         var request = request(); request.setId(100L); request.setVersion(3);
         assertThrows(ServiceException.class, () -> service.updateMaterialExchange(request));
         verifyNoInteractions(serialMapper, devices);

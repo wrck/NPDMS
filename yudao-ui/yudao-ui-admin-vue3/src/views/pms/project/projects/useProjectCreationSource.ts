@@ -17,7 +17,7 @@ export const useProjectCreationSource = (form: SourceForm, companies: Ref<Organi
   let generation = 0
   const clearFields = () => {
     form.salesOrderId = undefined; form.sourceFingerprint = undefined
-    form.projectName = ''; form.customerCode = ''; form.customerName = ''
+    form.projectName = ''
     form.orderOfficeCompanyId = undefined; form.orderOfficeDepartmentId = undefined
   }
   const resetSource = () => {

@@ -7,6 +7,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange.MaterialExchangeDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialexchange.MaterialExchangeMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentKind;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +52,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 @Slf4j
 public class MaterialExchangeServiceImpl implements MaterialExchangeService {
+    @Resource
+    private NativeAttachmentRegistration attachments;
+
 
     /**
      * 状态：0 草稿
@@ -127,6 +134,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createMaterialExchange(MaterialExchangeSaveReqVO createReqVO) {
+        attachments.requireLegacyUnchanged(null,createReqVO.getReasonFiles());
         List<ExchangeLine> lines = resolveAndValidateLines(createReqVO, null);
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
@@ -166,6 +174,8 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         }
         List<ExchangeLine> lines = resolveAndValidateLines(updateReqVO, existing);
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）；产品编码重算拼接，名称/型号/原订单号随分流保存退出申报
+        attachments.requireLegacyUnchanged(existing.getReasonFiles(),updateReqVO.getReasonFiles());
+        attachments.requireSameProject(NativeAttachmentKind.MATERIAL_EXCHANGE,existing.getId(),existing.getProjectId(),updateReqVO.getProjectId());
         MaterialExchangeDO update = BeanUtils.toBean(updateReqVO, MaterialExchangeDO.class);
         update.setProductCode(joinedProductCode(lines));
         update.setProductName(null);
@@ -175,6 +185,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         if (materialExchangeMapper.updateById(update) != 1) {
             throw exception(MATERIAL_EXCH_VERSION_NOT_MATCH);
         }
+        attachments.register(NativeAttachmentKind.MATERIAL_EXCHANGE,update.getId());
         // 旧客户端未发送明细时保留已保存快照；显式编辑才替换当前草稿明细。
         if (updateReqVO.getSerials() != null || serialMapper.selectByExchange(
                 new MaterialExchangeSerialQuery(existing.getId())).isEmpty()) {
@@ -444,6 +455,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
             deviceSelectionApi.validateSelection(entity.getProjectId(), legacyIds);
         }
         // 4. 更新状态
+        attachments.register(NativeAttachmentKind.MATERIAL_EXCHANGE,entity.getId());
         updateStatus(entity, STATUS_SUBMITTED, null, null, null);
     }
 
@@ -564,7 +576,7 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     }
 
     private MaterialExchangeDO lockMaterialExchange(Long id) {
-        MaterialExchangeDO entity = materialExchangeMapper.selectByIdForUpdate(id);
+        MaterialExchangeDO entity = materialExchangeMapper.selectAttachmentOwnerForUpdate(new NativeAttachmentOwnerLockQuery(TenantContextHolder.getRequiredTenantId(),id));
         if (entity == null) throw exception(MATERIAL_EXCH_NOT_EXISTS);
         return entity;
     }

@@ -1,0 +1,38 @@
+[
+  {
+    "file": "V388__device_contract_projection_sync_index.sql",
+    "sha256": "5d4e88122f1d85abc50a3a216c279a358bb4636fac2895b93fa03616c67014b0",
+    "line_crc32": -1033046630,
+    "evidence_archive": "NPDMS-registered-migration-sources-20261008.zip"
+  },
+  {
+    "file": "V389__sync_binding_task_page_index.sql",
+    "sha256": "a729abb72f09a71c84decddc1a91785bb4713240c0c2ff9a707d72c3afbda89d",
+    "line_crc32": -82272010,
+    "evidence_archive": "NPDMS-registered-migration-sources-20261008.zip"
+  },
+  {
+    "file": "V390__device_log_parse_tasks.sql",
+    "sha256": "56210d6fe65a707299f79696f9c09266323b5cbfa6dd7d6054fee49242cfcbf5",
+    "line_crc32": 683049669,
+    "evidence_archive": "NPDMS-registered-migration-sources-20261008.zip"
+  },
+  {
+    "file": "V410__device_log_parsed_facts.sql",
+    "sha256": "8ef15ac70e017702911d40cd791b8e1e9c8f3c15f9f0525cb85a4ef76919e7cb",
+    "line_crc32": -1856845897,
+    "evidence_archive": "NPDMS-registered-migration-sources-20261008.zip"
+  },
+  {
+    "file": "V409__device_configuration_log_archive.sql",
+    "sha256": "d8bbf4242f7fe9e06c113717e986a2f0caae9340ab337f6ceb5f9364756422cf",
+    "line_crc32": -600674045,
+    "evidence_archive": "NPDMS-migration-source-readonly-20261008.zip"
+  },
+  {
+    "file": "V411__project_legacy_detail_evidence.sql",
+    "sha256": "b8d565a12bb654bc6033ee7f6c95a794634b9fd5e80e494b9ed9d01b29d406e6",
+    "line_crc32": -1686642005,
+    "evidence_archive": "NPDMS-migration-source-readonly-20261008.zip"
+  }
+]

@@ -135,7 +135,7 @@ public class ProjectTaskPlanCompletionService {
             var ownerFacts = ownerResult == null ? null : ownerResult.facts();
             if (ownerFacts==null || ownerFacts.factVersion() == null || ownerFacts.links().isEmpty())
                 return unknown(reference,"BUSINESS_FACT_VERSION_MISMATCH");
-            if (!ownerResult.hasCompletedHandling()) {
+            if (!TaskBusinessCompletionEvaluator.hasCompletedHandling(ownerResult.hasCompletedHandling(),node.getNodeKey(),ownerFacts.links(),completion,exit)) {
                 var waiting = new RuleEvaluation(reference, RuleEvaluation.Outcome.NOT_MATCHED,
                         "BUSINESS_HANDLING_PENDING", List.of(), List.of(), List.of());
                 return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));

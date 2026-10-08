@@ -1,0 +1,159 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "state": "FROZEN_UNCOMMITTED_UNSTAGED_NOT_PUSHED",
+  "separateFromFrozen19": true,
+  "implementationFiles": 14,
+  "productionSources": 11,
+  "testSupportFiles": 3,
+  "evidenceFilesIncludingThisManifest": 10,
+  "totalWipFiles": 24,
+  "finalIncrement": {
+    "onlyEvidence": false,
+    "description": "One HTTP test script plus evidence; no production or JUnit input changes",
+    "changedFromReviewed24IncludingManifest": [
+      "docs/generated/2026-10-06-commerce-domain-read-verification/boundaries.json",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/implementation.patch",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/native-read-audit.json",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/private-evidence-manifest.json",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/real-login-acceptance.json",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/source-files.json",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/summary.md",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/test-results.json",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/verification-environment.json",
+      "scripts/tests/verify_commerce_real_login.py",
+      "docs/generated/2026-10-06-commerce-domain-read-verification/wip-files.json"
+    ],
+    "production11Unchanged": true,
+    "old19Unchanged": true,
+    "newEntityTypes": 0,
+    "newIndexes": 0,
+    "historicalMigrationsChanged": 0,
+    "normalJarRebuilt": false,
+    "54JUnitRerun": false,
+    "old149Rerun": false,
+    "newFinalGapHttpRequests": 95,
+    "verificationsDoNotAddToOneTotal": true
+  },
+  "files": [
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/boundaries.json",
+      "sha256": "21927ca47b19ce4689ae21c2247e43d2e1ba562d36d72e9ff976784afb10ba60",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/implementation.patch",
+      "sha256": "abb1a4da7f11519112559087eb6dd0da26c5b2dd00df85749f4ff91b2af17dde",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/native-read-audit.json",
+      "sha256": "a144d3da0b0961e5d7af13a142e4295c8c22f4d08bd14e4eb0fbdebba426bc59",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/private-evidence-manifest.json",
+      "sha256": "d8258dc659516e5d523f835b3fd4aa5edb4eec219a01f59ad205e8fcfce4b29c",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/real-login-acceptance.json",
+      "sha256": "93665d643774d07ac4a2c5e609dddcb75b094427a9ef46ec984326974d71bd4e",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/source-files.json",
+      "sha256": "e66b37403e6c3f1ddefa95a3fa8c5303be0ac5fc13fcb86528289640b6d7dc99",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/summary.md",
+      "sha256": "783e2479cb989d16db5f9a03874451fb46a980079d577e23fda78daceb272075",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/test-results.json",
+      "sha256": "4ac4d96036610fd81fec57e9fcb7cf3c60b25b4e9c484cd50491a7845acbf63d",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/verification-environment.json",
+      "sha256": "576edb72137891527bf410a1f505b38f1f18fdf4e509c295949df15bf89c9ba4",
+      "note": null
+    },
+    {
+      "path": "docs/generated/2026-10-06-commerce-domain-read-verification/wip-files.json",
+      "sha256": null,
+      "note": "Self hash supplied externally"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ContractMapper.java",
+      "sha256": "af190ded7937581207e94aefc40b6daca436925d415b07d6b915d3e1c99faa32",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/query/ContractRootReadPageQuery.java",
+      "sha256": "9b2409b1aa8cdaf55bb7576c8b4b17c121ddd99aca0bd9f5be0718d119b40923",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java",
+      "sha256": "709de0c60438d6e8e0ce8432ac144621cef50c21f70a50da112586cacfa64fb7",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderDetailScopeQuery.java",
+      "sha256": "d93255d469018a477502c1ecf56fabd228a39a54ef64c6568836f61b77b8f800",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderRootReadPageQuery.java",
+      "sha256": "c2ff688c38db7220720015927646803e3dafd12249af992d890c44f3c0a81bb0",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessEntityContentReader.java",
+      "sha256": "2c0f593ff45eee16d5c11f690f35c2991598b66aa901ceb518ed6ad60e70151f",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+      "sha256": "d7db70fcf3398406c9ff8617eafa390795561601cf018d15812e631f3fb83f73",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml",
+      "sha256": "dad899b134aa2dc3560ea67bc3451ae21bed6df874022be629e440a07d0a07f9",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "sha256": "2f0d9d570e74ceb57eafad5d960d3bca78c5e4a2d472008817fc69e75378f82d",
+      "note": null
+    },
+    {
+      "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessReadMySqlTest.java",
+      "sha256": "845ff3397aaeef794da79efeed664c8315349f2682c20d49e3b087cebaafcf6c",
+      "note": null
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityContentReader.java",
+      "sha256": "d982427554b40fea281c64ffb9395b0e970f9ff2d0537f3fc3d1e19db0f6afd5",
+      "note": null
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "sha256": "2d242d3d0bb24e7922863c9f91241ff9d9009ac2c5a5320ddda3b8079d53bfd2",
+      "note": null
+    },
+    {
+      "path": "scripts/tests/verify_commerce_domain_reads_mysql.sh",
+      "sha256": "12c79e07daf17106a6c2cf9fe9ae7f2a01d2a1cb6b3a758e7b6241cdc6d705e5",
+      "note": null
+    },
+    {
+      "path": "scripts/tests/verify_commerce_real_login.py",
+      "sha256": "7471388df93465f1ac4dd7a54e9bde1dac566d7eea2980e807a79af8f7a367b2",
+      "note": null
+    }
+  ]
+}

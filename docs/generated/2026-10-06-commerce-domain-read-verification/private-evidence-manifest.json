@@ -1,0 +1,660 @@
+{
+  "note": "Raw original failures and overlapping historical runs retained. Final two-gap95 is separate from previous149 and54 JUnit. Replay SQL is synthetic exclusive-fixture data only; never apply to production.",
+  "files": [
+    {
+      "path": ".run/commerce-domain-reads-20261006/compose.yaml",
+      "sha256": "2cefd614c864c375092c29b41d2d8108c900ad66b94fca641cb175cc37d74430",
+      "bytes": 905
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/mysql.log",
+      "sha256": "775f152354d9ce5ca012b201fbfef2b22fe5c888b85f0d124c296abdd23c49b9",
+      "bytes": 76928
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+      "sha256": "0a90f1a6c56df51bff2352f390bfff7b3c71f094ae6b72d431a6f08e3e418074",
+      "bytes": 72629
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+      "sha256": "38a3f09888660aa5e9807b5207b4a0744a100ee3e188df91081a4e66c5740a1d",
+      "bytes": 85044
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+      "sha256": "e55d86a337baa5e18dbfe243022fd6779f51b0a756f96309d7da028b2c4be18d",
+      "bytes": 74774
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+      "sha256": "41a6d53907cc32a1b40c64e9b6f9439d1b0279e7c51cd2b15616254db89985e9",
+      "bytes": 75875
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+      "sha256": "a14d519b856b05b7f2b1e83b1e8f03f71fc640d6d02a6ad49c889d49ab1cc9d2",
+      "bytes": 72653
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green/source-files.json",
+      "sha256": "f110e2ebd4b6e03e3e7ee64aa701e94cb60a9cfd2d6b353b8560b8519e9382ed",
+      "bytes": 2174
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-green-runner.log",
+      "sha256": "0dadda26ac38bba83bdf2238458e3e4e7da1e003fcedc4afd9d5af39878d5772",
+      "bytes": 2404
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/mysql.log",
+      "sha256": "d33cdbfd208b91bc824758c8c31136e3dd445481036dca75d86fdeeea9cb9d51",
+      "bytes": 69058
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+      "sha256": "4178606f87cd688813a846b3c81f15f3ea6324b6223060cb06341684b2efb3fa",
+      "bytes": 72629
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+      "sha256": "f696fc0887bf9dd4a209c0be3009d49d537812373fca1d50a06131701ecc46fd",
+      "bytes": 90694
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-commerce/reports/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+      "sha256": "1e2ab6d0ae8ba8c55f5c838d94cb009fceca13eb4d340e7dd1741351f4432a06",
+      "bytes": 74774
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+      "sha256": "7c63b9f0bebec67401d6d875b7a2a22cca72263ef0c1728e09184b9641994447",
+      "bytes": 75873
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/pms-module-platform/reports/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+      "sha256": "816375c7fd21a8c45d624763625986bee5501a93149284b54bb3cae75eca54ae",
+      "bytes": 72653
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/expanded-red/source-files.json",
+      "sha256": "8246955d8b393690a16b18661e554779ac34fb337827c099413235e47782613f",
+      "bytes": 475
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+      "sha256": "18c980de2c0f8b11afb77f873891ed9b5d4ecbe727d248f2ba924090ed354ff8",
+      "bytes": 72629
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+      "sha256": "38e49058c92bb53d32e1dbcf7cb0a9b696e760a39170cf57d2c5b966b2781ed5",
+      "bytes": 85806
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+      "sha256": "6e21993e58f1541a83f755ab1bcbf130084fc1425ba5c918a06ab5fbf9e37114",
+      "bytes": 74774
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+      "sha256": "2c14710afd4b4b74008e31a938ce1ae5a1a6e7db6993b5f581f98bdae6f761e5",
+      "bytes": 75873
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+      "sha256": "39cb531fdc6868a8ea7a4be099f4bda1e7fbfe7d943bd69569bed9c9cefd275f",
+      "bytes": 72654
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/mysql.log",
+      "sha256": "45548545c1b99f43a67f7c0a7d0bd3f51a644829e39f817ca088dd5e9ece6da1",
+      "bytes": 54024
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final/source-files.json",
+      "sha256": "15dd19329e658eb491b6c8abc20f15005d6aa7e3627294f891465a8c64fd56e4",
+      "bytes": 2990
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/final-runner.log",
+      "sha256": "f1515cc26262fd17b9b665b8479d91adbc9c52621d4a7bdc18205c586587a3b9",
+      "bytes": 2404
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+      "sha256": "f354e74c3f1d9182e57720d3c788bf7a7b2b6da82df0c40526067af8a6e8b688",
+      "bytes": 72565
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+      "sha256": "97359ea46b48f638c0a9828adbb71c946670643731d9d1073909e4033f1481ec",
+      "bytes": 81447
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+      "sha256": "eedad6c86cdf0d9a616ddc6d0c8f57daa8e3e023b058d58486bbc181e3512805",
+      "bytes": 74710
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+      "sha256": "697b038e7c0c3eac64a68c5979aa6f1bae920b36ca79cd09fe890bc0f162cee6",
+      "bytes": 1401
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+      "sha256": "a1261982b8fb0441a2c101a89639e59ad7b266ea9b6d44413295690fe3fc5aeb",
+      "bytes": 73412
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/mysql.log",
+      "sha256": "4363754014a14a4bd3af85d7c0f6c507b60f140504bfe7f77387ac58b3d79c1f",
+      "bytes": 78072
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/first-green/source-files.json",
+      "sha256": "dd79508d7afc9e6290ba431731027a44254720672c0e69baa36997defc8f44cc",
+      "bytes": 981
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+      "sha256": "996f36816d63be836e3fb673540923b417d22ee4404151df7be41ea58a8ebb30",
+      "bytes": 72627
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+      "sha256": "67aebddc72b93af8d6fbd6195d2b955ab97a7007ead473d2ea4b5b79d430208f",
+      "bytes": 82646
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+      "sha256": "97e0f106d0af531d65bf7f36ccdfc85fccf5bf0a94bccc194ee56aa2e0c0c091",
+      "bytes": 74773
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+      "sha256": "cc6f9065ee6bd0e7396c0e5e71e39d9dc916cb87113fd6e203a7aaf5eb95e446",
+      "bytes": 75873
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+      "sha256": "1e78d5cb02f16997f5ffd156e3b86fd744a425b20c9d3cd0cff5affc7e8b9e9d",
+      "bytes": 72654
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/mysql.log",
+      "sha256": "90f969af604488cfeeb77700beda5a15acf69db2cf2d27f90faac38baa979713",
+      "bytes": 76039
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/green/source-files.json",
+      "sha256": "9a88c87f2e2c54a13ef7c4b5f3d137b001ab9f51842493fad20421a35c7f919a",
+      "bytes": 981
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/mysql.log",
+      "sha256": "45548545c1b99f43a67f7c0a7d0bd3f51a644829e39f817ca088dd5e9ece6da1",
+      "bytes": 54024
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/boundaries.json",
+      "sha256": "0978776193f6a1269d869d9002947b5cf7925f281a09cbcfadef63533a29cf31",
+      "bytes": 6130
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/implementation.patch",
+      "sha256": "e3fa3d48eff5491d031dba73ead837bcd7fd40d5cf87f0db60cee27f39910d88",
+      "bytes": 51366
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/native-read-audit.json",
+      "sha256": "9a7ec49ab2516cffeb462e04920e5f66569014e9514a6bcf5b48ebb298c52b02",
+      "bytes": 8029
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/private-evidence-manifest.json",
+      "sha256": "816c07c8d014b6c81c9f3b09ae7683339505e702ab41383ba2c78d0a063d8ea4",
+      "bytes": 12262
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/source-files.json",
+      "sha256": "69ccca636aed1db10d6d45baa38b22eed3210d62132b23ae15443374337d21ac",
+      "bytes": 6713
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/summary.md",
+      "sha256": "4266169f4e04eb1bd80238a5425343642fe6f92d1114c95ec7ccc1a52cafbea6",
+      "bytes": 4888
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/test-results.json",
+      "sha256": "7d12928cd3123e0fb1da156fc616362a54e6908cb84704d0906417d1c35f1038",
+      "bytes": 37953
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/docs/generated/2026-10-06-commerce-domain-read-verification/wip-files.json",
+      "sha256": "a0c2efa9ec9c3d6edab7418c547a2dc7b5f65d8fb025326b50d8c1db80893be3",
+      "bytes": 3227
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessEntityContentReader.java",
+      "sha256": "109b1103b47e571ec9eb30f3b3f45817cb1eef8fc9128cdabc21b0bd4b813886",
+      "bytes": 11399
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessReadMySqlTest.java",
+      "sha256": "17800cc807f4fd574a0d1ccb174150a52a16845699ccbebcf2e1bba9e6399df8",
+      "bytes": 30376
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityContentReader.java",
+      "sha256": "d982427554b40fea281c64ffb9395b0e970f9ff2d0537f3fc3d1e19db0f6afd5",
+      "bytes": 857
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "sha256": "2d242d3d0bb24e7922863c9f91241ff9d9009ac2c5a5320ddda3b8079d53bfd2",
+      "bytes": 19665
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/previous-46/scripts/tests/verify_commerce_domain_reads_mysql.sh",
+      "sha256": "12c79e07daf17106a6c2cf9fe9ae7f2a01d2a1cb6b3a758e7b6241cdc6d705e5",
+      "bytes": 2424
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest.xml",
+      "sha256": "62ae7310174cba768d7382f7d1aa49406a3746e3b85f7da2be58efd116afd05f",
+      "bytes": 72566
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.commerce.service.businessmodel.CommerceBusinessReadMySqlTest.xml",
+      "sha256": "3310e8cfd2d8296a568f91c76791d5dd6676bd3f202443d6af45d8f6c23b550b",
+      "bytes": 103474
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest.xml",
+      "sha256": "b853213b41f69e6d0cf184320ee32b2b6d0c253a38a141d9b7f69371e1f545a2",
+      "bytes": 74711
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest.xml",
+      "sha256": "60a47b01ae4db80d300aa060c3cbd0da195583d0318c3e8cfc00975a2c70813a",
+      "bytes": 1401
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/TEST-cn.iocoder.yudao.module.pms.platform.service.entity.ProviderBusinessEntityContentReaderTest.xml",
+      "sha256": "b3121c9c7a62f2d421fbf22221c49859388566599433723d0753762f8675d067",
+      "bytes": 73412
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/mysql.log",
+      "sha256": "4e82ecca6eaff54c8529397fb168489df0579d82b0c2edf1bb2f517030e091b1",
+      "bytes": 113114
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/red/source-files.json",
+      "sha256": "8b0d2b709076ced78f2a544a8a30d9818881d4eb69e000a39847a9e2cf45ea26",
+      "bytes": 774
+    },
+    {
+      "path": ".run/commerce-domain-reads-20261006/refresh_final_evidence.py",
+      "sha256": "4a20fd532ead88461783457e9aa663f2ee7399fdba7113cbf873b597346f5ef8",
+      "bytes": 10391
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/FixturePasswordDigest.java",
+      "sha256": "66057b2c7e46cc6643e96098ec9fdedafaa2587995aac11d6b51433a7cf39bf2",
+      "bytes": 299
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/acceptance-runner.log",
+      "sha256": "3f33c3cc84db78ca3ce8aac1f066a273f56dff30eb6b56041767853a9e7d8271",
+      "bytes": 107
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/acceptance.json",
+      "sha256": "7bd87e3da87d8d810dac82d35c7a1bf54c890fc9690d555fb0a01fe7a9655ce7",
+      "bytes": 91876
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/application.log",
+      "sha256": "dddcee1e3049065b59cdc4449951dffc29999c784a9fc5c0152792d61d4a1ad0",
+      "bytes": 36782
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/compose.yaml",
+      "sha256": "e1e8f68ef189babdd114316a339a5b688aeade328444823619e6db7577261001",
+      "bytes": 1570
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/console.log",
+      "sha256": "23b6e055694fd4141db5562c6bac8ec835bdecc830803be687a95512639683cf",
+      "bytes": 24273
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/acceptance-runner.log",
+      "sha256": "3f33c3cc84db78ca3ce8aac1f066a273f56dff30eb6b56041767853a9e7d8271",
+      "bytes": 107
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/acceptance.json",
+      "sha256": "7bd87e3da87d8d810dac82d35c7a1bf54c890fc9690d555fb0a01fe7a9655ce7",
+      "bytes": 91876
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/compose.yaml",
+      "sha256": "e1e8f68ef189babdd114316a339a5b688aeade328444823619e6db7577261001",
+      "bytes": 1570
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/final-database-evidence.tsv",
+      "sha256": "830ba92a286bca72504892b2c6ee465fadd6525b2e1f6ab94254d49540dd23ba",
+      "bytes": 2345
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/flyway.log",
+      "sha256": "41bd29fe906b38285ee6f80f9273cda9481e1f7830d688216c7b10bef7c61c60",
+      "bytes": 336001
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/package.log",
+      "sha256": "df4f7262d3ad81a481362ac2347a29e0d62a9b909329a634afb91b449d9ac4a1",
+      "bytes": 136830
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/server-args.json",
+      "sha256": "ef4ba1e4db6e6940de0787f6f35633a71947d6f559cab7d66396d7a6eaccfdb6",
+      "bytes": 2803
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/server-process.json",
+      "sha256": "5780f104890d4617cac677db1ec36fe8b9683dbe112b6548c050323d56e1b72c",
+      "bytes": 126
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/source-files.json",
+      "sha256": "15dd19329e658eb491b6c8abc20f15005d6aa7e3627294f891465a8c64fd56e4",
+      "bytes": 2990
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final/verify_commerce_real_login.py",
+      "sha256": "698088a008f87097803dc160fa2ac5514b31f5497d58dc2ebb1602c49498c828",
+      "bytes": 22339
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final-cleanup.log",
+      "sha256": "6f2966536f27777249c3746bc58e0f87abed1b650a2ae5424195871b6836f612",
+      "bytes": 631
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/final-database-evidence.tsv",
+      "sha256": "830ba92a286bca72504892b2c6ee465fadd6525b2e1f6ab94254d49540dd23ba",
+      "bytes": 2345
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-cleanup.log",
+      "sha256": "6f2966536f27777249c3746bc58e0f87abed1b650a2ae5424195871b6836f612",
+      "bytes": 631
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/acceptance-runner.log",
+      "sha256": "b6f73369724e6f7a8f7a6ba2ed7c3dade6a7b40d84a5d74bd3527d98018e5131",
+      "bytes": 701
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/acceptance.json",
+      "sha256": "fc2dc5473be9ae078076827c83d6ead7ea92c9c069e13427a6f7620529930c99",
+      "bytes": 3042
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/application.log",
+      "sha256": "060cb621c29cb252a33e46169a68f99f53f6c006a0f066f102b43fd697fbf2a0",
+      "bytes": 18139
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/console.log",
+      "sha256": "6c29490439ba1a5ad5a2e07dc763feca58d6569bbe25b9724b3a6dac7a2d866c",
+      "bytes": 23717
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/flyway.log",
+      "sha256": "b98c9986d5967efdd914fffe27f0f20e44e6006122a5add960d50e3ba1928cf6",
+      "bytes": 336004
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/server-process.json",
+      "sha256": "7b0782f9b8d72eadcbd177d4c9a4b699d0c89a9fdf9e6b952805e2bdc72c4132",
+      "bytes": 126
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/first-http-run/verify_commerce_real_login.py",
+      "sha256": "418207f30a82d40ad1543159403294635a1f4ebfd54c7665013c6875f4136d39",
+      "bytes": 22363
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/flyway.log",
+      "sha256": "41bd29fe906b38285ee6f80f9273cda9481e1f7830d688216c7b10bef7c61c60",
+      "bytes": 336001
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/package.log",
+      "sha256": "df4f7262d3ad81a481362ac2347a29e0d62a9b909329a634afb91b449d9ac4a1",
+      "bytes": 136830
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/restart-infra.log",
+      "sha256": "eb70e1a1044284ead1a1cc61f3674754fb72e1a2bfa16397078e2dc068d2e47f",
+      "bytes": 883
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/server-args.json",
+      "sha256": "ef4ba1e4db6e6940de0787f6f35633a71947d6f559cab7d66396d7a6eaccfdb6",
+      "bytes": 2803
+    },
+    {
+      "path": ".run/commerce-real-login-20261006/server-process.json",
+      "sha256": "5780f104890d4617cac677db1ec36fe8b9683dbe112b6548c050323d56e1b72c",
+      "bytes": 126
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/FixturePasswordDigest.java",
+      "sha256": "66057b2c7e46cc6643e96098ec9fdedafaa2587995aac11d6b51433a7cf39bf2",
+      "bytes": 299
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/acceptance-runner.log",
+      "sha256": "3f33c3cc84db78ca3ce8aac1f066a273f56dff30eb6b56041767853a9e7d8271",
+      "bytes": 107
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/acceptance.json",
+      "sha256": "33ee21ff71d23d6974df3a6072f17bdd7c7767ca9f09e0632305f321e93842de",
+      "bytes": 143898
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/application.log",
+      "sha256": "9d2cee92400c89975347f81c14d0eb134c080c7ebdd1b183c13759b304ac8f87",
+      "bytes": 18138
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/authorization-sparse-fixture.sql",
+      "sha256": "a4396a8fd1841bbcb3cbfefe17fd3ed1f919f305950ef01e02dc2530d7639417",
+      "bytes": 3020394
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/boundaries.json",
+      "sha256": "991c1fedaadefc79c1a1cf2b4aae9ce17fd3d933a23f33d016aa58f942090ecc",
+      "bytes": 5245
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/implementation.patch",
+      "sha256": "fa64223ca619c91c6a104f1d0bdf4efe47a86fed4fcccf28a1e6e13b74598c3b",
+      "bytes": 97716
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/native-read-audit.json",
+      "sha256": "2632730c6a52333c2882f8a1ce694ad04811fc267c941593df5a95a8156b0aee",
+      "bytes": 12392
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/private-evidence-manifest.json",
+      "sha256": "0ed436c213fcf842a93d0467b1e8c0f3580d0c960e8669c535b06d4fcb90d012",
+      "bytes": 21704
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/real-login-acceptance.json",
+      "sha256": "7bd87e3da87d8d810dac82d35c7a1bf54c890fc9690d555fb0a01fe7a9655ce7",
+      "bytes": 91876
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/source-files.json",
+      "sha256": "5149af752e9f03211ef0d3ff6597a398e1e2437360deb656e58b786225bf9e98",
+      "bytes": 10199
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/summary.md",
+      "sha256": "c31f8c9d5fe5e9cc1833681a4e7781608322ab6b8b275ea2755de48624d03e37",
+      "bytes": 8011
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/test-results.json",
+      "sha256": "7f213596a8ecf1fe739ad9c04edc5047d45d97cee9494a80dba1556d07c167df",
+      "bytes": 83139
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/verification-environment.json",
+      "sha256": "e12785329c417dbde075e9e84b60c8d9e72ea2d5f2f84e095254f07fd784fa7b",
+      "bytes": 5042
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/docs/generated/2026-10-06-commerce-domain-read-verification/wip-files.json",
+      "sha256": "008e3d4e161ac9457eb3d1ec5f57a421852a678d5f7a77753eba349c8a500d10",
+      "bytes": 5816
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ContractMapper.java",
+      "sha256": "af190ded7937581207e94aefc40b6daca436925d415b07d6b915d3e1c99faa32",
+      "bytes": 1954
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/query/ContractRootReadPageQuery.java",
+      "sha256": "9b2409b1aa8cdaf55bb7576c8b4b17c121ddd99aca0bd9f5be0718d119b40923",
+      "bytes": 381
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java",
+      "sha256": "709de0c60438d6e8e0ce8432ac144621cef50c21f70a50da112586cacfa64fb7",
+      "bytes": 1560
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderDetailScopeQuery.java",
+      "sha256": "d93255d469018a477502c1ecf56fabd228a39a54ef64c6568836f61b77b8f800",
+      "bytes": 257
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderRootReadPageQuery.java",
+      "sha256": "c2ff688c38db7220720015927646803e3dafd12249af992d890c44f3c0a81bb0",
+      "bytes": 379
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessEntityContentReader.java",
+      "sha256": "2c0f593ff45eee16d5c11f690f35c2991598b66aa901ceb518ed6ad60e70151f",
+      "bytes": 10819
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+      "sha256": "d7db70fcf3398406c9ff8617eafa390795561601cf018d15812e631f3fb83f73",
+      "bytes": 18873
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml",
+      "sha256": "dad899b134aa2dc3560ea67bc3451ae21bed6df874022be629e440a07d0a07f9",
+      "bytes": 11216
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "sha256": "2f0d9d570e74ceb57eafad5d960d3bca78c5e4a2d472008817fc69e75378f82d",
+      "bytes": 6935
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/businessmodel/CommerceBusinessReadMySqlTest.java",
+      "sha256": "845ff3397aaeef794da79efeed664c8315349f2682c20d49e3b087cebaafcf6c",
+      "bytes": 35123
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityContentReader.java",
+      "sha256": "d982427554b40fea281c64ffb9395b0e970f9ff2d0537f3fc3d1e19db0f6afd5",
+      "bytes": 857
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "sha256": "2d242d3d0bb24e7922863c9f91241ff9d9009ac2c5a5320ddda3b8079d53bfd2",
+      "bytes": 19665
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/scripts/tests/verify_commerce_domain_reads_mysql.sh",
+      "sha256": "12c79e07daf17106a6c2cf9fe9ae7f2a01d2a1cb6b3a758e7b6241cdc6d705e5",
+      "bytes": 2424
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/before24/scripts/tests/verify_commerce_real_login.py",
+      "sha256": "698088a008f87097803dc160fa2ac5514b31f5497d58dc2ebb1602c49498c828",
+      "bytes": 22339
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/cleanup.log",
+      "sha256": "d9b2307b001ac1e508cb3b8e29106a3c9245f746830ad14be3fd72d9539afd08",
+      "bytes": 631
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/compose.yaml",
+      "sha256": "e1e8f68ef189babdd114316a339a5b688aeade328444823619e6db7577261001",
+      "bytes": 1570
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/console.log",
+      "sha256": "d172f6b258b3bcb497f8e8b74997306a956656718398117bbd0ad21e58c36191",
+      "bytes": 23716
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/current-source-files.json",
+      "sha256": "d6d71af069bdfe1e04312d209408c382f50a600a3b5bd7e3cdfb50bb2ff0cdaf",
+      "bytes": 8265
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/flyway.log",
+      "sha256": "c3981defd9dee706d06519c8c92cf25496d0e078a0e477150fcb2c7c36699fec",
+      "bytes": 336001
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/frozen-production11.json",
+      "sha256": "f6b771ca1421e092064c9b76a635db1c523c6b48e88f99c597a4899135bd03e0",
+      "bytes": 2649
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/infrastructure.log",
+      "sha256": "094cbb093140c8889ac0184a3ed88aea0469f486db89c971c98eb44a5d34b9e0",
+      "bytes": 883
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/server-args.json",
+      "sha256": "1e6b5edeb8ff49dcac58522d15ff9a3365dbeb5523b9d6c56c689218c7ac9175",
+      "bytes": 2803
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/server-process.json",
+      "sha256": "9ddce75c6ea2f4348a27e807a2a9eca388fa1639ffbb037769609b75b95b5339",
+      "bytes": 126
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/test-script-delta.patch",
+      "sha256": "46467edf6edda02ec3c4f631ffb92d3fa7a446c92f3a14187e3fbaf89ab45d98",
+      "bytes": 13542
+    },
+    {
+      "path": ".run/commerce-final-gaps-20261006/update_evidence.py",
+      "sha256": "f04e29a0ca65724b90e364e82cf6f4112540c797c1c13b5357339f8b640db4fb",
+      "bytes": 6631
+    }
+  ]
+}

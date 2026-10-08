@@ -3,6 +3,13 @@ import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 
 export type FileUploadMode = 'CREATE_ARTIFACT' | 'ADD_VERSION'
 export type FileAccessOperation = 'DOWNLOAD' | 'PREVIEW'
+// Java Long values are serialized as strings; small numeric fixture IDs remain supported.
+export type FileId = string | number
+
+const requireFileId = (id: FileId): FileId => {
+  if (typeof id === 'number' ? Number.isSafeInteger(id) && id > 0 : /^[1-9]\d*$/.test(id)) return id
+  throw new Error('文件 ID 无效，请刷新后重试')
+}
 
 export interface FileBusinessKey {
   ownerContext: string
@@ -15,7 +22,7 @@ export interface FileBusinessKey {
 export interface FileUploadInitReqVO extends FileBusinessKey {
   ownerExecutionContext?: JsonObject
   modeCode: FileUploadMode
-  artifactId?: number
+  artifactId?: FileId
   expectedReferenceVersion?: number
   fileName: string
   categoryCode: string
@@ -24,33 +31,33 @@ export interface FileUploadInitReqVO extends FileBusinessKey {
 }
 
 export interface FileUploadInitRespVO {
-  artifactId: number
-  sessionId: number
+  artifactId: FileId
+  sessionId: FileId
   expiresAt: string
 }
 
 export interface FileUploadCompleteRespVO {
-  artifactId: number
+  artifactId: FileId
   versionNo: number
-  referenceId: number
+  referenceId: FileId
   referenceKey: string
   sha256: string
 }
 
 export interface FileReferenceVO extends FileBusinessKey {
-  referenceId: number
-  artifactId: number
+  referenceId: FileId
+  artifactId: FileId
   versionNo: number
   sensitivityCode: string
   status: string
-  scopeVersion: number
+  scopeVersion: FileId
   referenceVersion: number
   createdAt: string
   updatedAt: string
 }
 
 export interface FileArtifactVO {
-  artifactId: number
+  artifactId: FileId
   name: string
   categoryCode: string
   ownerContext: string
@@ -62,7 +69,7 @@ export interface FileArtifactVO {
 }
 
 export interface FileVersionVO {
-  id: number
+  id: FileId
   versionNo: number
   sha256: string
   sizeBytes: number
@@ -72,7 +79,7 @@ export interface FileVersionVO {
   availabilityVersion: number
   unavailableReasonCode?: string
   versionNote?: string
-  createdBy: number
+  createdBy: FileId
   createdAt: string
 }
 
@@ -83,15 +90,15 @@ export interface CursorPage<T> {
 }
 
 export interface FileAccessTicketVO {
-  grantId: number
+  grantId: FileId
   shortLivedUrl: string
   expiresAt: string
 }
 
 export interface FileLifecycleResultVO {
-  artifactId: number
+  artifactId: FileId
   versionNo?: number
-  referenceId?: number
+  referenceId?: FileId
   factVersion: number
   status: string
 }
@@ -101,27 +108,27 @@ const baseUrl = '/api/v1/pms'
 export const initializeUpload = (data: FileUploadInitReqVO, idempotencyKey: string) =>
   request.post<FileUploadInitRespVO>({
     url: `${baseUrl}/files:init-upload`,
-    data,
+    data: { ...data, ...(data.artifactId !== undefined ? { artifactId: requireFileId(data.artifactId) } : {}) },
     headers: { 'Idempotency-Key': idempotencyKey }
   })
 
 export const completeUpload = (
-  artifactId: number,
-  sessionId: number,
+  artifactId: FileId,
+  sessionId: FileId,
   file: File,
   idempotencyKey: string,
   onUploadProgress?: (progress: number) => void,
   ownerExecutionContext?: JsonObject
 ) => {
   const data = new FormData()
-  data.append('sessionId', String(sessionId))
+  data.append('sessionId', String(requireFileId(sessionId)))
   data.append('file', file)
   // Spring @RequestPart uses the JSON part's Content-Type for its standard message converter.
   // https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/multipart-forms.html
   if (ownerExecutionContext) data.append('ownerExecutionContext',
     new Blob([JSON.stringify(ownerExecutionContext)], { type: 'application/json' }))
   return request.post<FileUploadCompleteRespVO>({
-    url: `${baseUrl}/files/${artifactId}:complete-upload`,
+    url: `${baseUrl}/files/${requireFileId(artifactId)}:complete-upload`,
     data,
     headersType: 'multipart/form-data',
     headers: { 'Idempotency-Key': idempotencyKey },
@@ -131,28 +138,31 @@ export const completeUpload = (
   })
 }
 
-export const getArtifact = (artifactId: number, params: FileBusinessKey) =>
-  request.get<FileArtifactVO>({ url: `${baseUrl}/files/${artifactId}`, params })
+export const getReference = (params: FileBusinessKey) =>
+  request.get<FileReferenceVO | null>({ url: `${baseUrl}/file-references`, params })
+
+export const getArtifact = (artifactId: FileId, params: FileBusinessKey) =>
+  request.get<FileArtifactVO | null>({ url: `${baseUrl}/files/${requireFileId(artifactId)}`, params })
 
 export const getVersions = (
-  artifactId: number,
+  artifactId: FileId,
   params: FileBusinessKey & { cursor?: string; pageSize?: number }
 ) =>
-  request.get<CursorPage<FileVersionVO>>({ url: `${baseUrl}/files/${artifactId}/versions`, params })
+  request.get<CursorPage<FileVersionVO>>({ url: `${baseUrl}/files/${requireFileId(artifactId)}/versions`, params })
 
 export const createAccessTicket = (
-  artifactId: number,
+  artifactId: FileId,
   versionNo: number,
   operationCode: FileAccessOperation,
   key: FileBusinessKey
 ) =>
   request.post<FileAccessTicketVO>({
-    url: `${baseUrl}/files/${artifactId}/access-tickets`,
+    url: `${baseUrl}/files/${requireFileId(artifactId)}/access-tickets`,
     data: { versionNo, operationCode, ...key }
   })
 
 export const detachReference = (
-  referenceId: number,
+  referenceId: FileId,
   referenceVersion: number,
   key: FileBusinessKey,
   reason: string,
@@ -160,7 +170,7 @@ export const detachReference = (
   ownerExecutionContext?: JsonObject
 ) =>
   request.delete<FileLifecycleResultVO>({
-    url: `${baseUrl}/file-references/${referenceId}`,
+    url: `${baseUrl}/file-references/${requireFileId(referenceId)}`,
     data: { ...key, reason, ...(ownerExecutionContext ? { ownerExecutionContext } : {}) },
     headers: { 'If-Match': String(referenceVersion), 'Idempotency-Key': idempotencyKey }
   })

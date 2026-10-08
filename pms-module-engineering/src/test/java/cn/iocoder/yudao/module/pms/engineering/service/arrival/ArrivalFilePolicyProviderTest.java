@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ArrivalFilePolicyProviderTest {
@@ -158,6 +159,25 @@ class ArrivalFilePolicyProviderTest {
 
     private ProjectScopeResult scope(Long projectId) {
         return new ProjectScopeResult(projectId, 9L, Set.of(projectId), Set.of());
+    }
+    @Test void fileMutationRequiresManageScopeAndRejectsPlaceholderProject() {
+        stubLocated(0);
+        when(projectScopeApi.resolveCurrent(any())).thenAnswer(call -> {
+            var request = call.getArgument(0, cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.class);
+            return ProjectScopeApi.ACTION_MANAGE.equals(request.actionCode())
+                    ? new ProjectScopeResult(66L, 9L, Set.of(), Set.of(66L)) : scope();
+        });
+        assertFalse(provider.inspect(query(FileActionCodes.UPLOAD)).allowed());
+        verify(projectScopeApi).resolveCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
+                TENANT, ACTOR, 66L, ProjectScopeApi.ACTION_MANAGE));
+    }
+    @Test void changedScopeVersionAtOwnerLockIsDenied() {
+        ArrivalDO row = arrival(0);
+        when(arrivalMapper.selectById(7L)).thenReturn(row);
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(66L, 10L, Set.of(66L), Set.of()));
+        assertFalse(provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                TENANT, ACTOR, "IMP", "ARRIVAL", "7", ArrivalFilePolicyProvider.PURPOSE_CODE,
+                ArrivalFilePolicyProvider.REFERENCE_KEY, FileActionCodes.UPLOAD, 9L)).allowed());
     }
     @Test void signatureRaceRechecksLockedRootBeforeFileMutation(){when(arrivalMapper.selectById(7L)).thenReturn(arrival(0));when(arrivalMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(arrival(1));stubUpdatePermission();when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());assertFalse(provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(TENANT,ACTOR,"IMP","ARRIVAL","7",ArrivalFilePolicyProvider.PURPOSE_CODE,ArrivalFilePolicyProvider.REFERENCE_KEY,FileActionCodes.REFERENCE,9L)).allowed());}
 

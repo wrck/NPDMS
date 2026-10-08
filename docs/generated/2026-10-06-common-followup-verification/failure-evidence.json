@@ -1,0 +1,97 @@
+{
+  "uiAtC41": {
+    "passed": 5,
+    "failed": 3,
+    "cases": [
+      {
+        "name": "shared file recovery recovers the exact stable slot after a full remount with no saved artifact ID",
+        "status": "passed",
+        "failureMessages": []
+      },
+      {
+        "name": "shared file recovery cannot turn a missing or inaccessible reference into a restored file",
+        "status": "passed",
+        "failureMessages": []
+      },
+      {
+        "name": "shared file recovery preserves detached state and refuses to render its removal action",
+        "status": "passed",
+        "failureMessages": []
+      },
+      {
+        "name": "shared file recovery ignores a late lookup from the previous Owner rather than overwriting its new slot",
+        "status": "passed",
+        "failureMessages": []
+      },
+      {
+        "name": "shared file recovery uploads another version with exact string artifact/session/reference IDs",
+        "status": "passed",
+        "failureMessages": []
+      },
+      {
+        "name": "independent stale callback negatives at c41c12e late detach must preserve the new Owner file and suppress the old event",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected \"vi.fn()\" to not be called at all, but actually been called 1 times\n\nReceived:\n\n  1st vi.fn() call:\n\n    Array [\n      Object {\n        \"artifactId\": \"9007199254740993\",\n        \"factVersion\": 5,\n        \"referenceId\": \"9007199254740995\",\n        \"referenceKey\": \"fixed-slot\",\n        \"status\": \"DETACHED\",\n      },\n    ]\n\n\nNumber of calls: 1\n\n    at Proxy.<anonymous> (file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+expect@4.1.11/node_modules/@vitest/expect/dist/index.js:1467:10)\n    at Proxy.<anonymous> (file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+expect@4.1.11/node_modules/@vitest/expect/dist/index.js:1164:22)\n    at Proxy.methodWrapper (file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1700:25)\n    at /workspace/NPDMS-unified-followup-20261006/yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts:143:33\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20",
+          "AssertionError: expected '尚未绑定材料v-if文件版本历史暂无可见版本' to contain 'new-owner.txt'\n    at /workspace/NPDMS-unified-followup-20261006/yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts:144:36\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "name": "independent stale callback negatives at c41c12e late completed upload must not emit after the stable Owner key changes",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected \"vi.fn()\" to not be called at all, but actually been called 1 times\n\nReceived:\n\n  1st vi.fn() call:\n\n    Array [\n      Object {\n        \"artifactId\": \"9007199254740993\",\n        \"createdAt\": \"2026-10-06T00:00:00\",\n        \"objectId\": \"9007199254740997\",\n        \"objectType\": \"NATIVE_OWNER\",\n        \"ownerContext\": \"SOL\",\n        \"purposeCode\": \"EVIDENCE\",\n        \"referenceId\": \"9007199254740995\",\n        \"referenceKey\": \"fixed-slot\",\n        \"referenceVersion\": 4,\n        \"scopeVersion\": \"9007199254740999\",\n        \"sensitivityCode\": \"INTERNAL\",\n        \"sha256\": \"digest\",\n        \"status\": \"ACTIVE\",\n        \"updatedAt\": \"2026-10-06T00:00:00\",\n        \"versionNo\": 2,\n      },\n    ]\n\n\nNumber of calls: 1\n\n    at Proxy.<anonymous> (file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+expect@4.1.11/node_modules/@vitest/expect/dist/index.js:1467:10)\n    at Proxy.<anonymous> (file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+expect@4.1.11/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1700:25)\n    at /workspace/NPDMS-unified-followup-20261006/yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts:163:29\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "name": "independent stale callback negatives at c41c12e real dynamic form instance 41→42 keeps its empty model after the old upload completes",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected last \"vi.fn()\" call to have been called with [ [] ]\n    at /workspace/NPDMS-unified-followup-20261006/yudao-ui/yudao-ui-admin-vue3/src/components/PmsFileArtifact/PmsFileRecovery.runtime.spec.ts:187:23\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/NPDMS/yudao-ui/yudao-ui-admin-vue3/node_modules/.pnpm/@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      }
+    ]
+  },
+  "parentReaderRed": {
+    "tests": 3,
+    "passed": 2,
+    "errors": 1,
+    "reason": "NoUniqueBeanDefinitionException: businessEntityAccessPort,businessCollectionPort",
+    "exactXml": {
+      "sha256": "32f7938a9dc5c4c8bb2aee1ff7535e908ba38eba7cae4e69635eb197b599fc38",
+      "class": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DeclaredOwnerReadCompatibilityRuntimeTest"
+    }
+  },
+  "migration": {
+    "original": "MySQL8.4 original V374 line72 code1267, no repair/skip/history edit",
+    "callbackExperiment": "fresh second DB, beforeEachMigrate session unicode_ci callback still fails original V374 line31; incompatible column collations require more than one connection default"
+  },
+  "startupFixtureFailures": [
+    "First parent-reader run could not reach fixed27461; started verified dedicated tmpfs fixture and preserved3errors",
+    "Browser first lacked fixture node_modules link; second fixture recreated currentFacts on each render and looped; fixed only fixture, assertions unchanged",
+    "OrdinaryJAR first used default JDK21; explicit JDK25 launched same artifact",
+    "Login fixture digest helper missing, zero requests; restored helper",
+    "SQL role/menu inserts bypassed native cache eviction; first21-request run failed at request7. Owned isolated Redis fixture cache reset, all21requests then passed. No security assertion or permission change."
+  ],
+  "browserControlWaitTimeout": {
+    "receipt": {
+      "scope": "Actual shared Vue SFCs and ElementPlus, same component instance across Owner changes; file API promises controlled. No server authorization conclusion.",
+      "checks": [
+        {
+          "mode": "reference",
+          "status": "PASS",
+          "pageErrors": []
+        },
+        {
+          "mode": "upload",
+          "status": "PASS",
+          "pageErrors": []
+        }
+      ],
+      "status": "FAIL",
+      "failure": "Locator.set_input_files: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"input[type=file]\").first\n"
+    },
+    "rerun": "same assertions/components: final diagnostic rerun reference/upload/form allPASS",
+    "rootCause": "not determined; preserve as unresolved fixture/runtime stability concern"
+  }
+}

@@ -132,4 +132,14 @@ class DynamicFormBusinessObjectPolicyProviderRegistryTest {
             TransactionSynchronizationManager.setActualTransactionActive(false);
         }
     }
+    @Test void inheritedOwnerCanDependOnFormsWithoutAnEagerPolicyRegistryCycle(){
+        try(var context=new org.springframework.context.annotation.AnnotationConfigApplicationContext()){
+            var policy=mock(DynamicFormBusinessObjectPolicyProvider.class);var key=new DynamicFormProviderKey("IT","note");when(policy.providerKey()).thenReturn(key);
+            var query=new DynamicFormRevisionPolicyQuery(1L,2L,key,1L,2L,1,1,"note",DynamicFormBusinessAction.REVISION_FROZEN_USE,List.of());
+            var fact=new DynamicFormPolicyFact(query.action(),true,null,1L,"DEFAULT_ENTITY_FIELDS");when(policy.inspectRevisionCompatibility(query)).thenReturn(fact);
+            context.register(DynamicFormBusinessObjectPolicyProviderRegistry.class);
+            context.registerBean("inheritedBusinessPolicy",DynamicFormBusinessObjectPolicyProvider.class,()->{context.getBean(DynamicFormBusinessObjectPolicyProviderRegistry.class);return policy;});
+            context.refresh();assertThat(context.getBean(DynamicFormBusinessObjectPolicyProviderRegistry.class).inspectRevision(query)).isEqualTo(fact);
+        }
+    }
 }

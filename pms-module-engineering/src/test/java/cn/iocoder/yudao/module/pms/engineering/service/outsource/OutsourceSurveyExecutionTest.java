@@ -11,6 +11,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class OutsourceSurveyExecutionTest {
+    @org.junit.jupiter.api.BeforeEach void nativeAttachmentPorts() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"attachments",
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration.class));
+    }
+    @org.junit.jupiter.api.AfterEach void clearNativeTenant() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+
     final OutsourceRequestMapper mapper = mock(OutsourceRequestMapper.class);
     final SiteSurveyEntityService surveys = mock(SiteSurveyEntityService.class);
     final OutsourceRequestServiceImpl service = new OutsourceRequestServiceImpl();
@@ -37,17 +44,17 @@ class OutsourceSurveyExecutionTest {
     }
     @Test void deletionRevalidatesTheSameExecutionBeforeRemovingTheRequest() {
         var row = new OutsourceRequestDO(); row.setId(41L); row.setTriggerSource("SITE_SURVEY"); row.setTriggerRefId(51L); row.setStatus(0);
-        when(mapper.selectById(41L)).thenReturn(row);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
         when(mapper.deleteById(41L)).thenReturn(1);
         service.deleteOutsourceRequest(41L,selection);
         var order = inOrder(mapper,surveys);
-        order.verify(mapper).selectById(41L);
+        order.verify(mapper).selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any());
         order.verify(surveys).releaseDeletedOutsourceRequest(51L,41L,selection);
         order.verify(mapper).deleteById(41L);
     }
     @Test void staleExecutionPreventsDeletionAndPreservesTheSourceRelationship() {
         var row = new OutsourceRequestDO(); row.setId(41L); row.setTriggerSource("SITE_SURVEY"); row.setTriggerRefId(51L); row.setStatus(0);
-        when(mapper.selectById(41L)).thenReturn(row);
+        when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
         when(mapper.deleteById(41L)).thenReturn(1);
         doThrow(new IllegalStateException("stale stage")).when(surveys).releaseDeletedOutsourceRequest(51L,41L,selection);
         assertThrows(IllegalStateException.class, () -> service.deleteOutsourceRequest(41L,selection));

@@ -46,4 +46,32 @@ class BusinessModelDetailContractTest {
             verify(guard,never()).requireWritable(any(),any(),any());
         } finally { TenantContextHolder.clear(); }
     }
+    @Test void publicPageUsesInheritedQueryForExplicitDefaultModel() throws Exception {
+        var access=mock(BusinessEntityAccessPort.class); var dispatcher=mock(BusinessOperationDispatcher.class);
+        var endpoint=new BusinessModelController(catalog,guard,access,dispatcher,backends);
+        var model=new BusinessModelDescriptor("IT","note","IT_NOTE",1,BusinessModelKind.AGGREGATE_ROOT,"记录","it:note:query",
+                List.of(),List.of(),List.of(),List.of(),null,new BusinessScopeBinding("project","projectId"));
+        when(catalog.require("IT","note")).thenReturn(model);
+        var query=new BusinessEntityPageQuery(null,"IT","note",List.of(),20,null);
+        when(dispatcher.query(query)).thenReturn(new BusinessEntitySlice(List.of(),null,
+                cn.iocoder.yudao.module.pms.platform.api.businessmodel.Completeness.COMPLETE,null));
+        MockMvcBuilders.standaloneSetup(endpoint).build().perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/pms/business-models/IT/note/page")
+                    .contentType("application/json").content("{\"pageSize\":20}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.completeness").value("COMPLETE"));
+        verify(dispatcher).query(query); verifyNoInteractions(access);
+    }
+    @Test void legacyPageKeepsItsExistingReadPort() {
+        var access=mock(BusinessEntityAccessPort.class); var dispatcher=mock(BusinessOperationDispatcher.class);
+        var endpoint=new BusinessModelController(catalog,guard,access,dispatcher,backends);
+        when(catalog.require("SOL","requirementAnalysis")).thenReturn(descriptor);
+        var request=new BusinessModelController.PageQueryReqVO();request.setPageSize(20);
+        try(var security=mockStatic(SecurityFrameworkUtils.class)) {
+            security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(2L);TenantContextHolder.setTenantId(1L);
+            endpoint.page("SOL","requirementAnalysis",request);
+            verify(access).query(eq(new BusinessEntityPageQuery(null,"SOL","requirementAnalysis",List.of(),20,null)),any());
+            verifyNoInteractions(dispatcher);
+        } finally {TenantContextHolder.clear();}
+    }
+
 }

@@ -1,3 +1,4 @@
+import type { FileId } from '@/api/pms/platform/file'
 import request from '@/config/axios'
 
 // P06R 统一交付件承接后的 ACC 兼容契约：存储在平台 plt_delivery_*，
@@ -15,12 +16,12 @@ export interface BusinessResult {
   observationVersion?: string
   formedAt: string
 }
-export interface FileSelection { referenceId: number }
+export interface FileSelection { referenceId: FileId }
 export interface MaterialLine {
   id: number
   materialKind: string
-  referenceId?: number
-  artifactId?: number
+  referenceId?: FileId
+  artifactId?: FileId
   versionNo?: number
   sha256?: string
   fileName?: string

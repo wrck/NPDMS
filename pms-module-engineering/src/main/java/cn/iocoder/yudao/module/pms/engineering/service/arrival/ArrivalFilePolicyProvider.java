@@ -86,7 +86,7 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
         ArrivalDO arrival = locate(tenantId, objectId);
         if (arrival == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorUserId, arrival.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+                tenantId, actorUserId, arrival.getProjectId(), scopeAction(requiredAction)));
         if (!inScope(scope, arrival.getProjectId())) return denied();
         return policy(allowed(actorUserId, requiredAction, arrival), scope.treeVersion(), arrival);
     }
@@ -98,8 +98,8 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
         if (located == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
         ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
                 tenantId, actorUserId, located.getProjectId(),
-                ProjectScopeApi.ACTION_VIEW, expectedScopeVersion));
-        if (!inScope(scope, located.getProjectId())) return denied();
+                scopeAction(requiredAction), expectedScopeVersion));
+        if (!inScope(scope, located.getProjectId()) || !Objects.equals(expectedScopeVersion, scope.treeVersion())) return denied();
         ArrivalDO locked = arrivalMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalDeliveryOwnerQuery(tenantId,located.getId()));
         if (locked == null || !Objects.equals(locked.getTenantId(),tenantId) || !Objects.equals(locked.getProjectId(), located.getProjectId())) return denied();
         return policy(allowed(actorUserId, requiredAction, locked), scope.treeVersion(), locked);
@@ -114,7 +114,11 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
     }
 
     private boolean mutable(ArrivalDO arrival) {
-        return arrival.getStatus() != null && arrival.getStatus() != 1;
+        return Integer.valueOf(0).equals(arrival.getStatus()) || Integer.valueOf(2).equals(arrival.getStatus());
+    }
+
+    private String scopeAction(String action) {
+        return MUTATING_ACTIONS.contains(action) ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
     }
 
     private ArrivalDO locate(Long tenantId, String objectId) {
@@ -131,7 +135,8 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
 
     private boolean inScope(ProjectScopeResult scope, Long projectId) {
         return scope != null && scope.treeVersion() != null && scope.treeVersion() >= 0
-                && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId);
+                && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
+                && (scope.placeholderProjectIds() == null || !scope.placeholderProjectIds().contains(projectId));
     }
 
     private FileBusinessObjectPolicyFact policy(boolean allowed, Long scopeVersion, ArrivalDO arrival) {

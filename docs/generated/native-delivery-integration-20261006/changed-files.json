@@ -1,0 +1,848 @@
+{
+  "baseCommit": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "packageFiles": 105,
+  "allPackageHashesUnchanged": true,
+  "subsequentImplementationFiles": [],
+  "files": [
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/arrival-browser.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "2967c99491e2b74b6da12099ab3bb5b79b1b9543c276af9e5125246d781e5367",
+      "bytes": 12301
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/arrival-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "79f4685117f9a58ef19b30e06e586135569ad401681353b50f68b12902b5bf7b",
+      "bytes": 114877
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/checklist-browser.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "9afb0c96e7f86cfc3407d8136442d851d5bf74a7f1388de65c2404c486bd51e4",
+      "bytes": 9724
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/checklist-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "30c474af1bf54efce1379d7f62648277e545261d94941fc23a57e9273c77800d",
+      "bytes": 108004
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/handoff.md",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "50f7364b65603cf671366392d47a5d8a60c771944cdb9573f6e28e0f61f6802e",
+      "bytes": 24803
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/solution-customer-browser.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "92f436df1f9958fcb45f7e62d853847c39edf5a6800240801eebe1781f4cac8e",
+      "bytes": 3609
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/solution-customer-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "c7f62b8f8a234694f079bbdf94fb14b38ca7525c9b3d894687d88f97916e048c",
+      "bytes": 131802
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/source-inventory.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "1334e8fa0a71e6551836b3f0b8867eabf2e0c23e364080197225d9ff32ac5608",
+      "bytes": 15207
+    },
+    {
+      "package": "first41",
+      "path": "docs/generated/native-delivery-20261006/verification.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "a8dc84eebd9f74d6222bddfd8b0e968312a14d1ca9387fdb418059ae10bf1492",
+      "bytes": 22198
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/AcceptanceResultDeliveryAccess.java",
+      "status": "modified",
+      "checkpointBaseSha256": "ed7313dafc45b06a55a4be55ad1397926fe7aa313b4e0cb9dcd892a99b5c58f4",
+      "sha256": "12cf7dc1f13c88ce7700494c71dc1f8faef484965ef17425075b2f2b2def354c",
+      "bytes": 6557
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentFilePolicy.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "460d4e0dc7074bc50a94350a3f9174be87e72ecff1a614bf925ce45aece2b1ef",
+      "bytes": 6249
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentRegistration.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "2c632dc80e12f2ba8119ef2a6d1ae99c88ad2d49a0ee8242a8065f983ee8367d",
+      "bytes": 1317
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentSources.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "0e0e97b80733abb15994caaec547d14222632533c9128b8bd6928f426906a776",
+      "bytes": 1464
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "e7ec407e3727f12a281b2ac823ee5cd1e3005db83cdf82d9fc2a9cda640d5530",
+      "sha256": "551484cbccaf7cee6edc90505195fb291823238dae2f32f5ec33f9747b653094",
+      "bytes": 8907
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/ChecklistAttachmentTest.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "cacb7b69bbd02a6ea765580e1c5ead11bcee5c8fde5ff94c38570840f742419c",
+      "bytes": 6323
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistNativeDeliveryTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "0dc0b8c234cd68f62775ab82985e2348dce84690d305aeb215b812450093df7d",
+      "sha256": "11381cae260682c9355243e5cab99755f80ee0aaedbe4ae79ac268970feab1e7",
+      "bytes": 4651
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistration.java",
+      "status": "modified",
+      "checkpointBaseSha256": "a5935bfd95321b6980aa45030ddf88401b65fa67f792bd829a43971f2e38cbdf",
+      "sha256": "e056499477c69998c4d7ae348868ea5c0407c1ba71ba200e527de768cacf3ce4",
+      "bytes": 3506
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProvider.java",
+      "status": "modified",
+      "checkpointBaseSha256": "8146ce7ca29bf790329284a4779e6c2869bb253b5b5b34fbc3bf070a318db912",
+      "sha256": "f73b87f842892cbb29845d99f741881eb2ceb928bb2f920b3bd6742c16d4e071",
+      "bytes": 8699
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalNativeDeliveryAccess.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "f607ef560eb92e7dc2b6fe7155a754b08ab046654bb465114efffbf83078308e",
+      "bytes": 5270
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "08b610830906d508f6cb7bde588b63886cb1c0b3094a3abd72499e6f2d9cd2c9",
+      "sha256": "8bc68909d51e32f65944cffc16244dc91d6710466b056ff6589db6a28e7b6be5",
+      "bytes": 6517
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistrationTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "3aaea3ca68ea47ca23c88924ee3dc9cb6368d3f714e063cfe9306cc9d3d943ce",
+      "sha256": "b6e529821cb113ced908bb274f22d8ce7e0fbb5213ffe8334e231cc1a14339bd",
+      "bytes": 4437
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProviderTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "6f1f7a1351100c04b0be59cdb226b3b6dfe61bac8a94f6066a0aec6757aecaf3",
+      "sha256": "567f10e41a09fb486fb45f33d72fe6b1f0d88bf2aa8668069d7cfd2f646f818a",
+      "bytes": 8202
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalNativeDeliveryAccessTest.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "eff1d04f3285ab982cd70b31e3e20cd9fbbc01bc3455553500f1f4e0ffacb2be",
+      "bytes": 5389
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalNativeDeliveryCommandTest.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "c8edc0633eb5aaf6cc8658008f9353bc6190c7ec9da8c081e34a4eb87251f159",
+      "bytes": 2617
+    },
+    {
+      "package": "first41",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeArrivalDeliveryMySqlTest.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "e68cf0237ecfea0f904609b41426894ad170a936c0c5113f5bad364b966270c5",
+      "bytes": 39438
+    },
+    {
+      "package": "first41",
+      "path": "scripts/tests/capture_native_delivery_inventory.py",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "273980c1a97e22b89b8edf4a1118c7ce65207a983b7b7cd821c27215c1537820",
+      "bytes": 3730
+    },
+    {
+      "package": "first41",
+      "path": "scripts/tests/run_native_arrival_delivery_browser.py",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "4bdc076de327fc83e35b526c43646a51f63e94512c126f65c0472363d5f50b39",
+      "bytes": 12078
+    },
+    {
+      "package": "first41",
+      "path": "scripts/tests/run_native_checklist_delivery_browser.py",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "c792b37fd144117418e52fc3be460291a747ee3d06ff561ceb60ce6f27473960",
+      "bytes": 5164
+    },
+    {
+      "package": "first41",
+      "path": "scripts/tests/run_native_solution_customer_browser.py",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "9225b6841119f556e9f1fe0a4dd12648fe4e5291406fde6b5c7b9a20996eb5a0",
+      "bytes": 8737
+    },
+    {
+      "package": "first41",
+      "path": "scripts/tests/verify_native_delivery_mysql.sh",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "877f8ae5aba1baa5d8955994a4f08c3c91228dcd2e9b51761a2732ec78a95427",
+      "bytes": 1766
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/acceptance/deliverable-checklist/index.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "5fa7efdcbc4358ad2cb41b1a6b18353948a2fbffdf5cda3cd14ad84bbe9615af",
+      "sha256": "e8fc1c1783040e3f218e87aae56f8f30f8881166ff715e1e89b49aa38303b4f4",
+      "bytes": 1461
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/ChecklistAttachments.runtime.spec.ts",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "5342370613836eb868b30be4224e4ad4f693d62918f4ebc2463d29435f0913bf",
+      "bytes": 3320
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/ChecklistAttachments.vue",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "446e3f1128cc95c05787f68e74114eae01b60de4c53a150a34eca217a44e2808",
+      "bytes": 3852
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "d426abbdd822d020efdd39558079da965ed2ce534f4acbe58fa406bb06367211",
+      "sha256": "6ce49163d11d56132ad29406b14a5d62714281535cd7a4b895df8b872e5d83cc",
+      "bytes": 11885
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.runtime.spec.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "72eb61d51880f2ed89bcc4306fdde673ff1eac4e27c28a34ca2c7bc39f1a6ddf",
+      "sha256": "ceab59ba3c9c95d945938010e12706820a686c296c32d531a861d304541eebab",
+      "bytes": 7935
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "7e237fe646044ac4d8df01444d708e8fc8aff6fa834547601d88bbba1ae88605",
+      "sha256": "4d0b883e614ecdaf2ac14ff131daa574b28de2868fddb9212500e6ab9dfdbbce",
+      "bytes": 23751
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival/arrivalWorkspace.runtime.spec.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "6ff2de373309eac4b827da0667fad51e3d92ac80b4d12120605b8807757864e7",
+      "sha256": "08d43f8bf679392f03a70bd00da072ea3f6f0fe25265ca553d6aa64afbc9bc27",
+      "bytes": 12938
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "cec3438b41e4f131fb81e2598f9964d4bbd1d0ba9e7e4deff7eab7f3b46572f2",
+      "sha256": "aac1b7f8c0acf60d7849b00a5ab3834267dd07c67c8e30c40d7d1a7b0daf663d",
+      "bytes": 18551
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/SolutionChapterForm.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "ae832fd26b7e99dc6cddbc28403289ceed02818f460b8f8c40fad04d3f6cfb49",
+      "sha256": "0706bb217f8d8e085c4995857198659871195b2b045f8fc40b70ac373db6de42",
+      "bytes": 51776
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "0b80c8694c9a7b21666cd1f2f1793f8cfb54775da69edd82cb3c736e8fbe917a",
+      "sha256": "4cf7acb1421881768638b62c5f10957723a7248f631da3709d25c7fa4f169891",
+      "bytes": 17853
+    },
+    {
+      "package": "first41",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/solutionWorkspace.runtime.spec.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "13703eec3dcea6c3063b84a049879057ea0ef376780f1f46a461442a2db9d12b",
+      "sha256": "bbec0d0f02a59bb1060e0e8cc107d7657dddf51eecba551fcb103147e06cc5a2",
+      "bytes": 12723
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/acceptance-matrix.md",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "a1e601363b00c149f0d159b911c6d47722b2cadb6b0ac207c4a6a0456ae9beda",
+      "bytes": 9322
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/configuration-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "cbd16e38d38447f4fc98b96135e203d6dd64af6af50421245f9c567dc0333278",
+      "bytes": 120027
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/ext-proc-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "8866a98c185b314090566672083f0b8f0af3a023b427fdedbd3a1ff8cb9fb308",
+      "bytes": 130530
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/handoff.md",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "c4fc95238d08f0fc7b408a1b0afbff488c7a7ed0d6ce9f2404aeec7dc78c6b3c",
+      "bytes": 10917
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/joint-test-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "cc41090414a8c454c9159fef7fcb6c16bfcaa60d1b074813c66e80c52c4cbad3",
+      "bytes": 131060
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/material-exch-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "d53dbe7a12337c1f47dc21765c3f235c1ef733ab011e73042bc87e3049d8938e",
+      "bytes": 125065
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/material-req-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "107496765f29a7462107c7e0bdfce0956966cc8981113290299f3c456b6fadbf",
+      "bytes": 135966
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/native-six-browser.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "91bf16ebdb709143da18d8f950c962065b44f42e3583e1219304ccda4d611f5f",
+      "bytes": 63593
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/outsource-browser.png",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "0be73e3b7792e511ce961f8f538d4a0ba167d7e359b7cff1436f664860969760",
+      "bytes": 124874
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/source-inventory.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "3e0a832289ad975d7fc125e858355b08dba6d0db90a634eca3642cfd696ae037",
+      "bytes": 14496
+    },
+    {
+      "package": "stage2-64",
+      "path": "docs/generated/native-delivery-stage2-20261006/verification.json",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "29011e2f833c428d46017e36bca763af3a5bec730526908aff26621fd33adc36",
+      "bytes": 21512
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/device/dto/NativeConfigurationFileLocator.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "b5035628a75f84c6af0a4a001e738cb76d6ff0960bf2c1d5c8c639c66125ba6c",
+      "bytes": 1143
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadService.java",
+      "status": "modified",
+      "checkpointBaseSha256": "bd13de4f68c3b475f2af557bffb594bc6bdf3c43546375739fb4e9d543750c5e",
+      "sha256": "a3b820c96d2db51fcbcfc0aac855b7288afe8c81ec97d2c8cc7167015353604d",
+      "bytes": 12012
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceConfigurationLogDownloadServiceTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "384d324deb00974310288b03959606620090a177a9375c3c3e3566abeaf6780a",
+      "sha256": "7924e2e79c4fd2080474c07d7bf40a01a1094a14043efc5505961259920aa1a4",
+      "bytes": 22247
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/attachment/query/NativeAttachmentOwnerLockQuery.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "bfb9c9410d879d96baac46c142ac1002a52ffe1d2cebddaa770d71c3bc6f3df1",
+      "bytes": 226
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/configuration/ConfigurationMapper.java",
+      "status": "modified",
+      "checkpointBaseSha256": "2291c81f1f3a96dfd103d8e403a4c6dffe8606de4dfc16aa677adf9d45814dac",
+      "sha256": "8d451857e62abcab07da9e84ec4d4e57b68a04dce72b22b3921856cc7f5df9ad",
+      "bytes": 1532
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/externalprocurement/ExternalProcurementMapper.java",
+      "status": "modified",
+      "checkpointBaseSha256": "8e647b4b9e5cc740bff1a7b711edd820c5ef18aaa13e3cf30781b472f5d78040",
+      "sha256": "cf83172e27c1656ed127e359ba36f29ab1f6dd4d6fa568d5ebf826101740c634",
+      "bytes": 2475
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/jointtest/JointTestMapper.java",
+      "status": "modified",
+      "checkpointBaseSha256": "59c9d6f4d04f946705641991001e7aabf565e57138d086b00e1d3d205cd47e56",
+      "sha256": "d643d8d0c3b4f1d0ec7d8f61018d0bcbc66353186b633bb98d3edfe1d23ccf4e",
+      "bytes": 1538
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/materialexchange/MaterialExchangeMapper.java",
+      "status": "modified",
+      "checkpointBaseSha256": "65df58d813a1c59eec3ffa0470d756c668aeb963a1a085b7d184b61919e2613f",
+      "sha256": "f80080c7a703160d03401ebae2fa5c3b34298b2abf5d0a4c50a40d5cd95d2bfc",
+      "bytes": 2144
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/materialrequisition/MaterialRequisitionMapper.java",
+      "status": "modified",
+      "checkpointBaseSha256": "ddf58be6c88f09b6687a8c6cc1c9d87117dd841a9a499e0af58a3745729e02d6",
+      "sha256": "462b1998e0847b8aca1c8dffc7a627e77604bf27687451a48900d222ea7e3152",
+      "bytes": 2659
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/outsource/OutsourceRequestMapper.java",
+      "status": "modified",
+      "checkpointBaseSha256": "93e925de3b8679cc30b856d79e200b65fdc3604679d1c7364393d0d32400da09",
+      "sha256": "1995b5d02473082ec330f318029af5f63fb67e7fd82e93d0d2c39c7ef4472ce1",
+      "bytes": 2372
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/IMPNativeAttachmentDeliveryAccess.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "9189ccb12662ee270217d9e958e4b62388b157e9a6cf832126b3a80a0382c8f8",
+      "bytes": 1700
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentAccess.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "8d809a1ea62e7fbb8775dd14ae921f2dd293c49f7a43bef74979d06a6378c093",
+      "bytes": 4407
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentFilePolicy.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "1fc3c95e9c75c4b1d3b0f2048b36c20d005c8497583264feb701de24db7f35de",
+      "bytes": 1550
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentKind.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "b44104e40e562b721a148d07106338f2b0ea9982a1541be0db09a690274e83b6",
+      "bytes": 1714
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentOwners.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "0358eda91ccc4d6acd05ba227d19552794f2220661e301eb78af8a4a7221407e",
+      "bytes": 2940
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentPolicyConfiguration.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "8f841dc7b2269a4b8af95f3a223cefc5e8a39b423051922588873827e5b591ae",
+      "bytes": 1325
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentRegistration.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "1886b0218236122bee035df40c898be09e6cac76d18090f37b12771276567b3c",
+      "bytes": 2951
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/NativeAttachmentSources.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "d25e4814beba708ed3467398c1c6851e0d6e7291b9047094883fef3aab7c6991",
+      "bytes": 1279
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/attachment/RESNativeAttachmentDeliveryAccess.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "a8b97fdbf90ce024eb06d81435da1f1718f3bce58d0fc0ed2961ec8abdaaa273",
+      "bytes": 1700
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/configuration/ConfigurationServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "07b0f0a49b9b70a0f1854f8e07425b492a6a887aa23406de0b3c7b91afdf956b",
+      "sha256": "352728a1df91e1782d83eef747be16f33d133e46892c5e6d2642698251e9fe00",
+      "bytes": 9725
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/externalprocurement/ExternalProcurementServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "a3f9f70efb91bae2c8e08e39622d3617bd2ee1b6afa652668e273f6477040528",
+      "sha256": "a227fc05af7b71a49809ed5f003c20eb610f4c6d55e03cab72c1334194782450",
+      "bytes": 12907
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/jointtest/JointTestServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "fbd90d4b1f71b696f2dfcfed7cefd2c38a84867a34844cd1e79c732cd7b29113",
+      "sha256": "d6eb5ed372e0c1155b47d08c7df9b7bef821212664e6795b6f7ca41a3a591fab",
+      "bytes": 7931
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/materialexchange/MaterialExchangeServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "5aafe448524df05c45d9ec3478bfe4205fd6151f55efe92179075c22f142ec3c",
+      "sha256": "7e9b6b605d08a1f82f6266846d4a5992a861acfd53e2e07dd994720dd246a735",
+      "bytes": 28194
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/materialrequisition/MaterialRequisitionServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "ce6f3ac6ccbd69b2ce7610b84272837713e68e467f687e65676771f313866678",
+      "sha256": "1d532f5ba7a59b760c1fc412bb33372647f6a84c287bca2436af144167f46c4c",
+      "bytes": 13539
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceRequestServiceImpl.java",
+      "status": "modified",
+      "checkpointBaseSha256": "eb0d1d0966a5044a4efb5e27087109c4ff95418df46151170cb6930bde634891",
+      "sha256": "acf16f7f033dc7ec6cbc45793152a17d769bff23600c4ef03e3ecc49a44eb008",
+      "bytes": 14058
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/resources/mapper/configuration/ConfigurationMapper.xml",
+      "status": "modified",
+      "checkpointBaseSha256": "1dafb065f9c4c06d1808bb9264605b2aa477ac4a080d59f0e1e5371b27dd7fce",
+      "sha256": "353f972eed12ede71ba57c3bb4d8cffa3d7e8701f3d58c9ec1138e7e5eec256c",
+      "bytes": 915
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/resources/mapper/externalprocurement/ExternalProcurementMapper.xml",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "1312c0fb5a5f42a60c4000ae95342dece00f38cfefe04b83cb64724817e4d75a",
+      "bytes": 590
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/resources/mapper/jointtest/JointTestMapper.xml",
+      "status": "modified",
+      "checkpointBaseSha256": "e847726c2b45f6f5bfdd7b0aba5782c8a5af599b4b0dfa3cf6b452aaf97de0c0",
+      "sha256": "7182588968db4a0de40be164c5df0faf9f0222d1fb57d1832d91914412a348f5",
+      "bytes": 893
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/resources/mapper/materialexchange/MaterialExchangeMapper.xml",
+      "status": "modified",
+      "checkpointBaseSha256": "f9c4cdb929b7c5335efaeb43a1293da05d913bce38d1e0e9ad2e464b6876461b",
+      "sha256": "7a0c88dd4639358304f3f7761281a1afecea0b1ab1dda14a5038bda5130e8626",
+      "bytes": 823
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/resources/mapper/materialrequisition/MaterialRequisitionMapper.xml",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "b6b450fc7f58752c4e8667fe1f42395d7e192ea714682301161fbfc89b5ba573",
+      "bytes": 590
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/main/resources/mapper/outsource/OutsourceRequestMapper.xml",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "72a7675c141088de50a7c84e5397a0a0ae7f4f63d20c0555e138da23824333e3",
+      "bytes": 557
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/NativeAttachmentDeliveryMySqlTest.java",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "de78e738dcc65c813b65f314c59859b97c82e48517dab996737bb183cb5acd7c",
+      "bytes": 61205
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/configuration/ConfigurationLocalLifecycleTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "ecc23c04ee835d5204ca0519bdac2ad287cbd998330d98e66662de7744c40753",
+      "sha256": "fe34870dd7ca909d550f0976c391db5d9553c986df789a25773719b9d84e5fa5",
+      "bytes": 4912
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/jointtest/JointTestLocalLifecycleTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "9b8d264226c2576c8b946d439787592b397e54c8e17ed4d8b9837f12cb4fbb97",
+      "sha256": "f4778afe7c0b0b5aa6d84dd80f2866e6e8f4918757b037da6dabe6fa334daeb7",
+      "bytes": 3956
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/materialexchange/MaterialExchangeSerialServiceTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "a4b14876450bb2107700a42261d4fa0cdd0087c6ae6318185b6547f7817cb1eb",
+      "sha256": "cd17696234d6df7402d380fe8e1527b1c232b26e4550e98d19a42c5e44dec563",
+      "bytes": 15648
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceRequestVersionContractTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "31717e4caebe7590ec846904648d3a0804ba4b8ca2241bbdff76c3b38cd2fb03",
+      "sha256": "b995fe1284a8ff51f870cc3393dc756c39c467319b8d3bd038b83b09b31c36f7",
+      "bytes": 3686
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceSurveyExecutionTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "88174ec6b21269cf92ce77de96320322f7ab59fdc55f427338b9ed69e6cb0ab2",
+      "sha256": "99dc9f6278726df09c4ddf7dcdfad5ea2bb17ed1585b15767166efa0332bc534",
+      "bytes": 4412
+    },
+    {
+      "package": "stage2-64",
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceSurveyExecutionTransactionTest.java",
+      "status": "modified",
+      "checkpointBaseSha256": "d5c9298747972990285d9fdcd00c0ce9c6bfe6976adfd81528d70f7be7789483",
+      "sha256": "e4e01483fb4f6490f5e865696ae7673a6045b58d54afa9ac6bdbab3d834a9218",
+      "bytes": 5326
+    },
+    {
+      "package": "stage2-64",
+      "path": "scripts/tests/run_native_stage2_delivery_browser.py",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "8a737e7705cbd06b75e5c8584ddaefed422c3d29f6833efa8aa2bbdbbeba0f46",
+      "bytes": 6517
+    },
+    {
+      "package": "stage2-64",
+      "path": "scripts/tests/verify_native_delivery_stage2_mysql.sh",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "df8eca9bd9cac7e866c0255a6a635b55af5c33187ad4c9665cd9aac859b1a2cd",
+      "bytes": 1811
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requestTime.spec.ts",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "a9641c8778adc2b31a9960308b8a247b5ac11188085cd4907ee78870d0053540",
+      "bytes": 913
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requestTime.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "e5cfc4e60caa9e30d204942834f84eaaf7c0c029602c27c41f3af042a7bdc366",
+      "sha256": "463a5490b11d876c07c2da3b1ee3275e207b97e1d9f9537c28a1919683ae1cd1",
+      "bytes": 510
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/NativeAttachments.runtime.spec.ts",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "1d7171bbb40bcda110ff56b44d6e3f14f1f11f659d071cc0260617fc899b6e7a",
+      "bytes": 6617
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/attachment/NativeAttachments.vue",
+      "status": "added",
+      "checkpointBaseSha256": null,
+      "sha256": "84ad6c4aa668833830ca4c6f8c805eded7aa22f118411514621b11cc3377691c",
+      "bytes": 7488
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/configurationWorkspace.runtime.spec.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "ddd3cb134bded569b03430f5e722b92215858125c29326f7eacbf4e8270b4cdf",
+      "sha256": "20331c1f474bf115518b93dcf8e1977c3a78feba3d5d2b0daa8a0194a56b1d45",
+      "bytes": 5697
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "f38f009bf2cc7d708a6f4936e3d27a30bea2ffc17734e0141612a62d40727146",
+      "sha256": "a53d5fe58bd63f8bf26d35d3c8e229b84c858e6e8f8b49a8237881516ac1e79b",
+      "bytes": 11002
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/ext-proc/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "502d373a13412ca8d6f2f4259d2044464748429c468bebceb153da27e93768cb",
+      "sha256": "ad2d455bb173804b6014753fa89ce40d833db0438b35043952281192d70e83d9",
+      "bytes": 25224
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/joint-test/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "5342ec54aa423e376739bef8c7697f7351c606cd45ca83c39394bbef163427e7",
+      "sha256": "c33e5c14fa603de3e30f8353bd0bb5ecbd363e709e5279bb96edbbb6d30c6ac9",
+      "bytes": 17999
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/joint-test/jointTestWorkspace.runtime.spec.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "976dde68e91ae3042b8939d1bfb85c8e2d5beff65964a721f16571d2540b331b",
+      "sha256": "9569ab748572228ddd4e3fcd324206fcd43444091b3c0974c6be0ec4cdae570c",
+      "bytes": 5272
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/material-exch/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "8c34101df8a13df58b77b990915f14b7b331aab3f691a7e2490d54cee619c5b6",
+      "sha256": "d8272b04485271b78f370ad563d8eff6bb9bd19f4295b8f569ffd75018c63d6f",
+      "bytes": 25604
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/material-req/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "4cf52c0ad4eb3ae0499178d7009b142df49ad1c3f015d142655b769778b4d48f",
+      "sha256": "c591e5e89e060f96be62fc77495625f91f7bfede772137c23910f8a05783e977",
+      "bytes": 23500
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/index.vue",
+      "status": "modified",
+      "checkpointBaseSha256": "e898c6b51b95a4a392eaad9a0211ca941d57c09c18f13bc3d01e73c444e0b73a",
+      "sha256": "f9c15b6244bfe73dcfe85f9c8f4a1453524bbbba6bada5db13dbd8b9d514bb71",
+      "bytes": 25663
+    },
+    {
+      "package": "stage2-64",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/outsourceSurveyContext.runtime.spec.ts",
+      "status": "modified",
+      "checkpointBaseSha256": "29e50e85c6417d5b1a6b4af170657faa71690f81f17db3a7faf6a47ab0295b62",
+      "sha256": "c3295c180fb11ad76204bb98c175ec533f1d5e5c8d3d46d321a0259acfd2850d",
+      "bytes": 5159
+    }
+  ]
+}

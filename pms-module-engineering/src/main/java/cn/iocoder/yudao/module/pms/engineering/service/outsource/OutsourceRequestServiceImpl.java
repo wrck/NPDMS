@@ -7,6 +7,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.outsource.vo.Out
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.outsource.vo.OutsourceRequestSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.outsource.OutsourceRequestDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.outsource.OutsourceRequestMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentKind;
+import cn.iocoder.yudao.module.pms.engineering.service.attachment.NativeAttachmentRegistration;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +34,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 @Slf4j
 public class OutsourceRequestServiceImpl implements OutsourceRequestService {
+    @Resource
+    private NativeAttachmentRegistration attachments;
+
 
     /**
      * 状态：0 草稿
@@ -89,6 +96,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createOutsourceRequest(OutsourceRequestSaveReqVO createReqVO) {
+        attachments.requireLegacyUnchanged(null,createReqVO.getAttachmentFiles());
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
         // 2. 校验项目存在
@@ -114,7 +122,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Transactional(rollbackFor = Exception.class)
     public void updateOutsourceRequest(OutsourceRequestSaveReqVO updateReqVO) {
         // 1. 校验存在
-        OutsourceRequestDO existing = validateOutsourceRequestExists(updateReqVO.getId());
+        OutsourceRequestDO existing = lockOutsourceRequest(updateReqVO.getId());
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可编辑
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 乐观锁版本校验
@@ -124,7 +132,11 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
             throw exception(OUTSOURCE_CODE_DUPLICATE, updateReqVO.getCode());
         }
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）
+        attachments.requireLegacyUnchanged(existing.getAttachmentFiles(),updateReqVO.getAttachmentFiles());
+        attachments.requireSameProject(NativeAttachmentKind.OUTSOURCE,existing.getId(),existing.getProjectId(),"SITE_SURVEY".equals(existing.getTriggerSource()) ? existing.getProjectId() : updateReqVO.getProjectId());
         OutsourceRequestDO update = BeanUtils.toBean(updateReqVO, OutsourceRequestDO.class);
+        update.setStatus(existing.getStatus());
+        update.setVersion(existing.getVersion());
         if ("SITE_SURVEY".equals(existing.getTriggerSource())) {
             update.setProjectId(existing.getProjectId());
             update.setTriggerSource(existing.getTriggerSource());
@@ -133,13 +145,14 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
             throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
         }
         updateChecked(update);
+        attachments.register(NativeAttachmentKind.OUTSOURCE,update.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteOutsourceRequest(Long id, cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection siteSurveyExecution) {
         // 1. 校验存在
-        OutsourceRequestDO existing = validateOutsourceRequestExists(id);
+        OutsourceRequestDO existing = lockOutsourceRequest(id);
         // 2. 状态校验：仅 0 草稿 / 4 已驳回 可删除
         validateStatus(existing, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 删除
@@ -174,10 +187,11 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Transactional(rollbackFor = Exception.class)
     public void submitOutsourceRequest(Long id) {
         // 1. 校验存在
-        OutsourceRequestDO entity = validateOutsourceRequestExists(id);
+        OutsourceRequestDO entity = lockOutsourceRequest(id);
         // 2. 状态校验：0 草稿 / 4 已驳回 → 1 已提交
         validateStatus(entity, STATUS_DRAFT, STATUS_REJECTED);
         // 3. 更新状态
+        attachments.register(NativeAttachmentKind.OUTSOURCE,entity.getId());
         updateStatus(entity, STATUS_SUBMITTED, null, null, null);
     }
 
@@ -185,7 +199,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Transactional(rollbackFor = Exception.class)
     public void approveOutsourceRequest(OutsourceRequestApproveReqVO reqVO) {
         // 1. 校验存在
-        OutsourceRequestDO entity = validateOutsourceRequestExists(reqVO.getId());
+        OutsourceRequestDO entity = lockOutsourceRequest(reqVO.getId());
         // 2. 状态校验：1 已提交 / 2 审批中 可审批
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 根据审批动作决定目标状态
@@ -198,7 +212,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Transactional(rollbackFor = Exception.class)
     public void withdrawOutsourceRequest(Long id) {
         // 1. 校验存在
-        OutsourceRequestDO entity = validateOutsourceRequestExists(id);
+        OutsourceRequestDO entity = lockOutsourceRequest(id);
         // 2. 状态校验：1 已提交 / 2 审批中 → 5 已撤回
         validateStatus(entity, STATUS_SUBMITTED, STATUS_APPROVING);
         // 3. 更新状态
@@ -209,7 +223,7 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
     @Transactional(rollbackFor = Exception.class)
     public void terminateOutsourceRequest(Long id) {
         // 1. 校验存在
-        OutsourceRequestDO entity = validateOutsourceRequestExists(id);
+        OutsourceRequestDO entity = lockOutsourceRequest(id);
         // 2. 状态校验：非 3 已通过 / 非 6 已终止 可终止
         if (Objects.equals(entity.getStatus(), STATUS_PASSED)
                 || Objects.equals(entity.getStatus(), STATUS_TERMINATED)) {
@@ -308,4 +322,10 @@ public class OutsourceRequestServiceImpl implements OutsourceRequestService {
         }
         throw exception(OUTSOURCE_STATUS_INVALID);
     }
+    private OutsourceRequestDO lockOutsourceRequest(Long id) {
+        var row=outsourceRequestMapper.selectAttachmentOwnerForUpdate(new NativeAttachmentOwnerLockQuery(TenantContextHolder.getRequiredTenantId(),id));
+        if(row==null)throw exception(OUTSOURCE_NOT_EXISTS);
+        return row;
+    }
+
 }

@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.archivedocument.Arc
  * 交付资料归档 Service 接口
  */
 public interface ArchiveDocumentService {
+    /** Preserve the existing native document pointer checks when using the inherited save API. */
+    void validateUnifiedPointer(Long id, String url);
 
     /**
      * 创建归档文档

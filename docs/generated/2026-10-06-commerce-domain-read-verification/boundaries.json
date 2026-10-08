@@ -1,0 +1,97 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "currentWorktree": "/workspace/NPDMS-unified-commerce-read-20261006",
+  "currentBranch": "integration/unified-commerce-read-wip-20261006",
+  "frozenBatchRoot": "/workspace/NPDMS-unified-followup-20261006",
+  "frozenBatch19": {
+    "files": 19,
+    "unchanged": true,
+    "sha256ByPath": {
+      "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java": "3a8aa5206ad20147977c4ea858066d0ba7d483d9d4874fed24d025b494c512ad",
+      "yudao-server/pom.xml": "6529aea01621bcfe124032fa06696f43139fed1825029a2af042b9ceebd9bdeb",
+      "yudao-server/src/test/java/cn/iocoder/yudao/server/businessmodel/LegacyProjectBusinessReadMySqlTest.java": "829aa1ec8089d6bc523b84e443bad4c19f23638c4e2c30593ebf843b27d30ed9",
+      "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh": "a4c486a23f7b8c885ba46e166c2ee7fda19e96960822df3bf634ddc414aeba55",
+      "docs/generated/2026-10-06-imp-project-read-verification/boundaries.json": "0ecb1607aebb9a4c976ccd737dc150127f7f62a889480f5ecc7709e12cab9cbc",
+      "docs/generated/2026-10-06-imp-project-read-verification/implementation.patch": "ca4ff339f6fdef7e3ac56787cf3b26e6ba25d460aeaf13f81b4a5dd8328ed8e6",
+      "docs/generated/2026-10-06-imp-project-read-verification/private-evidence-manifest.json": "8f428529cd5be328352d6ed3158181465fe6ef1ac7b76a027905604346a35d45",
+      "docs/generated/2026-10-06-imp-project-read-verification/source-files.json": "522c9cae67e9855188f064d32d24c4ff440303a87bf54bf232f2d842e77ef286",
+      "docs/generated/2026-10-06-imp-project-read-verification/summary.md": "d6200d0379180952c25aef7d4bea06273a4e89cd8c40ae65400df16f19cf2a12",
+      "docs/generated/2026-10-06-imp-project-read-verification/test-results.json": "4a246c1ff3daa76a4f2ffa010f7d533a0a437566578fdd9f075c06debf0b6337",
+      "docs/generated/2026-10-06-project-read-batch-verification/boundaries.json": "6d0eb7ce1ce038b1dde7c8ce03e4795a97993b151c959c9bff64b026a05530fd",
+      "docs/generated/2026-10-06-project-read-batch-verification/implementation.patch": "8c722d51a9963c49f2ac37228b11e9a2b7004f4f167c0bb33b99717d0c5c5a0e",
+      "docs/generated/2026-10-06-project-read-batch-verification/private-evidence-manifest.json": "9c2bcae5a58a0b49c791fb9aaf211dfadb067d24fbc1892625d0ef50b86226d3",
+      "docs/generated/2026-10-06-project-read-batch-verification/remaining32-classification.json": "d8e5f0f18d0f9f12dbd0b49557687ba2c110503ce9a85b5393617f49fd389d24",
+      "docs/generated/2026-10-06-project-read-batch-verification/remaining32-classification.md": "2f3190c615bd050103df0a6a18ca0b09e0326f37d20f21b34d9a8730d5adcafa",
+      "docs/generated/2026-10-06-project-read-batch-verification/source-files.json": "74b6e6bda91ddf0e4863235a3f6e3b6329b4a422226edd9f8d0290dddb88e387",
+      "docs/generated/2026-10-06-project-read-batch-verification/summary.md": "115692293c6554d1fc72d8111379e76b6ca41c272af95546f77a8914515e65d0",
+      "docs/generated/2026-10-06-project-read-batch-verification/test-results.json": "6324b4545b48f4ed07b2ef7eb744733565d52a1103a2e9002fc07061937cb5b5",
+      "docs/generated/2026-10-06-project-read-batch-verification/publication-files.json": "a9eb07f57b61147c4103f325ea7dbb232fdc087b4ed53e2cd303ac2b5158d3d7"
+    }
+  },
+  "protected": [
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "sha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49",
+      "unchanged": true
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/index.vue",
+      "sha256": "4eb1ea6fe47af3c835902648dc086158eecfe51c13bb2d34145d93d53c79ad7c",
+      "unchanged": true
+    },
+    {
+      "name": "DeliveryEntityAccessPolicy.java",
+      "absentAndNotCreated": true
+    },
+    {
+      "name": "SiteSurveyDeliveryAccessPolicy.java",
+      "absentAndNotCreated": true
+    },
+    {
+      "path": "sql/migrations/V374__p06r_unified_delivery_data_migration.sql",
+      "sha256": "e5db9fd5d967fad220c4eec412c02a9dd8ee61c588f484b15cedfc34f76cac43",
+      "unchanged": true
+    }
+  ],
+  "KNOUnchangedPaths": [
+    "specs/001-project-delivery-platform/domains/KNO-技术知识治理需求规格.md"
+  ],
+  "productionSources": 11,
+  "testSupportFiles": 3,
+  "businessOperationsOpened": 0,
+  "globalFileUploadCompleteHookAdded": false,
+  "oldFourProjectBindingsImportedIntoThisWorktree": false,
+  "productionDatabaseHistoricalMigrationDeploymentMergeCommitPush": false,
+  "infrastructure": {
+    "ownProjects": [
+      "npdms-commerce-domain-reads-20261006",
+      "npdms-commerce-real-login-20261006"
+    ],
+    "ownPorts": [
+      27611,
+      27461,
+      27621,
+      27624,
+      59294
+    ],
+    "ownContainersRemaining": [],
+    "ownNetworksRemaining": [],
+    "normalServerStopped": true,
+    "sharedRunning": [
+      "3a13c98cd92b npdms-mysql-1 33060/tcp, 0.0.0.0:13306->3306/tcp, [::]:13306->3306/tcp",
+      "42a6bcb3a786 npdms-redis-1 0.0.0.0:16379->6379/tcp, [::]:16379->6379/tcp"
+    ]
+  },
+  "nativeScopedReadMethodsExtended": true,
+  "nativeScopeSemanticsChanged": false,
+  "nativeControllersChanged": false,
+  "finalGapClosure": {
+    "production11Unchanged": true,
+    "old19Unchanged": true,
+    "noNewIndexes": true,
+    "noHistoricalMigrationChanges": true,
+    "onlyEvidenceIncrement": false,
+    "actualIncrement": "HTTP test script + evidence, no production/JUnit source changes",
+    "originalJarReused": "ecd3a00d89113f940c5207a3fa9ea6d154b8df24984e19bd3803bb97985e3f73"
+  }
+}

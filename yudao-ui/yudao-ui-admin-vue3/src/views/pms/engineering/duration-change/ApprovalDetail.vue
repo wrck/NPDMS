@@ -27,7 +27,7 @@
       </dl>
       <h4>变更原因</h4>
       <p class="duration-reason">{{ change.reasonDetail || '无' }}</p>
-      <template v-if="change.customerEvidenceFileId">
+      <template v-if="change.customerEvidenceFileId && change.customerEvidenceReferenceKey">
         <h4>变更依据附件</h4>
         <PmsFileReferenceList
           owner-context="SOL"

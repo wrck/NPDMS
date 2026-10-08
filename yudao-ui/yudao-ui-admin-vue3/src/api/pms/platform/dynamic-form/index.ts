@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import type { FileId } from '@/api/pms/platform/file'
 
 export type DynamicFormAction =
   | 'PATCH_TEMPLATE'
@@ -75,11 +76,11 @@ export interface FileFactVersion {
 }
 
 export interface DynamicFormFileFactVO {
-  artifactId: number
+  artifactId: FileId
   versionNo: number
   referenceKey: string
   fileFactVersion: FileFactVersion
-  scopeVersion: number
+  scopeVersion: FileId
   status: string
 }
 

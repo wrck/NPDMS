@@ -16,6 +16,7 @@ public interface TaskBusinessObjectProvider {
 
     /** Deployment contract metadata only; MUST NOT query, create or mutate business objects. */
     default Set<String> completionFactCodes() { return Set.of(); }
+    default boolean supportsCompletionFact(String code) { return completionFactCodes().contains(code); }
 
     /** Deployment metadata: true only when lockStageCompletionFact implements the declared facts for stage receivers.
      * Does not inspect business data, grant access or assert that any condition is satisfied. */

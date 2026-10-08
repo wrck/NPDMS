@@ -1,3 +1,4 @@
+import type { FileId } from '@/api/pms/platform/file'
 import request from '@/config/axios'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
@@ -27,9 +28,9 @@ export interface RequirementAnalysisOptionVO {
 
 /** @deprecated 固定章节附件快照已由动态表单fileReferences替代。 */
 export interface RequirementAnalysisAttachmentVO {
-  artifactId: number
+  artifactId: FileId
   versionNo: number
-  referenceId?: number
+  referenceId?: FileId
   referenceKey: string
   name?: string
   sizeBytes?: number
@@ -41,7 +42,7 @@ export interface RequirementAnalysisAttachmentVO {
     referenceVersion: number
     availabilityVersion: number
   }
-  scopeVersion: number
+  scopeVersion: FileId
 }
 
 /** @deprecated SOL与PLT不再维护附件同步双真值。 */

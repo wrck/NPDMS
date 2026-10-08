@@ -20,5 +20,6 @@ public interface ContractMapper extends BaseMapperX<ContractDO> {
     List<ContractDO> selectByCompanyScope(@Param("query") ContractCompanyScopeQuery query);
     Long selectCountByCompanyScope(@Param("query") ContractCompanyScopeQuery query);
     ContractDO selectDetailByCompanyScope(@Param("query") ContractDetailScopeQuery query);
+    List<ContractDO> selectRootReadPage(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractRootReadPageQuery query);
     ContractDO selectByIdForUpdate(@Param("query") ContractIdLockQuery query);
 }

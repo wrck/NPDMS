@@ -76,15 +76,27 @@ export function useBusinessEntity(ownerModule: () => string, entityType: () => s
   const cursor = ref<string>()
   const sliceComplete = ref(false)
 
+  const activeFilters = ref<FieldFilter[]>([])
+  let pageGeneration = 0
+
   const loadPage = async (filters?: FieldFilter[], reset = false) => {
+    // Repeated load-more clicks must not append the same cursor twice.
+    if (listLoading.value && !reset && filters === undefined) return
+    if (filters !== undefined) {
+      activeFilters.value = filters.map(filter => ({ ...filter, values: [...(filter.values || [])] }))
+    }
+    const generation = ++pageGeneration
+    const owner = ownerModule(), type = entityType()
+    const currentRequest = () => generation === pageGeneration && owner === ownerModule() && type === entityType()
     listLoading.value = true
     listError.value = ''
     try {
-      const slice: BusinessEntitySlice = await getEntityPage(ownerModule(), entityType(), {
+      const slice: BusinessEntitySlice = await getEntityPage(owner, type, {
         pageSize: 20,
-        filters,
+        filters: activeFilters.value.map(filter => ({ ...filter, values: [...(filter.values || [])] })),
         cursor: reset ? undefined : cursor.value
       })
+      if (!currentRequest()) return
       if (slice.completeness === 'UNAVAILABLE') {
         listError.value = slice.unavailableReason || '查询暂不可用'
         return
@@ -93,9 +105,9 @@ export function useBusinessEntity(ownerModule: () => string, entityType: () => s
       cursor.value = slice.nextCursor
       sliceComplete.value = slice.completeness === 'COMPLETE' || !slice.nextCursor
     } catch (error: any) {
-      listError.value = serverErrorMessage(error, '实体查询失败')
+      if (currentRequest()) listError.value = serverErrorMessage(error, '实体查询失败')
     } finally {
-      listLoading.value = false
+      if (generation === pageGeneration) listLoading.value = false
     }
   }
 
@@ -190,6 +202,7 @@ export function useBusinessEntity(ownerModule: () => string, entityType: () => s
     rows,
     sliceComplete,
     loadPage,
+    activeFilters,
     current,
     formPresentation,
     readEntity,

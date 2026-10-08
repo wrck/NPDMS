@@ -1,0 +1,31 @@
+{
+  "outcome": "TARGET_RUNTIME_CHAIN_VERIFIED",
+  "schema": "npdms_acceptance_delivery_b2e748e6",
+  "head": "cd4e5c915e1ad8a8895d2827b45037974bdb0519",
+  "tree": "d0a4a92b4bbfdc2822828fab53ba2f650291761c",
+  "projectId": 992203060002,
+  "taskId": "2108183998603624449",
+  "surveyId": "2108184000184877057",
+  "checks": {
+    "draft_unconfirmed_not_done": true,
+    "confirmed_without_required_upload_not_done": true,
+    "wrong_type_valid_but_required_type_false": true,
+    "context_candidates_recovered": true,
+    "required_upload_auto_done": true,
+    "public_collection_exact_owner_scope": true,
+    "file_actual_browser_bytes_match": true,
+    "completed_execution_readonly": true
+  },
+  "commandExitCodes": {
+    "full_empty_migration": 0,
+    "site_survey_18_tests": 0,
+    "platform_2_tests": 0,
+    "provider_4_tests": 0,
+    "full_new_jar": 0,
+    "browser_chain_with_extra_download_event_assumption": 1,
+    "early_inline_observer": 1,
+    "actual_browser_file_response_diagnostic": 0
+  },
+  "fileSha256": "b6fe6717fa3c267c92d1da03f8d124dc7d28189cb179620076d13b880a9128c8",
+  "explanation": "Original browser script exit1 arose only from extra download-event expectation after automatic DONE and collection succeeded. Production text/plain content is inline. Independent real-browser response observation exit0 proves HTTP200,62 bytes and identical SHA256/text. Original failed records retained, assertions not edited. No manual task completion used."
+}

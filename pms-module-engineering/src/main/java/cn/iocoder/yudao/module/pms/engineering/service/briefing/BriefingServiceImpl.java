@@ -37,6 +37,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 @Slf4j
 public class BriefingServiceImpl implements BriefingService {
+    @Resource private cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentRegistration attachments;
 
     /**
      * 状态：0 草稿
@@ -78,6 +79,10 @@ public class BriefingServiceImpl implements BriefingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createBriefing(BriefingSaveReqVO createReqVO) {
+        attachments.unchanged(null,createReqVO.getFileUrl());
+        attachments.unchangedMetadata(null,createReqVO.getFileName());
+        attachments.unchangedMetadata(null,createReqVO.getFileSize());
+        attachments.unchangedMetadata(null,createReqVO.getFileChecksum());
         // 1. 校验项目存在
         validateProjectExists(createReqVO.getProjectId());
         // 2. 转换并写入，初始状态为草稿；编号由系统按项目编码自动生成
@@ -100,21 +105,29 @@ public class BriefingServiceImpl implements BriefingService {
     @Transactional(rollbackFor = Exception.class)
     public void updateBriefing(BriefingSaveReqVO updateReqVO) {
         // 1. 校验存在
-        BriefingDO existing = validateBriefingExists(updateReqVO.getId());
+        BriefingDO existing = lockAttachmentOwner(updateReqVO.getId());
         // 2. 状态校验：仅 0 草稿 可编辑
         validateStatus(existing, STATUS_DRAFT);
         // 3. 乐观锁版本校验
         validateVersion(existing, updateReqVO.getVersion());
         // 4. 更新（乐观锁由 MyBatis-Plus @Version 自动处理；编号由系统生成不可改）
+        attachments.unchanged(existing.getFileUrl(),updateReqVO.getFileUrl());
+        attachments.unchangedMetadata(existing.getFileName(),updateReqVO.getFileName());
+        attachments.unchangedMetadata(existing.getFileSize(),updateReqVO.getFileSize());
+        attachments.unchangedMetadata(existing.getFileChecksum(),updateReqVO.getFileChecksum());
+        attachments.sameProject(cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentKind.BRIEFING,existing.getId(),existing.getProjectId(),updateReqVO.getProjectId());
         BriefingDO update = BeanUtils.toBean(updateReqVO, BriefingDO.class);
-        briefingMapper.updateById(update);
+        update.setStatus(existing.getStatus()); update.setVersion(existing.getVersion());
+        update.setFileUrl(existing.getFileUrl());update.setFileName(existing.getFileName());update.setFileSize(existing.getFileSize());update.setFileChecksum(existing.getFileChecksum());
+        if(briefingMapper.updateById(update)!=1)throw exception(BRIEFING_VERSION_NOT_MATCH);
+        attachments.register(cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentKind.BRIEFING,update.getId(),false);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteBriefing(Long id) {
         // 1. 校验存在
-        BriefingDO existing = validateBriefingExists(id);
+        BriefingDO existing = lockAttachmentOwner(id);
         // 2. 状态校验：仅 0 草稿 可删除
         validateStatus(existing, STATUS_DRAFT);
         // 3. 删除
@@ -150,11 +163,12 @@ public class BriefingServiceImpl implements BriefingService {
     @Transactional(rollbackFor = Exception.class)
     public void generateBriefing(BriefingGenerateReqVO reqVO) {
         // 1. 校验存在
-        BriefingDO entity = validateBriefingExists(reqVO.getId());
+        BriefingDO entity = lockAttachmentOwner(reqVO.getId());
         // 2. 状态校验：0 草稿 → 1 已生成
         validateStatus(entity, STATUS_DRAFT);
         // 3. 乐观锁版本校验
         validateVersion(entity, reqVO.getVersion());
+        attachments.register(cn.iocoder.yudao.module.pms.engineering.service.attachment.supplemental.SupplementalAttachmentKind.BRIEFING,entity.getId(),true);
         // 4. 更新模板关联与前序基线快照
         if (reqVO.getTemplateId() != null) {
             entity.setTemplateId(reqVO.getTemplateId());
@@ -183,14 +197,14 @@ public class BriefingServiceImpl implements BriefingService {
         // 7. 更新状态为已生成，记录生成时间
         entity.setStatus(STATUS_GENERATED);
         entity.setGenerateTime(LocalDateTime.now());
-        briefingMapper.updateById(entity);
+        if(briefingMapper.updateById(entity)!=1)throw exception(BRIEFING_VERSION_NOT_MATCH);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void approveBriefing(BriefingApproveReqVO reqVO) {
         // 1. 校验存在
-        BriefingDO entity = validateBriefingExists(reqVO.getId());
+        BriefingDO entity = lockAttachmentOwner(reqVO.getId());
         // 2. 状态校验：1 已生成 可审核
         validateStatus(entity, STATUS_GENERATED);
         // 3. 乐观锁版本校验
@@ -216,27 +230,27 @@ public class BriefingServiceImpl implements BriefingService {
             entity.setApproveOpinion(reqVO.getApproveOpinion());
         }
         entity.setApproveTime(LocalDateTime.now());
-        briefingMapper.updateById(entity);
+        if(briefingMapper.updateById(entity)!=1)throw exception(BRIEFING_VERSION_NOT_MATCH);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void publishBriefing(Long id) {
         // 1. 校验存在
-        BriefingDO entity = validateBriefingExists(id);
+        BriefingDO entity = lockAttachmentOwner(id);
         // 2. 状态校验：2 已审核 → 3 已发布
         validateStatus(entity, STATUS_AUDITED);
         // 3. 更新状态与发布时间
         entity.setStatus(STATUS_PUBLISHED);
         entity.setPublishTime(LocalDateTime.now());
-        briefingMapper.updateById(entity);
+        if(briefingMapper.updateById(entity)!=1)throw exception(BRIEFING_VERSION_NOT_MATCH);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void terminateBriefing(Long id) {
         // 1. 校验存在
-        BriefingDO entity = validateBriefingExists(id);
+        BriefingDO entity = lockAttachmentOwner(id);
         // 2. 状态校验：非 3 已发布 / 非 4 已作废 可作废
         if (Objects.equals(entity.getStatus(), STATUS_PUBLISHED)
                 || Objects.equals(entity.getStatus(), STATUS_TERMINATED)) {
@@ -244,7 +258,7 @@ public class BriefingServiceImpl implements BriefingService {
         }
         // 3. 更新状态为已作废
         entity.setStatus(STATUS_TERMINATED);
-        briefingMapper.updateById(entity);
+        if(briefingMapper.updateById(entity)!=1)throw exception(BRIEFING_VERSION_NOT_MATCH);
     }
 
     // ==================== 内部工具方法 ====================
@@ -310,5 +324,10 @@ public class BriefingServiceImpl implements BriefingService {
             }
         }
         throw exception(BRIEFING_STATUS_INVALID);
+    }
+    private BriefingDO lockAttachmentOwner(Long id) {
+        var row=briefingMapper.selectFileOwnerForUpdate(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.briefing.query.BriefingFileOwnerQuery(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),id));
+        if(row==null)throw exception(BRIEFING_NOT_EXISTS);
+        return row;
     }
 }

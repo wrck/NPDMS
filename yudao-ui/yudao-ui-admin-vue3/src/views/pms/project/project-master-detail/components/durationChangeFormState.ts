@@ -8,7 +8,7 @@ export interface DurationChangeFormState {
   durationDays?: number
   reasonType: string
   reasonDetail: string
-  customerEvidenceFileId?: number
+  customerEvidenceFileId?: ConstructionPlanChangeVO['customerEvidenceFileId']
   customerEvidenceFileVersion?: number
   customerEvidenceReferenceKey?: string
 }

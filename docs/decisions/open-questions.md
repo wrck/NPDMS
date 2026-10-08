@@ -1226,7 +1226,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-MIG-COLLATION-20260930-001 — 主链全新空库构建在 V374 因跨表 collation 混用失败（迁出 V331 验证时发现）
 
-- Status: OPEN（BLOCKED_BY_SPEC：统一到哪个 collation 与整链对齐策略需需求方/DBA裁决）
+- Status: RESOLVED_FOR_SCOPED_IMPLEMENTATION（2026-10-08 已批准受影响列的 unicode_ci 前置对齐；实施和整链验证待完成）
 - Requirement IDs: 无单一代码归属；发现于 Q-MIG-V331-20260929-001 迁出实施的"主迁移链验证"
 - Area: 数据库迁移 / 全新空库构建 / 字符集治理
 - Question: 主迁移链在 compose 同版 mysql:8.4.10（--collation-server=utf8mb4_unicode_ci）全新空库构建时，V1～V373 全部成功，V374 p06r 统一交付数据迁移的 INSERT…SELECT 跨表 JOIN 报 1267 Illegal mix of collations (utf8mb4_unicode_ci,IMPLICIT) 和 (utf8mb4_0900_ai_ci,IMPLICIT)。根源是链内建表语句的 collation 声明不一致：`DEFAULT CHARSET=utf8mb4` 不带 COLLATE（如 V166 acc_* 族）在 MySQL 8 落 charset 默认 utf8mb4_0900_ai_ci，不带 charset（如 V361 plt_delivery_* 族）落库默认 unicode_ci，V92 plt_file_reference 显式 unicode_ci；V374 的 acc_*×plt_file_reference/plt_delivery_* 比较触发混用。
@@ -1238,6 +1238,8 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: A（与既有库实况一致，既有库零动作）。
 - Blocking scope: 阻断"单一主链支持全新空库构建"最终达成与 fresh lineage 后续升级到 V372～V374 区间；不阻断既有库日常升级、不回退 Q-MIG-V331-20260929-001 的迁出结论。
 - Decision owner: 需求方（涉及整链字符集治理基线）。
+- Resolution 2026-10-08: 用户明确批准沿用现有测试库 utf8mb4_unicode_ci 方向并新增前置对齐，不改已执行历史 SQL。实施范围收窄为 V374 受影响的非二进制比较列；Flowable 与其他显式二进制列保持既有语义。先验证本机独占空库整链、唯一性冲突保护及无关列不变，已越过 V374 的源库沿独立真实历史核对，不通过 repair/outOfOrder 改写。验证未通过前不宣称整链完成。
+- Verification 2026-10-08: ab7b4fe0 在本机独占空库正常执行342迁移至V401，V373.5/V374成功；5项保护检查通过。历史SQL未修改，未repair/outOfOrder/skip/关闭校验。此结果闭合本次受影响比较的fresh主链问题，不替代源库其他迁移谱系兼容或全库字符集治理。
 
 ## 施工计划批次再审批与已完成任务历史链接的解析口径（2026-09-29 S2 工作区 OWNER_FACT_UNAVAILABLE）
 
@@ -1275,8 +1277,6 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Decision owner: 需求方
 - Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
 
-
-
 ## 2026-10-06 本机项目来源创建与 Struts 只读历史档案
 
 - **BLOCKED_BY_SPEC：跨来源同号执行单**。同步销售订单头只保存 executionNo，没有 CRM 来源系统关联键；多个 sourceSystem 出现相同 executionNo 时无法证明唯一关系。本次只在唯一匹配时带入，歧义时拒绝，不按更新时间任选。后续需源系统明确关联键/映射。证据：CreationSourceResolver、DppmsOrderSyncAdapter 与本机取证报告 docs/generated/2026-10-06-project-creation-migration/audit.md。
@@ -1298,16 +1298,26 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Decision owner: 需求方。
 
 
-## 2026-10-06 真实10项目试迁的客户身份口径
+## 2026-10-06 真实项目试迁的客户身份口径
 
 ### Q-PROJECT-CUSTOMER-20261006-001
 
-- Status: RESOLVED（2026-10-07 02:22 UTC 用户明确裁决）
-- Scope: 用户10:50批准从真实旧项目中选择10项多类型、合同/执行单/订单/发货完整的项目迁入本机 `npdms_domain_test`，指派状态待指派。此授权只替代此前这10项“仅只读档案”的限制，不授权把旧生命周期和完成事实映射成新阶段/Gate。
-- Question: 新项目“客户”保留旧系统最终客户含义，还是采用合同/销售订单购货方？需据此确定 CUS 主档身份的权威关联，不按名称猜测或自动创建重复客户。
-- Evidence（2026-10-07 纠正）: 旧 `WebContent/sys/module/projectcreate.jsp:309–310` 的 `column013` 为可编辑文本；其非空检查位于 `89–106` 注释块内，不能称为旧系统强制必填。`ProjectServiceImpl.putProperties:418–445` 不以购货方覆盖最终客户。指定 CRM 视图与连接已确认，本批十项按执行单号、项目编码及合同号精确查询无匹配，最终客户真实 FK 未解析；购货方码不用于证明最终客户身份。详细证据见 `docs/generated/2026-10-06-project-creation-migration/final-customer-identity-audit.md`。
-- Impact: 创建时项目客户独立解析为最终客户 CUS 身份；合同/订单购货方保留在原商业关联中。十项目试迁须逐项证明最终客户源主键及映射，缺失或歧义隔离，不以名称猜测，不伪造 ERP 编码。
-- Evidence location: `docs/generated/2026-10-06-project-creation-migration/real-pilot-preflight.md`；真实快照和完整名单只保存在仓库外本机私有批次目录。
-- Decision owner: 需求方；本批写入授权已经明确，不再重复请求该授权。
+- Status: RESOLVED（2026-10-07 用户明确裁决）
+- Scope: 从真实旧项目中选择十项具有完整合同、执行单、订单及发货关系的代表项目，迁入本机隔离测试库并保持待指派。最初十项只是候选，不是锁定名单。此前只读档案是一般历史迁移默认路径；本次十项另有运行项目试迁授权，不把旧生命周期、人员和完成事实映射为新阶段或 Gate。
+- Resolution: 项目客户沿用最终客户含义，独立选择并校验 CUS 主档；合同与销售订单购货方另行保留。用户确认“沿用最终客户，并另外保留购货方关联”。
+- Identity evidence: CRM 执行单真实主键关联 new_account_id，再关联 AccountId/CUS 外部身份映射。购货方码和名称相等均不能替代最终客户身份。最初候选未解析身份的结论仅适用于该次候选；后续重选已取得可靠身份与来源关系。
+- Legacy evidence correction: 旧 projectcreate.jsp:309–310 的 column013 是可编辑文本，其非空检查位于注释块；不能称为旧系统强制必填。ProjectServiceImpl.putProperties:418–445 不以购货方覆盖最终客户。
+- Remaining execution boundary: 只用现有授权身份及公司＋办事处联合范围。不得扩大持久角色或组织范围，不绕过服务层权限；不足十项时报告实际合格数与最小现成身份需求。真实名单、原始业务快照及凭据不进入 Git。
+- Decision owner: 需求方。试迁授权已明确，不重复请求该授权。
+- Evidence: docs/generated/2026-10-06-project-creation-migration/README.md。
 
-- Resolution: 用户“沿用最终客户，并另外保留购货方关联”（transcript `Sentinel_22efbbfe469c81919260dc5e3e478c6a`）。可在可信源身份/主键且查重后补必要客户；仅本次已选十项目，不扩至 93 客户集合。既有写入授权有效，保留未指派及历史事实保护。
+### Q-DEFAULT-BUSINESS-REVISION-DELIVERIES-20261007
+
+- Status: RESOLVED（2026-10-07 16:43 UTC 用户明确裁决）。
+- Area: 默认内容版本与统一交付件的关系。
+- Question: 冻结业务内容版本是否同时固定当时的交付件清单，历史版本只能读取当时那批交付件？
+- Existing confirmed contract: 交付件按 projectId、businessType、businessEntityKey、deliverableType 统一管理并按最新有效上传判断完成，保留已有不可变历史引用保护。
+- Current implementation: 公共内容版本已保存正文、扩展字段和表单布局；交付件仍独立管理上传历史。当前实现本身不构成业务裁决。
+- Why it blocks: 不能自行将当前上传完成判断改成修订完成判断，也不能未经业务裁决自动冻结、复制或更换交付件所属实体键。
+- Resolution: 不增加独立交付件引用清单或冻结清单快照。需要时按交付件已有业务类型及业务实体 ID 定位上传历史，并保留项目/交付件类型筛选；当前完成判断仍只取最新有效上传。
+- Decision owner: 需求方。裁决来源 Sentinel_9c06dbf5c66081919f1e51fe3fc43f5b。原问题来源 Sentinel_78af7fa198708191912b2fcfac642b61。

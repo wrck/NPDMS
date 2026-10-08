@@ -11,6 +11,9 @@ import java.util.List;
 
 @Mapper
 public interface MaterialRequisitionMapper extends BaseMapperX<MaterialRequisitionDO> {
+    MaterialRequisitionDO selectAttachmentOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery query);
+
 
     default PageResult<MaterialRequisitionDO> selectPage(MaterialRequisitionPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<MaterialRequisitionDO>()

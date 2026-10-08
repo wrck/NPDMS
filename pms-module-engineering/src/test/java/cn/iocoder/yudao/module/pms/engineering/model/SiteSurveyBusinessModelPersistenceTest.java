@@ -1,5 +1,19 @@
 package cn.iocoder.yudao.module.pms.engineering.model;
 
+import cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDispatcher;
+import cn.iocoder.yudao.module.pms.platform.support.service.OperationExecutionStore;
+import cn.iocoder.yudao.module.pms.platform.support.service.DefaultBusinessApplicationService;
+import cn.iocoder.yudao.module.pms.platform.support.service.AbstractBusinessApplicationService;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.ReceiptOutcome;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessOwnerPermissionPolicy;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventPort;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import jakarta.validation.Validator;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.platform.service.businessmodel.PermissionBusinessAccessGuard;
@@ -28,6 +42,10 @@ import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.*;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.junit.jupiter.api.*;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.time.LocalDate;
@@ -38,6 +56,7 @@ import static org.mockito.Mockito.*;
 
 /** Real MyBatis statements run only against a unique in-memory H2 database. */
 class SiteSurveyBusinessModelPersistenceTest {
+    DriverManagerDataSource dataSource;
     SqlSession session;
     SiteSurveyEntityMapper mapper;
     TableInfo table;
@@ -50,10 +69,13 @@ class SiteSurveyBusinessModelPersistenceTest {
 
     @BeforeEach @SuppressWarnings("unchecked")
     void setup() throws Exception {
+        TenantContextHolder.setTenantId(actor.tenantId());
+        var principal = new LoginUser(); principal.setId(actor.userId()); principal.setTenantId(actor.tenantId()); principal.setUserType(2);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
         TableInfoHelper.remove(SiteSurveyEntityDO.class);
         var properties = new MybatisPlusProperties();
         new SiteSurveyPersistenceConfiguration().siteSurveyAssignedIdentity().customize(properties);
-        var dataSource = new DriverManagerDataSource("jdbc:h2:mem:current_survey_" + UUID.randomUUID()
+        dataSource = new DriverManagerDataSource("jdbc:h2:mem:current_survey_" + UUID.randomUUID()
                 + ";MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
         var configuration = new MybatisConfiguration();
         configuration.setEnvironment(new Environment("isolated-survey", new JdbcTransactionFactory(), dataSource));
@@ -64,6 +86,12 @@ class SiteSurveyBusinessModelPersistenceTest {
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.H2));
         configuration.addInterceptor(interceptor);
         configuration.addMapper(SiteSurveyEntityMapper.class);
+        String mapperXml = "mapper/sitesurvey/entity/SiteSurveyEntityMapper.xml";
+        try (var stream = getClass().getClassLoader().getResourceAsStream(mapperXml)) {
+            assertNotNull(stream);
+            new org.apache.ibatis.builder.xml.XMLMapperBuilder(stream, configuration, mapperXml,
+                    configuration.getSqlFragments()).parse();
+        }
         table = TableInfoHelper.getTableInfo(SiteSurveyEntityDO.class);
         List<String> columns = new ArrayList<>();
         columns.add("id BIGINT PRIMARY KEY");
@@ -108,7 +136,7 @@ class SiteSurveyBusinessModelPersistenceTest {
                 List.of(new SiteSurveyBusinessScopePolicy(owner, scopes)));
     }
 
-    @AfterEach void close() { if (session != null) session.close(); }
+    @AfterEach void close() { if (session != null) session.close(); SecurityContextHolder.clearContext(); TenantContextHolder.clear(); }
 
     SiteSurveyEntityDO insert(Long id, Long tenant, Long project, String code) {
         var row = new SiteSurveyEntityDO();
@@ -174,7 +202,7 @@ class SiteSurveyBusinessModelPersistenceTest {
                 // Child facts are read under the aggregate; they never acquire a fictitious parent SQL column.
                 var property=SiteSurveyEntityDO.class.getDeclaredField(field.code());
                 assertFalse(property.getAnnotation(TableField.class).exist(),field.code());
-                assertThrows(cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException.class,
+                assertThrows(BusinessContractException.class,
                         () -> BusinessModelIntrospector.requireColumn(fields,field.code()));
                 assertTrue(SiteSurveyEntityProvider.FIELDS.fields().stream().anyMatch(child -> child.code().equals(field.code())));
             }
@@ -241,5 +269,96 @@ class SiteSurveyBusinessModelPersistenceTest {
         assertTrue(access.query(query, actor).members().isEmpty());
         when(scopes.resolveAllCurrent(any())).thenReturn(null);
         assertTrue(access.query(query, actor).members().isEmpty());
+    }
+
+    private record Recovery(BusinessOperationDispatcher dispatcher,
+            OperationExecutionStore store,
+            BusinessOperationReceipt receipt) { }
+
+    @SuppressWarnings("unchecked") private Recovery recovery() {
+        ObjectProvider<BusinessModelContributor> contributors = mock(ObjectProvider.class);
+        when(contributors.orderedStream()).thenAnswer(call -> Stream.of((BusinessModelContributor) () -> List.of(declaration)));
+        var persistence = new BusinessEntityPersistenceRegistry(contributors);
+        var catalog = mock(BusinessModelCatalog.class);
+        when(catalog.require("SOL", "siteSurvey")).thenReturn(declaration.descriptor());
+        when(modelPermissions.hasAnyPermissions(9L, "pms:business-model:operate")).thenReturn(true);
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(true);
+        when(scopes.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+                .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
+        ObjectProvider<BusinessOwnerPermissionPolicy> policies = mock(ObjectProvider.class);
+        when(policies.stream()).thenAnswer(call -> Stream.of(new SiteSurveyBusinessPermissionPolicy(permissions)));
+        var store = mock(OperationExecutionStore.class);
+        var receipt = new BusinessOperationReceipt(
+                ReceiptOutcome.SAVED,
+                new EntityRef(3L, "SOL", "siteSurvey", 11L), 0L, List.of(), null, null, "create", 1);
+        when(store.findExisting(any(), any())).thenReturn(Optional.of(
+                new OperationExecutionStore.StoredExecution("digest", "COMPLETED", receipt)));
+        var owner = new SiteSurveyBusinessApplicationService(
+                () -> new AbstractBusinessApplicationService.ResolvedCaller(3L, 9L, "recovery"),
+                catalog, persistence, new PermissionBusinessAccessGuard(modelPermissions, policies), store,
+                mock(BusinessEventPort.class),
+                mock(OperationAuditApi.class),
+                new DataSourceTransactionManager(dataSource),
+                mock(SiteSurveyEntityDomainCommands.class),
+                mapper, permissions, scopes, mock(Validator.class));
+        var dispatcher = new BusinessOperationDispatcher(persistence,
+                mock(DefaultBusinessApplicationService.class), List.of(owner));
+        return new Recovery(dispatcher, store, receipt);
+    }
+
+    private BusinessOperationReceipt recover(Recovery recovery) {
+        // Each HTTP recovery uses a fresh SqlSession; this fixture deliberately reuses one.
+        session.clearCache();
+        return new TransactionTemplate(
+                new DataSourceTransactionManager(dataSource)).execute(status ->
+                recovery.dispatcher().recoverReceipt("SOL", "siteSurvey", "create", 1, "lost"));
+    }
+
+    @Test void nativeRecoveryKeepsOriginalReceiptAndUsesTheObjectsCurrentOwner() throws Exception {
+        insert(11L, 3L, 100L, "RECOVERY");
+        var recovery = recovery();
+        assertEquals(recovery.receipt(), recover(recovery));
+        try (var connection = dataSource.getConnection(); var statement = connection.prepareStatement(
+                "UPDATE sol_site_survey SET project_id=? WHERE id=?")) {
+            statement.setLong(1, 101L); statement.setLong(2, 11L); assertEquals(1, statement.executeUpdate());
+        }
+        var denied = assertThrows(ServiceException.class, () -> recover(recovery));
+        assertEquals(403, denied.getCode());
+        when(scopes.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 101L, ProjectScopeApi.ACTION_MANAGE)))
+                .thenReturn(new ProjectScopeResult(101L, 1L, Set.of(101L), Set.of()));
+        assertEquals(recovery.receipt(), recover(recovery));
+        assertEquals(0L, recovery.receipt().newConcurrencyBasis());
+        verify(scopes, atLeastOnce()).resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 101L, ProjectScopeApi.ACTION_MANAGE));
+    }
+
+    @Test void nativeRecoveryRequiresTheOriginalOperationPermissionBeforeReadingTheLedger() {
+        insert(11L, 3L, 100L, "RECOVERY");
+        var recovery = recovery();
+        when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(false);
+        assertEquals("ACCESS_DENIED", assertThrows(BusinessContractException.class,
+                () -> recover(recovery)).getErrorCode());
+        verifyNoInteractions(recovery.store());
+    }
+
+    @Test void nativeRecoveryPreservesTheSoftDeletedOwnersIdentityContract() {
+        insert(11L, 3L, 100L, "RECOVERY");
+        var recovery = recovery();
+        assertEquals(1, mapper.deleteById(11L));
+        assertNull(mapper.selectById(11L));
+        assertEquals(recovery.receipt(), recover(recovery));
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of()));
+        assertEquals(403, assertThrows(ServiceException.class, () -> recover(recovery)).getCode());
+    }
+
+    @Test void legacyUnboundReceiptsCannotBeRelabeledAsTheRequestedOperation() {
+        insert(11L, 3L, 100L, "RECOVERY");
+        var recovery = recovery();
+        var old = new BusinessOperationReceipt(ReceiptOutcome.SAVED, recovery.receipt().entityRef(), 0L,
+                List.of(), null, null);
+        when(recovery.store().findExisting(any(), any())).thenReturn(Optional.of(
+                new OperationExecutionStore.StoredExecution("digest", "COMPLETED", old)));
+        assertEquals("IDEMPOTENCY_INTENT_MISMATCH", assertThrows(BusinessContractException.class,
+                () -> recover(recovery)).getErrorCode());
+        verifyNoInteractions(scopes);
     }
 }

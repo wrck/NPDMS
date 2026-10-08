@@ -6,7 +6,8 @@ export interface DeliverableChecklistVO {
   code?: string
   name: string
   deliverableType?: string
-  version?: string
+  version?: number
+  deliverableUrl?: string
   signedFlag?: boolean
   validFlag?: boolean
   submittedDate?: Date

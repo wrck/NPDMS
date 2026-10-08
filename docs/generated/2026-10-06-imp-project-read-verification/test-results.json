@@ -1,0 +1,367 @@
+{
+  "base": "d4fca642fe17a230286ae9ef6ed5ea883f927701",
+  "scope": "One MySQL test class and Maven reactor compile; historical suites are not added. No current normal-JAR/login/UI/full-tree/cache acceptance claim.",
+  "red": {
+    "tests": 13,
+    "passed": 1,
+    "failed": 2,
+    "errors": 10,
+    "skipped": 0,
+    "xmlSha256": "1d887e9758037442b6529e1793f18a35c375d293da16faff3559404c981f37fb",
+    "logSha256": "cb1d20ef60e718fba21ea62405b7597ba5a3ca53f77526de5e21ba96023039ee",
+    "cases": [
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[1]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_CONFIGURATION",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[2]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_JOINT_TEST",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[1]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_CONFIGURATION",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[2]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_JOINT_TEST",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[1]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_CONFIGURATION",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[2]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_JOINT_TEST",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[1]",
+        "status": "FAIL",
+        "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown.",
+        "exception": "org.opentest4j.AssertionFailedError"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[2]",
+        "status": "FAIL",
+        "reason": "Expected cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException to be thrown, but nothing was thrown.",
+        "exception": "org.opentest4j.AssertionFailedError"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[1]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_JOINT_TEST",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[2]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_CONFIGURATION",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "twoBindingsDoNotAdmitOtherUnboundEngineeringModels",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[1]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_CONFIGURATION",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[2]",
+        "status": "ERROR",
+        "reason": "默认访问缺少范围声明: IMP_JOINT_TEST",
+        "exception": "cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException"
+      }
+    ]
+  },
+  "green": {
+    "tests": 13,
+    "passed": 13,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "xmlSha256": "5ba306531489821bd81f114b404a7babb448bf458e965229e80847410d925e7b",
+    "logSha256": "37bc343d9361729f9de4ff9924707c5369293ffddb3673e4ad85c8dfba3658fd",
+    "cases": [
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "tenantAndAuthenticatedActorStayRequired(Model)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[2]",
+        "status": "PASS"
+      },
+      {
+        "name": "twoBindingsDoNotAdmitOtherUnboundEngineeringModels",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[1]",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[2]",
+        "status": "PASS"
+      }
+    ]
+  },
+  "redSources": [
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "sha256": "47e91c7b7cb7d81474c5e59b157c9da0be5917851d8386c088b8644ca8d3b032"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/LegacyEngineeringProjectReadMySqlTest.java",
+      "sha256": "3abcdc5f769ed12b0c0054b917c27988b8bbba1ffe877bf068fbf4e0623800a4"
+    },
+    {
+      "path": "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh",
+      "sha256": "fafb4d2ca0dc4077cc1e16c036840997c184176be5b96da99fed1c49a800ba31"
+    }
+  ],
+  "greenSources": [
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "sha256": "6c5b4512063627f5b61e87821f27cd952e987b9115a4c9a7f6d664a4eca06d7e",
+      "status": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/LegacyEngineeringProjectReadMySqlTest.java",
+      "sha256": "3abcdc5f769ed12b0c0054b917c27988b8bbba1ffe877bf068fbf4e0623800a4",
+      "status": "PRIVATE_CHANGE"
+    },
+    {
+      "path": "scripts/tests/verify_legacy_engineering_project_reads_mysql.sh",
+      "sha256": "fafb4d2ca0dc4077cc1e16c036840997c184176be5b96da99fed1c49a800ba31",
+      "status": "PRIVATE_CHANGE"
+    }
+  ],
+  "sameTestAndRunnerForBehavioralRedAndGreen": true,
+  "fixtureFailuresRetained": {
+    "initialVarargsMockFailure": {
+      "tests": 13,
+      "passed": 0,
+      "failed": 5,
+      "errors": 8,
+      "skipped": 0,
+      "xmlSha256": "51dc45eadd7e0d0fb71ed10d3c8c31145326a507b812595e69a8d30cba5f32b3",
+      "logSha256": "1253c57e6e27c5bc170c47be49f9f5a2dad3fcc8f82b9c1eec15cb50ea512315",
+      "cases": [
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[1]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[2]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[1]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[2]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[1]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[2]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[1]",
+          "status": "FAIL",
+          "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException> but was: <java.lang.ClassCastException>",
+          "exception": "org.opentest4j.AssertionFailedError"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[2]",
+          "status": "FAIL",
+          "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException> but was: <java.lang.ClassCastException>",
+          "exception": "org.opentest4j.AssertionFailedError"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[1]",
+          "status": "FAIL",
+          "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException> but was: <java.lang.ClassCastException>",
+          "exception": "org.opentest4j.AssertionFailedError"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[2]",
+          "status": "FAIL",
+          "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException> but was: <java.lang.ClassCastException>",
+          "exception": "org.opentest4j.AssertionFailedError"
+        },
+        {
+          "name": "twoBindingsDoNotAdmitOtherUnboundEngineeringModels",
+          "status": "FAIL",
+          "reason": "Unexpected exception type thrown, expected: <cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException> but was: <java.lang.ClassCastException>",
+          "exception": "org.opentest4j.AssertionFailedError"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[1]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[2]",
+          "status": "ERROR",
+          "reason": "class java.lang.String cannot be cast to class [Ljava.lang.String; (java.lang.String and [Ljava.lang.String; are in module java.base of loader 'bootstrap')",
+          "exception": "java.lang.ClassCastException"
+        }
+      ]
+    },
+    "systemFixtureStartupFailure": {
+      "tests": 13,
+      "passed": 0,
+      "failed": 0,
+      "errors": 13,
+      "skipped": 0,
+      "xmlSha256": "4f45337fe12457cbad512aef12680ca18ac8b371caae06502dafd819fd15cf35",
+      "logSha256": "66e64664ec4cab0602d7dc6413cf7d8b0b18d001e275a2586182bd760fd9198a",
+      "cases": [
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[1]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "ownProjectReadsUseActualRowsAndBoundedCursor(Model)[2]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[1]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "queryOnlyReadBindingNeverAdmitsBusinessOrFileWrites(Model)[2]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[1]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "movingOrRevokingCurrentOwnerClosesPreviouslyReadableRows(Model)[2]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[1]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "tenantAndAuthenticatedActorStayRequired(Model)[2]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[1]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "nativeQueryPermissionIsIndependentOfProjectScope(Model)[2]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "twoBindingsDoNotAdmitOtherUnboundEngineeringModels",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[1]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        },
+        {
+          "name": "emptyOrMissingProjectScopeNeverExpandsReads(Model)[2]",
+          "status": "ERROR",
+          "reason": "Error creating bean with name 'roleServiceImpl': Injection of resource dependencies failed",
+          "exception": "org.springframework.beans.factory.BeanCreationException"
+        }
+      ]
+    }
+  },
+  "reproduce": "source /workspace/toolchains/activate.sh\nIMP_READ_MAVEN_SETTINGS=/workspace/toolchains/maven-settings.xml bash scripts/tests/verify_legacy_engineering_project_reads_mysql.sh"
+}

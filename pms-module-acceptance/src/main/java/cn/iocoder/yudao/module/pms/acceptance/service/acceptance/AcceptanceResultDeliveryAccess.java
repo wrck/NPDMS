@@ -19,6 +19,8 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class AcceptanceResultDeliveryAccess implements DeliveryMaterialUploadPolicyValidator {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentFilePolicy checklistFiles;
  @Override public boolean allowsGenericDeliveryActions(String entityType){return false;}
 
     private final DeliverableChecklistMapper checklists;
@@ -32,6 +34,13 @@ public class AcceptanceResultDeliveryAccess implements DeliveryMaterialUploadPol
     }
     @Override public Long requireDeliveryAccess(Long tenant, Long actor, String type, String objectId,
             String purpose, boolean write, boolean lock, Long expectedScope) {
+        if ("deliverableChecklist".equals(type) && cn.iocoder.yudao.module.pms.acceptance.service.deliverablechecklist.ChecklistAttachmentSources.SOURCE.equals(purpose)) {
+            String action = write ? cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes.UPLOAD : cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes.READ;
+            var query = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery(tenant, actor, "ACC", "DELIVERABLE_CHECKLIST", objectId, "CHECKLIST_ATTACHMENT", "material-action", action);
+            var observed = checklistFiles.inspect(query);
+            if (expectedScope != null && !Objects.equals(expectedScope, observed.scopeVersion())) throw denied();
+            return lock ? checklistFiles.lockAndRevalidate(new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery(tenant, actor, "ACC", "DELIVERABLE_CHECKLIST", objectId, "CHECKLIST_ATTACHMENT", "material-action", action, observed.scopeVersion())).scopeVersion() : observed.scopeVersion();
+        }
         if (write || !Objects.equals(tenant, TenantContextHolder.getRequiredTenantId())
                 || actor == null || actor <= 0 || !supportsEntityType(type)) throw denied();
         Long id;
