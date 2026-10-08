@@ -144,6 +144,18 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertTrue(jdbc.queryForObject("SELECT deleted FROM it_version_note_revision WHERE id=?",Boolean.class,first.ref().revisionId()));
         notes.createRevision(id,0L,null,null,"draft-two");assertEquals(2,notes.revisions(id,null,20).getFirst().revisionNo());
     }
+    @Test void firstRevisionExtensionWriteUsesItsPersistedBinding() {
+        var actor=new EntityActor(1L,9L,"revision-first-extension");var extension=ctx.getBean(EntityExtensionApi.class);
+        var definition=extension.publishDefinition(1L,"IT","versionNote",List.of(new EntityExtensionApi.Definition("memo","Memo",EntityField.Type.TEXT,false,100,List.of())),actor);
+        var created=notes.create(notes.input(Map.of("projectId",20,"title","Bound revision")),"bound-revision-create");long id=created.entityRef().entityId();
+        notes.createRevision(id,0L,null,null,"bound-revision-draft");var draft=notes.revisions(id,null,20).getFirst();
+        var target=EntityDataRef.revision(draft.ref());
+        when(ctx.getBean(EntityFormApi.class).read(eq(target),any())).thenReturn(new EntityFormApi.Binding(99L,definition.id(),Map.of("memo","memo"),1));
+        assertNull(notes.revisionForm(id,draft.ref().revisionId()).extensions().definitionRevisionId());
+        notes.saveRevision(id,0L,draft.ref().revisionId(),0L,Map.of("$extensions",Map.of("expectedVersion",0,"values",Map.of("memo","first persisted extension"))),"bound-revision-save");
+        assertEquals("first persisted extension",notes.revisionForm(id,draft.ref().revisionId()).extensions().fields().get("memo"));
+        assertNull(notes.form(id).extensions().definitionRevisionId());
+    }
     @Test void extensionSnapshotsCopyAndCompareWithoutPerEntityProviders(){
         var actor=new EntityActor(1L,9L,"version-test");var extension=ctx.getBean(EntityExtensionApi.class);
         var definition=extension.publishDefinition(1L,"IT","versionNote",List.of(new EntityExtensionApi.Definition("flag","Flag",EntityField.Type.BOOLEAN,false,null,List.of()),new EntityExtensionApi.Definition("memo","Memo",EntityField.Type.TEXT,false,100,List.of())),actor);

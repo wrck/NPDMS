@@ -331,7 +331,13 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         }
         var patch=input.extension();if(patch==null)return;
         if(patch.values()==null || patch.expectedVersion()<0)throw invalid("INPUT_INVALID","Invalid extension patch");
-        var existing=extensionPort().read(target,actor());var definition=patch.definitionRevisionId()!=null?patch.definitionRevisionId():bound!=null?bound.extensionDefinitionRevisionId():existing.definitionRevisionId();
+        var existing=extensionPort().read(target,actor());var definition=patch.definitionRevisionId();
+        if(definition==null){
+            // A layout may already be bound while no extension value row exists yet.
+            // Resolve the persisted target binding as well as a binding created in this command.
+            if(bound==null)bound=formPort().read(target,actor());
+            definition=bound!=null && bound.extensionDefinitionRevisionId()!=null?bound.extensionDefinitionRevisionId():existing.definitionRevisionId();
+        }
         var merged=new LinkedHashMap<String,Object>();if(Objects.equals(existing.definitionRevisionId(),definition))merged.putAll(existing.fields());merged.putAll(patch.values());
         // Lossless text number controls are converted using the published definition, never arbitrary property names.
         var schema=extensionPort().definition(definition,target.entity(),actor());

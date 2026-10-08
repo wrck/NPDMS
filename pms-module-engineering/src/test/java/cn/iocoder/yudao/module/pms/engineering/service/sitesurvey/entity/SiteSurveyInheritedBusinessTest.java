@@ -63,6 +63,22 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertThrows(BusinessContractException.class,()->business.createForm(input,"create-with-form"));
         assertEquals(false,business.form(receipt.entityRef().entityId()).extensions().fields().get("extra_flag"));
     }
+    @Test void firstExtensionWriteUsesTheExistingFormBindingWithoutAValueRow() {
+        var created=business.create(business.input(values("bound-empty-extension")),"bound-empty-create");
+        long id=created.entityRef().entityId();
+        var forms=ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.entity.EntityFormApi.class);
+        when(forms.read(any(),any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityFormApi.Binding(99L,definition,Map.of("extra_flag","extra_flag"),1));
+        assertNull(business.form(id).extensions().definitionRevisionId());
+        var patch=Map.<String,Object>of("$extensions",Map.of("expectedVersion",0,"values",Map.of("extra_flag",false)));
+        var saved=business.saveForm(id,patch,created.newConcurrencyBasis(),"first-bound-extension");
+        assertEquals(definition,business.form(id).extensions().definitionRevisionId());
+        assertEquals(false,business.form(id).extensions().fields().get("extra_flag"));
+        assertEquals(saved,business.saveForm(id,patch,created.newConcurrencyBasis(),"first-bound-extension"));
+        var invalid=Map.<String,Object>of("name","must rollback","$extensions",Map.of("expectedVersion",1,"values",Map.of("extra_flag","invalid boolean")));
+        assertThrows(RuntimeException.class,()->business.saveForm(id,invalid,saved.newConcurrencyBasis(),"invalid-bound-extension"));
+        assertEquals("bound-empty-extension",business.get(id).getName());
+        assertEquals(false,business.form(id).extensions().fields().get("extra_flag"));
+    }
     @Test void failedInitialFormBindingRollsBackTheInsertedBusinessAndChildren() {
         var input=new LinkedHashMap<String,Object>(values("bad-binding"));
         input.put("$binding",Map.of("expectedVersion",0,"formRevisionId",99L,"fieldBindings",Map.of("name","name"),"bindRemainingFields",true));
