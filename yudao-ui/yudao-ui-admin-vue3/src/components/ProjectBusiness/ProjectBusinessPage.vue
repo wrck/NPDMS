@@ -28,7 +28,7 @@
       </el-descriptions>
       <ProjectBusinessHistory v-if="current && versioned" ref="history" :api="api" :current="current" :fields="model?.fields || []" :actions="businessActions" :busy="executing || confirming" :readonly="readonly" :execute="runAction" />
       <ProjectBusinessDeliveries v-if="current" ref="deliveries" :key="String(current.ref.entityId)" :api="api" :entity-id="current.ref.entityId"
-        :readonly="readonly || !updateOperation?.executable" :deliverable-type="deliverableType" />
+        :readonly="deliveryReadonly" :deliverable-type="deliverableType" />
       <slot name="details" :current="current" :api="api" />
     </template>
   </ContentWrap>
@@ -71,6 +71,14 @@ const createOperation = computed(() => { const action=effective(state.operation(
 // Tenant metadata is not a current-record state action. Server configuration permission is authoritative.
 const configurationOperation = computed(() => {const action=state.operation('CONFIGURE');return action?{...action,executable:action.executable && (props.allowedActions==null || props.allowedActions.includes(action.code))}:undefined})
 const updateOperation = computed(() => effective(state.operation('UPDATE'))), deleteOperation = computed(() => effective(state.operation('DELETE')))
+// Delivery uses the same write permission, but has its own lifecycle hook. A confirmed
+// document may reject body edits while still accepting its required deliverables.
+const deliveryReadonly = computed(() => {
+  const permission = state.operation('UPDATE')
+  return props.readonly || current.value?.available !== true || !permission?.executable
+    || (props.allowedActions != null && !props.allowedActions.includes(permission.code))
+    || (!!props.operationAllowed && !props.operationAllowed('delivery', current.value))
+})
 const businessActions = computed(()=>model.value?.operations.filter(action=>action.kind==='DOMAIN_COMMAND' && action.code!=='save-form').map(action=>effective(action)!) || [])
 const saveOperation = computed(() => current.value ? updateOperation.value : createOperation.value)
 const readonlyFields = computed(() => readableFields.value.filter(field => !field.writable))

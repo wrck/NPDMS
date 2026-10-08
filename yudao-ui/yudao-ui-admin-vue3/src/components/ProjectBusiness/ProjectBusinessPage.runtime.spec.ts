@@ -2,12 +2,12 @@ import { defineComponent, h, nextTick } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './ProjectBusinessPage.vue'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn() }))
+const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn(), writable: true }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: mocks.confirm, warning: vi.fn() }) }))
 vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 42, getTenantId: () => 7, getVisitTenantId: () => undefined }))
 vi.mock('@/api/pms/platform/business', () => ({ createProjectBusinessApi: () => ({
-  base: '/api/v1/pms/notes', model: async () => ({ fields: [], capabilities: [], operations: [{code:'create',kind:'CREATE',executable:true},{code:'save',kind:'UPDATE',executable:true}] }),
+  base: '/api/v1/pms/notes', model: async () => ({ fields: [], capabilities: [], operations: [{code:'create',kind:'CREATE',executable:true},{code:'save',kind:'UPDATE',executable:mocks.writable}] }),
   page: mocks.page, get: mocks.get, form: async () => ({ extensions: { fields: {}, version: 0 }, definitions: [] })
 }) }))
 vi.mock('../BusinessEntity/BusinessEntityList.vue', () => ({ default: { render: () => null } }))
@@ -17,7 +17,7 @@ vi.mock('./ProjectBusinessDeliveries.vue', () => ({ default: defineComponent({ s
 vi.mock('./ProjectBusinessFieldConfiguration.vue', () => ({ default: defineComponent({ setup(_, { expose }) { expose({ isBusy: () => false, requestLeave: async () => true }); return () => null } }) }))
 const flush = async () => { for(let i=0;i<12;i++) { await Promise.resolve(); await nextTick() } }
 beforeEach(() => {
-  vi.resetAllMocks(); mocks.build.mockResolvedValue({ title: 'Unsaved' }); mocks.confirm.mockResolvedValue(undefined)
+  vi.resetAllMocks(); mocks.writable=true; mocks.build.mockResolvedValue({ title: 'Unsaved' }); mocks.confirm.mockResolvedValue(undefined)
   mocks.page.mockResolvedValue({list:[],total:0}); mocks.get.mockResolvedValue({ref:{entityId:11},fieldValues:{title:'Saved'},concurrencyBasis:0,available:true})
 })
 it('ordinary edits survive cancelled back, reload and route leave, then allow explicit discard', async () => {
@@ -37,4 +37,29 @@ it('invalid unsaved input still asks before leaving and unchanged input does not
     expect(await state.requestLeave()).toBe(false); expect(mocks.confirm).toHaveBeenCalledOnce()
     mocks.build.mockResolvedValue({}); mocks.confirm.mockClear(); expect(await state.requestLeave()).toBe(true); expect(mocks.confirm).not.toHaveBeenCalled()
   } finally { mounted.app.unmount() }
+})
+
+it('delivery lifecycle is independent of confirmed body editing while preserving write permission', async () => {
+  const operationAllowed=(code:string)=>code==='delivery'
+  const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',initialEntityId:11,operationAllowed})
+  const state=(mounted.vm as any).$.setupState
+  try {
+    await flush()
+    expect(state.updateOperation.executable).toBe(false)
+    expect(state.deliveryReadonly).toBe(false)
+  } finally { mounted.app.unmount() }
+})
+it.each([
+  {readonly:true},
+  {allowedActions:['QUERY']},
+  {operationAllowed:()=>false},
+  {denyPermission:true},
+  {unavailable:true}
+])('delivery retains independent scope and read-only guards: %j', async options => {
+  const {denyPermission,unavailable,...props}=options
+  mocks.writable=!denyPermission
+  if(unavailable)mocks.get.mockResolvedValue({ref:{entityId:11},fieldValues:{},available:false})
+  const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',initialEntityId:11,...props})
+  try { await flush(); expect((mounted.vm as any).$.setupState.deliveryReadonly).toBe(true) }
+  finally { mounted.app.unmount() }
 })

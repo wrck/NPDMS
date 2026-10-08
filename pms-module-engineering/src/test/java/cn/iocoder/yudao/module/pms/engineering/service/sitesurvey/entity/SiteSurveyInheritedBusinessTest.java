@@ -62,8 +62,9 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         verify(delivery).upload(new DefaultBusinessDeliveryApi.Scope(20L,"SOL_SITE_SURVEY",Long.toString(id),"ATTACHMENT"),file,"upload");
         var confirmed=business.confirm(id,created.newConcurrencyBasis(),"confirm");assertEquals(1,business.get(id).getStatus());
         assertThrows(RuntimeException.class,()->business.update(id,business.input(Map.of("name","forbidden")),Set.of("name"),confirmed.newConcurrencyBasis(),"after-confirm"));
-        assertThrows(RuntimeException.class,()->business.requireDeliveryAccess(id,true,false));
+        assertEquals(20L,business.requireDeliveryAccess(id,true,false));
         business.archive(id,confirmed.newConcurrencyBasis(),"archive");assertEquals(3,business.get(id).getStatus());
+        assertThrows(RuntimeException.class,()->business.requireDeliveryAccess(id,true,false));
         assertEquals(created,business.create(business.input(values("state")),"state-create"));
     }
     @Test void nativeReferenceAliasesAlsoProtectInheritedDelete() {

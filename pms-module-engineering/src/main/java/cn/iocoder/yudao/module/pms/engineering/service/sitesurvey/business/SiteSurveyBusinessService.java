@@ -85,7 +85,7 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     @Override protected void beforeDelete(SiteSurveyEntityDO row){requireState(row,0);if(row.getOutsourceRequestId()!=null)throw exception(SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED);}
     @Override protected void afterDelete(SiteSurveyEntityDO row){changed(row);}
     @Override protected void afterChange(String operation,SiteSurveyEntityDO before,SiteSurveyEntityDO row){if("save-form".equals(operation))details.save(row,actor().userId());changed(row);}
-    @Override protected void validateDelivery(SiteSurveyEntityDO row,boolean write){if(write)requireState(row,0);}
+    @Override protected void validateDelivery(SiteSurveyEntityDO row,boolean write){if(write && !Objects.equals(row.getStatus(),0) && !Objects.equals(row.getStatus(),1))throw exception(SITE_SURVEY_STATUS_INVALID);}
     public BusinessOperationReceipt confirm(Long id,Long version,String key){return change("confirm",id,version,key,Map.of(),row->{requireState(row,0);forms.validate(row,false);row.setStatus(1);row.setConfirmedAt(LocalDateTime.now());});}
     public BusinessOperationReceipt reject(Long id,Long version,String key){return change("reject",id,version,key,Map.of(),row->{requireState(row,0);row.setStatus(2);});}
     public BusinessOperationReceipt archive(Long id,Long version,String key){return change("archive",id,version,key,Map.of(),row->{requireState(row,1);row.setStatus(3);row.setArchivedAt(LocalDateTime.now());});}
