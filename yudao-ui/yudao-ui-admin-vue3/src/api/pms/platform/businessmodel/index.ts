@@ -178,8 +178,12 @@ export const newIdempotencyKey = () => crypto.randomUUID()
 
 
 export interface BusinessEntityFormData {
+  context?: Record<string, unknown>
   layout?: {
     binding: { formRevisionId: string | number; extensionDefinitionRevisionId?: string | number; fieldBindings: Record<string, string>; version: number }
+    templateId?: string | number
+    revisionNo?: number
+    formVersion?: number
     formConfJson: string
     formRulesJson: string
   }

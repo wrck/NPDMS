@@ -69,7 +69,7 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
         return mapper.selectVisibleRevisions(new RequirementRevisionBusinessMapper.VisibleRevisionPage(query,managers));
     }
     @Override protected <T>T inBusinessOperation(String operation,RequirementAnalysisRevisionDO current,RequirementAnalysisRevisionDO proposed,Supplier<T> work) {
-        var row=current==null?proposed:current;var actor=actor();String nativeOperation="SOL.REQUIREMENT_ANALYSIS."+(operation.equals("delete")?"DISCARD":operation.toUpperCase(Locale.ROOT));
+        var row=current==null?proposed:current;var actor=actor();String nativeOperation="SOL.REQUIREMENT_ANALYSIS."+(operation.equals("delete")?"DISCARD":operation.equals("save-form")?"SAVE":operation.toUpperCase(Locale.ROOT));
         return ProjectOwnerOperationScope.call("SOL","REQUIREMENT_ANALYSIS",()->new ProjectOwnerOperationScope.Declaration(actor.tenantId(),actor.userId(),row.getProjectId(),"SOL","REQUIREMENT_ANALYSIS",nativeOperation,1,current==null?null:current.getId().toString(),null),()->{
             access.lockScope(row.getProjectId(),actor);
             var execution=access.lockExecution(row.getProjectId(),current==null?null:current.getExecutionSnapshot(),null,actor,current==null?null:current.getId());

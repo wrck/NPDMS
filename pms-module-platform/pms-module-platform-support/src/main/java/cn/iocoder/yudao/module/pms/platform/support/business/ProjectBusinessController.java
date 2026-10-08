@@ -39,7 +39,7 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
         var result=service.page(query);return success(new PageResult<>(result.getList().stream().map(this::view).toList(),result.getTotal()));
     }
     @PostMapping public CommonResult<BusinessOperationReceipt> create(@Valid @RequestBody WriteBody request) {
-        return success(service.create(service.input(request.values()),request.idempotencyKey()));
+        return success(service.createForm(request.values(),request.idempotencyKey()));
     }
     @PutMapping("/{id}") public CommonResult<BusinessOperationReceipt> update(@PathVariable @Positive Long id,@Valid @RequestBody WriteBody request) {
         return success(service.update(id,service.input(request.values()),request.values().keySet(),request.version(),request.idempotencyKey()));
@@ -51,6 +51,7 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
     @GetMapping("/receipts/{key}") public CommonResult<BusinessOperationReceipt> receipt(@PathVariable String key,@RequestParam String operation) {
         return success(service.receipt(operation,key));
     }
+    @GetMapping("/form-defaults") public CommonResult<BusinessFormData> formDefaults(@RequestParam @Positive Long projectId){return success(service.formDefaults(projectId));}
     @GetMapping("/{id}/form") public CommonResult<BusinessFormData> form(@PathVariable @Positive Long id){return success(service.form(id));}
     @PostMapping("/{id}/save-form") public CommonResult<BusinessOperationReceipt> saveForm(@PathVariable @Positive Long id,@Valid @RequestBody WriteBody request){
         return success(service.saveForm(id,request.values(),request.version(),request.idempotencyKey()));

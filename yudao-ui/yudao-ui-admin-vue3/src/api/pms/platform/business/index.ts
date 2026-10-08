@@ -39,6 +39,7 @@ export const createProjectBusinessApi = (prefix: string) => {
     revisionValues:(id:BusinessId,revisionId:BusinessId)=>request.get<Record<string,RevisionFieldValue>>({url:`${entity(id)}/revisions/${identity(revisionId)}`,silentError:true}),
     revisionForm:(id:BusinessId,revisionId:BusinessId)=>request.get<BusinessEntityFormData>({url:`${entity(id)}/revisions/${identity(revisionId)}/form`,silentError:true}),
     compareRevisions:(id:BusinessId,left:BusinessId,right:BusinessId)=>request.get<Array<{fieldCode:string;before:RevisionFieldValue;after:RevisionFieldValue}>>({url:`${entity(id)}/revisions/compare`,params:{left:identity(left),right:identity(right)},silentError:true}),
+    formDefaults:(projectId:BusinessId)=>request.get<BusinessEntityFormData>({url:`${base}/form-defaults`,params:{projectId:identity(projectId)},silentError:true}),
     form: (id: BusinessId) => request.get<BusinessEntityFormData>({url:`${entity(id)}/form`,silentError:true}),
     create: (values: Record<string, unknown>, key: string) =>
       request.post<BusinessOperationReceipt>({ url: base, data: { values, idempotencyKey: key }, silentError: true }),

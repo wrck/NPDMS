@@ -18,7 +18,7 @@
       v-bind="dialogEditor ? {modelValue:editing,title:contentReadonly ? `${title}详情` : current ? `编辑${title}` : `新增${title}`,width:'min(960px, 95vw)','before-close':closeEditor} : {}"
       @update:model-value="value=>{if(!value)editing=false}">
       <el-alert v-if="dialogEditor && contentReadonly" title="当前业务内容只读，已确认、驳回和归档内容不会被编辑覆盖。" type="info" :closable="false" />
-      <ProjectBusinessContentForm ref="form" :writable-fields="writableFields" :initial-values="current?.fieldValues || scopedInitial"
+      <component :is="formComponent || ProjectBusinessContentForm" ref="form" v-bind="formComponent ? {api,current,scopeProjectId,execute:runAction} : {}" @action="(kind:string,sn?:string)=>emit('form-action',kind,sn)" :writable-fields="writableFields" :initial-values="current?.fieldValues || scopedInitial"
         :fields="model?.fields" :appearance="formAppearance" :presentation="presentation" :disabled="busy || !saveOperation?.executable || contentReadonly || !!current && versioned || current?.available === false" />
       <slot name="business-fields" :current="current" :execute="runAction" :busy="busy" :actions="businessActions" />
       <div v-if="!dialogEditor" class="business-actions">
@@ -45,7 +45,7 @@
   </component>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch, defineAsyncComponent } from 'vue'
+import { computed, ref, watch, defineAsyncComponent, type Component } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import type { BusinessFormAppearance } from '../BusinessEntity/businessFormAppearance'
 const DialogEditor=defineAsyncComponent(()=>import('@/components/Dialog/src/Dialog.vue').then(module=>module.default))
@@ -59,7 +59,8 @@ import ProjectBusinessHistory from './ProjectBusinessHistory.vue'
 import ProjectBusinessFieldConfiguration from './ProjectBusinessFieldConfiguration.vue'
 import ProjectBusinessDeliveries from './ProjectBusinessDeliveries.vue'
 import { useProjectBusiness } from './useProjectBusiness'
-const props = withDefaults(defineProps<{ apiBase: string; title?: string; dialogEditor?: boolean; formAppearance?: BusinessFormAppearance; initialValues?: Record<string,unknown>; prepareCreate?:()=>Promise<Record<string,unknown>>; readonly?: boolean; initialEntityId?: BusinessId; scopeProjectId?: BusinessId; allowedActions?: string[]; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
+const props = withDefaults(defineProps<{ apiBase: string; title?: string; dialogEditor?: boolean; formComponent?: Component; formAppearance?: BusinessFormAppearance; initialValues?: Record<string,unknown>; prepareCreate?:()=>Promise<Record<string,unknown>>; readonly?: boolean; initialEntityId?: BusinessId; scopeProjectId?: BusinessId; allowedActions?: string[]; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
+const emit=defineEmits<{'form-action':[kind:string,sn?:string]}>()
 const api = computed(() => createProjectBusinessApi(props.apiBase)), message = useMessage()
 const state = useProjectBusiness(() => api.value, () => props.scopeProjectId)
 const { model, current, rows, total, error, loading, executing, receipt, pending, readableFields, writableFields: allWritableFields, loadPage } = state
@@ -80,9 +81,9 @@ watch(current,async row=>{
   catch(failure){if(generation===presentationGeneration)error.value='业务表单读取失败，请重新读取后再保存'}
   finally{if(generation===presentationGeneration)formLoading.value=false}
 })
-const form = ref<InstanceType<typeof ProjectBusinessContentForm>>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
+const form = ref<{buildInput:()=>Promise<Record<string,unknown>>;isBusy?:()=>boolean}>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
 const fieldConfiguration=ref<InstanceType<typeof ProjectBusinessFieldConfiguration>>()
-const busy = computed(() => executing.value || confirming.value || formLoading.value || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
+const busy = computed(() => executing.value || confirming.value || formLoading.value || !!form.value?.isBusy?.() || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
 const effective = (action:OperationVO|undefined,row=current.value) => action ? {...action,executable:action.executable && (props.allowedActions==null || props.allowedActions.includes(action.code)) && (!props.operationAllowed || props.operationAllowed(action.code,row))} : undefined
 const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
 // Tenant metadata is not a current-record state action. Server configuration permission is authoritative.
@@ -132,9 +133,10 @@ const save = async () => {
     if(!current.value)Object.assign(input,{...scopedInitial.value,...input})
     if(!current.value && props.scopeProjectId!=null)input.projectId=props.scopeProjectId
     if(current.value && !presentation.value){message.warning('请先重新读取业务表单');return}
-    const formSave=!!current.value && (!!presentation.value?.layout || !!input.$extensions)
+    const formSave=!!current.value && (!!presentation.value?.layout || !!input.$extensions || !!input.$binding || !!input.$business)
     const result=await state.execute(current.value ? formSave?'save-form':'save' : 'create',formSave?{values:input}:input)
     if(result && result.outcome!=='FAILED')editing.value=true
+    return result
   }
   catch { /* Field controls retain their validation messages. */ }
 }
@@ -172,6 +174,6 @@ const requestLeave = async () => {
   try{await message.confirm('当前业务内容尚未保存，确定离开？');return true}catch{return false}finally{confirming.value=false}
 }
 onBeforeRouteLeave(requestLeave);onBeforeRouteUpdate(requestLeave)
-defineExpose({ requestLeave, reload:state.load })
+defineExpose({ requestLeave, reload:state.load, save, current:()=>current.value })
 </script>
 <style scoped>.business-actions{display:flex;gap:8px;margin:12px 0}</style>

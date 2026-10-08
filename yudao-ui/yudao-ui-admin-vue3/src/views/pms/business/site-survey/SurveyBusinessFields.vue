@@ -6,7 +6,7 @@
         <PmsLocationSelector v-if="expanded.includes('location') && allowed('location')" v-model="location" :project-id="projectId" />
         <el-button :disabled="busy || !allowed('location') || !location || !description.trim()" @click="execute('location',{description,location})">保存结构化地点</el-button>
       </el-collapse-item>
-      <el-collapse-item title="项目要求完成日期" name="deadline">
+      <el-collapse-item v-if="showDeadline!==false" title="项目要求完成日期" name="deadline">
         <el-date-picker v-model="endDate" type="date" value-format="YYYY-MM-DD" aria-label="项目要求完成日期" :disabled="busy || !allowed('deadline')" />
         <el-button :loading="readingProject" :disabled="busy || readingProject || !allowed('deadline') || !endDate" @click="saveDeadline">更新项目期限</el-button>
         <el-alert v-if="error" :title="error" type="error" :closable="false" />
@@ -20,7 +20,7 @@ import PmsLocationSelector from '@/components/PmsLocationSelector/index.vue'
 import type {LocationMaintainRequest} from '@/api/pms/asset/location'
 import type {BusinessEntityData,OperationVO} from '@/api/pms/platform/businessmodel'
 import {getProject} from '@/api/pms/project/projects'
-const props=defineProps<{current?:BusinessEntityData;busy:boolean;actions:OperationVO[];execute:(code:string,values:Record<string,unknown>)=>Promise<unknown>}>()
+const props=defineProps<{showDeadline?:boolean;current?:BusinessEntityData;busy:boolean;actions:OperationVO[];execute:(code:string,values:Record<string,unknown>)=>Promise<unknown>}>()
 const expanded=ref<string[]>([])
 const description=ref(''),location=ref<LocationMaintainRequest>(),endDate=ref(''),readingProject=ref(false),error=ref('')
 const projectId=computed(()=>{const value=Number(props.current?.fieldValues.projectId);return Number.isSafeInteger(value)&&value>0?value:undefined})

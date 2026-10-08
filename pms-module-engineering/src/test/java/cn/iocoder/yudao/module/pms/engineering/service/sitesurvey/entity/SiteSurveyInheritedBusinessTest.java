@@ -53,6 +53,44 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertEquals(saved,business.update(id,business.input(patch),patch.keySet(),created.newConcurrencyBasis(),"direct-save"));
         assertThrows(BusinessContractException.class,()->business.update(id,business.input(patch),patch.keySet(),created.newConcurrencyBasis(),"stale"));
     }
+    @Test void inheritedCreateFormStoresExtensionsAtomicallyAndReplaysTheCompleteIntent() {
+        var input=new LinkedHashMap<String,Object>(values("form-create"));
+        input.put("$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",0,"values",Map.of("extra_flag",false)));
+        var receipt=business.createForm(input,"create-with-form");
+        assertEquals(false,business.form(receipt.entityRef().entityId()).extensions().fields().get("extra_flag"));
+        assertEquals(receipt,business.createForm(input,"create-with-form"));assertEquals(1,count("sol_site_survey"));
+        input.put("$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",0,"values",Map.of("extra_flag",true)));
+        assertThrows(BusinessContractException.class,()->business.createForm(input,"create-with-form"));
+        assertEquals(false,business.form(receipt.entityRef().entityId()).extensions().fields().get("extra_flag"));
+    }
+    @Test void failedInitialFormBindingRollsBackTheInsertedBusinessAndChildren() {
+        var input=new LinkedHashMap<String,Object>(values("bad-binding"));
+        input.put("$binding",Map.of("expectedVersion",0,"formRevisionId",99L,"fieldBindings",Map.of("name","name"),"bindRemainingFields",true));
+        doThrow(new BusinessContractException("FORM_REFUSED","refused")).when(ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.entity.EntityFormApi.class)).bind(any());
+        assertThrows(BusinessContractException.class,()->business.createForm(input,"bad-initial-binding"));
+        assertEquals(0,count("sol_site_survey"));assertEquals(0,count("sol_site_survey_condition"));assertEquals(0,count("sol_site_survey_material"));
+    }
+    @Test void captureDeadlineIsAnExplicitProjectCommandNotAnOpenBodyField() {
+        var input=new LinkedHashMap<String,Object>(values("deadline-form"));
+        input.put("$business",Map.of("requiredEndDate","2026-11-30","projectVersion",2));
+        var receipt=business.createForm(input,"deadline-form-create");
+        assertEquals(java.time.LocalDate.of(2026,11,30),business.get(receipt.entityRef().entityId()).getRequiredEndDate());
+        verify(ctx.getBean(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class)).updateFromSurvey(argThat(command->command.projectId().equals(20L)&&command.expectedProjectVersion().equals(2L)));
+        assertThrows(BusinessContractException.class,()->business.input(Map.of("requiredEndDate","2026-12-01")));
+        input.put("$business",Map.of("projectId",21L));
+        assertThrows(BusinessContractException.class,()->business.createForm(input,"forged-form-command"));assertEquals(1,count("sol_site_survey"));
+    }
+    @Test void defaultCaptureFormUsesTheCurrentPublishedSchemaAndNativeFieldBindings() {
+        var field=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormFieldDescriptor("extra_cabinetReady","radio",false,false,"boolean",null,null,null,List.of());
+        var schema=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact(1L,
+                new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey("SOL","SITE_SURVEY"),993109090006L,992209220346L,2,1,"SITE_SURVEY",
+                cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE,"FORM_CREATE_ELEMENT_PLUS","3","3","{}","[]",List.of(field),null);
+        when(ctx.getBean(cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi.class).inspectCurrentRevisionForUsage(any())).thenReturn(schema);
+        var form=business.formDefaults(20L);
+        assertEquals(992209220346L,form.layout().binding().formRevisionId());assertEquals(2,form.layout().revisionNo());
+        assertEquals("cabinetReady",form.layout().binding().fieldBindings().get("extra_cabinetReady"));
+        assertEquals(0,count("sol_site_survey"));
+    }
     @Test void presentationStatusIsReadOnlyAndInternalOutsourceReferenceStaysPrivate() {
         assertFalse(business.definition().fields().stream().anyMatch(field->field.code().equals("outsourceRequestId")));
         assertThrows(BusinessContractException.class,()->business.input(Map.of("outsourceRequestId",99L)));

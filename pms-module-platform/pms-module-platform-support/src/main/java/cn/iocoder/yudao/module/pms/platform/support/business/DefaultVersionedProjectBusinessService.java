@@ -75,7 +75,7 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
     @Override public BusinessOperationReceipt saveRevision(Long id,Long version,Long revisionId,Long revisionVersion,Map<String,Object> values,String key){
         return revisionWrite("revision-save",id,version,key,intent(revisionId,revisionVersion,values),row->{
             var reference=new RevisionRef(identity(row),revisionId);var draft=lockedRevision(reference,actor());requireRevisionVersion(draft,revisionVersion);
-            requireDraft(draft);var input=formWrite(values);storeFormWrite(EntityDataRef.revision(reference),revisionVersion,input);
+            requireDraft(draft);var input=formWrite(values);if(!input.business().isEmpty())throw invalid("FIELD_NOT_OPEN","Revision form commands are not declared");storeFormWrite(EntityDataRef.revision(reference),revisionVersion,input);
             return save(reference,Math.toIntExact(revisionVersion),input.fixed(),actor());
         });
     }

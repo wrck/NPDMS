@@ -20,7 +20,7 @@
 import { ref, watch, nextTick } from 'vue'
 import type { Api } from '@form-create/element-ui'
 import formCreateEngine from '@form-create/element-ui'
-import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
+import type { SiteSurveyVO, SiteSurveyFormSchemaVO } from '@/api/pms/engineering/site-survey/entity'
 import { getFormSchema } from '@/api/pms/engineering/site-survey/entity'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
 import { extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
@@ -43,7 +43,7 @@ Object.entries(businessComponents).forEach(([name, component]) =>
   formCreateEngine.component(`Entity${name}`, component)
 )
 
-const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean }>()
+const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean; schema?: SiteSurveyFormSchemaVO }>()
 const emit = defineEmits<{
   'update:modelValue': [value: SiteSurveyVO]
   action: [kind: string, sn?: string]
@@ -61,7 +61,7 @@ const load = async () => {
   loading.value = true
   error.value = ''
   try {
-    const schema = await getFormSchema(
+    const schema = props.schema || await getFormSchema(
       props.modelValue.formRevisionId!,
       props.modelValue.formRevisionVersion!
     )
@@ -153,7 +153,8 @@ watch(
     () => props.modelValue.id,
     () => props.modelValue.formRevisionId,
     () => props.modelValue.formRevisionVersion,
-    () => props.readonly
+    () => props.readonly,
+    () => props.schema
   ],
   load,
   { immediate: true }

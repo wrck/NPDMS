@@ -163,7 +163,16 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
 
     @Override public final BusinessOperationReceipt create(E source, String key) {
         var values = inputValues(source, null);
-        return write("create", null, null, values, key, actor -> {
+        return createRecord(values,null,values,key);
+    }
+    @Override public final BusinessOperationReceipt createForm(Map<String,Object> values,String key){
+        var form=formWrite(values);var fixed=inputValues(binding.create(form.fixed()),null);
+        var intent=new LinkedHashMap<String,Object>(fixed);
+        for(String part:List.of("$binding","$extensions","$business"))if(values.containsKey(part))intent.put(part,values.get(part));
+        return createRecord(fixed,form,intent,key);
+    }
+    private BusinessOperationReceipt createRecord(Map<String,Object> values,FormWrite form,Map<String,Object> intent,String key){
+        return write("create", null, null, intent, key, actor -> {
             E entity = binding.create(values);
             Long generated=generatedId(),project=entity.getProjectId();long initial=initialVersion();
             if(initial<0 || generated!=null && generated<=0)throw invalid("CONTROL_FIELD_CHANGED","Invalid generated identity");
@@ -171,12 +180,17 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             requireProject(entity);defaults.projects().requireWritable(entity.getProjectId(), actor, true);
             return inBusinessOperation("create", null, entity, () -> {
             beforeCreate(entity);
+            if(form!=null)beforeFormWrite(null,entity,form.business());
             if (!Objects.equals(project,entity.getProjectId()) || !Objects.equals(generated,entity.getId()) || !actor.tenantId().equals(entity.getTenantId()) || !Long.valueOf(initial).equals(entity.getVersion()))
                 throw invalid("CONTROL_FIELD_CHANGED", "Initialization changed business identity");
             requireProject(entity); defaults.projects().requireWritable(entity.getProjectId(), actor, true);
             validate(entity,"create");
             if (mapper.insert(entity) != 1 || entity.getId() == null) throw invalid("ENTITY_INSERT_FAILED", "Business insert did not return one persisted identity");
             afterCreate(copy(entity));
+            if(form!=null && (form.binding()!=null || form.extension()!=null)){
+                storeFormWrite(formTarget(entity),entity.getVersion(),form);
+                validateConfiguredForm(entity,"save-form");
+            }
             return saved(entity, "create", ReceiptOutcome.SAVED);
             });
         });
@@ -284,17 +298,30 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected EntityDataRef formTarget(E row){return EntityDataRef.current(identity(row));}
     private EntityFormApi formPort(){var port=formPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Form capability is unavailable");return port;}
     private EntityExtensionApi extensionPort(){var port=extensionPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Extension capability is unavailable");return port;}
+    protected Map<String,Object> formContext(E row){return Map.of();}
+    protected BusinessFormData defaultForm(Long projectId){return new BusinessFormData(null,new EntityExtensionApi.Values(null,Map.of(),0),List.of());}
+    @Override public final BusinessFormData formDefaults(Long projectId){
+        var caller=actor();authorizeModelRead(caller,"form");
+        if(projectId==null || projectId<=0)throw invalid("PROJECT_REQUIRED","Business project is required");
+        defaults.projects().requireReadable(projectId,caller);return defaultForm(projectId);
+    }
+    /** Only an explicit business override can accept domain command inputs alongside form content. */
+    protected void beforeFormWrite(E before,E proposed,Map<String,Object> business){
+        if(!business.isEmpty())throw invalid("FIELD_NOT_OPEN","Business form commands are not declared");
+    }
     @Override public final BusinessFormData form(Long id){
         var row=get(id);var target=formTarget(row);var caller=actor();var values=extensionPort().read(target,caller);var layout=formPort().layout(target,caller);
         var definitionId=layout!=null && layout.binding().extensionDefinitionRevisionId()!=null?layout.binding().extensionDefinitionRevisionId():values.definitionRevisionId();
-        return new BusinessFormData(layout,values,definitionId==null?List.of():extensionPort().definition(definitionId,target.entity(),caller).fields());
+        return new BusinessFormData(layout,values,definitionId==null?List.of():extensionPort().definition(definitionId,target.entity(),caller).fields(),formContext(copy(row)));
     }
-    protected record FormWrite(Map<String,Object> fixed,BusinessFormData.BindingPatch binding,BusinessEntitySaveSupport.ExtensionPatch extension){}
+    protected record FormWrite(Map<String,Object> fixed,BusinessFormData.BindingPatch binding,BusinessEntitySaveSupport.ExtensionPatch extension,Map<String,Object> business){}
     protected final FormWrite formWrite(Map<String,Object> values){
         if(values==null)throw invalid("INPUT_REQUIRED","Business values are required");
-        var fixed=new LinkedHashMap<>(values);Object extension=fixed.remove("$extensions"),layout=fixed.remove("$binding");
+        var fixed=new LinkedHashMap<>(values);Object extension=fixed.remove("$extensions"),layout=fixed.remove("$binding"),business=fixed.remove("$business");
+        if(business!=null && !(business instanceof Map<?,?>))throw invalid("INPUT_INVALID","Invalid business form commands");
+        @SuppressWarnings("unchecked") var commands=business==null?Map.<String,Object>of():new LinkedHashMap<>((Map<String,Object>)business);
         return new FormWrite(fixed,layout==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(layout),BusinessFormData.BindingPatch.class),
-                extension==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(extension),BusinessEntitySaveSupport.ExtensionPatch.class));
+                extension==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(extension),BusinessEntitySaveSupport.ExtensionPatch.class),commands);
     }
     protected final void storeFormWrite(EntityDataRef target,Long version,FormWrite input){
         var layout=input.binding();EntityFormApi.Binding bound=null;
@@ -315,7 +342,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     }
     @Override public final BusinessOperationReceipt saveForm(Long id,Map<String,Object> values,Long version,String key){
         var input=formWrite(values);
-        return change("save-form",id,version,key,values,row->{var before=copy(row);binding.patch(row,input.fixed());beforeUpdate(before,row);storeFormWrite(formTarget(row),version,input);});
+        return change("save-form",id,version,key,values,row->{var before=copy(row);binding.patch(row,input.fixed());beforeFormWrite(before,row,input.business());beforeUpdate(before,row);storeFormWrite(formTarget(row),version,input);});
     }
 
     protected List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOperationDescriptor> defaultOperations(String prefix){

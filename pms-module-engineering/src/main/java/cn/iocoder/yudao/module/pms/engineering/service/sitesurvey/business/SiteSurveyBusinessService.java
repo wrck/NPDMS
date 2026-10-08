@@ -46,7 +46,7 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     }
     @Override protected <T>T inBusinessOperation(String operation,SiteSurveyEntityDO current,SiteSurveyEntityDO proposed,Supplier<T> work) {
         var row=current==null?proposed:current;var actor=actor();
-        String nativeOperation="SOL.SITE_SURVEY."+(operation.equals("save")?"UPDATE":operation.toUpperCase(Locale.ROOT));
+        String nativeOperation="SOL.SITE_SURVEY."+(Set.of("save","save-form").contains(operation)?"UPDATE":operation.toUpperCase(Locale.ROOT));
         String permission="pms:sol-site-survey:"+(operation.equals("create")?"create":operation.equals("delete")?"delete":"update");
         return ProjectOwnerOperationScope.call("SOL","SITE_SURVEY",()->new ProjectOwnerOperationScope.Declaration(
                 actor.tenantId(),actor.userId(),row.getProjectId(),"SOL","SITE_SURVEY",nativeOperation,1,
@@ -56,6 +56,38 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     }
     @Override protected cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef formTarget(SiteSurveyEntityDO row){
         return cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef(row.getTenantId(),"SOL","SITE_SURVEY",row.getId()));
+    }
+    @Override protected cn.iocoder.yudao.module.pms.platform.support.business.BusinessFormData defaultForm(Long projectId){
+        var schema=forms.defaultSchema();
+        var layout=new cn.iocoder.yudao.module.pms.platform.api.entity.EntityFormApi.Layout(
+                new cn.iocoder.yudao.module.pms.platform.api.entity.EntityFormApi.Binding(schema.templateRevisionId(),null,forms.fieldBindings(schema),0),
+                schema.templateId(),schema.revisionNo(),schema.revisionFactVersion(),schema.engineCode(),schema.designerVersion(),schema.rendererVersion(),
+                schema.formConfJson(),schema.formRulesJson(),schema.fields());
+        return new cn.iocoder.yudao.module.pms.platform.support.business.BusinessFormData(layout,
+                new cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi.Values(null,Map.of(),0),List.of(),Map.of("projectId",projectId));
+    }
+    @Override protected Map<String,Object> formContext(SiteSurveyEntityDO row){
+        // Presentation-only references use the existing authorized form endpoint, never public body fields.
+        var context=new LinkedHashMap<String,Object>();
+        context.put("outsourceRequestId",row.getOutsourceRequestId());
+        context.put("addressId",row.getAddressId());context.put("addressVersion",row.getAddressVersion());
+        context.put("siteId",row.getSiteId());context.put("siteVersion",row.getSiteVersion());
+        context.put("siteLocationId",row.getSiteLocationId());context.put("siteLocationVersion",row.getSiteLocationVersion());
+        return context;
+    }
+    @Override protected void beforeFormWrite(SiteSurveyEntityDO before,SiteSurveyEntityDO row,Map<String,Object> business){
+        if(business.isEmpty())return;
+        if(!Set.of("requiredEndDate","projectVersion").containsAll(business.keySet())
+                || !business.containsKey("requiredEndDate") || !business.containsKey("projectVersion"))
+            throw new BusinessContractException("FIELD_NOT_OPEN","Unsupported survey form command");
+        if(before!=null)requireState(before,0);
+        final java.time.LocalDate date;final Long version;
+        try{date=java.time.LocalDate.parse(Objects.toString(business.get("requiredEndDate"),""));version=Long.valueOf(Objects.toString(business.get("projectVersion"),""));}
+        catch(RuntimeException invalid){throw exception(SITE_SURVEY_FORM_INVALID);}
+        if(version<0)throw exception(SITE_SURVEY_FORM_INVALID);
+        var port=deadlines.getIfAvailable();if(port==null)throw new BusinessContractException("CAPABILITY_UNAVAILABLE","项目期限服务未装配");
+        port.updateFromSurvey(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(actor().tenantId(),actor().userId(),row.getProjectId(),version,date));
+        row.setRequiredEndDate(date);
     }
     @Override protected Long generatedId(){return com.baomidou.mybatisplus.core.toolkit.IdWorker.getId();}
     @Override protected void afterRead(SiteSurveyEntityDO row){details.load(row);}
