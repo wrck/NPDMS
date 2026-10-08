@@ -103,7 +103,7 @@ let contextGeneration=0
 watch(() => [props.apiBase,props.scopeProjectId,props.initialEntityId], async () => {
   const active=++contextGeneration,id=props.initialEntityId
   editing.value=false;viewOnly.value=false;createInitial.value=undefined;await state.load()
-  if(active===contextGeneration && id!=null && await state.open(id) && active===contextGeneration)editing.value=true
+  if(active===contextGeneration && id!=null && await state.open(id) && active===contextGeneration)editing.value=!props.dialogEditor
 }, { immediate:true })
 const create = async () => {
   if (busy.value || props.readonly || !createOperation.value?.executable) return

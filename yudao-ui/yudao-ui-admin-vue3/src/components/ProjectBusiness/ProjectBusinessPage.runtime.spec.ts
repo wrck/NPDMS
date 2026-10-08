@@ -65,13 +65,15 @@ it.each([
   finally { mounted.app.unmount() }
 })
 
-it('dialog presentation keeps the shared editor and cancels closing without discarding changes', async () => {
+it('dialog presentation starts at the list and opens only on request, retaining leave protection', async () => {
   const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',dialogEditor:true,title:'工勘',initialEntityId:11})
   const state=(mounted.vm as any).$.setupState
   try {
     await flush();await vi.dynamicImportSettled();await flush()
-    expect(state.editing).toBe(true)
+    expect(state.editing).toBe(false)
     expect(state.scopedRows.map((row:any)=>row.ref.entityId)).toEqual([11])
+    await state.edit(11);await vi.dynamicImportSettled();await flush()
+    expect(state.editing).toBe(true)
     const done=vi.fn();mocks.confirm.mockRejectedValueOnce(new Error('cancel'))
     await state.closeEditor(done);expect(done).not.toHaveBeenCalled();expect(state.editing).toBe(true)
     mocks.build.mockResolvedValue({});await state.closeEditor(done);expect(done).toHaveBeenCalledOnce()
