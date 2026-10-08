@@ -29,6 +29,7 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     PageResult<E> page(BusinessPageQuery query);
     BusinessOperationReceipt create(E entity, String idempotencyKey);
     BusinessOperationReceipt createForm(Map<String,Object> values,String idempotencyKey);
+    BusinessOperationReceipt updateForm(Long id,Map<String,Object> values,Long version,String idempotencyKey);
     BusinessFormData formDefaults(Long projectId);
     BusinessOperationReceipt update(Long id, E values, Set<String> changedFields, Long version, String idempotencyKey);
     BusinessOperationReceipt delete(Long id, Long version, String idempotencyKey);

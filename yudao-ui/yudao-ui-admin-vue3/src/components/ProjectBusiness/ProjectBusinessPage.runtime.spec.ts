@@ -2,14 +2,14 @@ import { defineComponent, h, nextTick } from 'vue'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Page from './ProjectBusinessPage.vue'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn(), form: vi.fn(), action: vi.fn(), writable: true }))
+const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn(), form: vi.fn(), action: vi.fn(), update: vi.fn(), writable: true }))
 vi.mock('@/components/Dialog/src/Dialog.vue',()=>({default:defineComponent({props:['modelValue','title','width','beforeClose'],setup(props,{slots}){return()=>h('dialog',{open:props.modelValue,title:props.title,width:props.width},[slots.default?.(),slots.footer?.()])}})}))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: mocks.confirm, warning: vi.fn() }) }))
 vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 42, getTenantId: () => 7, getVisitTenantId: () => undefined }))
 vi.mock('@/api/pms/platform/business', () => ({ createProjectBusinessApi: () => ({
   base: '/api/v1/pms/notes', model: async () => ({ fields: [], capabilities: [], operations: [{code:'create',kind:'CREATE',executable:true},{code:'save',kind:'UPDATE',executable:mocks.writable},{code:'confirm',name:'确认',kind:'DOMAIN_COMMAND',executable:true}] }),
-  page: mocks.page, get: mocks.get, form: mocks.form, action:mocks.action
+  page: mocks.page, get: mocks.get, form: mocks.form, action:mocks.action, update:mocks.update
 }) }))
 vi.mock('../BusinessEntity/BusinessEntityList.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ProjectBusinessContentForm.vue', () => ({ default: defineComponent({ setup(_, { expose }) { expose({ buildInput: mocks.build }); return () => h('input') } }) }))
@@ -114,5 +114,16 @@ it('list actions recheck the fresh entity and cannot run while an unsaved editor
   expect(mocks.confirm).not.toHaveBeenCalled();expect(mocks.action).not.toHaveBeenCalled()
   await state.edit(11);await flush();await state.rowAction({ref:{entityId:11},fieldValues:{status:0}},'confirm')
   expect(mocks.action).not.toHaveBeenCalled();expect(state.editing).toBe(true)
+ }finally{mounted.app.unmount()}
+})
+
+it('ordinary save carries body, binding, extensions and business commands through the inherited update API',async()=>{
+ const mounted=mount(Page,{apiBase:'/api/v1/pms/notes'});const state=(mounted.vm as any).$.setupState
+ const input={title:'Changed',$extensions:{expectedVersion:0,values:{extra_note:'first'}},$binding:{formRevisionId:99,expectedVersion:0},$business:{custom:'command'}}
+ try{
+  await flush();await state.edit(11);await flush();mocks.build.mockResolvedValue(input)
+  mocks.update.mockResolvedValue({outcome:'SAVED',entityRef:{entityId:11},newConcurrencyBasis:1})
+  await state.save();expect(mocks.update).toHaveBeenCalledOnce();expect(mocks.update.mock.calls[0].slice(0,3)).toEqual([11,input,0])
+  expect(mocks.action).not.toHaveBeenCalled()
  }finally{mounted.app.unmount()}
 })

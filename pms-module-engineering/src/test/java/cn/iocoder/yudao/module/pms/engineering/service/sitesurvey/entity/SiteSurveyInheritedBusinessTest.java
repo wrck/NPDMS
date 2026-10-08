@@ -79,6 +79,30 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertEquals("bound-empty-extension",business.get(id).getName());
         assertEquals(false,business.form(id).extensions().fields().get("extra_flag"));
     }
+    @Test void ordinaryInheritedUpdateAcceptsBodyChildrenAndExtensionsInOneReceipt() {
+        var created=business.create(business.input(values("ordinary-form-update")),"ordinary-form-create");long id=created.entityRef().entityId();
+        var controller=ctx.getBean(SiteSurveyBusinessController.class);
+        var values=Map.<String,Object>of("name","updated through CRUD","powerTypes",List.of("DC"),"$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",0,"values",Map.of("extra_flag",false)));
+        var request=new ProjectBusinessController.WriteBody("ordinary-form-update",created.newConcurrencyBasis(),values);
+        var saved=controller.update(id,request).getData();
+        assertEquals("save",saved.operationCode());assertEquals(saved,controller.update(id,request).getData());
+        assertEquals(saved,business.receipt("save","ordinary-form-update"));
+        assertEquals("updated through CRUD",business.get(id).getName());assertEquals(List.of("DC"),business.get(id).getPowerTypes());
+        assertEquals(false,business.form(id).extensions().fields().get("extra_flag"));
+        var invalid=Map.<String,Object>of("name","must roll back","powerTypes",List.of("AC"),"$extensions",Map.of("definitionRevisionId",definition,"expectedVersion",1,"values",Map.of("extra_flag","invalid")));
+        assertThrows(RuntimeException.class,()->controller.update(id,new ProjectBusinessController.WriteBody("ordinary-invalid",saved.newConcurrencyBasis(),invalid)));
+        assertEquals("updated through CRUD",business.get(id).getName());assertEquals(List.of("DC"),business.get(id).getPowerTypes());
+        assertEquals(false,business.form(id).extensions().fields().get("extra_flag"));
+    }
+    @Test void ordinaryUpdateRunsExplicitDomainFormCommandsWithoutOpeningReadonlyFields() {
+        var created=business.create(business.input(values("ordinary-deadline")),"ordinary-deadline-create");long id=created.entityRef().entityId();
+        var saved=business.updateForm(id,Map.of("$business",Map.of("requiredEndDate","2026-12-01","projectVersion",2)),created.newConcurrencyBasis(),"ordinary-deadline-save");
+        assertEquals(java.time.LocalDate.of(2026,12,1),business.get(id).getRequiredEndDate());assertEquals("save",saved.operationCode());
+        assertThrows(BusinessContractException.class,()->business.updateForm(id,Map.of("requiredEndDate","2026-12-02"),saved.newConcurrencyBasis(),"readonly-deadline"));
+        var confirmed=business.confirm(id,saved.newConcurrencyBasis(),"ordinary-deadline-confirm");
+        assertThrows(RuntimeException.class,()->business.updateForm(id,Map.of("$business",Map.of("requiredEndDate","2026-12-03","projectVersion",3)),confirmed.newConcurrencyBasis(),"confirmed-deadline"));
+        assertEquals(java.time.LocalDate.of(2026,12,1),business.get(id).getRequiredEndDate());
+    }
     @Test void failedInitialFormBindingRollsBackTheInsertedBusinessAndChildren() {
         var input=new LinkedHashMap<String,Object>(values("bad-binding"));
         input.put("$binding",Map.of("expectedVersion",0,"formRevisionId",99L,"fieldBindings",Map.of("name","name"),"bindRemainingFields",true));

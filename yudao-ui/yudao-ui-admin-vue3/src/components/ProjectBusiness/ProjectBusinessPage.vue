@@ -148,8 +148,7 @@ const save = async () => {
     if(!current.value)Object.assign(input,{...scopedInitial.value,...input})
     if(!current.value && props.scopeProjectId!=null)input.projectId=props.scopeProjectId
     if(current.value && !presentation.value){message.warning('请先重新读取业务表单');return}
-    const formSave=!!current.value && (!!presentation.value?.layout || !!input.$extensions || !!input.$binding || !!input.$business)
-    const result=await state.execute(current.value ? formSave?'save-form':'save' : 'create',formSave?{values:input}:input)
+    const result=await state.execute(current.value ? 'save' : 'create',input)
     if(result && result.outcome!=='FAILED')editing.value=true
     return result
   }

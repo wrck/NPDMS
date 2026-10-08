@@ -197,7 +197,18 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     }
     @Override public final BusinessOperationReceipt update(Long id, E source, Set<String> changedFields, Long version, String key) {
         var values = inputValues(source, Objects.requireNonNull(changedFields));
-        return write("save", id, version, values, key, actor -> {
+        return updateRecord(id,values,null,values,version,key);
+    }
+    @Override public final BusinessOperationReceipt updateForm(Long id,Map<String,Object> values,Long version,String key){
+        var form=formWrite(values);
+        var fixed=inputValues(binding.create(form.fixed()),form.fixed().keySet());
+        var intent=new LinkedHashMap<String,Object>(fixed);
+        for(String part:List.of("$binding","$extensions","$business"))if(values.containsKey(part))intent.put(part,values.get(part));
+        return updateRecord(id,fixed,form,intent,version,key);
+    }
+    private BusinessOperationReceipt updateRecord(Long id,Map<String,Object> values,FormWrite form,
+            Map<String,Object> intent,Long version,String key){
+        return write("save", id, version, intent, key, actor -> {
             E before = current(id, actor); requireVersion(before, version);
             E proposed = copy(before); binding.patch(proposed, values); beforeUpdate(copy(before), proposed);
             checkIdentity(proposed, before); requireProject(proposed);
@@ -205,6 +216,13 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
             return inBusinessOperation("save", before, proposed, () -> {
             E locked = lock(id, actor); requireVersion(locked, version);
             if (!binding.values(before).equals(binding.values(locked))) throw invalid("CONCURRENCY_CONFLICT", "Business changed while its scopes were locked");
+            if(form!=null){
+                Long authorizedProject=proposed.getProjectId();
+                beforeFormWrite(copy(locked),proposed,form.business());
+                checkIdentity(proposed,locked);
+                if(!Objects.equals(authorizedProject,proposed.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","Form command cannot change the authorized project");
+                storeFormWrite(formTarget(locked),version,form);
+            }
             persistBusinessChange(before,proposed,"save");
             return saved(proposed, "save", ReceiptOutcome.SAVED);
             });

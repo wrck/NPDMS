@@ -42,7 +42,7 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
         return success(service.createForm(request.values(),request.idempotencyKey()));
     }
     @PutMapping("/{id}") public CommonResult<BusinessOperationReceipt> update(@PathVariable @Positive Long id,@Valid @RequestBody WriteBody request) {
-        return success(service.update(id,service.input(request.values()),request.values().keySet(),request.version(),request.idempotencyKey()));
+        return success(service.updateForm(id,request.values(),request.version(),request.idempotencyKey()));
     }
     @DeleteMapping("/{id}") public CommonResult<BusinessOperationReceipt> delete(@PathVariable @Positive Long id,
             @RequestParam @PositiveOrZero Long version,@RequestHeader("Idempotency-Key") @NotBlank @Size(max=128) String key) {
