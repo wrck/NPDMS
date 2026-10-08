@@ -1,8 +1,8 @@
 <template>
   <ProjectBusinessPage ref="page" api-base="/api/v1/pms/site-survey-business" title="工勘" deliverable-type="ATTACHMENT"
-    dialog-editor :scope-project-id="scopeProjectId" :prepare-create="prepareCreate" :form-appearance="appearance"
+    :dialog-editor="scopeProjectId!=null" :scope-project-id="scopeProjectId" :prepare-create="scopeProjectId==null?undefined:prepareCreate" :form-appearance="scopeProjectId==null?undefined:appearance"
     :operation-allowed="allowed" :hidden-actions="['location','deadline']">
-    <template #list="list">
+    <template v-if="scopeProjectId!=null" #list="list">
       <SurveyBusinessList :rows="list.rows" :total="list.total" :page="list.page" :loading="list.loading" :project-id="scopeProjectId" :actions-for="list.actionsFor"
         @search="list.search" @create="list.create" @open="list.open" @action="list.action" @change-page="list.changePage" />
     </template>

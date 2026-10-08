@@ -53,8 +53,10 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertEquals(saved,business.update(id,business.input(patch),patch.keySet(),created.newConcurrencyBasis(),"direct-save"));
         assertThrows(BusinessContractException.class,()->business.update(id,business.input(patch),patch.keySet(),created.newConcurrencyBasis(),"stale"));
     }
-    @Test void presentationStatusAndOutsourceReferenceRemainReadOnly() {
-        for(String code:List.of("locationResolutionStatus","outsourceRequestId")) {
+    @Test void presentationStatusIsReadOnlyAndInternalOutsourceReferenceStaysPrivate() {
+        assertFalse(business.definition().fields().stream().anyMatch(field->field.code().equals("outsourceRequestId")));
+        assertThrows(BusinessContractException.class,()->business.input(Map.of("outsourceRequestId",99L)));
+        for(String code:List.of("locationResolutionStatus")) {
             var field=business.definition().fields().stream().filter(value->value.code().equals(code)).findFirst().orElseThrow();
             assertTrue(field.readable());assertFalse(field.writable());
             assertThrows(BusinessContractException.class,()->business.input(Map.of(code,code.equals("outsourceRequestId")?99L:"RESOLVED")));
