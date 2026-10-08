@@ -129,8 +129,7 @@ class DirectBusinessCrudMySqlTest {
         String ddl=java.nio.file.Files.readString(java.nio.file.Path.of("../sql/migrations/V248__entity_capabilities_and_requirement_revision.sql"));
         for(String table:List.of("plt_entity_extension_value","plt_entity_form_binding","plt_entity_extension_definition"))runtime.jdbc.execute("DROP TABLE IF EXISTS "+table);
         for(String table:List.of("plt_entity_extension_definition","plt_entity_extension_value","plt_entity_form_binding")) {
-            var match=java.util.regex.Pattern.compile("CREATE TABLE "+table+" .*?;",java.util.regex.Pattern.DOTALL).matcher(ddl);
-            assertTrue(match.find(),"Authoritative capability DDL missing: "+table);runtime.jdbc.execute(match.group());
+            runtime.jdbc.execute(capabilityTableDdl(ddl,table));
         }
         for(var mapper:List.of(cn.iocoder.yudao.module.pms.platform.dal.mysql.entity.EntityCapabilityMapper.class,
                 cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateMapper.class,
@@ -146,6 +145,13 @@ class DirectBusinessCrudMySqlTest {
         context.registerBean(cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormBusinessInstanceService.class);
         context.registerBean(cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormBusinessInstanceApiImpl.class);
         context.registerBean(cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormService.class);
+    }
+    static String capabilityTableDdl(String ddl,String table) {
+        // A quoted COMMENT contains a semicolon. Stop at the standalone CREATE closing line,
+        // not the first semicolon in the source text.
+        var match=java.util.regex.Pattern.compile("^CREATE TABLE "+java.util.regex.Pattern.quote(table)+" \\(.*?^\\);",java.util.regex.Pattern.DOTALL|java.util.regex.Pattern.MULTILINE).matcher(ddl);
+        if(!match.find())throw new IllegalArgumentException("Authoritative capability DDL missing: "+table);
+        return match.group();
     }
     @Test void inheritedFormUsesRealExtensionStorageAndRejectsStaleWrites() throws Exception {
         long id=createHttp("/api/v1/pms/it-direct-notes","{\"projectId\":99,\"title\":\"Form\"}","form-note");

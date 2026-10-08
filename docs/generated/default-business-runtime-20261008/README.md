@@ -77,3 +77,11 @@
 新增 Flyway `beforeEachMigrate` SQL 回调，在每个迁移前把当前连接的比较规则恢复为当前数据库的 `@@collation_database`。它不选择新的全库排序规则、不转换表列、不修改 V374 或其他历史迁移、不 repair/跳过版本。该候选必须在本机全新隔离库对全链原样验证，未验证前不宣称新建库迁移已通过。全库不同列排序规则治理的原 OPEN 决策不能仅凭这项连接修复直接关闭。
 
 依据：[Flyway 回调事件](https://documentation.red-gate.com/flyway/reference/callback-events)说明 `beforeEachMigrate` 在每个迁移前执行；SQL 回调放入当前迁移位置，由 Flyway 执行。
+
+### 回调候选未通过，撤回并保留证据
+
+本机对 `9b275042` 验证：回调确实执行，但 V374 失败提前到第 31 行，`cfg.code = r.deliverable_code` 比较中 JSON_TABLE 输出为 unicode_ci，既有 acc 列为 0900_ai_ci。只恢复连接不能同时满足混用的两组列，因此撤回该回调文件，不把失败候选留作生效修复。
+
+全库/前置对齐策略仍需 `Q-MIG-COLLATION-20260930-001` 的显式决定。根会话已向用户建议沿用现有测试库 unicode_ci 并新增前置对齐迁移，尚未得到答复；无关的默认页、扩展和交付件浏览器复验继续。
+
+`983d7e75` 还暴露测试 DDL 提取器在 COMMENT 内分号截断的问题。已将提取边界改为 CREATE 语句独立结束行，增加 H2 解析执行烟测（仅将 MySQL bit literal 在该烟测中转换为 H2 字面量；真实 MySQL 执行源 DDL 不变）。原浏览器断言继续原样保留，真实结果待本机复验。
