@@ -69,3 +69,11 @@
 - 全新库原样迁移在 V374 第 72 行遇到 SQL1267 排序规则冲突，完整应用尚未启动。该问题已在 `Q-MIG-COLLATION-20260930-001` 登记，历史 V374 不修改，不执行 repair、跳版本或伪造历史。连接与列排序规则诊断单独进行，不把单个 MVC 夹具通过扩大为完整迁移和启动通过。
 
 首轮本机证据均在该独立工作树的 `.run/` 下：`acceptance-report.md`、`mysql-browser.log`、`default-live-failure.json`、`default-live-failure.png`、`full-migration.log`。真实模板任务的自动完成链和完整权限链仍待后续验收，任务没有标记完成。
+
+### V374 定位后的连接修复候选
+
+本机对照已证明 Flyway 11.10.5 的 `initSql` 支持但不能单独解锁：历史 V1/V19/V24/V35/V38 的 `SET NAMES utf8mb4` 会在连接建立后再次把连接及 `CAST(... AS CHAR)` 变为 `utf8mb4_0900_ai_ci`，与 unicode_ci 的材料列比较时复现 SQL1267。
+
+新增 Flyway `beforeEachMigrate` SQL 回调，在每个迁移前把当前连接的比较规则恢复为当前数据库的 `@@collation_database`。它不选择新的全库排序规则、不转换表列、不修改 V374 或其他历史迁移、不 repair/跳过版本。该候选必须在本机全新隔离库对全链原样验证，未验证前不宣称新建库迁移已通过。全库不同列排序规则治理的原 OPEN 决策不能仅凭这项连接修复直接关闭。
+
+依据：[Flyway 回调事件](https://documentation.red-gate.com/flyway/reference/callback-events)说明 `beforeEachMigrate` 在每个迁移前执行；SQL 回调放入当前迁移位置，由 Flyway 执行。
