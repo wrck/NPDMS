@@ -1226,7 +1226,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ### Q-MIG-COLLATION-20260930-001 — 主链全新空库构建在 V374 因跨表 collation 混用失败（迁出 V331 验证时发现）
 
-- Status: OPEN（BLOCKED_BY_SPEC：统一到哪个 collation 与整链对齐策略需需求方/DBA裁决）
+- Status: RESOLVED_FOR_SCOPED_IMPLEMENTATION（2026-10-08 已批准受影响列的 unicode_ci 前置对齐；实施和整链验证待完成）
 - Requirement IDs: 无单一代码归属；发现于 Q-MIG-V331-20260929-001 迁出实施的"主迁移链验证"
 - Area: 数据库迁移 / 全新空库构建 / 字符集治理
 - Question: 主迁移链在 compose 同版 mysql:8.4.10（--collation-server=utf8mb4_unicode_ci）全新空库构建时，V1～V373 全部成功，V374 p06r 统一交付数据迁移的 INSERT…SELECT 跨表 JOIN 报 1267 Illegal mix of collations (utf8mb4_unicode_ci,IMPLICIT) 和 (utf8mb4_0900_ai_ci,IMPLICIT)。根源是链内建表语句的 collation 声明不一致：`DEFAULT CHARSET=utf8mb4` 不带 COLLATE（如 V166 acc_* 族）在 MySQL 8 落 charset 默认 utf8mb4_0900_ai_ci，不带 charset（如 V361 plt_delivery_* 族）落库默认 unicode_ci，V92 plt_file_reference 显式 unicode_ci；V374 的 acc_*×plt_file_reference/plt_delivery_* 比较触发混用。
@@ -1238,6 +1238,7 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommended technical default: A（与既有库实况一致，既有库零动作）。
 - Blocking scope: 阻断"单一主链支持全新空库构建"最终达成与 fresh lineage 后续升级到 V372～V374 区间；不阻断既有库日常升级、不回退 Q-MIG-V331-20260929-001 的迁出结论。
 - Decision owner: 需求方（涉及整链字符集治理基线）。
+- Resolution 2026-10-08: 用户明确批准沿用现有测试库 utf8mb4_unicode_ci 方向并新增前置对齐，不改已执行历史 SQL。实施范围收窄为 V374 受影响的非二进制比较列；Flowable 与其他显式二进制列保持既有语义。先验证本机独占空库整链、唯一性冲突保护及无关列不变，已越过 V374 的源库沿独立真实历史核对，不通过 repair/outOfOrder 改写。验证未通过前不宣称整链完成。
 
 ## 施工计划批次再审批与已完成任务历史链接的解析口径（2026-09-29 S2 工作区 OWNER_FACT_UNAVAILABLE）
 

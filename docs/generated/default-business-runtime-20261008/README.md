@@ -102,3 +102,9 @@
 ### 当前排序规则实况
 
 本机对 information_schema 的只读查询确认源库默认 utf8mb4_unicode_ci，但 3783 个字符列中：unicode_ci 3224、utf8mb3_bin 451、utf8mb4_0900_ai_ci 37、utf8mb4_0900_bin 24、utf8mb4_bin 44、ascii_bin 3。二进制列和 Flowable 列有独立比较语义，不能盲目全库转换。待用户裁决的前置修复必须限定受影响比较及保留这些语义；截至本报告没有得到批准，也没有实施列转换。其他已通过验收结果不依赖该决策。
+
+## 2026-10-08 10:52 用户批准后的前置修复
+
+用户明确批准沿用现有数据库 unicode_ci 方向、新增前置对齐且不改历史 SQL。新增 `V373_5__delivery_migration_comparison_collation.sql`：只对齐 V374 JSON_TABLE 比较涉及的 `acc_project_deliverable.deliverable_code`，保留列长度、非空约束和注释，检查目标比较规则下项目/租户唯一性冲突；未知列定义、二进制或未批准规则时失败关闭。既有已为 unicode_ci 的列不修改。末尾仅恢复当前连接的比较规则，使后续 V374 的 CAST 与目标列一致。
+
+不转换 Flowable 或二进制列，不改原 V374、全局设置、原库数据或 Flyway 历史。已越过 V374 的安装不能靠 outOfOrder/repair 强行套用；其迁移谱系必须单独核对。本轮先在本机全新独占临时库执行整链及保护检查，通过后继续完整应用与模板链验证。批准不等于这些检查已经通过。
