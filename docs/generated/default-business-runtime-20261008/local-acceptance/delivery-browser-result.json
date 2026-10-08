@@ -1,0 +1,374 @@
+{
+  "scope": "Actual default Host, upload and collection SFCs; production MVC/method-security/default services/MySQL. Authenticated transport, project scope and storage are fixture ports; no full boot/login/migration claim.",
+  "checks": [
+    {
+      "name": "first default business upload / material / common completion / title edit",
+      "passed": true,
+      "database": {
+        "materials": [
+          {
+            "id": 1,
+            "project_id": 99,
+            "business_type_code": "IT_DECLARED_NOTE",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 1,
+            "file_artifact_id": "2108136849216208898",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 1,
+            "deleted": false
+          }
+        ],
+        "files": 1,
+        "requirements": 0,
+        "submissions": 0,
+        "firstCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "1",
+            "projectId": 99,
+            "businessType": "IT_DECLARED_NOTE",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "Edited in default view",
+            "fileName": "first.txt",
+            "fileReferenceId": "1",
+            "fileArtifactId": "2108136849216208898",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453967110,
+            "version": 1,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "declaredNote",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "secondCompletion": {
+          "completed": false,
+          "latest": null
+        },
+        "firstTitle": "first"
+      }
+    },
+    {
+      "name": "second ordinary business with zero adapter/service/API; real registration failure rollback and same-request retry",
+      "passed": true,
+      "failed": {
+        "materials": [
+          {
+            "id": 1,
+            "project_id": 99,
+            "business_type_code": "IT_DECLARED_NOTE",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 1,
+            "file_artifact_id": "2108136849216208898",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 1,
+            "deleted": false
+          }
+        ],
+        "files": 1,
+        "requirements": 0,
+        "submissions": 0,
+        "firstCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "1",
+            "projectId": 99,
+            "businessType": "IT_DECLARED_NOTE",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "Edited in default view",
+            "fileName": "first.txt",
+            "fileReferenceId": "1",
+            "fileArtifactId": "2108136849216208898",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453967110,
+            "version": 1,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "declaredNote",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "secondCompletion": {
+          "completed": false,
+          "latest": null
+        },
+        "firstTitle": "first"
+      },
+      "database": {
+        "materials": [
+          {
+            "id": 1,
+            "project_id": 99,
+            "business_type_code": "IT_DECLARED_NOTE",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 1,
+            "file_artifact_id": "2108136849216208898",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 1,
+            "deleted": false
+          },
+          {
+            "id": 2,
+            "project_id": 99,
+            "business_type_code": "IT_SECOND_DELIVERY",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 3,
+            "file_artifact_id": "2108136857944555521",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 0,
+            "deleted": false
+          }
+        ],
+        "files": 2,
+        "requirements": 0,
+        "submissions": 0,
+        "firstCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "1",
+            "projectId": 99,
+            "businessType": "IT_DECLARED_NOTE",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "Edited in default view",
+            "fileName": "first.txt",
+            "fileReferenceId": "1",
+            "fileArtifactId": "2108136849216208898",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453967110,
+            "version": 1,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "declaredNote",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "secondCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "2",
+            "projectId": 99,
+            "businessType": "IT_SECOND_DELIVERY",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "second.txt",
+            "fileName": "second.txt",
+            "fileReferenceId": "3",
+            "fileArtifactId": "2108136857944555521",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453969007,
+            "version": 0,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "secondDelivery",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "firstTitle": "first"
+      }
+    },
+    {
+      "name": "project/type collection displays the same two records and isolates project101",
+      "passed": true
+    },
+    {
+      "name": "exact echo / logical delete / common completion invalidation / reupload chooses latest without overwriting business values",
+      "passed": true,
+      "deleted": {
+        "materials": [
+          {
+            "id": 1,
+            "project_id": 99,
+            "business_type_code": "IT_DECLARED_NOTE",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 1,
+            "file_artifact_id": "2108136849216208898",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 1,
+            "deleted": false
+          },
+          {
+            "id": 2,
+            "project_id": 99,
+            "business_type_code": "IT_SECOND_DELIVERY",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 3,
+            "file_artifact_id": "2108136857944555521",
+            "file_version_no": 1,
+            "status": "WITHDRAWN",
+            "version": 1,
+            "deleted": true
+          }
+        ],
+        "files": 2,
+        "requirements": 0,
+        "submissions": 0,
+        "firstCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "1",
+            "projectId": 99,
+            "businessType": "IT_DECLARED_NOTE",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "Edited in default view",
+            "fileName": "first.txt",
+            "fileReferenceId": "1",
+            "fileArtifactId": "2108136849216208898",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453967110,
+            "version": 1,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "declaredNote",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "secondCompletion": {
+          "completed": false,
+          "latest": null
+        },
+        "firstTitle": "first"
+      },
+      "database": {
+        "materials": [
+          {
+            "id": 1,
+            "project_id": 99,
+            "business_type_code": "IT_DECLARED_NOTE",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 1,
+            "file_artifact_id": "2108136849216208898",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 1,
+            "deleted": false
+          },
+          {
+            "id": 2,
+            "project_id": 99,
+            "business_type_code": "IT_SECOND_DELIVERY",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 3,
+            "file_artifact_id": "2108136857944555521",
+            "file_version_no": 1,
+            "status": "WITHDRAWN",
+            "version": 1,
+            "deleted": true
+          },
+          {
+            "id": 3,
+            "project_id": 99,
+            "business_type_code": "IT_SECOND_DELIVERY",
+            "entity_id": 1,
+            "type_code": "REPORT",
+            "source_kind": "UPLOAD",
+            "material_kind": "FILE",
+            "file_reference_id": 4,
+            "file_artifact_id": "2108136864835796994",
+            "file_version_no": 1,
+            "status": "ACTIVE",
+            "version": 0,
+            "deleted": false
+          }
+        ],
+        "files": 3,
+        "requirements": 0,
+        "submissions": 0,
+        "firstCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "1",
+            "projectId": 99,
+            "businessType": "IT_DECLARED_NOTE",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "Edited in default view",
+            "fileName": "first.txt",
+            "fileReferenceId": "1",
+            "fileArtifactId": "2108136849216208898",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453967110,
+            "version": 1,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "declaredNote",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "secondCompletion": {
+          "completed": true,
+          "latest": {
+            "id": "3",
+            "projectId": 99,
+            "businessType": "IT_SECOND_DELIVERY",
+            "businessEntityKey": "1",
+            "deliverableType": "REPORT",
+            "title": "second-new.txt",
+            "fileName": "second-new.txt",
+            "fileReferenceId": "4",
+            "fileArtifactId": "2108136864835796994",
+            "fileVersionNo": 1,
+            "uploadedAt": 1791453970626,
+            "version": 0,
+            "status": "ACTIVE",
+            "ownerModule": "IT",
+            "entityType": "secondDelivery",
+            "materialKind": "FILE",
+            "sourceKind": "UPLOAD",
+            "editable": true
+          }
+        },
+        "firstTitle": "first"
+      }
+    },
+    {
+      "name": "shared default page queries succeed before and after business switching",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

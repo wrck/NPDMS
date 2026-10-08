@@ -1,0 +1,35 @@
+{
+  "exit_code": 0,
+  "suites": [
+    {
+      "name": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DefaultBusinessDeliveryBrowserMySqlTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DefaultBusinessDeliveryMySqlTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DirectBusinessBrowserMySqlTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.iocoder.yudao.module.pms.platform.service.businessmodel.declared.DirectBusinessCrudMySqlTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "direct_http_count": 77,
+  "all_direct_http_200_business_code_0": true
+}
