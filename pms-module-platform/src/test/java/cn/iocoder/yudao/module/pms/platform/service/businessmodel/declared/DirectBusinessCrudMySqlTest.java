@@ -116,11 +116,51 @@ class DirectBusinessCrudMySqlTest {
         var owners=new DirectBusinessOwners(context.getBeanProvider(ResolvableType.forClass(ProjectBusinessService.class)),caller,runtime.projectApi,fixture.projects);
         context.getBeanFactory().registerSingleton("directBusinessOwners",owners);
         notes=context.getBean(NoteService.class);others=context.getBean(OtherService.class);specials=context.getBean(SpecialService.class);
+        installRealFormCapabilities(permissions);
         mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class),context.getBean(OtherController.class),context.getBean(SpecialController.class),context.getBean(cn.iocoder.yudao.module.pms.platform.controller.admin.business.ProjectBusinessDeliveryController.class)).build();
         // New direct business APIs require their own permissions, not the old model workbench gate.
         runtime.jdbc.update("DELETE rm FROM system_role_menu rm JOIN system_menu m ON m.id=rm.menu_id WHERE rm.role_id=701 AND m.permission IN ('pms:business-model:operate','pms:business-model:query')");
         assertTrue(context.getBean(BusinessModelCatalog.class).find("IT","directNote").isEmpty());
         assertTrue(context.getBean(BusinessModelCatalog.class).find("IT","directOther").isEmpty());
+    }
+    /** The inherited page always reads /form: exercise production services, not empty API stubs. */
+    private void installRealFormCapabilities(PermissionApiImpl permissions) throws Exception {
+        var runtime=fixture.runtime;var context=fixture.context;
+        String ddl=java.nio.file.Files.readString(java.nio.file.Path.of("../sql/migrations/V248__entity_capabilities_and_requirement_revision.sql"));
+        for(String table:List.of("plt_entity_extension_value","plt_entity_form_binding","plt_entity_extension_definition"))runtime.jdbc.execute("DROP TABLE IF EXISTS "+table);
+        for(String table:List.of("plt_entity_extension_definition","plt_entity_extension_value","plt_entity_form_binding")) {
+            var match=java.util.regex.Pattern.compile("CREATE TABLE "+table+" .*?;",java.util.regex.Pattern.DOTALL).matcher(ddl);
+            assertTrue(match.find(),"Authoritative capability DDL missing: "+table);runtime.jdbc.execute(match.group());
+        }
+        for(var mapper:List.of(cn.iocoder.yudao.module.pms.platform.dal.mysql.entity.EntityCapabilityMapper.class,
+                cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateMapper.class,
+                cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateRevisionMapper.class,
+                cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.PlatformDynamicFormInstanceMapper.class))
+            context.getBeanFactory().registerSingleton(mapper.getSimpleName(),runtime.sessions.getMapper(mapper));
+        context.getBeanFactory().registerSingleton("directPermissions",permissions);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.support.revision.InheritedRevisionAdapterFactory.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.entity.EntityProviderRegistry.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.entity.EntityExtensionService.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormSchemaService.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormBusinessObjectPolicyProviderRegistry.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormBusinessInstanceService.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormBusinessInstanceApiImpl.class);
+        context.registerBean(cn.iocoder.yudao.module.pms.platform.service.entity.EntityFormService.class);
+    }
+    @Test void inheritedFormUsesRealExtensionStorageAndRejectsStaleWrites() throws Exception {
+        long id=createHttp("/api/v1/pms/it-direct-notes","{\"projectId\":99,\"title\":\"Form\"}","form-note");
+        mvc.perform(get("/api/v1/pms/it-direct-notes/"+id+"/form"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.extensions.version").value(0));
+        var runtime=fixture.runtime;
+        runtime.jdbc.update("INSERT INTO system_menu(id,name,permission,type,sort,parent_id,status) VALUES(982999,'Extension definition','pms:dynamic-form-template:manage',3,0,0,0)");
+        runtime.jdbc.update("INSERT INTO system_role_menu(role_id,menu_id,tenant_id) VALUES(701,982999,7)");
+        var api=fixture.context.getBean(cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi.class);
+        var definition=api.publishDefinition(7L,"IT","directNote",List.of(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi.Definition("flag","Flag",cn.iocoder.yudao.module.pms.platform.api.entity.EntityField.Type.BOOLEAN,false,null,List.of())),new cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor(7L,880001L,"form-test"));
+        notes.saveForm(id,Map.of("$extensions",Map.of("definitionRevisionId",definition.id(),"expectedVersion",0,"values",Map.of("flag",true))),0L,"form-save");
+        assertEquals(true,notes.form(id).extensions().fields().get("flag"));
+        assertThrows(RuntimeException.class,()->notes.saveForm(id,Map.of("$extensions",Map.of("definitionRevisionId",definition.id(),"expectedVersion",0,"values",Map.of("flag",false))),1L,"stale-form"));
+        assertEquals(true,notes.form(id).extensions().fields().get("flag"));
+        assertEquals(1,runtime.jdbc.queryForObject("SELECT COUNT(*) FROM plt_entity_extension_value",Integer.class));
     }
     @AfterEach void close(){if(fixture!=null)fixture.close();if(validators!=null)validators.close();}
     long createHttp(String route,String values,String key) throws Exception {

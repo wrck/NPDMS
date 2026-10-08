@@ -56,3 +56,16 @@
 - 类型检查：`.run/default-runtime-20261008/typecheck-final.log` 和构建后的 `typecheck-after-build.log`，均为空错误输出且退出码 0。
 - 构建：`.run/default-runtime-20261008/build-test.log`，`vite build --mode test` 成功；离线图标目录检查成功。构建提示已有环境标题变量缺失、Browserslist 数据过期及体积警告，不将这些警告隐藏为无告警构建。
 - 这些日志保留于本次工作区；仓库内保留实际测试源码与本报告。浏览器截图不存在，因为尚未进行本机真实浏览器验收。
+
+## 本机实际验收增量（2026-10-08，首轮）
+
+本机通过官方执行审批通道恢复终端。在指定仓库下建立 `.run/acceptance-313a63df-20261008` 独立 detached 工作树，固定 `313a63df`；原工作树 34 项修改、未跟踪文件及本地独有 2 个提交均保留。没有用分叉工作树冒充目标版本。
+
+- 完整后端构建、冻结锁文件安装前端依赖通过。
+- 真实本机 Chromium 与 MySQL 组合：15 项通过、1 项失败、0 跳过。上传回滚、幂等重放、原上传及归集通过。
+- 失败：`DirectBusinessBrowserMySqlTest#inheritedPagesCreateEditUploadCollectAndDelete` 的 `/form` 请求因缺少 `EntityExtensionApi` 实例而失败，编辑保存请求未发出。
+- 取证确认是该真实浏览器测试的精简应用装配遗漏：基础夹具 `capabilities=false`，没有注册扩展、布局及动态表单的实际服务。不能据此把完整生产应用判定为没有扩展能力，也不能用生产降级返回空数据来掩盖测试装配错误。
+- 根会话补齐该夹具的生产 `EntityExtensionService`、`EntityFormService`、动态表单服务、继承字段 Provider 和真实 Mapper；扩展表使用 V248 原始 DDL，新增 `/form`、扩展持久化及陈旧写入拒绝检查。原浏览器断言保持不变。修复后须在本机重跑，编译通过不是浏览器通过。
+- 全新库原样迁移在 V374 第 72 行遇到 SQL1267 排序规则冲突，完整应用尚未启动。该问题已在 `Q-MIG-COLLATION-20260930-001` 登记，历史 V374 不修改，不执行 repair、跳版本或伪造历史。连接与列排序规则诊断单独进行，不把单个 MVC 夹具通过扩大为完整迁移和启动通过。
+
+首轮本机证据均在该独立工作树的 `.run/` 下：`acceptance-report.md`、`mysql-browser.log`、`default-live-failure.json`、`default-live-failure.png`、`full-migration.log`。真实模板任务的自动完成链和完整权限链仍待后续验收，任务没有标记完成。
