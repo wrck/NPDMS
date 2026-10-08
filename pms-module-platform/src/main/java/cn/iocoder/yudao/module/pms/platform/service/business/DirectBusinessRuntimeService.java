@@ -19,6 +19,7 @@ public class DirectBusinessRuntimeService implements ProjectBusinessRuntimeApi {
     private final DirectBusinessOwners owners;
     private final DeliveryMaterialMapper materials;
     private final FileEvidenceApi files;
+    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
     @Override public List<Definition> definitions(){return owners.definitions().stream().map(model->owners.byCode(model.stableCode()).orElseThrow().runtimeDefinition()).toList();}
     private ProjectBusinessService<?> service(Type type){
         var exact=owners.byIdentity(type.ownerModule(),type.entityType());if(exact.isPresent())return exact.get();
@@ -34,7 +35,17 @@ public class DirectBusinessRuntimeService implements ProjectBusinessRuntimeApi {
     @Override public Set<String> actions(UserContext context){var service=service(context.type());return service.runtimeActions(canonical(context,service));}
     @Override public Observation inspectForUser(UserContext context,Long id,boolean lock,String expectedVersion){var service=service(context.type());return service.runtimeForUser(canonical(context,service),id,lock,expectedVersion);}
     @Override public DeliveryFacts deliveryFacts(Query request,boolean lock){
-        if(lock)BusinessEntitySaveSupport.requireTransaction();
+        if(lock){
+            BusinessEntitySaveSupport.requireTransaction();
+            return readDeliveryFacts(request,true);
+        }
+        // File evidence deliberately requires a transaction even for reads. Interactive
+        // task/context queries have no caller transaction; keep the whole observation together.
+        var read=new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        read.setReadOnly(true);
+        return read.execute(status->readDeliveryFacts(request,false));
+    }
+    private DeliveryFacts readDeliveryFacts(Query request,boolean lock){
         var service=service(request.type());service.runtimeObservation(canonical(request,service),lock);
         var model=service.definition();var code=model.stableCode();var query=new DefaultDeliveryListQuery();
         query.setTenantId(request.tenantId());query.setProjectId(request.projectId());query.setBusinessType(code);query.setEntityId(request.entityId());
