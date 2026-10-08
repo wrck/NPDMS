@@ -83,6 +83,23 @@ class DirectBusinessInheritanceTest {
     NoteMapper notes;OtherMapper others;SpecialMapper specials;
     BusinessAccessGuard permissions;BusinessScopeAccess projects;DefaultBusinessDeliveryApi deliveries;
     final Map<Long,Note> noteRows=new HashMap<>();final Map<Long,Other> otherRows=new HashMap<>();final Map<Long,Special> specialRows=new HashMap<>();
+    @Test void thinEntityInheritsNamedConfigurationCatalogWithoutABusinessAdapter(){
+        var catalog=mock(cn.iocoder.yudao.module.pms.platform.api.entity.EntityPresentationApi.class);
+        var dynamic=mock(cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi.class);
+        context.getBeanFactory().registerSingleton("namedConfigurationCatalog",catalog);
+        context.getBeanFactory().registerSingleton("namedConfigurationValidation",dynamic);
+        var candidate=new cn.iocoder.yudao.module.pms.platform.api.entity.EntityPresentationApi.Presentation(91L,"Named note fields",92L,1,1,"FORM_CREATE_ELEMENT_PLUS","3","3","{}","[]",List.of());
+        when(catalog.listForType(any())).thenReturn(List.of(candidate));
+        var fact=new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact(7L,
+                new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey("IT","directNote"),91L,92L,1,1,"directNote",
+                cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE,"FORM_CREATE_ELEMENT_PLUS","3","3","{}","[]",List.of(),null);
+        when(dynamic.inspectRevisionForUsage(any())).thenReturn(fact);
+        var options=context.getBean(NoteService.class).formOptions(99L);
+        assertEquals(1,options.size());assertEquals("Named note fields",options.getFirst().name());assertEquals(92L,options.getFirst().layout().binding().formRevisionId());
+        verify(projects).requireReadable(eq(99L),any());
+        verify(dynamic).inspectRevisionForUsage(argThat(query->query.providerKey().equals(fact.providerKey())&&query.requiredUsage().equals("directNote")));
+        assertTrue(noteRows.isEmpty());assertEquals(0,NoteService.class.getDeclaredMethods().length);
+    }
     @BeforeEach void setup() {
         notes=mock(NoteMapper.class);others=mock(OtherMapper.class);specials=mock(SpecialMapper.class);
         permissions=mock(BusinessAccessGuard.class);projects=mock(BusinessScopeAccess.class);deliveries=mock(DefaultBusinessDeliveryApi.class);

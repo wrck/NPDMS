@@ -35,6 +35,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     @Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi> fieldConfigurations;
     @Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi> dynamicForms;
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityFormApi> formPorts;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<EntityPresentationApi> presentationPorts;
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityExtensionApi> extensionPorts;
 
     @PostConstruct
@@ -316,6 +317,38 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected EntityDataRef formTarget(E row){return EntityDataRef.current(identity(row));}
     private EntityFormApi formPort(){var port=formPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Form capability is unavailable");return port;}
     private EntityExtensionApi extensionPort(){var port=extensionPorts.getIfAvailable();if(port==null)throw invalid("CAPABILITY_UNAVAILABLE","Extension capability is unavailable");return port;}
+    /** Legacy types may override names/mappings; ordinary inherited businesses need no catalog adapter. */
+    protected cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey formConfigurationProvider(){return providerKey();}
+    protected String formConfigurationCategory(){return formUsage();}
+    protected Map<String,String> formConfigurationBindings(cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact schema){
+        var result=new LinkedHashMap<String,String>();
+        schema.fields().stream().filter(field->!field.controlledFile()).forEach(field->result.put(field.fieldKey(),field.fieldKey()));
+        return result;
+    }
+    @Override public final List<BusinessFormOption> formOptions(Long projectId){
+        var caller=actor();authorizeModelRead(caller,"form");
+        if(projectId==null || projectId<=0)throw invalid("PROJECT_REQUIRED","Business project is required");
+        defaults.projects().requireReadable(projectId,caller);
+        var catalog=presentationPorts.getIfAvailable();if(catalog==null)return List.of();
+        var validator=dynamicForms.getIfAvailable();if(validator==null)throw invalid("CAPABILITY_UNAVAILABLE","Published form validation is unavailable");
+        var options=new ArrayList<BusinessFormOption>();
+        for(var candidate:catalog.listForType(new EntityPresentationApi.TypeQuery(caller,runtimeDefinition().type(),projectId,formConfigurationCategory()))){
+            try{
+                var checked=validator.inspectRevisionForUsage(new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery(
+                        caller.tenantId(),caller.userId(),formConfigurationProvider(),candidate.revisionId(),formConfigurationCategory(),
+                        cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction.REVISION_FROZEN_USE,candidate.version()));
+                if(checked==null)continue;
+                var fieldBindings=formConfigurationBindings(checked);
+                if(new HashSet<>(fieldBindings.values()).size()!=fieldBindings.size())continue;
+                var binding=new EntityFormApi.Binding(checked.templateRevisionId(),null,fieldBindings,0);
+                options.add(new BusinessFormOption(candidate.name(),new EntityFormApi.Layout(binding,checked.templateId(),checked.revisionNo(),checked.revisionFactVersion(),
+                        checked.engineCode(),checked.designerVersion(),checked.rendererVersion(),checked.formConfJson(),checked.formRulesJson(),checked.fields())));
+            }catch(cn.iocoder.yudao.framework.common.exception.ServiceException | BusinessContractException incompatible){
+                // An unauthorized/incompatible named configuration is not offered for this business.
+            }
+        }
+        return List.copyOf(options);
+    }
     protected Map<String,Object> formContext(E row){return Map.of();}
     protected BusinessFormData defaultForm(Long projectId){return new BusinessFormData(null,new EntityExtensionApi.Values(null,Map.of(),0),List.of());}
     @Override public final BusinessFormData formDefaults(Long projectId){

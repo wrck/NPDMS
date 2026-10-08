@@ -51,6 +51,7 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
     @GetMapping("/receipts/{key}") public CommonResult<BusinessOperationReceipt> receipt(@PathVariable String key,@RequestParam String operation) {
         return success(service.receipt(operation,key));
     }
+    @GetMapping("/form-options") public CommonResult<java.util.List<BusinessFormOption>> formOptions(@RequestParam @Positive Long projectId){return success(service.formOptions(projectId));}
     @GetMapping("/form-defaults") public CommonResult<BusinessFormData> formDefaults(@RequestParam @Positive Long projectId){return success(service.formDefaults(projectId));}
     @GetMapping("/{id}/form") public CommonResult<BusinessFormData> form(@PathVariable @Positive Long id){return success(service.form(id));}
     @PostMapping("/{id}/save-form") public CommonResult<BusinessOperationReceipt> saveForm(@PathVariable @Positive Long id,@Valid @RequestBody WriteBody request){

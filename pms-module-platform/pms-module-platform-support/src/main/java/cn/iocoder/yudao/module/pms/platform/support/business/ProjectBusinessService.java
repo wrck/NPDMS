@@ -31,6 +31,7 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     BusinessOperationReceipt createForm(Map<String,Object> values,String idempotencyKey);
     BusinessOperationReceipt updateForm(Long id,Map<String,Object> values,Long version,String idempotencyKey);
     BusinessFormData formDefaults(Long projectId);
+    java.util.List<BusinessFormOption> formOptions(Long projectId);
     BusinessOperationReceipt update(Long id, E values, Set<String> changedFields, Long version, String idempotencyKey);
     BusinessOperationReceipt delete(Long id, Long version, String idempotencyKey);
     BusinessOperationReceipt receipt(String operation, String idempotencyKey);

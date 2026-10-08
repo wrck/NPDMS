@@ -57,6 +57,11 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     @Override protected cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef formTarget(SiteSurveyEntityDO row){
         return cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef(row.getTenantId(),"SOL","SITE_SURVEY",row.getId()));
     }
+    @Override protected cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey formConfigurationProvider(){
+        return new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey("SOL","SITE_SURVEY");
+    }
+    @Override protected String formConfigurationCategory(){return "SITE_SURVEY";}
+    @Override protected Map<String,String> formConfigurationBindings(cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact schema){return forms.fieldBindings(schema);}
     @Override protected cn.iocoder.yudao.module.pms.platform.support.business.BusinessFormData defaultForm(Long projectId){
         var schema=forms.defaultSchema();
         var layout=new cn.iocoder.yudao.module.pms.platform.api.entity.EntityFormApi.Layout(

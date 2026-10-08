@@ -56,3 +56,7 @@
 默认 `PUT /{id}` 现在接收固定字段及可选 `$binding` / `$extensions` / `$business`，复用同一更新事务、项目范围、锁、幂等 `save` 回执和 afterUpdate。前端统一保存不再根据是否有扩展值切换到领域 `save-form`；旧接口保留兼容。新测试覆盖普通 CRUD 同时保存主体/子表/扩展、回执重放、失败整体回滚、领域工期命令与只读限制。此项只收敛保存入口，不代表命名配置、子表 Tab 和规则条件入口已经完成。
 
 该保存入口候选前端 25 项相关测试、vue-tsc 与 Vite 构建（40.33 秒）通过；新增后端及真实 PUT 保存尚待本机执行。原 save-form 回执兼容保持，不冒充已完成迁移验收。
+
+### 2026-10-08 17:56 未完成代码保全
+
+用户要求提交并推送全部待提交代码，以便交接。另有一组命名配置 WIP 一并保存：EntityPresentationApi.listForType、默认 /form-options、BusinessFormOption、工勘原字段映射覆盖、相应测试及前端 ProjectBusinessForm 候选。该组件尚未接入 ProjectBusinessPage / SurveyFullCaptureForm；选择状态、未保存输入保留、首次绑定/扩展定义切换及只读加载还未验证，不能据代码存在宣称全链路完成。此次 WIP 未运行后端编译、前端类型检查或浏览器验收；33e22ed4 的 86 项通过不能覆盖此后改动。后续先按交接职责/钩子清单复核，再继续实施。
