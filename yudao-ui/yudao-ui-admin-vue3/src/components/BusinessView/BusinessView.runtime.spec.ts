@@ -20,6 +20,7 @@ vi.mock('@/utils/permission', () => ({ checkPermi: () => true, checkRole: () => 
 
 // The custom renderer has no DOM; keyboard/ARIA integration is covered by its DOM suite.
 vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboardRows', () => ({ vFormCreateKeyboardRows: {} }))
+vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
