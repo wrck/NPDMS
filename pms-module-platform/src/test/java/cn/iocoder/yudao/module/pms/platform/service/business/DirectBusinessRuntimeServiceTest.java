@@ -72,7 +72,8 @@ class DirectBusinessRuntimeServiceTest {
         assertTrue(service.deliveryFacts(query,false).facts().get(ProjectBusinessRuntimeApi.DELIVERY_PREFIX+"REPORT"));
         assertEquals(1,transactions.commits);
         assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
-        assertThrows(IllegalStateException.class,()->service.deliveryFacts(query,true));
+        assertEquals("TRANSACTION_REQUIRED",assertThrows(cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException.class,
+                ()->service.deliveryFacts(query,true)).getErrorCode());
         assertEquals(1,transactions.commits);
         doThrow(new IllegalStateException("file unavailable")).when(files).inspectDocument(7L,101L);
         assertThrows(IllegalStateException.class,()->service.deliveryFacts(query,false));
