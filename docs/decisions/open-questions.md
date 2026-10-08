@@ -1275,6 +1275,14 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Decision owner: 需求方
 - Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
 
+
+
+## 2026-10-06 本机项目来源创建与 Struts 只读历史档案
+
+- **BLOCKED_BY_SPEC：跨来源同号执行单**。同步销售订单头只保存 executionNo，没有 CRM 来源系统关联键；多个 sourceSystem 出现相同 executionNo 时无法证明唯一关系。本次只在唯一匹配时带入，歧义时拒绝，不按更新时间任选。后续需源系统明确关联键/映射。证据：CreationSourceResolver、DppmsOrderSyncAdapter 与本机取证报告 docs/generated/2026-10-06-project-creation-migration/audit.md。
+- **已确认：历史先迁只读档案；BLOCKED_BY_SPEC：激活新流程映射**。用户 2026-10-06 明确“先迁只读历史档案”。保留旧状态、人员、合同、产品与组关系；不将旧状态直接投影新阶段/Gate，不将组关系猜成父子树或项目组合。未来激活必须另行批准人员/组织/模板/状态与完成事实映射。本轮离线脚本与合成验证不依赖该未决映射。
+- **已确认：创建只取订单/执行单基本信息**。用户明确“创建项目不需要订单行ID，只需要订单和执行单的基本信息”。创建使用合同下同步销售订单头，唯一时自动带入，多条时按订单号选择；执行单由该订单 executionNo 关联，不独立选择。旧行 ID 仅作为旧系统取证事实，不加入创建请求。
+
 ## 2026-10-06 流程图系统记录与文件要求澄清
 
 ### Q-TPL-FLOW-20261006-001 — 新模板中计划、方案与配置 Log 的文件要求
@@ -1288,3 +1296,18 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Evidence: `docs/generated/2026-10-06-visio-system-record-template/`；记录以本次运行采集的旧模板最新已发布 rev10 为来源，早期 rev9 记录不充当当前草稿真值。
 - Implementation follow-up（2026-10-07）: 后续授权的DAC拆分、AST设备关联及跨入口最新文件代码已实施，见`docs/generated/2026-10-06-device-log-archive/README.md`；原文的“未实现”为模板创建时边界。V409迁移、实际MySQL与NPDMS浏览器验收仍未执行，模板日志确认规则及五项Owner完成依据仍未接通，草稿保持未发布。
 - Decision owner: 需求方。
+
+
+## 2026-10-06 真实10项目试迁的客户身份口径
+
+### Q-PROJECT-CUSTOMER-20261006-001
+
+- Status: RESOLVED（2026-10-07 02:22 UTC 用户明确裁决）
+- Scope: 用户10:50批准从真实旧项目中选择10项多类型、合同/执行单/订单/发货完整的项目迁入本机 `npdms_domain_test`，指派状态待指派。此授权只替代此前这10项“仅只读档案”的限制，不授权把旧生命周期和完成事实映射成新阶段/Gate。
+- Question: 新项目“客户”保留旧系统最终客户含义，还是采用合同/销售订单购货方？需据此确定 CUS 主档身份的权威关联，不按名称猜测或自动创建重复客户。
+- Evidence（2026-10-07 纠正）: 旧 `WebContent/sys/module/projectcreate.jsp:309–310` 的 `column013` 为可编辑文本；其非空检查位于 `89–106` 注释块内，不能称为旧系统强制必填。`ProjectServiceImpl.putProperties:418–445` 不以购货方覆盖最终客户。指定 CRM 视图与连接已确认，本批十项按执行单号、项目编码及合同号精确查询无匹配，最终客户真实 FK 未解析；购货方码不用于证明最终客户身份。详细证据见 `docs/generated/2026-10-06-project-creation-migration/final-customer-identity-audit.md`。
+- Impact: 创建时项目客户独立解析为最终客户 CUS 身份；合同/订单购货方保留在原商业关联中。十项目试迁须逐项证明最终客户源主键及映射，缺失或歧义隔离，不以名称猜测，不伪造 ERP 编码。
+- Evidence location: `docs/generated/2026-10-06-project-creation-migration/real-pilot-preflight.md`；真实快照和完整名单只保存在仓库外本机私有批次目录。
+- Decision owner: 需求方；本批写入授权已经明确，不再重复请求该授权。
+
+- Resolution: 用户“沿用最终客户，并另外保留购货方关联”（transcript `Sentinel_22efbbfe469c81919260dc5e3e478c6a`）。可在可信源身份/主键且查重后补必要客户；仅本次已选十项目，不扩至 93 客户集合。既有写入授权有效，保留未指派及历史事实保护。

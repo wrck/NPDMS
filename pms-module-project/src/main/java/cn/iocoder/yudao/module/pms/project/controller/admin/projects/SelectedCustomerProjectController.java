@@ -48,7 +48,8 @@ public class SelectedCustomerProjectController {
             var match = creationService.previewWithSelectedCustomer(BeanUtils.toBean(request, ProjectMasterDO.class),
                     request.getOrderOfficeCompanyId(), request.getOrderOfficeDepartmentId(),
                     new ProjectManualCreationApplicationService.Actor(TenantContextHolder.getRequiredTenantId(),
-                            SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()));
+                            SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()),
+                    request.getContractId(), request.getSalesOrderId(), request.getSourceFingerprint());
             var response = new ProjectMatchTemplatesRespVO();
             response.setOutcome(match.getOutcome().name()); response.setCandidateWatermark(match.getCandidateWatermark());
             response.setConflicts(match.getConflicts()); response.setEvaluations(match.getEvaluations());
@@ -79,7 +80,8 @@ public class SelectedCustomerProjectController {
         var command = new ManualProjectCreateCommand(draft, request.getOrderOfficeCompanyId(),
                 request.getOrderOfficeDepartmentId(), sites, request.getTemplateRevisionId(),
                 request.getCandidateWatermark(), request.getServiceManagerUserId(), request.getContractId(),
-                idempotencyKey, DigestUtil.sha256Hex(JsonUtils.toJsonString(request)));
+                idempotencyKey, DigestUtil.sha256Hex(JsonUtils.toJsonString(request)),
+                request.getSalesOrderId(), request.getSourceFingerprint());
         return success(creationService.createWithSelectedCustomer(command,
                 new ProjectManualCreationApplicationService.Actor(
                         TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),

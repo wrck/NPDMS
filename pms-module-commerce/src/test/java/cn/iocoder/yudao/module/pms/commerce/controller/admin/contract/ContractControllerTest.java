@@ -90,6 +90,23 @@ class ContractControllerTest {
         verify(permissionApi).hasAnyPermissions(USER_ID, "pms:commerce:contract:sensitive-read");
     }
 
+    @Test
+    void projectOverviewExposesOrderBuyerOnlyWithSensitivePermission() {
+        var order = new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO();
+        order.setId(44L); order.setOrderNo("SO-44");
+        order.setCustomerCode("BUYER-44"); order.setCustomerName("订单购货方");
+        when(accessService.getProjectCommerceDetail(TENANT_ID, USER_ID, 99L)).thenReturn(
+                new ContractAccessService.ProjectCommerceDetail(List.of(contract()), List.of(order), List.of()));
+        when(permissionApi.hasAnyPermissions(USER_ID, "pms:commerce:contract:sensitive-read")).thenReturn(false);
+        var masked = controller.projectOverview(99L).getData().orders().getFirst();
+        assertEquals("SO-44", masked.orderNo());
+        assertNull(masked.customerCode()); assertNull(masked.customerName());
+        when(permissionApi.hasAnyPermissions(USER_ID, "pms:commerce:contract:sensitive-read")).thenReturn(true);
+        var visible = controller.projectOverview(99L).getData().orders().getFirst();
+        assertEquals("BUYER-44", visible.customerCode());
+        assertEquals("订单购货方", visible.customerName());
+    }
+
     private ContractDO contract() {
         ContractDO contract = new ContractDO();
         contract.setId(992002390001L);

@@ -1,0 +1,33 @@
+{
+  "recordedAt": "2026-10-06T08:58:43.467751+00:00",
+  "head": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "composeProject": "npdms-domain-test",
+  "mysqlPort": 24306,
+  "redisPort": 24379,
+  "database": "npdms_domain_test",
+  "observedFlywayVersion": 390,
+  "sharedDatabaseMigrationExecuted": false,
+  "newAuthorization": "User approved this task prefix synthetic business/relation/audit writes; no existing data deletion or permanent privilege change",
+  "previousStartupApproval": "rejected twice before new explicit authorization; exact retry under new authorization approved",
+  "startup": {
+    "processId": 49296,
+    "port": 59280,
+    "processExited": true,
+    "applicationStarted": false,
+    "cause": "Unbreakable Spring bean cycle: DeliveryOwnerAccess -> DeclaredBusinessDeliveryBridge -> BusinessOperationDispatcher -> RequirementAnalysis... -> EntityFormService -> FileArtifactApiImpl -> FileBusinessObjectPolicyRegistry -> DeliveryFilePolicyProvider -> DeliveryOwnerAccess"
+  },
+  "applicationApiCreationExecuted": false,
+  "syntheticFixturePrefix": "PCREATE-20261006-710A-",
+  "runtimeJar": {
+    "path": "C:\\Users\\user\\AppData\\Local\\Temp\\npdms-project-creation-review-710a0184823a4c988fdb631b7a0bc5ec\\candidate\\yudao-server\\target\\yudao-server.jar",
+    "sha256": "9cc1fad1cf80323fe921e997013a89c60821173d64893a8044013abaf6efd170"
+  },
+  "originalJarLock": {
+    "processId": 28892,
+    "port": 59391,
+    "confirmedBy": "Windows Restart Manager",
+    "processStopped": false
+  },
+  "isolatedSchema": "npdms_creation_20261006_710a0184",
+  "isolatedMigrationFailure": "V374 line 72: MySQL 1267 mixed collations; public migration unchanged"
+}

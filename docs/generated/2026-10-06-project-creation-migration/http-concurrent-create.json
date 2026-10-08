@@ -1,0 +1,32 @@
+[
+  {
+    "code": 0,
+    "data": {
+      "id": 992203060183,
+      "projectCode": "PJT2026000039",
+      "status": "ACTIVE",
+      "lifecycleStatus": "ACTIVE",
+      "currentStage": null,
+      "assignmentStatus": "UNASSIGNED",
+      "version": 0,
+      "lifecycleTemplateId": 993009900016,
+      "lifecycleTemplateRevisionNo": 2,
+      "templateLoadMethod": "MANUAL_SELECTED",
+      "stageCount": 6,
+      "taskCount": 17,
+      "milestoneCount": 0,
+      "deliverableCount": 14,
+      "gateCount": 5,
+      "serviceManagerAssigned": false,
+      "matchResult": "MULTIPLE_MATCHES",
+      "matchDecisionMode": "EXPLICIT_SELECTION",
+      "matchOperationId": "PM07:INITIAL_CREATE:992203060183:296264a2be9e6f3085050883567e3a5d6dd54d5375754161cd6b3275147e3961"
+    },
+    "msg": ""
+  },
+  {
+    "code": 400,
+    "data": null,
+    "msg": "合同、订单、关联或执行单已变化，请重新加载来源并匹配模板"
+  }
+]

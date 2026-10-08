@@ -15,4 +15,5 @@ public interface CrmExecutionOrderMapper extends BaseMapperX<CrmExecutionOrderDO
     List<CrmExecutionOrderDO> selectIncoming(@Param("query") CrmExecutionOrderSyncQuery query);
     List<CrmExecutionOrderDO> selectActiveByExecutionNos(@Param("query") ExecutionNoListQuery query);
     int updatePrimaryProjectIfUnbound(@Param("query") ExecutionPrimaryProjectUpdate query);
+    List<CrmExecutionOrderDO> selectActiveForUpdate(@Param("query") ExecutionNoListQuery query);
 }

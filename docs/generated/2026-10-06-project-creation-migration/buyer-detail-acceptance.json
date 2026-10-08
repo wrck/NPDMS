@@ -1,0 +1,38 @@
+[
+  {
+    "name": "UI1 authorized overview retains order buyer",
+    "passed": true
+  },
+  {
+    "name": "UI1 project final identity remains independent",
+    "passed": true
+  },
+  {
+    "name": "UI1 detail shows order buyer",
+    "passed": true
+  },
+  {
+    "name": "UI1 detail labels canonical final customer",
+    "passed": true
+  },
+  {
+    "name": "UI2 authorized overview retains order buyer",
+    "passed": true
+  },
+  {
+    "name": "UI2 project final identity remains independent",
+    "passed": true
+  },
+  {
+    "name": "UI2 detail shows order buyer",
+    "passed": true
+  },
+  {
+    "name": "UI2 detail labels canonical final customer",
+    "passed": true
+  },
+  {
+    "name": "detail browser has no uncaught errors",
+    "passed": true
+  }
+]

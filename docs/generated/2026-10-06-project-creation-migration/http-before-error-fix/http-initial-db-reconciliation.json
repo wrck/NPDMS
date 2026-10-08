@@ -1,0 +1,54 @@
+{
+  "projects": [
+    {
+      "id": 992203060177,
+      "contract_no": "PCREATE-20261006-710A-HTTP-9e2e2a-API",
+      "customer_id": 1001
+    },
+    {
+      "id": 992203060180,
+      "contract_no": "PCREATE-20261006-710A-HTTP-9e2e2a-RACE",
+      "customer_id": 1001
+    }
+  ],
+  "relations": [
+    {
+      "project_id": 992203060177,
+      "contract_id": 2107052902856093784
+    },
+    {
+      "project_id": 992203060180,
+      "contract_id": 2107052902856093785
+    }
+  ],
+  "executions": [
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-API-EX-A",
+      "primary_project_id": null
+    },
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-API-EX-B",
+      "primary_project_id": 992203060177
+    },
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-RACE-EX-A",
+      "primary_project_id": 992203060180
+    },
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-UI1-EX-A",
+      "primary_project_id": null
+    },
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-UI1-EX-B",
+      "primary_project_id": null
+    },
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-UI2-EX-A",
+      "primary_project_id": null
+    },
+    {
+      "execution_no": "PCREATE-20261006-710A-HTTP-9e2e2a-FOREIGN-EX-A",
+      "primary_project_id": null
+    }
+  ]
+}

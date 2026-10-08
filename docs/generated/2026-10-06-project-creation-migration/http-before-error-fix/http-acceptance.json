@@ -1,0 +1,194 @@
+[
+  {
+    "name": "anonymous source access denied",
+    "passed": true,
+    "evidence": {
+      "code": 401
+    }
+  },
+  {
+    "name": "multiple orders require selection",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "single order auto selects linked execution",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "foreign contract order rejected",
+    "passed": true,
+    "evidence": {
+      "code": 500,
+      "message": "系统异常"
+    }
+  },
+  {
+    "name": "foreign company execution rejected",
+    "passed": true,
+    "evidence": {
+      "code": 500,
+      "message": "系统异常"
+    }
+  },
+  {
+    "name": "same key same request replays created project",
+    "passed": true,
+    "evidence": {
+      "code": 0,
+      "data": {
+        "assignmentStatus": "UNASSIGNED",
+        "currentStage": null,
+        "deliverableCount": 14,
+        "gateCount": 5,
+        "id": 992203060177,
+        "lifecycleStatus": "ACTIVE",
+        "lifecycleTemplateId": 993009900016,
+        "lifecycleTemplateRevisionNo": 2,
+        "matchDecisionMode": "EXPLICIT_SELECTION",
+        "matchOperationId": "PM07:INITIAL_CREATE:992203060177:15c92c3da60cc90152eeaa686ff7ec327881dfab9b3840faf806595c783ffc22",
+        "matchResult": "MULTIPLE_MATCHES",
+        "milestoneCount": 0,
+        "projectCode": "PJT2026000036",
+        "serviceManagerAssigned": false,
+        "stageCount": 6,
+        "status": "ACTIVE",
+        "taskCount": 17,
+        "templateLoadMethod": "MANUAL_SELECTED",
+        "version": 0
+      },
+      "msg": ""
+    }
+  },
+  {
+    "name": "same key changed request conflicts",
+    "passed": true,
+    "evidence": {
+      "code": 1014024008,
+      "message": "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）"
+    }
+  },
+  {
+    "name": "different key same contract rejected",
+    "passed": true,
+    "evidence": {
+      "code": 1016002000,
+      "message": "该合同已关联其他项目，不能重复创建项目"
+    }
+  },
+  {
+    "name": "project name and contract come from selected chain",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "CUS customer canonical name and sales type applied",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "customer project detail follows selected execution",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "initialized instance endpoint readable",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "linked commerce overview readable",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "/pms/projects rejects stale fingerprint",
+    "passed": true,
+    "evidence": {
+      "code": 1014023018,
+      "message": "模板匹配读取失败，请检查输入与服务可用性后重试"
+    }
+  },
+  {
+    "name": "/pms/projects rejects wrong customer",
+    "passed": true,
+    "evidence": {
+      "code": 1014023018,
+      "message": "模板匹配读取失败，请检查输入与服务可用性后重试"
+    }
+  },
+  {
+    "name": "/pms/projects rejects unauthorized company",
+    "passed": true,
+    "evidence": {
+      "code": 1002029000,
+      "message": "当前公司不存在"
+    }
+  },
+  {
+    "name": "/api/v1/pms/projects rejects stale fingerprint",
+    "passed": true,
+    "evidence": {
+      "code": 1014023018,
+      "message": "模板匹配读取失败，请检查输入与服务可用性后重试"
+    }
+  },
+  {
+    "name": "/api/v1/pms/projects rejects wrong customer",
+    "passed": true,
+    "evidence": {
+      "code": 1014023018,
+      "message": "模板匹配读取失败，请检查输入与服务可用性后重试"
+    }
+  },
+  {
+    "name": "/api/v1/pms/projects rejects unauthorized company",
+    "passed": true,
+    "evidence": {
+      "code": 1002029000,
+      "message": "当前公司不存在"
+    }
+  },
+  {
+    "name": "selected customer preview resolves omitted client customer from contract",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "same contract concurrent HTTP creates exactly once",
+    "passed": true,
+    "evidence": [
+      {
+        "code": 500,
+        "data": null,
+        "msg": "系统异常"
+      },
+      {
+        "code": 0,
+        "data": {
+          "id": 992203060180,
+          "projectCode": "PJT2026000037",
+          "status": "ACTIVE",
+          "lifecycleStatus": "ACTIVE",
+          "currentStage": null,
+          "assignmentStatus": "UNASSIGNED",
+          "version": 0,
+          "lifecycleTemplateId": 993009900016,
+          "lifecycleTemplateRevisionNo": 2,
+          "templateLoadMethod": "MANUAL_SELECTED",
+          "stageCount": 6,
+          "taskCount": 17,
+          "milestoneCount": 0,
+          "deliverableCount": 14,
+          "gateCount": 5,
+          "serviceManagerAssigned": false,
+          "matchResult": "MULTIPLE_MATCHES",
+          "matchDecisionMode": "EXPLICIT_SELECTION",
+          "matchOperationId": "PM07:INITIAL_CREATE:992203060180:8676afb7408ad0e0ee2fa2f1bd12ce4aa443c222c5ba985782a55634a4080423"
+        },
+        "msg": ""
+      }
+    ]
+  }
+]

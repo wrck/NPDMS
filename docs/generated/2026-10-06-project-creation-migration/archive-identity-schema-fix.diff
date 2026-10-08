@@ -1,0 +1,144 @@
+--- a/scripts/legacy_project_archive.py
++++ b/scripts/legacy_project_archive.py
+@@ -36,6 +36,11 @@
+ 
+ 
+ def initialize(db):
++    # Reject an existing unknown version before DDL, metadata inserts or commits.
++    metadata = db.execute("SELECT type FROM sqlite_master WHERE name='archive_metadata' COLLATE NOCASE").fetchone()
++    if metadata and (metadata[0] != "table" or
++                     db.execute("SELECT schema_version FROM archive_metadata").fetchall() != [(SCHEMA,)]):
++        raise ValueError("UNSUPPORTED_ARCHIVE_SCHEMA")
+     db.executescript("""
+     PRAGMA foreign_keys=ON;
+     CREATE TABLE IF NOT EXISTS archive_metadata(schema_version INTEGER PRIMARY KEY);
+@@ -69,15 +74,22 @@
+         raise ValueError("UNSUPPORTED_ARCHIVE_SCHEMA")
+ 
+ 
++def has_identity(value):
++    return type(value) in (str, int) and str(value).strip().casefold() not in {
++        "", "none", "null", "undefined", "nan"
++    }
++
++
+ def validate(bundle, tenant, system):
+     if not isinstance(bundle, dict) or set(bundle) != {"tenantId", "sourceSystem", "sourcePk", *FIELDS}:
+         raise ValueError("BUNDLE_FIELDS_INVALID")
+     if type(bundle["tenantId"]) is not int or bundle["tenantId"] != tenant or bundle["sourceSystem"] != system:
+         raise ValueError("SOURCE_SCOPE_MISMATCH")
+-    if not isinstance(bundle["sourcePk"], str) or not bundle["sourcePk"].strip():
++    if not isinstance(bundle["sourcePk"], str) or not has_identity(bundle["sourcePk"]):
+         raise ValueError("SOURCE_PK_REQUIRED")
+     header = bundle["header"]
+-    if not isinstance(header, dict) or str(header.get("projectId")) != bundle["sourcePk"]:
++    if (not isinstance(header, dict) or not has_identity(header.get("projectId"))
++            or str(header["projectId"]) != bundle["sourcePk"]):
+         raise ValueError("HEADER_ID_MISMATCH")
+     if not header.get("projectCode") or header.get("projectState") is None:
+         raise ValueError("HEADER_IDENTITY_OR_STATE_MISSING")
+@@ -96,7 +108,7 @@
+             if section == "groups" and row.get("projectCode") != header["projectCode"]:
+                 raise ValueError("ORPHAN_GROUP_RELATION")
+             identity = row.get("id") if section != "header" else header["projectId"]
+-            if identity is None or str(identity) in identities:
++            if not has_identity(identity) or str(identity) in identities:
+                 raise ValueError("RELATION_ID_MISSING_OR_DUPLICATED")
+             identities.add(str(identity))
+     groups = {r.get("projectGroupCode") for r in bundle["groups"]}
+@@ -194,7 +206,11 @@
+         if path.exists():
+             with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as source:
+                 source.backup(db)
+-    initialize(db)
++    try:
++        initialize(db)
++    except Exception:
++        db.close()
++        raise
+     return db
+ 
+ 
+--- a/scripts/tests/test_legacy_project_archive.py
++++ b/scripts/tests/test_legacy_project_archive.py
+@@ -98,5 +98,80 @@
+         self.bundle['members'] *= 2
+         self.assertEqual('RELATION_ID_MISSING_OR_DUPLICATED', self.load()['issues'][0]['code'])
+ 
++    def assert_isolated_identity(self, bad):
++        with sqlite3.connect(':memory:') as db:
++            archive.initialize(db)
++            content = '\n'.join(map(archive.canonical, [self.bundle, bad, self.bundle])).encode()
++            result = archive.import_bytes(db, content, 1, 'PMS_STRUTS')
++            self.assertEqual((1, 1, 1), (result['retained'], result['replayed'], result['quarantined']))
++            self.assertTrue(result['reconciled'])
++            self.assertEqual(1, db.execute('SELECT COUNT(*) FROM archive_project').fetchone()[0])
++
++    def test_missing_header_identity_isolated_without_rolling_back_valid_bundles(self):
++        bad = copy.deepcopy(self.bundle)
++        bad['sourcePk'] = 'None'
++        bad['header'].pop('projectId')
++        self.assert_isolated_identity(bad)
++
++    def test_empty_and_null_like_identities_are_isolated(self):
++        for identity in (None, '', ' ', 'None', ' none ', 'NULL', 'undefined', 'NaN', True, [], {}):
++            with self.subTest(identity=identity):
++                bad = copy.deepcopy(self.bundle)
++                bad['sourcePk'] = identity
++                bad['header']['projectId'] = identity
++                for relation in ('members', 'products'):
++                    for row in bad[relation]:
++                        row['projectId'] = identity
++                self.assert_isolated_identity(bad)
++        bad = copy.deepcopy(self.bundle)
++        bad.pop('sourcePk')
++        self.assert_isolated_identity(bad)
++        bad = copy.deepcopy(self.bundle)
++        bad['header'].pop('projectId')
++        self.assert_isolated_identity(bad)
++
++    def test_unknown_schema_rejected_before_any_initialization_write(self):
++        for name, versions in (('archive_metadata', [2]), ('ARCHIVE_METADATA', [2]),
++                               ('archive_metadata', []), ('archive_metadata', [1, 2])):
++            with self.subTest(name=name, versions=versions), sqlite3.connect(':memory:') as db:
++                db.execute(f'CREATE TABLE {name}(schema_version INTEGER PRIMARY KEY)')
++                db.executemany(f'INSERT INTO {name} VALUES (?)', [(v,) for v in versions])
++                db.commit()
++                before = db.serialize()
++                changes = db.total_changes
++                statements = []
++                db.set_trace_callback(statements.append)
++                with self.assertRaisesRegex(ValueError, 'UNSUPPORTED_ARCHIVE_SCHEMA'):
++                    archive.initialize(db)
++                self.assertEqual(changes, db.total_changes)
++                self.assertEqual(before, db.serialize())
++                self.assertFalse(any(sql.lstrip().upper().startswith(('CREATE', 'INSERT', 'UPDATE', 'DELETE'))
++                                     for sql in statements), statements)
++
++    def test_unknown_schema_apply_and_dryrun_leave_local_file_byte_identical(self):
++        with tempfile.TemporaryDirectory() as temp:
++            path = Path(temp) / 'future.sqlite'
++            with sqlite3.connect(path) as db:
++                db.execute('CREATE TABLE archive_metadata(schema_version INTEGER PRIMARY KEY)')
++                db.execute('INSERT INTO archive_metadata VALUES (2)')
++                db.commit()
++            db.close()
++            before = path.read_bytes()
++            for apply in (True, False):
++                with self.subTest(apply=apply):
++                    with self.assertRaisesRegex(ValueError, 'UNSUPPORTED_ARCHIVE_SCHEMA'):
++                        archive.connect(path, apply)
++                    self.assertEqual(before, path.read_bytes())
++
++    def test_v1_reinitialize_replay_and_withdraw_remain_valid(self):
++        batch = self.load()['batchId']
++        archive.initialize(self.db)
++        self.assertTrue(self.load()['batchReplay'])
++        self.assertTrue(archive.withdraw(self.db, batch, 'v1 regression')['withdrawn'])
++        archive.initialize(self.db)
++        self.assertEqual([(1,)], self.db.execute('SELECT schema_version FROM archive_metadata').fetchall())
++        self.assertEqual(1, self.db.execute('SELECT COUNT(*) FROM archive_project').fetchone()[0])
++        self.assertEqual(0, self.db.execute('SELECT COUNT(*) FROM active_archive_project').fetchone()[0])
++
+ if __name__ == '__main__':
+     unittest.main()

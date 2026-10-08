@@ -1,0 +1,263 @@
+[
+  {
+    "name": "anonymous source access denied",
+    "passed": true,
+    "evidence": {
+      "code": 401
+    }
+  },
+  {
+    "name": "multiple orders require selection",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "single order auto selects linked execution",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "foreign contract order rejected",
+    "passed": true,
+    "evidence": {
+      "code": 400,
+      "message": "所选销售订单不属于该合同的有效订单"
+    }
+  },
+  {
+    "name": "foreign company execution rejected",
+    "passed": true,
+    "evidence": {
+      "code": 400,
+      "message": "合同、订单与执行单公司身份不一致或缺失，请核对同步关系"
+    }
+  },
+  {
+    "name": "same key same request replays created project",
+    "passed": true,
+    "evidence": {
+      "code": 0,
+      "data": {
+        "assignmentStatus": "UNASSIGNED",
+        "currentStage": null,
+        "deliverableCount": 14,
+        "gateCount": 5,
+        "id": 992203060181,
+        "lifecycleStatus": "ACTIVE",
+        "lifecycleTemplateId": 993009900016,
+        "lifecycleTemplateRevisionNo": 2,
+        "matchDecisionMode": "EXPLICIT_SELECTION",
+        "matchOperationId": "PM07:INITIAL_CREATE:992203060181:547baf9939c8a07809755b84aa5dbd3587c081566382f5e1001ad13e9a4faa8e",
+        "matchResult": "MULTIPLE_MATCHES",
+        "milestoneCount": 0,
+        "projectCode": "PJT2026000038",
+        "serviceManagerAssigned": false,
+        "stageCount": 6,
+        "status": "ACTIVE",
+        "taskCount": 17,
+        "templateLoadMethod": "MANUAL_SELECTED",
+        "version": 0
+      },
+      "msg": ""
+    }
+  },
+  {
+    "name": "same key changed request conflicts",
+    "passed": true,
+    "evidence": {
+      "code": 1014024008,
+      "message": "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）"
+    }
+  },
+  {
+    "name": "different key same contract rejected",
+    "passed": true,
+    "evidence": {
+      "code": 1016002000,
+      "message": "该合同已关联其他项目，不能重复创建项目"
+    }
+  },
+  {
+    "name": "project name and contract come from selected chain",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "CUS customer canonical name and sales type applied",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "customer project detail follows selected execution",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "initialized instance endpoint readable",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "linked commerce overview readable",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "/pms/projects rejects stale fingerprint",
+    "passed": true,
+    "evidence": {
+      "code": 400,
+      "message": "来源已变化，请重新加载合同订单"
+    }
+  },
+  {
+    "name": "/pms/projects rejects wrong customer",
+    "passed": true,
+    "evidence": {
+      "code": 400,
+      "message": "所选客户与销售订单客户不一致"
+    }
+  },
+  {
+    "name": "/pms/projects rejects unauthorized company",
+    "passed": true,
+    "evidence": {
+      "code": 1002029000,
+      "message": "当前公司不存在"
+    }
+  },
+  {
+    "name": "/api/v1/pms/projects rejects stale fingerprint",
+    "passed": true,
+    "evidence": {
+      "code": 400,
+      "message": "来源已变化，请重新加载合同订单"
+    }
+  },
+  {
+    "name": "/api/v1/pms/projects rejects wrong customer",
+    "passed": true,
+    "evidence": {
+      "code": 400,
+      "message": "所选客户与销售订单客户不一致"
+    }
+  },
+  {
+    "name": "/api/v1/pms/projects rejects unauthorized company",
+    "passed": true,
+    "evidence": {
+      "code": 1002029000,
+      "message": "当前公司不存在"
+    }
+  },
+  {
+    "name": "selected customer preview resolves omitted client customer from contract",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "same contract concurrent HTTP creates exactly once",
+    "passed": true,
+    "evidence": [
+      {
+        "code": 0,
+        "data": {
+          "id": 992203060183,
+          "projectCode": "PJT2026000039",
+          "status": "ACTIVE",
+          "lifecycleStatus": "ACTIVE",
+          "currentStage": null,
+          "assignmentStatus": "UNASSIGNED",
+          "version": 0,
+          "lifecycleTemplateId": 993009900016,
+          "lifecycleTemplateRevisionNo": 2,
+          "templateLoadMethod": "MANUAL_SELECTED",
+          "stageCount": 6,
+          "taskCount": 17,
+          "milestoneCount": 0,
+          "deliverableCount": 14,
+          "gateCount": 5,
+          "serviceManagerAssigned": false,
+          "matchResult": "MULTIPLE_MATCHES",
+          "matchDecisionMode": "EXPLICIT_SELECTION",
+          "matchOperationId": "PM07:INITIAL_CREATE:992203060183:296264a2be9e6f3085050883567e3a5d6dd54d5375754161cd6b3275147e3961"
+        },
+        "msg": ""
+      },
+      {
+        "code": 400,
+        "data": null,
+        "msg": "合同、订单、关联或执行单已变化，请重新加载来源并匹配模板"
+      }
+    ]
+  },
+  {
+    "name": "CUS customer stable identity persisted",
+    "passed": true,
+    "evidence": null
+  },
+  {
+    "name": "negative and concurrent requests leave exactly two projects and relations",
+    "passed": true,
+    "evidence": {
+      "projects": [
+        {
+          "id": 992203060181,
+          "contract_no": "PCREATE-20261006-710A-HTTP-085860-API",
+          "project_name": "PCREATE-20261006-710A-HTTP-085860-API-EXECUTION-B",
+          "customer_id": 1001
+        },
+        {
+          "id": 992203060183,
+          "contract_no": "PCREATE-20261006-710A-HTTP-085860-RACE",
+          "project_name": "PCREATE-20261006-710A-HTTP-085860-RACE-ORDER-A",
+          "customer_id": 1001
+        }
+      ],
+      "relations": [
+        {
+          "project_id": 992203060181,
+          "contract_id": 2107052902856093789
+        },
+        {
+          "project_id": 992203060183,
+          "contract_id": 2107052902856093790
+        }
+      ]
+    }
+  },
+  {
+    "name": "only selected executions bind to created projects",
+    "passed": true,
+    "evidence": [
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-API-EX-A",
+        "primary_project_id": null
+      },
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-API-EX-B",
+        "primary_project_id": 992203060181
+      },
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-FOREIGN-EX-A",
+        "primary_project_id": null
+      },
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-RACE-EX-A",
+        "primary_project_id": 992203060183
+      },
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-UI1-EX-A",
+        "primary_project_id": null
+      },
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-UI1-EX-B",
+        "primary_project_id": null
+      },
+      {
+        "execution_no": "PCREATE-20261006-710A-HTTP-085860-UI2-EX-A",
+        "primary_project_id": null
+      }
+    ]
+  }
+]

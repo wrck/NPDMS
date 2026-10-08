@@ -1,0 +1,239 @@
+{
+  "code": 0,
+  "data": {
+    "candidateWatermark": "432b5ab35f22d892dacded7a17fbdad61d2f425dca448bf9f33c8bf969aa0e56",
+    "candidates": [
+      {
+        "code": "xs",
+        "implementationMethod": null,
+        "latestRevisionNo": 2,
+        "majorProjectLevel": null,
+        "matchPriority": 1,
+        "name": "xs",
+        "projectCategory": null,
+        "ruleName": "不限",
+        "signingMethod": null,
+        "templateId": 993009900012,
+        "templateRevisionId": 993009900022
+      },
+      {
+        "code": "TPL-DELIVERY-FLOW-20260922",
+        "implementationMethod": null,
+        "latestRevisionNo": 10,
+        "majorProjectLevel": null,
+        "matchPriority": 1,
+        "name": "项目交付全流程模板（流程图2）",
+        "projectCategory": null,
+        "ruleName": "不限",
+        "signingMethod": null,
+        "templateId": 993009900014,
+        "templateRevisionId": 993009900037
+      },
+      {
+        "code": "TPL-DELIVERY-FLOW-20260924",
+        "implementationMethod": null,
+        "latestRevisionNo": 2,
+        "majorProjectLevel": null,
+        "matchPriority": 1,
+        "name": "项目交付全流程V2",
+        "projectCategory": null,
+        "ruleName": "不限",
+        "signingMethod": null,
+        "templateId": 993009900016,
+        "templateRevisionId": 993009900050
+      }
+    ],
+    "conflicts": [
+      "同优先级【1】多匹配，需人工处理：",
+      "模板【xs】xs",
+      "模板【TPL-DELIVERY-FLOW-20260922】项目交付全流程模板（流程图2）",
+      "模板【TPL-DELIVERY-FLOW-20260924】项目交付全流程V2"
+    ],
+    "evaluations": [
+      {
+        "templateId": 993009900012,
+        "templateRevisionId": 993009900022,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009900022:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      },
+      {
+        "templateId": 993009900014,
+        "templateRevisionId": 993009900037,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009900037:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      },
+      {
+        "templateId": 993009900016,
+        "templateRevisionId": 993009900050,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009900050:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      },
+      {
+        "templateId": 993009001590,
+        "templateRevisionId": 993009001596,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009001596:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      },
+      {
+        "templateId": 993009001593,
+        "templateRevisionId": 993009900017,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009900017:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      },
+      {
+        "templateId": 993009900000,
+        "templateRevisionId": 993009900012,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009900012:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      },
+      {
+        "templateId": 993009900002,
+        "templateRevisionId": 993009900019,
+        "ruleName": "不限",
+        "result": {
+          "kind": "CONDITION",
+          "ruleVersionRef": "tenant:1:template-revision:993009900019:match:unrestricted",
+          "outcome": "MATCHED",
+          "reasonCode": null,
+          "conditions": [
+            {
+              "key": "condition0",
+              "path": "rule",
+              "component": "pmsRulePredicate",
+              "outcome": "MATCHED",
+              "reasonCode": null
+            }
+          ],
+          "steps": [
+            "pmsRulePrepare",
+            "pmsRulePredicate",
+            "pmsRuleMatched"
+          ],
+          "diagnostics": []
+        }
+      }
+    ],
+    "outcome": "MULTI_MATCH"
+  },
+  "msg": ""
+}

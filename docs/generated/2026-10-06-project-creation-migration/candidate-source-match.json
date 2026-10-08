@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-10-06T10:27:42.849922+00:00",
+  "productionFilesMatch": true,
+  "files": [
+    {
+      "path": "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceApi.java",
+      "sha256": "8ed23012bfc47e9c32fbf5214435b5db0332e730d7b1802437dd58cc5decd71b",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceBindCommand.java",
+      "sha256": "11068e71086b5c679bde9a35bade0a37813835faccb502e0492df476b09f3ecb",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java",
+      "sha256": "a8f5301e1142daa97d8a527773ca5961f2956caf97005af7b01437dbea2a46eb",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractCreationSourceRespVO.java",
+      "sha256": "81335366665ae70e5b5fc3e05a454bf7576530d9d5da614e822496f1c34e86f3",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java",
+      "sha256": "270dfcee7f2f1fda65b8ba2ad1fa8b65503f2897d097866e84052a3b89e10d67",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/query/ExecutionPrimaryProjectUpdate.java",
+      "sha256": "3f739117742c78b2df5060fb02341c8861cbe49f99cfc67613cf4a1ebd9ae427",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java",
+      "sha256": "38e622df720fce259a9bf710dedeea96e1fae345bd087fc7e95621506a24cab0",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+      "sha256": "67edcfca99149ebc389d5a6a987e1e4d417267384522a55da34d7555400d0a15",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java",
+      "sha256": "01b13b218dec51b88947c2b5d117c2b02aa9e17e511d206634106cbc2290b10e",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java",
+      "sha256": "3dfbfb7e08121e6ca2e0a07d773f55e35bc5e9c45c120d9137f1708100bdfd7d",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml",
+      "sha256": "2fac4e792170a96f67ca6d48f6fe59c11d977425912ffca23311e040d0547c5e",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "sha256": "8109c13fce48cacb4712e6a1656fdcb0792d3e8bd2f99d36567f5d6d6829479b",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java",
+      "sha256": "7bc13fcaf306be198a1dcf7792c554815740ed7cb6847ef6d55784eb83c93b86",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java",
+      "sha256": "0db13baec1252adc51d748e7630ec6a11b7e4a2fe64f75e7e4005e2d4b21a86a",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectController.java",
+      "sha256": "b3fd07bc3da0786b02797565e9a4fa4c1eddbe940ba6e20e66bfb6ad4a96505d",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java",
+      "sha256": "7213455db6dbebeea2b9f3c5f8139e959e9ab0280f4a8388b0eb0813aa8f2cc9",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectMatchTemplatesReqVO.java",
+      "sha256": "0adaca2a1b6125b7794a5dc472f0d976652c1354a286f5ff9804258107610371",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectRespVO.java",
+      "sha256": "64251e9502094bcf54f6d8a958564e201b1a9d73cf23d36c88e0aac81c3844b6",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java",
+      "sha256": "a77d8160c930589611a75b5d1378f8998b64be57203e83f33ccbc57246bdff10",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java",
+      "sha256": "a327cf1fc9f3cd28cf3ade007260f316fdeac6f4bc188d4c203ca1b43981f4f9",
+      "matchesBuiltSnapshot": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java",
+      "sha256": "6489afdbfc421c798a9ef7b182da803b26ad11af6e19ab35c98d1687de4f94ad",
+      "matchesBuiltSnapshot": true
+    }
+  ]
+}

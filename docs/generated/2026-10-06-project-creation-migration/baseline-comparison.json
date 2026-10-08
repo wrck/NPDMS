@@ -1,0 +1,102 @@
+{
+  "head": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "baseline": {
+    "tests": 25,
+    "failures": 4,
+    "errors": 3,
+    "cases": [
+      {
+        "name": "manualSelectionTakesEffectWithTwoPhaseNamespaceWrite",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6], Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "unlinkedHistoricalProjectKeepsOriginalCustomerEditing",
+        "kind": "error",
+        "type": "org.mockito.exceptions.misusing.UnfinishedStubbingException",
+        "message": ""
+      },
+      {
+        "name": "disabledCustomerBlocksCreationBeforeAllocatingProjectCode",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6], Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "updateIgnoresImmutableFields",
+        "kind": "error",
+        "type": "org.mockito.exceptions.misusing.UnfinishedStubbingException",
+        "message": ""
+      },
+      {
+        "name": "autoDefaultBindsUniqueMatchedTemplate",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "creationAssignsServiceManagerAndOrderOfficeRelation",
+        "kind": "error",
+        "type": "org.mockito.exceptions.misusing.UnfinishedStubbingException",
+        "message": ""
+      },
+      {
+        "name": "childFreezesItsSelectedRevisionAndPlanWithoutReadingParentTemplate",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  "candidateExpandedRun": {
+    "tests": 25,
+    "failures": 4,
+    "errors": 3,
+    "cases": [
+      {
+        "name": "manualSelectionTakesEffectWithTwoPhaseNamespaceWrite",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6], Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "unlinkedHistoricalProjectKeepsOriginalCustomerEditing",
+        "kind": "error",
+        "type": "org.mockito.exceptions.misusing.UnfinishedStubbingException",
+        "message": ""
+      },
+      {
+        "name": "disabledCustomerBlocksCreationBeforeAllocatingProjectCode",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6], Issue[field=deliverables[0].configuration, code=DELIVERABLE_CONFIGURATION_REQUIRED, message=交付件需要配置材料来源、最少数量和自动判定条件]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "updateIgnoresImmutableFields",
+        "kind": "error",
+        "type": "org.mockito.exceptions.misusing.UnfinishedStubbingException",
+        "message": ""
+      },
+      {
+        "name": "autoDefaultBindsUniqueMatchedTemplate",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      },
+      {
+        "name": "creationAssignsServiceManagerAndOrderOfficeRelation",
+        "kind": "error",
+        "type": "org.mockito.exceptions.misusing.UnfinishedStubbingException",
+        "message": ""
+      },
+      {
+        "name": "childFreezesItsSelectedRevisionAndPlanWithoutReadingParentTemplate",
+        "kind": "failure",
+        "type": "org.opentest4j.AssertionFailedError",
+        "message": "[Issue[field=stages[0].lifecycleStage, code=INVALID_LIFECYCLE_STAGE, message=请选择标准生命周期阶段 S0～S6]] ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  "sameFailuresAndErrors": true
+}

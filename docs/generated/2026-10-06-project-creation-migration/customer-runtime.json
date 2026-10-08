@@ -1,0 +1,14 @@
+{
+  "javaPid": 24612,
+  "vitePid": 48020,
+  "jar": "C:\\Users\\user\\AppData\\Local\\Temp\\npdms-project-creation-review-710a0184823a4c988fdb631b7a0bc5ec\\candidate\\yudao-server\\target\\yudao-server.jar",
+  "jarSha256": "4d696be2789d92573f33a36d41a34c4e75bd24d869e33cce3ca776a35288472a",
+  "database": "npdms_domain_test",
+  "mysqlPort": 24306,
+  "redisPort": 24379,
+  "redisDatabase": 15,
+  "mockAuthentication": false,
+  "eventPolling": false,
+  "quartzAutoStartup": false,
+  "taskServersStoppedAfterTests": true
+}

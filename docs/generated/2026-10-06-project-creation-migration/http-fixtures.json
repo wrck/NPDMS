@@ -1,0 +1,84 @@
+{
+  "prefix": "PCREATE-20261006-710A-HTTP-085860",
+  "fixtures": {
+    "API": {
+      "contractId": 2107052902856093789,
+      "contractNo": "PCREATE-20261006-710A-HTTP-085860-API",
+      "orders": [
+        {
+          "id": 2104958251101687840,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-API-SO-A",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-API-EX-A",
+          "executionId": 2101627940218699792,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-API-ORDER-A"
+        },
+        {
+          "id": 2104958251101687841,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-API-SO-B",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-API-EX-B",
+          "executionId": 2101627940218699793,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-API-EXECUTION-B"
+        }
+      ]
+    },
+    "RACE": {
+      "contractId": 2107052902856093790,
+      "contractNo": "PCREATE-20261006-710A-HTTP-085860-RACE",
+      "orders": [
+        {
+          "id": 2104958251101687842,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-RACE-SO-A",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-RACE-EX-A",
+          "executionId": 2101627940218699794,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-RACE-ORDER-A"
+        }
+      ]
+    },
+    "UI1": {
+      "contractId": 2107052902856093791,
+      "contractNo": "PCREATE-20261006-710A-HTTP-085860-UI1",
+      "orders": [
+        {
+          "id": 2104958251101687843,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-UI1-SO-A",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-UI1-EX-A",
+          "executionId": 2101627940218699795,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-UI1-ORDER-A"
+        },
+        {
+          "id": 2104958251101687844,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-UI1-SO-B",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-UI1-EX-B",
+          "executionId": 2101627940218699796,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-UI1-EXECUTION-B"
+        }
+      ]
+    },
+    "UI2": {
+      "contractId": 2107052902856093792,
+      "contractNo": "PCREATE-20261006-710A-HTTP-085860-UI2",
+      "orders": [
+        {
+          "id": 2104958251101687845,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-UI2-SO-A",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-UI2-EX-A",
+          "executionId": 2101627940218699797,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-UI2-ORDER-A"
+        }
+      ]
+    },
+    "FOREIGN": {
+      "contractId": 2107052902856093793,
+      "contractNo": "PCREATE-20261006-710A-HTTP-085860-FOREIGN",
+      "orders": [
+        {
+          "id": 2104958251101687846,
+          "orderNo": "PCREATE-20261006-710A-HTTP-085860-FOREIGN-SO-A",
+          "executionNo": "PCREATE-20261006-710A-HTTP-085860-FOREIGN-EX-A",
+          "executionId": 2101627940218699798,
+          "projectName": "PCREATE-20261006-710A-HTTP-085860-FOREIGN-ORDER-A"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "checks": [
+    {
+      "name": "real UI login without mock authentication",
+      "passed": true
+    },
+    {
+      "name": "UI1 multiple orders leave project name empty until chosen",
+      "passed": true
+    },
+    {
+      "name": "UI1 project name is readonly and execution follows selected header",
+      "passed": true
+    },
+    {
+      "name": "UI1 organization populated from source",
+      "passed": true
+    },
+    {
+      "name": "UI1 real browser project transaction succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI1 detail shows linked execution and customer project",
+      "passed": true
+    },
+    {
+      "name": "UI1 authorized zero amount displays as zero",
+      "passed": true
+    },
+    {
+      "name": "UI2 project name is readonly and execution follows selected header",
+      "passed": true
+    },
+    {
+      "name": "UI2 organization populated from source",
+      "passed": true
+    },
+    {
+      "name": "UI2 real browser project transaction succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI2 detail shows linked execution and customer project after shared facts integration",
+      "passed": true
+    },
+    {
+      "name": "UI2 authorized zero amount displays as zero",
+      "passed": true
+    },
+    {
+      "name": "UI2 existing code namespace and primary contact presentation retained",
+      "passed": true
+    },
+    {
+      "name": "real detail render has no uncaught browser errors",
+      "passed": true
+    }
+  ],
+  "created": [
+    {
+      "case": "UI1",
+      "route": "/pms/project-management/projects",
+      "requestUrl": "http://127.0.0.1:59280/admin-api/pms/projects",
+      "response": {
+        "code": 0,
+        "data": {
+          "assignmentStatus": "UNASSIGNED",
+          "currentStage": null,
+          "deliverableCount": 14,
+          "gateCount": 5,
+          "id": 992203060184,
+          "lifecycleStatus": "ACTIVE",
+          "lifecycleTemplateId": 993009900016,
+          "lifecycleTemplateRevisionNo": 2,
+          "matchDecisionMode": "EXPLICIT_SELECTION",
+          "matchOperationId": "PM07:INITIAL_CREATE:992203060184:301b656a93caf092843902ad232ccfb9592c717db47cb8f0d90f54260343c2bd",
+          "matchResult": "MULTIPLE_MATCHES",
+          "milestoneCount": 0,
+          "projectCode": "PJT2026000040",
+          "serviceManagerAssigned": false,
+          "stageCount": 6,
+          "status": "ACTIVE",
+          "taskCount": 17,
+          "templateLoadMethod": "MANUAL_SELECTED",
+          "version": 0
+        },
+        "msg": ""
+      }
+    },
+    {
+      "case": "UI2",
+      "route": "/pms-inheritance/projects",
+      "requestUrl": "http://127.0.0.1:59280/admin-api/api/v1/pms/projects",
+      "response": {
+        "code": 0,
+        "data": {
+          "id": 992203060185,
+          "projectCode": "PJT2026000041",
+          "status": "ACTIVE",
+          "lifecycleStatus": "ACTIVE",
+          "currentStage": null,
+          "assignmentStatus": "UNASSIGNED",
+          "version": 0,
+          "lifecycleTemplateId": 993009900016,
+          "lifecycleTemplateRevisionNo": 2,
+          "templateLoadMethod": "MANUAL_SELECTED",
+          "stageCount": 6,
+          "taskCount": 17,
+          "milestoneCount": 0,
+          "deliverableCount": 14,
+          "gateCount": 5,
+          "serviceManagerAssigned": false,
+          "matchResult": "MULTIPLE_MATCHES",
+          "matchDecisionMode": "EXPLICIT_SELECTION",
+          "matchOperationId": "PM07:INITIAL_CREATE:992203060185:9405449ad9f38cc031a83d4cff6ba7ec3ca4c0cca674c1ca252d7ab9bcb9bf49"
+        },
+        "msg": ""
+      }
+    }
+  ],
+  "amountRestrictedIdentity": {
+    "status": "NOT_RUN",
+    "reason": "No existing tenant-1 amount-restricted contract reader; no permission changes"
+  }
+}

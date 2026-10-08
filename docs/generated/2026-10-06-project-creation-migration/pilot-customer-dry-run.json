@@ -1,0 +1,64 @@
+{
+  "mode": "DRY_RUN",
+  "sourcePreflightPassed": 10,
+  "sourceProjectCount": 10,
+  "orders": 10,
+  "orderLines": 139,
+  "shipmentLines": 653,
+  "quarantinedProjects": [
+    {
+      "sourceProjectId": 77094,
+      "sourceChecksum": "4bd9257054d85897702f18550945f4909336696680fc75c709ec13bf3a35f443",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 83226,
+      "sourceChecksum": "dee7dd1a252b295c22a98b94334b706460fe174de3a1697666d9cf420be1505c",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 83820,
+      "sourceChecksum": "d4c0b5d70933337893b82c4db6e572653b755cbde9364b387406c69a6479bbd6",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 83864,
+      "sourceChecksum": "3d54f2b5d7da3f4dcbf3d22d81d85f10219f8a40eca6b492e0fa69d388894501",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 84361,
+      "sourceChecksum": "c0ed09d2d0d688035c20e54d1bbc4c5db50a45a12f1bb40b5059ca91091cbdcf",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 84440,
+      "sourceChecksum": "479bbc2a98ad7c766215821f290921a12a4c1ef5b3d26a5565fcf727e0b4acae",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 84477,
+      "sourceChecksum": "afb6af0aa2a68fc4f68d4dc9f517cee543683c62416024da4110a5261705284f",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 84479,
+      "sourceChecksum": "e880752885e18246d6b4cfe43526d3057d706c272a6fbb4c3cc6ab5c2895f36e",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 84556,
+      "sourceChecksum": "ea55f9563c15a5403e08847a087b476b3c6efcdb71b9c28504c14d0f93970783",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    },
+    {
+      "sourceProjectId": 84558,
+      "sourceChecksum": "43a276e3d9bd7e445dfeaaec0e65d0cc35b26340be0a03f08eac9417987731ad",
+      "issue": "FINAL_CUSTOMER_AUTHORITY_KEY_UNRESOLVED"
+    }
+  ],
+  "actualProjectWrites": 0,
+  "sourceWrites": 0,
+  "runtimeReplay": "NOT_RUN",
+  "runtimeRollback": "NOT_RUN"
+}

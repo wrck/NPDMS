@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 /**
  * 老系统 query-project-bycontractno 取值规则回归：
  * 项目名称 = IFNULL(IF(订单salesType='01', 订单项目名, 执行单项目名), 订单项目名)；
- * 主订单 = 下单时间最早者（并列取单号最小）；主执行单 = 提交时间最新者；CRM权威值取自主执行单。
+ * 单订单自动选择；多订单显式选择；CRM 权威值取自所选订单关联的执行单。
  */
 class CreationSourceResolverTest {
 
@@ -43,20 +43,16 @@ class CreationSourceResolverTest {
     }
 
     @Test
-    void primaryOrderIsEarliestCreateTimeWithOrderNoTieBreak() {
-        SalesOrderDO later = order("O-1", "01", "晚创建", LocalDateTime.of(2026, 9, 3, 10, 0));
-        SalesOrderDO tieHighNo = order("O-2", "01", "同刻单号大", LocalDateTime.of(2026, 9, 1, 10, 0));
-        SalesOrderDO tieLowNo = order("O-0", "01", "同刻单号小", LocalDateTime.of(2026, 9, 1, 10, 0));
-
-        CreationSourceResolver.Primary primary = CreationSourceResolver.resolve(
-                List.of(later, tieHighNo, tieLowNo), List.of());
-
-        assertSame(tieLowNo, primary.order(), "同刻并列时取单号最小者");
-        assertEquals("同刻单号小", primary.projectName());
+    void multipleOrdersRequireSelectionWithoutInventingLegacyRowOrdering() {
+        SalesOrderDO first = order("O-1", "01", "项目一", null);
+        SalesOrderDO second = order("O-2", "01", "项目二", null);
+        second.setId(202L);
+        assertNull(CreationSourceResolver.resolve(List.of(first, second), List.of()).order());
+        assertSame(second, CreationSourceResolver.resolve(List.of(first, second), List.of(), 202L).order());
     }
 
     @Test
-    void primaryExecutionIsLatestSubmitAndCarriesCrmAuthoritativeValues() {
+    void linkedExecutionCarriesCrmAuthoritativeValues() {
         CrmExecutionOrderDO old = execution("EX-1", "旧提交", LocalDateTime.of(2026, 9, 1, 10, 0));
         CrmExecutionOrderDO latest = execution("EX-2", "最新提交", LocalDateTime.of(2026, 9, 5, 10, 0));
         latest.setCustomerProjectName("客户项目名称");
@@ -71,6 +67,7 @@ class CreationSourceResolverTest {
         latest.setIndustryCode("I1");
         latest.setIndustryName("行业一");
         SalesOrderDO order = order("O-1", "02", "订单项目名", LocalDateTime.of(2026, 9, 1, 9, 0));
+        order.setExecutionNo("EX-2");
         order.setCustomerCode("CU-1");
         order.setCustomerName("客户一");
         order.setCompanyCode("C01");
@@ -108,8 +105,9 @@ class CreationSourceResolverTest {
 
     private SalesOrderDO order(String orderNo, String salesType, String projectName, LocalDateTime createTime) {
         SalesOrderDO order = new SalesOrderDO();
-        order.setId(201L);
+        order.setId(201L); order.setCompanyCode("C01");
         order.setOrderNo(orderNo);
+        order.setExecutionNo("EX-1");
         order.setSalesType(salesType);
         order.setSourceProjectName(projectName);
         order.setOrderCreateTime(createTime);
@@ -119,7 +117,7 @@ class CreationSourceResolverTest {
 
     private CrmExecutionOrderDO execution(String executionNo, String projectName, LocalDateTime submitTime) {
         CrmExecutionOrderDO execution = new CrmExecutionOrderDO();
-        execution.setId(301L);
+        execution.setId(301L); execution.setCompanyCode("C01"); execution.setSourceSystem("CRM");
         execution.setExecutionNo(executionNo);
         execution.setProjectName(projectName);
         execution.setSubmitTime(submitTime);

@@ -9,17 +9,23 @@ import cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDis
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import java.math.BigDecimal;
 import java.util.*;
 /** Existing delivery contracts connected to explicit project ownership and safe declared operations. */
-@org.springframework.stereotype.Component @RequiredArgsConstructor
+@org.springframework.stereotype.Component
 public class DeclaredBusinessDeliveryBridge {
     private final BusinessEntityPersistenceRegistry persistence;
     private final BusinessOperationDispatcher operations;
     private final BusinessEntityAccessPort entities;
     private final ProjectScopeApi scopes;
     private final ProjectAcceptanceContextApi contexts;
+    public DeclaredBusinessDeliveryBridge(BusinessEntityPersistenceRegistry persistence,
+            @Lazy BusinessOperationDispatcher operations, @Lazy BusinessEntityAccessPort entities,
+            ProjectScopeApi scopes, ProjectAcceptanceContextApi contexts) {
+        this.persistence=persistence;this.operations=operations;this.entities=entities;
+        this.scopes=scopes;this.contexts=contexts;
+    }
     public boolean supports(String owner,String type) {
         var declaration=persistence.find(owner,type).orElse(null);
         if(declaration==null || declaration.descriptor().scopeBinding()==null) return false;

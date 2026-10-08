@@ -1,0 +1,42 @@
+{
+  "request": {
+    "projectName": "Client name must be overwritten",
+    "contractId": 2107052902856093789,
+    "salesOrderId": 2104958251101687841,
+    "sourceFingerprint": "00836b7b13001121aba0e47589342c29e345ddb108fcf7d58229927037827723",
+    "signingMethod": "DIRECT_SIGN",
+    "projectCategory": "GENERAL",
+    "implementationMode": "DIRECT_SERVICE",
+    "orderOfficeCompanyId": 930800,
+    "orderOfficeDepartmentId": 930801,
+    "implementationLocation": "Synthetic local acceptance",
+    "creationReason": "PCREATE-20261006-710A-HTTP-085860-API",
+    "templateRevisionId": 993009900050,
+    "candidateWatermark": "432b5ab35f22d892dacded7a17fbdad61d2f425dca448bf9f33c8bf969aa0e56"
+  },
+  "response": {
+    "code": 0,
+    "data": {
+      "assignmentStatus": "UNASSIGNED",
+      "currentStage": null,
+      "deliverableCount": 14,
+      "gateCount": 5,
+      "id": 992203060181,
+      "lifecycleStatus": "ACTIVE",
+      "lifecycleTemplateId": 993009900016,
+      "lifecycleTemplateRevisionNo": 2,
+      "matchDecisionMode": "EXPLICIT_SELECTION",
+      "matchOperationId": "PM07:INITIAL_CREATE:992203060181:547baf9939c8a07809755b84aa5dbd3587c081566382f5e1001ad13e9a4faa8e",
+      "matchResult": "MULTIPLE_MATCHES",
+      "milestoneCount": 0,
+      "projectCode": "PJT2026000038",
+      "serviceManagerAssigned": false,
+      "stageCount": 6,
+      "status": "ACTIVE",
+      "taskCount": 17,
+      "templateLoadMethod": "MANUAL_SELECTED",
+      "version": 0
+    },
+    "msg": ""
+  }
+}

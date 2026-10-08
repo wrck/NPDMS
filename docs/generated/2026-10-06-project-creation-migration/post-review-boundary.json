@@ -1,0 +1,51 @@
+{
+  "reviewUtc": "2026-10-06T10:00:34.461551+00:00",
+  "generatedAt": "2026-10-06T10:27:42.849922+00:00",
+  "changes": [
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java",
+      "reviewSha256": "058471ebd34e8b5785d7fc5e8c661b1de41b7f39a2bed8f404d03f77ce9ee377",
+      "currentSha256": "01b13b218dec51b88947c2b5d117c2b02aa9e17e511d206634106cbc2290b10e"
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java",
+      "reviewSha256": "fde58839bc7f09cc6f1e6fc81521f16f68942833f80a177e9bb19ef6fe93510b",
+      "currentSha256": "3dfbfb7e08121e6ca2e0a07d773f55e35bc5e9c45c120d9137f1708100bdfd7d"
+    },
+    {
+      "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceRelationshipTest.java",
+      "reviewSha256": "435bb3109f085b73992f25b3d347f89e710bca794bfe39ab5e9cab71ec8c56e2",
+      "currentSha256": "e592143303c7a1b90e51c41b81a982130269f18b95124e3f9d036bdd1d77f49b"
+    },
+    {
+      "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCreationSourceLockTest.java",
+      "reviewSha256": "341a5f8bdd0798b2a2843ae3c199f69f90d4da717f2f9c8d70391d9641aaf3e6",
+      "currentSha256": "d526ded2f92d05b5919f84029bc843402f9c1d0eef4835127f669b84f7d7c6ba"
+    },
+    {
+      "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCreationSourceMySqlTest.java",
+      "reviewSha256": "5dd80c12e97307deee75e0ce998b4d757dc27aa37f47f6bc977639c17fe3049c",
+      "currentSha256": "ea1d66527864ea266bb1a45100027025048a5a5947976c9567a4992e8f8e526f"
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java",
+      "reviewSha256": "af56c71e1163c495e7b630ae34e0146e9577b54fb432e878c461fc8023ccbb09",
+      "currentSha256": "a327cf1fc9f3cd28cf3ade007260f316fdeac6f4bc188d4c203ca1b43981f4f9"
+    },
+    {
+      "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java",
+      "reviewSha256": "99fd4c912b1a5e81c6b5d2343f182e6142484fe8ebce527343eaba5dd3851a50",
+      "currentSha256": "afecd23a0630767506a4bcc4cf038f3d20e3b270e3796e5ca682a0ef3afec5b4"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue",
+      "reviewSha256": null,
+      "currentSha256": "ca3a1a0e7aba4a55b4e2137ac7b1aaed302bfe5f17e7493a30484b9349c32cd4"
+    }
+  ],
+  "rationale": [
+    "Creation-source IllegalArgumentException now uses existing invalidParamException to avoid system 500; identical validation, updated exception assertions",
+    "Inheritance detail reuses already enhanced ProjectBaseInfo; retains namespace, parent, status and primary contact",
+    "No further public framework modification"
+  ]
+}

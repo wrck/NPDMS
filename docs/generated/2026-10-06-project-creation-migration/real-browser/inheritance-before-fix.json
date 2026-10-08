@@ -1,0 +1,6 @@
+{
+  "type": "TimeoutError",
+  "message": "Locator.wait_for: Timeout 40000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"PCREATE-20261006-710A-HTTP-085860-UI2-EX-A\", exact=True).first to be visible\n",
+  "pageErrors": [],
+  "url": "http://127.0.0.1:19081/pms-inheritance/project-detail?projectId=992203060185"
+}

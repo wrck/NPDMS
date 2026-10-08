@@ -1,0 +1,32 @@
+[
+  {
+    "code": 500,
+    "data": null,
+    "msg": "系统异常"
+  },
+  {
+    "code": 0,
+    "data": {
+      "id": 992203060180,
+      "projectCode": "PJT2026000037",
+      "status": "ACTIVE",
+      "lifecycleStatus": "ACTIVE",
+      "currentStage": null,
+      "assignmentStatus": "UNASSIGNED",
+      "version": 0,
+      "lifecycleTemplateId": 993009900016,
+      "lifecycleTemplateRevisionNo": 2,
+      "templateLoadMethod": "MANUAL_SELECTED",
+      "stageCount": 6,
+      "taskCount": 17,
+      "milestoneCount": 0,
+      "deliverableCount": 14,
+      "gateCount": 5,
+      "serviceManagerAssigned": false,
+      "matchResult": "MULTIPLE_MATCHES",
+      "matchDecisionMode": "EXPLICIT_SELECTION",
+      "matchOperationId": "PM07:INITIAL_CREATE:992203060180:8676afb7408ad0e0ee2fa2f1bd12ce4aa443c222c5ba985782a55634a4080423"
+    },
+    "msg": ""
+  }
+]

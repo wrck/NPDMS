@@ -1,0 +1,1807 @@
+diff --git a/docs/decisions/open-questions.md b/docs/decisions/open-questions.md
+index df132ab9c..9a5d0a1a7 100644
+--- a/docs/decisions/open-questions.md
++++ b/docs/decisions/open-questions.md
+@@ -1275,3 +1275,23 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
+ - Decision owner: 需求方
+ - Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
+ 
++
++
++## 2026-10-06 本机项目来源创建与 Struts 只读历史档案
++
++- **BLOCKED_BY_SPEC：跨来源同号执行单**。同步销售订单头只保存 executionNo，没有 CRM 来源系统关联键；多个 sourceSystem 出现相同 executionNo 时无法证明唯一关系。本次只在唯一匹配时带入，歧义时拒绝，不按更新时间任选。后续需源系统明确关联键/映射。证据：CreationSourceResolver、DppmsOrderSyncAdapter 与本机取证报告 docs/generated/2026-10-06-project-creation-migration/audit.md。
++- **已确认：历史先迁只读档案；BLOCKED_BY_SPEC：激活新流程映射**。用户 2026-10-06 明确“先迁只读历史档案”。保留旧状态、人员、合同、产品与组关系；不将旧状态直接投影新阶段/Gate，不将组关系猜成父子树或项目组合。未来激活必须另行批准人员/组织/模板/状态与完成事实映射。本轮离线脚本与合成验证不依赖该未决映射。
++- **已确认：创建只取订单/执行单基本信息**。用户明确“创建项目不需要订单行ID，只需要订单和执行单的基本信息”。创建使用合同下同步销售订单头，唯一时自动带入，多条时按订单号选择；执行单由该订单 executionNo 关联，不独立选择。旧行 ID 仅作为旧系统取证事实，不加入创建请求。
++
++## 2026-10-06 流程图系统记录与文件要求澄清
++
++### Q-TPL-FLOW-20261006-001 — 新模板中计划、方案与配置 Log 的文件要求
++
++- Status: RESOLVED（2026-10-06 需求方已确认文件要求和配置 Log 最新范围；实现接入缺口另行保留）
++- Requirement IDs: F-PROJ-009 配置实例；不修改 PRD、通用模板模型或既有已发布模板。
++- Source: `需求/项目交付/项目交付流程 (2).vsdx` 六页及需求方 2026-10-06 当前会话：图中标注可能是系统记录，不应全部解释为文件交付件；重新梳理后新建模板。
++- Confirmed: 工程交底书暂不处理；新模板不设置该项交付件或完成门槛。施工计划、实施方案“以系统记录和审批为准，不要求额外上传同名文件”。客户提供方案仍是原业务入口的条件输入。
++- Resolution: 配置 Log 是设备日志文件，允许手动上传及设备采集回传多个入口；每次文件记录保留。需求方追加确认按同一设备跨入口取最新文件，“大日志文件需要按设备拆分成对应的小日志关联会对应的设备”。到货签收单和客户签署验收单仍单独识别为文件；审批、系统报告、培训记录和满意度结果保持系统记录/业务结果属性。
++- Remaining implementation boundary: 文件业务口径已澄清，不再标为 BLOCKED_BY_SPEC。新草稿 `993009900029` 中联系人、安装、配置、联调、培训完成事实尚未接入；配置日志的多设备拆分、设备关联、跨入口最新文件校验及模板来源接入也未实现。完成规则及日志确认规则明确留空，Compiler 预检阻止发布；这些是实现缺口，不以任意文件上传、任务手工结束或采集技术成功填补。
++- Evidence: `docs/generated/2026-10-06-visio-system-record-template/`；记录以本次运行采集的旧模板最新已发布 rev10 为来源，早期 rev9 记录不充当当前草稿真值。
++- Decision owner: 需求方。
+diff --git a/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceApi.java b/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceApi.java
+index 955282565..466264825 100644
+--- a/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceApi.java
++++ b/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceApi.java
+@@ -20,8 +20,15 @@ public interface ProjectCommerceSourceApi {
+      */
+     CreationSourceResolution resolveCreationSource(ProjectCommerceSourceResolveCommand command);
+ 
++    /** 创建事务中锁定来源，复核预览摘要后返回同一关系链。 */
++    CreationSourceResolution resolveCreationSourceForUpdate(ProjectCommerceSourceResolveCommand command);
++
+     /** 只读解析命令：subjectUserId=创建人（公司范围主体）。 */
+-    record ProjectCommerceSourceResolveCommand(Long tenantId, Long contractId, Long subjectUserId) {
++    record ProjectCommerceSourceResolveCommand(Long tenantId, Long contractId, Long subjectUserId,
++                                              Long salesOrderId, String sourceFingerprint) {
++        public ProjectCommerceSourceResolveCommand(Long tenantId, Long contractId, Long subjectUserId) {
++            this(tenantId, contractId, subjectUserId, null, null);
++        }
+     }
+ 
+     /** 解析结果：contract 为主档事实，resolved 为按老系统规则计算的建议值（四维/重大级别/客户项目名称为CRM权威值）。 */
+@@ -31,6 +38,12 @@ public interface ProjectCommerceSourceApi {
+                                     String projectType, String marketCode, String marketName,
+                                     String systemCode, String systemName, String expendCode, String expendName,
+                                     String industryCode, String industryName,
+-                                    Long executionOrderId, String executionNo) {
++                                    Long executionOrderId, String executionNo,
++                                    OrderFacts orderFacts, ExecutionFacts executionFacts, String sourceFingerprint) {
+     }
++    record OrderFacts(Long id, String orderNo, String sourceSystem, String sourceRecordKey, String sourceVersion,
++                      String customerCode, String customerName, String salesType, java.time.LocalDateTime orderCreateTime) {}
++    record ExecutionFacts(String sourceSystem, String projectCode, String departmentCode,
++                          String salesRepCode, String salesRepName, String finalCustomerName, String agentName,
++                          java.time.LocalDateTime sourceSyncTime) {}
+ }
+diff --git a/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceBindCommand.java b/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceBindCommand.java
+index af4f0f556..71a37e965 100644
+--- a/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceBindCommand.java
++++ b/pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceBindCommand.java
+@@ -2,5 +2,9 @@ package cn.iocoder.yudao.module.pms.commerce.api.binding;
+ 
+ /** 创建绑定命令：subjectUserId=创建人（授权快照主体），operationId=创建幂等操作号。 */
+ public record ProjectCommerceSourceBindCommand(Long tenantId, Long projectId, Long contractId,
+-                                               Long subjectUserId, String operationId) {
++                                               Long subjectUserId, String operationId, Long salesOrderId, String sourceFingerprint) {
++    public ProjectCommerceSourceBindCommand(Long tenantId, Long projectId, Long contractId,
++                                            Long subjectUserId, String operationId) {
++        this(tenantId, projectId, contractId, subjectUserId, operationId, null, null);
++    }
+ }
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java
+index 47ea65d45..28c2bdff3 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java
+@@ -95,14 +95,14 @@ public class ContractController {
+     @GetMapping("/{id}/creation-source")
+     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
+     public CommonResult<cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO> creationSource(
+-            @PathVariable Long id) {
++            @PathVariable Long id, @RequestParam(required = false) Long salesOrderId) {
+         return withTenant(() -> {
+             Long userId = currentUserId();
+             boolean sensitiveReadable = canReadSensitive(userId);
+             var detail = accessService.getCreationSource(currentTenantId(), userId,
+                     UUID.randomUUID().toString(), id);
+             return success(cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO.from(
+-                    detail, sensitiveReadable));
++                    detail, sensitiveReadable, salesOrderId));
+         });
+     }
+ 
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractCreationSourceRespVO.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractCreationSourceRespVO.java
+index ff7847268..e85f06fea 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractCreationSourceRespVO.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractCreationSourceRespVO.java
+@@ -12,45 +12,52 @@ import java.util.List;
+  * 合同主档单入口的项目创建取值预览。
+  * resolved 建议值沿用老系统 query-project-bycontractno 规则：
+  * 项目名称 = IFNULL(IF(订单salesType='01', 订单项目名, 执行单项目名), 订单项目名)；
+- * 客户/下单公司/下单时间来自订单（多订单取下单时间最早者）；四维/重大级别/客户项目名称来自执行单（多执行单取提交最新者）。
++ * 客户/下单公司/下单时间来自所选订单；CRM字段仅来自该订单关联的执行单。
+  */
+ public record ContractCreationSourceRespVO(Contract contract, List<Order> orders,
+                                            List<ExecutionOrder> executionOrders,
+-                                           List<String> lineExecutionNos, Resolved resolved) {
++                                           List<String> lineExecutionNos, Resolved resolved, String sourceFingerprint) {
+ 
+     public static ContractCreationSourceRespVO from(ContractAccessService.CreationSourceDetail detail,
+                                                     boolean sensitiveReadable) {
++        return from(detail, sensitiveReadable, null);
++    }
++
++    public static ContractCreationSourceRespVO from(ContractAccessService.CreationSourceDetail detail,
++                                                    boolean sensitiveReadable, Long salesOrderId) {
+         ContractDO contract = detail.contract();
+-        var primary = CreationSourceResolver.resolve(detail.orders(), detail.executionOrders());
++        CreationSourceResolver.validateContractOrders(contract, detail.orders());
++        var primary = CreationSourceResolver.resolve(detail.orders(), detail.executionOrders(), salesOrderId);
+         var order = primary.order();
+         var execution = primary.execution();
+         return new ContractCreationSourceRespVO(
+                 new Contract(contract.getId(), contract.getContractNo(), contract.getContractName(),
+-                        contract.getContractAmount(), sensitiveReadable ? contract.getCurrencyCode() : null,
++                        sensitiveReadable ? contract.getContractAmount() : null, sensitiveReadable ? contract.getCurrencyCode() : null,
+                         contract.getCompanyCode(), contract.getCompanyName(),
+                         sensitiveReadable ? contract.getCustomerCode() : null,
+                         sensitiveReadable ? contract.getCustomerName() : null),
+                 detail.orders().stream().map(o -> new Order(o.getId(), o.getOrderNo(), o.getSalesType(),
+-                        o.getOrderAmount(), sensitiveReadable ? o.getCurrencyCode() : null,
++                        sensitiveReadable ? o.getOrderAmount() : null, sensitiveReadable ? o.getCurrencyCode() : null,
+                         o.getOrderCreateTime(), o.getCustomerRequiredTime(),
+                         sensitiveReadable ? o.getCustomerCode() : null,
+                         sensitiveReadable ? o.getCustomerName() : null, o.getExecutionNo())).toList(),
+-                detail.executionOrders().stream().map(e -> new ExecutionOrder(e.getId(), e.getExecutionNo(),
++                detail.orders().stream().map(o -> CreationSourceResolver.executionFor(o, detail.executionOrders()))
++                        .filter(java.util.Objects::nonNull).distinct().map(e -> new ExecutionOrder(e.getId(), e.getExecutionNo(),
+                         e.getProjectCode(), e.getProjectName(), e.getCustomerProjectName(),
+-                        e.getMajorProjectLevel(), e.getProjectType(), e.getProjectAmount(),
++                        e.getMajorProjectLevel(), e.getProjectType(), sensitiveReadable ? e.getProjectAmount() : null,
+                         e.getMarketCode(), e.getMarketName(), e.getSystemCode(), e.getSystemName(),
+                         e.getExpendCode(), e.getExpendName(), e.getIndustryCode(), e.getIndustryName(),
+                         e.getDepartmentCode(), e.getDepartmentName(), e.getCompanyCode(), e.getCompanyName(),
+                         e.getSalesRepCode(), e.getSalesRepName(), e.getSubmitTime())).toList(),
+                 detail.lineExecutionNos(),
+-                new Resolved(primary.projectName(),
++                new Resolved(order == null ? null : order.getId(), primary.projectName(),
+                         !sensitiveReadable ? null : primary.customerCode(),
+                         !sensitiveReadable ? null : primary.customerName(),
+                         primary.companyCode(), primary.companyName(), primary.orderCreateTime(),
+                         primary.customerProjectName(), primary.majorProjectLevel(), primary.projectType(),
+                         primary.marketCode(), primary.marketName(), primary.systemCode(), primary.systemName(),
+                         primary.expendCode(), primary.expendName(), primary.industryCode(), primary.industryName(),
+-                        primary.executionOrderId(), primary.executionNo()));
++                        primary.executionOrderId(), primary.executionNo()), CreationSourceResolver.fingerprint(detail));
+     }
+ 
+     public record Contract(Long id, String contractNo, String contractName, BigDecimal contractAmount,
+@@ -72,7 +79,7 @@ public record ContractCreationSourceRespVO(Contract contract, List<Order> orders
+                                  String salesRepCode, String salesRepName, LocalDateTime submitTime) {
+     }
+ 
+-    public record Resolved(String projectName, String customerCode, String customerName,
++    public record Resolved(Long salesOrderId, String projectName, String customerCode, String customerName,
+                            String companyCode, String companyName, LocalDateTime orderCreateTime,
+                            String customerProjectName, String majorProjectLevel, String projectType,
+                            String marketCode, String marketName, String systemCode, String systemName,
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java
+index ca97f7d53..bf60b263a 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java
+@@ -15,4 +15,5 @@ public interface CrmExecutionOrderMapper extends BaseMapperX<CrmExecutionOrderDO
+     List<CrmExecutionOrderDO> selectIncoming(@Param("query") CrmExecutionOrderSyncQuery query);
+     List<CrmExecutionOrderDO> selectActiveByExecutionNos(@Param("query") ExecutionNoListQuery query);
+     int updatePrimaryProjectIfUnbound(@Param("query") ExecutionPrimaryProjectUpdate query);
++    List<CrmExecutionOrderDO> selectActiveForUpdate(@Param("query") ExecutionNoListQuery query);
+ }
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/query/ExecutionPrimaryProjectUpdate.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/query/ExecutionPrimaryProjectUpdate.java
+index 8fda1429a..8a2e7f8ad 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/query/ExecutionPrimaryProjectUpdate.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/query/ExecutionPrimaryProjectUpdate.java
+@@ -1,5 +1,6 @@
+ package cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.query;
+ 
+-/** 执行单主项目回填：仅当未绑定或已绑定同一项目时生效（原子防抢占）。 */
+-public record ExecutionPrimaryProjectUpdate(Long tenantId, Long id, Long projectId, Long updater) {
++/** Bind only the locked source identity, within the verified company and tenant. */
++public record ExecutionPrimaryProjectUpdate(Long tenantId, Long id, Long projectId, Long updater,
++        String companyCode, Long companyId, String executionNo, String sourceSystem) {
+ }
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java
+index 055ccb522..d66a8ae15 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java
+@@ -18,4 +18,7 @@ public interface SalesOrderMapper extends BaseMapperX<SalesOrderDO> {
+     Long selectCountByCompanyScope(@Param("query") SalesOrderCompanyScopeQuery query);
+     List<SalesOrderDO> selectRelatedByContract(@Param("query") ContractRelatedOrderQuery query);
+     List<SalesOrderDO> selectCreationOrdersByContract(@Param("query") ContractCreationOrderQuery query);
++    List<SalesOrderDO> selectCreationOrdersForUpdate(@Param("query") ContractCreationOrderQuery query);
++    List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO> selectCreationRelationsByContract(@Param("query") ContractRelatedOrderQuery query);
++    List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO> selectCreationRelationsForUpdate(@Param("query") ContractRelatedOrderQuery query);
+ }
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java
+index adcf9ff7e..9b1afb02c 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java
+@@ -181,12 +181,18 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
+                                 tenantId, orders.stream().map(SalesOrderDO::getId).toList()));
+         return new CreationSourceDetail(contract, orders == null ? List.of() : List.copyOf(orders),
+                 executions == null ? List.of() : List.copyOf(executions),
+-                lineExecutionNos == null ? List.of() : List.copyOf(lineExecutionNos));
++                lineExecutionNos == null ? List.of() : List.copyOf(lineExecutionNos),
++                orderMapper.selectCreationRelationsByContract(new ContractRelatedOrderQuery(tenantId, contractId)));
+     }
+ 
+     public record CreationSourceDetail(ContractDO contract, List<SalesOrderDO> orders,
+         List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
+-        List<String> lineExecutionNos) {}
++        List<String> lineExecutionNos,
++        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO> orderContractRelations) {
++        public CreationSourceDetail(ContractDO contract, List<SalesOrderDO> orders,
++                List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
++                List<String> lineExecutionNos) { this(contract, orders, executionOrders, lineExecutionNos, List.of()); }
++    }
+ 
+     private List<UserCompanyDepartmentScopeRespDTO> currentScopes(
+             Long tenantId, Long subjectUserId, String correlationId) {
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java
+index eaf21aef4..4f61bd008 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java
+@@ -1,16 +1,18 @@
+ package cn.iocoder.yudao.module.pms.commerce.service.contract;
+ 
++import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.invalidParamException;
++
+ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO;
+ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
+ 
+ import java.time.LocalDateTime;
+-import java.util.Comparator;
++import java.util.Objects;
+ import java.util.List;
+ 
+ /**
+  * 老系统 query-project-bycontractno 取值规则：
+  * 项目名称 = IFNULL(IF(订单salesType='01', 订单项目名, 执行单项目名), 订单项目名)；
+- * 主订单 = 下单时间最早者（多订单并列取单号最小）；主执行单 = 提交时间最新者。
++ * 仅沿所选订单的 executionNo 取值；多个订单须明确选择，跨来源同号不得任选。
+  */
+ public final class CreationSourceResolver {
+ 
+@@ -26,16 +28,20 @@ public final class CreationSourceResolver {
+     }
+ 
+     public static Primary resolve(List<SalesOrderDO> orders, List<CrmExecutionOrderDO> executions) {
+-        SalesOrderDO order = orders.stream()
+-                .min(Comparator.comparing(SalesOrderDO::getOrderCreateTime,
+-                                Comparator.nullsLast(Comparator.naturalOrder()))
+-                        .thenComparing(SalesOrderDO::getOrderNo,
+-                                Comparator.nullsLast(Comparator.naturalOrder())))
+-                .orElse(null);
+-        CrmExecutionOrderDO execution = executions.stream()
+-                .max(Comparator.comparing(CrmExecutionOrderDO::getSubmitTime,
+-                        Comparator.nullsFirst(Comparator.naturalOrder())))
+-                .orElse(null);
++        return resolve(orders, executions, null);
++    }
++
++    public static Primary resolve(List<SalesOrderDO> orders, List<CrmExecutionOrderDO> executions,
++                                  Long salesOrderId) {
++        for (SalesOrderDO candidate : orders) executionFor(candidate, executions);
++        SalesOrderDO order;
++        if (salesOrderId != null) {
++            order = orders.stream().filter(value -> salesOrderId.equals(value.getId())).findFirst()
++                    .orElseThrow(() -> invalidParamException("所选销售订单不属于该合同的有效订单"));
++        } else {
++            order = orders.size() == 1 ? orders.getFirst() : null;
++        }
++        CrmExecutionOrderDO execution = executionFor(order, executions);
+         String projectName = null;
+         if (order != null && "01".equals(order.getSalesType())) {
+             projectName = order.getSourceProjectName();
+@@ -65,4 +71,47 @@ public final class CreationSourceResolver {
+                 execution == null ? null : execution.getId(),
+                 execution == null ? null : execution.getExecutionNo());
+     }
++    /** The order stores no CRM source-system key; duplicate numbers are ambiguous, not interchangeable. */
++    public static CrmExecutionOrderDO executionFor(SalesOrderDO order, List<CrmExecutionOrderDO> executions) {
++        if (order == null || order.getExecutionNo() == null || order.getExecutionNo().isBlank()) return null;
++        List<CrmExecutionOrderDO> related = executions.stream()
++                .filter(value -> Objects.equals(order.getExecutionNo(), value.getExecutionNo())).toList();
++        if (related.size() > 1) throw invalidParamException("执行单号在多个来源中存在歧义，请先核对同步关系");
++        if (related.isEmpty()) return null;
++        CrmExecutionOrderDO execution = related.getFirst();
++        requireCompany(order.getCompanyCode(), order.getCompanyId(), execution.getCompanyCode(), execution.getCompanyId());
++        if (execution.getSourceSystem() == null || execution.getSourceSystem().isBlank()
++                || order.getTenantId() != null && execution.getTenantId() != null
++                    && !order.getTenantId().equals(execution.getTenantId()))
++            throw invalidParamException("执行单来源身份不完整或租户不一致，请核对同步关系");
++        return execution;
++    }
++
++    public static void validateContractOrders(cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO contract,
++                                               List<SalesOrderDO> orders) {
++        for (var order : orders) {
++            requireCompany(contract.getCompanyCode(), contract.getCompanyId(), order.getCompanyCode(), order.getCompanyId());
++            if (contract.getTenantId() != null && order.getTenantId() != null
++                    && !contract.getTenantId().equals(order.getTenantId()))
++                throw invalidParamException("合同与订单租户不一致");
++        }
++    }
++    private static void requireCompany(String expectedCode, Long expectedId, String actualCode, Long actualId) {
++        if (expectedCode == null || expectedCode.isBlank() || actualCode == null || actualCode.isBlank()
++                || !expectedCode.equals(actualCode)
++                || expectedId != null && actualId != null && !expectedId.equals(actualId))
++            throw invalidParamException("合同、订单与执行单公司身份不一致或缺失，请核对同步关系");
++    }
++
++    public static String fingerprint(ContractAccessService.CreationSourceDetail detail) {
++        // Stable ordering makes a database plan change irrelevant to the source evidence digest.
++        var facts = java.util.List.of(detail.contract(),
++                detail.orders().stream().sorted(java.util.Comparator.comparing(SalesOrderDO::getId)).toList(),
++                detail.executionOrders().stream().sorted(java.util.Comparator.comparing(CrmExecutionOrderDO::getId)).toList(),
++                detail.orderContractRelations().stream().sorted(java.util.Comparator.comparing(
++                        cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO::getId)).toList());
++        return cn.hutool.crypto.digest.DigestUtil.sha256Hex(
++                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(facts));
++    }
++
+ }
+diff --git a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java
+index 6c09984d8..b6278636c 100644
+--- a/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java
++++ b/pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java
+@@ -1,5 +1,7 @@
+ package cn.iocoder.yudao.module.pms.commerce.service.contract;
+ 
++import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.invalidParamException;
++
+ import cn.iocoder.yudao.framework.common.exception.ServiceException;
+ import cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi;
+ import cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand;
+@@ -56,7 +58,7 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+         validate(command);
+         ContractDO contract = contractMapper.selectByIdForUpdate(
+                 new ContractIdLockQuery(command.tenantId(), command.contractId()));
+-        if (contract == null || contract.getCompanyCode() == null) {
++        if (contract == null || contract.getCompanyCode() == null || !"ENABLED".equals(contract.getStatus())) {
+             throw exception(ErrorCodeConstants.COMMERCE_CREATION_SOURCE_CONTRACT_NOT_FOUND);
+         }
+         List<UserCompanyDepartmentScopeRespDTO> matches = readScopeMatches(
+@@ -64,6 +66,9 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+         if (matches.isEmpty()) {
+             throw ContractAccessService.inaccessible();
+         }
++        var locked = lockCreationDetail(command.tenantId(), contract);
++        validatedResolution(locked, command.salesOrderId(), command.sourceFingerprint());
++        var selected = CreationSourceResolver.resolve(locked.orders(), locked.executionOrders(), command.salesOrderId());
+         for (ProjectContractRelationDO existing : relationMapper.selectCurrentByContract(
+                 new ContractRelationListQuery(command.tenantId(), command.contractId()))) {
+             if (!Objects.equals(existing.getProjectId(), command.projectId())) {
+@@ -88,7 +93,7 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+             relation.setVersion(0);
+             relationMapper.insert(relation);
+         }
+-        bindExecutionOrders(command, contract);
++        bindExecutionOrders(command, selected);
+         List<Map<String, Object>> authorizationSnapshot = matches.stream()
+                 .map(scope -> Map.<String, Object>of("scopeId", scope.getId(), "version", scope.getVersion()))
+                 .toList();
+@@ -96,21 +101,14 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+                 "COM_PROJECT_CREATION_BIND", "ProjectContractRelation", String.valueOf(relation.getId()),
+                 "SUCCESS", Map.of("authorizationSnapshot", authorizationSnapshot,
+                         "contractId", command.contractId(), "projectId", command.projectId(),
+-                        "replay", replay));
++                        "replay", replay, "salesOrderId", command.salesOrderId() == null ? "AUTO" : command.salesOrderId(),
++                        "sourceFingerprint", command.sourceFingerprint() == null ? "" : command.sourceFingerprint(),
++                        "selectedSource", sourceEvidence(selected)));
+     }
+ 
+-    private void bindExecutionOrders(ProjectCommerceSourceBindCommand command, ContractDO contract) {
+-        List<SalesOrderDO> orders = orderMapper.selectCreationOrdersByContract(
+-                new ContractCreationOrderQuery(command.tenantId(), command.contractId(),
+-                        contract.getContractNo(), contract.getCompanyCode()));
+-        List<String> executionNos = orders.stream().map(SalesOrderDO::getExecutionNo)
+-                .filter(value -> value != null && !value.isBlank()).distinct().toList();
+-        if (executionNos.isEmpty()) {
+-            return;
+-        }
+-        List<CrmExecutionOrderDO> executions = executionOrderMapper.selectActiveByExecutionNos(
+-                new ExecutionNoListQuery(command.tenantId(), executionNos));
+-        for (CrmExecutionOrderDO execution : executions) {
++    private void bindExecutionOrders(ProjectCommerceSourceBindCommand command, CreationSourceResolver.Primary selected) {
++        for (CrmExecutionOrderDO execution : selected.execution() == null
++                ? List.<CrmExecutionOrderDO>of() : List.of(selected.execution())) {
+             if (execution.getPrimaryProjectId() != null
+                     && !Objects.equals(execution.getPrimaryProjectId(), command.projectId())) {
+                 throw exception(ErrorCodeConstants.COMMERCE_EXECUTION_ORDER_ALREADY_BOUND,
+@@ -118,7 +116,8 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+             }
+             int affected = executionOrderMapper.updatePrimaryProjectIfUnbound(
+                     new ExecutionPrimaryProjectUpdate(command.tenantId(), execution.getId(),
+-                            command.projectId(), command.subjectUserId()));
++                            command.projectId(), command.subjectUserId(), execution.getCompanyCode(), execution.getCompanyId(),
++                            execution.getExecutionNo(), execution.getSourceSystem()));
+             if (affected == 0) {
+                 // 并发下已被其他项目抢占：重读给出精确拒绝，事务整体回滚。
+                 CrmExecutionOrderDO current = executionOrderMapper.selectById(execution.getId());
+@@ -132,6 +131,24 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+         }
+     }
+ 
++    private Map<String, Object> sourceEvidence(CreationSourceResolver.Primary selected) {
++        Map<String, Object> evidence = new java.util.LinkedHashMap<>();
++        var order = selected.order();
++        evidence.put("salesOrderId", order.getId());
++        evidence.put("orderNo", order.getOrderNo());
++        evidence.put("orderSourceSystem", order.getSourceSystem());
++        evidence.put("orderSourceRecordKey", order.getSourceRecordKey());
++        evidence.put("orderSourceVersion", order.getSourceVersion());
++        evidence.put("orderCreateTime", order.getOrderCreateTime());
++        evidence.put("executionOrderId", selected.executionOrderId());
++        evidence.put("executionNo", selected.executionNo());
++        if (selected.execution() != null) {
++            evidence.put("executionSourceSystem", selected.execution().getSourceSystem());
++            evidence.put("executionSourceSyncTime", selected.execution().getSourceSyncTime());
++        }
++        return evidence;
++    }
++
+     private List<UserCompanyDepartmentScopeRespDTO> readScopeMatches(Long subjectUserId, String companyCode) {
+         List<UserCompanyDepartmentScopeRespDTO> scopes;
+         try {
+@@ -153,8 +170,10 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+     private void validate(ProjectCommerceSourceBindCommand command) {
+         if (command == null || command.tenantId() == null || command.projectId() == null
+                 || command.contractId() == null || command.subjectUserId() == null
+-                || command.operationId() == null || command.operationId().isBlank()) {
+-            throw new IllegalArgumentException("COMMERCE_CREATION_BIND_INVALID_ARGUMENT");
++                || command.operationId() == null || command.operationId().isBlank()
++                || command.salesOrderId() == null || command.sourceFingerprint() == null
++                || !command.sourceFingerprint().matches("[0-9a-f]{64}")) {
++            throw invalidParamException("COMMERCE_CREATION_BIND_INVALID_ARGUMENT");
+         }
+     }
+ 
+@@ -163,19 +182,66 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
+     public CreationSourceResolution resolveCreationSource(ProjectCommerceSourceResolveCommand command) {
+         if (command == null || command.tenantId() == null || command.contractId() == null
+                 || command.subjectUserId() == null) {
+-            throw new IllegalArgumentException("COMMERCE_CREATION_RESOLVE_INVALID_ARGUMENT");
++            throw invalidParamException("COMMERCE_CREATION_RESOLVE_INVALID_ARGUMENT");
+         }
+         ContractAccessService.CreationSourceDetail detail = accessService.getCreationSource(
+                 command.tenantId(), command.subjectUserId(),
+                 "CREATION_RESOLVE:" + command.contractId(), command.contractId());
+-        var primary = CreationSourceResolver.resolve(detail.orders(), detail.executionOrders());
++        return resolution(detail, command.salesOrderId());
++    }
++
++    private CreationSourceResolution resolution(ContractAccessService.CreationSourceDetail detail, Long salesOrderId) {
++        CreationSourceResolver.validateContractOrders(detail.contract(), detail.orders());
++        var primary = CreationSourceResolver.resolve(detail.orders(), detail.executionOrders(), salesOrderId);
+         return new CreationSourceResolution(detail.contract().getId(), detail.contract().getContractNo(),
+                 detail.contract().getContractName(), detail.contract().getCompanyCode(),
+                 detail.contract().getCompanyName(), primary.projectName(),
+                 primary.customerProjectName(), primary.majorProjectLevel(), primary.projectType(),
+                 primary.marketCode(), primary.marketName(), primary.systemCode(), primary.systemName(),
+                 primary.expendCode(), primary.expendName(), primary.industryCode(), primary.industryName(),
+-                primary.executionOrderId(), primary.executionNo());
++                primary.executionOrderId(), primary.executionNo(),
++                primary.order() == null ? null : new OrderFacts(primary.order().getId(), primary.order().getOrderNo(),
++                        primary.order().getSourceSystem(), primary.order().getSourceRecordKey(), primary.order().getSourceVersion(),
++                        primary.customerCode(), primary.customerName(), primary.order().getSalesType(), primary.orderCreateTime()),
++                primary.execution() == null ? null : new ExecutionFacts(primary.execution().getSourceSystem(),
++                        primary.execution().getProjectCode(), primary.execution().getDepartmentCode(),
++                        primary.execution().getSalesRepCode(), primary.execution().getSalesRepName(),
++                        primary.execution().getFinalCustomerName(), primary.execution().getAgentName(), primary.execution().getSourceSyncTime()),
++                CreationSourceResolver.fingerprint(detail));
++    }
++
++    @Override
++    @Transactional(rollbackFor = Exception.class, propagation = Propagation.MANDATORY)
++    public CreationSourceResolution resolveCreationSourceForUpdate(ProjectCommerceSourceResolveCommand command) {
++        if (command == null || command.tenantId() == null || command.contractId() == null
++                || command.subjectUserId() == null || command.salesOrderId() == null)
++            throw invalidParamException("COMMERCE_CREATION_RESOLVE_INVALID_ARGUMENT");
++        ContractDO contract = contractMapper.selectByIdForUpdate(new ContractIdLockQuery(command.tenantId(), command.contractId()));
++        if (contract == null || !"ENABLED".equals(contract.getStatus())
++                || readScopeMatches(command.subjectUserId(), contract.getCompanyCode()).isEmpty())
++            throw ContractAccessService.inaccessible();
++        return validatedResolution(lockCreationDetail(command.tenantId(), contract), command.salesOrderId(), command.sourceFingerprint());
++    }
++
++    private ContractAccessService.CreationSourceDetail lockCreationDetail(Long tenantId, ContractDO contract) {
++        var relations = orderMapper.selectCreationRelationsForUpdate(
++                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractRelatedOrderQuery(tenantId, contract.getId()));
++        var orders = orderMapper.selectCreationOrdersForUpdate(new ContractCreationOrderQuery(
++                tenantId, contract.getId(), contract.getContractNo(), contract.getCompanyCode()));
++        var numbers = orders.stream().map(SalesOrderDO::getExecutionNo)
++                .filter(value -> value != null && !value.isBlank()).distinct().toList();
++        var executions = numbers.isEmpty() ? List.<CrmExecutionOrderDO>of()
++                : executionOrderMapper.selectActiveForUpdate(new ExecutionNoListQuery(tenantId, numbers));
++        return new ContractAccessService.CreationSourceDetail(contract, orders, executions, List.of(), relations);
++    }
++
++    private CreationSourceResolution validatedResolution(ContractAccessService.CreationSourceDetail detail,
++                                                         Long salesOrderId, String fingerprint) {
++        var result = resolution(detail, salesOrderId);
++        if (result.orderFacts() == null) throw invalidParamException("请选择合同下的有效销售订单");
++        if (fingerprint == null || !fingerprint.equals(result.sourceFingerprint()))
++            throw invalidParamException("合同、订单、关联或执行单已变化，请重新加载来源并匹配模板");
++        return result;
+     }
+ 
+     static ServiceException inaccessible() {
+diff --git a/pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml b/pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml
+index c00312a29..251b2299d 100644
+--- a/pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml
++++ b/pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml
+@@ -18,8 +18,13 @@
+             resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO">
+         SELECT * FROM com_crm_execution_order
+         WHERE tenant_id = #{query.tenantId} AND deleted = 0 AND status = 'ACTIVE'
+-          AND execution_no IN
+-          <foreach collection="query.executionNos" item="number" open="(" separator="," close=")">#{number}</foreach>
++          <choose>
++              <when test="query.executionNos != null and !query.executionNos.isEmpty()">
++                  AND execution_no IN
++                  <foreach collection="query.executionNos" item="number" open="(" separator="," close=")">#{number}</foreach>
++              </when>
++              <otherwise>AND 1 = 0</otherwise>
++          </choose>
+         ORDER BY submit_time DESC, id DESC
+     </select>
+     <update id="updatePrimaryProjectIfUnbound">
+@@ -27,6 +32,24 @@
+         SET primary_project_id = #{query.projectId}, updater = #{query.updater},
+             update_time = CURRENT_TIMESTAMP(3)
+         WHERE tenant_id = #{query.tenantId} AND id = #{query.id} AND deleted = 0 AND status = 'ACTIVE'
++          AND CAST(company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)
++          AND CAST(execution_no AS BINARY) = CAST(#{query.executionNo} AS BINARY)
++          AND CAST(source_system AS BINARY) = CAST(#{query.sourceSystem} AS BINARY)
++          <if test="query.companyId != null">AND company_id = #{query.companyId}</if>
+           AND (primary_project_id IS NULL OR primary_project_id = #{query.projectId})
+     </update>
++    <select id="selectActiveForUpdate"
++            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO">
++        SELECT * FROM com_crm_execution_order
++        WHERE tenant_id = #{query.tenantId} AND deleted = 0 AND status = 'ACTIVE'
++          <choose>
++              <when test="query.executionNos != null and !query.executionNos.isEmpty()">
++                  AND execution_no IN
++                  <foreach collection="query.executionNos" item="number" open="(" separator="," close=")">#{number}</foreach>
++              </when>
++              <otherwise>AND 1 = 0</otherwise>
++          </choose>
++        ORDER BY submit_time DESC, id DESC
++        FOR UPDATE
++    </select>
+ </mapper>
+diff --git a/pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml b/pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml
+index 00c032246..b76c1716b 100644
+--- a/pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml
++++ b/pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml
+@@ -111,4 +111,40 @@
+           )
+         ORDER BY o.order_create_time, o.order_no, o.id
+     </select>
++    <select id="selectCreationOrdersForUpdate"
++            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
++        SELECT o.* FROM com_sales_order o
++        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0
++          AND o.status = 'ENABLED' AND o.order_type = '0'
++          AND (
++          <if test="query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''">
++            (o.contract_no IS NOT NULL
++            AND CAST(o.contract_no AS BINARY) = CAST(#{query.contractNo} AS BINARY)
++            AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY))
++          </if>
++          <if test="query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''"> OR </if>
++          EXISTS (SELECT 1 FROM com_order_contract_relation r
++                  WHERE r.tenant_id = o.tenant_id AND r.order_id = o.id AND r.deleted = 0
++                    AND r.contract_id = #{query.contractId}
++                    AND r.effective_from &lt;= CURRENT_TIMESTAMP
++                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP))
++          )
++        ORDER BY o.order_create_time, o.order_no, o.id
++        FOR UPDATE
++    </select>
++    <select id="selectCreationRelationsByContract" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO">
++        SELECT * FROM com_order_contract_relation
++        WHERE tenant_id = #{query.tenantId} AND contract_id = #{query.contractId}
++          AND deleted = 0 AND effective_from &lt;= CURRENT_TIMESTAMP
++          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP)
++        ORDER BY id
++    </select>
++    <select id="selectCreationRelationsForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO">
++        SELECT * FROM com_order_contract_relation
++        WHERE tenant_id = #{query.tenantId} AND contract_id = #{query.contractId}
++          AND deleted = 0 AND effective_from &lt;= CURRENT_TIMESTAMP
++          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP)
++        ORDER BY id
++        FOR UPDATE
++    </select>
+ </mapper>
+diff --git a/pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolverTest.java b/pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolverTest.java
+index 80cedd076..dce5b6464 100644
+--- a/pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolverTest.java
++++ b/pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolverTest.java
+@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
+ /**
+  * 老系统 query-project-bycontractno 取值规则回归：
+  * 项目名称 = IFNULL(IF(订单salesType='01', 订单项目名, 执行单项目名), 订单项目名)；
+- * 主订单 = 下单时间最早者（并列取单号最小）；主执行单 = 提交时间最新者；CRM权威值取自主执行单。
++ * 单订单自动选择；多订单显式选择；CRM 权威值取自所选订单关联的执行单。
+  */
+ class CreationSourceResolverTest {
+ 
+@@ -43,20 +43,16 @@ class CreationSourceResolverTest {
+     }
+ 
+     @Test
+-    void primaryOrderIsEarliestCreateTimeWithOrderNoTieBreak() {
+-        SalesOrderDO later = order("O-1", "01", "晚创建", LocalDateTime.of(2026, 9, 3, 10, 0));
+-        SalesOrderDO tieHighNo = order("O-2", "01", "同刻单号大", LocalDateTime.of(2026, 9, 1, 10, 0));
+-        SalesOrderDO tieLowNo = order("O-0", "01", "同刻单号小", LocalDateTime.of(2026, 9, 1, 10, 0));
+-
+-        CreationSourceResolver.Primary primary = CreationSourceResolver.resolve(
+-                List.of(later, tieHighNo, tieLowNo), List.of());
+-
+-        assertSame(tieLowNo, primary.order(), "同刻并列时取单号最小者");
+-        assertEquals("同刻单号小", primary.projectName());
++    void multipleOrdersRequireSelectionWithoutInventingLegacyRowOrdering() {
++        SalesOrderDO first = order("O-1", "01", "项目一", null);
++        SalesOrderDO second = order("O-2", "01", "项目二", null);
++        second.setId(202L);
++        assertNull(CreationSourceResolver.resolve(List.of(first, second), List.of()).order());
++        assertSame(second, CreationSourceResolver.resolve(List.of(first, second), List.of(), 202L).order());
+     }
+ 
+     @Test
+-    void primaryExecutionIsLatestSubmitAndCarriesCrmAuthoritativeValues() {
++    void linkedExecutionCarriesCrmAuthoritativeValues() {
+         CrmExecutionOrderDO old = execution("EX-1", "旧提交", LocalDateTime.of(2026, 9, 1, 10, 0));
+         CrmExecutionOrderDO latest = execution("EX-2", "最新提交", LocalDateTime.of(2026, 9, 5, 10, 0));
+         latest.setCustomerProjectName("客户项目名称");
+@@ -71,6 +67,7 @@ class CreationSourceResolverTest {
+         latest.setIndustryCode("I1");
+         latest.setIndustryName("行业一");
+         SalesOrderDO order = order("O-1", "02", "订单项目名", LocalDateTime.of(2026, 9, 1, 9, 0));
++        order.setExecutionNo("EX-2");
+         order.setCustomerCode("CU-1");
+         order.setCustomerName("客户一");
+         order.setCompanyCode("C01");
+@@ -108,8 +105,9 @@ class CreationSourceResolverTest {
+ 
+     private SalesOrderDO order(String orderNo, String salesType, String projectName, LocalDateTime createTime) {
+         SalesOrderDO order = new SalesOrderDO();
+-        order.setId(201L);
++        order.setId(201L); order.setCompanyCode("C01");
+         order.setOrderNo(orderNo);
++        order.setExecutionNo("EX-1");
+         order.setSalesType(salesType);
+         order.setSourceProjectName(projectName);
+         order.setOrderCreateTime(createTime);
+@@ -119,7 +117,7 @@ class CreationSourceResolverTest {
+ 
+     private CrmExecutionOrderDO execution(String executionNo, String projectName, LocalDateTime submitTime) {
+         CrmExecutionOrderDO execution = new CrmExecutionOrderDO();
+-        execution.setId(301L);
++        execution.setId(301L); execution.setCompanyCode("C01"); execution.setSourceSystem("CRM");
+         execution.setExecutionNo(executionNo);
+         execution.setProjectName(projectName);
+         execution.setSubmitTime(submitTime);
+diff --git a/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java b/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java
+index 51e05a949..6f2d84798 100644
+--- a/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java
++++ b/pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java
+@@ -9,17 +9,23 @@ import cn.iocoder.yudao.module.pms.platform.support.service.BusinessOperationDis
+ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+ import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+ import cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi;
+-import lombok.RequiredArgsConstructor;
++import org.springframework.context.annotation.Lazy;
+ import java.math.BigDecimal;
+ import java.util.*;
+ /** Existing delivery contracts connected to explicit project ownership and safe declared operations. */
+-@org.springframework.stereotype.Component @RequiredArgsConstructor
++@org.springframework.stereotype.Component
+ public class DeclaredBusinessDeliveryBridge {
+     private final BusinessEntityPersistenceRegistry persistence;
+     private final BusinessOperationDispatcher operations;
+     private final BusinessEntityAccessPort entities;
+     private final ProjectScopeApi scopes;
+     private final ProjectAcceptanceContextApi contexts;
++    public DeclaredBusinessDeliveryBridge(BusinessEntityPersistenceRegistry persistence,
++            @Lazy BusinessOperationDispatcher operations, @Lazy BusinessEntityAccessPort entities,
++            ProjectScopeApi scopes, ProjectAcceptanceContextApi contexts) {
++        this.persistence=persistence;this.operations=operations;this.entities=entities;
++        this.scopes=scopes;this.contexts=contexts;
++    }
+     public boolean supports(String owner,String type) {
+         var declaration=persistence.find(owner,type).orElse(null);
+         if(declaration==null || declaration.descriptor().scopeBinding()==null) return false;
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java
+index 5e5435fcd..9a5697bad 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java
+@@ -143,7 +143,8 @@ public class ProjectMasterController {
+                                 site.getPrimarySite())).toList(),
+                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
+                 createReqVO.getServiceManagerUserId(), createReqVO.getContractId(),
+-                idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
++                idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)),
++                createReqVO.getSalesOrderId(), createReqVO.getSourceFingerprint());
+         ManualProjectCreateResult result = withTrustedTenant(() ->
+                 projectManualCreationApplicationService.create(command,
+                         new ProjectManualCreationApplicationService.Actor(
+@@ -160,7 +161,8 @@ public class ProjectMasterController {
+         try {
+             TemplateMatchResult match = withTrustedTenant(() -> projectManualCreationApplicationService.previewMatching(
+                     BeanUtils.toBean(request, ProjectMasterDO.class), request.getOrderOfficeCompanyId(), request.getOrderOfficeDepartmentId(),
+-                    new ProjectManualCreationApplicationService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString())));
++                    new ProjectManualCreationApplicationService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()),
++                    request.getContractId(), request.getSalesOrderId(), request.getSourceFingerprint()));
+             ProjectMatchTemplatesRespVO respVO = new ProjectMatchTemplatesRespVO();
+             respVO.setOutcome(match.getOutcome().name());
+             respVO.setCandidateWatermark(match.getCandidateWatermark());
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectController.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectController.java
+index 0fe8bf482..2149cc4f6 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectController.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectController.java
+@@ -48,7 +48,8 @@ public class SelectedCustomerProjectController {
+             var match = creationService.previewWithSelectedCustomer(BeanUtils.toBean(request, ProjectMasterDO.class),
+                     request.getOrderOfficeCompanyId(), request.getOrderOfficeDepartmentId(),
+                     new ProjectManualCreationApplicationService.Actor(TenantContextHolder.getRequiredTenantId(),
+-                            SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()));
++                            SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()),
++                    request.getContractId(), request.getSalesOrderId(), request.getSourceFingerprint());
+             var response = new ProjectMatchTemplatesRespVO();
+             response.setOutcome(match.getOutcome().name()); response.setCandidateWatermark(match.getCandidateWatermark());
+             response.setConflicts(match.getConflicts()); response.setEvaluations(match.getEvaluations());
+@@ -79,7 +80,8 @@ public class SelectedCustomerProjectController {
+         var command = new ManualProjectCreateCommand(draft, request.getOrderOfficeCompanyId(),
+                 request.getOrderOfficeDepartmentId(), sites, request.getTemplateRevisionId(),
+                 request.getCandidateWatermark(), request.getServiceManagerUserId(), request.getContractId(),
+-                idempotencyKey, DigestUtil.sha256Hex(JsonUtils.toJsonString(request)));
++                idempotencyKey, DigestUtil.sha256Hex(JsonUtils.toJsonString(request)),
++                request.getSalesOrderId(), request.getSourceFingerprint());
+         return success(creationService.createWithSelectedCustomer(command,
+                 new ProjectManualCreationApplicationService.Actor(
+                         TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java
+index 206b916d0..14326b38e 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java
+@@ -37,6 +37,18 @@ public class ProjectCreateReqVO {
+     @Positive(message = "合同主档ID无效")
+     private Long contractId;
+ 
++    @Positive(message = "销售订单ID无效")
++    private Long salesOrderId;
++    @jakarta.validation.constraints.Size(max = 64)
++    private String sourceFingerprint;
++
++    @AssertTrue(message = "合同来源必须选择销售订单并重新加载来源摘要")
++    @Schema(hidden = true)
++    public boolean isCommerceSelectionValid() {
++        return contractId == null ? salesOrderId == null && sourceFingerprint == null
++                : salesOrderId != null && sourceFingerprint != null && sourceFingerprint.matches("[0-9a-f]{64}");
++    }
++
+     @Schema(description = "下单办事处所属公司稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
+     @NotNull(message = "下单办事处所属公司不能为空")
+     private Long orderOfficeCompanyId;
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectMatchTemplatesReqVO.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectMatchTemplatesReqVO.java
+index de380f818..87e39d5e7 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectMatchTemplatesReqVO.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectMatchTemplatesReqVO.java
+@@ -10,6 +10,14 @@ import lombok.Data;
+ public class ProjectMatchTemplatesReqVO {
+     @NotBlank private String projectName;
+     private String customerCode;
++    @Positive private Long contractId;
++    @Positive private Long salesOrderId;
++    @jakarta.validation.constraints.Size(max = 64) private String sourceFingerprint;
++    @jakarta.validation.constraints.AssertTrue(message = "合同、销售订单和来源摘要必须一起提交")
++    public boolean isCommerceSelectionValid() {
++        return contractId == null ? salesOrderId == null && sourceFingerprint == null
++                : salesOrderId != null && sourceFingerprint != null && sourceFingerprint.matches("[0-9a-f]{64}");
++    }
+     private String implementationLocation;
+     @NotBlank private String signingMethod;
+     @NotBlank private String projectCategory;
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectRespVO.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectRespVO.java
+index 11f5d31b6..767528c20 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectRespVO.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectRespVO.java
+@@ -132,6 +132,12 @@ public class ProjectRespVO {
+ 
+     @Schema(description = "项目开始时间")
+     private LocalDateTime projectStartTime;
++    @Schema(description = "项目刷新时间")
++    private LocalDateTime projectRefreshTime;
++    @Schema(description = "项目来源关闭时间")
++    private LocalDateTime projectCloseTime;
++    @Schema(description = "当前生命周期关闭时间")
++    private LocalDateTime closedAt;
+     @Schema(description = "工勘提供的项目结束日期，作为工期倒排截止日期")
+     private java.time.LocalDate projectEndDate;
+ 
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java
+index a2bee3865..254a53aef 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java
+@@ -1,18 +1,22 @@
+ package cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo;
+ 
+-import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.AssertTrue;
+ import jakarta.validation.constraints.Null;
+ import jakarta.validation.constraints.Size;
+ 
+ /** 复用根项目创建字段；客户只能由编码选择，名称与ID由CUS回源。 */
+ public class SelectedCustomerProjectCreateReqVO extends ProjectCreateReqVO {
+     @Override
+-    @NotBlank(message = "请选择客户主档")
+     @Size(max = 64)
+     public String getCustomerCode() {
+         return super.getCustomerCode();
+     }
+ 
++    @AssertTrue(message = "请选择客户主档或合同关联订单")
++    public boolean isCustomerSelectionValid() {
++        return getContractId() != null || getCustomerCode() != null && !getCustomerCode().isBlank();
++    }
++
+     @Override
+     @Null(message = "客户名称由主档读取，请勿手填")
+     public String getCustomerName() {
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java
+index 7204229c9..2d2299f64 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java
+@@ -1,5 +1,7 @@
+ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
+ 
++import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.invalidParamException;
++
+ import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields;
+ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
+ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+@@ -93,8 +95,8 @@ public class ProjectManualCreationApplicationService {
+     /** 根项目入口解析已选择客户；子项目统一由带父范围授权的拆分应用层创建。 */
+     public ManualProjectCreateResult createWithSelectedCustomer(ManualProjectCreateCommand command, Actor actor) {
+         validate(command, actor);
+-        if (command.draft().getParentId() != null || command.draft().getCustomerCode() == null
+-                || command.draft().getCustomerCode().isBlank()) {
++        if (command.draft().getParentId() != null || command.contractId() == null
++                && (command.draft().getCustomerCode() == null || command.draft().getCustomerCode().isBlank())) {
+             throw new IllegalArgumentException("请选择客户主档，并通过拆分入口创建子项目");
+         }
+         authorizationService.assertCanCreate(actor.actorId());
+@@ -104,7 +106,7 @@ public class ProjectManualCreationApplicationService {
+                         actor.actorId(), command.idempotencyKey()),
+                 command.requestDigest(), ManualProjectCreateResult.class,
+                 () -> {
+-                    resolveSelectedCustomer(command.draft(), actor);
++                    if (command.contractId() == null) resolveSelectedCustomer(command.draft(), actor);
+                     return createOnce(command, actor);
+                 }, result -> successFacts(command, actor, result));
+         if (execution.decision() == Decision.CONFLICT) throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
+@@ -121,11 +123,17 @@ public class ProjectManualCreationApplicationService {
+ 
+     public TemplateMatchResult previewWithSelectedCustomer(
+             ProjectMasterDO draft, Long companyId, Long departmentId, Actor actor) {
++        return previewWithSelectedCustomer(draft, companyId, departmentId, actor, null, null, null);
++    }
++
++    public TemplateMatchResult previewWithSelectedCustomer(ProjectMasterDO draft, Long companyId, Long departmentId,
++            Actor actor, Long contractId, Long salesOrderId, String sourceFingerprint) {
+         authorizationService.assertCanCreate(actor.actorId());
+-        if (draft.getParentId() != null || draft.getCustomerCode() == null || draft.getCustomerCode().isBlank())
++        if (draft.getParentId() != null || contractId == null
++                && (draft.getCustomerCode() == null || draft.getCustomerCode().isBlank()))
+             throw new IllegalArgumentException("请选择客户主档，并通过拆分入口创建子项目");
+-        resolveSelectedCustomer(draft, actor);
+-        return previewMatching(draft, companyId, departmentId, actor);
++        if (contractId == null) resolveSelectedCustomer(draft, actor);
++        return previewMatching(draft, companyId, departmentId, actor, contractId, salesOrderId, sourceFingerprint);
+     }
+ 
+     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
+@@ -153,15 +161,28 @@ public class ProjectManualCreationApplicationService {
+ 
+     public TemplateMatchResult previewMatching(
+             ProjectMasterDO draft, Long companyId, Long departmentId, Actor actor) {
++        return previewMatching(draft, companyId, departmentId, actor, null, null, null);
++    }
++
++    public TemplateMatchResult previewMatching(ProjectMasterDO draft, Long companyId, Long departmentId,
++            Actor actor, Long contractId, Long salesOrderId, String sourceFingerprint) {
+         authorizationService.assertCanCreate(actor.actorId());
+         if (draft.getParentId() != null) throw new IllegalArgumentException("子项目使用拆分选模入口");
+         companyApi.validateCompanyList(List.of(companyId));
+         deptApi.validateDeptList(List.of(departmentId));
+         if (!organizationScopeApi.hasScope(actor.actorId(), companyId, departmentId))
+             throw exception(PROJECT_ORGANIZATION_SCOPE_INVALID, "当前操作人无下单公司与办事处的联合范围");
+-        var normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(draft));
++        TemplateMatchDecisionRules.requireManualCreationAttributes(attributes(draft));
+         draft.setTenantId(actor.tenantId());
+         assignOrganization(draft, resolveCompany(companyId), resolveDepartment(departmentId));
++        if (contractId != null) {
++            var source = commerceSourceApi.resolveCreationSource(new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
++                    actor.tenantId(), contractId, actor.actorId(), salesOrderId, sourceFingerprint));
++            if (sourceFingerprint == null || !sourceFingerprint.equals(source.sourceFingerprint()))
++                throw invalidParamException("来源已变化，请重新加载合同订单");
++            applyCommerceSource(draft, source, actor);
++        }
++        var normalized = TemplateMatchDecisionRules.requireCommonAttributes(attributes(draft));
+         return projectTemplateService.matchPreview(projectRuleFields.normalizedCreationFacts(draft, normalized, true));
+     }
+ 
+@@ -186,14 +207,10 @@ public class ProjectManualCreationApplicationService {
+         assignOrganization(command.draft(), company, department);
+         command.draft().setLocationResolutionStatus(projectSiteService.validateLocationScope(
+                 command.sites(), command.draft().getImplementationLocation()));
+-        TemplateMatchDecision matchDecision = command.draft().getParentId() == null
+-                ? projectAttributeResolutionService.resolveInitial(command.draft(),
+-                        command.templateRevisionId(), command.candidateWatermark())
+-                : null;
+-        if (commerceResolution != null) {
+-            // CRM权威字段在模板匹配后写入：不影响手工模板匹配口径（重大级别由服务端按CRM执行单落库）。
+-            applyCommerceSource(command.draft(), commerceResolution);
+-        }
++        if (commerceResolution != null) applyCommerceSource(command.draft(), commerceResolution, actor);
++        TemplateMatchDecision matchDecision = commerceResolution == null
++                ? projectAttributeResolutionService.resolveInitial(command.draft(), command.templateRevisionId(), command.candidateWatermark())
++                : projectAttributeResolutionService.resolveSourceInitial(command.draft(), command.templateRevisionId(), command.candidateWatermark());
+         ProjectMasterDO project = matchDecision == null
+                 ? projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
+                         command.templateRevisionId(), command.candidateWatermark(), command.serviceManagerUserId())
+@@ -206,7 +223,7 @@ public class ProjectManualCreationApplicationService {
+             commerceSourceApi.bindProjectCommerceSource(
+                     new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
+                             actor.tenantId(), project.getId(), command.contractId(), actor.actorId(),
+-                            command.idempotencyKey()));
++                            command.idempotencyKey(), command.salesOrderId(), command.sourceFingerprint()));
+         }
+         projectSiteService.bindSites(project.getId(), command.sites());
+         initializePreparationIfConfigured(project, actor);
+@@ -233,22 +250,44 @@ public class ProjectManualCreationApplicationService {
+                 matchDecision == null ? null : matchDecision.decisionMode(), matchOperationId);
+     }
+ 
+-    /** 合同主档链只读解析：校验合同可见性与手工登记合同号一致性（ADR-0022 trim+大小写不敏感比较）。 */
++    /** 合同主档链事务内锁定解析：校验合同可见性与手工登记合同号一致性（ADR-0022 trim+大小写不敏感比较）。 */
+     private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution
+             resolveCommerceSource(ManualProjectCreateCommand command, Actor actor) {
+-        var resolution = commerceSourceApi.resolveCreationSource(
++        var resolution = commerceSourceApi.resolveCreationSourceForUpdate(
+                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
+-                        actor.tenantId(), command.contractId(), actor.actorId()));
++                        actor.tenantId(), command.contractId(), actor.actorId(), command.salesOrderId(), command.sourceFingerprint()));
+         String manualContractNo = command.draft().getContractNo();
+         if (manualContractNo != null && !manualContractNo.isBlank() && resolution.contractNo() != null
+                 && !manualContractNo.trim().equalsIgnoreCase(resolution.contractNo().trim())) {
+-            throw new IllegalArgumentException("合同主档与手工登记合同号不一致");
++            throw invalidParamException("合同主档与手工登记合同号不一致");
+         }
+         return resolution;
+     }
+ 
+     private void applyCommerceSource(ProjectMasterDO draft,
+-            cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution source) {
++            cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution source, Actor actor) {
++        if (source.orderFacts() == null) throw invalidParamException("请选择合同下的有效销售订单");
++        if (source.projectName() == null || source.projectName().isBlank())
++            throw invalidParamException("同步来源缺少项目名称，请补全来源信息");
++        if (!java.util.Objects.equals(draft.getCompanyCode(), source.companyCode()))
++            throw invalidParamException("所选公司与合同来源公司不一致");
++        if (source.executionFacts() != null && source.executionFacts().departmentCode() != null
++                && !java.util.Objects.equals(source.executionFacts().departmentCode(), draft.getDepartmentCode()))
++            throw invalidParamException("所选办事处与执行单办事处不一致");
++        var sourceCustomer = source.orderFacts().customerCode();
++        if (sourceCustomer == null || sourceCustomer.isBlank())
++            throw invalidParamException("销售订单缺少客户编码，请补全同步来源");
++        if (draft.getCustomerCode() != null && !draft.getCustomerCode().isBlank()
++                && !draft.getCustomerCode().equals(sourceCustomer))
++            throw invalidParamException("所选客户与销售订单客户不一致");
++        draft.setCustomerCode(sourceCustomer);
++        resolveSelectedCustomer(draft, actor);
++        draft.setProjectName(source.projectName());
++        draft.setContractNo(source.contractNo());
++        draft.setSalesType(source.orderFacts().salesType());
++        // The user still creates a project manually; only CRM facts come from the selected chain.
++        draft.setSourceType(cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules.SOURCE_TYPE_MANUAL);
++        draft.setProjectType(cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules.DEFAULT_PROJECT_TYPE);
+         draft.setCustomerProjectName(source.customerProjectName());
+         draft.setMajorProjectLevel(source.majorProjectLevel());
+         draft.setMarketCode(source.marketCode());
+@@ -281,6 +320,9 @@ public class ProjectManualCreationApplicationService {
+                                       ManualProjectCreateResult result) {
+         Map<String, Object> detail = new LinkedHashMap<>();
+         detail.put("projectId", result.id());
++        detail.put("contractId", command.contractId());
++        detail.put("salesOrderId", command.salesOrderId());
++        detail.put("sourceFingerprint", command.sourceFingerprint());
+         detail.put("templateId", result.lifecycleTemplateId());
+         detail.put("templateRevisionNo", result.lifecycleTemplateRevisionNo());
+         detail.put("creationReasonDigest", sha256(command.draft().getCreationReason()));
+@@ -317,6 +359,10 @@ public class ProjectManualCreationApplicationService {
+                 || actor.correlationId() == null || actor.correlationId().isBlank()) {
+             throw new IllegalArgumentException("正式项目创建命令不完整");
+         }
++        if (command.contractId() == null ? command.salesOrderId() != null || command.sourceFingerprint() != null
++                : command.salesOrderId() == null || command.sourceFingerprint() == null
++                    || !command.sourceFingerprint().matches("[0-9a-f]{64}"))
++            throw new IllegalArgumentException("合同、销售订单和来源摘要必须一起提交");
+         command.draft().setCreationReason(
+                 TemplateMatchDecisionRules.requireReason(command.draft().getCreationReason()));
+         if (command.draft().getParentId() == null) {
+diff --git a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java
+index daed62c82..a1fbf875b 100644
+--- a/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java
++++ b/pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java
+@@ -15,5 +15,12 @@ public record ManualProjectCreateCommand(
+         Long serviceManagerUserId,
+         Long contractId,
+         String idempotencyKey,
+-        String requestDigest) {
++        String requestDigest,
++        Long salesOrderId,
++        String sourceFingerprint) {
++    public ManualProjectCreateCommand(ProjectMasterDO draft, Long companyId, Long departmentId,
++            List<ProjectSiteCommand> sites, Long revisionId, String watermark, Long managerId, Long contractId,
++            String key, String digest) {
++        this(draft, companyId, departmentId, sites, revisionId, watermark, managerId, contractId, key, digest, null, null);
++    }
+ }
+diff --git a/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectControllerTest.java b/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectControllerTest.java
+index 9420f3528..27cd3ec76 100644
+--- a/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectControllerTest.java
++++ b/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectControllerTest.java
+@@ -17,7 +17,12 @@ class SelectedCustomerProjectControllerTest {
+             var validator = factory.getValidator();
+             var selected = new SelectedCustomerProjectCreateReqVO();
+             fillRequired(selected);
+-            assertTrue(validator.validate(selected).stream().anyMatch(v -> v.getPropertyPath().toString().equals("customerCode")));
++            assertTrue(validator.validate(selected).stream().anyMatch(v -> v.getPropertyPath().toString().equals("customerSelectionValid")));
++            selected.setContractId(66L); selected.setSalesOrderId(201L); selected.setSourceFingerprint("a".repeat(64));
++            assertTrue(validator.validate(selected).isEmpty(), "合同订单客户由服务端读取，无需客户端披露敏感客户快照");
++            selected.setSourceFingerprint(null);
++            assertFalse(validator.validate(selected).isEmpty(), "来源选择仍必须完整");
++            selected.setContractId(null); selected.setSalesOrderId(null);
+             selected.setCustomerCode("C-001");
+             assertTrue(validator.validate(selected).isEmpty());
+             selected.setCustomerName("不能自由填写的名称");
+diff --git a/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java b/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java
+index 6413522dc..b70bdfb7b 100644
+--- a/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java
++++ b/pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java
+@@ -419,16 +419,24 @@ class ProjectManualCreationApplicationServiceTest {
+         var base = command();
+         var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
+                 base.templateRevisionId(), base.candidateWatermark(), null, 66L,
+-                base.idempotencyKey(), base.requestDigest());
++                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
+         var resolution = new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
+                 66L, "CT-1", "合同一", "CO-01", "公司一", "CRM项目名称", "客户项目名称A", "MAJOR",
+                 "系统集成", "MKT", "市场一", "SYS", "系统一", "EXP", "拓展一", "IND", "行业一",
+-                301L, "EX-1");
+-        when(commerceSourceApi.resolveCreationSource(
++                301L, "EX-1", sourceOrder(), sourceExecution(), "a".repeat(64));
++        when(commerceSourceApi.resolveCreationSourceForUpdate(
+                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ProjectCommerceSourceResolveCommand(
+-                        1L, 66L, 7L))).thenReturn(resolution);
++                        1L, 66L, 7L, 201L, "a".repeat(64)))).thenReturn(resolution);
++        stubSourceCustomer();
+         var matchDecision = decision();
+-        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
++        when(projectAttributeResolutionService.resolveSourceInitial(any(), any(), any())).thenAnswer(invocation -> {
++            ProjectMasterDO sourceDraft = invocation.getArgument(0);
++            assertEquals("MAJOR", sourceDraft.getMajorProjectLevel());
++            assertEquals("CRM项目名称", sourceDraft.getProjectName());
++            assertEquals("C-001", sourceDraft.getCustomerCode());
++            assertEquals("MANUAL", sourceDraft.getSourceType());
++            return matchDecision;
++        });
+         when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull()))
+                 .thenReturn(project());
+         when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
+@@ -436,7 +444,7 @@ class ProjectManualCreationApplicationServiceTest {
+                 new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
+                         ((Supplier<Object>) invocation.getArgument(3)).get()));
+ 
+-        service.create(command, actor());
++        service.createWithSelectedCustomer(command, actor());
+ 
+         ArgumentCaptor<ProjectMasterDO> draftCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
+         verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), eq(matchDecision), isNull());
+@@ -451,7 +459,7 @@ class ProjectManualCreationApplicationServiceTest {
+         assertEquals("行业一", created.getIndustryName());
+         verify(commerceSourceApi).bindProjectCommerceSource(
+                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
+-                        1L, 100L, 66L, 7L, "key-1"));
++                        1L, 100L, 66L, 7L, "key-1", 201L, "a".repeat(64)));
+     }
+ 
+     @Test
+@@ -461,16 +469,16 @@ class ProjectManualCreationApplicationServiceTest {
+         base.draft().setContractNo("CT-X");
+         var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
+                 base.templateRevisionId(), base.candidateWatermark(), null, 66L,
+-                base.idempotencyKey(), base.requestDigest());
+-        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(
++                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
++        when(commerceSourceApi.resolveCreationSourceForUpdate(any())).thenReturn(
+                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
+-                        66L, "CT-1", "合同一", "CO-01", "公司一", null, null, null, null,
+-                        null, null, null, null, null, null, null, null, null, null));
++                        66L, "CT-1", "合同一", "CO-01", "公司一", "来源项目", null, null, null,
++                        null, null, null, null, null, null, null, null, null, null, sourceOrder(), sourceExecution(), "a".repeat(64)));
+         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation ->
+                 new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
+                         ((Supplier<Object>) invocation.getArgument(3)).get()));
+ 
+-        assertThrows(IllegalArgumentException.class, () -> service.create(command, actor()));
++        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> service.create(command, actor()));
+ 
+         verifyNoInteractions(projectCreationService);
+         verify(commerceSourceApi, never()).bindProjectCommerceSource(any());
+@@ -482,13 +490,14 @@ class ProjectManualCreationApplicationServiceTest {
+         var base = command();
+         var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
+                 base.templateRevisionId(), base.candidateWatermark(), null, 66L,
+-                base.idempotencyKey(), base.requestDigest());
+-        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(
++                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
++        when(commerceSourceApi.resolveCreationSourceForUpdate(any())).thenReturn(
+                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
+-                        66L, "CT-1", "合同一", "CO-01", "公司一", null, null, null, null,
+-                        null, null, null, null, null, null, null, null, null, null));
++                        66L, "CT-1", "合同一", "CO-01", "公司一", "来源项目", null, null, null,
++                        null, null, null, null, null, null, null, null, null, null, sourceOrder(), sourceExecution(), "a".repeat(64)));
++        stubSourceCustomer();
+         var matchDecision = decision();
+-        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
++        when(projectAttributeResolutionService.resolveSourceInitial(any(), any(), any())).thenReturn(matchDecision);
+         when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull()))
+                 .thenReturn(project());
+         doThrow(new IllegalStateException("合同已关联其他项目")).when(commerceSourceApi)
+@@ -520,6 +529,37 @@ class ProjectManualCreationApplicationServiceTest {
+         verifyNoInteractions(commerceSourceApi);
+     }
+ 
++    @Test void sourcePreviewUsesCrmMajorLevelAndRejectsStaleSnapshot() {
++        var draft = command().draft();
++        var source = new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
++                66L, "CT-1", "合同", "CO-01", "公司一", "来源项目", "客户项目", "MAJOR", null,
++                null, null, null, null, null, null, null, null, 301L, "EX-1", sourceOrder(), sourceExecution(), "a".repeat(64));
++        when(commerceSourceApi.resolveCreationSource(any())).thenReturn(source);
++        stubSourceCustomer();
++        service.previewWithSelectedCustomer(draft, 10L, 20L, actor(), 66L, 201L, "a".repeat(64));
++        verify(projectTemplateService).matchPreview(org.mockito.ArgumentMatchers.argThat(input ->
++                "MAJOR".equals(input.values().get("project.majorProjectLevel").value())
++                    && "来源项目".equals(input.values().get("project.projectName").value())));
++        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> service.previewMatching(
++                command().draft(), 10L, 20L, actor(), 66L, 201L, "b".repeat(64)));
++        verifyNoInteractions(projectCreationService, platformFactService);
++    }
++
++    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.OrderFacts sourceOrder() {
++        return new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.OrderFacts(
++                201L, "SO-1", "ERP", "ORDER-1", "v1", "C-001", "来源客户", "01", null);
++    }
++
++    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ExecutionFacts sourceExecution() {
++        return new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.ExecutionFacts(
++                "CRM", "SOURCE-P-1", "DEP-01", "SALES-1", "销售员", "最终用户", "代理商", null);
++    }
++
++    private void stubSourceCustomer() {
++        when(customerQueryApi.getCustomerByCode(new CustomerCodeQuery("C-001", 7L))).thenReturn(
++                new CustomerSummaryDTO(55L, 1L, "C-001", "来源客户", null, "ENABLED", "PLATFORM_TEMPORARY", 3L, null));
++    }
++
+     private ManualProjectCreateCommand command() {
+         ProjectMasterDO draft = new ProjectMasterDO();
+         draft.setCreationReason("业务立项");
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/api/pms/commerce/index.ts b/yudao-ui/yudao-ui-admin-vue3/src/api/pms/commerce/index.ts
+index 8cce91ecb..a5c37e036 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/api/pms/commerce/index.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/api/pms/commerce/index.ts
+@@ -221,6 +221,7 @@ export const getContract = (id: number) =>
+ 
+ /** 合同主档单入口的项目创建取值预览（合同→订单→执行单链 + 老系统规则建议值）。 */
+ export interface ContractCreationSourceRespVO {
++  sourceFingerprint: string
+   contract: ContractRespVO
+   orders: Array<{
+     id: number
+@@ -261,6 +262,7 @@ export interface ContractCreationSourceRespVO {
+   }>
+   lineExecutionNos: string[]
+   resolved: {
++    salesOrderId?: number
+     projectName?: string
+     customerCode?: string
+     customerName?: string
+@@ -283,8 +285,8 @@ export interface ContractCreationSourceRespVO {
+   }
+ }
+ 
+-export const getContractCreationSource = (id: number) =>
+-  request.get<ContractCreationSourceRespVO>({ url: `${baseUrl}/contracts/${id}/creation-source` })
++export const getContractCreationSource = (id: number, salesOrderId?: number) =>
++  request.get<ContractCreationSourceRespVO>({ url: `${baseUrl}/contracts/${id}/creation-source`, params: { salesOrderId } })
+ 
+ export const relateContractProject = (
+   contractId: number,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts b/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts
+index 46f4902d2..99f082447 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts
++++ b/yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts
+@@ -72,6 +72,9 @@ export interface ProjectMasterVO {
+   businessType?: string
+   notTrackReason?: string
+   projectStartTime?: Date
++  projectRefreshTime?: Date
++  projectCloseTime?: Date
++  closedAt?: Date
+   projectEndDate?: string
+   createTime?: Date
+ }
+@@ -84,6 +87,8 @@ export interface ProjectCreateReqVO {
+   customerName?: string
+   contractNo?: string
+   contractId?: number
++  salesOrderId?: number
++  sourceFingerprint?: string
+   orderOfficeCompanyId: number
+   orderOfficeDepartmentId: number
+   sites?: ProjectSiteReqVO[]
+@@ -560,6 +565,9 @@ export const createProject = (data: ProjectCreateReqVO, idempotencyKey: string)
+ 
+ /** 创建字段匹配冻结的适用规则；组织编码与固定创建值由服务端解析。 */
+ export interface ProjectMatchTemplatesReqVO {
++  contractId?: number
++  salesOrderId?: number
++  sourceFingerprint?: string
+   projectName: string
+   customerCode?: string
+   implementationLocation?: string
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue
+index c84c2ec51..7f83e278b 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue
+@@ -209,78 +209,22 @@
+             <span class="panel-title"><Icon icon="ep:document" /> 基本信息</span>
+           </div>
+           <el-descriptions v-if="detail" :column="descriptionColumns" border size="small">
+-            <el-descriptions-item label="项目编码">{{ detail.projectCode }}</el-descriptions-item>
+             <el-descriptions-item label="编码命名空间">
+               根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则
+               {{ detail.codeRuleVersion }}
+             </el-descriptions-item>
+-            <el-descriptions-item label="项目名称" :span="2">{{
+-              detail.projectName
+-            }}</el-descriptions-item>
+-            <el-descriptions-item label="签约方式">
+-              <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="detail.signingMethod ?? ''" />
+-            </el-descriptions-item>
+-            <el-descriptions-item label="项目类别">
+-              <dict-tag
+-                :type="DICT_TYPE.PMS_PROJECT_CATEGORY"
+-                :value="detail.projectCategory ?? ''"
+-              />
+-            </el-descriptions-item>
+-            <el-descriptions-item label="实施方式">
+-              <dict-tag
+-                :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD"
+-                :value="detail.implementationMode ?? ''"
+-              />
+-            </el-descriptions-item>
+-            <el-descriptions-item label="重大项目级别">
+-              <dict-tag
+-                v-if="detail.majorProjectLevel"
+-                :type="DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL"
+-                :value="detail.majorProjectLevel ?? ''"
+-              />
+-              <span v-else>不限</span>
+-            </el-descriptions-item>
+-            <el-descriptions-item label="业务层级">
+-              {{ detail.businessLevelName || detail.businessLevelCode || '-' }}
+-            </el-descriptions-item>
+-            <el-descriptions-item label="结构深度">{{
+-              detail.treeDepth ?? '-'
+-            }}</el-descriptions-item>
+             <el-descriptions-item label="父项目"
+               >#{{ detail.parentId ?? '-' }}</el-descriptions-item
+             >
+-            <el-descriptions-item label="客户"
+-              >{{ detail.customerName || '-' }}（{{
+-                detail.customerCode || '-'
+-              }}）</el-descriptions-item
+-            >
+-            <el-descriptions-item label="合同号">{{
+-              detail.contractNo || '-'
+-            }}</el-descriptions-item>
+-            <el-descriptions-item label="实施地点">{{
+-              detail.implementationLocation || '-'
+-            }}</el-descriptions-item>
+             <el-descriptions-item label="状态">
+               <ProjectStatusTag :project="detail" />
+             </el-descriptions-item>
+-            <el-descriptions-item label="创建来源">
+-              <dict-tag
+-                :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE"
+-                :value="detail.sourceType ?? ''"
+-              />
+-            </el-descriptions-item>
+-            <el-descriptions-item label="创建原因" :span="2">{{
+-              detail.creationReason || '-'
+-            }}</el-descriptions-item>
+-            <el-descriptions-item label="创建时间" :span="2">{{
+-              formatDateTime(detail.createTime)
+-            }}</el-descriptions-item>
+-            <el-descriptions-item label="项目结束日期（工勘要求）" :span="2">{{ detail.projectEndDate || '-' }}</el-descriptions-item>
+             <el-descriptions-item label="项目主联系人" :span="2">
+               <template v-if="primaryContact">{{ primaryContact.name }} · {{ primaryContact.mobile || primaryContact.phone || primaryContact.email }}</template>
+               <span v-else>暂未设置</span><el-tag v-if="primaryContactPending" type="warning">展示待刷新</el-tag>
+             </el-descriptions-item>
+           </el-descriptions>
++          <ProjectBaseInfo v-if="detail" :project="detail" />
+         </ContentWrap>
+ 
+         <ProjectCustomerOverview
+@@ -561,6 +505,7 @@ import ProjectProgressPanel from '@/views/pms/project/project-master-detail/comp
+ import ProjectClosureGuardPanel from '@/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue'
+ import ProjectNormalClosurePanel from '@/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue'
+ import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
++import ProjectBaseInfo from '@/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue'
+ import ProjectAuthorizationPanel from '@/views/pms/project/project-master-detail/components/ProjectAuthorizationPanel.vue'
+ import ProjectGovernancePanel from '@/views/pms/project/project-master-detail/components/ProjectGovernancePanel.vue'
+ import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue
+index 0e99483ed..431cd2fd6 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue
+@@ -262,12 +262,12 @@
+           <el-row :gutter="16">
+             <el-col :span="12">
+               <el-form-item label="项目名称" prop="projectName">
+-                <el-input v-model="createForm.projectName" placeholder="某客户网络优化工程" />
++                <el-input :readonly="!!createForm.contractId" v-model="createForm.projectName" placeholder="某客户网络优化工程" />
+               </el-form-item>
+             </el-col>
+             <el-col :span="12">
+               <el-form-item label="客户主档" prop="customerCode">
+-                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
++                <PmsEntitySelect :disabled="!!createForm.contractId" v-model="createForm.customerCode" :api="getSelectableCustomers"
+                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
+                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
+               </el-form-item>
+@@ -281,11 +281,15 @@
+             </el-col>
+             <el-col :span="12">
+               <el-form-item label="合同主档" prop="contractNo">
+-                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
+-                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
++                <PmsEntitySelect v-model="createForm.contractId" :api="getSelectableContracts"
++                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="id"
+                   query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
+               </el-form-item>
+             </el-col>
++            <el-col v-if="createForm.contractId" :span="24">
++              <ProjectCreationSource :source="creationSource" :loading="creationSourceLoading" :error="sourceError"
++                :sales-order-id="createForm.salesOrderId" @select-order="selectSalesOrder" />
++            </el-col>
+           </el-row>
+           <el-row :gutter="16">
+             <el-col :span="12">
+@@ -434,7 +438,7 @@
+               v-model="createForm.creationReason"
+               type="textarea"
+               :rows="2"
+-              placeholder="BR-2 必填：说明为何脱离 CRM/ERP 链路手工创建"
++              placeholder="请说明项目创建原因"
+             />
+           </el-form-item>
+         </el-form>
+@@ -917,6 +921,8 @@
+ </template>
+ 
+ <script setup lang="ts">
++import ProjectCreationSource from '@/views/pms/project/projects/ProjectCreationSource.vue'
++import { useProjectCreationSource } from '@/views/pms/project/projects/useProjectCreationSource'
+ import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
+ /**
+  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
+@@ -953,7 +959,7 @@ import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
+ import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
+ import { matchCustomerSelectedTemplates, createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
+ import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
+-import { getSelectableContracts, type SelectedContract } from '@/views/pms/project/projects/contractSelection'
++import { getSelectableContracts } from '@/views/pms/project/projects/contractSelection'
+ import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
+ import { closedProjectStatuses } from '@/views/pms/project/projects/projectStatus'
+ 
+@@ -1102,6 +1108,9 @@ const createForm = reactive({
+   customerCode: '',
+   customerName: '',
+   contractNo: '',
++  contractId: undefined as number | undefined,
++  salesOrderId: undefined as number | undefined,
++  sourceFingerprint: undefined as string | undefined,
+   orderOfficeCompanyId: undefined as number | undefined,
+   orderOfficeDepartmentId: undefined as number | undefined,
+   locationMode: 'sites' as 'sites' | 'fallback',
+@@ -1121,16 +1130,13 @@ const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
+   createForm.customerName = customer && customer.code === code ? customer.name : ''
+ }
+ 
+-/** 选择合同主档后跟随合同带入客户主档信息；合同号即选择值本身。 */
+-const selectContract = (no: unknown, contract?: SelectedContract) => {
+-  if (!contract || contract.contractNo !== no) return
+-  if (!contract.customerCode) return
+-  createForm.customerCode = contract.customerCode
+-  createForm.customerName = contract.customerName ?? contract.customerCode
+-}
++const { creationSource, creationSourceLoading, sourceError, sourceReady, selectContract, selectSalesOrder, resetSource } =
++  useProjectCreationSource(createForm, companies, departments)
+ 
+ const createRules = {
+-  customerCode: [{ required: true, message: '请选择客户主档', trigger: 'change' }],
++  customerCode: [{ validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
++    callback(createForm.contractId || value?.trim() ? undefined : new Error('请选择客户主档或合同关联订单'))
++  }, trigger: 'change' }],
+   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
+   orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
+   orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],
+@@ -1166,11 +1172,15 @@ const loadOrganizationAndSites = async () => {
+ 
+ const openWizard = () => {
+   wizardStep.value = 0
++  resetSource()
+   Object.assign(createForm, {
+     projectName: '',
+     customerCode: '',
+     customerName: '',
+     contractNo: '',
++    contractId: undefined,
++    salesOrderId: undefined,
++    sourceFingerprint: undefined,
+     orderOfficeCompanyId: undefined,
+     orderOfficeDepartmentId: undefined,
+     locationMode: 'sites',
+@@ -1190,6 +1200,7 @@ const openWizard = () => {
+ }
+ 
+ const wizardNext0 = async () => {
++  if (!sourceReady.value) { message.error('请先选择关联销售订单并加载来源'); return }
+   await wizardFormRef.value?.validate()
+   if (createForm.locationMode === 'sites') {
+     if (createForm.sites.some((item) => !item.siteId || item.siteVersion === undefined)) {
+@@ -1210,6 +1221,9 @@ const wizardNext0 = async () => {
+ 
+ // ============ 模板匹配（步骤②） ============
+ const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useCreationTemplateMatch(() => ({
++  contractId: createForm.contractId,
++  salesOrderId: createForm.salesOrderId,
++  sourceFingerprint: createForm.sourceFingerprint,
+   projectName: createForm.projectName,
+   customerCode: createForm.customerCode || undefined,
+   orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+@@ -1276,6 +1290,7 @@ const stageGates = (code: string) =>
+ 
+ // ============ 提交创建（步骤③） ============
+ const submitCreate = async () => {
++  if (!sourceReady.value) { message.error('请重新加载合同订单来源'); return }
+   const sites: ProjectSiteReqVO[] | undefined =
+     createForm.locationMode === 'sites'
+       ? createForm.sites.map((item, index) => ({
+@@ -1288,6 +1303,9 @@ const submitCreate = async () => {
+     projectName: createForm.projectName,
+     customerCode: createForm.customerCode,
+     contractNo: createForm.contractNo || undefined,
++    contractId: createForm.contractId,
++    salesOrderId: createForm.salesOrderId,
++    sourceFingerprint: createForm.sourceFingerprint,
+     orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+     orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
+     sites,
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue
+index b554ee79a..ac3b51674 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue
+@@ -37,9 +37,10 @@
+         <div v-for="order in commerce?.executionOrders || []" :key="order.id" class="source-record">
+           <div class="record-heading"><el-tag type="info" effect="plain">执行单</el-tag><strong>{{ order.executionNo }}</strong></div>
+           <dl class="fact-grid">
+-            <div v-for="field in executionFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ field.dict ? label(order[field.key], field.dict) : order[field.key] || '—' }}</dd></div>
++            <div v-for="field in executionFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ field.dict ? label(order[field.key], field.dict) : order[field.key] ?? '—' }}</dd></div>
+             <div class="fact"><dt>提交时间</dt><dd>{{ time(order.submitTime) }}</dd></div>
+             <div class="fact"><dt>同步时间</dt><dd>{{ time(order.sourceSyncTime) }}</dd></div>
++            <div class="fact"><dt>执行单来源</dt><dd>{{ order.sourceSystem || '—' }}</dd></div>
+           </dl>
+         </div>
+         <p v-if="!loading && !error && !commerce?.contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
+@@ -81,7 +82,13 @@ const label = (value: string | null | undefined, dict: DICT_TYPE) => value ? get
+ const time = (value: any) => value ? formatDate(value) : '—'
+ const amount = (value?: number | null, currency?: string) => value == null ? '—' : `${currency || ''} ${value}`.trim()
+ const names = (roles: string[], exclude?: number) => members.value.filter(m => roles.includes(m.memberRole) && m.userId !== exclude).map(m => m.memberName || m.employeeNo).filter(Boolean).join('、') || (memberError.value ? '人员信息加载失败' : '—')
+-const party = (role: string) => props.project.parties?.filter(p => p.role === role).map(p => p.name || p.code).filter(Boolean).join('、') || '—'
++const party = (role: string) => {
++  const assigned = props.project.parties?.filter(p => p.role === role).map(p => p.name || p.code).filter(Boolean).join('、')
++  if (assigned) return assigned
++  const key = role === 'FINAL_CUSTOMER' ? 'finalCustomerName' : role === 'AGENT' ? 'agentName' : undefined
++  const sourced = key ? [...new Set((commerce.value?.executionOrders || []).map(order => order[key]).filter(Boolean))] : []
++  return sourced.length ? `${sourced.join('、')}（执行单）` : '—'
++}
+ interface FactField { label: string; value?: string | null; wide?: boolean }
+ const salesRepresentative = computed(() => {
+   const assigned = names(['SALES_REPRESENTATIVE'])
+@@ -102,6 +109,9 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
+       { label: '业务层级', value: p.businessLevelName || p.businessLevelCode },
+       { label: '结构深度', value: p.treeDepth == null ? undefined : String(p.treeDepth) },
+       { label: '项目开始时间', value: time(p.projectStartTime) },
++      { label: '项目刷新时间', value: time(p.projectRefreshTime) },
++      { label: '项目关闭时间', value: time(p.closedAt ?? p.projectCloseTime) },
++      { label: '销售类型', value: p.salesType }, { label: '业务类型', value: p.businessType },
+       { label: '项目结束日期（工勘要求）', value: p.projectEndDate },
+       { label: '实施地点', value: p.implementationLocation, wide: true }
+     ] },
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue
+index 99755718c..0e9d88134 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue
+@@ -425,12 +425,12 @@
+           <el-row :gutter="16">
+             <el-col :span="12">
+               <el-form-item label="项目名称" prop="projectName">
+-                <el-input v-model="createForm.projectName" placeholder="某客户网络优化工程" />
++                <el-input :readonly="!!createForm.contractId" v-model="createForm.projectName" placeholder="某客户网络优化工程" />
+               </el-form-item>
+             </el-col>
+             <el-col :span="12">
+               <el-form-item label="客户主档" prop="customerCode">
+-                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
++                <PmsEntitySelect :disabled="!!createForm.contractId" v-model="createForm.customerCode" :api="getSelectableCustomers"
+                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
+                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
+               </el-form-item>
+@@ -444,73 +444,14 @@
+             </el-col>
+             <el-col :span="12">
+               <el-form-item label="合同主档" prop="contractNo">
+-                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
+-                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
++                <PmsEntitySelect v-model="createForm.contractId" :api="getSelectableContracts"
++                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="id"
+                   query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
+               </el-form-item>
+             </el-col>
+             <el-col v-if="createForm.contractId" :span="24">
+-              <div v-loading="creationSourceLoading" class="creation-source">
+-                <template v-if="creationSource">
+-                  <el-descriptions
+-                    title="合同链取值预览（CRM权威值提交后由服务端落库）"
+-                    :column="mobile ? 1 : 4"
+-                    size="small"
+-                    border
+-                  >
+-                    <el-descriptions-item label="客户项目名称">
+-                      {{ creationSource.resolved?.customerProjectName || '—' }}
+-                    </el-descriptions-item>
+-                    <el-descriptions-item label="重大项目级别">{{ majorLevelText }}</el-descriptions-item>
+-                    <el-descriptions-item label="项目类型">
+-                      {{ dictText(creationSource.resolved?.projectType, DICT_TYPE.PMS_PROJECT_TYPE) }}
+-                    </el-descriptions-item>
+-                    <el-descriptions-item label="下单时间">
+-                      {{ timeText(creationSource.resolved?.orderCreateTime) }}
+-                    </el-descriptions-item>
+-                    <el-descriptions-item label="市场">
+-                      {{ creationSource.resolved?.marketName || creationSource.resolved?.marketCode || '—' }}
+-                    </el-descriptions-item>
+-                    <el-descriptions-item label="系统">
+-                      {{ creationSource.resolved?.systemName || creationSource.resolved?.systemCode || '—' }}
+-                    </el-descriptions-item>
+-                    <el-descriptions-item label="拓展">
+-                      {{ creationSource.resolved?.expendName || creationSource.resolved?.expendCode || '—' }}
+-                    </el-descriptions-item>
+-                    <el-descriptions-item label="行业">
+-                      {{ creationSource.resolved?.industryName || creationSource.resolved?.industryCode || '—' }}
+-                    </el-descriptions-item>
+-                  </el-descriptions>
+-                  <div v-if="creationSource.orders?.length" class="source-block">
+-                    <div class="source-title">关联销售订单</div>
+-                    <el-table :data="creationSource.orders" size="small" max-height="180">
+-                      <el-table-column prop="orderNo" label="订单号" min-width="150" />
+-                      <el-table-column prop="salesType" label="销售类型" width="90" />
+-                      <el-table-column label="订单金额" width="150">
+-                        <template #default="{ row }">{{ amountText(row.orderAmount, row.currencyCode) }}</template>
+-                      </el-table-column>
+-                      <el-table-column label="下单时间" width="170">
+-                        <template #default="{ row }">{{ timeText(row.orderCreateTime) }}</template>
+-                      </el-table-column>
+-                      <el-table-column prop="executionNo" label="主执行单号" min-width="130" />
+-                    </el-table>
+-                  </div>
+-                  <div v-if="creationSource.executionOrders?.length" class="source-block">
+-                    <div class="source-title">关联执行单</div>
+-                    <el-table :data="creationSource.executionOrders" size="small" max-height="180">
+-                      <el-table-column prop="executionNo" label="执行单号" min-width="140" />
+-                      <el-table-column prop="projectName" label="CRM项目名称" min-width="160" show-overflow-tooltip />
+-                      <el-table-column prop="departmentName" label="办事处" width="120" show-overflow-tooltip />
+-                      <el-table-column label="项目金额" width="140">
+-                        <template #default="{ row }">{{ row.projectAmount == null ? '—' : row.projectAmount }}</template>
+-                      </el-table-column>
+-                      <el-table-column label="提交时间" width="170">
+-                        <template #default="{ row }">{{ timeText(row.submitTime) }}</template>
+-                      </el-table-column>
+-                    </el-table>
+-                  </div>
+-                </template>
+-              </div>
++              <ProjectCreationSource :source="creationSource" :loading="creationSourceLoading" :error="sourceError"
++                :sales-order-id="createForm.salesOrderId" @select-order="selectSalesOrder" />
+             </el-col>
+           </el-row>
+           <el-row :gutter="16">
+@@ -661,7 +602,7 @@
+               v-model="createForm.creationReason"
+               type="textarea"
+               :rows="2"
+-              placeholder="BR-2 必填：说明为何脱离 CRM/ERP 链路手工创建"
++              placeholder="请说明项目创建原因"
+             />
+           </el-form-item>
+         </el-form>
+@@ -1138,6 +1079,8 @@
+ </template>
+ 
+ <script setup lang="ts">
++import ProjectCreationSource from '@/views/pms/project/projects/ProjectCreationSource.vue'
++import { useProjectCreationSource } from '@/views/pms/project/projects/useProjectCreationSource'
+ import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
+ /**
+  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
+@@ -1174,8 +1117,7 @@ import { createSubmissionIdempotencyState } from './submissionIdempotency'
+ import ProjectStatusTag from './ProjectStatusTag.vue'
+ import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
+ import { getSelectableCustomers, type SelectedCustomer } from '../inheritance/projects/customerSelection'
+-import { getSelectableContracts, type SelectedContract } from './contractSelection'
+-import { getContractCreationSource, type ContractCreationSourceRespVO } from '@/api/pms/commerce'
++import { getSelectableContracts } from './contractSelection'
+ import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
+ import { closedProjectStatuses } from './projectStatus'
+ 
+@@ -1390,9 +1332,6 @@ const createErrorMessage = ref('')
+ const companies = ref<CompanyVO[]>([])
+ const departments = ref<DeptVO[]>([])
+ const availableSites = ref<SiteVO[]>([])
+-/** 合同链取值预览（合同→订单→执行单，CRM权威建议值） */
+-const creationSource = ref<ContractCreationSourceRespVO | null>(null)
+-const creationSourceLoading = ref(false)
+ const primarySiteIndex = ref(0)
+ 
+ const createForm = reactive({
+@@ -1401,6 +1340,8 @@ const createForm = reactive({
+   customerName: '',
+   contractNo: '',
+   contractId: undefined as number | undefined,
++  salesOrderId: undefined as number | undefined,
++  sourceFingerprint: undefined as string | undefined,
+   orderOfficeCompanyId: undefined as number | undefined,
+   orderOfficeDepartmentId: undefined as number | undefined,
+   locationMode: 'sites' as 'sites' | 'fallback',
+@@ -1420,60 +1361,13 @@ const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
+   createForm.customerName = customer && customer.code === code ? customer.name : ''
+ }
+ 
+-/** 选择合同主档后带入合同号与合同客户，并按合同→订单→执行单链预览取值、带入建议字段。 */
+-const selectContract = async (no: unknown, contract?: SelectedContract) => {
+-  const selected = contract && contract.contractNo === no ? contract : undefined
+-  creationSource.value = null
+-  createForm.contractId = selected?.id
+-  createForm.contractNo = selected?.contractNo ?? ''
+-  if (!selected?.customerCode) return
+-  createForm.customerCode = selected.customerCode
+-  createForm.customerName = selected.customerName ?? selected.customerCode
+-  if (!selected.id) return
+-  creationSourceLoading.value = true
+-  try {
+-    const source = await getContractCreationSource(selected.id)
+-    creationSource.value = source
+-    applyCreationSource(source)
+-  } catch {
+-    // 预览失败保持既有手工录入值，不阻断创建
+-  } finally {
+-    creationSourceLoading.value = false
+-  }
+-}
+-
+-/** 按解析链建议带入可编辑字段；CRM权威四维/客户项目名称/重大级别由服务端按执行单落库，页面仅预览。 */
+-const applyCreationSource = (source: ContractCreationSourceRespVO) => {
+-  const resolved = source.resolved
+-  if (!resolved) return
+-  if (resolved.projectName) createForm.projectName = resolved.projectName
+-  if (resolved.customerCode) {
+-    createForm.customerCode = resolved.customerCode
+-    createForm.customerName = resolved.customerName ?? resolved.customerCode
+-  }
+-  const company = companies.value.find((item) => item.code === resolved.companyCode)
+-  if (company?.id != null) createForm.orderOfficeCompanyId = company.id
+-  const execution =
+-    source.executionOrders?.find((item) => item.id === resolved.executionOrderId) ??
+-    source.executionOrders?.[0]
+-  const department = departments.value.find((item) => item.code === execution?.departmentCode)
+-  if (department?.id != null) createForm.orderOfficeDepartmentId = department.id
+-  // 命中CRM重大项目级别时按工程类预填项目类别（模板匹配维度，可改）
+-  if (resolved.majorProjectLevel) createForm.projectCategory = 'ENGINEERING'
+-}
+-
+-const majorLevelText = computed(() => {
+-  const level = creationSource.value?.resolved?.majorProjectLevel
+-  return level ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, level) || level : '空值'
+-})
+-const dictText = (value: string | null | undefined, dict: DICT_TYPE) =>
+-  value ? getDictLabel(dict, value) || value : '—'
+-const timeText = (value?: string | null) => (value ? formatDate(value) : '—')
+-const amountText = (value?: number | null, currency?: string | null) =>
+-  value == null ? '—' : `${currency || ''} ${value}`.trim()
++const { creationSource, creationSourceLoading, sourceError, sourceReady, selectContract, selectSalesOrder, resetSource } =
++  useProjectCreationSource(createForm, companies, departments)
+ 
+ const createRules = {
+-  customerCode: [{ required: true, message: '请选择客户主档', trigger: 'change' }],
++  customerCode: [{ validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
++    callback(createForm.contractId || value?.trim() ? undefined : new Error('请选择客户主档或合同关联订单'))
++  }, trigger: 'change' }],
+   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
+   orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
+   orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],
+@@ -1515,6 +1409,8 @@ const openWizard = () => {
+     customerName: '',
+     contractNo: '',
+     contractId: undefined,
++    salesOrderId: undefined,
++    sourceFingerprint: undefined,
+     orderOfficeCompanyId: undefined,
+     orderOfficeDepartmentId: undefined,
+     locationMode: 'sites',
+@@ -1525,7 +1421,7 @@ const openWizard = () => {
+     implementationMode: '',
+     creationReason: ''
+   })
+-  creationSource.value = null
++  resetSource()
+   primarySiteIndex.value = 0
+   selectedTemplateRevisionId.value = undefined
+   matchResult.value = null
+@@ -1535,6 +1431,7 @@ const openWizard = () => {
+ }
+ 
+ const wizardNext0 = async () => {
++  if (!sourceReady.value) { message.error('请先选择关联销售订单并加载来源'); return }
+   await wizardFormRef.value?.validate()
+   if (createForm.locationMode === 'sites') {
+     if (createForm.sites.some((item) => !item.siteId || item.siteVersion === undefined)) {
+@@ -1555,6 +1452,9 @@ const wizardNext0 = async () => {
+ 
+ // ============ 模板匹配（步骤②） ============
+ const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useCreationTemplateMatch(() => ({
++  contractId: createForm.contractId,
++  salesOrderId: createForm.salesOrderId,
++  sourceFingerprint: createForm.sourceFingerprint,
+   projectName: createForm.projectName,
+   customerCode: createForm.customerCode || undefined,
+   orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+@@ -1621,6 +1521,7 @@ const stageGates = (code: string) =>
+ 
+ // ============ 提交创建（步骤③） ============
+ const submitCreate = async () => {
++  if (!sourceReady.value) { message.error('请重新加载合同订单来源'); return }
+   const sites: ProjectSiteReqVO[] | undefined =
+     createForm.locationMode === 'sites'
+       ? createForm.sites.map((item, index) => ({
+@@ -1635,6 +1536,8 @@ const submitCreate = async () => {
+     customerName: createForm.customerName || undefined,
+     contractNo: createForm.contractNo || undefined,
+     contractId: createForm.contractId,
++    salesOrderId: createForm.salesOrderId,
++    sourceFingerprint: createForm.sourceFingerprint,
+     orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+     orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
+     sites,

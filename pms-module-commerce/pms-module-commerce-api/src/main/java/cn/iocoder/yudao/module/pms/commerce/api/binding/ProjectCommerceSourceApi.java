@@ -20,8 +20,15 @@ public interface ProjectCommerceSourceApi {
      */
     CreationSourceResolution resolveCreationSource(ProjectCommerceSourceResolveCommand command);
 
+    /** 创建事务中锁定来源，复核预览摘要后返回同一关系链。 */
+    CreationSourceResolution resolveCreationSourceForUpdate(ProjectCommerceSourceResolveCommand command);
+
     /** 只读解析命令：subjectUserId=创建人（公司范围主体）。 */
-    record ProjectCommerceSourceResolveCommand(Long tenantId, Long contractId, Long subjectUserId) {
+    record ProjectCommerceSourceResolveCommand(Long tenantId, Long contractId, Long subjectUserId,
+                                              Long salesOrderId, String sourceFingerprint) {
+        public ProjectCommerceSourceResolveCommand(Long tenantId, Long contractId, Long subjectUserId) {
+            this(tenantId, contractId, subjectUserId, null, null);
+        }
     }
 
     /** 解析结果：contract 为主档事实，resolved 为按老系统规则计算的建议值（四维/重大级别/客户项目名称为CRM权威值）。 */
@@ -31,6 +38,12 @@ public interface ProjectCommerceSourceApi {
                                     String projectType, String marketCode, String marketName,
                                     String systemCode, String systemName, String expendCode, String expendName,
                                     String industryCode, String industryName,
-                                    Long executionOrderId, String executionNo) {
+                                    Long executionOrderId, String executionNo,
+                                    OrderFacts orderFacts, ExecutionFacts executionFacts, String sourceFingerprint) {
     }
+    record OrderFacts(Long id, String orderNo, String sourceSystem, String sourceRecordKey, String sourceVersion,
+                      String customerCode, String customerName, String salesType, java.time.LocalDateTime orderCreateTime) {}
+    record ExecutionFacts(String sourceSystem, String projectCode, String departmentCode,
+                          String salesRepCode, String salesRepName, String finalCustomerName, String agentName,
+                          java.time.LocalDateTime sourceSyncTime) {}
 }

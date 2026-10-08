@@ -1,0 +1,501 @@
+{
+  "code": 0,
+  "data": {
+    "deliverables": [
+      {
+        "deliverableCode": "D_ENGINEERING_BRIEF",
+        "id": "2101716952857630279",
+        "name": "工程交底书（已有输入）",
+        "required": false,
+        "stageCode": "S1",
+        "status": "PENDING",
+        "taskCode": null
+      },
+      {
+        "deliverableCode": "D_DURATION",
+        "id": "2101716952857630280",
+        "name": "有效工期记录",
+        "required": false,
+        "stageCode": "S1",
+        "status": "PENDING",
+        "taskCode": "PRE_DURATION"
+      },
+      {
+        "deliverableCode": "D_MATERIAL",
+        "id": "2101716952857630281",
+        "name": "独立物料申领或外采流程参考材料（可选）",
+        "required": false,
+        "stageCode": "S1",
+        "status": "PENDING",
+        "taskCode": "PRE_DURATION"
+      },
+      {
+        "deliverableCode": "D_CONSTRUCTION_PLAN",
+        "id": "2101716952857630282",
+        "name": "经审批施工计划",
+        "required": true,
+        "stageCode": "S2",
+        "status": "PENDING",
+        "taskCode": "PLAN_CONSTRUCTION"
+      },
+      {
+        "deliverableCode": "D_SOLUTION",
+        "id": "2101716952857630283",
+        "name": "审核通过的实施方案",
+        "required": false,
+        "stageCode": "S3",
+        "status": "PENDING",
+        "taskCode": "PLAN_SOLUTION"
+      },
+      {
+        "deliverableCode": "D_SOLUTION_CHECK",
+        "id": "2101716952857630284",
+        "name": "配置检查与审核/复审记录",
+        "required": false,
+        "stageCode": "S3",
+        "status": "PENDING",
+        "taskCode": "PLAN_SOLUTION"
+      },
+      {
+        "deliverableCode": "D_ARRIVAL",
+        "id": "2101716952857630285",
+        "name": "到货签收单（直签）",
+        "required": true,
+        "stageCode": "S4",
+        "status": "PENDING",
+        "taskCode": "DEPLOY_ARRIVAL"
+      },
+      {
+        "deliverableCode": "D_INSTALL",
+        "id": "2101716952857630286",
+        "name": "硬件安装位置及实施记录",
+        "required": true,
+        "stageCode": "S4",
+        "status": "PENDING",
+        "taskCode": "DEPLOY_HARDWARE"
+      },
+      {
+        "deliverableCode": "D_CONFIGURATION",
+        "id": "2101716952857630287",
+        "name": "启用功能与配置Log",
+        "required": true,
+        "stageCode": "S4",
+        "status": "PENDING",
+        "taskCode": "DEPLOY_CONFIG"
+      },
+      {
+        "deliverableCode": "D_JOINT",
+        "id": "2101716952857630288",
+        "name": "运行业务及联调记录",
+        "required": true,
+        "stageCode": "S4",
+        "status": "PENDING",
+        "taskCode": "DEPLOY_JOINT"
+      },
+      {
+        "deliverableCode": "D_INITIAL",
+        "id": "2101716952857630289",
+        "name": "初验报告及验收单（直签）",
+        "required": false,
+        "stageCode": "S5",
+        "status": "PENDING",
+        "taskCode": "ACCEPT_INITIAL"
+      },
+      {
+        "deliverableCode": "D_FINAL",
+        "id": "2101716952857630290",
+        "name": "终验报告及验收单",
+        "required": false,
+        "stageCode": "S5",
+        "status": "PENDING",
+        "taskCode": "ACCEPT_FINAL"
+      },
+      {
+        "deliverableCode": "D_TRAINING",
+        "id": "2101716952857630291",
+        "name": "现场培训记录",
+        "required": true,
+        "stageCode": "S5",
+        "status": "PENDING",
+        "taskCode": "ACCEPT_TRAINING"
+      },
+      {
+        "deliverableCode": "D_SATISFACTION",
+        "id": "2101716952857630292",
+        "name": "满意度调查有效结果",
+        "required": true,
+        "stageCode": "S5",
+        "status": "PENDING",
+        "taskCode": "ACCEPT_SATISFACTION"
+      }
+    ],
+    "gates": [
+      {
+        "gateCode": "S1_ENTRY",
+        "gateType": "ENTRY",
+        "name": "工前准备准入",
+        "references": [
+          {
+            "refCode": "S0_COMPLETED",
+            "refType": "STATE",
+            "refVersion": null
+          }
+        ],
+        "stageCode": "S1",
+        "status": "PENDING",
+        "validationSummary": "STATE:S0_COMPLETED"
+      },
+      {
+        "gateCode": "S2_ENTRY",
+        "gateType": "ENTRY",
+        "name": "施工计划制定与审批准入",
+        "references": [
+          {
+            "refCode": "S1_COMPLETED",
+            "refType": "STATE",
+            "refVersion": null
+          }
+        ],
+        "stageCode": "S2",
+        "status": "PENDING",
+        "validationSummary": "STATE:S1_COMPLETED"
+      },
+      {
+        "gateCode": "S3_ENTRY",
+        "gateType": "ENTRY",
+        "name": "实施方案编制与审核准入",
+        "references": [
+          {
+            "refCode": "S1_COMPLETED",
+            "refType": "STATE",
+            "refVersion": null
+          }
+        ],
+        "stageCode": "S3",
+        "status": "PENDING",
+        "validationSummary": "STATE:S1_COMPLETED"
+      },
+      {
+        "gateCode": "S4_ENTRY",
+        "gateType": "ENTRY",
+        "name": "实施部署准入",
+        "references": [
+          {
+            "refCode": "S2_COMPLETED",
+            "refType": "STATE",
+            "refVersion": null
+          },
+          {
+            "refCode": "S3_COMPLETED",
+            "refType": "STATE",
+            "refVersion": null
+          }
+        ],
+        "stageCode": "S4",
+        "status": "PENDING",
+        "validationSummary": "STATE:S2_COMPLETED;STATE:S3_COMPLETED"
+      },
+      {
+        "gateCode": "S5_ENTRY",
+        "gateType": "ENTRY",
+        "name": "验收交维准入",
+        "references": [
+          {
+            "refCode": "S4_COMPLETED",
+            "refType": "STATE",
+            "refVersion": null
+          }
+        ],
+        "stageCode": "S5",
+        "status": "PENDING",
+        "validationSummary": "STATE:S4_COMPLETED"
+      }
+    ],
+    "lifecycleTemplateId": 993009900016,
+    "lifecycleTemplateRevisionNo": 2,
+    "milestones": [],
+    "projectId": 992203060181,
+    "stages": [
+      {
+        "actualEndTime": null,
+        "actualStartTime": "2026-10-06T18:11:21.221",
+        "deviationReason": null,
+        "entryCriteria": "CRM生成订单；由项目管理入口办理服务经理与项目经理指派。",
+        "exitCriteria": "按同办事处、单省异地、多省异地分支完成指派；异常回退总部，不复制指派审批任务。",
+        "name": "项目立项与指派",
+        "planEndTime": null,
+        "planStartTime": null,
+        "sortOrder": 0,
+        "stageCode": "S0",
+        "status": "ACTIVE",
+        "suggestedEndTime": null,
+        "suggestedStartTime": null
+      },
+      {
+        "actualEndTime": null,
+        "actualStartTime": null,
+        "deviationReason": null,
+        "entryCriteria": "S0指派完成。",
+        "exitCriteria": "工勘记录已确认、需求分析、有效工期/分工界面与用户联系人完成。工前判断复用同份工勘第8、第9及物料环境项，不单独填写确认表。三个支线独立办理，不设统一回流和等待支线完成的汇合条件。",
+        "name": "工前准备",
+        "planEndTime": null,
+        "planStartTime": null,
+        "sortOrder": 10,
+        "stageCode": "S1",
+        "status": "PENDING",
+        "suggestedEndTime": null,
+        "suggestedStartTime": null
+      },
+      {
+        "actualEndTime": null,
+        "actualStartTime": null,
+        "deviationReason": null,
+        "entryCriteria": "工前准备完成；与实施方案并行。",
+        "exitCriteria": "施工计划经服务经理审核通过并生效；驳回回到原计划修改，不新增审批ProjectTask。",
+        "name": "施工计划制定与审批",
+        "planEndTime": null,
+        "planStartTime": null,
+        "sortOrder": 20,
+        "stageCode": "S2",
+        "status": "PENDING",
+        "suggestedEndTime": null,
+        "suggestedStartTime": null
+      },
+      {
+        "actualEndTime": null,
+        "actualStartTime": null,
+        "deviationReason": null,
+        "entryCriteria": "工前准备完成；与施工计划并行。",
+        "exitCriteria": "实施方案审核及适用的工程管理部复审通过，并保留实施方案交付件。按需求方确认忽略配置工具自动检查。",
+        "name": "实施方案编制与审核",
+        "planEndTime": null,
+        "planStartTime": null,
+        "sortOrder": 30,
+        "stageCode": "S3",
+        "status": "PENDING",
+        "suggestedEndTime": null,
+        "suggestedStartTime": null
+      },
+      {
+        "actualEndTime": null,
+        "actualStartTime": null,
+        "deviationReason": null,
+        "entryCriteria": "施工计划与实施方案均完成；发货事实仍由原业务入口核验。",
+        "exitCriteria": "完成适用到货验收、硬件实施、配置调试、业务联调与割接上线。",
+        "name": "实施部署",
+        "planEndTime": null,
+        "planStartTime": null,
+        "sortOrder": 40,
+        "stageCode": "S4",
+        "status": "PENDING",
+        "suggestedEndTime": null,
+        "suggestedStartTime": null
+      },
+      {
+        "actualEndTime": null,
+        "actualStartTime": null,
+        "deviationReason": null,
+        "entryCriteria": "实施部署完成；客户验收安排与验收领域状态仍由业务模块核验。",
+        "exitCriteria": "完成适用初验/终验、培训、满意度及纸质单据交接；归档、回款支线保持独立事实。",
+        "name": "验收交维",
+        "planEndTime": null,
+        "planStartTime": null,
+        "sortOrder": 50,
+        "stageCode": "S5",
+        "status": "PENDING",
+        "suggestedEndTime": null,
+        "suggestedStartTime": null
+      }
+    ],
+    "tasks": [
+      {
+        "estimatedHours": null,
+        "name": "现场工勘与环境适配核对",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 0,
+        "stageCode": "S1",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "PRE_SURVEY"
+      },
+      {
+        "estimatedHours": null,
+        "name": "施工计划制定与审批",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 0,
+        "stageCode": "S2",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "PLAN_CONSTRUCTION"
+      },
+      {
+        "estimatedHours": null,
+        "name": "实施方案编制与分级审核",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 0,
+        "stageCode": "S3",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "PLAN_SOLUTION"
+      },
+      {
+        "estimatedHours": null,
+        "name": "客户到货及实施协调",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 0,
+        "stageCode": "S4",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "DEPLOY_COORDINATE"
+      },
+      {
+        "estimatedHours": null,
+        "name": "客户验收交维协调",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 0,
+        "stageCode": "S5",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "ACCEPT_COORDINATE"
+      },
+      {
+        "estimatedHours": null,
+        "name": "需求分析",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 10,
+        "stageCode": "S1",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "PRE_REQUIREMENT"
+      },
+      {
+        "estimatedHours": null,
+        "name": "到货验收与签收",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 10,
+        "stageCode": "S4",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "DEPLOY_ARRIVAL"
+      },
+      {
+        "estimatedHours": null,
+        "name": "项目初验",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 10,
+        "stageCode": "S5",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "ACCEPT_INITIAL"
+      },
+      {
+        "estimatedHours": null,
+        "name": "施工计划",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 20,
+        "stageCode": "S1",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "PRE_DURATION"
+      },
+      {
+        "estimatedHours": null,
+        "name": "硬件实施",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 20,
+        "stageCode": "S4",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "DEPLOY_HARDWARE"
+      },
+      {
+        "estimatedHours": null,
+        "name": "项目终验",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 20,
+        "stageCode": "S5",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "ACCEPT_FINAL"
+      },
+      {
+        "estimatedHours": null,
+        "name": "用户联系人获取",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 30,
+        "stageCode": "S1",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "PRE_CONTACT"
+      },
+      {
+        "estimatedHours": null,
+        "name": "配置调试",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 30,
+        "stageCode": "S4",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "DEPLOY_CONFIG"
+      },
+      {
+        "estimatedHours": null,
+        "name": "现场培训",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 30,
+        "stageCode": "S5",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "ACCEPT_TRAINING"
+      },
+      {
+        "estimatedHours": null,
+        "name": "业务联调",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 40,
+        "stageCode": "S4",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "DEPLOY_JOINT"
+      },
+      {
+        "estimatedHours": null,
+        "name": "满意度调查",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 40,
+        "stageCode": "S5",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "ACCEPT_SATISFACTION"
+      },
+      {
+        "estimatedHours": null,
+        "name": "割接上线",
+        "parentTaskCode": null,
+        "priority": 2,
+        "satisfactionTiming": null,
+        "sortOrder": 50,
+        "stageCode": "S4",
+        "status": "PENDING_ASSIGN",
+        "taskCode": "DEPLOY_CUTOVER"
+      }
+    ]
+  },
+  "msg": ""
+}

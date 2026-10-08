@@ -1,0 +1,73 @@
+{
+  "totals": {
+    "tests": 77,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImplTest"
+    },
+    {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.ContractControllerTest"
+    },
+    {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServiceTest"
+    },
+    {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.commerce.service.contract.CreationSourceRelationshipTest"
+    },
+    {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.commerce.service.contract.CreationSourceResolverTest"
+    },
+    {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.commerce.service.contract.ProjectCreationSourceLockTest"
+    },
+    {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.project.controller.admin.projects.SelectedCustomerProjectControllerTest"
+    },
+    {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRulesTest"
+    },
+    {
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suite": "cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationServiceTest"
+    }
+  ]
+}

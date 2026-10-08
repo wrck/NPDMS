@@ -1,0 +1,27 @@
+{
+  "recordedAt": "2026-10-06T10:27:42.849922+00:00",
+  "head": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "composeProject": "npdms-domain-test",
+  "mysqlPort": 24306,
+  "database": "npdms_domain_test",
+  "redisPort": 24379,
+  "redisDatabase": 15,
+  "observedFlywayVersion": 390,
+  "sharedMigrationExecuted": false,
+  "publicPatchSha256": "7bc13fcaf306be198a1dcf7792c554815740ed7cb6847ef6d55784eb83c93b86",
+  "runtimeJar": {
+    "path": "C:\\Users\\user\\AppData\\Local\\Temp\\npdms-project-creation-review-710a0184823a4c988fdb631b7a0bc5ec\\candidate\\yudao-server\\target\\yudao-server.jar",
+    "sha256": "2528abf82a195249ce27ce0ad9529714353e2e3b697c5f1bf3df3fcec287672b"
+  },
+  "applicationStarted": true,
+  "mockAuthentication": false,
+  "quartzAutoStartup": false,
+  "eventDrivenPolling": false,
+  "taskServerPid": 51420,
+  "taskVitePid": 38668,
+  "taskServersStoppedAfterTests": true,
+  "otherServicesStopped": false,
+  "historicalOrProductionMigrationExecuted": false,
+  "retainedSyntheticSourceRows": 73,
+  "retainedSyntheticRuntimeProjects": 6
+}

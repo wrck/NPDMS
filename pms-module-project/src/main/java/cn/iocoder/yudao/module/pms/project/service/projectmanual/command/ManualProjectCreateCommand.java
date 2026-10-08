@@ -15,5 +15,12 @@ public record ManualProjectCreateCommand(
         Long serviceManagerUserId,
         Long contractId,
         String idempotencyKey,
-        String requestDigest) {
+        String requestDigest,
+        Long salesOrderId,
+        String sourceFingerprint) {
+    public ManualProjectCreateCommand(ProjectMasterDO draft, Long companyId, Long departmentId,
+            List<ProjectSiteCommand> sites, Long revisionId, String watermark, Long managerId, Long contractId,
+            String key, String digest) {
+        this(draft, companyId, departmentId, sites, revisionId, watermark, managerId, contractId, key, digest, null, null);
+    }
 }

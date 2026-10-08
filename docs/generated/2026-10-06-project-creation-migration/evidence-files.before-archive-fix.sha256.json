@@ -1,0 +1,176 @@
+{
+  "head": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721",
+  "generatedAt": "2026-10-06T09:01:39.829780+00:00",
+  "files": [
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/archive-dry-run.json",
+      "bytes": 525,
+      "sha256": "0b9375e66f91e5d18d2317b03a5703b767180fd73d2421ed3c155f2d4b505c0a"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/archive-tests.log",
+      "bytes": 1806,
+      "sha256": "daaf5236858acd53a2060dd00bb1fe65792869538564306b20fce95247a6af3c"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/audit.md",
+      "bytes": 4547,
+      "sha256": "2159a3eed490cff19b6de1ed7d9e3f194a591b2c03bcbcb37e82dccce6faaeb2"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/backend-expanded-failure.log",
+      "bytes": 78841,
+      "sha256": "fa9fa3a39d08df115958c0e0089cf68359245daeb981355496d6f1e93aca3c08"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/backend-test-summary.json",
+      "bytes": 1857,
+      "sha256": "f8efee067f83ee21ea672e0bfc536ddad6b78cd501ad55122489140e3618ddd4"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/backend-tests.log",
+      "bytes": 70732,
+      "sha256": "218158ee7b919af7507628acade05694b6781bf476fad3bcb3174c457ec8c8da"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/baseline-backend.log",
+      "bytes": 131267,
+      "sha256": "9201e17dc2579f02d7de3eb80fb895d27cd7a7418f13758fe357b7edfe15fb02"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/baseline-comparison.json",
+      "bytes": 5104,
+      "sha256": "d6f8cf6b56a6a2356f4cb635a5a9b2c13347687974199c692c9718d97a497ce1"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/browser/linked-selection.png",
+      "bytes": 98290,
+      "sha256": "79b37513a4ce9c329a7b607c28fb6e547f1ef8d7f457c1787ea026894b31dbe0"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/browser/mobile-error-and-detail.png",
+      "bytes": 87266,
+      "sha256": "8349e272ab50757c1f4a363a70709d8f27fd8413b5a166a2cbe775a59c5c2fcc"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/browser/result.json",
+      "bytes": 510,
+      "sha256": "94023f5e19867d473a6f6e4e0984590b69a3a4a25c26ce228ebf037465c5a800"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/browser-run.log",
+      "bytes": 357,
+      "sha256": "acdb4613ce5565b94af808f002cef49a0cb3c444703e7ef982da4757d37613c6"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/candidate-package.log",
+      "bytes": 164284,
+      "sha256": "23a05f6d2d248fc2aedf8f44d83b25ee6363663fae3ec54ec5c7e90a503e0276"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/candidate-source-match.json",
+      "bytes": 3506,
+      "sha256": "72d0cc5e37fa65cbede6509683968199696df5160ff0b36e3eef7ffa8828e9a0"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/classpath.log",
+      "bytes": 30234,
+      "sha256": "a636fbb4b2f0cc039a0696c73e70dd507b0a2c046ba8436a061f7ba3b5b59fe3"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/commerce-red.log",
+      "bytes": 67731,
+      "sha256": "b39bcd38a046b855f732d5756aa95ca6a9203b467f2fa41eef6bda5c948bc8be"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/compile.log",
+      "bytes": 87391,
+      "sha256": "042bafa75caacd55524fc8a013ee2e9a95f4a9e1274942266afb103faf61eea0"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/environment-evidence.json",
+      "bytes": 1705,
+      "sha256": "8083067484e48a0f1f182cfa3d7ba8aa9df4cf7a29bdc23896a48980075706f1"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/final-status.txt",
+      "bytes": 4140,
+      "sha256": "c5c7f2a08ae8684e2e13be03f14f05569bf59ccf16252d74dfa653bd3225528b"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/final.diff",
+      "bytes": 104117,
+      "sha256": "f1e975d0f66d426a1b95e5ec7ac0b5195345717691f7c8070bfea75dfb26b689"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/frontend-tests.log",
+      "bytes": 267,
+      "sha256": "96960a055246f7500faf42e3662994ded6e61192167a65a53e567f89b49aebe1"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/frontend-types.log",
+      "bytes": 4613,
+      "sha256": "fff3843ee1559171dc7d0717224f7c54902930bbab2ee3f055d597104b470b5a"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/infrastructure-retry.log",
+      "bytes": 740,
+      "sha256": "f727e6f9fb9aba4e42ae6895eae800b9537ed78628948cc79cf49191dc48a0af"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/infrastructure.log",
+      "bytes": 986,
+      "sha256": "4b899d42a36aa5cde7b768f6f8743bb2b3b44ff917e506845eec3afc582d93b9"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/isolated-flyway-failure.log",
+      "bytes": 1823,
+      "sha256": "f2a1d9099854799d4df081c86943290338bb268d7bb277cd878b4ec12f8c5a50"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/migration-runbook.md",
+      "bytes": 5049,
+      "sha256": "9bffc0e33b5f2c34fad9d44c5928cade6354c0475ba823deb0cb65d669aafe0a"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/mysql-fixture-reconciliation.txt",
+      "bytes": 401,
+      "sha256": "7f38be5d0c92e1c88a890dd3f1d140360f2e8c77ca101ff408b70dde2f196a07"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/mysql-harness-initial-failure.log",
+      "bytes": 66687,
+      "sha256": "5e0958fc6179abf6b193e9720d139bf374037096253ca30146d5aad51500761a"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/mysql-source-test-summary.json",
+      "bytes": 563,
+      "sha256": "43eee11cfca5aad82fe01e230048f50fc00a00eafa27a7c0e67391434baf7da1"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/mysql-source-tests.log",
+      "bytes": 55648,
+      "sha256": "fa73617542ea2407fd70ddd3b0816b6e400e190ea6a3f1bd954dd860e09e9983"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/README.md",
+      "bytes": 9245,
+      "sha256": "5ae9820397d453e1f1b957555b1972e0d6be1d1ea5b8cb29b14884eaa7fd6480"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/server-build.log",
+      "bytes": 131671,
+      "sha256": "959a8eb87be5f0def4b831e449177285a5eb10d786280066eef303c8822833ad"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/source-files.sha256.json",
+      "bytes": 9794,
+      "sha256": "266c7b46a826d995e438cffee8cdbbdc6a520531580088c90a88da2603655591"
+    },
+    {
+      "path": "docs/generated/2026-10-06-project-creation-migration/startup-failure.log",
+      "bytes": 6627,
+      "sha256": "e26fbddcc242b09235ba9c253726f995aa18dea3834b3907a28ba0c6bd6bfeb2"
+    }
+  ]
+}

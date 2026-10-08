@@ -1,0 +1,15 @@
+{
+  "tests": 6,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "cases": [
+    "productionQueriesRespectContractCompanyTenantStatusAndOrderType",
+    "executionLockPreventsSourceMutationUntilTransactionEnds",
+    "contractLockSerializesCompetingCreationTransactions",
+    "orderLockPreventsSourceMutationUntilTransactionEnds",
+    "conflictingBindingIsRejectedAndRollbackLeavesExecutionUnbound",
+    "emptyExecutionFilterNeverReturnsGlobalRows"
+  ],
+  "scope": "Production Mapper XML on authorized local MySQL; not application HTTP acceptance"
+}

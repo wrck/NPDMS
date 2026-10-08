@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "scope": "real Chromium UI components with synthetic HTTP source; not backend business acceptance",
+  "checks": [
+    "multi-order requires explicit header selection; execution follows selected SO-A2",
+    "late contract A response cannot overwrite contract B",
+    "source failure clears stale facts and blocks continue",
+    "detail shows zero amount and explicitly labeled source party",
+    "390px viewport has no horizontal overflow; no browser page errors"
+  ],
+  "errors": []
+}

@@ -37,6 +37,18 @@ public class ProjectCreateReqVO {
     @Positive(message = "合同主档ID无效")
     private Long contractId;
 
+    @Positive(message = "销售订单ID无效")
+    private Long salesOrderId;
+    @jakarta.validation.constraints.Size(max = 64)
+    private String sourceFingerprint;
+
+    @AssertTrue(message = "合同来源必须选择销售订单并重新加载来源摘要")
+    @Schema(hidden = true)
+    public boolean isCommerceSelectionValid() {
+        return contractId == null ? salesOrderId == null && sourceFingerprint == null
+                : salesOrderId != null && sourceFingerprint != null && sourceFingerprint.matches("[0-9a-f]{64}");
+    }
+
     @Schema(description = "下单办事处所属公司稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "下单办事处所属公司不能为空")
     private Long orderOfficeCompanyId;

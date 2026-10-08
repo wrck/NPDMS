@@ -1,0 +1,22 @@
+[
+  {
+    "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ProjectCommerceRespVO.java",
+    "before": "518ffdec8b99c32b3079f8475a87a823801ae5f5b3a32cce62cd1801fb09fa5b",
+    "after": "9eb41e2d58d2812139d02ee15b2f36d5774db73a125c2fe79ab5eb06b32e2038"
+  },
+  {
+    "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java",
+    "before": "a8f5301e1142daa97d8a527773ca5961f2956caf97005af7b01437dbea2a46eb",
+    "after": "6151b6c8e1f0878dcff00a9611eada39675656c74723912a050a876206099f33"
+  },
+  {
+    "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractControllerTest.java",
+    "before": "816feb51209967ce0dd20d2852f4de3ab36dd9c0ac653fc3dfb6e8dbe8137d02",
+    "after": "408f91967dafbee45f14d47d4b44b6ab9ec000a5e3d10c0783032010ba8776b9"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue",
+    "before": "21d9494a4efdc987f628addf7cb278c00a1f4e5801d52d0625285127c9467ac7",
+    "after": "72e49e3c61615c0a94a60748803364775222e9e4b8549e8f4ede34cd9a9f3f21"
+  }
+]

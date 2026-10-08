@@ -1,0 +1,49 @@
+{
+  "tables": [
+    {
+      "name": "contracts",
+      "before": 10,
+      "after": 10,
+      "unchanged": true
+    },
+    {
+      "name": "orders",
+      "before": 10,
+      "after": 10,
+      "unchanged": true
+    },
+    {
+      "name": "executions",
+      "before": 10,
+      "after": 10,
+      "unchanged": true
+    },
+    {
+      "name": "projects",
+      "before": 0,
+      "after": 0,
+      "unchanged": true
+    },
+    {
+      "name": "order_lines",
+      "before": 0,
+      "after": 0,
+      "unchanged": true
+    },
+    {
+      "name": "order_contract_relations",
+      "before": 0,
+      "after": 0,
+      "unchanged": true
+    },
+    {
+      "name": "project_contract_relations",
+      "before": 0,
+      "after": 0,
+      "unchanged": true
+    }
+  ],
+  "realProjects": 0,
+  "sourceWrites": 0,
+  "taskCreatedCustomers": 0
+}

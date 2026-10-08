@@ -1,0 +1,24 @@
+{
+  "baselineManifest": "source-files.before-archive-fix.sha256.json",
+  "changedFiles": [
+    {
+      "path": "scripts/legacy_project_archive.py",
+      "beforeSha256": "cff6415f08cf275cc84d2cfde23686596287f0dea674bcaeed1c7b4b08077b8f",
+      "afterSha256": "1bc793998e02698c148d6b5ae83c137dc7e8d5dc1481677ef0e82e73cd97b0c7"
+    },
+    {
+      "path": "scripts/tests/test_legacy_project_archive.py",
+      "beforeSha256": "c3372c9e0b539f093a4e37311740d8b309db54f5ce8f7bcb7407be360743a20e",
+      "afterSha256": "18b37415c85098df3f84440fb062dd8d6bfeb923faab497b29138c05fd12509d"
+    }
+  ],
+  "publicFilesModified": false,
+  "sharedDatabaseAccessed": false,
+  "regression": {
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "log": "archive-identity-schema-tests.log"
+  },
+  "redEvidence": "archive-identity-schema-red.log"
+}

@@ -1,0 +1,74 @@
+ M docs/decisions/open-questions.md
+ M pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceApi.java
+ M pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/binding/ProjectCommerceSourceBindCommand.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/ContractController.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/controller/admin/contract/vo/ContractCreationSourceRespVO.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/query/ExecutionPrimaryProjectUpdate.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderMapper.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolver.java
+ M pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCommerceSourceServiceImpl.java
+ M pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml
+ M pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml
+ M pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceResolverTest.java
+ M pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectController.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectMatchTemplatesReqVO.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectRespVO.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java
+ M pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/command/ManualProjectCreateCommand.java
+ M pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectControllerTest.java
+ M pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java
+ M yudao-ui/yudao-ui-admin-vue3/src/api/pms/commerce/index.ts
+ M yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts
+ M yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue
+ M yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue
+ M yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue
+ M yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue
+?? LOG_FILE_IS_UNDEFINED
+?? device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/NpdmsLogSplitController.java
+?? device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/log/
+?? device-ops-platform/device-ops-parser-semantic/src/test/java/com/dp/deviceops/parser/semantic/log/
+?? docs/generated/2026-09-27-fullflow-test/browser/tmp-training.png
+?? docs/generated/2026-09-27-fullflow-test/browser/tmp-view.png
+?? docs/generated/2026-10-06-project-creation-migration/
+?? docs/generated/2026-10-06-visio-system-record-template/
+?? pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/device/DeviceConfigurationLogArchiveApi.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/controller/admin/device/DeviceLogArchiveController.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/configurationlog/DeviceLogFileDO.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/configurationlog/DeviceLogImportDO.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/DeviceLogDeviceMapper.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/DeviceLogFileMapper.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/DeviceLogImportMapper.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/query/DeviceLogFileLockQuery.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/query/DeviceLogHistoryQuery.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/query/DeviceLogImportFilesQuery.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/query/DeviceLogImportLockQuery.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/query/DeviceLogProjectQuery.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/configurationlog/query/DeviceLogSerialsQuery.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceLogArchiveService.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceLogDocumentSources.java
+?? pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/configurationlog/DeviceLogFilePolicyProvider.java
+?? pms-module-asset/src/main/resources/mapper/configurationlog/
+?? pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/CreationSourceRelationshipTest.java
+?? pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCreationSourceLockTest.java
+?? pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ProjectCreationSourceMySqlTest.java
+?? pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/collection/DeviceConfigurationLogArchiveBridge.java
+?? pms-module-integration/pms-module-integration-api/src/main/java/cn/iocoder/yudao/module/pms/integration/api/deviceops/DeviceOpsLogSplitApi.java
+?? pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/deviceops/DacDeviceOpsLogSplitGateway.java
+?? pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/DeviceLogFileApi.java
+?? pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/DeviceLogFileService.java
+?? scripts/legacy_project_archive.py
+?? scripts/tests/fixtures/
+?? scripts/tests/run_project_creation_source_browser.cjs
+?? scripts/tests/test_legacy_project_archive.py
+?? sql/migrations/V398__device_configuration_log_archive.sql
+?? yudao-ui/yudao-ui-admin-vue3/src/api/pms/asset/device-log-archive/
+?? yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device-log-archive/
+?? yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/ProjectCreationSource.vue
+?? yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/useProjectCreationSource.spec.ts
+?? yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/useProjectCreationSource.ts

@@ -221,6 +221,7 @@ export const getContract = (id: number) =>
 
 /** 合同主档单入口的项目创建取值预览（合同→订单→执行单链 + 老系统规则建议值）。 */
 export interface ContractCreationSourceRespVO {
+  sourceFingerprint: string
   contract: ContractRespVO
   orders: Array<{
     id: number
@@ -261,6 +262,7 @@ export interface ContractCreationSourceRespVO {
   }>
   lineExecutionNos: string[]
   resolved: {
+    salesOrderId?: number
     projectName?: string
     customerCode?: string
     customerName?: string
@@ -283,8 +285,8 @@ export interface ContractCreationSourceRespVO {
   }
 }
 
-export const getContractCreationSource = (id: number) =>
-  request.get<ContractCreationSourceRespVO>({ url: `${baseUrl}/contracts/${id}/creation-source` })
+export const getContractCreationSource = (id: number, salesOrderId?: number) =>
+  request.get<ContractCreationSourceRespVO>({ url: `${baseUrl}/contracts/${id}/creation-source`, params: { salesOrderId } })
 
 export const relateContractProject = (
   contractId: number,

@@ -1,0 +1,220 @@
+{
+  "prefix": "PCREATE-20261007-FINAL-b5e730",
+  "checks": [
+    {
+      "name": "UI1 source retains buyer without requiring buyer CUS identity",
+      "passed": true
+    },
+    {
+      "name": "UI1/pms/projects rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/pms/projects rejects unknown final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/pms/projects accepts distinct final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/pms/projects creation rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/api/v1/pms/projects rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/api/v1/pms/projects rejects unknown final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/api/v1/pms/projects accepts distinct final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1/api/v1/pms/projects creation rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2 source retains buyer without requiring buyer CUS identity",
+      "passed": true
+    },
+    {
+      "name": "UI2/pms/projects rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/pms/projects rejects unknown final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/pms/projects accepts distinct final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/pms/projects creation rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/api/v1/pms/projects rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/api/v1/pms/projects rejects unknown final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/api/v1/pms/projects accepts distinct final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2/api/v1/pms/projects creation rejects missing final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1 buyer is shown separately and final customer remains empty",
+      "passed": true
+    },
+    {
+      "name": "UI1 final customer can be selected independently",
+      "passed": true
+    },
+    {
+      "name": "UI1 browser creates with distinct final customer",
+      "passed": true
+    },
+    {
+      "name": "UI1 persisted customer is canonical CUS final identity",
+      "passed": true
+    },
+    {
+      "name": "UI1 actual detail displays final customer and linked execution",
+      "passed": true
+    },
+    {
+      "name": "UI2 buyer is shown separately and final customer remains empty",
+      "passed": true
+    },
+    {
+      "name": "UI2 final customer can be selected independently",
+      "passed": true
+    },
+    {
+      "name": "UI2 browser creates with distinct final customer",
+      "passed": true
+    },
+    {
+      "name": "UI2 persisted customer is canonical CUS final identity",
+      "passed": true
+    },
+    {
+      "name": "UI2 actual detail displays final customer and linked execution",
+      "passed": true
+    },
+    {
+      "name": "no uncaught browser errors",
+      "passed": true
+    },
+    {
+      "name": "UI1 identical request replays same project",
+      "passed": true
+    },
+    {
+      "name": "UI1 final customer change conflicts with original idempotency key",
+      "passed": true
+    },
+    {
+      "name": "UI2 identical request replays same project",
+      "passed": true
+    },
+    {
+      "name": "UI2 final customer change conflicts with original idempotency key",
+      "passed": true
+    },
+    {
+      "name": "only two projects and final CUS identities persisted",
+      "passed": true
+    },
+    {
+      "name": "buyer source rows remain separate and unchanged",
+      "passed": true
+    },
+    {
+      "name": "idempotent replay did not duplicate contract links",
+      "passed": true
+    }
+  ],
+  "fixtures": [
+    {
+      "case": "UI1",
+      "contractId": "2107052902856093795",
+      "contractNo": "PCREATE-20261007-FINAL-b5e730-UI1",
+      "orderId": "2104958251101687848",
+      "executionId": "2101627940218699799",
+      "executionNo": "PCREATE-20261007-FINAL-b5e730-UI1-EX",
+      "projectName": "PCREATE-20261007-FINAL-b5e730-UI1-PROJECT",
+      "fingerprint": "48412d11d9df2d1cb286aa8fba14048ce08d94165618aeb959d5ab5ea93e866f"
+    },
+    {
+      "case": "UI2",
+      "contractId": "2107052902856093796",
+      "contractNo": "PCREATE-20261007-FINAL-b5e730-UI2",
+      "orderId": "2104958251101687849",
+      "executionId": "2101627940218699800",
+      "executionNo": "PCREATE-20261007-FINAL-b5e730-UI2-EX",
+      "projectName": "PCREATE-20261007-FINAL-b5e730-UI2-PROJECT",
+      "fingerprint": "aca00e2cd3ed4ebd98b2e7fe9b7d9e626243cf4ee20d413ff8a11b3e0a93f2fd"
+    }
+  ],
+  "created": [
+    {
+      "case": "UI1",
+      "id": "992203060187",
+      "route": "/pms/projects",
+      "idempotencyKey": "pms-bcca7034-6c8b-4bfb-a54e-a8d433244331",
+      "request": {
+        "projectName": "PCREATE-20261007-FINAL-b5e730-UI1-PROJECT",
+        "customerCode": "CUST-001",
+        "customerName": "北京华盛科技有限公司",
+        "contractNo": "PCREATE-20261007-FINAL-b5e730-UI1",
+        "contractId": "2107052902856093795",
+        "salesOrderId": "2104958251101687848",
+        "sourceFingerprint": "48412d11d9df2d1cb286aa8fba14048ce08d94165618aeb959d5ab5ea93e866f",
+        "orderOfficeCompanyId": 930800,
+        "orderOfficeDepartmentId": 930801,
+        "implementationLocation": "Synthetic local final customer acceptance",
+        "signingMethod": "DIRECT_SIGN",
+        "projectCategory": "GENERAL",
+        "implementationMode": "DIRECT_SERVICE",
+        "creationReason": "PCREATE-20261007-FINAL-b5e730-UI1",
+        "templateRevisionId": 993009900050,
+        "candidateWatermark": "432b5ab35f22d892dacded7a17fbdad61d2f425dca448bf9f33c8bf969aa0e56"
+      }
+    },
+    {
+      "case": "UI2",
+      "id": "992203060188",
+      "route": "/api/v1/pms/projects",
+      "idempotencyKey": "pms-c3431cd9-944b-40b6-ae54-af9baafa6f39",
+      "request": {
+        "projectName": "PCREATE-20261007-FINAL-b5e730-UI2-PROJECT",
+        "customerCode": "CUST-001",
+        "contractNo": "PCREATE-20261007-FINAL-b5e730-UI2",
+        "contractId": "2107052902856093796",
+        "salesOrderId": "2104958251101687849",
+        "sourceFingerprint": "aca00e2cd3ed4ebd98b2e7fe9b7d9e626243cf4ee20d413ff8a11b3e0a93f2fd",
+        "orderOfficeCompanyId": 930800,
+        "orderOfficeDepartmentId": 930801,
+        "implementationLocation": "Synthetic local final customer acceptance",
+        "signingMethod": "DIRECT_SIGN",
+        "projectCategory": "GENERAL",
+        "implementationMode": "DIRECT_SERVICE",
+        "creationReason": "PCREATE-20261007-FINAL-b5e730-UI2",
+        "templateRevisionId": 993009900050,
+        "candidateWatermark": "432b5ab35f22d892dacded7a17fbdad61d2f425dca448bf9f33c8bf969aa0e56"
+      }
+    }
+  ]
+}

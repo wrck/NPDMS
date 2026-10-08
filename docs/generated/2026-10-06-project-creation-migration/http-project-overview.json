@@ -1,0 +1,80 @@
+{
+  "code": 0,
+  "data": {
+    "contracts": [
+      {
+        "id": "2107052902856093789",
+        "companyCode": "DPTECH-DEMO",
+        "companyName": null,
+        "contractNo": "PCREATE-20261006-710A-HTTP-085860-API",
+        "contractType": null,
+        "customerCode": "CUST-001",
+        "customerName": null,
+        "contractName": "PCREATE-20261006-710A-HTTP-085860-API",
+        "contractAmount": null,
+        "currencyCode": null,
+        "sourceVersion": null,
+        "sourceUpdatedAt": null,
+        "status": "ENABLED",
+        "version": 0
+      }
+    ],
+    "orders": [
+      {
+        "id": "2104958251101687840",
+        "orderNo": "PCREATE-20261006-710A-HTTP-085860-API-SO-A",
+        "companyName": null,
+        "orderCreateTime": 1790827200000,
+        "orderAmount": null,
+        "currencyCode": null,
+        "salesType": "01",
+        "customerRequiredTime": null,
+        "executionNo": "PCREATE-20261006-710A-HTTP-085860-API-EX-A"
+      },
+      {
+        "id": "2104958251101687841",
+        "orderNo": "PCREATE-20261006-710A-HTTP-085860-API-SO-B",
+        "companyName": null,
+        "orderCreateTime": 1790827200000,
+        "orderAmount": null,
+        "currencyCode": null,
+        "salesType": "02",
+        "customerRequiredTime": null,
+        "executionNo": "PCREATE-20261006-710A-HTTP-085860-API-EX-B"
+      }
+    ],
+    "executionOrders": [
+      {
+        "id": "2101627940218699793",
+        "executionNo": "PCREATE-20261006-710A-HTTP-085860-API-EX-B",
+        "salesRepCode": null,
+        "salesRepName": "Synthetic sales",
+        "marketName": null,
+        "systemName": null,
+        "expendName": null,
+        "industryName": null,
+        "departmentName": null,
+        "companyName": null,
+        "customerProjectName": "PCREATE-20261006-710A-HTTP-085860-API-CUSTOMER-B",
+        "finalCustomerName": "Synthetic final customer",
+        "agentName": "Synthetic agent",
+        "projectManagerName": null,
+        "serviceTypeName": null,
+        "channelName": null,
+        "submitTime": null,
+        "sourceSystem": "SYNTHETIC",
+        "sourceSyncTime": null,
+        "projectCode": null,
+        "projectName": "PCREATE-20261006-710A-HTTP-085860-API-EXECUTION-B",
+        "projectAmount": 0.0,
+        "majorProjectLevel": null,
+        "projectType": null,
+        "marketCode": null,
+        "systemCode": null,
+        "expendCode": null,
+        "industryCode": null
+      }
+    ]
+  },
+  "msg": ""
+}

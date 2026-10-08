@@ -1,0 +1,52 @@
+[
+  {
+    "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java",
+    "before": "a327cf1fc9f3cd28cf3ade007260f316fdeac6f4bc188d4c203ca1b43981f4f9",
+    "after": "b9ab2b6a00c3978b14eef41d6974a955eced91cc640ff1be1b5e0b99618dd43a"
+  },
+  {
+    "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/SelectedCustomerProjectCreateReqVO.java",
+    "before": "a77d8160c930589611a75b5d1378f8998b64be57203e83f33ccbc57246bdff10",
+    "after": "311052084caff0739f72375ab1aa98e83c59921d201612dca17bd1673622495e"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/useProjectCreationSource.ts",
+    "before": "776d80890aed4c139f6bbdd269e134a42866d335d25252d414303d6df18218d2",
+    "after": "23e39195d26b1293308444e5ccaf899adc6328fb90a5d83705a6d234422b1df8"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+    "before": "fa445f3ef9778debe7ca247c312d6500c2c02759f9b233c7e96b06bba4a2b42b",
+    "after": "3fde9a6c9ed0fd1e90fe3c0de664cea6796f5b84f901a53476db3a0e585eb828"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue",
+    "before": "3fcbe9f342fb9fdd7bd2e7908d106f8d0e890ce99165caeec892bf999c134a65",
+    "after": "7e03385f7dcf4d6b0f59ca742ca731fff2bd4fc9a0d87d37483d9a3a62c4304b"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/ProjectCreationSource.vue",
+    "before": "0327b88d06dd5148ce98d9947a83407b7af526a6d6037bb3b1526ac32881de2f",
+    "after": "02ad58501fbca7b8d460567d19814aa840153d25427749c386ea1d606ec18e80"
+  },
+  {
+    "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationServiceTest.java",
+    "before": "afecd23a0630767506a4bcc4cf038f3d20e3b270e3796e5ca682a0ef3afec5b4",
+    "after": "3aab6d61c421adb3bb1b6a88429623e1306dd7c5ef6f95ac5e3ad18dbb333027"
+  },
+  {
+    "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/SelectedCustomerProjectControllerTest.java",
+    "before": "31b8ab4cea4fad5c4544247cb6f37ca114b7e8fc54a6d9895dde684d1b724c33",
+    "after": "eaba2ee2088f7ee72594b7839e61a54548902d0e0ab284d4704eb8f8dcde5239"
+  },
+  {
+    "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/useProjectCreationSource.spec.ts",
+    "before": "77e2c420f6dfc533f2e72b0a57e632e98d653e6a7d0811ec468dbf678ee7f969",
+    "after": "45055d1d9293d251fa8377055865f4db2fe90d429243d6804367727f327fce7b"
+  },
+  {
+    "path": "docs/decisions/open-questions.md",
+    "before": "0042f8de59fb44f2c63d268b5c6453091d63b5f66fc6824d8fe3658f950589b3",
+    "after": "3e5c3f0ee17179215bf9c9fe1e72b8c0a1be56bb58f8744fb7e4136514552ab2"
+  }
+]

@@ -143,7 +143,8 @@ public class ProjectMasterController {
                                 site.getPrimarySite())).toList(),
                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
                 createReqVO.getServiceManagerUserId(), createReqVO.getContractId(),
-                idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
+                idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)),
+                createReqVO.getSalesOrderId(), createReqVO.getSourceFingerprint());
         ManualProjectCreateResult result = withTrustedTenant(() ->
                 projectManualCreationApplicationService.create(command,
                         new ProjectManualCreationApplicationService.Actor(
@@ -160,7 +161,8 @@ public class ProjectMasterController {
         try {
             TemplateMatchResult match = withTrustedTenant(() -> projectManualCreationApplicationService.previewMatching(
                     BeanUtils.toBean(request, ProjectMasterDO.class), request.getOrderOfficeCompanyId(), request.getOrderOfficeDepartmentId(),
-                    new ProjectManualCreationApplicationService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString())));
+                    new ProjectManualCreationApplicationService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()),
+                    request.getContractId(), request.getSalesOrderId(), request.getSourceFingerprint()));
             ProjectMatchTemplatesRespVO respVO = new ProjectMatchTemplatesRespVO();
             respVO.setOutcome(match.getOutcome().name());
             respVO.setCandidateWatermark(match.getCandidateWatermark());
