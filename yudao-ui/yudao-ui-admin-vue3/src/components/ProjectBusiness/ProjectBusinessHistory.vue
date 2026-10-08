@@ -12,6 +12,7 @@
       <el-table-column label="生效" width="80"><template #default="{row}">{{row.effective?'是':'否'}}</template></el-table-column>
       <el-table-column label="操作" width="80"><template #default="{row}"><el-button :disabled="blocked" @click="choose(row)">查看</el-button></template></el-table-column>
     </el-table>
+    <el-button v-if="hasMore" :disabled="blocked" @click="loadOlder">加载更早版本</el-button>
     <template v-if="selected && values && presentation">
       <h4>修订 #{{selected.revisionNo}} · {{selected.state==='DRAFT'?'草稿':'冻结只读'}}</h4>
       <ProjectBusinessContentForm ref="editor" :fields="fields" :writable-fields="writableFields" :presentation="presentation" :initial-values="values"
@@ -38,6 +39,7 @@ import type {BusinessId,DirectBusinessRevision,ProjectBusinessApi,RevisionFieldV
 import ProjectBusinessContentForm from './ProjectBusinessContentForm.vue'
 const props=defineProps<{api:ProjectBusinessApi;current:BusinessEntityData;fields:FieldVO[];actions:OperationVO[];busy:boolean;readonly?:boolean;execute:(code:string,values:Record<string,unknown>)=>Promise<BusinessOperationReceipt|undefined>}>()
 const message=useMessage(),rows=ref<DirectBusinessRevision[]>([]),selected=ref<DirectBusinessRevision>(),values=ref<Record<string,unknown>>(),presentation=ref<BusinessEntityFormData>(),editor=ref<InstanceType<typeof ProjectBusinessContentForm>>()
+const hasMore=ref(false)
 const loading=ref(false),working=ref(false),error=ref(''),reason=ref(''),left=ref(''),right=ref('')
 const differences=ref<Array<{fieldCode:string;before:RevisionFieldValue;after:RevisionFieldValue}>>()
 let generation=0
@@ -54,12 +56,20 @@ const load=async(preferred?:BusinessId)=>{
   const active=++generation,api=props.api,id=props.current.ref.entityId;loading.value=true;error.value=''
   try{
     const list=await api.revisions(id);if(active!==generation)return
-    rows.value=list
+    rows.value=list;hasMore.value=list.length===100
     const next=list.find(row=>String(row.ref.revisionId)===String(preferred??selected.value?.ref.revisionId))||list.find(row=>row.state==='DRAFT')||list[0]
     selected.value=next;values.value=undefined;presentation.value=undefined
     if(next){const [data,form]=await Promise.all([api.revisionValues(id,next.ref.revisionId),api.revisionForm(id,next.ref.revisionId)]);if(active!==generation)return
       values.value=Object.fromEntries(Object.entries(data).filter(([,field])=>field.readable).map(([key,field])=>[key,field.value]));presentation.value=form}
   }catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'修订读取失败'}
+  finally{if(active===generation)loading.value=false}
+}
+const loadOlder=async()=>{
+  if(blocked.value || !hasMore.value || !rows.value.length)return
+  const active=++generation,api=props.api,id=props.current.ref.entityId,beforeId=rows.value[rows.value.length-1].ref.revisionId
+  loading.value=true;error.value=''
+  try{const list=await api.revisions(id,beforeId);if(active!==generation)return;rows.value=[...rows.value,...list];hasMore.value=list.length===100}
+  catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'较早修订读取失败'}
   finally{if(active===generation)loading.value=false}
 }
 let identity=''

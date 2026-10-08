@@ -55,3 +55,8 @@ it('version history, form and comparison are inherited routes with lossless revi
  expect(request.get).toHaveBeenCalledWith({url:'/api/v1/pms/version-notes/9007199254740993/revisions/compare',params:{left:'9007199254740994',right:'9007199254740995'},silentError:true})
  expect(()=>api.revisionValues(1,'../other')).toThrow()
 })
+
+it('rejects unsafe numeric delivery identities before issuing an edit or file request', () => {
+  const api = createProjectBusinessApi('/api/v1/pms/notes')
+  expect(() => api.editDelivery(1, { id: Number.MAX_SAFE_INTEGER + 1, version: 0 } as any, 'title')).toThrow('业务实体 ID 不合法')
+})

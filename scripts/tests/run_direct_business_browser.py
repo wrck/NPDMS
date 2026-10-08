@@ -61,8 +61,19 @@ def main():
                 assert saved.value.json()['code']==0
                 expect(page.get_by_role('button',name='保存',exact=True)).to_be_enabled()
                 expect(field(page,label)).to_have_value(value+' edited')
+                field(page,label).fill(value+' unsaved')
+                page.get_by_role('button',name='返回列表',exact=True).click();page.get_by_role('button',name='取消',exact=True).click()
+                expect(field(page,label)).to_have_value(value+' unsaved')
+                page.get_by_role('button',name='重新读取',exact=True).click();page.get_by_role('button',name='取消',exact=True).click()
+                expect(field(page,label)).to_have_value(value+' unsaved')
+                page.get_by_role('button',name='重新读取',exact=True).click();page.get_by_role('button',name='确定',exact=True).click()
+                expect(field(page,label)).to_have_value(value+' edited')
+                field(page,label).fill(value+' discarded')
+                page.get_by_role('button',name='返回列表',exact=True).click();page.get_by_role('button',name='确定',exact=True).click()
+                expect(page.locator('.business-entity-list .el-table__row')).to_have_count(1)
+                page.locator('.business-entity-list .el-table__row').click();expect(field(page,label)).to_have_value(value+' edited')
                 page.screenshot(path=str(OUT/(label+'-business.png')),full_page=True)
-                result['checks'].append(button+' inherits create/list/read/update/upload/echo')
+                result['checks'].append(button+' inherits create/list/read/update/upload/echo and cancel/confirm unsaved back/reload')
             evidence=shared.fixture('/fixture/evidence');assert len(evidence['plt_delivery_material'])==2,evidence
             assert evidence['it_direct_note'][0]['title']=='First inherited edited',evidence
             assert evidence['it_direct_other'][0]['description']=='Second inherited edited',evidence

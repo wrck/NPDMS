@@ -109,9 +109,15 @@ const remove = async () => {
   } finally {confirming.value=false}
 }
 const recoverOperation = async () => { const result=await state.recover();if(result)editing.value=result.outcome!=='DELETED' && !!current.value }
-const back = async () => { if(!busy.value && (!history.value || await history.value.requestLeave())){editing.value=false;loadPage(true)} }
-const reloadCurrent = async () => { if(current.value && (!history.value || await history.value.requestLeave()))await state.open(current.value.ref.entityId) }
-const requestLeave = async () => !busy.value && (!fieldConfiguration.value || await fieldConfiguration.value.requestLeave())
+const back = async () => { if(await requestLeave() && (!history.value || await history.value.requestLeave())){editing.value=false;loadPage(true)} }
+const reloadCurrent = async () => { if(current.value && await requestLeave() && (!history.value || await history.value.requestLeave()))await state.open(current.value.ref.entityId) }
+const requestLeave = async () => {
+  if(busy.value || fieldConfiguration.value && !await fieldConfiguration.value.requestLeave())return false
+  if(!editing.value || props.readonly || current.value && versioned.value || !form.value)return true
+  try{if(!Object.keys(await form.value.buildInput()).length)return true}catch{/* Invalid unsaved input still requires an explicit discard. */}
+  confirming.value=true
+  try{await message.confirm('当前业务内容尚未保存，确定离开？');return true}catch{return false}finally{confirming.value=false}
+}
 onBeforeRouteLeave(requestLeave);onBeforeRouteUpdate(requestLeave)
 defineExpose({ requestLeave, reload:state.load })
 </script>
