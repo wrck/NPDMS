@@ -71,6 +71,17 @@ const item = {
 }
 
 describe('F-CUT-003 mounted checklist field', () => {
+  it('rejects a missing uploaded artifact without recording a partial file fact', async () => {
+    fileApi.getArtifact.mockResolvedValueOnce(null); fileApi.getVersions.mockClear()
+    const manual = vi.fn()
+    const mounted = mount(CutoverChecklistField, { item, directValue: '', readonly: false, onManual: manual }, controls)
+    try {
+      await expect((mounted.vm as any).$.setupState.completeUpload({ artifactId: '9007199254740993', versionNo: 4, referenceKey: 'manual-proof' }))
+        .rejects.toThrow('文件信息暂不可用')
+      expect(fileApi.getVersions).not.toHaveBeenCalled(); expect(manual).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
   it('emits direct answer and freezes PLT public fact without converting Snowflake ids', async () => {
     fileApi.getArtifact.mockResolvedValue({
       artifactVersion: 2,

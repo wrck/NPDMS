@@ -111,3 +111,10 @@ export const mount = (
   const vm = app.mount(root)
   return { root, app, vm }
 }
+
+/** Invoke the actual rendered event binding while retaining unknown prop safety. */
+export const testEventHandler = (node: TestNode, name: string) => {
+  const handler = node.props?.[name]
+  if (typeof handler !== 'function') throw new Error(`Missing event handler: ${name}`)
+  return handler as (...args: unknown[]) => unknown
+}

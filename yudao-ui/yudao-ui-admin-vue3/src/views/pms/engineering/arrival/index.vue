@@ -197,7 +197,7 @@ import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import type { FileSelection } from '@/components/PmsFileArtifact'
-import type { FileArtifactVO } from '@/api/pms/platform/file'
+import type { FileArtifactVO, FileId } from '@/api/pms/platform/file'
 import { getArtifact } from '@/api/pms/platform/file'
 import { listMaterials, withdrawMaterial } from '@/api/pms/platform/delivery'
 import { checkPermi } from '@/utils/permission'
@@ -221,7 +221,7 @@ const rules = {
   arrivalTime: [{ required: true, message: '请选择到货时间' }]
 }
 // 槽位只保留挂接事实：completion 先给最小事实驱动列表重载，@loaded 再精化为当前版本。
-const signSlot = ref<{ artifactId?: number; referenceVersion?: number }>()
+const signSlot = ref<{ artifactId?: FileId; referenceVersion?: number }>()
 const slotEpoch = ref(0)
 const slotLoading = ref(false)
 const slotError = ref('')
@@ -248,7 +248,7 @@ const loadSignDocument = async (id: number) => {
       && item.fileBusinessKey.purposeCode === 'ARRIVAL_SIGN_DOCUMENT' && item.fileBusinessKey.referenceKey === 'arrival-sign-document')
     // Materials retain historical artifacts. Only the current native reference
     // resolves with this complete stable key; never infer a new file identity.
-    let current: FileArtifactVO | undefined
+    let current: FileArtifactVO | null | undefined
     for (const candidate of candidates) {
       try { current = await getArtifact(candidate.fileArtifactId!, candidate.fileBusinessKey!); if (current) break }
       catch { if (candidate === candidates[candidates.length - 1]) throw new Error('附件引用已变化，请重新读取') }

@@ -1,3 +1,4 @@
+import type { FileId } from '@/api/pms/platform/file'
 import request from '@/config/axios'
 
 export interface CursorPage<T> {
@@ -86,7 +87,7 @@ export interface PreparationVO {
 }
 
 export interface EvidenceReference {
-  artifactId: number
+  artifactId: FileId
   versionNo: number
   referenceKey: string
   fileFactVersion: {
@@ -94,7 +95,7 @@ export interface EvidenceReference {
     referenceVersion: number
     availabilityVersion: number
   }
-  scopeVersion: number
+  scopeVersion: FileId
 }
 
 export interface AssignmentCandidateVO {

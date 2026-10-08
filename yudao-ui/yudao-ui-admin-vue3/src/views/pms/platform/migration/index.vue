@@ -760,6 +760,10 @@ const openCloseIssue = async (row: MigrationBatchVO) => {
   closeIssueVisible.value = true
 }
 const submitCloseIssue = async () => {
+  if (!/^[1-9]\d*$/.test(closeIssueForm.issueId)) {
+    message.error('请输入有效的问题 ID')
+    return
+  }
   submitting.value = true
   try {
     const targetResult = JSON.parse(closeIssueForm.targetResultJson)

@@ -127,6 +127,7 @@ const fileKey = (purposeCode: CutoverClosureFilePurpose, referenceKey: string) =
 const completeUpload = async (purposeCode: CutoverClosureFilePurpose, selection: FileSelection) => {
   const key = fileKey(purposeCode, selection.referenceKey)
   const artifact = await FileApi.getArtifact(selection.artifactId, key)
+  if (!artifact) throw new Error('文件信息暂不可用，请重新读取后重试')
   const versions = await FileApi.getVersions(selection.artifactId, { ...key, pageSize: 20 })
   const version = versions.items.find((row) => row.versionNo === selection.versionNo)
   if (!version) throw new Error('PLT 未返回刚完成的关闭附件版本')

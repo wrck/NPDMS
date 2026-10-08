@@ -131,11 +131,13 @@ describe('CUT dashboard production page integration', () => {
     mounted.app.unmount()
   })
 
-  it('distinguishes an unavailable task service from an empty task list', async () => {
-    api.getCutoverTaskPage.mockRejectedValueOnce(new Error('endpoint not assembled'))
+  it.each(['endpoint not assembled', 'Network Error'])('distinguishes a failed request (%s) from an empty task list', async (reason) => {
+    api.getCutoverTaskPage.mockRejectedValueOnce(new Error(reason))
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
     await flush()
     expect(textOf(mounted.root)).toContain('任务列表未成功刷新')
+    expect(textOf(mounted.root)).toContain('不代表项目没有割接任务')
+    expect(textOf(mounted.root)).not.toContain('服务端点未注册')
     expect(findByTestId(mounted.root, 'create-cutover-task')?.props?.disabled).toBe(true)
     expect(api.getCutoverDashboardKpis).not.toHaveBeenCalled()
     mounted.app.unmount()

@@ -280,8 +280,8 @@
                   :key="index"
                   class="flex items-center gap-8px flex-wrap"
                 >
-                  <code class="max-w-420px truncate" :title="semanticCommand(row, obs)">{{
-                    semanticCommand(row, obs)
+                  <code class="max-w-420px truncate" :title="semanticCommand(obs)">{{
+                    semanticCommand(obs)
                   }}</code>
                   <el-tag size="small" :type="obsType(obs.status)">{{ obs.status }}</el-tag>
                   <span
@@ -387,7 +387,7 @@ const observationSummary = (row: Api.SemanticResult) => {
   if (!rows.length) return '—'
   return `${rows.filter((item) => item.status === 'OBSERVED').length}/${rows.length} 命中`
 }
-const semanticCommand = (row: Api.SemanticResult, obs: Api.SemanticObservation) =>
+const semanticCommand = (obs: Api.SemanticObservation) =>
   semanticCommandLines.value[obs.commandIndex - 1] || `命令 #${obs.commandIndex}`
 const semanticStateText = (state: string) =>
   ({ SUCCEEDED: '解析成功', FAILED: '解析失败', CANCELLED: '已取消' })[state] ?? '解析中'
