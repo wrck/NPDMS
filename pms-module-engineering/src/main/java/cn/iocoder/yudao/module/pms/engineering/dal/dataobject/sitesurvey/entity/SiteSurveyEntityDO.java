@@ -64,7 +64,7 @@ public class SiteSurveyEntityDO extends BaseProjectBusinessEntity {
     @JsonIgnore private Long siteLocationId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private Long siteLocationVersion;
-    @JsonIgnore private String locationResolutionStatus;
+    @BusinessModelField(name="地点状态", writable=false) @JsonIgnore private String locationResolutionStatus;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @JsonIgnore private String addressSnapshot;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
@@ -128,7 +128,7 @@ public class SiteSurveyEntityDO extends BaseProjectBusinessEntity {
     @BusinessModelField(name="备注") private String remark;
     @BusinessModelField(name="是否委外") @JsonIgnore private Boolean outsourceRequired;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    @JsonIgnore private Long outsourceRequestId;
+    @BusinessModelField(name="转包申请", writable=false) @JsonIgnore private Long outsourceRequestId;
 
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @BusinessModelField(name="机柜就绪") private Boolean cabinetReady;

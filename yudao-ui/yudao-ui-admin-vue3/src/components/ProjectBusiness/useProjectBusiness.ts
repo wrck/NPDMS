@@ -16,11 +16,11 @@ export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () 
   const operation = (kind: string) => model.value?.operations.find(item => item.kind === kind)
   const readableFields = computed(() => model.value?.fields.filter(field => field.readable) || [])
   const writableFields = computed(() => model.value?.fields.filter(field => field.writable) || [])
-  const loadPage = async (reset = true, search?: FieldFilter[], ordering?: BusinessSort[]) => {
+  const loadPage = async (reset = true, search?: FieldFilter[], ordering?: BusinessSort[], requestedPage?: number) => {
     if (loading.value && !reset) return
     if (ordering) sorts.value = ordering.map(sort => ({ ...sort }))
     if (search) filters.value = search.map(filter => ({ ...filter, values: [...(filter.values || [])] }))
-    const active = ++generation, client = api(), next = reset ? 1 : page.value + 1
+    const active = ++generation, client = api(), next = reset ? requestedPage ?? 1 : page.value + 1
     loading.value = true; error.value = ''
     try {
       const scope=projectId()
@@ -103,6 +103,6 @@ export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () 
     } catch (failure) { if (client.base === api().base) error.value = message(failure, '回执查询失败') }
     finally { executing.value = false }
   }
-  return { model, current, rows, total, filters, sorts, error, loading, executing, receipt, pending,
+  return { model, current, rows, total, page, filters, sorts, error, loading, executing, receipt, pending,
     readableFields, writableFields, operation, load, loadPage, open, execute, recover }
 }

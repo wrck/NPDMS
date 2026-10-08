@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './ProjectBusinessPage.vue'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn(), writable: true }))
+vi.mock('@/components/Dialog/src/Dialog.vue',()=>({default:defineComponent({props:['modelValue','title','width','beforeClose'],setup(props,{slots}){return()=>h('dialog',{open:props.modelValue,title:props.title,width:props.width},[slots.default?.(),slots.footer?.()])}})}))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: mocks.confirm, warning: vi.fn() }) }))
 vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 42, getTenantId: () => 7, getVisitTenantId: () => undefined }))
@@ -62,4 +63,27 @@ it.each([
   const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',initialEntityId:11,...props})
   try { await flush(); expect((mounted.vm as any).$.setupState.deliveryReadonly).toBe(true) }
   finally { mounted.app.unmount() }
+})
+
+it('dialog presentation keeps the shared editor and cancels closing without discarding changes', async () => {
+  const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',dialogEditor:true,title:'工勘',initialEntityId:11})
+  const state=(mounted.vm as any).$.setupState
+  try {
+    await flush();await vi.dynamicImportSettled();await flush()
+    expect(state.editing).toBe(true)
+    expect(state.scopedRows.map((row:any)=>row.ref.entityId)).toEqual([11])
+    const done=vi.fn();mocks.confirm.mockRejectedValueOnce(new Error('cancel'))
+    await state.closeEditor(done);expect(done).not.toHaveBeenCalled();expect(state.editing).toBe(true)
+    mocks.build.mockResolvedValue({});await state.closeEditor(done);expect(done).toHaveBeenCalledOnce()
+  } finally {mounted.app.unmount()}
+})
+it('new-record defaults are awaited before opening the shared editor', async () => {
+  let ready!:(value:Record<string,unknown>)=>void
+  const prepareCreate=()=>new Promise<Record<string,unknown>>(resolve=>{ready=resolve})
+  const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',prepareCreate})
+  const state=(mounted.vm as any).$.setupState
+  try {
+    await flush();const pending=state.create();expect(state.editing).toBe(false)
+    ready({name:'project title'});await pending;expect(state.editing).toBe(true);expect(state.scopedInitial.name).toBe('project title')
+  } finally {mounted.app.unmount()}
 })
