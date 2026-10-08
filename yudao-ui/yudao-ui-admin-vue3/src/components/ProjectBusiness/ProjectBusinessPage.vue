@@ -69,7 +69,7 @@ const createInitial=ref<Record<string,unknown>>()
 const scopedInitial=computed(()=>({...props.initialValues,...createInitial.value,...(props.scopeProjectId==null?{}:{projectId:props.scopeProjectId})}))
 const scopedRows=computed(()=>props.initialEntityId==null?rows.value:current.value && String(current.value.ref.entityId)===String(props.initialEntityId)?[current.value]:rows.value.filter(row=>String(row.ref.entityId)===String(props.initialEntityId)))
 const viewOnly=ref(false),contentReadonly=computed(()=>props.readonly || viewOnly.value || !!current.value && !updateOperation.value?.executable)
-const editing = ref(false), confirming = ref(false), formLoading=ref(false)
+const editing = ref(false), confirming = ref(false), formLoading=ref(false), rowActionLoading=ref(false)
 const presentation=ref<BusinessEntityFormData>(), history=ref<InstanceType<typeof ProjectBusinessHistory>>()
 const versioned=computed(()=>!!model.value?.capabilities.some(capability=>capability.type==='CONTENT_HISTORY' && capability.enabled))
 let presentationGeneration=0
@@ -83,7 +83,7 @@ watch(current,async row=>{
 })
 const form = ref<{buildInput:()=>Promise<Record<string,unknown>>;isBusy?:()=>boolean}>(), deliveries = ref<InstanceType<typeof ProjectBusinessDeliveries>>()
 const fieldConfiguration=ref<InstanceType<typeof ProjectBusinessFieldConfiguration>>()
-const busy = computed(() => executing.value || confirming.value || formLoading.value || !!form.value?.isBusy?.() || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
+const busy = computed(() => executing.value || confirming.value || rowActionLoading.value || formLoading.value || !!form.value?.isBusy?.() || !!fieldConfiguration.value?.isBusy() || !!history.value?.isBusy() || !!deliveries.value?.isBusy())
 const effective = (action:OperationVO|undefined,row=current.value) => action ? {...action,executable:action.executable && (props.allowedActions==null || props.allowedActions.includes(action.code)) && (!props.operationAllowed || props.operationAllowed(action.code,row))} : undefined
 const createOperation = computed(() => { const action=effective(state.operation('CREATE')); return props.readonly && action ? { ...action, executable:false } : action })
 // Tenant metadata is not a current-record state action. Server configuration permission is authoritative.
@@ -118,12 +118,27 @@ const create = async () => {
 }
 const edit = async (id: BusinessId,readOnly=false) => { if (!busy.value && await state.open(id)){viewOnly.value=readOnly;editing.value=true} }
 const actionsForRow=(row?:BusinessEntityData)=>(model.value?.operations||[]).map(action=>{const value=effective(action,row)!;return {...value,executable:!props.readonly && value.executable}})
+// List actions require a fresh authorized row, not its asynchronous form presentation.
+const confirmAndExecute=async(code:string,selected:BusinessEntityData,values:Record<string,unknown>={})=>{
+  const active=contextGeneration
+  const action=()=>actionsForRow(selected).find(value=>value.code===code&&value.executable)
+  if(!action() || !selected.available)return
+  confirming.value=true
+  try {
+    try{await message.confirm(code==='delete'?'确定删除当前业务记录？有关联交付件或历史引用的记录不能删除。':`确定执行“${action()!.name}”？`)}catch{return}
+    if(active!==contextGeneration || current.value!==selected || props.readonly || !action())return
+    const result=await state.execute(code,values);if(result?.outcome==='DELETED')editing.value=false
+    return result
+  }finally{confirming.value=false}
+}
 const rowAction=async(row:BusinessEntityData,code:string)=>{
-  if(busy.value || !actionsForRow(row).some(action=>action.code===code&&action.executable))return
-  if(!await state.open(row.ref.entityId))return
-  viewOnly.value=false
-  if(code==='delete')await remove();else await runAction(code)
-  await loadPage(true)
+  if(busy.value || editing.value || !actionsForRow(row).some(action=>action.code===code&&action.executable))return
+  const active=contextGeneration;rowActionLoading.value=true
+  try{
+    if(!await state.open(row.ref.entityId) || active!==contextGeneration || !current.value)return
+    viewOnly.value=false
+    await confirmAndExecute(code,current.value)
+  }finally{rowActionLoading.value=false}
 }
 const closeEditor=async(done:()=>void)=>{if(await requestLeave()){done();loadPage(true)}}
 const save = async () => {
@@ -145,22 +160,11 @@ const runAction = async (code:string,values:Record<string,unknown> = {}) => {
   if(blocked || props.readonly || viewOnly.value || !current.value)return
   const action=businessActions.value.find(value=>value.code===code);if(!action?.executable)return
   const changes=versioned.value?undefined:await form.value?.buildInput();if(changes && Object.keys(changes).length){message.warning('请先保存当前修改，再执行业务操作');return}
-  const selected=current.value;confirming.value=true
-  try {
-    try{await message.confirm(`确定执行“${action.name}”？`)}catch{return}
-    if(current.value!==selected || props.readonly)return
-    const result=await state.execute(code,values);if(result?.outcome==='DELETED')editing.value=false
-    return result
-  }finally{confirming.value=false}
+  return confirmAndExecute(code,current.value,values)
 }
 const remove = async () => {
   if (busy.value || props.readonly || viewOnly.value || !current.value || !deleteOperation.value?.executable) return
-  const selected=current.value;confirming.value=true
-  try {
-    try { await message.confirm('确定删除当前业务记录？有关联交付件或历史引用的记录不能删除。') } catch { return }
-    if(current.value!==selected || props.readonly)return
-    const result=await state.execute('delete');if(result?.outcome==='DELETED')editing.value=false
-  } finally {confirming.value=false}
+  return confirmAndExecute('delete',current.value)
 }
 const recoverOperation = async () => { const result=await state.recover();if(result)editing.value=result.outcome!=='DELETED' && !!current.value }
 const back = async () => { if(await requestLeave()){editing.value=false;loadPage(true)} }
