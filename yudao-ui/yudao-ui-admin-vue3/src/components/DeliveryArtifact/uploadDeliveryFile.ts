@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import { initializeUpload, completeUpload } from '@/api/pms/platform/file'
 import { registerMaterial, type EntityOwnerParam, type DeliveryMaterialVO, type DeliveryTypeVO } from '@/api/pms/platform/delivery'
 
@@ -18,7 +19,7 @@ export interface DeliveryUploadAttempt {
 export const createDeliveryUploadAttempt = (owner: EntityOwnerParam, type: DeliveryTypeVO,
   file: File, title?: string, sourceKind: 'UPLOAD' | 'GENERATED' = 'UPLOAD'): DeliveryUploadAttempt => ({
   owner: { ...owner }, type: { ...type }, file, title, sourceKind,
-  referenceKey: crypto.randomUUID(), initKey: crypto.randomUUID(), completeKey: crypto.randomUUID()
+  referenceKey: generateUUID(), initKey: generateUUID(), completeKey: generateUUID()
 })
 
 export const uploadDeliveryFile = async (attempt: DeliveryUploadAttempt): Promise<DeliveryMaterialVO> => {

@@ -45,7 +45,7 @@ export function createDeliverable(
   taskCode?: string
 ): TemplateDesignerDocument['deliverables'][number] {
   const node: TemplateDesignerDocument['deliverables'][number] = {
-    nodeKey: `deliverable:${crypto.randomUUID()}`,
+    nodeKey: `deliverable:${generateUUID()}`,
     code: nextCode(new Set(document.deliverables.map((item) => item.code)), NODE_PREFIXES.DELIVERABLE),
     name: DEFAULT_NODE_NAMES.DELIVERABLE,
     stageCode,
