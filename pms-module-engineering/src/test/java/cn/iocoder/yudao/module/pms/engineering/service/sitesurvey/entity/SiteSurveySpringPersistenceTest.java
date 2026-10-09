@@ -116,11 +116,14 @@ class SiteSurveySpringPersistenceTest {
         var before=counts();var reordered=new LinkedHashMap<String,Object>();reordered.put("selectedMaterials",values.get("selectedMaterials"));reordered.put("powerTypes",values.get("powerTypes"));reordered.put("cabinetReady",false);original.setBusinessValues(reordered);
         assertEquals(saved,commands.executeReceipt("save",r.entityRef().entityId(),r.newConcurrencyBasis(),original,null,"same",OperationEntryKind.PROJECT_NODE));assertEquals(before,counts());
     }
-    @Test void sixOperationsKeepOriginalStatesAndDeleteReportsActualNewVersion() {
+    @Test void confirmArchivesAndDeleteReportsActualNewVersion() {
         var draft=create();var saved=save(draft,"save","edited");assertEquals(2,saved.newConcurrencyBasis());
-        var confirmed=action("confirm",saved,"confirm");assertEquals("1",SiteSurveyBusinessApplicationService.result(confirmed).state());
+        var confirmed=action("confirm",saved,"confirm");assertEquals("3",SiteSurveyBusinessApplicationService.result(confirmed).state());
         assertEquals(ReceiptOutcome.EFFECTED,confirmed.outcome());
-        var archived=action("archive",confirmed,"archive");assertEquals("3",SiteSurveyBusinessApplicationService.result(archived).state());
+        assertEquals(saved.newConcurrencyBasis()+2,confirmed.newConcurrencyBasis());
+        assertNotNull(jdbc.queryForObject("SELECT confirmed_at FROM sol_site_survey WHERE id=?",java.sql.Timestamp.class,confirmed.entityRef().entityId()));
+        assertNotNull(jdbc.queryForObject("SELECT archived_at FROM sol_site_survey WHERE id=?",java.sql.Timestamp.class,confirmed.entityRef().entityId()));
+        assertThrows(RuntimeException.class,()->action("archive",confirmed,"already-archived"));
         var other=commands.executeReceipt("create",null,null,content("second"),null,"other",OperationEntryKind.INDEPENDENT);
         var rejected=action("reject",other,"reject");assertEquals("2",SiteSurveyBusinessApplicationService.result(rejected).state());
         assertThrows(RuntimeException.class,()->action("confirm",rejected,"invalid"));
@@ -137,6 +140,24 @@ class SiteSurveySpringPersistenceTest {
         var draft=commands.executeReceipt("create",null,null,content("delete"),null,"draft",OperationEntryKind.INDEPENDENT);
         var deleted=action("delete",draft,"delete");var afterDelete=counts();
         assertEquals(deleted,action("delete",draft,"delete"));assertEquals(afterDelete,counts());
+    }
+    @Test void legacyConfirmedSurveyCanStillArchiveThroughPublicCommand() {
+        var original=create();
+        // Isolated fixture for a record confirmed before confirmation included archiving.
+        jdbc.update("UPDATE sol_site_survey SET status=1,confirmed_at=CURRENT_TIMESTAMP WHERE id=?",original.entityRef().entityId());
+        var archived=action("archive",original,"legacy-archive");
+        assertEquals("3",SiteSurveyBusinessApplicationService.result(archived).state());
+        assertEquals(original.newConcurrencyBasis()+1,archived.newConcurrencyBasis());
+    }
+    @Test void confirmationOutboxFailureRollsBackConfirmationAndArchiveTogether() {
+        var original=create();var before=counts();var reached=new AtomicBoolean();
+        ctx.addApplicationListener(event->{if(event instanceof org.springframework.context.PayloadApplicationEvent<?> payload && payload.getPayload() instanceof PlatformOutboxAppended outbox && "pms.business.changed".equals(outbox.message().eventType())) {reached.set(true);throw new IllegalStateException("CONFIRM_OUTBOX_FAILED");}});
+        assertThrows(RuntimeException.class,()->action("confirm",original,"failed-confirm"));
+        assertTrue(reached.get());assertEquals(before,counts());
+        assertEquals(0,jdbc.queryForObject("SELECT status FROM sol_site_survey",Integer.class));
+        assertEquals(original.newConcurrencyBasis(),jdbc.queryForObject("SELECT version FROM sol_site_survey",Long.class));
+        assertNull(jdbc.queryForObject("SELECT confirmed_at FROM sol_site_survey",java.sql.Timestamp.class));
+        assertNull(jdbc.queryForObject("SELECT archived_at FROM sol_site_survey",java.sql.Timestamp.class));
     }
     @Test void changedIntentRevokedPermissionsAndScopeCannotReadStoredReceipt() {
         var r=create();save(r,"save","edited");var before=counts();int attempts=ctx.getBean(ReservationProbe.class).attempts;
@@ -202,10 +223,10 @@ class SiteSurveySpringPersistenceTest {
         http.removeHeader("Idempotency-Key");http.addHeader("Idempotency-Key","native-confirm");
         assertThrows(RuntimeException.class,()->service.confirmSiteSurveyEntity(id,null));assertEquals(before,counts());
         http.addHeader("X-Expected-Version","1");service.confirmSiteSurveyEntity(id,null);var confirmed=counts();
-        service.confirmSiteSurveyEntity(id,null);assertEquals(confirmed,counts());assertEquals(1,jdbc.queryForObject("SELECT status FROM sol_site_survey WHERE id=?",Integer.class,id));
+        service.confirmSiteSurveyEntity(id,null);assertEquals(confirmed,counts());assertEquals(3,jdbc.queryForObject("SELECT status FROM sol_site_survey WHERE id=?",Integer.class,id));
         assertEquals(2,count("plt_idempotency_record"),"native entry must not keep a second native writer/ledger");
     }
-    @Test void adapterCarriesExactReceiptAndOuterKeyAcrossAllSixCommandsInBothNodeKinds() {
+    @Test void adapterCarriesExactReceiptAndOuterKeyAcrossCurrentCommandsInBothNodeKinds() {
         var adapter=ctx.getBean(SiteSurveyOperationCommandAdapter.class);
         for(boolean stage:new boolean[]{false,true}) {
             ProjectBusinessExecutionSelection selection=stage ? new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(20L,1L,30L,1,40L,1,50L,60L,1,1,true))
@@ -214,8 +235,8 @@ class SiteSurveySpringPersistenceTest {
             var created=invoke(adapter,"CREATE",null,null,content(prefix+"draft"),selection,prefix+"create",kind);
             var saved=invoke(adapter,"UPDATE",created.objectId(),created.objectVersion(),content(prefix+"edited"),selection,prefix+"save",kind);
             var confirmed=invoke(adapter,"CONFIRM",saved.objectId(),saved.objectVersion(),null,selection,prefix+"confirm",kind);
-            var archived=invoke(adapter,"ARCHIVE",confirmed.objectId(),confirmed.objectVersion(),null,selection,prefix+"archive",kind);
-            assertEquals("SURVEY_ARCHIVED",archived.resultCode());
+            assertEquals("SURVEY_CONFIRMED",confirmed.resultCode());
+            assertEquals(3,jdbc.queryForObject("SELECT status FROM sol_site_survey WHERE id=?",Integer.class,Long.valueOf(confirmed.objectId())));
             var rejectedDraft=invoke(adapter,"CREATE",null,null,content(prefix+"rejected"),selection,prefix+"rejected-create",kind);
             assertEquals("SURVEY_REJECTED",invoke(adapter,"REJECT",rejectedDraft.objectId(),rejectedDraft.objectVersion(),null,selection,prefix+"reject",kind).resultCode());
             var deletedDraft=invoke(adapter,"CREATE",null,null,content(prefix+"deleted"),selection,prefix+"deleted-create",kind);
@@ -223,7 +244,7 @@ class SiteSurveySpringPersistenceTest {
             assertEquals(deleted.response(),invoke(adapter,"DELETE",deletedDraft.objectId(),deletedDraft.objectVersion(),null,selection,prefix+"delete",kind).response());assertEquals(before,counts());
             assertEquals(deletedDraft.objectVersion()+1,deleted.objectVersion());
         }
-        assertEquals(16,count("plt_idempotency_record"));
+        assertEquals(14,count("plt_idempotency_record"));
     }
     ProjectOperationResult invoke(SiteSurveyOperationCommandAdapter adapter,String action,String id,Long version,SiteSurveyEntitySaveReqVO input,ProjectBusinessExecutionSelection selection,String key,String kind) {
         String code="SOL.SITE_SURVEY."+action;
