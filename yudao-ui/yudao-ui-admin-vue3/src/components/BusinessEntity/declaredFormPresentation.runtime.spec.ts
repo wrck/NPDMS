@@ -31,3 +31,11 @@ it('refuses a file rule without an Owner file contract', () => {
   form.layout!.formRulesJson = '[{"type":"PmsFileArtifact","field":"notes"}]'
   expect(() => declaredFormPresentation(form, fields, {})).toThrow('文件字段')
 })
+it('initializes declared collections as arrays and retains changes against an independent baseline',()=>{
+  const source=structuredClone(presentation)
+  source.extensions.fields={memo:null,devices:null}
+  const form=declaredFormPresentation(source,fields,{})
+  expect(form.values.items).toEqual([])
+  ;(form.values.items as unknown[]).push({serial:'NEW'})
+  expect(form.buildInput(form.values)).toMatchObject({$extensions:{values:{devices:[{serial:'NEW'}]}}})
+})

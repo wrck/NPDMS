@@ -1,15 +1,27 @@
 <template>
   <el-button :disabled="disabled || busy" @click="open">字段配置</el-button>
-  <el-dialog v-model="visible" title="业务字段配置" width="900px" :close-on-click-modal="false" :close-on-press-escape="!busy" :show-close="!busy">
+  <el-dialog v-model="visible" title="业务字段配置" width="1100px" :close-on-click-modal="false" :close-on-press-escape="!busy" :show-close="!busy">
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
-    <el-alert title="仅配置展示和查询，不改变字段读写权限。恢复默认需保存后生效。" type="info" :closable="false" />
+    <el-alert title="配置控制列表、表单和明细页签的展示，字段权限由业务授权决定。" type="info" :closable="false" />
+    <div class="configuration-toolbar">
+      <el-select v-model="selected" aria-label="命名配置" :disabled="busy"><el-option value="" label="基础配置"/><el-option v-for="profile in profiles" :key="profile.key" :value="profile.key" :label="profile.name"/></el-select>
+      <el-input v-if="selectedProfile" v-model="selectedProfile.name" aria-label="配置名称" maxlength="128" :disabled="busy" />
+      <el-checkbox :model-value="defaultProfile===selected" :disabled="busy" @update:model-value="value=>{if(value)defaultProfile=selected}">默认配置</el-checkbox>
+      <el-button :disabled="busy" @click="addProfile">复制为新配置</el-button>
+      <el-button v-if="selectedProfile" :disabled="busy" @click="removeProfile">删除配置</el-button>
+      <el-select v-if="selectedProfile && formOptions.length" v-model="selectedProfile.formRevisionId" aria-label="表单模板" placeholder="默认表单模板" clearable :disabled="busy">
+        <el-option v-for="option in formOptions" :key="String(option.layout.binding.formRevisionId)" :value="option.layout.binding.formRevisionId" :label="`${option.name} · V${option.layout.revisionNo}`"/>
+      </el-select>
+    </div>
     <el-table :data="settings" v-loading="busy" row-key="code">
       <el-table-column prop="code" label="字段" />
       <el-table-column label="名称"><template #default="{row}"><el-input v-model="row.label" :disabled="busy" maxlength="128" /></template></el-table-column>
-      <el-table-column label="顺序" width="140"><template #default="{row}"><el-input-number v-model="row.displayOrder" :disabled="busy" :precision="0" /></template></el-table-column>
-      <el-table-column label="列表显示" width="90"><template #default="{row}"><el-checkbox v-model="row.listVisible" :disabled="busy || !original(row.code)?.readable" /></template></el-table-column>
-      <el-table-column label="可查询" width="90"><template #default="{row}"><el-checkbox v-model="row.searchable" :disabled="busy || !original(row.code)?.searchable" /></template></el-table-column>
-      <el-table-column label="可排序" width="90"><template #default="{row}"><el-checkbox v-model="row.sortable" :disabled="busy || !original(row.code)?.sortable" /></template></el-table-column>
+      <el-table-column label="顺序" width="130"><template #default="{row}"><el-input-number v-model="row.displayOrder" :disabled="busy" :precision="0" /></template></el-table-column>
+      <el-table-column label="列表" width="70"><template #default="{row}"><el-checkbox v-model="row.listVisible" :disabled="busy || !original(row.code)?.readable" /></template></el-table-column>
+      <el-table-column label="表单" width="70"><template #default="{row}"><el-checkbox v-model="row.formVisible" :disabled="busy || !original(row.code)?.readable || !!original(row.code)?.children?.length" /></template></el-table-column>
+      <el-table-column label="明细页签" width="90"><template #default="{row}"><el-checkbox v-model="row.tabVisible" :disabled="busy || !original(row.code)?.readable || !original(row.code)?.children?.length" /></template></el-table-column>
+      <el-table-column label="查询" width="70"><template #default="{row}"><el-checkbox v-model="row.searchable" :disabled="busy || !original(row.code)?.searchable" /></template></el-table-column>
+      <el-table-column label="排序" width="70"><template #default="{row}"><el-checkbox v-model="row.sortable" :disabled="busy || !original(row.code)?.sortable" /></template></el-table-column>
     </el-table>
     <template #footer>
       <el-button :disabled="busy" @click="reset">恢复默认</el-button>
@@ -21,41 +33,50 @@
 <script setup lang="ts">
 import {computed,ref,watch} from 'vue'
 import {useMessage} from '@/hooks/web/useMessage'
-import type {ProjectBusinessApi,BusinessFieldSetting} from '@/api/pms/platform/business'
-import type {FieldVO} from '@/api/pms/platform/businessmodel'
-const props=defineProps<{api:ProjectBusinessApi;disabled?:boolean}>()
+import type {ProjectBusinessApi,BusinessFieldSetting,BusinessNamedConfiguration,BusinessId} from '@/api/pms/platform/business'
+import type {FieldVO,BusinessEntityFormData} from '@/api/pms/platform/businessmodel'
+const props=defineProps<{api:ProjectBusinessApi;disabled?:boolean;projectId?:BusinessId}>()
 const emit=defineEmits<{changed:[]}>()
 const visible=ref(false),loading=ref(false),saving=ref(false),loaded=ref(false),error=ref(''),version=ref(0)
-const fields=ref<FieldVO[]>([]),settings=ref<BusinessFieldSetting[]>([]),busy=computed(()=>loading.value||saving.value)
-const message=useMessage(),initial=ref('')
+const fields=ref<FieldVO[]>([]),base=ref<BusinessFieldSetting[]>([]),profiles=ref<BusinessNamedConfiguration[]>([]),selected=ref(''),defaultProfile=ref('')
+const formOptions=ref<Array<{name:string;layout:NonNullable<BusinessEntityFormData['layout']>}>>([])
+const selectedProfile=computed(()=>profiles.value.find(profile=>profile.key===selected.value))
+const settings=computed({get:()=>selectedProfile.value?.fields||base.value,set:value=>{if(selectedProfile.value)selectedProfile.value.fields=value;else base.value=value}})
+const busy=computed(()=>loading.value||saving.value),message=useMessage(),initial=ref('')
 let generation=0
 watch(()=>props.api.base,()=>{++generation;visible.value=false;loaded.value=false;loading.value=false;saving.value=false;error.value=''})
 const original=(code:string)=>fields.value.find(field=>field.code===code)
-const defaults=()=>fields.value.map(field=>({code:field.code,label:field.name,displayOrder:field.displayOrder??0,listVisible:field.listVisible??field.readable,searchable:field.searchable??false,sortable:field.sortable??false}))
+const defaults=()=>fields.value.map(field=>({code:field.code,label:field.name,displayOrder:field.displayOrder??0,listVisible:field.listVisible??field.readable,searchable:field.searchable??false,sortable:field.sortable??false,formVisible:field.formVisible??field.readable,tabVisible:field.tabVisible??field.readable}))
+const expand=(overrides:BusinessFieldSetting[])=>defaults().map(field=>({...field,...Object.fromEntries(Object.entries(overrides.find(setting=>setting.code===field.code)||{}).filter(([,value])=>value!=null))}))
 const reset=()=>{settings.value=defaults()}
+const snapshot=()=>({version:version.value,fields:base.value,profiles:profiles.value,defaultProfile:defaultProfile.value||undefined})
+const addProfile=()=>{const key=`view_${crypto.randomUUID().replaceAll('-','')}`;profiles.value.push({key,name:'新配置',fields:JSON.parse(JSON.stringify(settings.value)),formRevisionId:selectedProfile.value?.formRevisionId});selected.value=key}
+const removeProfile=()=>{profiles.value=profiles.value.filter(profile=>profile.key!==selected.value);if(defaultProfile.value===selected.value)defaultProfile.value='';selected.value=''}
 const open=async()=>{
   if(props.disabled||busy.value)return
   const active=++generation,api=props.api;visible.value=true;loading.value=true;loaded.value=false;error.value=''
-  try{const [model,configuration]=await Promise.all([api.fieldDefaults(),api.fieldConfiguration()]);if(active!==generation)return
-    fields.value=model.fields;version.value=configuration.version
-    settings.value=defaults().map(field=>{
-      const override=configuration.fields.find(setting=>setting.code===field.code)
-      return {...field,...Object.fromEntries(Object.entries(override||{}).filter(([,value])=>value!=null))}
-    });initial.value=JSON.stringify(settings.value);loaded.value=true
+  try{
+    const [model,configuration,options]=await Promise.all([api.fieldDefaults(),api.fieldConfiguration(),props.projectId==null?Promise.resolve([]):api.formOptions(props.projectId)])
+    if(active!==generation)return
+    fields.value=model.fields;version.value=configuration.version;base.value=expand(configuration.fields)
+    profiles.value=(configuration.profiles||[]).map(profile=>({...profile,fields:expand(profile.fields)}))
+    defaultProfile.value=configuration.defaultProfile||'';selected.value=defaultProfile.value;formOptions.value=options
+    initial.value=JSON.stringify(snapshot());loaded.value=true
   }catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'字段配置读取失败'}
   finally{if(active===generation)loading.value=false}
 }
 const save=async()=>{
   if(props.disabled||busy.value||!loaded.value)return
   const active=generation,api=props.api;saving.value=true;error.value=''
-  try{await api.saveFieldConfiguration({version:version.value,fields:settings.value.map(field=>({...field}))});if(active!==generation)return;visible.value=false;emit('changed')}
+  try{await api.saveFieldConfiguration(JSON.parse(JSON.stringify(snapshot())));if(active!==generation)return;visible.value=false;emit('changed')}
   catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'字段配置保存失败，请重新读取后重试'}
   finally{if(active===generation)saving.value=false}
 }
 const requestLeave=async()=>{
   if(busy.value)return false
-  if(!visible.value || JSON.stringify(settings.value)===initial.value)return true
+  if(!visible.value || JSON.stringify(snapshot())===initial.value)return true
   try{await message.confirm('字段配置尚未保存，确定离开？');return true}catch{return false}
 }
 defineExpose({isBusy:()=>busy.value,requestLeave})
 </script>
+<style scoped>.configuration-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0}.configuration-toolbar :deep(.el-select),.configuration-toolbar :deep(.el-input){width:210px}</style>

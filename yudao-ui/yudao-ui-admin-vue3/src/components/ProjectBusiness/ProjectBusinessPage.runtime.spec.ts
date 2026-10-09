@@ -2,14 +2,17 @@ import { defineComponent, h, nextTick } from 'vue'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Page from './ProjectBusinessPage.vue'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn(), form: vi.fn(), action: vi.fn(), update: vi.fn(), writable: true }))
+const mocks = vi.hoisted(() => ({ confirm: vi.fn(), build: vi.fn(), get: vi.fn(), page: vi.fn(), form: vi.fn(), action: vi.fn(), update: vi.fn(), create:vi.fn(), writable: true }))
 vi.mock('@/components/Dialog/src/Dialog.vue',()=>({default:defineComponent({props:['modelValue','title','width','beforeClose'],setup(props,{slots}){return()=>h('dialog',{open:props.modelValue,title:props.title,width:props.width},[slots.default?.(),slots.footer?.()])}})}))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: mocks.confirm, warning: vi.fn() }) }))
 vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 42, getTenantId: () => 7, getVisitTenantId: () => undefined }))
 vi.mock('@/api/pms/platform/business', () => ({ createProjectBusinessApi: () => ({
   base: '/api/v1/pms/notes', model: async () => ({ fields: [], capabilities: [], operations: [{code:'create',kind:'CREATE',executable:true},{code:'save',kind:'UPDATE',executable:mocks.writable},{code:'confirm',name:'确认',kind:'DOMAIN_COMMAND',executable:true}] }),
-  page: mocks.page, get: mocks.get, form: mocks.form, action:mocks.action, update:mocks.update
+  fieldConfiguration:async()=>({version:0,fields:[],profiles:[]}),
+  businessCompletion:async()=>null,
+  page: mocks.page, get: mocks.get, form: mocks.form, action:mocks.action, update:mocks.update,create:mocks.create,
+  formDefaults:async()=>({extensions:{fields:{},version:0},definitions:[]}),formOptions:async()=>[]
 }) }))
 vi.mock('../BusinessEntity/BusinessEntityList.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ProjectBusinessContentForm.vue', () => ({ default: defineComponent({ setup(_, { expose }) { expose({ buildInput: mocks.build }); return () => h('input') } }) }))
@@ -70,6 +73,7 @@ it.each([
 })
 
 it('dialog presentation starts at the list and opens only on request, retaining leave protection', async () => {
+  mocks.page.mockResolvedValue({list:[{ref:{entityId:11},fieldValues:{},available:true}],total:1})
   const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',dialogEditor:true,title:'工勘',initialEntityId:11})
   const state=(mounted.vm as any).$.setupState
   try {
@@ -82,6 +86,24 @@ it('dialog presentation starts at the list and opens only on request, retaining 
     await state.closeEditor(done);expect(done).not.toHaveBeenCalled();expect(state.editing).toBe(true)
     mocks.build.mockResolvedValue({});await state.closeEditor(done);expect(done).toHaveBeenCalledOnce()
   } finally {mounted.app.unmount()}
+})
+it('keeps newly saved project records visible when the task already has an initial linked record',async()=>{
+  const original={ref:{entityId:11},fieldValues:{projectId:20,title:'Original'},concurrencyBasis:0,available:true}
+  const created={ref:{entityId:12},fieldValues:{projectId:20,title:'New'},concurrencyBasis:0,available:true}
+  mocks.page.mockResolvedValue({list:[original],total:1})
+  mocks.get.mockImplementation(async id=>id===11?original:created)
+  mocks.create.mockImplementation(async()=>{mocks.page.mockResolvedValue({list:[created,original],total:2});return {outcome:'SAVED',entityRef:created.ref,newConcurrencyBasis:0}})
+  const mounted=mount(Page,{apiBase:'/api/v1/pms/notes',dialogEditor:true,initialEntityId:11,scopeProjectId:20})
+  const state=(mounted.vm as any).$.setupState
+  try{
+    await flush();await state.create();await flush();await vi.dynamicImportSettled();await flush()
+    mocks.build.mockResolvedValue({title:'New'});await state.save();await flush()
+    expect(mocks.create).toHaveBeenCalledWith({projectId:20,title:'New'},expect.any(String))
+    mocks.build.mockResolvedValue({});await state.closeEditor(()=>{state.editing=false});await flush()
+    expect(state.editing).toBe(false)
+    expect(state.scopedRows.map((row:any)=>row.ref.entityId)).toEqual([12,11])
+    expect(state.total).toBe(2)
+  }finally{mounted.app.unmount()}
 })
 it('new-record defaults are awaited before opening the shared editor', async () => {
   let ready!:(value:Record<string,unknown>)=>void

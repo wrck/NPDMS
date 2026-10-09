@@ -5,7 +5,7 @@ import { businessIntentStorageKey, readBusinessIntent, writeBusinessIntent, clea
   businessIntentFingerprint, type PendingBusinessIntent } from '../BusinessEntity/businessOperationIntent'
 
 const message = (error: any, fallback: string) => error?.response?.data?.msg || error?.message || fallback
-export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () => BusinessId | undefined = () => undefined) {
+export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () => BusinessId | undefined = () => undefined,configurationName:()=>string|undefined=()=>undefined) {
   const model = shallowRef<ModelDetailVO>(), current = shallowRef<BusinessEntityData>()
   const rows = shallowRef<BusinessEntityData[]>([]), total = ref(0), page = ref(1), filters = ref<FieldFilter[]>([])
   const sorts = ref<BusinessSort[]>([])
@@ -24,7 +24,8 @@ export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () 
     loading.value = true; error.value = ''
     try {
       const scope=projectId()
-      const result = await (scope==null?client.page(next,20,filters.value,sorts.value):client.page(next,20,filters.value,sorts.value,scope))
+      const configuration=configurationName()
+      const result = await (configuration!=null?client.page(next,20,filters.value,sorts.value,scope,configuration):scope==null?client.page(next,20,filters.value,sorts.value):client.page(next,20,filters.value,sorts.value,scope))
       if (active !== generation || client.base !== api().base) return
       rows.value = reset ? result.list : [...rows.value, ...result.list]; total.value = result.total; page.value = next
     } catch (failure) { if (active === generation) error.value = message(failure, '业务列表读取失败') }
@@ -34,7 +35,7 @@ export function useProjectBusiness(api: () => ProjectBusinessApi, projectId: () 
     const client = api(), active = ++detailGeneration
     ++generation; current.value = undefined; rows.value = []; model.value = undefined; receipt.value = undefined; filters.value = []; sorts.value = []; error.value = ''
     try {
-      const detail = await client.model()
+      const detail = await (configurationName()==null?client.model():client.model(configurationName()))
       if (active !== detailGeneration || client.base !== api().base) return
       model.value = detail; pending.value = readBusinessIntent(storageKey()); await loadPage(true)
     } catch (failure) { if (active === detailGeneration) error.value = message(failure, '业务模型读取失败') }

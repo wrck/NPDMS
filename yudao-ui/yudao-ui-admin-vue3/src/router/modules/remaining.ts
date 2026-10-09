@@ -34,14 +34,21 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/business/records/:stableCode', name: 'PmsDefaultBusinessRecords',
+    component: () => import('@/views/pms/business/records/index.vue'),
+    meta: { hidden: true, canTo: true, title: '项目业务' }
+  },
+  {
     path: '/pms/business/requirement-analyses', name: 'PmsInheritedRequirementAnalyses',
     component: () => import('@/views/pms/business/requirement-analysis/index.vue'),
+    props: route => ({scopeProjectId: route.query.projectId}),
     meta: { hidden: true, canTo: true, title: '需求分析' }
   },
   {
     path: '/pms/business/site-surveys',
     name: 'PmsInheritedSiteSurveys',
     component: () => import('@/views/pms/business/site-survey/index.vue'),
+    props: route => ({scopeProjectId: route.query.projectId}),
     meta: { hidden: true, canTo: true, title: '现场工勘' }
   },
   {

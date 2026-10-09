@@ -7,5 +7,10 @@ public record BusinessFormData(EntityFormApi.Layout layout, EntityExtensionApi.V
     public BusinessFormData(EntityFormApi.Layout layout,EntityExtensionApi.Values extensions,List<EntityExtensionApi.Definition> definitions){this(layout,extensions,definitions,java.util.Map.of());}
     public BusinessFormData { context=java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(context)); }
     public record BindingPatch(int expectedVersion,Long formRevisionId,Long extensionDefinitionRevisionId,
-            java.util.Map<String,String> fieldBindings,boolean bindRemainingFields) { }
+            java.util.Map<String,String> fieldBindings,boolean bindRemainingFields,List<EntityFormApi.DefinitionSource> definitionSources) {
+        public BindingPatch(int expectedVersion,Long formRevisionId,Long extensionDefinitionRevisionId,
+                java.util.Map<String,String> fieldBindings,boolean bindRemainingFields){
+            this(expectedVersion,formRevisionId,extensionDefinitionRevisionId,fieldBindings,bindRemainingFields,List.of());
+        }
+    }
 }

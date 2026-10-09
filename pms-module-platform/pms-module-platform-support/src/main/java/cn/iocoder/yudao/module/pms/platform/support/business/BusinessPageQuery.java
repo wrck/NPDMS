@@ -10,6 +10,7 @@ import lombok.Data;
 @Data
 public class BusinessPageQuery {
     @jakarta.validation.constraints.Positive private Long projectId;
+    private String configurationName;
     @Min(1) private int pageNo = 1;
     @Min(1) @Max(200) private int pageSize = 20;
     public enum Direction { ASC, DESC }

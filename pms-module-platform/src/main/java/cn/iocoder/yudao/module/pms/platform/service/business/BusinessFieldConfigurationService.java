@@ -27,21 +27,31 @@ public class BusinessFieldConfigurationService implements BusinessFieldConfigura
     @Override @Transactional(readOnly=true)
     public Configuration read(Identity identity,EntityActor actor){
         authorize(identity,actor,false);var row=mapper.selectConfiguration(new BusinessFieldConfigurationMapper.Query(actor.tenantId(),identity.ownerModule(),identity.entityType()));
-        return row==null?new Configuration(0,List.of()):new Configuration(row.getVersion(),JsonUtils.parseArray(row.getFieldsJson(),Field.class));
+        if(row==null)return new Configuration(0,List.of());
+        if(row.getFieldsJson().stripLeading().startsWith("["))return new Configuration(row.getVersion(),JsonUtils.parseArray(row.getFieldsJson(),Field.class));
+        var saved=JsonUtils.parseObject(row.getFieldsJson(),Configuration.class);
+        return new Configuration(row.getVersion(),saved.fields(),saved.profiles(),saved.defaultProfile());
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public Configuration save(Identity identity,EntityActor actor,long expectedVersion,List<Field> fields){
-        var model=authorize(identity,actor,true);BusinessFieldConfigurations.validate(model,fields);
+        var existing=read(identity,actor);
+        return save(identity,actor,new Configuration(expectedVersion,fields,existing.profiles(),existing.defaultProfile()));
+    }
+    @Override @Transactional(rollbackFor=Exception.class)
+    public Configuration save(Identity identity,EntityActor actor,Configuration configuration){
+        var model=authorize(identity,actor,true);BusinessFieldConfigurations.validate(model,configuration);
+        long expectedVersion=configuration.version();var fields=configuration.fields();
         if(expectedVersion<0)throw denied("Invalid configuration version");
         var row=mapper.selectConfiguration(new BusinessFieldConfigurationMapper.Query(actor.tenantId(),identity.ownerModule(),identity.entityType()));
-        String json=JsonUtils.toJsonString(fields);var now=java.time.LocalDateTime.now();
+        var saved=new Configuration(Math.incrementExact(expectedVersion),fields,configuration.profiles(),configuration.defaultProfile());
+        String json=JsonUtils.toJsonString(saved);var now=java.time.LocalDateTime.now();
         if(row==null){
             if(expectedVersion!=0)throw conflict();
             row=new BusinessFieldConfigurationDO();row.setId(IdWorker.getId());row.setTenantId(actor.tenantId());row.setOwnerModule(identity.ownerModule());row.setEntityType(identity.entityType());row.setFieldsJson(json);row.setVersion(1L);row.setCreator(actor.userId().toString());row.setUpdater(actor.userId().toString());row.setCreateTime(now);row.setUpdateTime(now);
             try{if(mapper.insert(row)!=1)throw conflict();}catch(org.springframework.dao.DuplicateKeyException race){throw conflict();}
         }else if(mapper.updateConfiguration(new BusinessFieldConfigurationMapper.Save(actor.tenantId(),row.getId(),expectedVersion,json,actor.userId().toString(),now))!=1)throw conflict();
         audit.record(actor.tenantId(),actor.userId(),actor.correlationId(),"BUSINESS_FIELD_CONFIGURATION_SAVE",identity.entityType(),identity.ownerModule()+":"+identity.entityType(),"SUCCESS",Map.of("version",Math.incrementExact(expectedVersion),"fieldCount",fields.size()));
-        return new Configuration(Math.incrementExact(expectedVersion),fields);
+        return saved;
     }
     private static BusinessContractException conflict(){return new BusinessContractException("FIELD_CONFIGURATION_CONFLICT","Field configuration changed; reload before saving");}
     private static BusinessContractException denied(String message){return new BusinessContractException("ACCESS_DENIED",message);}

@@ -15,6 +15,9 @@ export interface ModelSummaryVO {
 export type FieldType = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'DATE' | 'DATETIME' | 'TEXT_LIST' | 'OBJECT_LIST'
 
 export interface FieldVO {
+  children?: FieldVO[]
+  formVisible?: boolean
+  tabVisible?: boolean
   displayOrder?: number
   listVisible?: boolean
   searchable?: boolean

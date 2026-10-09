@@ -12,9 +12,23 @@ public interface EntityFormApi {
     void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor);
 
     record Binding(Long formRevisionId, Long extensionDefinitionRevisionId, Map<String, String> fieldBindings, int version) {}
+    /** Published layouts that supplied edited fields before the first binding was saved. */
+    record DefinitionSource(Long formRevisionId, Map<String,String> fieldBindings) { }
     record Bind(EntityDataRef target, EntityActor actor, Long expectedEntityVersion,
                 int expectedBindingVersion, Long formRevisionId, Long extensionDefinitionRevisionId,
-                Map<String, String> fieldBindings, boolean bindRemainingFields) {
+                Map<String, String> fieldBindings, boolean bindRemainingFields,boolean preserveExistingFields,
+                List<DefinitionSource> definitionSources) {
+        public Bind { definitionSources=definitionSources==null?List.of():List.copyOf(definitionSources); }
+        public Bind(EntityDataRef target,EntityActor actor,Long expectedEntityVersion,int expectedBindingVersion,
+                    Long formRevisionId,Long extensionDefinitionRevisionId,Map<String,String> fieldBindings,
+                    boolean bindRemainingFields,boolean preserveExistingFields){
+            this(target,actor,expectedEntityVersion,expectedBindingVersion,formRevisionId,extensionDefinitionRevisionId,
+                    fieldBindings,bindRemainingFields,preserveExistingFields,List.of());
+        }
+        public Bind(EntityDataRef target,EntityActor actor,Long expectedEntityVersion,int expectedBindingVersion,
+                    Long formRevisionId,Long extensionDefinitionRevisionId,Map<String,String> fieldBindings,boolean bindRemainingFields){
+            this(target,actor,expectedEntityVersion,expectedBindingVersion,formRevisionId,extensionDefinitionRevisionId,fieldBindings,bindRemainingFields,false);
+        }
         public Bind(EntityDataRef target, EntityActor actor, Long expectedEntityVersion,
                     int expectedBindingVersion, Long formRevisionId, Long extensionDefinitionRevisionId,
                     Map<String, String> fieldBindings) {

@@ -1,6 +1,6 @@
 # 项目业务直接继承主干
 
-状态：默认继承链已通过隔离 SQL/MVC 与真实浏览器闭环；生产实体接入仍在推进。依据：[2026-10-07 用户确认目标及新增主干决定](../decisions/2026-10-07-unified-business-default-implementation.md)。本说明不表示所有生产业务已经迁移。
+状态：本文说明直接继承接口与实现方式，不单独作为全链验收结论。2026-10-09 增量补齐聚合明细、命名展示、条件计算及专业页面；实际通过范围和待验证项见 [本轮证据](../generated/default-business-completion-20261009/README.md)。依据：[2026-10-07 用户确认目标及新增主干决定](../decisions/2026-10-07-unified-business-default-implementation.md)。本说明不表示所有生产业务已经迁移。
 
 ## 入口与依赖方向
 
@@ -70,6 +70,44 @@ Mapper 按项目现有扫描约定放置或标注。业务表通过正式 Flyway
 - 新页面提供 actions/details/business-fields 插槽，特殊交互只添加差异，不复制整套页面或每业务建立 CRUD API 模块。`operationAllowed` 只能进一步收紧服务端操作可用性，不能授予权限；后端仍校验状态与权限。
 
 ## 当前证据与未完成项
+
+### 2026-10-09 默认链增量
+
+普通 `POST /` 与 `PUT /{id}` 统一接收主体字段、所属明细、`$binding`、`$extensions` 和业务声明的 `$business`。前端统一由 `ProjectBusinessForm` 读取和切换已发布布局、拼装绑定及扩展差异；专业组件只提供展示、读取值及专业命令。内容修订编辑也复用该组件，冻结修订只读取已保存绑定。
+
+所属明细使用业务自己的表、Mapper 和类型：
+
+```java
+class ExampleLine extends OwnedBusinessDetailEntity {
+    @BusinessModelField @NotBlank private String description;
+}
+interface ExampleLineMapper extends BusinessDetailMapper<ExampleLine> { }
+// 聚合根中的字段；正常提供 getter/setter。
+@BusinessModelField
+@TableField(exist = false)
+@BusinessOwnedDetails(mapper = ExampleLineMapper.class)
+private List<ExampleLine> lines;
+```
+
+明细表包含继承列及 `aggregate_type`、`aggregate_id`、`aggregate_revision_id`、`detail_order`；归属键由服务端生成，不开放明细独立写接口。整份明细列表随聚合保存，已有行携带 `id/version`，遗漏的旧行按逻辑删除处理。伪造父键、其他聚合的明细 ID、重复 ID 和陈旧版本均被拒绝。内容版本复制生成新明细身份，不能复用冻结行写入当前版本。
+
+公共保存先授权与幂等核验，在同一事务内完成锁定/并发检查及 `beforeCreate/beforeUpdate`、`beforeSave`、专业表单命令。主体、所属明细、绑定及扩展全部写入后，才执行 `afterCreate/afterUpdate`、`afterSave`，随后形成审计/回执/Outbox。`afterBodyPersisted` 是主体与明细保存后的专用位置，不代表完整聚合已经就绪；创建和更新的扩展写入时点不同，但均受同一事务保护。任何后置异常都回滚全部写入。自定义 `change(...)` 也执行公共保存钩子。重放既有回执不重复运行钩子。
+
+公共 CRUD 可被业务重载；在 `super` 调用后追加数据库动作时，外层重载方法必须使用覆盖两者的 `@Transactional(rollbackFor = Exception.class)`。执行模板保持受保护边界。公共实例方法不可随意改为 `final`，否则 CGLIB 代理调用可能绕过已初始化目标对象。
+
+字段配置新增 `profiles` 与 `defaultProfile`。每个配置包含稳定 `key`、名称、字段覆盖以及可选已发布 `formRevisionId`；字段覆盖可控制 `listVisible/formVisible/tabVisible`，不能提升读取、写入、查询或排序权限。`GET /model?configurationName=...` 与分页请求的 `configurationName` 使用同一配置。旧单份 JSON 配置仍可读取；旧保存接口保留命名配置。
+
+新建内容可采用所选配置关联的布局；已有内容优先读取保存的绑定，不随默认模板发布自动升级。切换布局保留隐藏的扩展值，合并定义时拒绝同名不同类型；`false`、`0`、`null`、数组均按明确提交值处理。通用 `ProjectBusinessDetails` 根据明细字段元数据呈现 Tab，隐藏 Tab 不删除其数据。
+
+首次保存前跨布局输入的扩展通过 `$binding.definitionSources` 声明原已发布布局及其字段绑定；服务端逐份验证租户、发布状态和本业务适用性，再生成不可变的合并定义。客户端不能传入任意字段 schema。切回原布局但仍带有新增扩展值时，也须保留该来源；数组控件采用空数组初值，同时保留原值基线以正确判断修改。
+
+`POST /{id}/evaluate` 接收 `BusinessCondition`，从授权后的已保存主体、所属明细、扩展值和公共交付件读取事实。支持 `FIELD/DELIVERY/ALL/ANY/NOT/MEMBER_ALL/MEMBER_ANY/COUNT`，返回 verdict、缺失/不满足原因及 factVersion。条件只判断，不直接推进生命周期。未声明完成条件的普通业务保存后不会自动视为完成；可在 `@ProjectBusinessModel(completionCondition = "...")` 声明既定条件，`GET /{id}/completion` 和运行时 `BUSINESS_CONDITION_SATISFIED` 使用同一求值器。既有同步与事件后端的字段条件也委托该求值器，普通实体不新增完成布尔 Provider。
+
+通用独立页面为 `/pms/business/records/:stableCode`，先选择可访问项目，再加载该业务直接继承 API；使用不依赖活动任务。测试装配示例见 `DefaultBusinessAcceptanceConfiguration` 与 `default-business-acceptance.sql`，仅用于指定隔离库，不代表新增生产业务。
+
+专业表单通过公共包装层接收 `api/current/scopeProjectId` 等上下文，并只负责渲染和读取输入。项目任务中的列表式办理页仍展示本项目授权记录；`initialEntityId` 不应在弹窗编辑或工作区模式下筛掉后来新增的记录，服务端项目范围始终生效。
+
+### 先前轮次证据（保持原验证边界）
 
 - 两个空 Service/Controller 的 Spring 泛型注入、独立 HTTP 创建/读取、特殊钩子、权限拒绝、回执重放、公共上传调用及错误实体类型拒绝已有单元证据；Mapper 在这些检查中使用测试替身，不能算真实 SQL 验收。
 - 公共前端客户端和操作状态已有运行测试。2026-10-08 的前一轮复核已消除全量主 tsconfig 的 60 项错误并完成类型检查、175 项前端测试及构建，见 [复核报告](../generated/default-business-review-20261008/README.md)；后续运行时增量须单独验证，不沿用旧结果作验收。

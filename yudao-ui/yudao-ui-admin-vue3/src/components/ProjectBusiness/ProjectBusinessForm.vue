@@ -1,8 +1,8 @@
 <template>
-  <el-alert v-if="error" :title="error" type="error" :closable="false" />
+  <el-alert v-if="error" :title="error" type="error" :closable="false"><el-button :disabled="loading" @click="load">重新读取配置</el-button></el-alert>
   <div v-if="!disabled && options.length" class="business-form-configuration">
-    <label>字段配置</label>
-    <el-select :model-value="selected?.binding.formRevisionId == null ? '' : String(selected.binding.formRevisionId)" :disabled="loading" @change="choose">
+    <span>字段配置</span>
+    <el-select aria-label="字段配置" :model-value="selected?.binding.formRevisionId == null ? '' : String(selected.binding.formRevisionId)" :disabled="loading" @change="choose">
       <el-option v-if="presentation?.layout" label="当前已保存配置" :value="String(presentation.layout.binding.formRevisionId)" />
       <el-option v-for="option in options.filter(item=>String(item.layout.binding.formRevisionId)!==String(presentation?.layout?.binding.formRevisionId))" :key="String(option.layout.binding.formRevisionId)" :value="String(option.layout.binding.formRevisionId)" :label="`${option.name} · V${option.layout.revisionNo}`" />
     </el-select>
@@ -10,29 +10,30 @@
   </div>
   <el-skeleton v-if="loading" :rows="5" animated />
   <component v-else :is="formComponent || ProjectBusinessContentForm" ref="content" v-bind="formComponent ? {api,current,scopeProjectId} : {}"
-    :fields="fields" :writable-fields="writableFields" :initial-values="visibleValues" :presentation="visiblePresentation" :appearance="appearance" :disabled="disabled"
-    @action="(kind:string,sn?:string)=>emit('action',kind,sn)" />
+    :fields="fields" :writable-fields="writableFields" :initial-values="visibleValues" :presentation="visiblePresentation" :appearance="appearance" :disabled="disabled || !!error"
+    v-on="formComponent ? {action:(kind:string,sn?:string)=>emit('action',kind,sn)} : {}" />
 </template>
 <script setup lang="ts">
-import {computed,ref,shallowRef,watch,type Component} from 'vue'
+import {computed,ref,shallowRef,watch,onBeforeUnmount,type Component} from 'vue'
 import type {BusinessEntityData,BusinessEntityFormData,FieldVO} from '@/api/pms/platform/businessmodel'
 import type {BusinessId,ProjectBusinessApi} from '@/api/pms/platform/business'
 import type {BusinessFormAppearance} from '@/components/BusinessEntity/businessFormAppearance'
 import ProjectBusinessContentForm from './ProjectBusinessContentForm.vue'
 type Layout=NonNullable<BusinessEntityFormData['layout']>
 type Input=Record<string,any>
-const props=defineProps<{api:ProjectBusinessApi;current?:BusinessEntityData;scopeProjectId?:BusinessId;formComponent?:Component;fields?:FieldVO[];writableFields:FieldVO[];initialValues?:Input;presentation?:BusinessEntityFormData;appearance?:BusinessFormAppearance;disabled?:boolean}>()
+const props=defineProps<{api:ProjectBusinessApi;current?:BusinessEntityData;scopeProjectId?:BusinessId;preferredFormRevisionId?:BusinessId;formComponent?:Component;fields?:FieldVO[];writableFields:FieldVO[];initialValues?:Input;presentation?:BusinessEntityFormData;appearance?:BusinessFormAppearance;disabled?:boolean;readonly?:boolean}>()
 const emit=defineEmits<{action:[kind:string,sn?:string]}>()
-const content=ref<{buildInput:()=>Promise<Input>;isBusy?:()=>boolean}>(),loading=ref(false),error=ref('')
+const content=ref<{buildInput?:()=>Promise<Input>;readValues?:()=>Promise<{fields:Input;extensions:Input;business?:Input}>;isBusy?:()=>boolean}>(),loading=ref(false),error=ref('')
 const selected=shallowRef<Layout>(),options=shallowRef<Array<{name:string;layout:Layout}>>([]),retained=ref<Input>({})
+const visitedLayouts=shallowRef<Layout[]>([])
 let generation=0
 const bindingChanged=computed(()=>!!selected.value && String(selected.value.binding.formRevisionId)!==String(props.presentation?.layout?.binding.formRevisionId))
 const baselineExtra=computed(()=>props.presentation?.extensions.fields||{})
 const visibleValues=computed(()=>({...props.initialValues,...Object.fromEntries(Object.entries(retained.value).filter(([key])=>!key.startsWith('$')))}))
 const definitions=computed(()=>{
   const fixed=new Set((props.fields||props.writableFields).map(field=>field.code)),result=new Map((props.presentation?.definitions||[]).map(field=>[field.code,field]))
-  for(const field of selected.value?.fields||[]){
-    const code=selected.value?.binding.fieldBindings[field.fieldKey]
+  for(const layout of [...visitedLayouts.value,...(selected.value?[selected.value]:[])])for(const field of layout.fields||[]){
+    const code=layout.binding.fieldBindings[field.fieldKey]
     if(!code||field.controlledFile||fixed.has(code)||result.has(code))continue
     const type=field.valueType==='boolean'?'BOOLEAN':field.valueType==='number'?'NUMBER':field.valueType==='array'?(field.componentType==='group'?'OBJECT_LIST':'TEXT_LIST'):'TEXT'
     result.set(code,{code,label:code,type,required:field.required,maxLength:field.maxLength,allowedValues:field.allowedValues})
@@ -44,43 +45,70 @@ const visiblePresentation=computed<BusinessEntityFormData>(()=>({
   extensions:{definitionRevisionId:props.presentation?.extensions.definitionRevisionId,version:props.presentation?.extensions.version??0,fields:{...baselineExtra.value,...retained.value.$extensions?.values}},
   definitions:definitions.value
 }))
-watch(()=>[props.current?.ref.entityId,props.current?.concurrencyBasis,props.presentation,props.scopeProjectId],async()=>{
-  const active=++generation;selected.value=props.presentation?.layout;retained.value={};options.value=[];error.value=''
-  if(props.current&&!props.presentation){loading.value=true;return}
+const load=async()=>{
+  const active=++generation;error.value=''
+  if(props.current&&!props.presentation){loading.value=false;error.value='业务表单尚未读取，请重新读取业务记录';return}
   const project=props.scopeProjectId??props.initialValues?.projectId
   // Frozen/view-only records use their stored configuration; no current-template lookup.
-  if(project==null||props.disabled){loading.value=false;return}
+  if(project==null||props.readonly || props.disabled && props.readonly===undefined){loading.value=false;return}
   loading.value=true
   try{
     if(!selected.value){const defaults=await props.api.formDefaults(project);if(active!==generation)return;selected.value=defaults.layout}
-    const choices=await props.api.formOptions(project);if(active===generation)options.value=choices
+    const choices=await props.api.formOptions(project)
+    if(active===generation){
+      options.value=choices
+      if(!props.current && props.preferredFormRevisionId!=null){
+        const preferred=choices.find(option=>String(option.layout.binding.formRevisionId)===String(props.preferredFormRevisionId))
+        if(!preferred)throw new Error('命名配置关联的表单版本不可用，请选择可用配置')
+        selected.value=preferred.layout
+      }
+    }
   }catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'命名字段配置读取失败'}
   finally{if(active===generation)loading.value=false}
+}
+watch(()=>[props.api.base,props.current?.ref.entityId,props.current?.concurrencyBasis,props.presentation,props.scopeProjectId,props.readonly],()=>{
+  selected.value=props.presentation?.layout;retained.value={};visitedLayouts.value=[];options.value=[];load()
 },{immediate:true})
+onBeforeUnmount(()=>{generation++})
 const merge=(left:Input,right:Input):Input=>({...left,...right,
   ...(left.$extensions||right.$extensions?{$extensions:{...left.$extensions,...right.$extensions,values:{...left.$extensions?.values,...right.$extensions?.values}}}:{}),
   ...(left.$business||right.$business?{$business:{...left.$business,...right.$business}}:{})})
+const changes=(values:Input,baseline:Input)=>Object.fromEntries(Object.entries(values).filter(([key,value])=>JSON.stringify(value??null)!==JSON.stringify(baseline[key]??null)))
+const readInput=async():Promise<Input>=>{
+  if(!content.value)throw new Error('表单尚未就绪')
+  if(!content.value.readValues)return await content.value.buildInput!()
+  const value=await content.value.readValues(),input=changes(value.fields,visibleValues.value)
+  const extra=changes(value.extensions,visiblePresentation.value.extensions.fields)
+  if(Object.keys(extra).length)input.$extensions={expectedVersion:props.presentation?.extensions.version??0,values:extra}
+  if(value.business&&Object.keys(value.business).length)input.$business=value.business
+  return input
+}
 const choose=async(value:string)=>{
   if(props.disabled||loading.value)return
   const layout=String(props.presentation?.layout?.binding.formRevisionId)===value?props.presentation?.layout:options.value.find(option=>String(option.layout.binding.formRevisionId)===value)?.layout
   if(!layout)return
   try{
-    const changes=await content.value!.buildInput(),next=merge(retained.value,changes)
+    const changes=await readInput(),next=merge(retained.value,changes)
+    if(selected.value && !visitedLayouts.value.some(item=>String(item.binding.formRevisionId)===String(selected.value!.binding.formRevisionId)))visitedLayouts.value=[...visitedLayouts.value,selected.value]
     const fixed=new Set((props.fields||props.writableFields).map(field=>field.code)),oldCodes=new Set((props.presentation?.definitions||[]).map(field=>field.code))
     const codes=new Set(Object.values(layout.binding.fieldBindings).filter(code=>!fixed.has(code)))
     const addsNew=[...codes].some(code=>!oldCodes.has(code))
-    if(addsNew && Object.keys({...baselineExtra.value,...next.$extensions?.values}).some(code=>!codes.has(code)))throw new Error('此配置会遗漏已有扩展字段，请先在字段配置中保留这些字段')
     retained.value=next;selected.value={...layout,binding:{...layout.binding,extensionDefinitionRevisionId:addsNew?undefined:props.presentation?.layout?.binding.extensionDefinitionRevisionId??props.presentation?.extensions.definitionRevisionId}}
     error.value=''
   }catch(failure){error.value=failure instanceof Error?failure.message:'切换前请检查未保存内容'}
 }
 const buildInput=async()=>{
   if(props.disabled)return {}
-  if(loading.value)throw new Error('字段配置尚未就绪')
-  const result=merge(retained.value,await content.value!.buildInput())
+  if(loading.value||error.value)throw new Error(error.value||'字段配置尚未就绪')
+  const result=merge(retained.value,await readInput())
   for(const code of Object.keys(result).filter(code=>!code.startsWith('$')))if(JSON.stringify(result[code]??null)===JSON.stringify(props.initialValues?.[code]??null))delete result[code]
-  if(bindingChanged.value && (!props.current || Object.keys(result).length || Object.keys(retained.value).length)){
+  const knownDefinitions=new Set((props.presentation?.definitions||[]).map(field=>field.code))
+  const needsDefinitions=Object.keys(result.$extensions?.values||{}).some(code=>!knownDefinitions.has(code))
+  if(selected.value && (bindingChanged.value || needsDefinitions)){
     result.$binding={expectedVersion:props.presentation?.layout?.binding.version??0,formRevisionId:selected.value!.binding.formRevisionId,extensionDefinitionRevisionId:selected.value!.binding.extensionDefinitionRevisionId,fieldBindings:selected.value!.binding.fieldBindings,bindRemainingFields:true}
+    const sources=visitedLayouts.value.filter(layout=>String(layout.binding.formRevisionId)!==String(selected.value!.binding.formRevisionId))
+      .map(layout=>({formRevisionId:layout.binding.formRevisionId,fieldBindings:layout.binding.fieldBindings}))
+    if(sources.length)result.$binding.definitionSources=sources
     if(result.$extensions)result.$extensions={...result.$extensions,definitionRevisionId:selected.value!.binding.extensionDefinitionRevisionId,values:{...baselineExtra.value,...result.$extensions.values}}
   }
   return result

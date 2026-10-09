@@ -152,7 +152,7 @@ class DirectBusinessInheritanceTest {
         try{
             var type=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Type("IT","directNote");
             var query=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(7L,99L,type,11L);
-            var result=service.runtimeObservation(query,false);assertEquals(Map.of("BUSINESS_RECORD_SAVED",true),result.facts());assertTrue(result.handlingCompleted());
+            var result=service.runtimeObservation(query,false);assertEquals(Map.of("BUSINESS_RECORD_SAVED",true),result.facts());assertFalse(result.handlingCompleted(),"保存记录不等于业务完成");
             assertThrows(RuntimeException.class,()->service.runtimeObservation(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(7L,100L,type,11L),false));
             assertThrows(RuntimeException.class,()->service.runtimeObservation(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query(8L,99L,type,11L),false));
             assertThrows(RuntimeException.class,()->service.runtimeObservation(query,true));

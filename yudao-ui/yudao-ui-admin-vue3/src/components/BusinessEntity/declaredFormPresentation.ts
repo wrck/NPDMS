@@ -16,11 +16,12 @@ export const declaredFormPresentation = (presentation: BusinessEntityFormData, f
     const item = clone(rule)
     if (field) {
       const code = bindings[field], business = fixed.get(code), extension = extensions.get(code)
-      if (!code || !business && !extension || business && !business.readable && !business.writable) return []
+      if (!code || !business && !extension || business && (!business.readable && !business.writable || business.formVisible===false || business.children?.length)) return []
       if (rule.type === 'PmsFileArtifact') throw new Error('文件字段需要已声明的文件契约')
       mapped.add(code)
       const value = business ? (business.readable ? initial[code] : undefined) : presentation.extensions.fields[code]
-      values[field] = value == null ? null : clone(value)
+      const collection=['TEXT_LIST','OBJECT_LIST'].includes((business||extension)!.type)
+      values[field] = value == null ? (collection?[]:null) : clone(value)
       baseline[field] = clone(values[field])
       delete item.value
       if (business && !business.writable) {

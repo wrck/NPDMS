@@ -15,8 +15,8 @@
     <el-button v-if="hasMore" :disabled="blocked" @click="loadOlder">加载更早版本</el-button>
     <template v-if="selected && values && presentation">
       <h4>修订 #{{selected.revisionNo}} · {{selected.state==='DRAFT'?'草稿':'冻结只读'}}</h4>
-      <ProjectBusinessContentForm ref="editor" :fields="fields" :writable-fields="writableFields" :presentation="presentation" :initial-values="values"
-        :disabled="blocked || readonly || selected.state!=='DRAFT' || !allowed('revision-save')" />
+      <ProjectBusinessForm ref="editor" :api="api" :current="revisionCurrent" :fields="fields" :writable-fields="writableFields" :presentation="presentation" :initial-values="values"
+        :readonly="readonly || selected.state!=='DRAFT' || !allowed('revision-save')" :disabled="blocked || readonly || selected.state!=='DRAFT' || !allowed('revision-save')" />
       <el-button v-if="selected.state==='DRAFT'" :disabled="blocked || !allowed('revision-save')" @click="perform('revision-save')">保存修订</el-button>
       <el-button v-if="selected.state==='DRAFT'" :disabled="blocked || !allowed('revision-complete')" @click="perform('revision-complete')">冻结并生效</el-button>
       <el-button v-if="selected.state==='DRAFT'" :disabled="blocked || !allowed('revision-discard')" @click="perform('revision-discard')">放弃修订</el-button>
@@ -36,15 +36,16 @@ import {onBeforeRouteLeave,onBeforeRouteUpdate} from 'vue-router'
 import {useMessage} from '@/hooks/web/useMessage'
 import type {BusinessEntityData,BusinessEntityFormData,BusinessOperationReceipt,FieldVO,OperationVO} from '@/api/pms/platform/businessmodel'
 import type {BusinessId,DirectBusinessRevision,ProjectBusinessApi,RevisionFieldValue} from '@/api/pms/platform/business'
-import ProjectBusinessContentForm from './ProjectBusinessContentForm.vue'
+import ProjectBusinessForm from './ProjectBusinessForm.vue'
 const props=defineProps<{api:ProjectBusinessApi;current:BusinessEntityData;fields:FieldVO[];actions:OperationVO[];busy:boolean;readonly?:boolean;execute:(code:string,values:Record<string,unknown>)=>Promise<BusinessOperationReceipt|undefined>}>()
-const message=useMessage(),rows=ref<DirectBusinessRevision[]>([]),selected=ref<DirectBusinessRevision>(),values=ref<Record<string,unknown>>(),presentation=ref<BusinessEntityFormData>(),editor=ref<InstanceType<typeof ProjectBusinessContentForm>>()
+const message=useMessage(),rows=ref<DirectBusinessRevision[]>([]),selected=ref<DirectBusinessRevision>(),values=ref<Record<string,unknown>>(),presentation=ref<BusinessEntityFormData>(),editor=ref<InstanceType<typeof ProjectBusinessForm>>()
 const hasMore=ref(false)
 const loading=ref(false),working=ref(false),error=ref(''),reason=ref(''),left=ref(''),right=ref('')
 const differences=ref<Array<{fieldCode:string;before:RevisionFieldValue;after:RevisionFieldValue}>>()
 let generation=0
 const writableFields=computed(()=>props.fields.filter(field=>field.writable))
-const blocked=computed(()=>props.busy||loading.value||working.value)
+const blocked=computed(()=>props.busy||loading.value||working.value||!!editor.value?.isBusy())
+const revisionCurrent=computed<BusinessEntityData>(()=>({...props.current,concurrencyBasis:selected.value?.version,fieldValues:values.value||{}}))
 const allowed=(code:string)=>!props.readonly && props.actions.some(action=>action.code===code&&action.executable)
 const format=(value:RevisionFieldValue)=>value.readable?JSON.stringify(value.value):'不可读'
 const discardChanges=async()=>{
@@ -98,5 +99,5 @@ const compare=async()=>{
   catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'版本比较失败'}finally{if(active===generation)loading.value=false}
 }
 const leave=()=>blocked.value?false:discardChanges();onBeforeRouteLeave(leave);onBeforeRouteUpdate(leave)
-defineExpose({isBusy:()=>loading.value||working.value,requestLeave:leave})
+defineExpose({isBusy:()=>loading.value||working.value||!!editor.value?.isBusy(),requestLeave:leave})
 </script>

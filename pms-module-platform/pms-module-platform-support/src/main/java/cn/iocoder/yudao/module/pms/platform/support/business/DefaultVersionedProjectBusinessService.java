@@ -122,14 +122,14 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
         draft.setRevisionState(Revision.State.DRAFT);draft.setEffective(false);draft.setChangeReason(reason);draft.setVersion(0L);draft.setFrozenBy(null);draft.setFrozenAt(null);
         draft.setCreator(caller.userId().toString());draft.setUpdater(caller.userId().toString());draft.setCreateTime(null);draft.setUpdateTime(null);draft.setDeleted(false);
         beforeRevisionSave(copy(current),draft);if(revisionMapper.insert(draft)!=1 || draft.getId()==null)throw invalid("REVISION_INSERT_FAILED","Revision was not persisted");
-        checked(draft,new RevisionRef(entity,draft.getId()),caller);
+        saveOwnedDetails(asBusiness(draft),true);checked(draft,new RevisionRef(entity,draft.getId()),caller);
         var from=origin==null?EntityDataRef.current(entity):EntityDataRef.revision(origin.revisionRef());var to=EntityDataRef.revision(draft.revisionRef());
         extensionApi().copy(from,to,draft.getVersion(),caller);formApi().copy(from,to,draft.getVersion(),caller);return draft.revisionMetadata();
     }
     @Override public Revision save(RevisionRef ref,Integer expectedVersion,Map<String,Object> fields,EntityActor caller){
         var current=requireEntity(ref.entity(),caller,true);authorizeRevision("revision-save",caller);var draft=lockedRevision(ref,caller);requireDraft(draft);requireRevisionVersion(draft,expectedVersion==null?null:expectedVersion.longValue());
         patchBusinessFields(asBusiness(draft),fields);if(!Objects.equals(current.getProjectId(),draft.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","Revision cannot move its business project");
-        beforeRevisionSave(copy(current),draft);validate(asBusiness(draft),"revision-save");persistRevision(draft,caller);return draft.revisionMetadata();
+        beforeRevisionSave(copy(current),draft);validate(asBusiness(draft),"revision-save");persistRevision(draft,caller);saveOwnedDetails(asBusiness(draft),false);return draft.revisionMetadata();
     }
     @Override public Revision freeze(RevisionRef ref,Integer expectedVersion,EntityActor caller){
         var current=requireEntity(ref.entity(),caller,true);authorizeRevision("revision-complete",caller);var draft=lockedRevision(ref,caller);requireDraft(draft);requireRevisionVersion(draft,expectedVersion==null?null:expectedVersion.longValue());
@@ -144,12 +144,12 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
             throw invalid("REVISION_BASE_CHANGED","Current content changed after this draft was created");
         var proposed=copy(current);var values=new LinkedHashMap<String,Object>();var snapshot=businessValues(asBusiness(frozen));
         definition().fields().stream().filter(BusinessFieldDescriptor::writable).forEach(field->values.put(field.code(),snapshot.get(field.code())));patchBusinessFields(proposed,values);
-        beforeUpdate(copy(current),proposed);if(!Objects.equals(proposed.getProjectId(),current.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","Revision cannot move its business project");
+        beforeUpdate(copy(current),proposed);beforeSave(copy(current),proposed,"revision-complete");if(!Objects.equals(proposed.getProjectId(),current.getProjectId()))throw invalid("ENTITY_SCOPE_DENIED","Revision cannot move its business project");
         var previousActivation=activating.get();activating.set(ref.entity());
         try{
             extensionApi().copy(EntityDataRef.revision(ref),EntityDataRef.current(ref.entity()),current.getVersion(),caller);
             formApi().copy(EntityDataRef.revision(ref),EntityDataRef.current(ref.entity()),current.getVersion(),caller);
-            persistBusinessChange(current,proposed,"revision-complete");
+            clearOwnedDetailIdentities(proposed);persistBusinessChange(current,proposed,"revision-complete");
         }finally{if(previousActivation==null)activating.remove();else activating.set(previousActivation);}
         if(effective!=null){effective.setEffective(false);persistRevision(effective,caller);}frozen.setEffective(true);persistRevision(frozen,caller);
         return frozen.revisionMetadata();
@@ -198,7 +198,7 @@ public abstract class DefaultVersionedProjectBusinessService<M extends BusinessM
     private R effective(List<R> rows){var effective=rows.stream().filter(MutableEntityRevision::effective).toList();if(effective.size()>1)throw invalid("REVISION_STATE_INVALID","Multiple effective revisions");return effective.isEmpty()?null:effective.getFirst();}
     private R revision(RevisionRef ref,EntityActor caller){return checked(revisionMapper.selectById(ref.revisionId()),ref,caller);}
     private R lockedRevision(RevisionRef ref,EntityActor caller){return checked(revisionClass.cast(DeclaredBusinessCurrentRows.lock(revisionBinding,new DeclaredCurrentRowQuery(caller.tenantId(),ref.revisionId()))),ref,caller);}
-    private R checked(R row,RevisionRef ref,EntityActor caller){if(row==null || !caller.tenantId().equals(row.getTenantId()) || !ref.equals(row.revisionRef()))throw invalid("REVISION_IDENTITY_INVALID","Revision does not belong to this business");return row;}
+    private R checked(R row,RevisionRef ref,EntityActor caller){if(row==null || !caller.tenantId().equals(row.getTenantId()) || !ref.equals(row.revisionRef()))throw invalid("REVISION_IDENTITY_INVALID","Revision does not belong to this business");loadOwnedDetails(asBusiness(row));return row;}
     private R newRevision(){try{return revisionClass.getDeclaredConstructor().newInstance();}catch(ReflectiveOperationException failure){throw invalid("REVISION_MAPPING_INVALID","Revision needs an accessible no-argument constructor");}}
     private E asBusiness(R row){return entityClass().cast(row);}
     private void requireDraft(R row){if(row.revisionState()!=Revision.State.DRAFT)throw invalid("REVISION_STATE_INVALID","Frozen revisions are immutable");}

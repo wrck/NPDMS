@@ -74,7 +74,14 @@ public abstract class BusinessModelViews {
 
     public record FieldVO(String code, String name, String type, boolean required,
                           boolean readable, boolean writable, int displayOrder, boolean listVisible,
-                          boolean searchable, boolean sortable) {
+                          boolean searchable, boolean sortable, List<FieldVO> children,boolean formVisible,boolean tabVisible) {
+        public FieldVO { children=children==null?List.of():List.copyOf(children); }
+        public FieldVO(String code,String name,String type,boolean required,boolean readable,boolean writable,int displayOrder,boolean listVisible,boolean searchable,boolean sortable,List<FieldVO> children){
+            this(code,name,type,required,readable,writable,displayOrder,listVisible,searchable,sortable,children,readable,readable);
+        }
+        public FieldVO(String code,String name,String type,boolean required,boolean readable,boolean writable,int displayOrder,boolean listVisible,boolean searchable,boolean sortable){
+            this(code,name,type,required,readable,writable,displayOrder,listVisible,searchable,sortable,List.of());
+        }
         public FieldVO(String code,String name,String type,boolean required,boolean readable,boolean writable) {
             this(code,name,type,required,readable,writable,0,readable,
                     readable && !List.of("TEXT_LIST","OBJECT_LIST").contains(type),

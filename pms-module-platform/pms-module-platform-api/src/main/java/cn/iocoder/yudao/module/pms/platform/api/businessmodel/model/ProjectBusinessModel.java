@@ -16,4 +16,6 @@ public @interface ProjectBusinessModel {
     String permissionPrefix();
     /** Previous native identity of the same physical row, for immutable reference protection. */
     String nativeEntityType() default "";
+    /** Optional engine-neutral BusinessCondition JSON. Empty means saving is not business completion. */
+    String completionCondition() default "";
 }

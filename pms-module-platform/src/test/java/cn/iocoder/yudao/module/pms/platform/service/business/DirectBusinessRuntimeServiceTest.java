@@ -26,7 +26,7 @@ class DirectBusinessRuntimeServiceTest {
         when(materials.selectDefaultDeliveryList(any())).thenReturn(List.of(report,photo));
         when(files.inspectDocument(7L,101L)).thenReturn(document(101L,"REPORT",true));
         when(files.inspectDocument(7L,102L)).thenReturn(document(102L,"PHOTO",false));
-        var service=new DirectBusinessRuntimeService(owners,materials,files,new TestTransactions());
+        var service=new DirectBusinessRuntimeService(owners,new DefaultBusinessEvidenceService(owners,null,null,materials,files,new TestTransactions()));
         var query=new ProjectBusinessRuntimeApi.Query(7L,20L,type,11L);
         var observed=service.deliveryFacts(query,false);
         assertEquals(true,observed.facts().get(ProjectBusinessRuntimeApi.DELIVERY_PREFIX+"REPORT"));
@@ -35,7 +35,7 @@ class DirectBusinessRuntimeServiceTest {
         var captured=ArgumentCaptor.forClass(DefaultDeliveryListQuery.class);verify(materials).selectDefaultDeliveryList(captured.capture());
         assertEquals(7L,captured.getValue().getTenantId());assertEquals(20L,captured.getValue().getProjectId());
         assertEquals(11L,captured.getValue().getEntityId());assertEquals("IT_NOTE",captured.getValue().getBusinessType());
-        verify(owner).runtimeObservation(query,false);
+        verify(owner).requireEvidenceScope(new cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef(7L,"IT","note",11L),20L,false);
         var wrongOwner=new FileEvidenceApi.Document(101L,"PLT","DEFAULT_BUSINESS_DELIVERY","20:IT:note:12","REPORT","reference-101",201L,1,"sha","file",true);
         when(files.inspectDocument(7L,101L)).thenReturn(wrongOwner);
         assertFalse(service.deliveryFacts(query,false).facts().get(ProjectBusinessRuntimeApi.DELIVERY_PREFIX+"REPORT"));
@@ -66,7 +66,7 @@ class DirectBusinessRuntimeServiceTest {
             assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isCurrentTransactionReadOnly());
             return document(101L,"REPORT",true);
         });
-        var transactions=new TestTransactions();var service=new DirectBusinessRuntimeService(owners,materials,files,transactions);
+        var transactions=new TestTransactions();var service=new DirectBusinessRuntimeService(owners,new DefaultBusinessEvidenceService(owners,null,null,materials,files,transactions));
         var query=new ProjectBusinessRuntimeApi.Query(7L,20L,type,11L);
         assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
         assertTrue(service.deliveryFacts(query,false).facts().get(ProjectBusinessRuntimeApi.DELIVERY_PREFIX+"REPORT"));

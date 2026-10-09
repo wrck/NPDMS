@@ -45,7 +45,8 @@ final class BusinessEntityBinding<E extends BaseProjectBusinessEntity> {
                     .orElseThrow(() -> new BusinessContractException("FIELD_NOT_OPEN", "Unknown business field: " + entry.getKey()));
             var exposure = field.property().getAnnotation(BusinessModelField.class);
             if (exposure == null || !exposure.writable()) throw new BusinessContractException("FIELD_NOT_WRITABLE", "Business field is not writable: " + entry.getKey());
-            try { field.property().set(target, DeclaredBusinessFieldValues.convert(entry.getValue(), field)); }
+            try { field.property().set(target, field.property().isAnnotationPresent(BusinessOwnedDetails.class)
+                    ? OwnedBusinessDetails.convert(entry.getValue(),field) : DeclaredBusinessFieldValues.convert(entry.getValue(), field)); }
             catch (IllegalAccessException failure) { throw new IllegalStateException(failure); }
         }
     }

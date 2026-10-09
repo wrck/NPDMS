@@ -60,17 +60,11 @@ public class EntityFormService implements EntityFormApi {
     public Binding bind(Bind command) {
         command=new Bind(registry.nativeRef(command.target()),command.actor(),command.expectedEntityVersion(),
                 command.expectedBindingVersion(),command.formRevisionId(),command.extensionDefinitionRevisionId(),
-                command.fieldBindings(),command.bindRemainingFields());
+                command.fieldBindings(),command.bindRemainingFields(),command.preserveExistingFields(),command.definitionSources());
         registry.lockForWrite(command.target(), command.actor(), command.expectedEntityVersion());
         var entity = command.target().entity();
-        var revision = formRevisions.selectByRow(new DynamicFormRevisionRowQuery(entity.tenantId(), command.formRevisionId()));
-        if (revision == null || !entity.tenantId().equals(revision.getTenantId())
-                || !"PUBLISHED".equals(revision.getStatusCode())) throw exception(DYNAMIC_FORM_TEMPLATE_NOT_FOUND);
-        businessForms.inspectRevisionForUsage(new DynamicFormRevisionUsageQuery(entity.tenantId(), command.actor().userId(),
-                new DynamicFormProviderKey(entity.ownerModule(), entity.entityType()), revision.getId(),
-                registry.fields(entity).formUsage(), DynamicFormBusinessAction.REVISION_FROZEN_USE, revision.getVersion()));
-        var schema = schemas.parseAndValidate(revision.getFormConfJson(), revision.getFormRulesJson(),
-                revision.getEngineCode(), revision.getDesignerVersion(), revision.getRendererVersion());
+        var schema = publishedSchema(entity,command.actor(),command.formRevisionId());
+        if(!command.preserveExistingFields() && !command.definitionSources().isEmpty())throw exception(ENTITY_VALUE_INVALID);
         Set<String> fields = new HashSet<>();
         registry.fields(entity).fields().forEach(field -> fields.add(field.code()));
         if (command.fieldBindings() == null || !schema.ordinaryFieldKeys().containsAll(command.fieldBindings().keySet())
@@ -83,15 +77,48 @@ public class EntityFormService implements EntityFormApi {
             schema.ordinaryFieldKeys().forEach(key -> bindings.putIfAbsent(key, key));
             if (new HashSet<>(bindings.values()).size() != bindings.size()) throw exception(ENTITY_VALUE_INVALID);
         }
-        if (definitionId == null) {
-            // A published layout is already authorized above. Materialize its extension definition
-            // before the first business save; operators need no template-management permission.
+        if(command.preserveExistingFields()){
+            // Changing a published layout must retain definitions for existing hidden values.
             var definitions = schema.descriptors().stream()
                     .filter(field -> bindings.containsKey(field.fieldKey())
                             && !fields.contains(bindings.get(field.fieldKey())))
                     .map(field -> EntityExtensionValidation.fromForm(field, bindings.get(field.fieldKey())))
                     .toList();
-            if (!definitions.isEmpty()) definitionId = definitionForForm(command, definitions);
+            var previous=mapper.selectBinding(EntityValueQuery.of(command.target()));
+            var values=extensions.read(command.target(),command.actor());
+            Long priorDefinition=values.definitionRevisionId()!=null?values.definitionRevisionId():previous==null?null:previous.getExtensionDefinitionRevisionId();
+            Long baseDefinition=definitionId!=null?definitionId:priorDefinition;
+            var merged=new LinkedHashMap<String,EntityExtensionApi.Definition>();
+            if(priorDefinition!=null)extensions.definition(priorDefinition,entity,command.actor()).fields().forEach(field->merged.put(field.code(),field));
+            if(baseDefinition!=null)extensions.definition(baseDefinition,entity,command.actor()).fields().forEach(field->{
+                var old=merged.get(field.code());if(old!=null && old.type()!=field.type())throw exception(ENTITY_VALUE_INVALID);merged.put(field.code(),field);
+            });
+            var seenSources=new HashSet<Long>();
+            for(var source:command.definitionSources()){
+                if(!seenSources.add(source.formRevisionId()))throw exception(ENTITY_VALUE_INVALID);
+                var sourceSchema=publishedSchema(entity,command.actor(),source.formRevisionId());
+                var sourceBindings=source.fieldBindings();
+                if(sourceBindings==null || !sourceSchema.ordinaryFieldKeys().containsAll(sourceBindings.keySet())
+                        || new HashSet<>(sourceBindings.values()).size()!=sourceBindings.size())throw exception(ENTITY_VALUE_INVALID);
+                for(var descriptor:sourceSchema.descriptors())if(sourceBindings.containsKey(descriptor.fieldKey())
+                        && !fields.contains(sourceBindings.get(descriptor.fieldKey()))){
+                    var field=EntityExtensionValidation.fromForm(descriptor,sourceBindings.get(descriptor.fieldKey()));
+                    var old=merged.get(field.code());if(old!=null && old.type()!=field.type())throw exception(ENTITY_VALUE_INVALID);merged.put(field.code(),field);
+                }
+            }
+            for(var field:definitions){
+                var old=merged.get(field.code());if(old!=null && old.type()!=field.type())throw exception(ENTITY_VALUE_INVALID);merged.put(field.code(),field);
+            }
+            if(!merged.isEmpty()){
+                var combined=List.copyOf(merged.values());
+                if(baseDefinition!=null && new HashSet<>(extensions.definition(baseDefinition,entity,command.actor()).fields()).equals(new HashSet<>(combined)))definitionId=baseDefinition;
+                else definitionId=definitionForForm(command,combined,new HashSet<>(combined).equals(new HashSet<>(definitions)));
+            }
+        }else if(definitionId==null){
+            var definitions=schema.descriptors().stream().filter(field->bindings.containsKey(field.fieldKey())
+                    && !fields.contains(bindings.get(field.fieldKey())))
+                    .map(field->EntityExtensionValidation.fromForm(field,bindings.get(field.fieldKey()))).toList();
+            if(!definitions.isEmpty())definitionId=definitionForForm(command,definitions,true);
         }
         if (definitionId != null) {
             extensions.definition(definitionId, entity, command.actor()).fields()
@@ -126,12 +153,24 @@ public class EntityFormService implements EntityFormApi {
         return binding(row);
     }
 
-    private Long definitionForForm(Bind command, List<EntityExtensionApi.Definition> definitions) {
+    private DynamicFormSchemaService.SchemaFields publishedSchema(EntityRef entity,EntityActor actor,Long revisionId){
+        if(revisionId==null || revisionId<=0)throw exception(DYNAMIC_FORM_TEMPLATE_NOT_FOUND);
+        var revision=formRevisions.selectByRow(new DynamicFormRevisionRowQuery(entity.tenantId(),revisionId));
+        if(revision==null || !entity.tenantId().equals(revision.getTenantId())
+                || !"PUBLISHED".equals(revision.getStatusCode()))throw exception(DYNAMIC_FORM_TEMPLATE_NOT_FOUND);
+        businessForms.inspectRevisionForUsage(new DynamicFormRevisionUsageQuery(entity.tenantId(),actor.userId(),
+                new DynamicFormProviderKey(entity.ownerModule(),entity.entityType()),revision.getId(),
+                registry.fields(entity).formUsage(),DynamicFormBusinessAction.REVISION_FROZEN_USE,revision.getVersion()));
+        return schemas.parseAndValidate(revision.getFormConfJson(),revision.getFormRulesJson(),
+                revision.getEngineCode(),revision.getDesignerVersion(),revision.getRendererVersion());
+    }
+
+    private Long definitionForForm(Bind command, List<EntityExtensionApi.Definition> definitions,boolean sourceOnly) {
         var entity = command.target().entity();
         EntityExtensionValidation.definitions(definitions, registry.fields(entity).fields());
         var source = new cn.iocoder.yudao.module.pms.platform.dal.mysql.entity.query.EntityDefinitionSourceQuery(
                 entity.tenantId(), entity.ownerModule(), entity.entityType(), command.formRevisionId());
-        var existing = mapper.selectDefinitionBySource(source);
+        var existing = sourceOnly?mapper.selectDefinitionBySource(source):null;
         if (existing != null) {
             // Preserve the immutable definition, including definitions brought over by migration.
             var saved = JsonUtils.parseArray(existing.getFieldsJson(), EntityExtensionApi.Definition.class);
@@ -141,7 +180,7 @@ public class EntityFormService implements EntityFormApi {
         var row = new cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityExtensionDefinitionDO();
         row.setId(IdWorker.getId()); row.setTenantId(entity.tenantId());
         row.setOwnerModule(entity.ownerModule()); row.setEntityType(entity.entityType());
-        row.setSourceFormRevisionId(command.formRevisionId());
+        row.setSourceFormRevisionId(sourceOnly?command.formRevisionId():null);
         row.setRevisionNo(mapper.selectMaxDefinitionRevision(
                 new cn.iocoder.yudao.module.pms.platform.dal.mysql.entity.query.EntityDefinitionScopeQuery(
                         entity.tenantId(), entity.ownerModule(), entity.entityType())) + 1);

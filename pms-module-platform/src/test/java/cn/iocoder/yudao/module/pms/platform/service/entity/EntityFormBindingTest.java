@@ -108,4 +108,45 @@ class EntityFormBindingTest {
         assertThrows(RuntimeException.class, () -> service.bind(command()));
         verify(mapper, never()).insertDefinition(any());
     }
+    @Test void namedLayoutPreservesHiddenDefinitionsAndRejectsIncompatibleTypes(){
+        var old=new EntityExtensionDefinitionDO();old.setId(90L);old.setTenantId(1L);old.setOwnerModule("SOL");old.setEntityType("SITE_SURVEY");old.setRevisionNo(1);
+        old.setFieldsJson(JsonUtils.toJsonString(List.of(new EntityExtensionApi.Definition("hidden","Hidden",EntityField.Type.BOOLEAN,false,null,List.of()))));
+        when(mapper.selectDefinition(90L)).thenReturn(old);
+        var value=new cn.iocoder.yudao.module.pms.platform.dal.dataobject.entity.EntityExtensionValueDO();value.setDefinitionRevisionId(90L);value.setVersion(3);value.setValuesJson("{\"hidden\":false}");
+        when(mapper.selectValues(any())).thenReturn(value);
+        var result=service.bind(new EntityFormApi.Bind(target,actor,1L,0,10L,null,Map.of("power","powerSupply","tags","tags"),false,true));
+        var combined=extensions.definition(result.extensionDefinitionRevisionId(),target.entity(),actor);
+        assertEquals(Set.of("hidden","tags"),combined.fields().stream().map(EntityExtensionApi.Definition::code).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(EntityField.Type.BOOLEAN,combined.fields().stream().filter(field->field.code().equals("hidden")).findFirst().orElseThrow().type());
+        assertEquals(false,extensions.read(target,actor).fields().get("hidden"));
+        assertNull(mapper.selectDefinition(result.extensionDefinitionRevisionId()).getSourceFormRevisionId(),"Combined entity definitions are not the template's global immutable definition");
+        assertEquals(1,extensions.definition(90L,target.entity(),actor).fields().size());
+        assertThrows(RuntimeException.class,()->service.bind(new EntityFormApi.Bind(target,actor,1L,0,10L,null,Map.of("power","powerSupply","tags","hidden"),false,true)));
+    }
+    @Test void firstSaveCanRetainFieldsFromAnAuthorizedPreviouslySelectedLayout(){
+        var compact=new DynamicFormTemplateRevisionDO();org.springframework.beans.BeanUtils.copyProperties(revision,compact);
+        compact.setId(20L);compact.setFormRulesJson("[{\"type\":\"input\",\"field\":\"power\"}]");
+        when(revisions.selectByRow(any())).thenAnswer(call->((cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.query.DynamicFormRevisionRowQuery)call.getArgument(0)).revisionId()==20L?compact:revision);
+        var command=new EntityFormApi.Bind(target,actor,1L,0,20L,null,Map.of("power","powerSupply"),false,true,
+                List.of(new EntityFormApi.DefinitionSource(10L,Map.of("power","powerSupply","tags","tags"))));
+        var binding=service.bind(command);
+        assertEquals(20L,binding.formRevisionId());assertEquals(Map.of("power","powerSupply"),binding.fieldBindings());
+        assertNotNull(binding.extensionDefinitionRevisionId());
+        assertEquals(definitions,extensions.definition(binding.extensionDefinitionRevisionId(),target.entity(),actor).fields());
+        assertEquals(List.of("A","B"),extensions.save(new EntityExtensionApi.Save(target,actor,1L,0,binding.extensionDefinitionRevisionId(),Map.of("tags",List.of("A","B")))).fields().get("tags"));
+        assertNull(mapper.selectDefinition(binding.extensionDefinitionRevisionId()).getSourceFormRevisionId());
+    }
+    @Test void definitionSourcesCannotBypassPublicationTenantOrProviderAuthorization(){
+        var compact=new DynamicFormTemplateRevisionDO();org.springframework.beans.BeanUtils.copyProperties(revision,compact);
+        compact.setId(20L);compact.setFormRulesJson("[{\"type\":\"input\",\"field\":\"power\"}]");
+        when(revisions.selectByRow(any())).thenAnswer(call->((cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.query.DynamicFormRevisionRowQuery)call.getArgument(0)).revisionId()==20L?compact:revision);
+        var command=new EntityFormApi.Bind(target,actor,1L,0,20L,null,Map.of("power","powerSupply"),false,true,
+                List.of(new EntityFormApi.DefinitionSource(10L,Map.of("tags","tags"))));
+        revision.setStatusCode("DRAFT");assertThrows(RuntimeException.class,()->service.bind(command));
+        revision.setStatusCode("PUBLISHED");revision.setTenantId(2L);assertThrows(RuntimeException.class,()->service.bind(command));
+        revision.setTenantId(1L);
+        doThrow(new IllegalStateException("source scope denied")).when(forms).inspectRevisionForUsage(argThat(query->query.templateRevisionId()==10L));
+        assertThrows(IllegalStateException.class,()->service.bind(command));
+        verify(mapper,never()).insertDefinition(any());verify(mapper,never()).insertBinding(any());
+    }
 }

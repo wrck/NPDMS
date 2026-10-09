@@ -191,4 +191,20 @@ class SiteSurveyInheritedBusinessTest extends SiteSurveySpringPersistenceTest {
         var confirmed=business.confirm(id,deadline.newConcurrencyBasis(),"loc-confirm");
         assertThrows(RuntimeException.class,()->business.updateDeadline(id,confirmed.newConcurrencyBasis(),"locked-deadline",8L,date));
     }
+    @Test void ordinaryPutAndFormSaveApplyStructuredLocationWithoutWeakeningRawLocationGuard() {
+        var created=business.create(business.input(values("put-location")),"put-location-create");long id=created.entityRef().entityId();
+        var locations=ctx.getBean(cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService.class);
+        when(locations.maintain(any(),any(),any(),any(),any(),any())).thenReturn(new cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService.LocationFact(10L,2L,11L,3L,12L,4L,"RESOLVED","{}","{}"));
+        var command=new cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand(20L,null,null,null,"ignored","ignored","ignored","ignored",List.of());
+        var patch=Map.<String,Object>of("name","普通PUT地点","$business",Map.of("location",command,"locationDescription","第一机房"));
+        var saved=business.updateForm(id,patch,created.newConcurrencyBasis(),"put-location-save");
+        assertEquals("RESOLVED",business.get(id).getLocationResolutionStatus());assertEquals("第一机房",business.get(id).getLocation());
+        assertEquals(saved,business.updateForm(id,patch,created.newConcurrencyBasis(),"put-location-save"));
+        verify(locations,times(1)).maintain(any(),any(),any(),any(),any(),any());
+        assertThrows(RuntimeException.class,()->business.updateForm(id,Map.of("location","绕过结构化地点"),saved.newConcurrencyBasis(),"put-raw-location"));
+        var second=business.saveForm(id,Map.of("$business",Map.of("location",command,"locationDescription","第二机房")),saved.newConcurrencyBasis(),"form-location-save");
+        assertEquals("第二机房",business.get(id).getLocation());assertEquals("RESOLVED",business.get(id).getLocationResolutionStatus());
+        assertThrows(RuntimeException.class,()->business.updateForm(id,Map.of("name","必须回滚","$business",Map.of("location",command,"locationDescription","第三机房"),"$extensions",Map.of("expectedVersion",0,"values",Map.of("unknown","invalid"))),second.newConcurrencyBasis(),"put-location-invalid-extension"));
+        assertEquals("普通PUT地点",business.get(id).getName());assertEquals("第二机房",business.get(id).getLocation());
+    }
 }

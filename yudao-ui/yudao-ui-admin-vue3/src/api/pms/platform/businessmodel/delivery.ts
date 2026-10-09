@@ -9,6 +9,7 @@ export interface DeliveryScope {
 export interface DeliveryRecord extends DeliveryScope {
   id: string; title: string; fileName: string; fileReferenceId: string; fileArtifactId: string
   fileVersionNo: number; uploadedAt: string | number; version: number; status: string; ownerModule: string; entityType: string
+  editable?: boolean
 }
 const base = '/api/v1/pms/business-models'
 export const deliveryContext = (owner: string, type: string, entityId: string | number) =>

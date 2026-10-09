@@ -1,0 +1,661 @@
+{
+  "recordedAt": "2026-10-09T09:49:57.901384+08:00",
+  "environment": {
+    "backendPort": 27580,
+    "frontendPort": 27581,
+    "scope": "isolated local acceptance"
+  },
+  "sheet": {
+    "entityRef": {
+      "tenantId": 1,
+      "ownerModule": "IT",
+      "entityType": "defaultSheet",
+      "entityId": 993910090104
+    },
+    "firstCreateInput": {
+      "title": "默认聚合浏览器全链20261009",
+      "confirmed": false,
+      "remark": "主体与明细共同保存",
+      "$extensions": {
+        "expectedVersion": 0,
+        "values": {
+          "extra_note": "切换配置保留扩展",
+          "extra_flag": false,
+          "extra_count": 0,
+          "extra_tags": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      "lines": [
+        {
+          "description": "零数量停用明细",
+          "quantity": "0",
+          "enabled": false
+        },
+        {
+          "description": "第二项启用明细",
+          "quantity": "1.5",
+          "enabled": true
+        }
+      ],
+      "$binding": {
+        "expectedVersion": 0,
+        "formRevisionId": "2108281247526477825",
+        "fieldBindings": {
+          "title": "title",
+          "confirmed": "confirmed",
+          "extra_note": "extra_note"
+        },
+        "bindRemainingFields": true,
+        "definitionSources": [
+          {
+            "formRevisionId": "2108281246788280321",
+            "fieldBindings": {
+              "title": "title",
+              "confirmed": "confirmed",
+              "remark": "remark",
+              "extra_note": "extra_note",
+              "extra_flag": "extra_flag",
+              "extra_count": "extra_count",
+              "extra_tags": "extra_tags"
+            }
+          }
+        ]
+      },
+      "projectId": "992203060012"
+    },
+    "firstCreateOutcome": "SAVED",
+    "savedValuesAfterLayoutReturn": {
+      "projectId": 992203060012,
+      "title": "默认聚合浏览器全链20261009",
+      "confirmed": true,
+      "remark": "主体与明细共同保存",
+      "lines": [
+        {
+          "id": 993910090208,
+          "version": 2,
+          "description": "零数量停用明细",
+          "quantity": 0.0,
+          "enabled": false
+        },
+        {
+          "id": 993910090209,
+          "version": 2,
+          "description": "第二项启用明细",
+          "quantity": 1.5,
+          "enabled": true
+        }
+      ]
+    },
+    "savedExtensions": {
+      "definitionRevisionId": "2108367476158853121",
+      "fields": {
+        "extra_flag": false,
+        "extra_note": "切换配置保留扩展",
+        "extra_tags": [
+          "A",
+          "B"
+        ],
+        "extra_count": 0
+      },
+      "version": 1
+    },
+    "afterSaveFacts": {
+      "BUSINESS_CONDITION_SATISFIED": false,
+      "BUSINESS_RECORD_SAVED": true,
+      "BUSINESS_DELIVERY_OBSERVATION_COMPLETE": true
+    },
+    "confirmedWithoutFile": {
+      "satisfied": false,
+      "task": {
+        "assigneeUserId": null,
+        "businessLevelCode": null,
+        "description": null,
+        "name": "默认实体条件自动完成",
+        "parentTaskId": null,
+        "placeholder": false,
+        "planEndTime": null,
+        "planStartTime": null,
+        "priority": 2,
+        "progress": 0.0,
+        "projectId": 992203060012,
+        "rootTaskId": "2108366389192351745",
+        "sortOrder": 0,
+        "stageCode": "S0",
+        "status": "IN_PROGRESS",
+        "taskCode": "CONFIRM_TASK",
+        "taskId": "2108366389192351745",
+        "treeDepth": 0,
+        "version": 1
+      }
+    },
+    "wrongTypeFile": {
+      "satisfied": false,
+      "task": {
+        "assigneeUserId": null,
+        "businessLevelCode": null,
+        "description": null,
+        "name": "默认实体条件自动完成",
+        "parentTaskId": null,
+        "placeholder": false,
+        "planEndTime": null,
+        "planStartTime": null,
+        "priority": 2,
+        "progress": 0.0,
+        "projectId": 992203060012,
+        "rootTaskId": "2108366389192351745",
+        "sortOrder": 0,
+        "stageCode": "S0",
+        "status": "IN_PROGRESS",
+        "taskCode": "CONFIRM_TASK",
+        "taskId": "2108366389192351745",
+        "treeDepth": 0,
+        "version": 1
+      }
+    },
+    "afterWrongFileDeleted": {
+      "satisfied": false,
+      "facts": {
+        "BUSINESS_CONDITION_SATISFIED": false,
+        "BUSINESS_RECORD_SAVED": true,
+        "BUSINESS_DELIVERY_OBSERVATION_COMPLETE": true
+      }
+    },
+    "requiredFile": {
+      "satisfied": true,
+      "task": {
+        "assigneeUserId": null,
+        "businessLevelCode": null,
+        "description": null,
+        "name": "默认实体条件自动完成",
+        "parentTaskId": null,
+        "placeholder": false,
+        "planEndTime": null,
+        "planStartTime": null,
+        "priority": 2,
+        "progress": 100.0,
+        "projectId": 992203060012,
+        "rootTaskId": "2108366389192351745",
+        "sortOrder": 0,
+        "stageCode": "S0",
+        "status": "DONE",
+        "taskCode": "CONFIRM_TASK",
+        "taskId": "2108366389192351745",
+        "treeDepth": 0,
+        "version": 2
+      },
+      "facts": {
+        "BUSINESS_CONDITION_SATISFIED": true,
+        "BUSINESS_RECORD_SAVED": true,
+        "BUSINESS_DELIVERY_UPLOADED:ATTACHMENT": true,
+        "BUSINESS_DELIVERY_OBSERVATION_COMPLETE": true
+      },
+      "entityFiles": [
+        {
+          "id": "13",
+          "projectId": 992203060012,
+          "businessType": "IT_DEFAULT_SHEET",
+          "businessEntityKey": "993910090104",
+          "deliverableType": "ATTACHMENT",
+          "title": "generic-required.txt",
+          "fileName": "generic-required.txt",
+          "fileReferenceId": "11",
+          "fileArtifactId": "2108368386360569857",
+          "fileVersionNo": 1,
+          "uploadedAt": 1791509169725,
+          "version": 0,
+          "status": "ACTIVE",
+          "ownerModule": "IT",
+          "entityType": "defaultSheet",
+          "materialKind": "FILE",
+          "sourceKind": "UPLOAD",
+          "editable": true
+        }
+      ],
+      "projectFiles": [
+        {
+          "id": "13",
+          "projectId": 992203060012,
+          "businessType": "IT_DEFAULT_SHEET",
+          "businessEntityKey": "993910090104",
+          "deliverableType": "ATTACHMENT",
+          "title": "generic-required.txt",
+          "fileName": "generic-required.txt",
+          "fileReferenceId": "11",
+          "fileArtifactId": "2108368386360569857",
+          "fileVersionNo": 1,
+          "uploadedAt": 1791509169725,
+          "version": 0,
+          "status": "ACTIVE",
+          "ownerModule": "IT",
+          "entityType": "defaultSheet",
+          "materialKind": "FILE",
+          "sourceKind": "UPLOAD",
+          "editable": true
+        }
+      ]
+    }
+  },
+  "memo": {
+    "current": {
+      "ref": {
+        "tenantId": 1,
+        "ownerModule": "IT",
+        "entityType": "defaultMemo",
+        "entityId": 993910090301
+      },
+      "revisionId": null,
+      "fieldValues": {
+        "projectId": 992203060012,
+        "title": "第二薄实体浏览器版本全链20261009",
+        "content": "V2 独立修订正文20261009",
+        "enabled": true
+      },
+      "concurrencyBasis": 2,
+      "available": true,
+      "unavailableReason": null
+    },
+    "revisions": [
+      {
+        "ref": {
+          "entity": {
+            "tenantId": 1,
+            "ownerModule": "IT",
+            "entityType": "defaultMemo",
+            "entityId": 993910090301
+          },
+          "revisionId": 993910090404
+        },
+        "revisionNo": 2,
+        "sourceRevisionId": 993910090403,
+        "baseEffectiveRevisionId": 993910090403,
+        "baseEntityVersion": 1,
+        "state": "FROZEN",
+        "effective": true,
+        "version": 3,
+        "reason": "V2 从冻结 V1 复制",
+        "frozenBy": 1,
+        "frozenAt": 1791509405000
+      },
+      {
+        "ref": {
+          "entity": {
+            "tenantId": 1,
+            "ownerModule": "IT",
+            "entityType": "defaultMemo",
+            "entityId": 993910090301
+          },
+          "revisionId": 993910090403
+        },
+        "revisionNo": 1,
+        "sourceRevisionId": null,
+        "baseEffectiveRevisionId": null,
+        "baseEntityVersion": 0,
+        "state": "FROZEN",
+        "effective": false,
+        "version": 4,
+        "reason": "V1 默认版本浏览器验收",
+        "frozenBy": 1,
+        "frozenAt": 1791509319000
+      }
+    ],
+    "v1": {
+      "projectId": {
+        "readable": true,
+        "value": 992203060012
+      },
+      "title": {
+        "readable": true,
+        "value": "第二薄实体浏览器版本全链20261009"
+      },
+      "content": {
+        "readable": true,
+        "value": "V1 冻结正文20261009"
+      },
+      "enabled": {
+        "readable": true,
+        "value": false
+      }
+    }
+  },
+  "independentCrudAfterDelete": {
+    "list": [],
+    "total": 0
+  },
+  "namedConfiguration": {
+    "version": 2,
+    "fields": [
+      {
+        "code": "projectId",
+        "label": "项目",
+        "displayOrder": 0,
+        "listVisible": true,
+        "searchable": true,
+        "sortable": true,
+        "formVisible": true,
+        "tabVisible": true
+      },
+      {
+        "code": "title",
+        "label": "名称",
+        "displayOrder": 0,
+        "listVisible": true,
+        "searchable": true,
+        "sortable": true,
+        "formVisible": true,
+        "tabVisible": true
+      },
+      {
+        "code": "confirmed",
+        "label": "已确认",
+        "displayOrder": 0,
+        "listVisible": true,
+        "searchable": true,
+        "sortable": true,
+        "formVisible": true,
+        "tabVisible": true
+      },
+      {
+        "code": "remark",
+        "label": "说明",
+        "displayOrder": 0,
+        "listVisible": true,
+        "searchable": true,
+        "sortable": true,
+        "formVisible": true,
+        "tabVisible": true
+      },
+      {
+        "code": "lines",
+        "label": "所属明细",
+        "displayOrder": 0,
+        "listVisible": true,
+        "searchable": false,
+        "sortable": false,
+        "formVisible": true,
+        "tabVisible": true
+      }
+    ],
+    "profiles": [
+      {
+        "key": "full",
+        "name": "完整工作配置",
+        "fields": [
+          {
+            "code": "projectId",
+            "label": "项目",
+            "displayOrder": 0,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "title",
+            "label": "名称",
+            "displayOrder": 1,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "confirmed",
+            "label": "已确认",
+            "displayOrder": 2,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "remark",
+            "label": "说明",
+            "displayOrder": 3,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "lines",
+            "label": "所属明细",
+            "displayOrder": 4,
+            "listVisible": false,
+            "searchable": false,
+            "sortable": false,
+            "formVisible": true,
+            "tabVisible": true
+          }
+        ],
+        "formRevisionId": "2108281246788280321"
+      },
+      {
+        "key": "compact",
+        "name": "简洁工作配置",
+        "fields": [
+          {
+            "code": "projectId",
+            "label": "项目",
+            "displayOrder": 0,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "title",
+            "label": "名称",
+            "displayOrder": 1,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "confirmed",
+            "label": "已确认",
+            "displayOrder": 2,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "remark",
+            "label": "说明",
+            "displayOrder": 3,
+            "listVisible": false,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": false,
+            "tabVisible": true
+          },
+          {
+            "code": "lines",
+            "label": "所属明细",
+            "displayOrder": 4,
+            "listVisible": false,
+            "searchable": false,
+            "sortable": false,
+            "formVisible": false,
+            "tabVisible": false
+          }
+        ],
+        "formRevisionId": "2108281247526477825"
+      },
+      {
+        "key": "view_1062daa25e44471a8dc91e3179aafd45",
+        "name": "浏览器复制验收配置20261009",
+        "fields": [
+          {
+            "code": "projectId",
+            "label": "项目",
+            "displayOrder": 0,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "title",
+            "label": "名称",
+            "displayOrder": 1,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "confirmed",
+            "label": "已确认",
+            "displayOrder": 2,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "remark",
+            "label": "说明",
+            "displayOrder": 3,
+            "listVisible": true,
+            "searchable": true,
+            "sortable": true,
+            "formVisible": true,
+            "tabVisible": true
+          },
+          {
+            "code": "lines",
+            "label": "所属明细",
+            "displayOrder": 4,
+            "listVisible": false,
+            "searchable": false,
+            "sortable": false,
+            "formVisible": true,
+            "tabVisible": true
+          }
+        ],
+        "formRevisionId": "2108281246788280321"
+      }
+    ],
+    "defaultProfile": "full"
+  },
+  "surveyAutomaticCompletion": {
+    "task": {
+      "assigneeUserId": null,
+      "businessLevelCode": null,
+      "description": null,
+      "name": "已确认保存条件",
+      "parentTaskId": null,
+      "placeholder": false,
+      "planEndTime": null,
+      "planStartTime": null,
+      "priority": 2,
+      "progress": 100.0,
+      "projectId": 992203060011,
+      "rootTaskId": "2108252787332546561",
+      "sortOrder": 0,
+      "stageCode": "S0",
+      "status": "DONE",
+      "taskCode": "CONFIRM_TASK",
+      "taskId": "2108252787332546561",
+      "treeDepth": 0,
+      "version": 2
+    },
+    "facts": {
+      "SURVEY_ARCHIVED": false,
+      "SURVEY_CONFIRMED": true,
+      "BUSINESS_DELIVERY_UPLOADED:ATTACHMENT": true,
+      "BUSINESS_DELIVERY_OBSERVATION_COMPLETE": true
+    },
+    "entityFiles": {
+      "list": [
+        {
+          "id": "11",
+          "projectId": 992203060011,
+          "businessType": "SOL_SITE_SURVEY",
+          "businessEntityKey": "2108252792462180354",
+          "deliverableType": "ATTACHMENT",
+          "title": "survey-required-evidence.txt",
+          "fileName": "survey-required-evidence.txt",
+          "fileReferenceId": "9",
+          "fileArtifactId": "2108293984667230209",
+          "fileVersionNo": 1,
+          "uploadedAt": 1791491431025,
+          "version": 0,
+          "status": "ACTIVE",
+          "ownerModule": "SOL",
+          "entityType": "siteSurvey",
+          "materialKind": "FILE",
+          "sourceKind": "UPLOAD",
+          "editable": true
+        }
+      ],
+      "total": 1
+    },
+    "projectFiles": {
+      "list": [
+        {
+          "id": "11",
+          "projectId": 992203060011,
+          "businessType": "SOL_SITE_SURVEY",
+          "businessEntityKey": "2108252792462180354",
+          "deliverableType": "ATTACHMENT",
+          "title": "survey-required-evidence.txt",
+          "fileName": "survey-required-evidence.txt",
+          "fileReferenceId": "9",
+          "fileArtifactId": "2108293984667230209",
+          "fileVersionNo": 1,
+          "uploadedAt": 1791491431025,
+          "version": 0,
+          "status": "ACTIVE",
+          "ownerModule": "SOL",
+          "entityType": "siteSurvey",
+          "materialKind": "FILE",
+          "sourceKind": "UPLOAD",
+          "editable": true
+        }
+      ],
+      "total": 1
+    }
+  },
+  "requirementReadonlyRecheck": {
+    "historyV1": {
+      "attachments": [
+        "附件\n交付件\n查看上传历史（只读）\n交付件类型\n已有最新有效上传\n交付件类型\n\t\n标题\n\t\n文件\n\t\n状态\n\t\n上传时间\nPROJECT_BACKGROUND__ATTACHMENTS\n\t\nrequirement-background-evidence.txt\n\t\nrequirement-background-evidence.txt\n\t\nACTIVE\n\t\n1791489142803\n刷新交付件"
+      ],
+      "background": "默认链验收：需求分析第1项正文 20261009",
+      "editableEditors": 0,
+      "fileInputs": 0,
+      "readonlyEditors": 11
+    },
+    "errors": [],
+    "currentV2": {
+      "background": "V2 独立修改：历史 V1 应保持原正文",
+      "editableEditors": 0,
+      "fileInputs": 0,
+      "readonlyEditors": 11
+    },
+    "attachmentLayout": {
+      "attachmentText": "附件\n交付件\n查看上传历史（只读）\n交付件类型\n已有最新有效上传\n交付件类型\n\t\n标题\n\t\n文件\n\t\n状态\n\t\n上传时间\nPROJECT_BACKGROUND__ATTACHMENTS\n\t\nrequirement-background-evidence.txt\n\t\nrequirement-background-evidence.txt\n\t\nACTIVE\n\t\n1791489142803\n刷新交付件",
+      "background": "默认链验收：需求分析第1项正文 20261009",
+      "editableEditors": 0,
+      "fileInputs": 0,
+      "parentWidth": 1258,
+      "width": 1258
+    }
+  }
+}

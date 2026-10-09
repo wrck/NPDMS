@@ -1,15 +1,18 @@
 <template>
   <component :is="dialogEditor ? 'div' : ContentWrap">
-    <el-alert v-if="error" :title="error" type="error" :closable="false" />
+    <el-alert v-if="error" :title="error" type="error" :closable="false"><el-button v-if="configurationFailed" :disabled="loading" @click="loadContext">重新读取配置</el-button></el-alert>
     <el-alert v-if="pending" title="有一次业务操作结果尚未确认" type="warning" :closable="false">
       <el-button :loading="executing" @click="recoverOperation">查询操作回执</el-button>
     </el-alert>
     <el-alert v-if="receipt" :title="`操作结果：${receipt.outcome}`" :type="receipt.outcome === 'FAILED' ? 'error' : 'success'" :closable="false" />
     <h3 v-if="!dialogEditor">{{ title || model?.title || '业务办理' }}</h3>
-    <ProjectBusinessFieldConfiguration v-if="!editing && !dialogEditor" ref="fieldConfiguration" :api="api" :disabled="readonly || !configurationOperation?.executable || executing" @changed="state.load" />
-    <slot v-if="!editing || dialogEditor" name="list" :rows="scopedRows" :total="initialEntityId ? scopedRows.length : total"
+    <div v-if="!editing" class="business-actions">
+      <el-select v-if="profiles.length" aria-label="展示配置" :model-value="selectedProfile" :disabled="busy" @change="selectProfile"><el-option value="" label="基础配置"/><el-option v-for="profile in profiles" :key="profile.key" :label="profile.name" :value="profile.key"/></el-select>
+      <ProjectBusinessFieldConfiguration v-if="!dialogEditor" ref="fieldConfiguration" :api="api" :project-id="scopeProjectId" :disabled="readonly || !configurationOperation?.executable || executing" @changed="reloadConfiguration" />
+    </div>
+    <slot v-if="!editing || dialogEditor || workspace" name="list" :rows="scopedRows" :current="current" :total="restrictListToInitial ? scopedRows.length : total"
       :loading="loading" :page="state.page.value" :search="(filters:any[])=>loadPage(true,filters)" :reload="()=>loadPage(true)"
-      :changePage="(page:number)=>loadPage(true,undefined,undefined,page)" :create="create" :open="edit" :actionsFor="actionsForRow" :action="rowAction">
+      :changePage="(page:number)=>loadPage(true,undefined,undefined,page)" :create="create" :open="edit" :actionsFor="actionsForRow" :action="rowAction" :execute="runAction" :busy="busy">
       <BusinessEntityList :rows="scopedRows" :readable-fields="readableFields" :create-operation="createOperation"
         :enable-sorting="true" @sort="sorts => loadPage(true, undefined, sorts)" :list-loading="loading" :slice-complete="rows.length >= total" @reload="loadPage(true)" @search="filters => loadPage(true, filters)"
         @load-more="loadPage(false)" @create="create" @open="row => edit(row.ref.entityId)" />
@@ -18,24 +21,28 @@
       v-bind="dialogEditor ? {modelValue:editing,title:contentReadonly ? `${title}详情` : current ? `编辑${title}` : `新增${title}`,width:'min(960px, 95vw)','before-close':closeEditor} : {}"
       @update:model-value="value=>{if(!value)editing=false}">
       <el-alert v-if="dialogEditor && contentReadonly" title="当前业务内容只读，已确认、驳回和归档内容不会被编辑覆盖。" type="info" :closable="false" />
-      <component :is="formComponent || ProjectBusinessContentForm" ref="form" v-bind="formComponent ? {api,current,scopeProjectId,execute:runAction} : {}" @action="(kind:string,sn?:string)=>emit('form-action',kind,sn)" :writable-fields="writableFields" :initial-values="current?.fieldValues || scopedInitial"
-        :fields="model?.fields" :appearance="formAppearance" :presentation="presentation" :disabled="busy || !saveOperation?.executable || contentReadonly || !!current && versioned || current?.available === false" />
+      <slot name="editor-heading" :current="current" :readonly="contentReadonly" />
+      <ProjectBusinessForm ref="form" :api="api" :current="current" :scope-project-id="scopeProjectId" :preferred-form-revision-id="profiles.find(profile=>profile.key===selectedProfile)?.formRevisionId" :form-component="formComponent" @action="(kind:string,sn?:string)=>emit('form-action',kind,sn)" :writable-fields="writableFields" :initial-values="current?.fieldValues || scopedInitial"
+        :fields="model?.fields" :appearance="formAppearance" :presentation="presentation" :readonly="contentReadonly || !!current && versioned" :disabled="executing || confirming || formLoading || !saveOperation?.executable || contentReadonly || !!current && versioned || current?.available === false" />
       <slot name="business-fields" :current="current" :execute="runAction" :busy="busy" :actions="businessActions" />
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget || dialogEditor">
       <div v-if="!dialogEditor" class="business-actions">
-        <el-button type="primary" :loading="executing" :disabled="busy || readonly || !!current && versioned || !saveOperation?.executable || current?.available === false" @click="save">保存</el-button>
-        <el-button v-if="current && deleteOperation" type="danger" :disabled="busy || readonly || !deleteOperation.executable" @click="remove">删除</el-button>
+        <el-button v-if="!contentReadonly" type="primary" :loading="executing" :disabled="busy || readonly || !!current && versioned || !saveOperation?.executable || current?.available === false" @click="save">{{saveLabel || '保存'}}</el-button>
+        <el-button v-if="current && deleteOperation && !contentReadonly" type="danger" :disabled="busy || readonly || !deleteOperation.executable" @click="remove">{{deleteOperation.name || '删除'}}</el-button>
         <slot name="actions" :current="current" :api="api" :reload="reloadCurrent" :busy="busy" :execute="runAction">
           <template v-if="current"><el-button v-for="action in businessActions.filter(action=>!hiddenActions.includes(action.code) && !action.code.startsWith('revision-'))" :key="action.code" :disabled="busy || readonly || !action.executable" @click="runAction(action.code)">{{ action.name }}</el-button></template>
         </slot>
         <el-button v-if="current" :disabled="busy" @click="reloadCurrent">重新读取</el-button>
         <el-button v-if="!initialEntityId" :disabled="busy" @click="back">返回列表</el-button>
       </div>
-      <el-descriptions v-if="!dialogEditor && current && readonlyFields.length" title="只读信息" :column="2" border>
+      </Teleport>
+      <el-descriptions v-if="!dialogEditor && !workspace && current && readonlyFields.length" title="只读信息" :column="2" border>
         <el-descriptions-item v-for="field in readonlyFields" :key="field.code" :label="field.name">{{ current.fieldValues[field.code] ?? '-' }}</el-descriptions-item>
       </el-descriptions>
       <ProjectBusinessHistory v-if="current && versioned" ref="history" :api="api" :current="current" :fields="model?.fields || []" :actions="businessActions" :busy="executing || confirming" :readonly="readonly" :execute="runAction" />
       <ProjectBusinessDeliveries v-if="current" ref="deliveries" :key="String(current.ref.entityId)" :api="api" :entity-id="current.ref.entityId"
-        :readonly="deliveryReadonly" :deliverable-type="deliverableType" />
+        :readonly="deliveryReadonly" :deliverable-type="deliverableType" @changed="completion?.refresh()" />
+      <ProjectBusinessCompletion v-if="current" ref="completion" :api="api" :entity-id="current.ref.entityId" :version="current.concurrencyBasis" />
       <slot name="details" :current="current" :api="api" />
       <template v-if="dialogEditor" #footer>
         <el-button :disabled="busy" @click="closeEditor(()=>editing=false)">{{contentReadonly ? '关闭' : '取消'}}</el-button>
@@ -52,22 +59,28 @@ const DialogEditor=defineAsyncComponent(()=>import('@/components/Dialog/src/Dial
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import type { BusinessEntityData, BusinessEntityFormData, OperationVO } from '@/api/pms/platform/businessmodel'
-import { createProjectBusinessApi, type BusinessId } from '@/api/pms/platform/business'
+import { createProjectBusinessApi, type BusinessId,type BusinessNamedConfiguration } from '@/api/pms/platform/business'
 import BusinessEntityList from '../BusinessEntity/BusinessEntityList.vue'
-import ProjectBusinessContentForm from './ProjectBusinessContentForm.vue'
+import ProjectBusinessForm from './ProjectBusinessForm.vue'
 import ProjectBusinessHistory from './ProjectBusinessHistory.vue'
 import ProjectBusinessFieldConfiguration from './ProjectBusinessFieldConfiguration.vue'
 import ProjectBusinessDeliveries from './ProjectBusinessDeliveries.vue'
+import ProjectBusinessCompletion from './ProjectBusinessCompletion.vue'
+import {useBusinessActionBar} from '@/components/BusinessView/businessActionBar'
 import { useProjectBusiness } from './useProjectBusiness'
-const props = withDefaults(defineProps<{ apiBase: string; title?: string; dialogEditor?: boolean; formComponent?: Component; formAppearance?: BusinessFormAppearance; initialValues?: Record<string,unknown>; prepareCreate?:()=>Promise<Record<string,unknown>>; readonly?: boolean; initialEntityId?: BusinessId; scopeProjectId?: BusinessId; allowedActions?: string[]; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
+const props = withDefaults(defineProps<{ apiBase: string; title?: string; workspace?:boolean;saveLabel?:string;selectInitial?:(rows:BusinessEntityData[])=>BusinessId|undefined; dialogEditor?: boolean; formComponent?: Component; formAppearance?: BusinessFormAppearance; initialValues?: Record<string,unknown>; prepareCreate?:()=>Promise<Record<string,unknown>>; readonly?: boolean; initialEntityId?: BusinessId; scopeProjectId?: BusinessId; allowedActions?: string[]; deliverableType?: string; hiddenActions?: string[]; operationAllowed?: (code:string,current?:BusinessEntityData)=>boolean }>(), { deliverableType: 'ATTACHMENT', hiddenActions:()=>[] })
+const {barTarget}=useBusinessActionBar(),completion=ref<InstanceType<typeof ProjectBusinessCompletion>>()
 const emit=defineEmits<{'form-action':[kind:string,sn?:string]}>()
 const api = computed(() => createProjectBusinessApi(props.apiBase)), message = useMessage()
-const state = useProjectBusiness(() => api.value, () => props.scopeProjectId)
+const profiles=ref<BusinessNamedConfiguration[]>([]),selectedProfile=ref<string>()
+const state = useProjectBusiness(() => api.value, () => props.scopeProjectId,()=>selectedProfile.value)
 const { model, current, rows, total, error, loading, executing, receipt, pending, readableFields, writableFields: allWritableFields, loadPage } = state
 const writableFields=computed(()=>allWritableFields.value.filter(field=>props.scopeProjectId==null || field.code!=='projectId'))
 const createInitial=ref<Record<string,unknown>>()
 const scopedInitial=computed(()=>({...props.initialValues,...createInitial.value,...(props.scopeProjectId==null?{}:{projectId:props.scopeProjectId})}))
-const scopedRows=computed(()=>props.initialEntityId==null?rows.value:current.value && String(current.value.ref.entityId)===String(props.initialEntityId)?[current.value]:rows.value.filter(row=>String(row.ref.entityId)===String(props.initialEntityId)))
+// A dialog edits one row of the project list; its initial task link is not a list filter.
+const restrictListToInitial=computed(()=>props.initialEntityId!=null && !props.dialogEditor && !props.workspace)
+const scopedRows=computed(()=>!restrictListToInitial.value?rows.value:current.value && String(current.value.ref.entityId)===String(props.initialEntityId)?[current.value]:rows.value.filter(row=>String(row.ref.entityId)===String(props.initialEntityId)))
 const viewOnly=ref(false),contentReadonly=computed(()=>props.readonly || viewOnly.value || !!current.value && !updateOperation.value?.executable)
 const editing = ref(false), confirming = ref(false), formLoading=ref(false), rowActionLoading=ref(false)
 const presentation=ref<BusinessEntityFormData>(), history=ref<InstanceType<typeof ProjectBusinessHistory>>()
@@ -101,11 +114,25 @@ const businessActions = computed(()=>model.value?.operations.filter(action=>acti
 const saveOperation = computed(() => current.value ? updateOperation.value : createOperation.value)
 const readonlyFields = computed(() => readableFields.value.filter(field => !field.writable))
 let contextGeneration=0
-watch(() => [props.apiBase,props.scopeProjectId,props.initialEntityId], async () => {
+const configurationFailed=ref(false)
+const loadConfiguration=async(active:number)=>{
+  const configuration=await api.value.fieldConfiguration()
+  if(active!==contextGeneration)return
+  profiles.value=configuration.profiles||[];selectedProfile.value=configuration.defaultProfile
+}
+const reloadConfiguration=async()=>{await loadConfiguration(contextGeneration);await state.load()}
+const selectProfile=async(key:string)=>{if(busy.value)return;selectedProfile.value=key;await state.load()}
+const loadContext=async () => {
   const active=++contextGeneration,id=props.initialEntityId
-  editing.value=false;viewOnly.value=false;createInitial.value=undefined;await state.load()
-  if(active===contextGeneration && id!=null && await state.open(id) && active===contextGeneration)editing.value=!props.dialogEditor
-}, { immediate:true })
+  configurationFailed.value=false
+  editing.value=false;viewOnly.value=false;createInitial.value=undefined;profiles.value=[];selectedProfile.value=undefined
+  try{await loadConfiguration(active)}catch{if(active===contextGeneration){error.value='展示配置读取失败，请重新读取';configurationFailed.value=true}return}
+  if(active!==contextGeneration)return
+  await state.load()
+  const selected=id??props.selectInitial?.(rows.value)
+  if(active===contextGeneration && selected!=null && await state.open(selected) && active===contextGeneration)editing.value=!props.dialogEditor
+}
+watch(() => [props.apiBase,props.scopeProjectId,props.initialEntityId],loadContext,{immediate:true})
 const create = async () => {
   if (busy.value || props.readonly || !createOperation.value?.executable) return
   const active=contextGeneration;confirming.value=true
@@ -116,7 +143,7 @@ const create = async () => {
   }catch(failure){error.value=failure instanceof Error?failure.message:'新建业务默认值读取失败'}
   finally{confirming.value=false}
 }
-const edit = async (id: BusinessId,readOnly=false) => { if (!busy.value && await state.open(id)){viewOnly.value=readOnly;editing.value=true} }
+const edit = async (id: BusinessId,readOnly=false) => { if(busy.value || editing.value && !await requestLeave())return;if(await state.open(id)){viewOnly.value=readOnly;editing.value=true} }
 const actionsForRow=(row?:BusinessEntityData)=>(model.value?.operations||[]).map(action=>{const value=effective(action,row)!;return {...value,executable:!props.readonly && value.executable}})
 // List actions require a fresh authorized row, not its asynchronous form presentation.
 const confirmAndExecute=async(code:string,selected:BusinessEntityData,values:Record<string,unknown>={})=>{
@@ -152,7 +179,7 @@ const save = async () => {
     if(result && result.outcome!=='FAILED')editing.value=true
     return result
   }
-  catch { /* Field controls retain their validation messages. */ }
+  catch(failure) { error.value=failure instanceof Error ? failure.message : '表单校验未通过，请检查字段内容' }
 }
 const runAction = async (code:string,values:Record<string,unknown> = {}) => {
   const blocked=code.startsWith('revision-') ? executing.value || confirming.value || formLoading.value || !!deliveries.value?.isBusy() : busy.value
@@ -177,6 +204,6 @@ const requestLeave = async () => {
   try{await message.confirm('当前业务内容尚未保存，确定离开？');return true}catch{return false}finally{confirming.value=false}
 }
 onBeforeRouteLeave(requestLeave);onBeforeRouteUpdate(requestLeave)
-defineExpose({ requestLeave, reload:state.load, save, current:()=>current.value })
+defineExpose({ requestLeave, reload:state.load, save, open:edit,current:()=>current.value })
 </script>
 <style scoped>.business-actions{display:flex;gap:8px;margin:12px 0}</style>

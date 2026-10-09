@@ -104,6 +104,19 @@ class DirectVersionedBusinessTest extends SiteSurveySpringPersistenceTest {
         assertEquals(0L,versionDeliveries.list(20L,"REPORT","IT_VERSION_NOTE","1",1,20).getTotal());
         assertFalse(versionDeliveries.completion(new DefaultBusinessDeliveryApi.Scope(20L,"IT_VERSION_NOTE","1","REPORT")).completed());
     }
+    @Test void namedConfigurationsShareFieldPermissionsAndLegacySavesPreserveProfiles(){
+        installFieldConfiguration();
+        var field=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("title","简洁标题",1,true,false,false,false,false);
+        var profile=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named("compact","简洁配置",List.of(field),null);
+        notes.saveFieldConfiguration(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of(),List.of(profile),"compact"));
+        var selected=notes.model().fields().stream().filter(item->item.code().equals("title")).findFirst().orElseThrow();
+        assertEquals("简洁标题",selected.name());assertFalse(selected.formVisible());assertTrue(selected.writable());
+        assertEquals("标题",notes.model("").fields().stream().filter(item->item.code().equals("title")).findFirst().orElseThrow().name());
+        assertThrows(RuntimeException.class,()->notes.model("missing"));
+        notes.saveFieldConfiguration(1,List.of());assertEquals(List.of(profile),notes.fieldConfiguration().profiles());
+        assertThrows(RuntimeException.class,()->notes.saveFieldConfiguration(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(2,List.of(),List.of(profile),"missing")));
+        assertEquals(2,notes.fieldConfiguration().version());
+    }
     @Test void inheritedListSortUsesRealSqlAndStablePages(){
         notes.create(notes.input(Map.of("projectId",20,"title","Zulu")),"sort-z");
         notes.create(notes.input(Map.of("projectId",20,"title","Alpha")),"sort-a");

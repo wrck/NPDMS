@@ -6,7 +6,7 @@
       <SurveyBusinessList :rows="list.rows" :total="list.total" :page="list.page" :loading="list.loading" :project-id="scopeProjectId" :actions-for="list.actionsFor"
         @search="list.search" @create="list.create" @open="list.open" @action="list.action" @change-page="list.changePage" />
     </template>
-    <template #business-fields="{current,execute,busy,actions}"><SurveyBusinessFields v-if="actions.some(action=>['location','deadline'].includes(action.code) && action.executable)" :show-deadline="scopeProjectId==null" :current="current" :execute="execute" :busy="busy" :actions="actions" /></template>
+    <template v-if="scopeProjectId==null" #business-fields="{current,execute,busy,actions}"><SurveyBusinessFields v-if="actions.some(action=>['location','deadline'].includes(action.code) && action.executable)" :current="current" :execute="execute" :busy="busy" :actions="actions" /></template>
   </ProjectBusinessPage>
 </template>
 <script setup lang="ts">

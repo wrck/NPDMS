@@ -46,6 +46,19 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
     @Override protected boolean runtimeHandlingCompleted(RequirementAnalysisRevisionDO row){return Boolean.TRUE.equals(runtimeFacts(row).get("REQUIREMENT_ANALYSIS_COMPLETED"));}
     @Override protected java.time.LocalDateTime runtimeFormedAt(RequirementAnalysisRevisionDO row){return row.getFrozenAt();}
     @Override protected EntityDataRef formTarget(RequirementAnalysisRevisionDO row){return EntityDataRef.revision(row.revisionRef());}
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.infra.api.config.ConfigApi> presentationConfig;
+    @Override protected String formConfigurationCategory(){return "REQUIREMENT_ANALYSIS";}
+    @Override protected cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey formConfigurationProvider(){return new cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey("SOL","REQUIREMENT_ANALYSIS");}
+    @Override protected Map<String,String> formConfigurationBindings(cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact schema){
+        var bindings=new LinkedHashMap<String,String>();
+        schema.fields().stream().filter(field->!field.controlledFile()).forEach(field->{var property=RequirementAnalysisFields.property(field.fieldKey());bindings.put(field.fieldKey(),property==null?field.fieldKey():property);});return bindings;
+    }
+    @Override protected BusinessFormData defaultForm(Long projectId){
+        var configs=presentationConfig.getIfAvailable();String configured=configs==null?null:configs.getConfigValueByKey("pms.requirement-analysis.form-template-id."+actor().tenantId());
+        var preferred=configured==null?Optional.<BusinessFormOption>empty():formOptions(projectId).stream().filter(option->configured.equals(String.valueOf(option.layout().templateId()))).findFirst();
+        return preferred.map(option->new BusinessFormData(option.layout(),new EntityExtensionApi.Values(null,Map.of(),0),List.of())).orElseGet(()->super.defaultForm(projectId));
+    }
+    @Override protected Map<String,Object> formContext(RequirementAnalysisRevisionDO row){return Map.of("attachments",files.inspect(row.revisionRef(),actor()));}
     @Override protected void afterChange(String operation,RequirementAnalysisRevisionDO before,RequirementAnalysisRevisionDO row){if("save-form".equals(operation))afterUpdate(before,row);}
     @Override protected Long generatedId(){return IdWorker.getId();}
     @Override protected long initialVersion(){return 1L;}
@@ -85,9 +98,11 @@ public class RequirementRevisionBusinessService extends DefaultProjectBusinessSe
         draft(before);if(!Objects.equals(before.getProjectId(),row.getProjectId()))throw exception(REQUIREMENT_STATUS_INVALID);
     }
     @Override protected void beforeDelete(RequirementAnalysisRevisionDO row){draft(row);}
-    @Override protected void afterCreate(RequirementAnalysisRevisionDO row) {
-        var actor=actor();ProjectOwnerOperationScope.registerCreated(actor.tenantId(),actor.userId(),row.getProjectId(),"SOL","REQUIREMENT_ANALYSIS","SOL.REQUIREMENT_ANALYSIS.CREATE",1,null,row.getId().toString());changed(row);
+    @Override protected void afterBodyPersisted(String operation,RequirementAnalysisRevisionDO before,RequirementAnalysisRevisionDO row) {
+        if(before!=null)return;
+        var actor=actor();ProjectOwnerOperationScope.registerCreated(actor.tenantId(),actor.userId(),row.getProjectId(),"SOL","REQUIREMENT_ANALYSIS","SOL.REQUIREMENT_ANALYSIS.CREATE",1,null,row.getId().toString());
     }
+    @Override protected void afterCreate(RequirementAnalysisRevisionDO row){changed(row);}
     @Override protected void afterUpdate(RequirementAnalysisRevisionDO before,RequirementAnalysisRevisionDO row){files.registerSaved(row.revisionRef(),actor());changed(row);}
     @Override protected void afterDelete(RequirementAnalysisRevisionDO row){changed(row);}
     @Override protected boolean publishDefaultEvent(String operation){return !Set.of("complete","copy").contains(operation);}

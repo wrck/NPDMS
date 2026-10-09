@@ -82,10 +82,16 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     }
     @Override protected void beforeFormWrite(SiteSurveyEntityDO before,SiteSurveyEntityDO row,Map<String,Object> business){
         if(business.isEmpty())return;
-        if(!Set.of("requiredEndDate","projectVersion").containsAll(business.keySet())
-                || !business.containsKey("requiredEndDate") || !business.containsKey("projectVersion"))
+        if(!Set.of("requiredEndDate","projectVersion","location","locationDescription").containsAll(business.keySet())
+                || business.containsKey("requiredEndDate")!=business.containsKey("projectVersion")
+                || business.containsKey("location")!=business.containsKey("locationDescription"))
             throw new BusinessContractException("FIELD_NOT_OPEN","Unsupported survey form command");
         if(before!=null)requireState(before,0);
+        if(business.containsKey("location")){
+            var command=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(business.get("location")),cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand.class);
+            applyLocation(row,Objects.toString(business.get("locationDescription"),""),command);
+        }
+        if(!business.containsKey("requiredEndDate"))return;
         final java.time.LocalDate date;final Long version;
         try{date=java.time.LocalDate.parse(Objects.toString(business.get("requiredEndDate"),""));version=Long.valueOf(Objects.toString(business.get("projectVersion"),""));}
         catch(RuntimeException invalid){throw exception(SITE_SURVEY_FORM_INVALID);}
@@ -114,14 +120,17 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
         if(!failures.isEmpty())throw exception(SITE_SURVEY_FORM_INVALID);
         requireLocation(row);forms.validateInheritedSave(row,"create".equals(operation));
     }
-    @Override protected void afterCreate(SiteSurveyEntityDO row) {
+    @Override protected void afterBodyPersisted(String operation,SiteSurveyEntityDO before,SiteSurveyEntityDO row) {
+        if(before==null){
         var actor=actor();ProjectOwnerOperationScope.registerCreated(actor.tenantId(),actor.userId(),row.getProjectId(),"SOL","SITE_SURVEY","SOL.SITE_SURVEY.CREATE",1,null,row.getId().toString());
-        details.save(row,actor.userId());changed(row);
+        }
+        if(Set.of("create","save","save-form").contains(operation))details.save(row,actor().userId());
     }
-    @Override protected void afterUpdate(SiteSurveyEntityDO before,SiteSurveyEntityDO row){details.save(row,actor().userId());changed(row);}
+    @Override protected void afterCreate(SiteSurveyEntityDO row){changed(row);}
+    @Override protected void afterUpdate(SiteSurveyEntityDO before,SiteSurveyEntityDO row){changed(row);}
     @Override protected void beforeDelete(SiteSurveyEntityDO row){requireState(row,0);if(row.getOutsourceRequestId()!=null)throw exception(SITE_SURVEY_OUTSOURCE_DELETE_BLOCKED);}
     @Override protected void afterDelete(SiteSurveyEntityDO row){changed(row);}
-    @Override protected void afterChange(String operation,SiteSurveyEntityDO before,SiteSurveyEntityDO row){if("save-form".equals(operation))details.save(row,actor().userId());changed(row);}
+    @Override protected void afterChange(String operation,SiteSurveyEntityDO before,SiteSurveyEntityDO row){changed(row);}
     @Override protected void validateDelivery(SiteSurveyEntityDO row,boolean write){if(write && !Objects.equals(row.getStatus(),0) && !Objects.equals(row.getStatus(),1))throw exception(SITE_SURVEY_STATUS_INVALID);}
     public BusinessOperationReceipt confirm(Long id,Long version,String key){return change("confirm",id,version,key,Map.of(),row->{requireState(row,0);forms.validate(row,false);row.setStatus(1);row.setConfirmedAt(LocalDateTime.now());});}
     public BusinessOperationReceipt reject(Long id,Long version,String key){return change("reject",id,version,key,Map.of(),row->{requireState(row,0);row.setStatus(2);});}
@@ -130,14 +139,17 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
             cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand command){
         if(command==null || description==null || description.isBlank())throw exception(SITE_SURVEY_LOCATION_REQUIRED);
         return change("location",id,version,key,Map.of("description",description,"location",command),row->{
-            requireState(row,0);var port=locations.getIfAvailable();
-            if(port==null)throw new BusinessContractException("CAPABILITY_UNAVAILABLE","地点维护服务未装配");
-            var fact=port.maintain(row.getProjectId(),"SITE_SURVEY",row.getId(),version,description,command);
-            if(fact==null || !"RESOLVED".equals(fact.resolutionStatus()))throw exception(SITE_SURVEY_LOCATION_INVALID);
-            row.setLocation(description);row.setAddressId(fact.addressId());row.setAddressVersion(fact.addressVersion());
-            row.setSiteId(fact.siteId());row.setSiteVersion(fact.siteVersion());row.setSiteLocationId(fact.siteLocationId());row.setSiteLocationVersion(fact.siteLocationVersion());
-            row.setLocationResolutionStatus(fact.resolutionStatus());row.setAddressSnapshot(fact.addressSnapshot());row.setLocationSnapshot(fact.locationSnapshot());
+            requireState(row,0);applyLocation(row,description,command);
         });
+    }
+    private void applyLocation(SiteSurveyEntityDO row,String description,cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand command){
+        if(command==null || description.isBlank())throw exception(SITE_SURVEY_LOCATION_REQUIRED);
+        var port=locations.getIfAvailable();if(port==null)throw new BusinessContractException("CAPABILITY_UNAVAILABLE","地点维护服务未装配");
+        var fact=port.maintain(row.getProjectId(),"SITE_SURVEY",row.getId(),row.getVersion(),description,command);
+        if(fact==null || !"RESOLVED".equals(fact.resolutionStatus()))throw exception(SITE_SURVEY_LOCATION_INVALID);
+        row.setLocation(description);row.setAddressId(fact.addressId());row.setAddressVersion(fact.addressVersion());
+        row.setSiteId(fact.siteId());row.setSiteVersion(fact.siteVersion());row.setSiteLocationId(fact.siteLocationId());row.setSiteLocationVersion(fact.siteLocationVersion());
+        row.setLocationResolutionStatus(fact.resolutionStatus());row.setAddressSnapshot(fact.addressSnapshot());row.setLocationSnapshot(fact.locationSnapshot());
     }
     public BusinessOperationReceipt updateDeadline(Long id,Long version,String key,Long projectVersion,java.time.LocalDate endDate){
         if(projectVersion==null || projectVersion<0 || endDate==null)throw exception(SITE_SURVEY_FORM_INVALID);

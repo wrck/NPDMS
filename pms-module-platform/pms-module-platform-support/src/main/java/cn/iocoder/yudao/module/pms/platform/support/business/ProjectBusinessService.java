@@ -11,6 +11,11 @@ import java.util.Set;
 /** Inherited business API. No caller-supplied owner, model name, Mapper or operation dispatcher. */
 public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> extends BusinessDeliverables {
     BusinessModelDescriptor definition();
+    /** Internal identity guard for common evidence reads; never mapped as an HTTP endpoint. */
+    cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef requireEvidenceScope(cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef entity,Long projectId,boolean lock);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionResult evaluate(Long id,
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessCondition condition);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionResult completion(Long id);
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Definition runtimeDefinition();
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Observation runtimeObservation(
             cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Query query,boolean lock);
@@ -22,7 +27,9 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     BusinessModelViews.ModelDetailVO configurationModel(boolean write);
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration fieldConfiguration();
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration saveFieldConfiguration(long version, java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration saveFieldConfiguration(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration configuration);
     BusinessModelViews.ModelDetailVO model();
+    BusinessModelViews.ModelDetailVO model(String profile);
     E input(Map<String,Object> values);
     Map<String,Object> readableValues(E entity);
     E get(Long id);
