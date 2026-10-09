@@ -42,6 +42,42 @@ class ArrivalStatusUpdateTest {
         verify(mapper).updateById(row);
     }
 
+    @Test void savingNewEvidenceSignsThroughTheExistingCommand() {
+        var request = new ArrivalSaveReqVO(); request.setProjectId(20L); request.setAttachmentUrl("/test/receipt.pdf");
+        when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> { ((ArrivalDO)call.getArgument(0)).setId(1L); return 1; });
+        when(mapper.updateById(any(ArrivalDO.class))).thenReturn(1);
+        assertEquals(1L, service.createArrival(request));
+        assertEquals(1,row.getStatus());
+        var registration=(ArrivalDeliveryRegistration)ReflectionTestUtils.getField(service,"deliveryRegistration");
+        verify(registration).requireWrite(row);
+        verify(registration).registerSigned(row);
+    }
+
+    @Test void savingExistingEvidenceKeepsUploadTimeAndCompletesPendingReceipt() {
+        var request = new ArrivalSaveReqVO(); request.setId(1L); request.setVersion(6);
+        request.setAttachmentUrl("/test/latest.pdf"); request.setArrivalTime(java.time.LocalDateTime.of(2026,10,9,17,0));
+        when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(call -> {
+            var update=(ArrivalDO)call.getArgument(0);
+            if(update!=row) assertEquals(request.getArrivalTime(),update.getArrivalTime());
+            return 1;
+        });
+        service.updateArrival(request);
+        assertEquals(1,row.getStatus());
+        verify(mapper,times(2)).updateById(any(ArrivalDO.class));
+    }
+
+    @Test void saveCannotBypassSignatureAuthorizationOrChangeAbnormalState() {
+        var request = new ArrivalSaveReqVO(); request.setProjectId(20L); request.setAttachmentUrl("/test/receipt.pdf");
+        when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> { ((ArrivalDO)call.getArgument(0)).setId(1L); return 1; });
+        var registration=(ArrivalDeliveryRegistration)ReflectionTestUtils.getField(service,"deliveryRegistration");
+        doThrow(new IllegalStateException("write denied")).when(registration).requireWrite(row);
+        assertThrows(IllegalStateException.class,()->service.createArrival(request));
+        assertEquals(0,row.getStatus());verify(mapper,never()).updateById(any(ArrivalDO.class));
+        reset(registration); row.setStatus(2); request.setId(1L);request.setVersion(6);
+        when(mapper.updateById(any(ArrivalDO.class))).thenReturn(1);
+        service.updateArrival(request); assertEquals(2,row.getStatus());verify(registration,never()).registerSigned(any());
+    }
+
     @Test void abnormalTransitionAlsoKeepsTheExpectedVersion() {
         when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(invocation -> {
             ArrivalDO update = invocation.getArgument(0);

@@ -51,6 +51,9 @@ public class ArrivalServiceImpl implements ArrivalService {
             arrival.setQuantity(1);
         }
         arrivalMapper.insert(arrival);
+        if (org.springframework.util.StringUtils.hasText(arrival.getAttachmentUrl())) {
+            signArrival(arrival.getId());
+        }
         return arrival.getId();
     }
 
@@ -73,6 +76,10 @@ public class ArrivalServiceImpl implements ArrivalService {
         deliveryRegistration.requireWrite(update);
         updateRecord(update);
         deliveryRegistration.registerFiles(update);
+        if (Objects.equals(existing.getStatus(), 0)
+                && org.springframework.util.StringUtils.hasText(update.getAttachmentUrl())) {
+            signArrival(update.getId());
+        }
     }
 
     @Override
