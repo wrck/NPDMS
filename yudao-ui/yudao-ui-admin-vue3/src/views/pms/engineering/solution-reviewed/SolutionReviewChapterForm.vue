@@ -52,12 +52,13 @@
             <el-table-column label="角色" min-width="130"><template #default="{ row }"><el-input v-model="row.role" :disabled="readOnly" placeholder="如：项目经理" /></template></el-table-column>
             <el-table-column label="姓名" min-width="110"><template #default="{ row }"><el-input v-model="row.name" :disabled="readOnly" /></template></el-table-column>
             <el-table-column label="联系方式" min-width="130"><template #default="{ row }"><el-input v-model="row.contact" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="邮箱" min-width="180"><template #default="{ row }"><el-input v-model="row.email" :disabled="readOnly" /></template></el-table-column>
             <el-table-column label="备注" min-width="120"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
             <el-table-column label="操作" width="70" fixed="right">
               <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.team.splice($index, 1)">删除</el-button></template>
             </el-table-column>
           </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.team.push({ role: '', name: '', contact: '', remark: '' })">添加成员</el-button>
+          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.team.push({ role: '', name: '', contact: '', email: '', remark: '' })">添加成员</el-button>
           <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !teamRefRows.length" @click="tables.team = memberRows()">从项目成员与客户联系人引用</el-button>
         </div>
       </el-form-item>
@@ -82,7 +83,7 @@
         </div>
       </el-form-item>
 
-      <el-form-item label="1.5 进度计划" label-width="140px">
+      <el-form-item v-if="readOnly && tables.plan.length" label="1.5 进度计划" label-width="140px">
         <div class="table-editor">
           <el-table :data="tables.plan" size="small" border>
             <el-table-column label="项目阶段" min-width="110"><template #default="{ row }"><el-input v-model="row.stage" :disabled="readOnly" /></template></el-table-column>
@@ -104,7 +105,7 @@
     <section class="chapter">
       <div class="chapter-title">2. 现网现状分析</div>
       <el-form-item label="2.1 现网拓扑图" label-width="140px">
-        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" />
+        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="['ppt', 'pptx', 'vsd', 'vsdx', 'png']" />
       </el-form-item>
       <div class="ref-block">
         <div class="ref-head"><span>2.2 现网资源确认（引用 2.2 工勘 + 2.3 传输/流量/业务）</span></div>
@@ -129,7 +130,7 @@
         <div class="ref-body standalone">直接调用 2.3 需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
-        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" />
+        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="['ppt', 'pptx', 'vsd', 'vsdx', 'png']" />
       </el-form-item>
 
       <el-form-item label="3.2 部署位置规划" label-width="140px">
@@ -360,7 +361,7 @@ import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/s
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
-import * as ProjectsApi from '@/api/pms/project/projects'
+import { getMemberPage, logicalMemberRole, type MemberRecord } from '@/api/pms/project/unified-members'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
@@ -394,7 +395,7 @@ const parseObject = (raw: string | undefined | null): Record<string, unknown> =>
 
 // ---------- 引用数据（前序阶段真实来源） ----------
 const reqValues = ref<Record<string, unknown>>({})
-const members = ref<ProjectsApi.ProjectMemberAssignmentVO[]>([])
+const members = ref<MemberRecord[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
 const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQuantity: number }[]>([])
 const stagePlanItems = ref<StagePlanApi.StagePlanItemVO[]>([])
@@ -432,20 +433,21 @@ const reqBusinessRows = computed<Row[]>(() => {
 })
 
 const memberRoleLabel = (role: string) => {
-  const label = getDictLabel(DICT_TYPE.PMS_PROJECT_MEMBER_ROLE, role)
+  const label = getDictLabel(DICT_TYPE.PMS_PROJECT_MEMBER_ROLE, logicalMemberRole(role))
   return label || role || '—'
 }
-// 1.3 项目团队汇总：项目成员在前，项目客户联系人随后；成员链路无联系方式字段，显示占位符。
+// 1.3 项目团队汇总：当前项目成员在前，项目客户联系人随后。
 const contactRows = computed<Row[]>(() =>
   contacts.value.map((c) => ({
     role: c.primaryFlag && c.status === 0 ? '主联系人' : '客户联系人',
     name: c.name || '',
-    contact: c.mobile || '',
+    contact: c.mobile || c.phone || '',
+    email: c.email || '',
     remark: c.remark || ''
   }))
 )
 const teamRefRows = computed<Row[]>(() => [
-  ...members.value.map((m) => ({ role: memberRoleLabel(m.memberRole), name: m.memberName || '', contact: '', remark: '' })),
+  ...members.value.map((m) => ({ role: memberRoleLabel(m.memberRole), name: m.memberName || '', contact: m.mobile || '', email: m.email || '', remark: m.remark || '' })),
   ...contactRows.value
 ])
 const memberRows = (): Row[] => teamRefRows.value.map((row) => ({ ...row }))
@@ -515,7 +517,8 @@ const scriptItems = [
 const syncFromForm = () => {
   tables.team = parseRows(safeParse(form.value.team))
   tables.inventory = parseRows(safeParse(form.value.inventory))
-  tables.plan = parseRows(safeParse(form.value.plan))
+  // 已提交版本保留原文；可编辑草稿不再携带已取消的进度计划章节。
+  tables.plan = props.readOnly ? parseRows(safeParse(form.value.plan)) : []
   tables.interface = parseRows(safeParse(form.value.interfacePlan))
   tables.ip = parseRows(safeParse(form.value.ipPlan))
   const topo = parseObject(form.value.topology)
@@ -646,20 +649,33 @@ onBeforeUnmount(() => {
 
 // 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
 let referencesProjectId = 0
+const loadCurrentMembers = async (projectId: number): Promise<MemberRecord[]> => {
+  const rows: MemberRecord[] = []
+  let pageNo = 1
+  let total = 0
+  do {
+    const page = await getMemberPage(projectId, { pageNo, pageSize: 100, state: 'CURRENT' })
+    rows.push(...page.list)
+    total = page.total
+    if (!page.list.length) break
+    pageNo++
+  } while (rows.length < total)
+  return rows
+}
 const loadReferences = async () => {
   const projectId = form.value.projectId
   if (props.readOnly || !projectId || referencesProjectId === projectId) return
   referencesProjectId = projectId
   const [overview, memberList, scopePage, planPage, devicePage, contactPage] = await Promise.all([
     RequirementAnalysisApi.getCurrent(projectId).catch(() => null),
-    ProjectsApi.getProjectMembers(projectId).catch(() => []),
+    loadCurrentMembers(projectId).catch(() => []),
     getDeliveryScopePage({ projectId, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
     StagePlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 10 }).catch(() => ({ list: [] })),
     DeviceArchiveApi.getDeviceArchivePage({ projectId, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] })),
     ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
   ])
   reqValues.value = ((overview as any)?.currentEffective ?? (overview as any)?.draft)?.values ?? {}
-  members.value = (memberList as ProjectsApi.ProjectMemberAssignmentVO[]) || []
+  members.value = memberList
   contacts.value = ((contactPage as any).list || []) as ContactApi.ContactVO[]
   scopeRows.value = ((scopePage as any).list || []).flatMap((scope: any) =>
     (scope.details || []).map((d: any) => ({
@@ -678,9 +694,8 @@ const generateFromSources = () => {
   if (props.readOnly) return
   if (reqBackground.value && !String(form.value.background ?? '').trim()) form.value.background = reqBackground.value
   if (reqObjective.value && !String(form.value.target ?? '').trim()) form.value.target = reqObjective.value
-  if (members.value.length && !tables.team.length) tables.team = memberRows()
+  if (teamRefRows.value.length && !tables.team.length) tables.team = memberRows()
   if (scopeRows.value.length && !tables.inventory.length) tables.inventory = scopeProductRows()
-  if (stagePlanItems.value.length && !tables.plan.length) tables.plan = stagePlanRows()
   if (devices.value.length && !tables.deploy.length) tables.deploy = deviceDeployRows()
   if (devices.value.length && !tables.software.length) tables.software = deviceSoftwareRows()
   if (reqBusinessRows.value.length && !tables.business.length) tables.business = reqBusinessRows.value.map((r) => ({ ...r }))
@@ -713,9 +728,9 @@ const buildSolutionHtml = () => {
   const chapter1 = [
     htmlField('1.1 项目背景', form.value.background ?? ''),
     htmlField('1.2 项目目标', form.value.target ?? ''),
-    htmlField('1.3 项目团队', htmlTable(tables.team, [['role', '角色'], ['name', '姓名'], ['contact', '联系方式'], ['remark', '备注']])),
+    htmlField('1.3 项目团队', htmlTable(tables.team, [['role', '角色'], ['name', '姓名'], ['contact', '联系方式'], ['email', '邮箱'], ['remark', '备注']])),
     htmlField('1.4 项目清单', htmlTable(tables.inventory, [['productCode', '产品编码'], ['model', '产品型号'], ['desc', '产品描述'], ['projectQty', '项目数量'], ['shippedQty', '发货数量'], ['unshippedQty', '未发货数量'], ['sn', '序列号']])),
-    htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']]))
+    props.readOnly && tables.plan.length ? htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']])) : ''
   ].join('')
   const chapter2 = [
     htmlField('2.1 现网拓扑图', topology.asIsUrl ? `<p>已上传：${escapeHtml(topology.asIsUrl)}</p>` : '<p>（未上传）</p>'),

@@ -462,6 +462,8 @@ onBeforeUnmount(() => {
 })
 const draftFingerprint=()=>JSON.stringify({...form.value,version:undefined})
 const persistDraftAndCustomerFiles=async()=>{
+  // 新保存/提交版本不再携带 1.5；历史提交和批准版本不走草稿写入口。
+  form.value.plan=''
   const withFiles=pendingCustomerFiles.value.length>0&&parseEnvelope(form.value.remark).hasCustomerPlan==='yes'
   if(!withFiles||savedCustomerDraft!==draftFingerprint()){
     const existingId=form.value.id, previousVersion=form.value.version
