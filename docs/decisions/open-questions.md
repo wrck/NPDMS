@@ -1288,3 +1288,15 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Evidence: `docs/generated/2026-10-06-visio-system-record-template/`；记录以本次运行采集的旧模板最新已发布 rev10 为来源，早期 rev9 记录不充当当前草稿真值。
 - Implementation follow-up（2026-10-07）: 后续授权的DAC拆分、AST设备关联及跨入口最新文件代码已实施，见`docs/generated/2026-10-06-device-log-archive/README.md`；原文的“未实现”为模板创建时边界。V409迁移、实际MySQL与NPDMS浏览器验收仍未执行，模板日志确认规则及五项Owner完成依据仍未接通，草稿保持未发布。
 - Decision owner: 需求方。
+
+## Q-FEEDBACK-ACCEPTANCE-20261009-024 — 只上传报告与验收通过的边界
+
+- Status: RESOLVED
+- Area: FB-24 初验/终验简化，仅限制依赖该问题的验收完成规则修改。
+- Question: 用户已确认“只上传、自动时间/操作人；保存即完成验收”。上传报告不再人工填写结论后，任何报告保存均完成验收，还是不通过报告仍不能完成？验收完成是否继续等同通过并参与后续闭环？
+- Evidence: `IndependentAcceptancePolicy.SNAPSHOT`冻结`EFFECTIVE_REPORT_PASS`及`passingConclusion=PASS`；`reportPublished`仅PASS使活动COMPLETED，其余PENDING。`AcceptanceReportCommandService.requireCompleteContent`要求验收时间、结论及验收人。不能默认把未判定报告标PASS，也不能覆盖历史活动的规则快照。
+- Decision owner: 需求方
+- Current action: 已取得当前会话明确裁决；按新独立报告规则实施，保留不可变报告和历史规则快照。
+- Tracking evidence: `.run/test-feedback-20261009/项目管理新系统测试反馈跟踪清单.md`，R2原失败保留，R3仅依据实际浏览器结果更新状态。
+
+- Resolution: 需求方在当前会话确认“上传保存即完成，验收完成不再代表结论通过”。新独立报告采用上传完成规则，不默认PASS；既有不可变报告及冻结历史保留。`F-ACC-001`记录该批准差量，本问题不再阻断实施；运行部署和浏览器验收仍须实际完成。

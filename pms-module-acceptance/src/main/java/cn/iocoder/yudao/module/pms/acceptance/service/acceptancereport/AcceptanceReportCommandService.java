@@ -82,8 +82,8 @@ public class AcceptanceReportCommandService {
         row.setAcceptanceId(activity.getId());
         row.setReportVersionNo(versionNo);
         row.setReportStatus("DRAFT");
-        if (IndependentAcceptancePolicy.direct(activity)) row.setAcceptanceRuleSnapshot(activity.getRuleSnapshot());
-        applyContent(row, command.content());
+        if (IndependentAcceptancePolicy.direct(activity)) row.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        applyContent(row, command.content(), actor);
         row.setUploaderUserId(actor.userId());
         row.setUploadTime(LocalDateTime.now());
         row.setCreator(String.valueOf(actor.userId()));
@@ -96,13 +96,14 @@ public class AcceptanceReportCommandService {
     @Transactional(rollbackFor = Exception.class)
     public ReportResult updateDraft(UpdateDraftCommand command, Actor actor) {
         validateActor(actor);
-        lockActivity(command.acceptanceId(), actor, command.expectedActivityVersion());
+        AcceptanceActivityDO activity = lockActivity(command.acceptanceId(), actor, command.expectedActivityVersion());
         AcceptanceReportVersionDO row = lockReport(command.acceptanceId(), command.reportVersionId(), actor.tenantId());
         if (!"DRAFT".equals(row.getReportStatus())
                 || !Objects.equals(row.getReportVersionNo(), command.expectedReportVersionNo())) {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
         }
-        applyContent(row, command.content());
+        if (IndependentAcceptancePolicy.direct(activity)) row.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        applyContent(row, command.content(), actor);
         row.setUpdater(String.valueOf(actor.userId()));
         if (reportMapper.updateById(row) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
         lockAttachmentSet(row.getId(),false).forEach(nativeMaterials::registerNativeSourceFile);
@@ -143,7 +144,7 @@ public class AcceptanceReportCommandService {
         List<FileArtifactVersionFact> files = lockAttachmentSet(draft.getId());
         if (IndependentAcceptancePolicy.direct(activity)) {
             if (!IndependentAcceptancePolicy.validSnapshot(draft.getAcceptanceRuleSnapshot())) throw exception(ACC_REPORT_STATE_INVALID);
-            IndependentAcceptancePolicy.reportPublished(activity, draft.getConclusionCode());
+            IndependentAcceptancePolicy.reportPublished(activity, draft.getConclusionCode(), draft.getAcceptanceRuleSnapshot());
         } else if ("FINAL".equals(activity.getAcceptanceType())) requireCurrentPreliminary(activity.getProjectId(), actor.tenantId());
         LocalDateTime now = LocalDateTime.now();
         String changeType = current == null ? "EFFECTIVE" : "REPLACED";
@@ -295,13 +296,26 @@ public class AcceptanceReportCommandService {
     }
 
     private void requireCompleteContent(AcceptanceReportVersionDO row) {
+        if (IndependentAcceptancePolicy.uploadOnly(row.getAcceptanceRuleSnapshot())) {
+            if (row.getAcceptanceTime() == null || row.getUploaderUserId() == null) throw exception(ACC_REPORT_INCOMPLETE);
+            return;
+        }
         if (row.getAcceptanceTime() == null || blank(row.getConclusionCode()) || blank(row.getAcceptorName())) {
             throw exception(ACC_REPORT_INCOMPLETE);
         }
     }
 
-    private void applyContent(AcceptanceReportVersionDO row, DraftContent content) {
+    private void applyContent(AcceptanceReportVersionDO row, DraftContent content, Actor actor) {
         if (content == null) throw exception(ACC_REPORT_STATE_INVALID);
+        if (IndependentAcceptancePolicy.uploadOnly(row.getAcceptanceRuleSnapshot())) {
+            row.setAcceptanceTime(LocalDateTime.now());
+            row.setUploaderUserId(actor.userId());
+            row.setUploadTime(row.getAcceptanceTime());
+            row.setConclusionCode(null);
+            row.setConclusionText(null);
+            row.setAcceptorName(null);
+            return;
+        }
         row.setAcceptanceTime(content.acceptanceTime());
         row.setConclusionCode(trim(content.conclusionCode()));
         row.setConclusionText(trim(content.conclusionText()));

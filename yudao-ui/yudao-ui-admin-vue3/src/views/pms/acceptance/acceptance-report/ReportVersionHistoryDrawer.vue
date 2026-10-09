@@ -11,8 +11,8 @@
           </div>
           <dl class="version-facts">
             <div><dt>验收时间</dt><dd>{{ item.acceptanceTime == null ? '未填写' : formatDate(new Date(item.acceptanceTime)) }}</dd></div>
-            <div><dt>验收人</dt><dd>{{ item.acceptorName || '未填写' }}</dd></div>
-            <div><dt>结论</dt><dd>{{ item.conclusionCode || '未填写' }}</dd></div>
+            <div><dt>{{ item.conclusionCode ? '验收人' : '操作人' }}</dt><dd>{{ item.conclusionCode ? (item.acceptorName || '未填写') : (item.uploaderUserId ?? '未记录') }}</dd></div>
+            <div v-if="item.conclusionCode"><dt>结论</dt><dd>{{ item.conclusionCode }}</dd></div>
           </dl>
           <el-alert v-if="item.archiveStatus === 'PENDING_COMPENSATION'" title="归档待补偿，不影响当前报告及历史下载" type="warning" :closable="false" show-icon />
           <div v-if="item.attachments.length" class="attachment-list">

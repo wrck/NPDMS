@@ -14,18 +14,18 @@
         <el-descriptions-item label="当前报告">{{ current ? `V${current.reportVersionNo}` : '尚无有效版本' }}</el-descriptions-item>
       </el-descriptions>
       <el-alert v-if="current?.archiveStatus === 'PENDING_COMPENSATION'" title="报告已生效，交付件归档待补偿；历史下载保持可用" type="warning" show-icon :closable="false" />
-      <el-empty v-else-if="!current" description="当前尚无有效报告；可先保存不完整草稿，活动完成前再补齐四项与附件" />
+      <el-empty v-else-if="!current" :description="activity.originKind === 'DIRECT' ? '当前尚无有效报告；上传报告并保存后完成验收' : '当前尚无有效报告；可先保存不完整草稿，活动完成前再补齐四项与附件'" />
       <section v-else class="current-report" aria-labelledby="current-report-title">
         <div class="section-title"><h3 id="current-report-title">当前有效报告 V{{ current.reportVersionNo }}</h3><el-tag type="success">EFFECTIVE</el-tag></div>
-        <p>结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }} · {{ current.conclusionText || '未填写结论说明' }}</p>
-        <div class="current-meta"><span>验收人：{{ current.acceptorName }}</span><span>验收时间：{{ current.acceptanceTime == null ? '未填写' : formatDate(new Date(current.acceptanceTime)) }}</span><span>附件：{{ current.attachments.length }}</span></div>
+        <p v-if="current.conclusionCode">结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }} · {{ current.conclusionText || '未填写结论说明' }}</p>
+        <div class="current-meta"><span>{{ current.conclusionCode ? `验收人：${current.acceptorName}` : `操作人：${current.uploaderUserId}` }}</span><span>验收时间：{{ current.acceptanceTime == null ? '未填写' : formatDate(new Date(current.acceptanceTime)) }}</span><span>附件：{{ current.attachments.length }}</span></div>
       </section>
       <div class="detail-actions">
-        <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ draft ? '继续编辑草稿' : current ? '创建替换版本' : '创建报告草稿' }}</el-button>
+        <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ activity.originKind === 'DIRECT' ? current ? '上传替换报告' : '上传验收报告' : draft ? '继续编辑草稿' : current ? '创建替换版本' : '创建报告草稿' }}</el-button>
         <el-button v-if="versions.length" v-hasPermi="['pms:acceptance:report:query']" @click="openHistory">查看版本历史</el-button>
         <el-button v-if="current && canWrite('REVOKE')" type="danger" plain v-hasPermi="['pms:acceptance:report:write']" @click="revoke">撤销当前版本</el-button>
       </div>
-      <p class="completion-note">项目任务按模板条件判定完成，初验与终验分别校验报告已生效、结论通过及附件有效。</p>
+      <p class="completion-note">{{ activity.originKind === 'DIRECT' ? '报告保存后完成验收，完成状态不代表验收结论通过。' : '项目任务按模板条件判定完成，初验与终验分别校验报告已生效、结论通过及附件有效。' }}</p>
     </template>
   </el-drawer>
   <ReportDraftEditor ref="editorRef" :readonly="readonly || !activityAllowsReportWrite(activity)" :allowed-actions="allowedActions" @changed="reload" @dirty-change="emit('dirty-change', $event)" />

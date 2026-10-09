@@ -625,7 +625,8 @@ const requestedTab = (
       'stage-plan': 'schedule',
       'schedule-backward': 'schedule',
       // 基本信息组移除后，旧深链接落到客户信息（其面板内嵌完整联系人工作台）
-      'customer-contacts': 'customer'
+      'customer-contacts': 'customer',
+      acceptance: 'acceptance-reports'
     } as Record<string, string>
   )[String(route.query.tab)] ||
   ([

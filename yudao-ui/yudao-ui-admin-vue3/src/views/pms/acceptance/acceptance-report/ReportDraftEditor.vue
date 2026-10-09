@@ -1,5 +1,5 @@
 <template>
-  <Dialog :model-value="visible" :title="draftId ? '编辑报告草稿' : '新建报告草稿'" width="720px" :before-close="beforeClose" @update:model-value="onVisibilityChange">
+  <Dialog :model-value="visible" :title="uploadOnly ? '上传验收报告' : draftId ? '编辑报告草稿' : '新建报告草稿'" width="720px" :before-close="beforeClose" @update:model-value="onVisibilityChange">
     <el-alert
       v-if="activity"
       :title="`${typeLabel(activity.acceptanceType)} · 活动版本 ${activity.version}`"
@@ -7,7 +7,8 @@
       :closable="false"
       class="editor-alert"
     />
-    <el-form :model="form" :disabled="!canUpdate || busy" label-position="top">
+    <el-alert v-if="uploadOnly" title="上传报告后保存即完成验收，时间和操作人自动记录。" type="info" :closable="false" />
+    <el-form v-else :model="form" :disabled="!canUpdate || busy" label-position="top">
       <el-row :gutter="16">
         <el-col :xs="24" :sm="12">
           <el-form-item label="验收时间"><el-date-picker v-model="form.acceptanceTime" type="datetime" value-format="x" class="!w-full" /></el-form-item>
@@ -41,8 +42,9 @@
 
     <template #footer>
       <el-button @click="close">取消</el-button>
-      <el-button v-if="canUpdate" :disabled="busy" :loading="saving" @click="saveDraft">{{ draftId ? '保存草稿' : '创建草稿' }}</el-button>
-      <el-button v-if="draftId && canPublish" type="primary" :disabled="busy" :loading="publishing" @click="publish">发布当前草稿</el-button>
+      <el-button v-if="uploadOnly && canUpdate && canPublish" type="primary" :disabled="busy" :loading="saving || publishing" @click="saveAndComplete">保存并完成验收</el-button>
+      <el-button v-if="!uploadOnly && canUpdate" :disabled="busy" :loading="saving" @click="saveDraft">{{ draftId ? '保存草稿' : '创建草稿' }}</el-button>
+      <el-button v-if="!uploadOnly && draftId && canPublish" type="primary" :disabled="busy" :loading="publishing" @click="publish">发布当前草稿</el-button>
     </template>
   </Dialog>
 </template>
@@ -73,6 +75,7 @@ const uploadedCount = ref(0)
 const referenceKey = ref(generateUUID())
 const publishKey = ref(generateUUID())
 const form = reactive<ReportApi.DraftContent>({})
+const uploadOnly = computed(() => activity.value?.originKind === 'DIRECT')
 const uploaderRef = ref<{ isBusy: () => boolean; hasPendingFile: () => boolean }>()
 const uploadSession = ref(0)
 const baseline = ref('')
@@ -132,6 +135,7 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   })
   baseline.value = snapshot()
   visible.value = true
+  if (uploadOnly.value && !draftId.value && canUpdate.value) await saveDraft()
   return true
 }
 
@@ -152,7 +156,7 @@ const saveDraft = async () => {
     if (result.activityVersion != null) activity.value = { ...activity.value, version: result.activityVersion }
     publishKey.value = generateUUID()
     baseline.value = savedSnapshot
-    message.success('草稿已保存')
+    if (!uploadOnly.value) message.success('草稿已保存')
     emit('changed')
     return true
   } finally {
@@ -175,13 +179,19 @@ const publish = async () => {
   try {
     await ReportApi.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value, openedClient)
     if (token !== generation) return false
-    message.success(activity.value.currentReportVersionId ? '新版本已替换生效' : '报告版本已生效')
+    message.success(uploadOnly.value ? '验收已完成' : activity.value.currentReportVersionId ? '新版本已替换生效' : '报告版本已生效')
     visible.value = false
     emit('changed')
     return true
   } finally {
     if (token === generation) publishing.value = false
   }
+}
+const saveAndComplete = async () => {
+  if (!uploadOnly.value || !canUpdate.value || !canPublish.value || busy.value) return false
+  if (!uploadedCount.value) { message.warning('请先上传验收报告'); return false }
+  if (!(await saveDraft())) return false
+  return publish()
 }
 onBeforeUnmount(() => { generation++ })
 

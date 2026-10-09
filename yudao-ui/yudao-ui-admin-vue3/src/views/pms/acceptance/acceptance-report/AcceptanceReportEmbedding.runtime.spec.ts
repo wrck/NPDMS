@@ -55,6 +55,28 @@ beforeEach(() => {
 afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.unstubAllGlobals() })
 
 describe('ACC-03 / PM-03 existing report embedding', () => {
+  it('prepares the upload object automatically and completes a direct acceptance in one save action', async () => {
+    const { state, root } = render(Editor)
+    await state.open({ ...activity(), originKind: 'DIRECT', projectTaskId: null, executionContractId: null })
+    expect(api.createDraft).toHaveBeenCalledOnce()
+    expect(textOf(root)).not.toContain('验收结论')
+    expect(await state.saveAndComplete()).toBe(false)
+    expect(api.publishVersion).not.toHaveBeenCalled()
+    state.attachmentCompleted()
+    expect(await state.saveAndComplete()).toBe(true)
+    expect(api.updateDraft).toHaveBeenCalledOnce()
+    expect(api.publishVersion).toHaveBeenCalledOnce()
+    expect(api.updateDraft.mock.invocationCallOrder[0]).toBeLessThan(api.publishVersion.mock.invocationCallOrder[0])
+    expect(message.success).toHaveBeenLastCalledWith('验收已完成')
+  })
+  it('does not complete uploaded direct reports without publish authority', async () => {
+    const { state } = render(Editor, { allowedActions: ['QUERY', 'UPDATE', 'FILE_WRITE'] })
+    await state.open({ ...activity(), originKind: 'DIRECT', projectTaskId: null, executionContractId: null }, draft())
+    state.attachmentCompleted()
+    expect(await state.saveAndComplete()).toBe(false)
+    expect(api.updateDraft).not.toHaveBeenCalled()
+    expect(api.publishVersion).not.toHaveBeenCalled()
+  })
   it('locks project and opens only exact project-owned activity, preserving Long IDs', async () => {
     const id = '2099999999999999999'
     api.getActivity.mockResolvedValue({ ...activity(), id, projectId: '7' })
