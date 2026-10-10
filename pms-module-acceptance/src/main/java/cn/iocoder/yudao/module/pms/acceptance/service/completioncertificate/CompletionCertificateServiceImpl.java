@@ -70,6 +70,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     private PlatformDeliveryMaterialApi deliveryMaterials;
     @Resource
     private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
+    @Resource private cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.CompletionSatisfactionBundleMapper jointBundles;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -166,6 +167,9 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     @Transactional(rollbackFor = Exception.class)
     public void customerConfirm(Long id) {
         CompletionCertificateDO entity = validateExists(id);
+        if(jointBundles.selectByCertificate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionBundleCertificateQuery(
+                TenantContextHolder.getRequiredTenantId(),id))!=null)
+            throw new IllegalStateException("成套完工证明必须由客户一次签字统一提交");
         nativeAccess.requireCommand(TenantContextHolder.getRequiredTenantId(),
                 cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
                 "completionCertificate",entity.getProjectId(),"audit");
@@ -196,6 +200,11 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
         updateStatus(entity, STATUS_REJECTED);
+        var bundle = jointBundles.selectByCertificate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionBundleCertificateQuery(
+                TenantContextHolder.getRequiredTenantId(), id));
+        if (bundle != null) jointBundles.revokeActiveGrants(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionGrantRevocation(
+                TenantContextHolder.getRequiredTenantId(), bundle.getId(),
+                String.valueOf(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId())));
     }
 
     @Override

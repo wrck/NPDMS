@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateMapper">
+    <update id="replacePrintBindings">
+        UPDATE acc_completion_certificate
+        SET completion_print_template_id=#{query.completionTemplateId},completion_print_revision_id=#{query.completionRevisionId},
+            completion_print_snapshot=#{query.completionSnapshot},satisfaction_print_template_id=#{query.satisfactionTemplateId},
+            satisfaction_print_revision_id=#{query.satisfactionRevisionId},satisfaction_print_snapshot=#{query.satisfactionSnapshot},
+            version=version+1,updater=#{query.actorRef},update_time=CURRENT_TIMESTAMP
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.certificateId} AND version=#{query.expectedVersion} AND status=0 AND deleted=b'0'
+    </update>
+    <sql id="pairedWorkflowScope">
+        FROM acc_completion_certificate c
+        JOIN acc_completion_satisfaction_bundle b ON b.certificate_id=c.id AND b.tenant_id=c.tenant_id AND b.deleted=b'0'
+        WHERE c.tenant_id=#{query.tenantId} AND c.deleted=b'0'
+        <choose><when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+            AND c.project_id IN <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+        <if test="query.projectId != null">AND c.project_id=#{query.projectId}</if>
+        <if test="query.name != null and query.name != ''">AND c.name LIKE CONCAT('%',#{query.name},'%')</if>
+        <if test="query.status != null">AND c.status=#{query.status}</if>
+    </sql>
+    <select id="selectPairedWorkflowRows" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO">
+        SELECT c.* <include refid="pairedWorkflowScope"/> ORDER BY c.id DESC LIMIT #{query.pageSize} OFFSET #{query.offset}
+    </select>
+    <select id="countPairedWorkflowRows" resultType="java.lang.Long">
+        SELECT COUNT(*) <include refid="pairedWorkflowScope"/>
+    </select>
+</mapper>

@@ -1,0 +1,19 @@
+{
+  "projectId": 992203060190,
+  "sourceOrderLineTotal": 10,
+  "sourceProductRows": 9,
+  "sourceProjectQuantity": 200.0,
+  "sourceSnRecordTotal": 264,
+  "equipmentListMatchesSource": true,
+  "serialPaneRetainsFullSnRecords": true,
+  "defaultDeviceTotal": 200,
+  "defaultRowsMatchEquipment": true,
+  "engineerMatchesCurrentProfile": true,
+  "contactMatchesCurrentProfile": true,
+  "certificateId": 30036,
+  "draftSavedDefaults": true,
+  "manualEditsPreservedAfterReopen": true,
+  "surveyNotCreatedBeforePush": true,
+  "pageErrors": [],
+  "existingSignedCertificateUnchanged": true
+}

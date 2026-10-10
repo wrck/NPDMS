@@ -11,6 +11,14 @@ import java.util.List;
 
 @Mapper
 public interface SatisfactionQuestionnaireTemplateMapper extends BaseMapperX<SatisfactionQuestionnaireTemplateDO> {
+    default List<SatisfactionQuestionnaireTemplateDO> selectCompletionPublished(
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionQuestionnaireTemplateQuery query){
+        return selectList(new LambdaQueryWrapperX<SatisfactionQuestionnaireTemplateDO>()
+                .eq(SatisfactionQuestionnaireTemplateDO::getTenantId,query.tenantId())
+                .eq(SatisfactionQuestionnaireTemplateDO::getTemplateCode,"COMPLETION_SATISFACTION_STANDARD")
+                .eq(SatisfactionQuestionnaireTemplateDO::getStatus,"PUBLISHED")
+                .isNotNull(SatisfactionQuestionnaireTemplateDO::getCurrentRevisionId));
+    }
     default List<SatisfactionQuestionnaireTemplateDO> selectListByTenant(Long tenantId) {
         return selectList(new LambdaQueryWrapperX<SatisfactionQuestionnaireTemplateDO>()
                 .eq(SatisfactionQuestionnaireTemplateDO::getTenantId, tenantId)

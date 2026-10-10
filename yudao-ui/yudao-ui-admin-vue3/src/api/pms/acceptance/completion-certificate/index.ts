@@ -37,7 +37,47 @@ export interface CompletionCertificateVO {
   remark?: string
   version?: number
   createTime?: Date
+  satisfactionTemplateId?: number
+  completionPrintTemplateId?: number
+  completionPrintSnapshot?: string
+  satisfactionPrintTemplateId?: number
+  satisfactionPrintSnapshot?: string
 }
+
+export interface CompletionSurveyVO {
+  taskId: number
+  collectionKey: string
+  revisionNo: number
+  status: string
+  questionnaireJson?: string
+  answerSnapshot?: string
+  submittedAt?: string
+  signatureImageDataUrl?: string
+  score?: number
+  threshold?: number
+  passed?: boolean
+}
+export interface CompletionConfirmationDetail {
+  certificate: CompletionCertificateVO
+  survey?: CompletionSurveyVO
+  history: CompletionSurveyVO[]
+}
+export interface CompletionIssueVO { id: number; taskId: number; signPath: string; tokenExpiresAt: string }
+const workflowUrl = '/api/v1/pms/completion-confirmations'
+export const getConfirmationPage = (params: PmsProjectPageParam & { survey?: boolean }) => request.get({ url: workflowUrl, params })
+export const getConfirmation = (id: number) => request.get<CompletionConfirmationDetail>({ url: `${workflowUrl}/${id}` })
+export const saveConfirmation = (data: CompletionCertificateVO) => data.id
+  ? request.put<number>({ url: `${workflowUrl}/${data.id}`, data }) : request.post<number>({ url: workflowUrl, data })
+export const issueConfirmation = (id: number) => request.post<CompletionIssueVO>({ url: `${workflowUrl}/${id}/actions/issue` })
+export const voidConfirmation = (id: number) => request.post({ url: `${workflowUrl}/${id}/actions/void` })
+export const deleteConfirmation = (id: number) => request.delete({ url: `${workflowUrl}/${id}` })
+export const saveConfirmationPdf = (id: number, expectedVersion: number, kind: 'COMPLETION' | 'SATISFACTION', file: File, key: string) => {
+  const data = new FormData()
+  data.append('file', file)
+  return request.post<{ materialId: number }>({ url: `${workflowUrl}/${id}/documents`, params: { expectedVersion, kind }, data,
+    headersType: 'multipart/form-data', headers: { 'Idempotency-Key': key } })
+}
+export const getConfirmationFileTicket = (id: number, materialId: number) => request.get<string>({ url: `${workflowUrl}/${id}/files/${materialId}` })
 
 const baseUrl = '/pms/acc-completion-certificate'
 

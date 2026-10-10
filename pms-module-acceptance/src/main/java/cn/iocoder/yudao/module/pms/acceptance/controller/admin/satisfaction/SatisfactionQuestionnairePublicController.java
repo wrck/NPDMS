@@ -58,7 +58,7 @@ public class SatisfactionQuestionnairePublicController {
                 file.getAvailabilityVersion(), file.getScopeVersion(), file.getSha256())).toList();
         return withTenant(() -> success(submissionService.submit(new SatisfactionPublicSubmissionApplicationService.Command(
                 TenantContextHolder.getRequiredTenantId(), token, request.getRequestId(), request.getResponseId(),
-                request.getCustomerContactRef(), request.getAnswerSnapshot(), files))));
+                request.getCustomerContactRef(), request.getAnswerSnapshot(), files, request.getConfirmCompletionCertificate(),request.getSignatureImageDataUrl()))));
     }
 
     @PostMapping("/{token}/files/initialize")

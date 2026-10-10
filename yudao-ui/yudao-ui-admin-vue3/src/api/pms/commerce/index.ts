@@ -137,6 +137,7 @@ export interface DeliveryScopeRespVO {
   effectiveTo?: string
   version: number
   details: DeliveryScopeDetailRespVO[]
+  contractNo?: string
 }
 
 export interface DeliveryScopePageReqVO extends PageParam {

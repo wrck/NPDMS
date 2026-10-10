@@ -1,0 +1,135 @@
+package cn.iocoder.yudao.module.pms.acceptance.service.completioncertificate;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.*;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateMapper;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.*;
+import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.*;
+import cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.*;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateFact;
+import cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.time.LocalDateTime;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+@ExtendWith(MockitoExtension.class)
+class CompletionConfirmationWorkflowServiceTest {
+    @Mock CompletionCertificateService legacy;
+    @Mock CompletionCertificateMapper certificates;
+    @Mock CompletionSatisfactionBundleMapper bundles;
+    @Mock SatisfactionCollectionTaskMapper tasks;
+    @Mock SatisfactionQuestionnaireMapper questionnaires;
+    @Mock SatisfactionResponseMapper responses;
+    @Mock CompletionSatisfactionSigningMapper signings;
+    @Mock SatisfactionResultMapper results;
+    @Mock IndependentSatisfactionService independent;
+    @Mock SatisfactionQuestionnaireTemplateApi templates;
+    @Mock SatisfactionAccessGrantService grants;
+    @Mock CompletionConfirmationPrintService printLayouts;
+    @Mock NativeAcceptanceDeliveryAccess access;
+    @Mock ProjectAcceptanceContextApi projects;
+    @Mock ProjectScopeApi scopes;
+    @Mock PermissionApi permissions;
+    @Mock NativeGeneratedFileApi files;
+    @Mock SatisfactionQuestionnaireTemplateMapper templateMapper;
+    @InjectMocks CompletionConfirmationWorkflowService service;
+    CompletionCertificateDO certificate;
+    @BeforeEach void setup(){
+        certificate=new CompletionCertificateDO();certificate.setId(10L);certificate.setTenantId(1L);
+        certificate.setProjectId(9L);certificate.setVersion(3L);certificate.setStatus(0);certificate.setSatisfactionTemplateId(11L);
+        lenient().when(certificates.selectById(10L)).thenReturn(certificate);
+        lenient().when(certificates.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
+        var context=new ProjectAcceptanceContextApi.Context(9L,9L,5L,1L,"ACTIVE");
+        lenient().when(projects.inspect(any())).thenReturn(context);lenient().when(projects.lock(any(),any(),any())).thenReturn(context);
+        lenient().when(permissions.hasAnyPermissions(eq(1L),any(String[].class))).thenReturn(true);
+    }
+    private void published(boolean uploads){
+        var template=new SatisfactionQuestionnaireTemplateDO();template.setId(11L);template.setTenantId(1L);template.setStatus("PUBLISHED");template.setCurrentRevisionId(12L);
+        when(templateMapper.selectById(11L)).thenReturn(template);
+        when(templates.inspectPublished(11L,12L)).thenReturn(new SatisfactionTemplateFact("FOUND",11L,12L,1,"rule",java.math.BigDecimal.valueOf(80)));
+        if(uploads)when(independent.create(eq(1L),eq(1L),any(),eq("completion-certificate:10"))).thenReturn(new IndependentSatisfactionService.Created(20L,21L,"SAT-20"));
+        if(uploads)when(grants.create(eq(1L),eq(1L),eq(20L),any(),eq(10L))).thenReturn(new SatisfactionAccessGrantService.CreatedGrant(30L,1,"temporary",LocalDateTime.now().plusDays(7)));
+    }
+    @Test void firstIssueCreatesExactlyOneFrozenSurveyAndJointGrant(){
+        published(true);var issued=service.issue(1L,1L,10L);
+        assertEquals(20L,issued.taskId());assertEquals("/satisfaction-questionnaires/temporary",issued.signPath());
+        var order=inOrder(independent,legacy,grants);order.verify(independent).create(eq(1L),eq(1L),any(),eq("completion-certificate:10"));
+        order.verify(legacy).submitCompletionCertificate(10L);order.verify(grants).create(eq(1L),eq(1L),eq(20L),any(),eq(10L));
+    }
+    @Test void unchangedCompletionFormAutomaticallyUsesThePublishedOriginalForm(){
+        published(true);certificate.setSatisfactionTemplateId(null);
+        var selected=new SatisfactionQuestionnaireTemplateDO();selected.setId(11L);
+        when(templateMapper.selectCompletionPublished(any())).thenReturn(List.of(selected));
+        when(certificates.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
+        service.issue(1L,1L,10L);
+        verify(certificates).updateById(argThat((CompletionCertificateDO row)->Long.valueOf(11).equals(row.getSatisfactionTemplateId())));
+        verify(independent).create(eq(1L),eq(1L),argThat(command->command.templateId().equals(11L)),eq("completion-certificate:10"));
+    }
+    @Test void multiplePublishedQuestionnairesNeverCauseAnArbitraryChoiceOrPartialIssue(){
+        certificate.setSatisfactionTemplateId(null);
+        when(templateMapper.selectCompletionPublished(any())).thenReturn(List.of(new SatisfactionQuestionnaireTemplateDO(),new SatisfactionQuestionnaireTemplateDO()));
+        assertThrows(IllegalArgumentException.class,()->service.issue(1L,1L,10L));
+        verifyNoInteractions(independent,grants);verify(certificates,never()).updateById(any(CompletionCertificateDO.class));
+    }
+    @Test void unavailableOriginalFormDoesNotFallBackToAnUnrelatedTemplate(){
+        certificate.setSatisfactionTemplateId(null);
+        when(templateMapper.selectCompletionPublished(any())).thenReturn(List.of());
+        assertThrows(IllegalArgumentException.class,()->service.issue(1L,1L,10L));
+        verifyNoInteractions(independent,grants);verify(legacy,never()).submitCompletionCertificate(any());
+    }
+    @Test void reissueReusesPairAndRevokesPreviousLinks(){
+        certificate.setStatus(1);var bundle=new CompletionSatisfactionBundleDO();bundle.setId(40L);bundle.setCollectionKey("SAT-20");
+        when(bundles.selectByCertificate(any())).thenReturn(bundle);
+        var task=new SatisfactionCollectionTaskDO();task.setId(20L);
+        when(tasks.selectByCollection(any())).thenReturn(List.of(task));
+        when(grants.create(eq(1L),eq(1L),eq(20L),any(),eq(10L))).thenReturn(new SatisfactionAccessGrantService.CreatedGrant(31L,2,"replacement",LocalDateTime.now().plusDays(7)));
+        service.issue(1L,1L,10L);
+        verifyNoInteractions(independent,templates);verify(legacy,never()).submitCompletionCertificate(any());
+        var order=inOrder(bundles,grants);order.verify(bundles).selectByCertificate(any());order.verify(bundles).revokeActiveGrants(any());order.verify(grants).create(eq(1L),eq(1L),eq(20L),any(),eq(10L));
+    }
+    @Test void missingOrUnpublishedSelectionLeavesDraftAndNoSurvey(){
+        assertThrows(IllegalArgumentException.class,()->service.issue(1L,1L,10L));
+        verifyNoInteractions(independent,grants);verify(legacy,never()).submitCompletionCertificate(any());
+    }
+    @Test void confirmedRecordCannotBeReissuedOrVoided(){
+        certificate.setStatus(2);
+        assertThrows(IllegalStateException.class,()->service.issue(1L,1L,10L));
+        assertThrows(IllegalStateException.class,()->service.voidRecord(1L,1L,10L));
+        verifyNoInteractions(independent,grants);verify(certificates,never()).updateById(any(CompletionCertificateDO.class));
+    }
+    @Test void voidDraftOrIssuedRecordRevokesItsActiveLinks(){
+        certificate.setStatus(1);var bundle=new CompletionSatisfactionBundleDO();bundle.setId(40L);
+        when(bundles.selectByCertificate(any())).thenReturn(bundle);when(certificates.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
+        service.voidRecord(1L,1L,10L);
+        verify(certificates).updateById(argThat((CompletionCertificateDO row)->row.getStatus()==4 && row.getVersion()==3L));verify(bundles).revokeActiveGrants(any());
+    }
+    @Test void onlyDraftCanBeDeleted(){
+        certificate.setStatus(1);assertThrows(IllegalStateException.class,()->service.delete(1L,1L,10L));verify(legacy,never()).deleteCompletionCertificate(any());
+    }
+    @Test void unauthorizedOrInactiveProjectIssuesNothing(){
+        doThrow(new IllegalStateException("denied")).when(access).requireCommand(any(),any(),any(),any(),any());
+        assertThrows(IllegalStateException.class,()->service.issue(1L,1L,10L));verifyNoInteractions(independent,grants);
+    }
+    @Test void changedOwnerVersionOrNonPdfCannotRegisterDocument(){
+        assertThrows(IllegalStateException.class,()->service.savePdf(1L,1L,10L,2L,"COMPLETION","key","%PDF-demo".getBytes()));
+        assertThrows(IllegalArgumentException.class,()->service.savePdf(1L,1L,10L,3L,"COMPLETION","key","wrong".getBytes()));verifyNoInteractions(files);
+    }
+    @Test void newSurveyAndDraftStatusRollBackWhenGrantFails(){
+        published(false);var dataSource=new org.h2.jdbcx.JdbcDataSource();dataSource.setURL("jdbc:h2:mem:completion_workflow_rollback;DB_CLOSE_DELAY=-1");
+        var jdbc=new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+        jdbc.execute("CREATE TABLE proof(id BIGINT,status INT)");jdbc.execute("CREATE TABLE survey(id BIGINT)");jdbc.update("INSERT INTO proof VALUES(10,0)");
+        when(independent.create(eq(1L),eq(1L),any(),any())).thenAnswer(call->{jdbc.update("INSERT INTO survey VALUES(20)");return new IndependentSatisfactionService.Created(20L,21L,"SAT-20");});
+        doAnswer(call->{jdbc.update("UPDATE proof SET status=1 WHERE id=10");return null;}).when(legacy).submitCompletionCertificate(10L);
+        when(grants.create(eq(1L),eq(1L),eq(20L),any(),eq(10L))).thenThrow(new IllegalStateException("grant failure"));
+        var transaction=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSource));
+        assertThrows(IllegalStateException.class,()->transaction.execute(status->service.issue(1L,1L,10L)));
+        assertEquals(0,jdbc.queryForObject("SELECT status FROM proof WHERE id=10",Integer.class));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM survey",Integer.class));
+    }
+}

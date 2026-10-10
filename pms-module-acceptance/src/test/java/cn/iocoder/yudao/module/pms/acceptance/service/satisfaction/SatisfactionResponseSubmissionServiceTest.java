@@ -29,7 +29,39 @@ class SatisfactionResponseSubmissionServiceTest {
     @Mock SatisfactionResponseFileMapper responseFileMapper;
     @Mock SatisfactionResponseReservationService reservationService;
     @Mock FileArtifactApi fileArtifactApi;
+    @Mock CompletionSatisfactionBundleService completionBundles;
     @InjectMocks SatisfactionResponseSubmissionService service;
+
+    @Test void jointGrantRequiresConsentBeforeResponseWrites() {
+        var grant = activeGrant(1L); grant.setCompletionBundleId(40L);
+        when(grantMapper.selectByDigestForUpdate(any())).thenReturn(grant);
+        assertThrows(IllegalArgumentException.class, () -> service.submit(command()));
+        verifyNoInteractions(responseMapper, responseFileMapper, completionBundles);
+    }
+
+    @Test void jointConfirmationUsesRevalidatedSignatureBeforeConsumingGrant() {
+        arrangeActive();
+        var grant = activeGrant(1L); grant.setCompletionBundleId(40L);
+        when(grantMapper.selectByDigestForUpdate(any())).thenReturn(grant);
+        when(reservationService.requireReserved(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new SatisfactionResponseReservationService.Reservation(50L, 1L, 1, 11L, 30L, true));
+        when(fileArtifactApi.lockAndRevalidateBusinessGrantFiles(any())).thenReturn(List.of(
+                new BusinessGrantFileFact("SATISFACTION_SIGNATURE", "slot-1", 1,
+                        new FileArtifactVersionFact(100L, 1, "slot-1", "SATISFACTION_SIGNATURE",
+                                "sign.png", 3L, "image/png", "a".repeat(64), "AVAILABLE", "ACTIVE",
+                                new FileFactVersion(1, 1, 1), 3L))));
+        when(responseMapper.insert(any(SatisfactionResponseDO.class))).thenReturn(1);
+        when(responseFileMapper.insert(any(SatisfactionResponseFileDO.class))).thenReturn(1);
+        when(grantMapper.consumeIfActive(any())).thenReturn(1);
+        when(taskMapper.moveToPendingDecision(any())).thenReturn(1);
+        var original = command();
+        service.submit(new SatisfactionResponseSubmissionService.Command(original.tenantId(), original.token(), original.requestId(),
+                original.reservedResponseId(), original.submitChannel(), original.customerContactRef(), null,
+                original.answerSnapshot(), original.files(), original.actorRef(), true));
+        var ordered = inOrder(completionBundles, grantMapper);
+        ordered.verify(completionBundles).confirm(eq(7L), eq(grant), any(), eq(50L), eq(true), eq(original.files().getFirst()),isNull());
+        ordered.verify(grantMapper).consumeIfActive(any());
+    }
 
     @Test
     void persistsImmutableResponseFilesAndMovesTaskToDecision() {

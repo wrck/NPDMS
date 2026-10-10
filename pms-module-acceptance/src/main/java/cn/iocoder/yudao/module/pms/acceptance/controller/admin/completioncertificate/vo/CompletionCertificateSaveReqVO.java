@@ -114,4 +114,7 @@ public class CompletionCertificateSaveReqVO {
     @Schema(description = "乐观锁版本号", example = "0")
     private Integer version;
 
+    private Long satisfactionTemplateId;
+    private Long completionPrintTemplateId;
+    private Long satisfactionPrintTemplateId;
 }

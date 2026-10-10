@@ -575,8 +575,7 @@ import CompletionCertificateWorkbench from '@/views/pms/acceptance/completion-ce
 import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
-import * as DeviceApi from '@/api/pms/asset/device'
-import { getDeliveryScopePage, getSalesOrderLinePage } from '@/api/pms/commerce'
+import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
@@ -672,115 +671,30 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
 // ============ 交付模块表格（与 pms-inheritance/project-detail 同一 DeliveryModuleTable） ============
-// 设备清单 = 产品清单信息：交付范围明细（序列号级→项目数量、订单行引用）× ERP 订单行（订单号/发货/未发货数量）
-// × 产品设备清单 ast_device（产品身份/设备台数）按产品聚合。交付范围明细与订单行均不带产品编码，
-// 产品身份经 ast_device 按序列号解析；订单行数量按 订单号+行号 归集到产品。逐台明细见「序列号详情」页签
+// 设备清单保留全部产品，分别显示订单数量和设备数量；逐台记录见「序列号详情」。
 const deliveryModules: Record<string, DeliveryModuleConfig> = {
   equipment: {
     label: '设备清单',
     icon: 'ep:cpu',
     load: async (pid, pageNo, pageSize) => {
-      const [scopeRes, devicePage] = await Promise.all([
-        getDeliveryScopePage({ projectId: pid, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
-        DeviceApi.getDevicePage({ projectId: pid, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
-      ])
-      // 产品身份解析：ast_device 按序列号 → 产品编码/型号/名称
-      const snProduct = new Map<string, { productCode: string; productModel: string; productName: string }>()
-      for (const d of devicePage.list || []) {
-        const sn = String(d.sn ?? '').trim()
-        if (sn) {
-          snProduct.set(sn, {
-            productCode: String(d.productCode ?? '').trim(),
-            productModel: String(d.productModel ?? '').trim(),
-            productName: String(d.productName ?? '').trim()
-          })
-        }
-      }
-      const grouped = new Map<string, {
-        productModel: string; productName: string
-        orderNos: Set<string>; lines: Set<string>
-        projectQty: number; deviceCount: number
-      }>()
-      const ensure = (key: string) => {
-        const cur = grouped.get(key) || { productModel: '', productName: '', orderNos: new Set<string>(), lines: new Set<string>(), projectQty: 0, deviceCount: 0 }
-        grouped.set(key, cur)
-        return cur
-      }
-      for (const scope of scopeRes.list || []) {
-        for (const d of scope.details || []) {
-          const product = snProduct.get(String(d.serialNo ?? '').trim())
-          const key = product?.productCode || String(d.productCode ?? '').trim() || '—'
-          const cur = ensure(key)
-          if (product) {
-            if (!cur.productModel) cur.productModel = product.productModel
-            if (!cur.productName) cur.productName = product.productName
-          }
-          cur.projectQty += Number(d.allocatedQuantity || 0)
-          if (scope.orderNo) cur.orderNos.add(String(scope.orderNo).trim())
-          if (scope.orderNo && scope.lineNo) cur.lines.add(`${String(scope.orderNo).trim()}|${String(scope.lineNo).trim()}`)
-        }
-      }
-      for (const d of devicePage.list || []) {
-        const key = String(d.productCode ?? '').trim() || String(d.productModel ?? '').trim() || '—'
-        const cur = ensure(key)
-        if (!cur.productModel) cur.productModel = String(d.productModel ?? '').trim()
-        if (!cur.productName) cur.productName = String(d.productName ?? '').trim()
-        cur.deviceCount += 1
-      }
-      // 订单行数量（ERP 订单数据）：按 订单号+行号 匹配后归集到产品
-      const orderNos = new Set<string>()
-      grouped.forEach((cur) => cur.orderNos.forEach((o) => orderNos.add(o)))
-      const lineQty = new Map<string, { deliveredQty: number; openQty: number }>()
-      await Promise.all(
-        [...orderNos].map((orderNo) =>
-          getSalesOrderLinePage({ orderNo, pageNo: 1, pageSize: 200 })
-            .then((res: any) => {
-              for (const l of res.list || []) {
-                lineQty.set(`${String(l.orderNo).trim()}|${String(l.lineNo).trim()}`, {
-                  deliveredQty: Number(l.deliveredQty || 0),
-                  openQty: Number(l.openQty || 0)
-                })
-              }
-            })
-            .catch(() => undefined)
-        )
-      )
-      const rows = [...grouped.entries()].map(([key, cur]) => {
-        let deliveredQty = 0
-        let openQty = 0
-        cur.lines.forEach((lk) => {
-          const q = lineQty.get(lk)
-          if (q) {
-            deliveredQty += q.deliveredQty
-            openQty += q.openQty
-          }
-        })
-        return {
-          productCode: key,
-          productModel: cur.productModel,
-          productName: cur.productName,
-          orderNo: [...cur.orderNos].join('、'),
-          projectQty: cur.projectQty,
-          deliveredQty,
-          openQty,
-          deviceCount: cur.deviceCount
-        }
-      })
+      const equipment = await loadProjectEquipmentList(pid)
+      if (!equipment) return { list: [], total: 0 }
+      const rows = equipment.list
       return {
         list: rows.slice((pageNo - 1) * pageSize, pageNo * pageSize).map((r, i) => ({ ...r, no: (pageNo - 1) * pageSize + i + 1 })),
         total: rows.length
       }
     },
     columns: [
-      { prop: 'no', label: '序号', width: 60 },
-      { prop: 'productCode', label: '产品编码', minWidth: 120 },
-      { prop: 'productModel', label: '产品型号', minWidth: 140 },
-      { prop: 'productName', label: '产品名称', minWidth: 200 },
-      { prop: 'orderNo', label: '订单号', minWidth: 140 },
-      { prop: 'projectQty', label: '项目数量', width: 90 },
-      { prop: 'deliveredQty', label: '发货数量', width: 90 },
-      { prop: 'openQty', label: '未发货数量', width: 100 },
-      { prop: 'deviceCount', label: '设备数量', width: 90 }
+      { prop: 'no', label: '序号', width: 46 },
+      { prop: 'productCode', label: '产品编码', minWidth: 92 },
+      { prop: 'productModel', label: '产品型号', minWidth: 110 },
+      { prop: 'productName', label: '产品名称', minWidth: 130 },
+      { prop: 'orderNo', label: '订单号', minWidth: 100 },
+      { prop: 'projectQty', label: '项目数量', width: 76 },
+      { prop: 'deliveredQty', label: '发货数量', width: 76 },
+      { prop: 'openQty', label: '未发货数量', width: 88 },
+      { prop: 'deviceCount', label: '设备数量', width: 76 }
     ],
     // 该产品的逐台序列号与运维明细在「序列号详情」页签
     actions: [

@@ -2,8 +2,8 @@
   <main class="public-page">
     <section class="questionnaire-shell" aria-labelledby="questionnaire-title">
       <header>
-        <span class="eyebrow">项目满意度调查</span>
-        <h1 id="questionnaire-title">{{ outcome ? '感谢您的反馈' : '请评价本次项目交付' }}</h1>
+        <span class="eyebrow">{{ questionnaire?.completionCertificate ? '项目完工确认' : '项目满意度调查' }}</span>
+        <h1 id="questionnaire-title">{{ outcome ? '感谢您的反馈' : questionnaire?.completionCertificate ? '完工证明与满意度调查' : '请评价本次项目交付' }}</h1>
         <p v-if="questionnaire"
           >链接有效至 {{ formatDate(questionnaire.expiresAt) }}。答案、签字与附件提交后不可修改。</p
         >
@@ -18,7 +18,7 @@
       <el-result
         v-else-if="outcome"
         :icon="outcome.passed ? 'success' : 'warning'"
-        title="提交成功"
+        :title="questionnaire?.completionCertificate ? '两份表单已统一提交' : '提交成功'"
         :sub-title="
           outcome.passed ? '本次满意度已达标，感谢您的反馈。' : '答卷已保存，项目团队将跟进整改。'
         "
@@ -30,11 +30,18 @@
         >
       </el-result>
       <section v-else-if="questionnaire" class="questionnaire-form">
-        <div class="customer-confirmation-form">
-          <form-create v-model="answers" v-model:api="questionFormApi" :rule="questionRules" :option="questionFormOption" />
-        </div>
+        <el-tabs v-if="questionnaire.completionCertificate" v-model="activePage">
+          <el-tab-pane label="一、完工证明" name="completion">
+            <CompletionCertificateSheet :certificate="questionnaire.completionCertificate" />
+            <el-button @click="activePage = 'survey'">继续填写满意度调查</el-button>
+          </el-tab-pane>
+          <el-tab-pane label="二、满意度调查表" name="survey">
+            <QuestionnaireTable ref="questionFormApi" :definition="definition" :answers="answers" :disabled="submissionLocked" :show-signature="false" />
+          </el-tab-pane>
+        </el-tabs>
+        <QuestionnaireTable v-else ref="questionFormApi" :definition="definition" :answers="answers" :disabled="submissionLocked" :show-signature="false" />
         <section class="file-section">
-          <h2>签字与附件</h2>
+          <h2>{{ questionnaire.completionCertificate ? '客户签字（同时适用于两份表单）' : '客户签字' }}</h2>
           <div class="customer-confirmation-form">
             <form-create
               v-model="signatureValues"
@@ -42,26 +49,29 @@
               :option="questionFormOption"
             />
           </div>
-          <div class="attachment-field"
+          <div v-if="!questionnaire.submitted" class="attachment-field"
             ><p>补充附件（可选）</p>
             <el-upload
               multiple
               :auto-upload="false"
-              :disabled="submitting"
+              :disabled="submissionLocked"
               :on-change="onAttachmentChange"
               :on-remove="onAttachmentRemove"
               ><el-button>选择附件</el-button></el-upload
             >
           </div>
         </section>
-        <p>请确认由客户本人填写并签字。提交后答卷不可修改。</p>
+        <el-alert v-if="questionnaire.submitted" type="success" :closable="false" :title="`两份表单已统一提交 · ${formatDate(questionnaire.signedAt)}`" />
+        <el-checkbox v-else-if="questionnaire.completionCertificate" v-model="confirmCompletionCertificate" :disabled="submissionLocked" class="joint-confirmation">我已阅读并确认本次完工证明及满意度调查表，以上签字同时适用于两份表单。</el-checkbox>
+        <p v-if="!questionnaire.submitted">请确认由客户本人填写并签字。提交后答卷不可修改。</p>
         <el-button
+          v-if="!questionnaire.submitted"
           type="primary"
           size="large"
           class="submit-button"
           :loading="submitting"
           @click="submit"
-          >提交答卷</el-button
+          >{{ questionnaire.completionCertificate ? '签字并提交两份表单' : '提交答卷' }}</el-button
         >
       </section>
     </section>
@@ -70,7 +80,8 @@
 
 <script setup lang="ts">
 import type { UploadFile } from 'element-plus'
-import type { Api as FormApi } from '@form-create/element-ui'
+import QuestionnaireTable from './QuestionnaireTable.vue'
+import CompletionCertificateSheet from './CompletionCertificateSheet.vue'
 import { useRoute } from 'vue-router'
 import { generateUUID } from '@/utils'
 import {
@@ -91,37 +102,19 @@ const route = useRoute()
 const message = useMessage()
 const loading = ref(true)
 const submitting = ref(false)
+const preparedSubmission = ref<Record<string, unknown>>()
+const submissionLocked = computed(() => submitting.value || !!preparedSubmission.value || !!questionnaire.value?.submitted)
 const errorMessage = ref('')
 const questionnaire = ref<PublicQuestionnaire>()
+const activePage = ref('completion')
+const confirmCompletionCertificate = ref(false)
 const definition = ref<QuestionnaireDefinition>({ schemaVersion: 1, questions: [] })
 const answers = ref<Record<string, string | string[]>>({})
-const questionFormApi = ref<FormApi>()
+const questionFormApi = ref<InstanceType<typeof QuestionnaireTable>>()
 const questionFormOption = computed(() => ({
   ...customerFormOption,
-  form: { ...customerFormOption.form, disabled: submitting.value }
+  form: { ...customerFormOption.form, disabled: submissionLocked.value }
 }))
-const questionRules = computed(() =>
-  definition.value.questions.map((question) => ({
-    type:
-      question.type === 'MULTIPLE_CHOICE'
-        ? 'checkbox'
-        : question.type === 'TEXT'
-          ? 'input'
-          : 'radio',
-    field: question.code,
-    title: question.title,
-    info:
-      question.type === 'MULTIPLE_CHOICE'
-        ? `请选择 ${question.minSelections ?? 0} 至 ${question.maxSelections ?? question.options?.length ?? 0} 项`
-        : '',
-    options: question.options?.map((option) => ({ label: option.label, value: option.code })),
-    props:
-      question.type === 'TEXT'
-        ? { type: 'textarea', rows: 4, maxlength: question.maxLength, showWordLimit: true }
-        : {},
-    validate: [{ required: question.required, message: `请填写${question.title}` }]
-  }))
-)
 const signatureValues = ref({ signatureImageDataUrl: '' })
 const signatureRules = [
   {
@@ -149,6 +142,11 @@ const load = async () => {
     definition.value.questions.forEach((question) => {
       answers.value[question.code] = question.type === 'MULTIPLE_CHOICE' ? [] : ''
     })
+    if (questionnaire.value.submitted) {
+      for (const answer of JSON.parse(questionnaire.value.answerSnapshot || '{"answers":[]}').answers) answers.value[answer.questionCode] = answer.value
+      signatureValues.value.signatureImageDataUrl = questionnaire.value.signatureImageDataUrl || ''
+      confirmCompletionCertificate.value = true
+    }
   } catch {
     errorMessage.value = '链接已过期、已失效或无权访问。'
   } finally {
@@ -199,9 +197,19 @@ const upload = async (
   return { fact, responseId: initialized.responseId }
 }
 const submit = async () => {
-  if (submitting.value || outcome.value || !questionFormApi.value) return
+  if (submitting.value || outcome.value || questionnaire.value?.submitted || !questionFormApi.value) return
+  if (preparedSubmission.value) {
+    submitting.value = true
+    try { outcome.value = await Api.submitPublicResponse(token, tenantId, preparedSubmission.value) }
+    finally { submitting.value = false }
+    return
+  }
+  if (questionnaire.value?.completionCertificate && !confirmCompletionCertificate.value) {
+    message.warning('请确认本次完工证明及满意度调查表')
+    return
+  }
   try { await questionFormApi.value.validate() }
-  catch { message.warning('请完成必填问卷内容'); return }
+  catch (error) { activePage.value = 'survey'; message.warning(error instanceof Error ? error.message : '请完成必填问卷内容'); return }
   if (!signatureValues.value.signatureImageDataUrl) {
     message.warning('请手写签字')
     return
@@ -265,14 +273,17 @@ const submit = async () => {
         })
         .map((question) => ({ questionCode: question.code, value: answers.value[question.code] }))
     })
-    outcome.value = await Api.submitPublicResponse(token, tenantId, {
+    preparedSubmission.value = {
       requestId,
       responseId,
       // 客户联系人不再采集（界面不展示）；已有手写签字，落"手签"
       customerContactRef: '手签',
+      confirmCompletionCertificate: questionnaire.value?.completionCertificate ? confirmCompletionCertificate.value : undefined,
+      signatureImageDataUrl: signatureValues.value.signatureImageDataUrl,
       answerSnapshot,
       files
-    })
+    }
+    outcome.value = await Api.submitPublicResponse(token, tenantId, preparedSubmission.value)
   } finally {
     submitting.value = false
   }
@@ -286,29 +297,31 @@ onMounted(load)
   box-sizing: border-box;
   overflow-y: auto;
   font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
-  padding: 40px 16px;
-  background: var(--el-fill-color-light);
+  padding: 32px 16px;
+  background: #f3f6fa;
 }
 .questionnaire-shell {
   box-sizing: border-box;
-  width: min(760px, 100%);
+  width: min(1512px, 100%);
   margin: 0 auto;
-  padding: 28px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-border-radius-base);
-  background: var(--el-bg-color);
+  padding: 32px 40px;
+  border-top: 4px solid var(--el-color-primary);
+  background: #fff;
 }
 header h1 {
-  margin: 6px 0;
-  font-size: 28px;
+  margin: 10px 0;
+  font-size: 26px;
   color: var(--el-text-color-primary);
 }
 .eyebrow {
   color: var(--el-color-primary);
+  font-size: 14px;
   font-weight: 600;
 }
 header p {
   color: var(--el-text-color-secondary);
+  font-size: 14px;
+  line-height: 1.7;
 }
 .questionnaire-form {
   margin-top: 28px;
@@ -326,19 +339,21 @@ header p {
 }
 .submit-button {
   width: 100%;
-  margin-top: 16px;
+  min-height: 48px;
+  margin-top: 8px;
 }
 .score-summary {
   color: var(--el-text-color-secondary);
 }
+.joint-confirmation { margin-top: 16px; height: auto; white-space: normal; }
+.joint-confirmation :deep(.el-checkbox__label) { white-space: normal; line-height: 1.6; }
 @media (width <= 600px) {
   .public-page {
     padding: 0;
   }
   .questionnaire-shell {
     min-height: 100vh;
-    padding: 20px 16px;
-    border: 0;
+    padding: 24px 18px;
   }
   header h1 {
     font-size: 23px;
