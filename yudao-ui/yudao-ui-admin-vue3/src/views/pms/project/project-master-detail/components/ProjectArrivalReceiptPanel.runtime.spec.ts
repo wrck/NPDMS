@@ -1,121 +1,87 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Arrival from './ProjectArrivalReceiptPanel.vue'
-import * as ArrivalApi from '@/api/pms/engineering/arrival'
-import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-
+import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+const api = vi.hoisted(() => ({ getArrivalPage: vi.fn(), getArrival: vi.fn(), save: vi.fn(), error: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('@/api/system/user', () => ({ __v_isRef: false, getUserPage: vi.fn(), getSimpleUser: vi.fn() }))
+vi.mock('@/api/system/user', () => ({ __v_isRef: false, getSimpleUser: vi.fn() }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 8, nickname: '测试用户' } }) }))
-vi.mock('@/api/pms/engineering/arrival', () => ({ getArrivalPage: vi.fn(), createArrival: vi.fn(), updateArrival: vi.fn(), deleteArrival: vi.fn() }))
+vi.mock('@/api/pms/engineering/arrival', () => api)
+vi.mock('./saveArrivalReceipt', () => ({ saveArrivalReceipt: api.save, createArrivalUploadAttempt: (file: File) => ({ file }) }))
+vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileReferenceList: defineComponent({ setup: () => () => h('file-reference') }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_ARRIVAL_STATUS: 'arrival' }, getIntDictOptions: () => [] }))
-vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }) }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), error: api.error, confirm: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
   expose({ validate: async () => true })
   return () => h('form', attrs, slots.default?.())
 } })
-const uploaderStub = defineComponent({ setup(_, { attrs }) { return () => h('uploader', attrs) } })
-const nodes = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap(child => nodes(child, type))]
-const flush = async () => { for (let i = 0; i < 5; i++) await nextTick() }
-const uploadValue = (mounted: ReturnType<typeof render>): (value: string, successful?: boolean) => void => {
-  const listener = nodes(mounted.root, 'uploader')[0].props?.['onUpdate:modelValue'] as any
-  return (value: string, successful = true) => {
-    ;(Array.isArray(listener) ? listener : [listener]).forEach(fn => fn(value))
-    if (successful) (nodes(mounted.root, 'uploader')[0].props?.onUploadSuccess as () => void)()
+const apps: { unmount: () => void }[] = []
+const render = (readonly = false) => {
+  const view = mount(Arrival, { projectId: 1, readonly }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElUpload: passthrough })
+  apps.push(view.app)
+  return { ...view, state: (view.vm as any).$.setupState }
+}
+const file = { name: '签收.txt', size: 5, raw: { name: '签收.txt', size: 5, type: 'text/plain' } }
+beforeEach(() => { vi.resetAllMocks(); api.getArrivalPage.mockResolvedValue({ list: [], total: 0 }); api.getArrival.mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 3 })) })
+afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+it('keeps signed receipts and their original attachments read-only', async () => {
+  const view = render()
+  api.getArrival.mockResolvedValue({ id: 8, projectId: 1, status: 1, version: 2, attachmentUrl: 'original-file' })
+  await view.state.openForm({ id: 8, projectId: 1, status: 1 }); await nextTick()
+  expect(view.state.readOnly).toBe(true)
+  await view.state.save()
+  expect(api.save).not.toHaveBeenCalled()
+  expect(view.state.form.attachmentUrl).toBe('original-file')
+})
+it('keeps listing and saving inside the enclosing project and queues files without writing a raw URL', async () => {
+  const view = render()
+  view.state.query.projectId = 99; await view.state.load()
+  expect(api.getArrivalPage).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 1 }))
+  await view.state.openForm(); view.state.selectAttachment(file, [file]); await view.state.save()
+  expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ projectId: 1, receiverUserId: 8, attachmentUrl: '' }), { file: file.raw })
+})
+it('loads the actual file reference before editing and retains pending/abnormal versions', async () => {
+  const view = render()
+  for (const status of [0, 2]) {
+    api.getArrival.mockResolvedValue({ id: 9, projectId: 1, status, version: 3, signDocumentArtifactId: 11 })
+    await view.state.openForm({ id: 9, projectId: 1, status }); await view.state.save()
+    expect(view.state.readOnly).toBe(false)
+    expect(api.save).toHaveBeenLastCalledWith(expect.objectContaining({ id: 9, status, version: 3, signDocumentArtifactId: 11 }), undefined)
   }
-}
-const render = () => {
-  const mounted = mount(Arrival, { projectId: 1 }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, UploadFile: uploaderStub })
-  return { ...mounted, state: (mounted.vm as any).$.setupState }
-}
-beforeEach(() => {
-  vi.clearAllMocks()
-  vi.mocked(ArrivalApi.getArrivalPage).mockResolvedValue({ list: [], total: 0 })
 })
-
-it('makes a signed record and its attachment read-only in the existing page', async () => {
-  const mounted = render()
-  try {
-    const signed = { id: 8, projectId: 1, code: 'ARR-SIGNED', status: 1, version: 2, attachmentUrl: 'original-file' }
-    mounted.state.openForm(signed); await flush()
-    expect(mounted.state.readOnly).toBe(true)
-    expect(nodes(mounted.root, 'uploader')[0].props?.disabled).toBe(true)
-    await mounted.state.save(); await mounted.state.remove(signed)
-    expect(ArrivalApi.updateArrival).not.toHaveBeenCalled()
-    expect(ArrivalApi.deleteArrival).not.toHaveBeenCalled()
-  } finally { mounted.app.unmount() }
+it('blocks saving on detail load failure and in a readonly project workspace', async () => {
+  const view = render()
+  api.getArrival.mockRejectedValue(new Error('detail unavailable'))
+  await view.state.openForm({ id: 9, projectId: 1, status: 0 }); await view.state.save()
+  expect(api.save).not.toHaveBeenCalled()
+  const readonly = render(true); await readonly.state.openForm(); await readonly.state.save()
+  expect(api.save).not.toHaveBeenCalled()
 })
-
-it('creates a pending record with receiver defaulting to the current user and completion time auto-filled from upload', async () => {
-  const mounted = render()
-  try {
-    mounted.state.openForm({ id: 8, projectId: 1, code: 'ARR-SIGNED', status: 1, version: 2, attachmentUrl: 'original-file' })
-    mounted.state.openForm(); await flush()
-    expect(mounted.state.receiverName).toBe('测试用户')
-    expect(mounted.state.form.receiverUserId).toBe(8)
-    expect(mounted.state.completionTimeText).toBe('上传交付件后自动填入')
-    uploadValue(mounted)('receipt-url')
-    const autoTime = mounted.state.form.arrivalTime
-    expect(autoTime).toBeTypeOf('number')
-    expect(mounted.state.completionTimeText).not.toBe('上传交付件后自动填入')
-    await mounted.state.save()
-    expect(ArrivalApi.createArrival).toHaveBeenCalledWith(expect.objectContaining({ status: 0, attachmentUrl: 'receipt-url', version: undefined, arrivalTime: autoTime, receiverUserId: 8 }))
-  } finally { mounted.app.unmount() }
+it('keeps failed saves open with the selected file available for retry', async () => {
+  const view = render()
+  await view.state.openForm(); view.state.selectAttachment(file, [file])
+  api.save.mockRejectedValueOnce(new Error('upload failed'))
+  await view.state.save()
+  expect(view.state.formVisible).toBe(true)
+  await view.state.save()
+  expect(api.save.mock.calls[0][1]).toBe(api.save.mock.calls[1][1])
 })
-
-it('keeps local pending and abnormal records editable with their existing version', async () => {
-  const mounted = render()
-  try {
-    for (const status of [0, 2]) {
-      mounted.state.openForm({ id: 9, projectId: 1, code: 'ARR-LOCAL', status, version: 3 }); await flush()
-      expect(mounted.state.readOnly).toBe(false)
-      uploadValue(mounted)('receipt-url')
-      await mounted.state.save()
-      expect(ArrivalApi.updateArrival).toHaveBeenLastCalledWith(expect.objectContaining({ id: 9, status, version: 3, attachmentUrl: 'receipt-url', arrivalTime: expect.any(Number) }))
-    }
-  } finally { mounted.app.unmount() }
+it('rejects unsupported files and clears only the queued selection on removal', async () => {
+  const view = render(); await view.state.openForm()
+  const invalid = { ...file, name: 'bad.exe' }, list = [invalid]
+  view.state.selectAttachment(invalid, list)
+  expect(list).toHaveLength(0)
+  view.state.selectAttachment(file, [file]); view.state.form.arrivalTime = 2000
+  view.state.removeAttachment(); await view.state.save()
+  expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ arrivalTime: 2000 }), undefined)
 })
-
-it('normalizes null legacy evidence before upload so reopening does not switch the API payload to an array', async () => {
-  const mounted = render()
-  try {
-    mounted.state.openForm({ id: 9, projectId: 1, code: 'ARR-NO-FILE', status: 0, version: 1, attachmentUrl: null })
-    await flush()
-    const uploader = nodes(mounted.root, 'uploader')[0]
-    expect(uploader.props?.modelValue).toBe('')
-    uploadValue(mounted)('receipt-url')
-    await mounted.state.save()
-    expect(ArrivalApi.updateArrival).toHaveBeenCalledWith(expect.objectContaining({ attachmentUrl: 'receipt-url', version: 1 }))
-  } finally { mounted.app.unmount() }
-})
-
-it('keeps both list and create in the enclosing project', async () => {
-  const mounted = render()
-  try {
-    mounted.state.query.projectId = 99
-    await mounted.state.load()
-    expect(ArrivalApi.getArrivalPage).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 1 }))
-    mounted.state.openForm()
-    uploadValue(mounted)('receipt-url')
-    await mounted.state.save()
-    expect(ArrivalApi.createArrival).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 1 }))
-  } finally { mounted.app.unmount() }
-})
-
-it('uses the last successful upload time and does not replace it when evidence is removed', async () => {
-  const mounted = render()
-  const now = vi.spyOn(Date, 'now')
-  try {
-    mounted.state.openForm(); await flush()
-    now.mockReturnValue(1101)
-    uploadValue(mounted)('first.pdf')
-    now.mockReturnValue(2999)
-    uploadValue(mounted)('first.pdf,second.pdf')
-    expect(mounted.state.form.arrivalTime).toBe(2000)
-    now.mockReturnValue(3000)
-    uploadValue(mounted)('second.pdf', false)
-    expect(mounted.state.form.arrivalTime).toBe(2000)
-    await mounted.state.save()
-    expect(ArrivalApi.createArrival).toHaveBeenCalledWith(expect.objectContaining({ attachmentUrl: 'second.pdf', arrivalTime: 2000 }))
-  } finally { now.mockRestore(); mounted.app.unmount() }
+it('does not let a stale detail request overwrite a newly opened receipt', async () => {
+  const view = render()
+  let resolve: (value: unknown) => void = () => {}
+  api.getArrival.mockReturnValue(new Promise(done => { resolve = done }))
+  const oldRequest = view.state.openForm({ id: 9, projectId: 1, status: 0 })
+  await view.state.openForm()
+  resolve({ id: 9, projectId: 1, status: 1 }); await oldRequest
+  expect(view.state.form.id).toBeUndefined()
+  expect(view.state.readOnly).toBe(false)
 })

@@ -25,6 +25,7 @@
       {{ stage === 'UPLOADING' ? '正在上传文件' : '上传完成，服务端正在执行适用校验' }}
     </div>
     <el-button
+      v-if="!hideSubmit"
       :disabled="!selectedFile || disabled"
       :loading="busy"
       type="primary"
@@ -54,6 +55,7 @@ const props = withDefaults(
       categoryCode: string
       accept?: string
       disabled?: boolean
+      hideSubmit?: boolean
       ownerExecutionContext?: JsonObject
     }
   >(),
@@ -151,7 +153,7 @@ const submit = async () => {
     busy.value = false
   }
 }
-defineExpose({ isBusy: () => busy.value, hasPendingFile: () => !!selectedFile.value })
+defineExpose({ submit, isBusy: () => busy.value, hasPendingFile: () => !!selectedFile.value })
 </script>
 
 <style scoped lang="scss">

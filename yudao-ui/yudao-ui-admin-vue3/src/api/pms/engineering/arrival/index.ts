@@ -11,6 +11,9 @@ export interface ArrivalVO {
   inspectionResult?: string
   exceptionRecord?: string
   attachmentUrl?: string
+  signDocumentArtifactId?: number
+  signDocumentVersionNo?: number
+  signDocumentReferenceVersion?: number
   status?: number
   remark?: string
   version?: number

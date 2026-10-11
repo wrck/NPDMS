@@ -26,6 +26,11 @@ public class ArrivalDeliveryRegistration {
   var locked=files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(sets.stream().map(s->new FileReferenceSetExpectation(s.key(),s.scopeVersion(),s.activeFacts())).toList(),FileActionCodes.READ));
   locked.forEach(set->set.activeFacts().forEach(materials::registerNativeSourceFile));
  }
+ public FileArtifactVersionFact currentSignDocument(ArrivalDO row){
+  var key=new FileReferenceSetKey("IMP","ARRIVAL",row.getId().toString(),ArrivalFilePolicyProvider.PURPOSE_CODE);
+  var sets=files.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key),FileActionCodes.READ));
+  return sets.stream().flatMap(set->set.activeFacts().stream()).findFirst().orElse(null);
+ }
  public void preventSourceMove(ArrivalDO row,Long project){if(!Objects.equals(row.getProjectId(),project)&&!materials.listByEntity("IMP","arrival",row.getId()).isEmpty())throw denied();}
  public void registerSigned(ArrivalDO row){materials.registerBusinessResultMaterial("IMP","arrival",row.getId(),"RECEIPT","arrival",row.getId().toString(),null,row.getCode(),row.getProjectId());}
  private static boolean visible(ProjectScopeResult s,Long id){return s!=null&&s.treeVersion()!=null&&s.fullProjectIds()!=null&&s.fullProjectIds().contains(id);}
