@@ -84,10 +84,12 @@ docker compose --profile security-scan up -d clamav
 
 ```powershell
 # 构建后端（宿主机 JDK 25）
-mvn -pl yudao-server -am package -DskipTests
-# 启动后端（宿主机）
+  powershell.exe -NoProfile -File scripts/worktree-build.ps1 -Target backend -MavenArguments '-DskipTests'
+  # 默认58080环境启动（59191验收环境请使用下述统一入口）
 java -jar yudao-server/target/yudao-server.jar --server.port=58080
 ```
+
+当前工作树59191验收环境采用 `scripts/worktree-backend.ps1 -Manifest <发布清单> -ValidateOnly` 检查发布产物、当前运行基线及 `local,dac` 配置；取得本次明确重启批准后，改用 `-ApprovedRestart` 部署。构建入口输出 `.run/build/releases/<ID>/manifest.json`，不自动部署，也不自动选择其他会话的“最新target”。同一工作树各会话使用同一工具链、`.run/build/m2` 及独占锁；编译期间源码变动、产物改动或准备后运行包被其他部署替换均阻止继续部署。新的已授权功能可通过新发布清单及时部署；若修改受保护的已验证类，应先复核差异并更新批准基线，不能删减校验绕过。
 
 - 后端健康检查：<http://10.210.0.11:58080/actuator/health>
 - 后端接口文档：<http://10.210.0.11:58080/doc.html>
