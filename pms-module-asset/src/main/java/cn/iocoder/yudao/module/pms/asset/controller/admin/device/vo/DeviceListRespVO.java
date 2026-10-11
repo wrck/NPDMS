@@ -27,5 +27,9 @@ public record DeviceListRespVO(
         String syncStatus,
         String locationSnapshot,
         String locationResolutionStatus,
-        DeviceOrganizationRespVO organization) {
+        DeviceOrganizationRespVO organization,
+        String bootVersion,
+        String cpldVersion,
+        Integer warrantyMonths,
+        Long extendedCount) {
 }

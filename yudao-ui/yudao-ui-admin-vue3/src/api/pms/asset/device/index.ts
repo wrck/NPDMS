@@ -21,6 +21,10 @@ export interface DeviceOrganizationVO {
 }
 
 export interface DeviceListVO {
+  bootVersion?: string
+  cpldVersion?: string
+  warrantyMonths?: number
+  extendedCount?: number
   organization?: DeviceOrganizationVO
   name?: string
   status?: string

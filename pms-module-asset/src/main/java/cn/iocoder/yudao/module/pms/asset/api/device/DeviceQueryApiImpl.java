@@ -13,7 +13,17 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DeviceQueryApiImpl implements DeviceQueryApi {
 
+    private final cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper deviceMapper;
     private final DeviceQueryService deviceQueryService;
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public java.util.List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> lockProjectInstallationDevices(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query) {
+        if (query == null || query.tenantId() == null || !query.tenantId().equals(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                || query.projectId() == null || query.projectId() <= 0) throw new IllegalArgumentException("PROJECT_DEVICE_SCOPE_REQUIRED");
+        return deviceMapper.selectProjectInstallationDevicesForUpdate(query);
+    }
 
     @Override
     public DeviceSummaryDTO getDevice(Long deviceId) {

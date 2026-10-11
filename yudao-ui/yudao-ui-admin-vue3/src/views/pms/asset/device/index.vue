@@ -66,7 +66,9 @@
         label="位置快照"
         min-width="140"
         show-overflow-tooltip
-      />
+      >
+        <template #default="{ row }">{{ locationSnapshotText(row.locationSnapshot) || '-' }}</template>
+      </el-table-column>
       <el-table-column prop="locationResolutionStatus" label="地点状态" width="110" />
       <el-table-column prop="warrantyEndDate" label="保修截止" min-width="120" />
       <el-table-column label="所属公司" min-width="180" show-overflow-tooltip>
@@ -163,7 +165,7 @@
           ><DeviceOfficialInfoPanel :slice="detail.official"
         /></el-tab-pane>
         <el-tab-pane label="在网版本" name="network"
-          ><DeviceNetworkVersionPanel :slice="detail.networkVersion"
+          ><DeviceNetworkVersionPanel :slice="detail.networkVersion" :device-id="detail.summary.deviceId"
         /></el-tab-pane>
         <el-tab-pane label="技术公告" name="notice"
           ><DeviceTechnicalNoticePanel :slice="detail.technicalNotice"
@@ -188,6 +190,7 @@
   <DeviceArchiveStatusChangeDialog ref="statusChangeDialog" @success="refreshAll" />
 </template>
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'

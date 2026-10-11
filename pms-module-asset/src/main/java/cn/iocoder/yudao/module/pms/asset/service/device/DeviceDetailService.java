@@ -37,8 +37,8 @@ public class DeviceDetailService {
 
     private DeviceSourceSliceRespVO networkVersion(DeviceSummaryDTO summary) {
         DeviceNetworkVersionDO version = networkVersionMapper.selectByTenantAndSn(summary.tenantId(), summary.sn());
-        if (version == null) {
-            return DeviceSourceSliceRespVO.notAvailable("ITR");
+        if (version == null || !"DEVICE_LOG".equals(version.getSourceSystem())) {
+            return DeviceSourceSliceRespVO.notAvailable("DEVICE_LOG");
         }
         NetworkSoftwareVersion data = new NetworkSoftwareVersion(
                 version.getConpVersion(), version.getConpType(), version.getConpSeries(), version.getConpMark(),

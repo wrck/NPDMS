@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectDeviceShipmentMapper">
+    <select id="selectShippedProjectIds" resultType="java.lang.Long">
+        SELECT DISTINCT project_id FROM ast_device
+        WHERE tenant_id = #{query.tenantId} AND deleted = b'0'
+          AND shipment_time IS NOT NULL AND sn IS NOT NULL AND TRIM(sn) &lt;&gt; ''
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND project_id IN
+                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+</mapper>

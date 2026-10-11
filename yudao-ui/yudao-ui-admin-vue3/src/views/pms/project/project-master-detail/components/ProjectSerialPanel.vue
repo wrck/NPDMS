@@ -1,6 +1,6 @@
 <!-- 项目详情 · 序列号详情面板（DemoV2 1.1.1）：18 列序列号明细表，
-     行数据取 /pms/asset/devices/page（按项目过滤），安装位置取设备档案位置快照按 sn 关联，
-     在网 conboot/cpld 与维保时长/续保次数按当前页逐台补齐（设备详情 + 维保记录接口）。
+     行数据取 /pms/asset/devices/page（按项目过滤），安装地址取设备当前完整地址投影，设备位置快照为兼容显示，
+     在网版本、维保统计由设备分页一次返回，当前安装地址直接取设备当前投影。
      出厂版本（MES）与官网版本/受影响技术公告（KNO）数据源未接入，如实以「—」展示。 -->
 <template>
   <ContentWrap :body-style="{ padding: '20px' }">
@@ -34,7 +34,7 @@
       <el-table-column label="产品名称" min-width="130" show-overflow-tooltip>
         <template #default="{ row }">{{ row.productName || '—' }}</template>
       </el-table-column>
-      <el-table-column label="安装位置" min-width="140" show-overflow-tooltip>
+      <el-table-column label="安装地址" min-width="240" show-overflow-tooltip>
         <template #default="{ row }">{{ row.location || '—' }}</template>
       </el-table-column>
       <el-table-column label="出厂软件版本" min-width="110" align="center">
@@ -84,7 +84,7 @@
             link
             type="primary"
             :data-testid="`serial-config-log-${row.sn}`"
-            @click="emit('open-config-log', row.deviceId)"
+            @click="emit('open-config-log', row.deviceId, row.sn)"
           >
             配置Log
           </el-button>
@@ -101,14 +101,14 @@
 </template>
 
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 
-const props = defineProps<{ projectId: number }>()
-const emit = defineEmits<{ (e: 'open-config-log', deviceId: number): void }>()
+const props = withDefaults(defineProps<{ projectId: number; active?: boolean }>(), { active: true })
+const emit = defineEmits<{ (e: 'open-config-log', deviceId: number, serialNumber: string): void }>()
 
 const NOT_INTEGRATED = '—'
 
@@ -140,9 +140,9 @@ const load = async () => {
   const sequence = ++loadSequence
   const projectId = props.projectId
   rows.value = []
-  total.value = 0
+  // 翻页期间保留总数，避免分页组件把当前页裁回第一页并触发额外请求。
   errorText.value = ''
-  if (!projectId) return
+  if (!projectId || !props.active) { loading.value = false; return }
   loading.value = true
   try {
     const page = await DeviceApi.getDevicePage({
@@ -161,11 +161,13 @@ const load = async () => {
       conpVersion: d.conpVersion,
       conpType: d.conpType,
       warrantyStartDate: d.warrantyStartDate,
-      warrantyEndDate: d.warrantyEndDate
+      warrantyEndDate: d.warrantyEndDate,
+      bootVersion: d.bootVersion,
+      cpldVersion: d.cpldVersion,
+      warrantyMonths: d.warrantyMonths,
+      extendedCount: d.extendedCount,
+      location: locationSnapshotText(d.locationSnapshot)
     }))
-    // 只读取当前页的设备，避免截断项目第 200 台之后的安装位置。
-    await enrich(list, projectId)
-    if (sequence !== loadSequence) return
     rows.value = list
   } catch {
     if (sequence === loadSequence) errorText.value = '序列号加载失败，请重新查询。'
@@ -174,44 +176,10 @@ const load = async () => {
   }
 }
 
-// 在网 conboot/cpld 版本与维保时长/续保次数不在列表投影内，按当前页逐台补齐；
-// 详情切片未同步（NOT_AVAILABLE）时对应列保持「—」，不臆造取值
-const enrich = async (list: SerialRow[], projectId: number) => {
-  await Promise.allSettled(
-    list.map(async (row) => {
-      const [detail, warranty, archive] = await Promise.allSettled([
-        DeviceApi.getDevice(row.deviceId),
-        DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: 1, pageSize: 100 }),
-        DeviceArchiveApi.getDeviceArchivePage({ projectId, sn: row.sn, pageNo: 1, pageSize: 100 })
-      ])
-      if (archive.status === 'fulfilled') {
-        row.location = archive.value.list?.find((item: DeviceArchiveApi.DeviceArchiveVO) => item.sn === row.sn)?.locationSnapshot
-      }
-      if (detail.status === 'fulfilled' && detail.value) {
-        const slice = detail.value.networkVersion
-        const data = (slice?.data || {}) as Record<string, any>
-        if (slice && slice.syncStatus !== 'NOT_AVAILABLE') {
-          row.bootVersion = data.bootVersion || ''
-          row.cpldVersion = data.cpldVersion || ''
-        }
-      }
-      if (warranty.status === 'fulfilled' && warranty.value) {
-        row.warrantyMonths = warranty.value.current?.warrantyMonths
-        const records = [...(warranty.value.records?.list || [])]
-        const recordTotal = Number(warranty.value.records?.total || 0)
-        for (let nextPage = 2; records.length < recordTotal; nextPage++) {
-          const next = await DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: nextPage, pageSize: 100 })
-          if (!next.records?.list?.length) break
-          records.push(...next.records.list)
-        }
-        row.extendedCount = records.length >= recordTotal ? records.filter((r) => r.extended).length : undefined
-      }
-    })
-  )
-}
-
+// 未同步字段保持「—」，安装地址查询失败时仅展示已有可读快照。
 const search = () => { pageNo.value = 1; void load() }
-watch(() => props.projectId, () => { sn.value = ''; search() }, { immediate: true })
+watch(() => props.projectId, () => { total.value = 0; sn.value = ''; search() }, { immediate: true })
+watch(() => props.active, active => { if (active) void load() })
 onBeforeUnmount(() => { ++loadSequence })
 </script>
 
