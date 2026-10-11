@@ -193,6 +193,7 @@ docker compose -f .\device-ops-platform\deploy\standalone\compose-ha.yaml up -d 
 [外部系统调用解析 API](docs/external-api.md)。
 
 - 专用 OpenAPI：`/v3/api-docs/external-parser`；Swagger 选择 `external-parser` 分组。
+- 直接日志：`POST /api/v1/log-parses`，传入原始 `inputText` 或已有 `sourceCollectionId`；`GET /api/v1/log-parses/{requestId}?namespace=...` 查询状态及结果。路径不绑定消费系统，显式 namespace/project 必须经 JWT 授权；不连接设备、不改变原采集结果。详见上述接口文档。
 - 提交：`POST /api/v1/parse-tasks`，需要 `parser:task:create` 和 `Idempotency-Key`。
 - 查询：`GET /api/v1/parse-tasks/{taskId}`；结果：`GET /api/v1/parse-tasks/{taskId}/result`，需要 `parser:task:read`。
 - namespace 从受信 JWT 派生；同请求重试返回原任务，跨 namespace 的任务、结果和输入引用不可访问。

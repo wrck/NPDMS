@@ -24,10 +24,32 @@ public class ExternalParserOpenApiConfiguration {
     private static final String TASK = TASKS + "/{taskId}";
     private static final String TASK_RESULT = TASK + "/result";
     private static final String RESULT = "/api/v1/parse-results/{resultId}";
+    private static final String LOGS = "/api/v1/log-parses";
+    private static final String LOG = LOGS + "/{requestId}";
     private static final String READ_ACCESS = "Requires JWT scope parser:task:read. "
             + "Access is restricted to the caller namespace derived from the JWT.";
 
     private static final Map<String, Map<HttpMethod, OperationDocumentation>> OPERATIONS = Map.of(
+            LOGS, Map.of(HttpMethod.POST, new OperationDocumentation(
+                    "Parse raw device text or a saved collection log",
+                    "Requires parser:task:create or device-ops:collections:execute. Explicit namespace and projectKey "
+                            + "must be authorized by the JWT. Supply inputText or sourceCollectionId, never both. "
+                            + "A saved collection additionally requires device-ops:collections:read. requestId is the "
+                            + "namespace-scoped idempotency key. Input is sanitized before persistence; no device command "
+                            + "is executed. The active published parser release is pinned on acceptance.",
+                    Map.of("202", "Parse accepted or identical submission replayed; poll by requestId.",
+                            "400", "Invalid source selection, log text or request identifier.",
+                            "404", "Collection or active parser release not found.",
+                            "409", "Request identifier already binds different input or parser release is unavailable.",
+                            "413", "Log exceeds the configured input size limit."))),
+            LOG, Map.of(HttpMethod.GET, new OperationDocumentation(
+                    "Get log parse status and structured result by request ID",
+                    "Requires parser:task:read or device-ops:collections:read. The namespace query parameter and "
+                            + "the task project must be authorized by the JWT. Returns the fixed release, warnings "
+                            + "and result envelope when available. A status query never submits or re-executes work.",
+                    Map.of("200", "Current parsing state and optional structured result.",
+                            "400", "Invalid request identifier or namespace.",
+                            "404", "Task or result not found in this namespace."))),
             TASKS, Map.of(
                     HttpMethod.POST, new OperationDocumentation(
                             "Submit an asynchronous parse task",
@@ -80,7 +102,7 @@ public class ExternalParserOpenApiConfiguration {
         return GroupedOpenApi.builder()
                 .group("external-parser")
                 .displayName("External parser API")
-                .pathsToMatch(TASKS, TASK, RESULT, TASK_RESULT)
+                .pathsToMatch(TASKS, TASK, RESULT, TASK_RESULT, LOGS, LOG)
                 .addOpenApiCustomizer(this::retainExternalOperations)
                 .build();
     }
@@ -97,7 +119,8 @@ public class ExternalParserOpenApiConfiguration {
                     .bearerFormat("JWT")
                     .description("Bearer JWT issued by the configured identity provider. Submission requires "
                             + "parser:task:create; task and result queries require parser:task:read. "
-                            + "The caller namespace is derived from the token, not supplied as a request parameter."));
+                            + "The caller namespace is derived from the token for parse-tasks; log-parses validates "
+                            + "its explicit namespace and project against the token claims."));
             // Only the allowlisted operations require Bearer; public routes keep their generated security.
             if (openApi.getPaths() != null) {
                 openApi.getPaths().forEach((path, item) -> {

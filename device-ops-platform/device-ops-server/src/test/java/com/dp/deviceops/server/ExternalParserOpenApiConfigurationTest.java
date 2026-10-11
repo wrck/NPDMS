@@ -39,6 +39,8 @@ class ExternalParserOpenApiConfigurationTest {
     private static final String TASK_RESULT = TASK + "/result";
     private static final String RESULT = "/api/v1/parse-results/{resultId}";
     private static final Map<String, Set<HttpMethod>> EXTERNAL_OPERATIONS = Map.of(
+            "/api/v1/log-parses", Set.of(HttpMethod.POST),
+            "/api/v1/log-parses/{requestId}", Set.of(HttpMethod.GET),
             TASKS, Set.of(HttpMethod.POST, HttpMethod.GET),
             TASK, Set.of(HttpMethod.GET),
             TASK_RESULT, Set.of(HttpMethod.GET),
@@ -78,7 +80,7 @@ class ExternalParserOpenApiConfigurationTest {
     }
 
     @Test
-    void groupWhitelistsAllFiveOperationsAndRejectsReleaseAdminControlRoutesAndExtraMethods() {
+    void groupWhitelistsExternalOperationsAndRejectsReleaseAdminControlRoutesAndExtraMethods() {
         GroupedOpenApi group = externalGroup();
         assertEquals(EXTERNAL_OPERATIONS.keySet(), Set.copyOf(group.getPathsToMatch()));
         OpenAPI docs = externalDocument();

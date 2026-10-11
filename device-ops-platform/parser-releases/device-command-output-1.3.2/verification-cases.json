@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "caseId": "real-three-command",
+      "inputFile": "input-real-sanitized.json",
+      "expectedFile": "expected-real.json"
+    },
+    {
+      "caseId": "tech-only",
+      "inputFile": "input-tech-only-sanitized.json",
+      "expectedFile": "expected-tech-only.json"
+    },
+    {
+      "caseId": "generic-all-four-versions",
+      "inputFile": "input-generic-version.json",
+      "expectedFile": "expected-generic-version.json"
+    },
+    {
+      "caseId": "slot-device-serial-table",
+      "inputFile": "input-slot-devices.json",
+      "expectedFile": "expected-slot-devices.json"
+    }
+  ]
+}

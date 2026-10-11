@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
 
-@RestControllerAdvice(assignableTypes = {ParserReleaseController.class, ParseTaskController.class})
+@RestControllerAdvice(assignableTypes = {ParserReleaseController.class, ParseTaskController.class, DeviceLogParseController.class})
 public final class ParserApiErrorHandler {
 
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,

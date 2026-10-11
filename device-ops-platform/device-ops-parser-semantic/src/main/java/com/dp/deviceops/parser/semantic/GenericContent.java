@@ -55,7 +55,8 @@ public record GenericContent(List<Unit> units) {
                     || commandIndex != parentCommandIndex)) {
                 throw new IllegalArgumentException("nested unit requires matching parent identity");
             }
-            commandText = requireText(commandText, "commandText");
+            // Console exports may omit the command echo; keep that absence as evidence.
+            commandText = Objects.requireNonNull(commandText, "commandText");
             requireLineRange(sourceLineStart, sourceLineEnd);
             Objects.requireNonNull(structureStatus, "structureStatus");
             sections = List.copyOf(Objects.requireNonNull(sections, "sections"));
