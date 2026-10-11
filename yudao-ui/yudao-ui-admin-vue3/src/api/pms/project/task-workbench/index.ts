@@ -119,6 +119,10 @@ export interface TaskWorkbench {
   factVersion?: string
   recoverableError?: string
   approval?: TaskApprovalView
+  startAdmission?: {
+    outcome: 'MATCHED' | 'NOT_MATCHED' | 'UNKNOWN'
+    conditions: { label: string; outcome: 'MATCHED' | 'NOT_MATCHED' | 'UNKNOWN' }[]
+  }
   resultSubscriptions?: TaskSubscriptionRound[]
   deliverables?: TaskWorkbenchDeliverable[]
 }

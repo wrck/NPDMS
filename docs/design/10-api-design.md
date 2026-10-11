@@ -789,3 +789,9 @@ INT公开 `DeviceOpsLogSplitApi.split(Command)`，DAC实现内容拆分；命令
 DAC新增 POST `/api/v1/npdms/log-splits`，只接受 `TERMINAL_TEXT` 或已验签来源的 `DAC_CALLBACK` 内容，重验JWT execute scope、namespace和project claim；不下发设备命令。输入上限复用采集日志20MiB限制。422仅返回固定失败code及可选内容块序号，不回显日志。配置采集成功不等于此归档成功，归档成功不等于业务配置完成。
 
 采集回传沿用原 `pms:imp-configuration:update` 消费权限及当前项目EDIT范围，PLT通过原配置来源适配器的CONSUME入口锁定重验；该入口不向主体授予手工日志导入权限。手工导入还须 `pms:file:upload`，在调用DAC前重验；下载还须 `pms:file:download`。新的归档权限由已有授权管理显式配置，迁移只初始化菜单，不自动给业务角色授权。归档时间沿用平台EpochMillis，标识沿用Long安全序列化。
+
+### 2026-10-11 任务审批首次发起准入预览
+
+需求方确认修复割接审批入口：未满足准入时禁止首次提交并显示前置条件，保留既有准入规则。`GET /api/v1/pms/project-tasks/{taskId}/workbench` 在审批绑定原本允许START时返回 `startAdmission`，包含 `outcome`（MATCHED/NOT_MATCHED/UNKNOWN）及 `conditions`（label、outcome）。PROJ复用命令START的当前生效计划、冻结规则和事实求值；仅MATCHED保留START，未满足或不可用都移除该操作，不改变其他操作。项目范围受限的任务可见者只获总体结果，不返回其他任务名称。
+
+此预览只读，不激活节点、不写轮次、规则历史或完成证据，不能代替提交时的锁内版本、权限、准入复核。前端按预览显示未满足条件，不把未知结果当作已满足；当前轮次已经启动后的APPROVAL重提仍沿用原契约。模板配置、审批人和流程定义不变。
