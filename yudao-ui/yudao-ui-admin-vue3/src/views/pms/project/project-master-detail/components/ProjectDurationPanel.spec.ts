@@ -64,7 +64,7 @@ describe('F-SOL-001 project duration panel', () => {
   })
 
   it('uses platform BPM for approval and applicant cancellation without SOL terminal writes', () => {
-    expect(panel).toContain("name: 'BpmProcessInstanceDetail'")
+    expect(panel).toContain('openApprovalDetail(processInstanceId)')
     expect(panel).toContain('cancelProcessInstanceByStartUser')
     expect(panel).not.toMatch(/approveChange|rejectChange|withdrawChange/)
     expect(api).not.toMatch(/actions\/(?:approve|reject|cancel)/)

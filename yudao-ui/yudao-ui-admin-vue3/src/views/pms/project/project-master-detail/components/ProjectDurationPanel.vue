@@ -157,7 +157,7 @@
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
 import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
@@ -182,7 +182,7 @@ const drawerDirty = ref(false)
 const errorText = ref('')
 let loadSequence = 0
 let contextVersion = 0
-const router = useRouter()
+const openApprovalDetail = useProjectApprovalDetail()
 const message = useMessage()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -260,7 +260,7 @@ const submitDraft = async () => {
 }
 const openBpm = (processInstanceId: string) => {
   if (!canWrite.value) return
-  return router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } })
+  return openApprovalDetail(processInstanceId)
 }
 const withdraw = async () => {
   const instanceId = plan.value?.pendingChangeSummary?.processInstanceId

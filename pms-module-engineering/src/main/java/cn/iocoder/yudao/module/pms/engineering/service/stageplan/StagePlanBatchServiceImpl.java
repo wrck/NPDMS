@@ -263,7 +263,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public StagePlanBatchRespVO submit(Long batchId, Long approverUserId) {
+    public StagePlanBatchRespVO submit(Long batchId, Long approverUserId, String adjustmentReason) {
         if (approverUserId == null || approverUserId <= 0) {
             throw exception(STAGE_PLAN_ARGUMENT_INVALID, "审批人不能为空");
         }
@@ -273,8 +273,9 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         if (approver == null || !Objects.equals(approver.userId(), approverUserId)
                 || approver.effectiveRoleCodes().stream().noneMatch(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES::contains))
             throw exception(STAGE_PLAN_ARGUMENT_INVALID, "审批人必须是本项目的有效服务经理");
-        if (batch.getRemark() == null || batch.getRemark().isBlank())
-            throw exception(STAGE_PLAN_ARGUMENT_INVALID, "提交审核前请填写调整原因");
+        if (requiresAdjustmentReason(batch.getProjectId())
+                && (adjustmentReason == null || adjustmentReason.isBlank()))
+            throw exception(STAGE_PLAN_ARGUMENT_INVALID, "已有生效计划，提交审核前请填写调整理由");
         List<StagePlanItemDO> items = itemMapper.selectListByBatchId(batchId);
         ConstructionPlanRevisionDO baseline = loadBatchBaseline(batch);
         validateStageSequence(items, baseline, batch);
@@ -304,6 +305,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         update.setBpmProcessInstanceId(processInstanceId);
         update.setSubmittedAt(java.time.LocalDateTime.now());
         update.setSubmittedBy(actorId);
+        if (adjustmentReason != null) update.setRemark(adjustmentReason.trim());
         update.setRejectReason(null);
         update.setVersion(batch.getVersion());
         if (batchMapper.updateById(update) != 1) throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
@@ -378,6 +380,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         }
         requireAccess(batch.getProjectId(), false);
         StagePlanBatchRespVO respVO = BeanUtils.toBean(batch, StagePlanBatchRespVO.class);
+        respVO.setAdjustmentReasonRequired(requiresAdjustmentReason(batch.getProjectId()));
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         ConstructionPlanRevisionDO baseline = loadBatchBaseline(batch);
         if (baseline != null) {
@@ -388,6 +391,11 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         respVO.setItems(itemMapper.selectListByBatchId(batchId).stream()
                 .map(item -> BeanUtils.toBean(item, StagePlanItemRespVO.class)).toList());
         return respVO;
+    }
+
+    private boolean requiresAdjustmentReason(Long projectId) {
+        return batchMapper.selectListByProject(projectId).stream()
+                .anyMatch(value -> Objects.equals(value.getStatus(), StagePlanBatchDO.STATUS_EFFECTIVE));
     }
 
     @Override

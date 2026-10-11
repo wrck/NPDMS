@@ -5,7 +5,7 @@ import tools.jackson.databind.JsonNode;
 /** ACC consumes the project's frozen plan, never the latest editable template definition. */
 public interface ProjectDeliverableRuleApi {
     Context read(Long projectId, String deliverableCode);
-    /** Codes explicitly configured for this document source in the effective frozen plan. */
+    /** Codes matched by explicit sources or the authorized native Owner-task completion references in the effective frozen plan. */
     java.util.Set<String> documentTargets(Long projectId, String sourceCode);
     /** Caller transaction; project root, project and runtime graph precede ACC/file locks. */
     Context lock(Long projectId, String deliverableCode);

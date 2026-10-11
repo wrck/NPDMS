@@ -72,8 +72,9 @@ public class StagePlanBatchController {
     @Parameter(name = "approverUserId", description = "审批人用户编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:imp-stage-plan:submit')")
     public CommonResult<StagePlanBatchRespVO> submit(@PathVariable("id") @Positive Long id,
-                                                     @RequestParam("approverUserId") @Positive Long approverUserId) {
-        return success(stagePlanBatchService.submit(id, approverUserId));
+                                                     @RequestParam("approverUserId") @Positive Long approverUserId,
+                                                     @RequestParam(value = "adjustmentReason", required = false) String adjustmentReason) {
+        return success(stagePlanBatchService.submit(id, approverUserId, adjustmentReason));
     }
 
     @GetMapping("/get")

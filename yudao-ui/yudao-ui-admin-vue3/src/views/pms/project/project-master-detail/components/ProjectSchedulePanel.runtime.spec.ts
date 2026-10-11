@@ -217,7 +217,7 @@ it('prevents approval when a task remains outside its stage and keeps approved v
   const app = render()
   try {
     await flush()
-    // 提交检查先要求调整原因，再校验阶段区间与任务安排
+    // 首次提交也必须校验阶段区间与任务安排
     app.state.batch.remark = '现场协调调整'
     app.state.batch.tasks[0].planEnd = '2026-11-01'
     app.state.saved = JSON.stringify(app.state.batch)
@@ -230,6 +230,38 @@ it('prevents approval when a task remains outside its stage and keeps approved v
   } finally {
     app.app.unmount()
   }
+})
+
+it('submits the first plan without a reason and keeps reason entry out of the date editor', async () => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.adjustmentReasonRequired = false
+    app.state.batch.remark = ''
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, undefined)
+  } finally { app.app.unmount() }
+})
+
+it('collects a fresh adjustment reason in the submission dialog without making dates dirty', async () => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.adjustmentReasonRequired = true
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).not.toHaveBeenCalled()
+    expect(feedback.warning).toHaveBeenCalledWith('请填写调整理由')
+    app.state.adjustmentReason = '  现场实施窗口调整  '
+    expect(app.state.dirty).toBe(false)
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, '现场实施窗口调整')
+  } finally { app.app.unmount() }
 })
 
 it('auto-fits violating task dates into the stage window when stage dates change', async () => {

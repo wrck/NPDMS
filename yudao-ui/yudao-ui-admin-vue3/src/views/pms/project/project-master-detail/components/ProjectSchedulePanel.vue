@@ -147,13 +147,6 @@
         @open-task="openTask"
       />
       <el-form v-if="editable" label-position="top" class="adjustment-form">
-        <el-form-item label="调整原因"
-          ><el-input
-            v-model="batch.remark"
-            type="textarea"
-            :rows="2"
-            placeholder="说明调整依据，随计划一并提交审核"
-        /></el-form-item>
         <div class="schedule-actions plan-footer">
           <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
             <el-button
@@ -186,12 +179,7 @@
           v-if="batch.bpmProcessInstanceId"
           link
           type="primary"
-          @click="
-            router.push({
-              name: 'BpmProcessInstanceDetail',
-              query: { id: batch.bpmProcessInstanceId }
-            })
-          "
+          @click="openApprovalDetail(batch.bpmProcessInstanceId)"
           >查看审批进度</el-button
         >
       </Teleport>
@@ -242,7 +230,11 @@
             :key="person.userId"
             :value="person.userId"
             :label="person.memberName || `用户 ${person.userId}`" /></el-select></el-form-item
-    ></el-form>
+    >
+      <el-form-item v-if="batch?.adjustmentReasonRequired" label="调整理由" required>
+        <el-input v-model="adjustmentReason" type="textarea" :rows="3" placeholder="说明本次阶段和任务日期的调整理由" :disabled="acting" />
+      </el-form-item>
+    </el-form>
     <template #footer
       ><el-button @click="submitVisible = false">取消</el-button
       ><el-button type="primary" :loading="acting" :disabled="!approverId || dirty" @click="submit"
@@ -268,7 +260,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { shortPlan, deadlineHint, taskPlanIssue, stageItemIssue, fitTaskPlanIntoStage, compareSchedules } from './schedulePresentation'
-import { useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { formatDate } from '@/utils/formatTime'
@@ -289,7 +282,7 @@ const emit = defineEmits<{
   'open-task': [task: TaskApi.TaskNode, stageCode: string]
   changed: []
 }>()
-const router = useRouter(),
+const openApprovalDetail = useProjectApprovalDetail(),
   message = useMessage()
 const loading = ref(false),
   acting = ref(false),
@@ -300,6 +293,7 @@ const durationVisible = ref(false),
 const approvers = ref<MemberApi.MemberRecord[]>([]),
   approversLoading = ref(false),
   approverError = ref('')
+const adjustmentReason = ref('')
 const comparisonVisible = ref(false),
   comparisonLoading = ref(false)
 const comparisonRows = ref<ReturnType<typeof compareSchedules>>([])
@@ -547,6 +541,7 @@ const openSubmit = async () => {
   const projectId = props.project.id!
   submitVisible.value = true
   approverId.value = undefined
+  adjustmentReason.value = ''
   approvers.value = []
   approverError.value = ''
   approversLoading.value = true
@@ -622,7 +617,7 @@ const save = async () => {
 const submit = async () => {
   const value = batch.value
   if (!value || !approverId.value || dirty.value) return
-  if (!value.remark?.trim()) return message.warning('提交审核前请填写调整原因')
+  if (value.adjustmentReasonRequired && !adjustmentReason.value.trim()) return message.warning('请填写调整理由')
   for (const item of value.items) {
     const issue = stageItemIssue(item, value)
     if (issue) return message.warning(`${item.phaseName || '阶段'} ${issue}`)
@@ -631,7 +626,7 @@ const submit = async () => {
     return message.warning(`${taskIssues.value[0].task.name}：${taskIssues.value[0].issue}`)
   if (
     await command(
-      () => PlanApi.submitStagePlanBatch(value.id!, approverId.value!),
+      () => PlanApi.submitStagePlanBatch(value.id!, approverId.value!, value.adjustmentReasonRequired ? adjustmentReason.value.trim() : undefined),
       '计划已提交审核'
     )
   )
