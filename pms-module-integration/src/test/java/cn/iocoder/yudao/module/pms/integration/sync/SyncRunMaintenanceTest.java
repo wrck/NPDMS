@@ -46,6 +46,7 @@ class SyncRunMaintenanceTest {
         TenantContextHolder.setTenantId(1L);
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(lock.tryLock()).thenReturn(true);
+        when(validator.adapter(any(SyncDefinition.class))).thenReturn(mock(cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter.class));
         when(launcher.getObject()).thenReturn(batchLauncher);
         service=new SyncRunService(taskService,tasks,runs,bindings,jdbcStore,connections,reader,streamingReader,fieldMapper,
                 validator,evidenceService,redisson,new ResourcelessTransactionManager(),launcher);

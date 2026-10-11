@@ -20,7 +20,13 @@
           <el-table-column prop="id" label="批次" min-width="200" />
           <el-table-column label="分页" width="110"
             ><template #default="{ row }">{{
-              row.pageNumber ? `第 ${row.pageNumber} 页` : row.pagingJson ? '分页主运行' : '—'
+              row.pageNumber
+                ? `第 ${row.pageNumber} 页`
+                : streamingProgress(row)
+                  ? '流式主运行'
+                  : row.pagingJson
+                    ? '分页主运行'
+                    : '—'
             }}</template></el-table-column
           >
           <el-table-column label="类型" width="130"
@@ -99,16 +105,28 @@
             formatDate(selected.finishedAt) || '尚未结束'
           }}</el-descriptions-item>
           <el-descriptions-item
-            :label="selected.pagingJson && !selected.pageNumber ? '已完成页行数' : '读取行数'"
+            :label="
+              selectedProgress
+                ? '本次处理行数'
+                : selected.pagingJson && !selected.pageNumber
+                  ? '已完成页行数'
+                  : '读取行数'
+            "
             >{{ selected.readCount ?? '尚未返回' }}</el-descriptions-item
           >
           <el-descriptions-item label="处理结果">{{ summary }}</el-descriptions-item>
+          <el-descriptions-item v-if="selectedProgress" label="累计已提交行数">{{
+            selectedProgress.committedRows
+          }}</el-descriptions-item>
+          <el-descriptions-item v-if="selectedProgress" label="已提交分块">{{
+            selectedProgress.committedChunks
+          }}</el-descriptions-item>
           <el-descriptions-item
             v-if="selected.parentRunId && !selected.pageNumber"
             label="重试来源"
           >
             <el-button link type="primary" @click="select({ id: selected.parentRunId } as api.Run)"
-              >查看上次运行及已成功分页</el-button
+              >查看上次运行及已提交数据</el-button
             >
           </el-descriptions-item>
           <el-descriptions-item v-if="selected.pageNumber" label="分页归属">
@@ -148,7 +166,10 @@
           >创建关联重试</el-button
         >
       </ContentWrap>
-      <ContentWrap v-if="selected.pagingJson && !selected.pageNumber" title="分页批次">
+      <ContentWrap
+        v-if="selected.pagingJson && !selected.pageNumber && !selectedProgress"
+        title="分页批次"
+      >
         <el-alert
           title="每页结果和来源证据独立保存；主运行失败时，已成功的页仍保留，关联重试从已提交游标继续。"
           type="info"
@@ -180,10 +201,13 @@
         />
       </ContentWrap>
       <ContentWrap v-else :title="selected.preview ? '预计变更' : '处理明细'">
+        <p v-if="selectedProgress && !selected.preview" class="integration-note"
+          >此处展示处理样本；全量处理结果以运行汇总为准，关联重试保留已提交分块。</p
+        >
         <el-table
           :data="changes"
           class="integration-table"
-          empty-text="暂无差异结果；失败批次未提交业务数据"
+          empty-text="暂无处理样本，处理进度见上方运行汇总"
         >
           <el-table-column prop="object" label="对象" width="130" /><el-table-column
             prop="sourceKey"
@@ -254,9 +278,24 @@ const loading = ref(false),
 const selected = ref<api.Run>(),
   changes = ref<api.Change[]>([]),
   changeTotal = ref(0)
+const streamingProgress = (run: api.Run) => {
+  if (!run.pagingJson || run.pageNumber) return undefined
+  try {
+    const progress = JSON.parse(run.pagingJson)
+    return typeof progress.committedRows === 'number' &&
+      typeof progress.committedChunks === 'number'
+      ? (progress as { committedRows: number; committedChunks: number })
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+const selectedProgress = computed(() => selected.value && streamingProgress(selected.value))
 const runStatusLabel = (run: api.Run) =>
   run.status === 'FAILED' && run.pagingJson && !run.pageNumber
-    ? '分页停止（已成功页保留）'
+    ? streamingProgress(run)
+      ? '同步中断（已提交分块保留）'
+      : '分页停止（已成功页保留）'
     : api.runLabels[run.status] || run.status
 const childPages = ref<api.Run[]>([]),
   childTotal = ref(0)
@@ -287,7 +326,7 @@ const page = reactive({ pageNo: 1, pageSize: 20 }),
 let timer: ReturnType<typeof setTimeout> | undefined
 const loadChanges = async () => {
   if (!selected.value) return
-  if (selected.value.pagingJson && !selected.value.pageNumber) {
+  if (selected.value.pagingJson && !selected.value.pageNumber && !selectedProgress.value) {
     const p = await api.getRuns({ ...childPage, parentRunId: selected.value.id })
     childPages.value = p.list.filter((r) => !!r.pageNumber)
     childTotal.value = p.total

@@ -16,11 +16,35 @@ import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.awaitility.Awaitility.await;
 
 class SyncBatchFrameworkTest {
+    @Test void independentRunsStartConcurrentlyInsteadOfWaitingBehindTwoWorkers()throws Exception {
+        try(var context=new AnnotationConfigApplicationContext(Config.class)) {
+            String sql=new String(new ClassPathResource("org/springframework/batch/core/schema-h2.sql")
+                    .getInputStream().readAllBytes(),StandardCharsets.UTF_8).replace("BATCH_","int_batch_");
+            new ResourceDatabasePopulator(new ByteArrayResource(sql.getBytes(StandardCharsets.UTF_8)))
+                    .execute(context.getBean(DataSource.class));
+            var ready=new CountDownLatch(3);var release=new CountDownLatch(1);
+            doAnswer(call->{
+                assertEquals(1L,cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId());
+                ready.countDown();assertTrue(release.await(5,TimeUnit.SECONDS));return null;
+            }).when(context.getBean(SyncRunService.class)).execute(anyLong());
+            var operator=context.getBean(JobOperator.class);var repository=context.getBean(JobRepository.class);
+            var executions=new java.util.ArrayList<Long>();
+            try {
+                for(long id=30;id<33;id++)executions.add(operator.start(context.getBean(Job.class),
+                        new JobParametersBuilder().addLong("tenantId",1L).addLong("runId",id).toJobParameters()).getId());
+                assertTrue(ready.await(3,TimeUnit.SECONDS));
+            }finally{release.countDown();}
+            await().atMost(Duration.ofSeconds(10)).until(()->executions.stream()
+                    .allMatch(id->"COMPLETED".equals(repository.getJobExecution(id).getStatus().name())));
+        }
+    }
     @Test void nativeBatchPersistsSuccessfulAndFailedExecutions() throws Exception {
         try(var context=new AnnotationConfigApplicationContext(Config.class)) {
             var resource=new ClassPathResource("org/springframework/batch/core/schema-h2.sql");

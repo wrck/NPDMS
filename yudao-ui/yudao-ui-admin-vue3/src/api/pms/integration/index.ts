@@ -119,6 +119,7 @@ export interface Binding {
   sourceKey: string
   targetId: Id
   fieldsJson: string
+  lastRunId?: Id
 }
 const base = '/api/v1/pms/integration'
 export const getConnections = (params = { pageNo: 1, pageSize: 100 }) =>
