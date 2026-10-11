@@ -63,6 +63,35 @@ class ProjectTaskPlanCompletionServiceTest {
         snapshot.setTasks(List.of(node)); rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         when(plans.selectEffective(any())).thenAnswer(call -> { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); return plan; });
     }
+    @Test void contactOwnerFactCompletesWithoutSubmissionButKeepsAdmissionAndExitRules() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
+        round.setSubmittedAt(null);
+        rule("done","{\"predicate\":\"PROJECT_CONTACT_EXISTS\",\"parameters\":{}}");
+        var contacts=mock(cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"projectContacts",contacts);
+        var record = new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Evidence(88L,3);
+        var fact = new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Fact(true,List.of(record));
+        when(contacts.lockAndInspect(any())).thenReturn(fact);
+        assertTrue(service.evaluateAutomatically(project,task,binding).matched());
+        assertEquals(fact,service.evaluateAutomatically(project,task,binding).evidence().get("projectContacts"));
+        when(contacts.lockAndInspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Fact(false,List.of()));
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        when(contacts.lockAndInspect(any())).thenReturn(fact);
+        stage.setStatus("PENDING"); assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        stage.setStatus("ACTIVE"); snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        snapshot.getTasks().getFirst().setExitRuleKey(null);
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/other\"}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
+        rule("done","{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"PROJECT_CONTACT_EXISTS\",\"parameters\":{}}]}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
+    }
     @Test void approvalCompletionRequiresThisRoundOwnerResultBeforeAnyTrueOrNotRule() {
         binding.setWorkBindingTypeCode("APPROVAL");
         round.setSubmittedAt(null); round.setStartedAt(LocalDateTime.of(2026,9,15,9,0));
@@ -102,6 +131,26 @@ class ProjectTaskPlanCompletionServiceTest {
         assertFalse(evaluate().matched());
         assertEquals(91L,binding.getId()); assertEquals("obsolete-binding-rule-must-not-be-read",binding.getCompletionRuleSnapshot());
         assertTrue(evaluate().completion().ruleVersionRef().contains("plan:52")); verifyNoInteractions(business);
+    }
+
+    @Test void installationPageRequiresAllProjectDeviceAddressesAndRetainsPlanRules() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-installation\"}");
+        var addresses = mock(cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "installationAddresses", addresses);
+        for (var fact : List.of(
+                new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Fact(0, 0),
+                new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Fact(3, 2))) {
+            when(addresses.lockAndInspect(any())).thenReturn(fact);
+            assertFalse(evaluate().matched());
+            assertTrue(evaluate().unmet().contains("PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING"));
+        }
+        when(addresses.lockAndInspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Fact(3, 3));
+        assertTrue(evaluate().matched());
+        rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(evaluate().matched());
+        verify(addresses, atLeastOnce()).lockAndInspect(new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Query(7L, 9L));
     }
 
     @Test void pageNavigationRetainsNativeCompletionAndRequiresAnActualSubmission() {
