@@ -1,5 +1,10 @@
 <!-- 基于 ruoyi-vue3 的 Pagination 重构，核心是简化无用的属性，并使用 ts 重写 -->
 <template>
+  <div class="float-right mb-15px mt-15px flex items-center gap-3">
+  <el-select v-if="total > 0" :model-value="showingAll ? 'all' : limit" class="!w-130px" @change="selectLimit">
+    <el-option v-for="size in [10, 20, 30, 50, 100]" :key="size" :label="`${size}条/页`" :value="size" />
+    <el-option label="全部" value="all" />
+  </el-select>
   <el-pagination
     v-show="total > 0"
     v-model:current-page="currentPage"
@@ -9,14 +14,14 @@
     :pager-count="pagerCount"
     :total="total"
     :small="isSmall"
-    class="float-right mb-15px mt-15px"
-    layout="total, sizes, prev, pager, next, jumper"
-    @size-change="handleSizeChange"
+
+    layout="total, prev, pager, next, jumper"
     @current-change="handleCurrentChange"
   />
+  </div>
 </template>
 <script lang="ts" setup>
-import { computed, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 import { useAppStore } from '@/store/modules/app'
 
 defineOptions({ name: 'Pagination' })
@@ -53,6 +58,7 @@ const props = defineProps({
   }
 })
 
+const showingAll = ref(false)
 const emit = defineEmits(['update:page', 'update:limit', 'pagination'])
 const currentPage = computed({
   get() {
@@ -65,21 +71,30 @@ const currentPage = computed({
 })
 const pageSize = computed({
   get() {
-    return props.limit
+    return Math.max(props.limit, 1)
   },
   set(val) {
     // 触发 update:limit 事件，更新 limit 属性，从而更新 pageSize
     emit('update:limit', val)
   }
 })
-const handleSizeChange = (val) => {
-  // 如果修改后超过最大页面，强制跳转到第 1 页
-  if (currentPage.value * val > props.total) {
-    currentPage.value = 1
-  }
-  // 触发 pagination 事件，重新加载列表
-  emit('pagination', { page: currentPage.value, limit: val })
+const selectLimit = (val: number | 'all') => {
+  showingAll.value = val === 'all'
+  const limit = val === 'all' ? Math.max(props.total, 1) : val
+  emit('update:limit', limit)
+  currentPage.value = 1
+  emit('pagination', { page: 1, limit })
 }
+watch(() => props.total, total => {
+  if (showingAll.value && total > 0 && total !== props.limit) {
+    emit('update:limit', total)
+    currentPage.value = 1
+    emit('pagination', { page: 1, limit: total })
+  }
+})
+watch(() => props.limit, limit => {
+  if (limit !== props.total) showingAll.value = false
+})
 const handleCurrentChange = (val) => {
   // 触发 pagination 事件，重新加载列表
   emit('pagination', { page: val, limit: pageSize.value })
