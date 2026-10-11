@@ -1321,3 +1321,13 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Why it blocks: 不能自行将当前上传完成判断改成修订完成判断，也不能未经业务裁决自动冻结、复制或更换交付件所属实体键。
 - Resolution: 不增加独立交付件引用清单或冻结清单快照。需要时按交付件已有业务类型及业务实体 ID 定位上传历史，并保留项目/交付件类型筛选；当前完成判断仍只取最新有效上传。
 - Decision owner: 需求方。裁决来源 Sentinel_9c06dbf5c66081919f1e51fe3fc43f5b。原问题来源 Sentinel_78af7fa198708191912b2fcfac642b61。
+
+### Q-CUTOVER-APPROVAL-20261009-001 — 恢复割接审批流程时的审批人规则
+
+- Status: RESOLVED（2026-10-09 需求方确认“服务经理审批”）。
+- Area: `pms-cutover-done-approval` 流程创建与 `TPL-DELIVERY-FLOW-20261009` 草稿绑定。
+- Question: 新建流程是否沿用旧过渡流程的“发起时选择审批人”，或改为当前项目服务经理、指定人员审批？
+- Evidence: 初次排查时 27580 环境不存在该 key 的模型或有效定义，模板引用的精确定义已失效。旧 `PMS_DELIVERY_CUTOVER_APPROVAL` BPMN 为开始、割接审批、结束，审批节点使用 `candidateStrategy=35`（发起人自选）；该旧 key 不等于本次请求的 key。`Q-TPL-FLOW-20260922-004` 已关闭的“审批通过即割接完成”过渡口径继续有效。
+- Resolution: 使用本项目当前有效服务经理进行单节点人工审批。审批人由服务端项目成员事实解析，不由发起人任选或按全局服务经理角色随机分配；沿用现有成员 API 对缺失或不唯一主责服务经理的拒绝处理。普通流程表单支持任务内发起，审批通过才满足原任务审批依据。
+- Implementation boundary: 创建并部署该流程，更新目标模板草稿的精确定义引用；不发布模板、不回刷历史项目或发布快照。业务规则已确认，运行部署和验收结果见 [割接审批创建与验收](../generated/template-default-adaptation-20261009/cutover-approval.md)。
+- Decision owner: 需求方；2026-10-09 当前会话裁决。

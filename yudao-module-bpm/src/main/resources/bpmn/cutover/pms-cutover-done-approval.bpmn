@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="https://npdms/pms/cutover-approval">
+  <process id="pms-cutover-done-approval" name="割接完成审批" isExecutable="true">
+    <documentation>由当前项目服务经理审批；审批通过作为割接完成外部业务接入前的过渡依据。</documentation>
+    <extensionElements>
+      <flowable:executionListener event="start" expression="${cutoverTaskApprovalGuard.freeze(execution)}"/>
+    </extensionElements>
+    <startEvent id="start" name="发起割接审批"/>
+    <sequenceFlow id="toReview" sourceRef="start" targetRef="serviceManagerReview"/>
+    <userTask id="serviceManagerReview" name="服务经理审批">
+      <extensionElements>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy>
+        <flowable:candidateParam>${cutoverTaskApprovalGuard.reviewer(execution)}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType>
+        <flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable>
+        <flowable:reasonRequire>false</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${cutoverTaskApprovalGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${cutoverTaskApprovalGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${cutoverTaskApprovalGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="serviceManagerReview" targetRef="end"/>
+    <endEvent id="end" name="审批结束"/>
+  </process>
+  <bpmndi:BPMNDiagram id="cutoverDiagram">
+    <bpmndi:BPMNPlane id="cutoverPlane" bpmnElement="pms-cutover-done-approval">
+      <bpmndi:BPMNShape id="startShape" bpmnElement="start">
+        <dc:Bounds x="150" y="182" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="reviewShape" bpmnElement="serviceManagerReview">
+        <dc:Bounds x="260" y="160" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endShape" bpmnElement="end">
+        <dc:Bounds x="500" y="182" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="reviewEdge" bpmnElement="toReview">
+        <di:waypoint x="186" y="200"/><di:waypoint x="260" y="200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="endEdge" bpmnElement="toEnd">
+        <di:waypoint x="420" y="200"/><di:waypoint x="500" y="200"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

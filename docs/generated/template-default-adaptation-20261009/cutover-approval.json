@@ -1,0 +1,80 @@
+{
+  "recordedAt": "2026-10-09T06:16:21.282621+00:00",
+  "environment": {
+    "backend": "http://127.0.0.1:27580",
+    "frontend": "http://127.0.0.1:27581"
+  },
+  "process": {
+    "key": "pms-cutover-done-approval",
+    "name": "割接完成审批",
+    "modelId": "64514bab-c3a7-11f1-8077-00ff0b78abd7",
+    "definitionId": "pms-cutover-done-approval:1:648ddf80-c3a7-11f1-8077-00ff0b78abd7",
+    "version": 1,
+    "categoryId": 1,
+    "formId": 1,
+    "reviewerSource": "current project primary service manager",
+    "manualApproval": true
+  },
+  "template": {
+    "id": 993009900020,
+    "code": "TPL-DELIVERY-FLOW-20261009",
+    "status": "DRAFT",
+    "beforeResourceVersion": 4,
+    "afterResourceVersion": 5,
+    "onlyChangedField": "tasks[DEPLOY_CUTOVER].workBinding.parameters.processDefinitionId",
+    "oldDefinitionId": "pms-cutover-done-approval:1:7251f330-ba71-11f1-ae93-00ff0b78abd7",
+    "newDefinitionId": "pms-cutover-done-approval:1:648ddf80-c3a7-11f1-8077-00ff0b78abd7",
+    "validation": {
+      "valid": true,
+      "issues": []
+    },
+    "published": false
+  },
+  "acceptance": {
+    "projectId": 992203060013,
+    "projectCode": "PJT2026000012",
+    "templateId": 993009900021,
+    "fixtureTemplateStatus": "RETIRED",
+    "taskId": "2108439163390873601",
+    "executionId": "2108439163713835010",
+    "executionContractId": "2108439163554451458",
+    "processInstanceId": "45b35ad1-c3a8-11f1-8077-00ff0b78abd7",
+    "starterAndProjectServiceManagerUserId": 1,
+    "beforeApprovalStatus": "RUNNING",
+    "afterApproval": {
+      "outcome": "SATISFIED",
+      "status": "APPROVED",
+      "processInstanceId": "45b35ad1-c3a8-11f1-8077-00ff0b78abd7",
+      "definitionId": "pms-cutover-done-approval:1:648ddf80-c3a7-11f1-8077-00ff0b78abd7",
+      "reason": null
+    },
+    "taskStatus": "DONE",
+    "taskProgress": 100.0,
+    "actualStartTime": 1791526044428,
+    "actualEndTime": 1791526339669,
+    "history": [
+      {
+        "id": "45c0c86d-c3a8-11f1-8077-00ff0b78abd7",
+        "name": "服务经理审批",
+        "taskDefinitionKey": "serviceManagerReview",
+        "status": 2,
+        "reason": "隔离验收：本项目服务经理确认割接完成。",
+        "createTime": 1791526291735,
+        "endTime": 1791526339541
+      }
+    ],
+    "browserReopenVerified": true,
+    "browserHistoryVerified": true,
+    "browserProjectErrors": [],
+    "browserTemplateErrors": []
+  },
+  "tests": {
+    "class": "CutoverTaskApprovalFlowableTest",
+    "run": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "log": ".run/default-chain-20261009/cutover-approval-20261009/flowable-guard-tests-2.log"
+  },
+  "boundary": "Single cutover-task approval verified in an isolated fixture; target 17-task template remains unpublished."
+}

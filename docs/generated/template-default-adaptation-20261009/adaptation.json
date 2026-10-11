@@ -1,0 +1,349 @@
+{
+  "environment": {
+    "frontend": "http://127.0.0.1:27581",
+    "backend": "http://127.0.0.1:27580"
+  },
+  "templateCode": "TPL-DELIVERY-FLOW-20261009",
+  "templateId": 993009900020,
+  "beforeVersion": 3,
+  "afterVersion": 4,
+  "status": "DRAFT",
+  "changedTasks": [
+    {
+      "code": "PRE_SURVEY",
+      "name": "现场工勘与环境适配核对",
+      "before": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101604731582791681",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_SITE_SURVEY",
+          "disabledAt": null,
+          "entityType": "SITE_SURVEY",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896961332,
+          "componentKey": "SOL_SITE_SURVEY",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "DISABLE",
+            "QUERY",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "SOL_SITE_SURVEY_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "CREATE",
+            "UPDATE",
+            "CONFIRM",
+            "REJECT",
+            "ARCHIVE",
+            "LINK",
+            "UNLINK"
+          ],
+          "commandProviderKey": "SOL_SITE_SURVEY_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "SOL_SITE_SURVEY_PERMISSION"
+        },
+        "componentKey": "SOL_SITE_SURVEY",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101604731582791681",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "PROJECT_SITE_SURVEY",
+        "targetObjectType": "SITE_SURVEY",
+        "type": "BUSINESS_COMPONENT"
+      },
+      "after": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606320578084869",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "LOCAL_DELIVERY_B2_20261008",
+          "disabledAt": null,
+          "entityType": "siteSurvey",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1791465207056,
+          "componentKey": "DIRECT_BUSINESS_SOL_SITE_SURVEY",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "DISABLE",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "DIRECT_BUSINESS_SOL_SITE_SURVEY_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "create",
+            "save",
+            "delete",
+            "confirm",
+            "reject",
+            "archive",
+            "location",
+            "deadline",
+            "save-form",
+            "configure-fields"
+          ],
+          "commandProviderKey": "DIRECT_BUSINESS_SOL_SITE_SURVEY_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "DIRECT_BUSINESS_SOL_SITE_SURVEY_PERMISSION"
+        },
+        "componentKey": "DIRECT_BUSINESS_SOL_SITE_SURVEY",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101606320578084869",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "SOL_SITE_SURVEY",
+        "targetObjectType": "siteSurvey",
+        "type": "BUSINESS_COMPONENT"
+      }
+    },
+    {
+      "code": "PRE_REQUIREMENT",
+      "name": "需求分析",
+      "before": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606301384949762",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "FPROJ009_E2E_S1S6_20260920_REQUIREMENT_ANALYSIS",
+          "disabledAt": null,
+          "entityType": "REQUIREMENT_ANALYSIS",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1789896963469,
+          "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "project"
+            ],
+            "properties": {
+              "project": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "version"
+                ],
+                "properties": {
+                  "id": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "allowedActions": [
+            "DISABLE",
+            "QUERY",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "SOL_REQUIREMENT_ANALYSIS_QUERY",
+          "supportedActions": [
+            "CREATE_INITIAL_DRAFT",
+            "PATCH_FORM",
+            "COMPLETE",
+            "CREATE_DRAFT"
+          ],
+          "commandProviderKey": "SOL_REQUIREMENT_ANALYSIS_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "SOL_REQUIREMENT_ANALYSIS_PERMISSION"
+        },
+        "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "schemaVersion": 2,
+          "contextMapping": {
+            "project": "project"
+          },
+          "dynamicFormRevisionNo": 1,
+          "dynamicFormTemplateId": 992203010001,
+          "businessViewRevisionId": "2101606301384949762",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING",
+          "dynamicFormTemplateRevisionId": 992203020001,
+          "dynamicFormRevisionFactVersion": 1
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "PRE_04_REQUIREMENT_ANALYSIS",
+        "targetObjectType": "REQUIREMENT_ANALYSIS",
+        "type": "BUSINESS_OBJECT"
+      },
+      "after": {
+        "approvalDefinitionKey": null,
+        "businessViewSnapshot": {
+          "id": "2101606320578084872",
+          "status": "PUBLISHED",
+          "version": 1,
+          "viewKey": "LOCAL_RA_CURRENT_UI_20261008",
+          "disabledAt": null,
+          "entityType": "requirementAnalysisRevision",
+          "revisionNo": 1,
+          "viewSource": "PAGE",
+          "publishedAt": 1791469548082,
+          "componentKey": "DIRECT_BUSINESS_SOL_REQUIREMENT_ANALYSIS_REVISION",
+          "ownerContext": "SOL",
+          "contextSchema": {
+            "type": "object",
+            "required": [
+              "projectId"
+            ],
+            "properties": {
+              "projectId": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*$"
+                  }
+                ]
+              }
+            }
+          },
+          "allowedActions": [
+            "QUERY",
+            "DISABLE",
+            "COPY"
+          ],
+          "componentVersion": "1",
+          "queryProviderKey": "DIRECT_BUSINESS_SOL_REQUIREMENT_ANALYSIS_REVISION_QUERY",
+          "supportedActions": [
+            "QUERY",
+            "create",
+            "save",
+            "delete",
+            "complete",
+            "copy",
+            "save-form",
+            "configure-fields"
+          ],
+          "commandProviderKey": "DIRECT_BUSINESS_SOL_REQUIREMENT_ANALYSIS_REVISION_COMMAND",
+          "dynamicFormRevisionId": null,
+          "permissionProviderKey": "DIRECT_BUSINESS_SOL_REQUIREMENT_ANALYSIS_REVISION_PERMISSION"
+        },
+        "componentKey": "DIRECT_BUSINESS_SOL_REQUIREMENT_ANALYSIS_REVISION",
+        "dynamicFormRevisionId": null,
+        "parameters": {
+          "contextMapping": {
+            "projectId": "projectId"
+          },
+          "businessViewRevisionId": "2101606320578084872",
+          "instanceResolutionStrategy": "REFERENCE_EXISTING"
+        },
+        "sourceRevisionId": null,
+        "targetContextCode": "SOL",
+        "targetObjectKey": "SOL_REQUIREMENT_ANALYSIS_REVISION",
+        "targetObjectType": "requirementAnalysisRevision",
+        "type": "BUSINESS_COMPONENT"
+      }
+    }
+  ],
+  "unchanged": {
+    "stages": 6,
+    "tasks": 15,
+    "rules": 39,
+    "deliverables": 17,
+    "gates": 5,
+    "milestones": 0
+  },
+  "validationBefore": {
+    "valid": false,
+    "issues": [
+      {
+        "field": "tasks[11].workBinding",
+        "code": "APPROVAL_DEFINITION_UNAVAILABLE",
+        "message": "所选精确审批定义不可用或不匹配，请重新选择；不会改用最新版本"
+      }
+    ]
+  },
+  "validationAfter": {
+    "valid": false,
+    "issues": [
+      {
+        "field": "tasks[11].workBinding",
+        "code": "APPROVAL_DEFINITION_UNAVAILABLE",
+        "message": "所选精确审批定义不可用或不匹配，请重新选择；不会改用最新版本"
+      }
+    ]
+  },
+  "newValidationIssues": 0,
+  "published": false,
+  "projectInstancesCreated": 0
+}
