@@ -151,8 +151,9 @@ class AcceptanceReportIndependentEntryTest {
         assertEquals("DRAFT", report.getReportStatus());
     }
 
-    @Test void uploadedReportCompletesWithoutInventingAPassingConclusion() {
+    @Test void historicalUploadReportCompletesWithoutRewritingItsConclusion() {
         direct("FINAL"); report.setConclusionCode(null); report.setAcceptorName(null);
+        report.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.UPLOAD_SNAPSHOT);
         owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "upload-only", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
         assertEquals("COMPLETED", activity.getActivityStatus());
@@ -170,8 +171,30 @@ class AcceptanceReportIndependentEntryTest {
         assertTrue(IndependentAcceptancePolicy.uploadOnly(report.getAcceptanceRuleSnapshot()));
         assertEquals(19L, report.getUploaderUserId());
         assertFalse(report.getAcceptanceTime().isBefore(before));
-        assertNull(report.getConclusionCode()); assertNull(report.getConclusionText()); assertNull(report.getAcceptorName());
+        assertEquals("PASS", report.getConclusionCode()); assertNull(report.getConclusionText()); assertEquals("19", report.getAcceptorName());
         assertEquals(IndependentAcceptancePolicy.LEGACY_SNAPSHOT, activity.getRuleSnapshot());
+    }
+
+    @Test void newUploadPassPolicyRejectsSpoofedFailureAndMissingFiles() {
+        direct("FINAL"); report.setConclusionCode("FAIL");
+        var command = new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "upload-pass", "digest");
+        var actor = new AcceptanceReportCommands.Actor(7L, 19L, "native-entry");
+        assertThrows(RuntimeException.class, () -> owner.publish(command, actor));
+        assertEquals("DRAFT", report.getReportStatus()); assertTrue(facts.isEmpty());
+        report.setConclusionCode("PASS"); when(files.inspectReferenceSets(any())).thenReturn(List.of());
+        assertThrows(RuntimeException.class, () -> owner.publish(command, actor));
+        assertEquals("PENDING", activity.getActivityStatus()); assertTrue(facts.isEmpty());
+    }
+
+    @Test void taskBoundUploadSaveRecordsPassingConclusionAndActualActor() {
+        var originalTask = activity.getProjectTaskId();
+        owner.updateDraft(new AcceptanceReportCommands.UpdateDraftCommand(100L, 300L, 2L, 1,
+                new AcceptanceReportCommands.DraftContent(null, "FAIL", "spoof", "spoof")),
+                new AcceptanceReportCommands.Actor(7L, 19L, "task-upload"));
+        assertTrue(IndependentAcceptancePolicy.uploadPass(report.getAcceptanceRuleSnapshot()));
+        assertEquals("PASS", report.getConclusionCode()); assertEquals("19", report.getAcceptorName());
+        assertEquals(19L, report.getUploaderUserId()); assertNotNull(report.getAcceptanceTime());
+        assertEquals(originalTask, activity.getProjectTaskId()); assertEquals("PENDING", activity.getActivityStatus());
     }
 
     @Test void uploadOnlyReportWithoutOperatorCannotPublish() {

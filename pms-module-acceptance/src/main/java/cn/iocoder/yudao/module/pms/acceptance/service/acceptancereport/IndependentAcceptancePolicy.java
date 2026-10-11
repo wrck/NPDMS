@@ -13,9 +13,13 @@ public final class IndependentAcceptancePolicy {
             {"schemaVersion":1,"policyCode":"EFFECTIVE_REPORT_PASS","passingConclusion":"PASS",
              "requiredFields":["acceptanceTime","conclusionCode","acceptorName"],"minimumAttachments":1}
             """;
-    public static final String SNAPSHOT = """
+    public static final String UPLOAD_SNAPSHOT = """
             {"schemaVersion":2,"policyCode":"EFFECTIVE_REPORT_UPLOAD",
              "requiredFields":["acceptanceTime","uploaderUserId"],"minimumAttachments":1}
+            """;
+    public static final String SNAPSHOT = """
+            {"schemaVersion":3,"policyCode":"EFFECTIVE_REPORT_UPLOAD_PASS","passingConclusion":"PASS",
+             "requiredFields":["acceptanceTime","uploaderUserId","conclusionCode","acceptorName"],"minimumAttachments":1}
             """;
 
     public static boolean direct(AcceptanceActivityDO activity) { return "DIRECT".equals(activity.getOriginKind()); }
@@ -23,6 +27,9 @@ public final class IndependentAcceptancePolicy {
         return uploadOnly(snapshot) || snapshot != null && JsonUtils.parseTree(LEGACY_SNAPSHOT).equals(JsonUtils.parseTree(snapshot));
     }
     public static boolean uploadOnly(String snapshot) {
+        return uploadPass(snapshot) || snapshot != null && JsonUtils.parseTree(UPLOAD_SNAPSHOT).equals(JsonUtils.parseTree(snapshot));
+    }
+    public static boolean uploadPass(String snapshot) {
         return snapshot != null && JsonUtils.parseTree(SNAPSHOT).equals(JsonUtils.parseTree(snapshot));
     }
     public static void requireMutable(AcceptanceActivityDO activity) {

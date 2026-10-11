@@ -227,10 +227,10 @@ public class ProjectDeliverableSubmissionService {
                                 FileEvidenceApi.Document file, String eventId) {
         var context = rules.read(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode())) return;
+                || !matchesBusinessSource(context, observed.deliverableCode(), scope.sourceCode())) return;
         context = rules.lock(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(scope.projectId(), context.projectId())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode())) return;
+                || !matchesBusinessSource(context, observed.deliverableCode(), scope.sourceCode())) return;
         var view = require(platform.lockById(observed.id()), observed.projectId());
         String key = "file-event:" + eventId;
         if (platform.findSubmissionByRequestKey(observed.id(), key).isPresent()) return;
@@ -275,15 +275,15 @@ public class ProjectDeliverableSubmissionService {
         notifyOutcome(view, before, outcome, key);
     }
 
-    /** Called by the committed business-result delivery; automaticSources is the grant, allowedSources still gates revalidation. */
+    /** Called by committed result delivery; frozen explicit sources or native Owner-task references select targets, allowedSources still gates revalidation. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void collectBusinessResult(TemplateFrozenView observed, String sourceCode, BusinessResultChange change) {
         var context = rules.read(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)) return;
+                || !matchesBusinessSource(context, observed.deliverableCode(), sourceCode)) return;
         context = rules.lock(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(observed.projectId(), context.projectId())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)) return;
+                || !matchesBusinessSource(context, observed.deliverableCode(), sourceCode)) return;
         var view = require(platform.lockById(observed.id()), observed.projectId());
         String key = "result-change:" + change.eventId();
         if (platform.findSubmissionByRequestKey(observed.id(), key).isPresent()) return;
@@ -306,6 +306,11 @@ public class ProjectDeliverableSubmissionService {
                 List.of(materialId), PlatformDeliveryRequirementApi.SOURCE_BUSINESS_RESULT,
                 JsonUtils.toJsonString(change), null));
         notifyOutcome(view, before, outcome, key);
+    }
+
+    private boolean matchesBusinessSource(ProjectDeliverableRuleApi.Context context, String code, String sourceCode) {
+        return ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)
+                || rules.documentTargets(context.projectId(), sourceCode).contains(code);
     }
 
     // ———— 内部 ————
