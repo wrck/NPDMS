@@ -1,0 +1,22 @@
+{
+  "modelId": "1ce38135-b670-11f1-874c-00ff0b78abd7",
+  "previousDefinitionId": "1d4db4ba-b670-11f1-874c-00ff0b78abd7",
+  "definition": {
+    "id": "a2d48fdb-c15b-11f1-8ba1-00ff0b78abd7",
+    "key": "PMS_DELIVERY_SOLUTION_REVIEW",
+    "nodes": [
+      {
+        "key": "serviceManagerReview",
+        "name": "服务经理审核",
+        "responsibility": "SERVICE_MANAGER"
+      },
+      {
+        "key": "engineeringManagementReview",
+        "name": "工程管理部复审",
+        "responsibility": "ENGINEERING_MANAGEMENT"
+      }
+    ]
+  },
+  "publishedVersion": 2,
+  "previousDefinitionPreserved": true
+}
