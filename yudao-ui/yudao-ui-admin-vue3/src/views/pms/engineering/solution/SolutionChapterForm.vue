@@ -48,6 +48,11 @@
       </el-row>
     </section>
 
+    <el-alert v-if="requirementError" :title="requirementError" type="error" :closable="false" class="mb-12px">
+      <el-button link type="primary" @click="loadRequirement(form.projectId)">重新加载需求分析</el-button>
+    </el-alert>
+    <div v-else-if="requirementLoading" role="status" class="mb-12px">正在加载需求分析引用内容…</div>
+
     <!-- 第1章 项目概述 -->
     <section class="chapter">
       <div class="chapter-title">1. 项目概述</div>
@@ -402,13 +407,14 @@
 </template>
 
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { ElMessage } from 'element-plus'
 import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
-import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
+import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
@@ -439,6 +445,8 @@ const parseObject = (raw: string | undefined | null): Record<string, unknown> =>
 }
 
 // ---------- 引用数据（前序阶段真实来源） ----------
+const requirementLoading = ref(false)
+const requirementError = ref('')
 const reqValues = ref<Record<string, unknown>>({})
 const members = ref<ProjectsApi.ProjectMemberAssignmentVO[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
@@ -446,31 +454,31 @@ const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQu
 const devices = ref<DeviceArchiveApi.DeviceArchiveVO[]>([])
 
 const stripHtml = (v: unknown) => String(v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-const reqBackground = computed(() => String(reqValues.value['PROJECT_BACKGROUND'] ?? ''))
-const reqObjective = computed(() => String(reqValues.value['PROJECT_OBJECTIVE'] ?? ''))
-const reqTopology = computed(() => String(reqValues.value['NETWORK_TOPOLOGY'] ?? ''))
+const reqBackground = computed(() => String(reqValues.value['projectBackground'] ?? ''))
+const reqObjective = computed(() => String(reqValues.value['projectObjective'] ?? ''))
+const reqTopology = computed(() => String(reqValues.value['networkTopology'] ?? ''))
 const reqTransmission = computed(() => {
-  const v = reqValues.value['TRANSMISSION_CURRENT_OPTIONS']
+  const v = reqValues.value['transmissionCurrentOptions']
   return Array.isArray(v) ? v.map(String) : []
 })
 const reqTraffic = computed(() => ({
-  new: String(reqValues.value['TRAFFIC_NEW_CONNECTIONS'] ?? ''),
-  concurrent: String(reqValues.value['TRAFFIC_CONCURRENCY'] ?? ''),
-  throughput: String(reqValues.value['TRAFFIC_THROUGHPUT'] ?? '')
+  new: String(reqValues.value['trafficNewConnections'] ?? ''),
+  concurrent: String(reqValues.value['trafficConcurrency'] ?? ''),
+  throughput: String(reqValues.value['trafficThroughput'] ?? '')
 }))
 const reqBusinessRows = computed<Row[]>(() => {
-  const v = reqValues.value['BUSINESS_DEVICE_DETAILS']
+  const v = reqValues.value['businessDeviceDetails']
   if (!Array.isArray(v)) return []
   return v.map((item) => {
     const r = (item ?? {}) as Record<string, unknown>
     return {
       deviceName: String(r['deviceName'] ?? r['设备名称'] ?? ''),
-      sn: String(r['sn'] ?? r['序列号'] ?? ''),
+      sn: String(r['serialNumber'] ?? r['序列号'] ?? ''),
       businessName: String(r['businessName'] ?? r['承载业务名称'] ?? ''),
-      network: String(r['network'] ?? r['业务网段'] ?? ''),
-      level: String(r['level'] ?? r['业务重要等级'] ?? ''),
-      ports: String(r['ports'] ?? r['出入接口'] ?? ''),
-      owner: String(r['owner'] ?? r['客户侧业务负责人'] ?? ''),
+      network: String(r['businessSubnet'] ?? r['业务网段'] ?? ''),
+      level: String(r['businessImportance'] ?? r['业务重要等级'] ?? ''),
+      ports: String(r['interfaces'] ?? r['出入接口'] ?? ''),
+      owner: String(r['customerBusinessOwner'] ?? r['客户侧业务负责人'] ?? ''),
       remark: String(r['remark'] ?? r['备注'] ?? '')
     }
   })
@@ -509,7 +517,7 @@ const deviceDeployRows = (): Row[] =>
     deviceName: d.name || '',
     deviceType: d.productModel || '',
     sn: d.sn || '',
-    location: d.locationSnapshot || '',
+    location: locationSnapshotText(d.locationSnapshot),
     remark: ''
   }))
 const deviceSoftwareRows = (): Row[] =>
@@ -621,17 +629,40 @@ watch(
   { immediate: true }
 )
 
-onMounted(async () => {
-  const projectId = form.value.projectId
+let requirementRequest = 0
+const loadRequirement = async (projectId: SolutionVO['projectId']) => {
+  const requestId = ++requirementRequest
+  reqValues.value = {}
+  requirementError.value = ''
+  requirementLoading.value = !!projectId
   if (!projectId) return
-  const [overview, memberList, scopePage, devicePage, contactPage] = await Promise.all([
-    RequirementAnalysisApi.getCurrent(projectId).catch(() => null),
+  try {
+    const overview = await RequirementAnalysisApi.workspace(projectId)
+    if (requestId !== requirementRequest) return
+    reqValues.value = (overview.currentEffective ?? overview.draft)?.values ?? {}
+  } catch {
+    if (requestId === requirementRequest) requirementError.value = '需求分析引用内容加载失败，请重新加载'
+  } finally {
+    if (requestId === requirementRequest) requirementLoading.value = false
+  }
+}
+watch(() => form.value.projectId, projectId => { void loadRequirement(projectId) }, { immediate: true })
+
+watch(() => form.value.projectId, async (projectId, _previous, onCleanup) => {
+  let active = true
+  onCleanup(() => { active = false })
+  members.value = []
+  scopeRows.value = []
+  devices.value = []
+  contacts.value = []
+  if (!projectId) return
+  const [memberList, scopePage, devicePage, contactPage] = await Promise.all([
     ProjectsApi.getProjectMembers(projectId).catch(() => []),
     getDeliveryScopePage({ projectId, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
     DeviceArchiveApi.getDeviceArchivePage({ projectId, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] })),
     ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
   ])
-  reqValues.value = ((overview as any)?.currentEffective ?? (overview as any)?.draft)?.values ?? {}
+  if (!active) return
   members.value = (memberList as ProjectsApi.ProjectMemberAssignmentVO[]) || []
   contacts.value = ((contactPage as any).list || []) as ContactApi.ContactVO[]
   scopeRows.value = ((scopePage as any).list || []).flatMap((scope: any) =>
@@ -642,7 +673,7 @@ onMounted(async () => {
     }))
   )
   devices.value = ((devicePage as any).list || []) as DeviceArchiveApi.DeviceArchiveVO[]
-})
+}, { immediate: true })
 
 // ---------- 生成方案（引用前序数据，只填空字段） ----------
 const generateFromSources = () => {

@@ -7,8 +7,15 @@ import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/plat
 const permissions = vi.hoisted(() => ({ write: true }))
 const warning = vi.hoisted(() => vi.fn())
 vi.mock('@/utils/permission', () => ({ checkPermi: () => permissions.write }))
-vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn(), getProjectMembers: vi.fn(async () => []) }))
 vi.mock('@/api/pms/engineering/solution', () => ({ getSolutionPage: vi.fn(), getSolution: vi.fn(), createSolution: vi.fn(), updateSolution: vi.fn(), deleteSolution: vi.fn(), generateDraft: vi.fn() }))
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: vi.fn(async () => ({ currentEffective: null, draft: null })) }))
+vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: vi.fn(async () => ({ list: [] })) }))
+vi.mock('@/api/pms/asset/device/archive', () => ({ getDeviceArchivePage: vi.fn(async () => ({ list: [] })) }))
+vi.mock('@/api/pms/commerce', () => ({ getDeliveryScopePage: vi.fn(async () => ({ list: [] })) }))
+vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/DeliveryArtifact/uploadDeliveryFile', () => ({ uploadDeliveryFile: vi.fn() }))
+vi.mock('./saveGeneratedSolutionHtml', () => ({ prepareGeneratedSolutionHtml: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_APPROVAL_STATUS: 'approval', PMS_REVIEW_LEVEL: 'review' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning, success: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
@@ -22,7 +29,7 @@ const render = () => {
   const mounted = mount(Solution, {}, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElInput: passthrough, ElSelect: passthrough, ElOption: passthrough, PmsEntitySelect: passthrough, Editor: editorStub })
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
-const approved = { id: 8, projectId: 1, code: 'SOL-APPROVED', name: '已通过方案', status: 3, version: 4, baselineVersion: 4, approvedBy: 17, approvalOpinion: '已通过', background: '<p>冻结正文</p>' }
+const approved = { id: 8, projectId: 1, code: 'SOL-APPROVED', name: '已通过方案', status: 3, version: 4, baselineVersion: 4, approvedBy: 17, approvalOpinion: '已通过', background: '<p>冻结正文</p>', quality: '<p>质量保障</p>', risk: '<p>风险管控</p>', oAndM: '<p>运维交付</p>', remark: JSON.stringify({ archive: '<p>文档归档</p>' }) }
 
 describe('existing solution drafting and read-only viewing', () => {
   beforeEach(() => {

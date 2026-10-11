@@ -31,8 +31,6 @@
         </div>
 
       </template>
-        <el-alert v-if="operationReceipt" :title="`操作回执：${operationReceipt.outcome}；并发依据：${operationReceipt.newConcurrencyBasis ?? '-'}`"
-          type="success" show-icon :closable="false" data-testid="requirement-operation-receipt" />
         <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
     </ContentWrap>
     <ContentWrap v-if="overview" :body-style="{ padding: '20px' }">

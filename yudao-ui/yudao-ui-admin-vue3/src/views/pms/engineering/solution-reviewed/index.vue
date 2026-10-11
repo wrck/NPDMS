@@ -36,12 +36,12 @@
           </el-button>
           <template v-if="form.id">
             <el-button
-              v-if="form.status === 1 || form.status === 2"
+              v-if="form.status != null && form.status !== 0"
               link
               type="primary"
               @click="tieredReview.open(form)"
               v-hasPermi="['pms:sol-solution:query']"
-              >审批进度</el-button
+              >审批记录</el-button
             >
             <el-button
               v-if="form.status === 0"
@@ -129,12 +129,12 @@
               >提交审批</el-button
             >
             <el-button
-              v-if="row.status === 1 || row.status === 2"
+              v-if="row.status != null && row.status !== 0"
               link
               type="primary"
               @click="tieredReview.open(row)"
               v-hasPermi="['pms:sol-solution:query']"
-              >审批进度</el-button
+              >审批记录</el-button
             >
             <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-solution:query']"
               >{{ editableDraft(row) ? '编辑' : '查看' }}</el-button
