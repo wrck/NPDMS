@@ -5,5 +5,5 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDe
 
 import java.util.List;
 
-public record DeliveryScopeView(DeliveryScopeDO scope, List<DeliveryScopeDetailDO> details) {
+public record DeliveryScopeView(DeliveryScopeDO scope, List<DeliveryScopeDetailDO> details, String contractNo) {
 }
