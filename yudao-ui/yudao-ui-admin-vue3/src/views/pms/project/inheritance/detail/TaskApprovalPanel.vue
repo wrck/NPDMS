@@ -14,14 +14,15 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave } from 'vue-router'
+import { useProjectApprovalDetail } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import { executeTaskAction, type TaskApprovalSubmission, type TaskWorkbench } from '@/api/pms/project/task-workbench'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import TaskApprovalForm from './TaskApprovalForm.vue'
 const props = defineProps<{ workbench: TaskWorkbench
   /** 所属阶段未进入（准入未满足）：审批状态照常展示，办理表单（任务办理操作）不渲染 */ readonly?: boolean }>()
 const emit = defineEmits<{ changed: [] }>()
-const router = useRouter()
+const openApprovalDetail = useProjectApprovalDetail()
 const formRef = ref<InstanceType<typeof TaskApprovalForm>>()
 const busy = ref(false)
 const intent = createSubmissionIdempotencyState()
@@ -60,8 +61,8 @@ const submit = async (approval: TaskApprovalSubmission) => {
 const requestLeave = async () => !busy.value && (await formRef.value?.requestLeave()) !== false
 const openDetail = async () => {
   const id = props.workbench.approval?.current.processInstanceId
-  // The route leave guard below owns confirmation, so opening details does not prompt twice.
-  if (id) await router.push({ name: 'BpmProcessInstanceDetail', query: { id } })
+  // 页内抽屉保留当前表单；独立页面的路由跳转仍由离开守卫确认。
+  if (id && !busy.value && !formRef.value?.isBusy?.()) await openApprovalDetail(id)
 }
 onBeforeRouteLeave(requestLeave)
 defineExpose({ requestLeave, isBusy: () => busy.value || !!formRef.value?.isBusy() })
