@@ -1,6 +1,6 @@
 <template>
   <section
-    v-if="survey?.businessValues?.railTrayRequired === true"
+    v-if="!inBranches && survey?.businessValues?.railTrayRequired === true"
     aria-label="导轨托盘办理入口"
   >
     <el-button
@@ -24,6 +24,7 @@ import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 const props = defineProps<{
   getSurvey?: () => SiteSurveyVO
   readonly?: boolean
+  inBranches?: boolean
   launch?: (kind: string) => void
 }>()
 const survey = computed(() => props.getSurvey?.())

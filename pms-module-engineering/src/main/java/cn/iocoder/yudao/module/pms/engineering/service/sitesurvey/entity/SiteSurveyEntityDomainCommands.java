@@ -133,6 +133,10 @@ public class SiteSurveyEntityDomainCommands {
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(id);
         writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution, "SOL.SITE_SURVEY.CONFIRM", survey.getId());
         validateStatus(survey, 0); // 草稿 → 已确认
+        if ((survey.getLocation() == null || survey.getLocation().isBlank())
+                && !"RESOLVED".equals(survey.getLocationResolutionStatus())) {
+            throw exception(SITE_SURVEY_LOCATION_REQUIRED);
+        }
         validateForm(survey, false);
         updateStatus(survey, 1);
         archiveConfirmedSurvey(survey);
@@ -208,7 +212,7 @@ public class SiteSurveyEntityDomainCommands {
     public void associateOutsourceRequest(Long surveyId, Long projectId, Long outsourceRequestId, ProjectBusinessExecutionSelection execution) {
         if (surveyId == null) throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(surveyId);
-        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution, "SOL.SITE_SURVEY.UPDATE", survey.getId());
         validateStatus(survey, 0);
         if (!Objects.equals(projectId, survey.getProjectId()) || !Boolean.TRUE.equals(survey.getOutsourceRequired())
                 || outsourceRequestId == null || survey.getOutsourceRequestId() != null) {
@@ -238,7 +242,7 @@ public class SiteSurveyEntityDomainCommands {
     @org.springframework.security.access.prepost.PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public void releaseDeletedOutsourceRequest(Long surveyId, Long outsourceRequestId, ProjectBusinessExecutionSelection execution) {
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(surveyId);
-        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution);
+        writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution, "SOL.SITE_SURVEY.UPDATE", survey.getId());
         if (!Objects.equals(survey.getOutsourceRequestId(), outsourceRequestId)) return;
         validateStatus(survey, 0);
         survey.setOutsourceRequestId(null);
@@ -249,9 +253,6 @@ public class SiteSurveyEntityDomainCommands {
                                LocationMaintenanceCommand command,
                                Long sourceVersion) {
         if (command == null) {
-            if (fallbackLocation == null || fallbackLocation.isBlank()) {
-                throw exception(SITE_SURVEY_LOCATION_REQUIRED);
-            }
             survey.setLocationResolutionStatus("UNRESOLVED");
             return;
         }
