@@ -1,5 +1,4 @@
 import request from '@/config/axios'
-import { withRequestTimestamp } from '../requestTime'
 
 export interface MaterialExchangeSerialVO {
   /** 设备清单行引用：交付范围明细拆分行（=合同对应销售订单行的分配明细） */
@@ -47,7 +46,7 @@ export interface MaterialExchangeVO {
   newDeviceId?: number
   exchangeProgress?: string
   applicantUserId: number
-  applyTime: string | number
+  applyTime?: string | number
   approverUserId?: number
   approveTime?: string
   approveOpinion?: string
@@ -64,10 +63,14 @@ export const getMaterialExchangePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getMaterialExchange = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
-export const createMaterialExchange = (data: MaterialExchangeVO) =>
-  request.post({ url: `${baseUrl}/create`, data: withRequestTimestamp(data) })
-export const updateMaterialExchange = (data: MaterialExchangeVO) =>
-  request.put({ url: `${baseUrl}/update`, data: withRequestTimestamp(data) })
+export const createMaterialExchange = (data: MaterialExchangeVO) => {
+  const { applyTime: _applyTime, applicantUserId: _applicantUserId, ...application } = data
+  return request.post({ url: `${baseUrl}/create`, data: application })
+}
+export const updateMaterialExchange = (data: MaterialExchangeVO) => {
+  const { applyTime: _applyTime, applicantUserId: _applicantUserId, ...application } = data
+  return request.put({ url: `${baseUrl}/update`, data: application })
+}
 export const deleteMaterialExchange = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const submitMaterialExchange = (id: number) =>

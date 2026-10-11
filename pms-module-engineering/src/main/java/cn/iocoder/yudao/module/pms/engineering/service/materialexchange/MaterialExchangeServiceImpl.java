@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.engineering.service.materialexchange;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeApproveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangePageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.materialexchange.vo.MaterialExchangeSaveReqVO;
@@ -127,11 +129,17 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createMaterialExchange(MaterialExchangeSaveReqVO createReqVO) {
+        Long applicantUserId = SecurityFrameworkUtils.getLoginUserId();
+        if (applicantUserId == null) {
+            throw exception(GlobalErrorCodeConstants.UNAUTHORIZED);
+        }
         List<ExchangeLine> lines = resolveAndValidateLines(createReqVO, null);
         // 1. 校验单号全局唯一
         validateCodeUnique(createReqVO.getCode(), null);
         // 3. 转换并写入，初始单据状态为草稿、CRM 推送状态为待推送
         MaterialExchangeDO entity = BeanUtils.toBean(createReqVO, MaterialExchangeDO.class);
+        entity.setApplicantUserId(applicantUserId);
+        entity.setApplyTime(LocalDateTime.now());
         // 4. 主表产品编码 = 勾选清单行物料编码去重拼接（换货产品不影响）；名称/型号/原订单号随分流保存退出申报
         entity.setProductCode(joinedProductCode(lines));
         entity.setProductName(null);
@@ -167,6 +175,8 @@ public class MaterialExchangeServiceImpl implements MaterialExchangeService {
         List<ExchangeLine> lines = resolveAndValidateLines(updateReqVO, existing);
         // 5. 更新（乐观锁由 MyBatis-Plus @Version 自动处理）；产品编码重算拼接，名称/型号/原订单号随分流保存退出申报
         MaterialExchangeDO update = BeanUtils.toBean(updateReqVO, MaterialExchangeDO.class);
+        update.setApplicantUserId(existing.getApplicantUserId());
+        update.setApplyTime(existing.getApplyTime());
         update.setProductCode(joinedProductCode(lines));
         update.setProductName(null);
         update.setProductModel(null);
