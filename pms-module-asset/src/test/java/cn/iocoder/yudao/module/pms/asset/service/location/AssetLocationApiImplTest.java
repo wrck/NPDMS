@@ -45,6 +45,24 @@ class AssetLocationApiImplTest {
     }
 
     @Test
+    void shouldRejectIncompleteNewAddressBeforeWriting() {
+        for (String detail : new String[] {null, "", "   "}) {
+            ServiceException failure = assertThrows(ServiceException.class, () -> api.maintain(
+                    new LocationMaintenanceCommand(null,
+                            new AddressInput(null, null, "CN", "中国", null, null, null, null,
+                                    null, null, detail, "中国", null, null, null, null),
+                            null, null, null, null, null, null, null)));
+            assertEquals(cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants
+                    .AST_LOCATION_REFERENCE_INVALID.getCode(), failure.getCode());
+        }
+        assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null,
+                new AddressInput(null, null, "CN", "中国", null, null, null, null,
+                        null, null, "文三路", null, null, null, null, null),
+                null, null, null, null, null, null, null)));
+        verifyNoInteractions(addressMapper, siteMapper, sourceMappingMapper);
+    }
+
+    @Test
     void shouldAllowMultipleSitesToReuseOneAddress() {
         AddressDO storedAddress = address(11L, 0);
         doAnswer(invocation -> {

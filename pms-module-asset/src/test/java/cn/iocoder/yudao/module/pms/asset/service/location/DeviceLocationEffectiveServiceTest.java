@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.asset.service.location;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
@@ -59,11 +60,25 @@ class DeviceLocationEffectiveServiceTest {
 
         verify(locationMapper).closeCurrent(1L, "SN-8", command().effectiveFrom());
         verify(locationMapper).insert(argThat((DeviceLocationDO value) ->
-                "SN-8".equals(value.getDeviceSn()) && Long.valueOf(201L).equals(value.getInstallationId())));
+                "SN-8".equals(value.getDeviceSn()) && Long.valueOf(201L).equals(value.getInstallationId())
+                        && command().locationSnapshot().equals(value.getLocationSnapshot())));
         verify(deviceMapper).updateLocationProjection(argThat((DeviceLocationProjectionUpdate value) ->
                 Long.valueOf(21L).equals(value.siteId())
                         && Long.valueOf(31L).equals(value.siteLocationId())
-                        && "RESOLVED".equals(value.resolutionStatus())));
+                        && "RESOLVED".equals(value.resolutionStatus())
+                        && command().locationText().equals(JsonUtils.parseTree(value.locationSnapshot()).get("fallbackLocation").asText())
+                        && JsonUtils.parseTree(value.locationSnapshot()).get("site").get("id").asLong() == 21L));
+    }
+
+    @Test
+    void shouldProjectManualTextInSnapshotWithoutInventingSiteReferences() {
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L, 8L)).thenReturn(device());
+        when(deviceMapper.updateLocationProjection(any())).thenReturn(1);
+        var manual = new EquipmentLocationEffectiveCommand(8L,201L,null,null,"手工完整安装地址","UNRESOLVED",null,LocalDateTime.now());
+        assertTrue(service.effect(manual));
+        verify(locationMapper).insert(argThat((DeviceLocationDO history) -> history.getLocationSnapshot() == null));
+        verify(deviceMapper).updateLocationProjection(argThat(update ->
+                "手工完整安装地址".equals(JsonUtils.parseTree(update.locationSnapshot()).get("fallbackLocation").asText()) && update.siteId() == null && update.siteLocationId() == null));
     }
 
     @Test
@@ -128,7 +143,7 @@ class DeviceLocationEffectiveServiceTest {
         location.setSiteId(siteId);
         location.setSiteLocationId(siteLocationId);
         location.setResolutionStatus("RESOLVED");
-        location.setLocationSnapshot("snapshot");
+        location.setLocationSnapshot(command().locationSnapshot());
         location.setEffectiveFrom(command().effectiveFrom());
         location.setInstallationId(201L);
         return location;
@@ -136,7 +151,7 @@ class DeviceLocationEffectiveServiceTest {
 
     private EquipmentLocationEffectiveCommand command() {
         return new EquipmentLocationEffectiveCommand(
-                8L, 201L, 21L, 31L, "机柜A", "RESOLVED", "snapshot",
+                8L, 201L, 21L, 31L, "机柜A", "RESOLVED", "{\"site\":{\"id\":21},\"fallbackLocation\":\"旧文本\"}",
                 LocalDateTime.of(2026, 8, 27, 15, 30));
     }
 }

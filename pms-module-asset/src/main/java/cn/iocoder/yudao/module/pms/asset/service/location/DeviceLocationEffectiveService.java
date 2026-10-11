@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.asset.service.location;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.core.type.TypeReference;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_LOCATION_COMMAND_INVALID;
@@ -74,12 +78,24 @@ public class DeviceLocationEffectiveService {
         locationMapper.insert(location);
         DeviceLocationProjectionUpdate update = new DeviceLocationProjectionUpdate(
                 tenantId, device.getId(), command.siteId(), command.siteLocationId(),
-                command.resolutionStatus(), command.locationSnapshot(), command.effectiveFrom(),
+                command.resolutionStatus(), currentSnapshot(command), command.effectiveFrom(),
                 location.getId(), device.getVersion());
         if (deviceMapper.updateLocationProjection(update) == 0) {
             throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
         }
         return true;
+    }
+
+    /** 当前投影补齐完整文本，原始命令快照仍原样记录到位置历史。 */
+    private String currentSnapshot(EquipmentLocationEffectiveCommand command) {
+        if (command.locationText() == null || command.locationText().isBlank()) {
+            return command.locationSnapshot();
+        }
+        Map<String, Object> snapshot = !JsonUtils.isJsonObject(command.locationSnapshot())
+                ? new LinkedHashMap<>()
+                : JsonUtils.parseObject(command.locationSnapshot(), new TypeReference<Map<String, Object>>() {});
+        snapshot.put("fallbackLocation", command.locationText());
+        return JsonUtils.toJsonString(snapshot);
     }
 
     private void validateCommand(EquipmentLocationEffectiveCommand command) {

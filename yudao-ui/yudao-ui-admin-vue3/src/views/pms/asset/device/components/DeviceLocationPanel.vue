@@ -10,7 +10,7 @@
         { label: '站点位置', value: detail.siteLocationId },
         { label: '生效时间', value: detail.locationEffectiveFrom },
         { label: '来源安装记录', value: detail.locationRecordId },
-        { label: '发生时位置快照', value: detail.locationSnapshot, multiline: true }
+        { label: '发生时位置快照', value: locationSnapshotText(detail.locationSnapshot), multiline: true }
       ]"
     />
     <el-empty
@@ -31,6 +31,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { ref, watch } from 'vue'
 import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
