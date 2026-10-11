@@ -39,6 +39,10 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Resource
     private DeviceConfigLogRecordApi deviceConfigLogRecordApi;
+    @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.DeviceConfigurationLogImportApi importedLogs;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi importedLogScopes;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -62,6 +66,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Transactional(rollbackFor = Exception.class)
     public void updateConfiguration(ConfigurationSaveReqVO updateReqVO) {
         ConfigurationDO existing = validateConfigurationExists(updateReqVO.getId());
+        if (existing.getImportedLogFileId() != null) throw new IllegalStateException("导入日志记录不可修改原始关联");
         Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
         if (equipmentId != null) {
             deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
@@ -79,6 +84,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteConfiguration(Long id) {
         ConfigurationDO existing = validateConfigurationExists(id);
+        if (existing.getImportedLogFileId() != null) throw new IllegalStateException("导入日志记录及来源历史须保留");
         validateStatus(existing, 0, 1, 3);
         configurationMapper.deleteById(id);
     }
@@ -98,6 +104,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     public void startConfiguration(Long id) {
         ConfigurationDO configuration = validateConfigurationExists(id);
         validateStatus(configuration, 0); // 待调试 → 进行中
+        validateImportedLog(configuration);
         if (configuration.getDebugTime() == null) {
             configuration.setDebugTime(LocalDateTime.now());
         }
@@ -109,6 +116,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     public void completeConfiguration(Long id) {
         ConfigurationDO configuration = validateConfigurationExists(id);
         validateStatus(configuration, 1); // 进行中 → 已完成
+        validateImportedLog(configuration);
         updateStatus(configuration, 2);
     }
 
@@ -121,6 +129,25 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     }
 
     // ==================== 内部工具方法 ====================
+
+    private void validateImportedLog(ConfigurationDO configuration) {
+        if (configuration.getImportedLogFileId() == null) return;
+        Long tenant = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        Long actor = cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
+        if (actor == null || !Objects.equals(tenant, configuration.getTenantId()))
+            throw new IllegalStateException("配置记录不在当前租户范围");
+        var scope = importedLogScopes.resolveCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
+                tenant, actor, configuration.getProjectId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT));
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(configuration.getProjectId())) throw new IllegalStateException("项目不在当前可编辑范围");
+        var locked = importedLogScopes.lockAndRevalidate(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery(
+                tenant, actor, configuration.getProjectId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT, scope.treeVersion()));
+        if (locked == null || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(configuration.getProjectId())
+                || !Objects.equals(scope.treeVersion(), locked.treeVersion())) throw new IllegalStateException("项目范围已变化，请刷新后重试");
+        importedLogs.validateFile(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceConfigurationLogImportApi.FileQuery(
+                tenant, actor,
+                configuration.getProjectId(), configuration.getEquipmentId(), configuration.getImportedLogFileId()));
+    }
 
     /**
      * 配置 Log 归档设备档案（EXE-03：手动上传为独立合法来源）。

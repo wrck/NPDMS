@@ -13,6 +13,12 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ConfigurationMapper extends ProjectScopedCodeMapper<ConfigurationDO> {
 
+    ConfigurationDO selectByImportedLogForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.query.ConfigurationImportedLogQuery query);
+
+    ConfigurationDO selectCodeIncludingDeletedForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.query.ConfigurationCodeQuery query);
+
     default PageResult<ConfigurationDO> selectPage(ConfigurationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ConfigurationDO>()
                 .eqIfPresent(ConfigurationDO::getProjectId, reqVO.getProjectId())
