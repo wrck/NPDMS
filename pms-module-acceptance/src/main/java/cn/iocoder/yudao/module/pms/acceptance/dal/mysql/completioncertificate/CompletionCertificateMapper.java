@@ -9,6 +9,24 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface CompletionCertificateMapper extends ProjectScopedCodeMapper<CompletionCertificateDO> {
+    int replacePrintBindings(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionPrintBindingUpdate query);
+    java.util.List<CompletionCertificateDO> selectPairedWorkflowRows(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionWorkflowPageQuery query);
+    Long countPairedWorkflowRows(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionWorkflowPageQuery query);
+    default PageResult<CompletionCertificateDO> selectWorkflowPage(
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionWorkflowPageQuery query) {
+        if(query.getVisibleProjectIds()==null || query.getVisibleProjectIds().isEmpty())return new PageResult<>(java.util.List.of(),0L);
+        if(query.isPairedOnly())return new PageResult<>(selectPairedWorkflowRows(query),countPairedWorkflowRows(query));
+        return selectPage(query,new LambdaQueryWrapperX<CompletionCertificateDO>()
+                .eq(CompletionCertificateDO::getTenantId,query.getTenantId())
+                .in(CompletionCertificateDO::getProjectId,query.getVisibleProjectIds())
+                .eqIfPresent(CompletionCertificateDO::getProjectId,query.getProjectId())
+                .likeIfPresent(CompletionCertificateDO::getName,query.getName())
+                .eqIfPresent(CompletionCertificateDO::getStatus,query.getStatus())
+                .orderByDesc(CompletionCertificateDO::getId));
+    }
     CompletionCertificateDO selectDeliveryOwnerForUpdate(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery query);
 

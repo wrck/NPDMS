@@ -8,6 +8,7 @@ import {
 import TaskPanel from './TaskPanel.vue'
 import ResultPanel from './ResultPanel.vue'
 import Workbench from './index.vue'
+import CompletionWorkbench from '../completion-certificate/index.vue'
 import { satisfactionProjectContext, type SatisfactionViewProps } from './projectContext'
 
 const api = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const api = vi.hoisted(() => ({
   listResults: vi.fn(),
   assignTask: vi.fn(),
   createGrant: vi.fn(),
+  getPairedCompletionCertificate: vi.fn(),
   reserveAssistedResponse: vi.fn(),
   initializeAssistedFile: vi.fn(),
   completeAssistedFile: vi.fn(),
@@ -32,13 +34,30 @@ const api = vi.hoisted(() => ({
 }))
 const message = vi.hoisted(() => ({ confirm: vi.fn(), success: vi.fn(), warning: vi.fn() }))
 const fileApi = vi.hoisted(() => ({ createAccessTicket: vi.fn() }))
+const confirmations = vi.hoisted(() => ({ getConfirmationPage: vi.fn(), getCompletionCertificatePage: vi.fn() }))
 const routeGuards = vi.hoisted(() => ({ leave: [] as Array<() => boolean>, update: [] as Array<() => boolean> }))
 vi.mock('vue-router', () => ({
   onBeforeRouteLeave: (guard: () => boolean) => routeGuards.leave.push(guard),
   onBeforeRouteUpdate: (guard: () => boolean) => routeGuards.update.push(guard)
 }))
 vi.mock('@/api/pms/acceptance/satisfaction', () => api)
-vi.mock('@/api/system/user', () => ({ getUserPage: vi.fn() }))
+vi.mock('@/api/system/user', () => ({ __v_isRef: false, getUserPage: vi.fn() }))
+vi.mock('@/api/system/user/profile', () => ({ getUserProfile: vi.fn() }))
+vi.mock('@/api/pms/acceptance/completion-certificate', () => confirmations)
+vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
+vi.mock('@/api/pms/asset/device', () => ({ getDevicePage: vi.fn() }))
+vi.mock('@/api/pms/commerce', () => ({ getDeliveryScopePage: vi.fn(), getSalesOrderLinePage: vi.fn() }))
+vi.mock('@/api/pms/platform/dynamic-form', () => ({ getTemplateSelection: vi.fn() }))
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 1, nickname: '当前用户' } }) }))
+vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/api/infra/file', () => ({ updateFile: vi.fn() }))
+vi.mock('@/components/FormCreate', () => ({ SignaturePad: { render: () => null } }))
+vi.mock('@/components/FormCreate/src/customerConfirmation', () => ({ signaturePngFile: vi.fn() }))
+vi.mock('../completion-certificate/ConfirmationLinkDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_COMPLETION_CERT_STATUS: 'completion_status' }, getIntDictOptions: () => [] }))
+vi.mock('../completion-certificate/ConfirmationPrintPreview.vue', () => ({ default: { setup: (_: any, { expose }: any) => { expose({ isExporting: () => false, close: () => true }); return () => null } } }))
+vi.mock('../completion-certificate/ConfirmationPrintTemplates.vue', () => ({ default: { render: () => null } }))
+vi.mock('../completion-certificate/confirmationPrintForm', () => ({ documentLabel: (kind: string) => kind === 'COMPLETION' ? '完工证明' : '满意度调查表', printCategory: (kind: string) => `${kind}_PRINT`, completionDisplay: (value: any) => value }))
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/auth', () => ({ getTenantId: () => 1 }))
@@ -93,6 +112,7 @@ const renderPanel = (component: Component, initial: SatisfactionViewProps = {}) 
       'ElCheckbox',
       'ElTabs',
       'ElTabPane'
+      , 'PmsEntitySelect', 'ElCol', 'ElRow', 'ElRadio', 'ElRadioGroup', 'ElDrawer', 'ElDescriptions', 'ElDescriptionsItem', 'ElLink', 'ElEmpty'
     ].map((name) => [name, passthrough])
   )
   const { app, root } = mount(wrapper, {}, { ...stubs, ElTableColumn: tableColumn })
@@ -105,7 +125,10 @@ beforeEach(() => {
   routeGuards.leave.length = 0
   routeGuards.update.length = 0
   api.listTasks.mockImplementation(async (id?: number) => (id ? [task(id)] : []))
+  api.getPairedCompletionCertificate.mockResolvedValue({ id: 20, code: 'CC-20', name: '本次完工证明' })
   api.listResults.mockImplementation(async (id?: number) => (id ? [result(id)] : []))
+  confirmations.getConfirmationPage.mockResolvedValue({ list: [], total: 0 })
+  confirmations.getCompletionCertificatePage.mockResolvedValue({ list: [], total: 0 })
   api.getIndependentCollectionContext.mockImplementation(async (projectId: number) => ({ projectId, projectVersion: 4, treeVersion: 3 }))
   api.listTemplates.mockResolvedValue([
     { id: 20, name: '发布问卷', status: 'PUBLISHED', currentRevisionId: 21,
@@ -219,16 +242,16 @@ describe('ACC-02 existing panels in a project context', () => {
     await first
     expect(message.success).toHaveBeenCalledWith('该项目已有满意度调查，请由责任人继续办理；未达标请使用整改重收')
   })
-  it('prevents navigation away from an unfinished satisfaction operation', async () => {
-    const page = renderPanel(Workbench, { projectId: 41 })
+  it('prevents navigation away from an unfinished confirmation form', async () => {
+    const page = renderPanel(CompletionWorkbench, { projectId: 41 })
     await flush()
     expect(page.child.value.requestLeave()).toBe(true)
-    page.state().taskDirty = true
+    page.state().formVisible = true
     expect(page.child.value.requestLeave()).toBe(false)
     expect(routeGuards.leave.at(-1)!()).toBe(false)
     expect(routeGuards.update.at(-1)!()).toBe(false)
-    expect(message.warning).toHaveBeenCalledWith('请先完成或关闭满意度操作，再切换页面。')
-    page.state().taskDirty = false
+    expect(message.warning).toHaveBeenCalledWith('请先保存或关闭完工证明')
+    page.state().formVisible = false
     expect(page.child.value.requestLeave()).toBe(true)
   })
   it('keeps standalone queries unchanged and locks contextual queries to the supplied project', async () => {
@@ -320,7 +343,7 @@ describe('ACC-02 existing panels in a project context', () => {
     const grant = deferred<any>()
     api.createGrant.mockReturnValueOnce(grant.promise)
     const view = renderPanel(TaskPanel, { projectId: 1 })
-    view.state().openGrant(task(1))
+    await view.state().openGrant(task(1))
     const pending = view.state().createGrant()
     view.props.projectId = 2
     await flush()
@@ -343,7 +366,7 @@ describe('ACC-02 existing panels in a project context', () => {
     const grant = deferred<any>()
     api.createGrant.mockReturnValueOnce(grant.promise)
     const view = renderPanel(TaskPanel, { projectId: 1 })
-    view.state().openGrant(task(1))
+    await view.state().openGrant(task(1))
     const pending = view.state().createGrant()
     await view.state().createGrant()
     expect(api.createGrant).toHaveBeenCalledTimes(1)
@@ -427,9 +450,9 @@ describe('ACC-02 existing panels in a project context', () => {
   it('forwards the same project and readonly restriction through the existing top-level page', async () => {
     const view = renderPanel(Workbench, { projectId: 51, readonly: true })
     await flush()
-    expect(api.listTasks).toHaveBeenCalledWith(51)
-    expect(api.listResults).toHaveBeenCalledWith(51)
-    expect(view.state().scoped).toBe(true)
+    expect(confirmations.getConfirmationPage).toHaveBeenCalledWith(expect.objectContaining({ projectId: 51, survey: true }))
+    expect(view.state().workbench.$props.readonly).toBe(true)
+    expect(view.state().workbench.$props.projectId).toBe(51)
     expect(view.child.value.isDirty()).toBe(false)
     expect(view.child.value.discardChanges()).toBe(true)
   })

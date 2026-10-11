@@ -148,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -334,7 +335,7 @@ const run = async () => {
     runOutcome.value = await runScenario({
       definitionCode: selected.value.definitionCode,
       entityId,
-      idempotencyKey: crypto.randomUUID()
+      idempotencyKey: generateUUID()
     })
     instances.value = await getScenarioInstances(selected.value.definitionCode)
     results.value = await getScenarioResults(selected.value.definitionCode)

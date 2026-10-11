@@ -17,9 +17,12 @@ const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
 const uploaderStub = defineComponent({ setup(_, { attrs }) { return () => h('uploader', attrs) } })
 const nodes = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap(child => nodes(child, type))]
 const flush = async () => { for (let i = 0; i < 5; i++) await nextTick() }
-const uploadValue = (mounted: ReturnType<typeof render>): (value: string) => void => {
+const uploadValue = (mounted: ReturnType<typeof render>): (value: string, successful?: boolean) => void => {
   const listener = nodes(mounted.root, 'uploader')[0].props?.['onUpdate:modelValue'] as any
-  return (value: string) => (Array.isArray(listener) ? listener : [listener]).forEach(fn => fn(value))
+  return (value: string, successful = true) => {
+    ;(Array.isArray(listener) ? listener : [listener]).forEach(fn => fn(value))
+    if (successful) (nodes(mounted.root, 'uploader')[0].props?.onUploadSuccess as () => void)()
+  }
 }
 const render = () => {
   const mounted = mount(Arrival, { projectId: 1 }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, UploadFile: uploaderStub })
@@ -97,4 +100,22 @@ it('keeps both list and create in the enclosing project', async () => {
     await mounted.state.save()
     expect(ArrivalApi.createArrival).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 1 }))
   } finally { mounted.app.unmount() }
+})
+
+it('uses the last successful upload time and does not replace it when evidence is removed', async () => {
+  const mounted = render()
+  const now = vi.spyOn(Date, 'now')
+  try {
+    mounted.state.openForm(); await flush()
+    now.mockReturnValue(1101)
+    uploadValue(mounted)('first.pdf')
+    now.mockReturnValue(2999)
+    uploadValue(mounted)('first.pdf,second.pdf')
+    expect(mounted.state.form.arrivalTime).toBe(2000)
+    now.mockReturnValue(3000)
+    uploadValue(mounted)('second.pdf', false)
+    expect(mounted.state.form.arrivalTime).toBe(2000)
+    await mounted.state.save()
+    expect(ArrivalApi.createArrival).toHaveBeenCalledWith(expect.objectContaining({ attachmentUrl: 'second.pdf', arrivalTime: 2000 }))
+  } finally { now.mockRestore(); mounted.app.unmount() }
 })

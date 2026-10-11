@@ -6,12 +6,6 @@
         <el-form-item label="方案名称" prop="name"><el-input v-model="model.name" :disabled="readOnly || !!model.id" /></el-form-item>
       </el-col>
       <el-col :span="12">
-        <!-- 任务完成链仅认可 IMPLEMENTATION（SolutionCompletionMapper/SolutionReviewMapper 固定值）；扩充值域须先经规格裁决 -->
-        <el-form-item label="方案类型" prop="solutionType">
-          <el-select v-model="model.solutionType" class="!w-full" :disabled="readOnly"><el-option label="实施方案" value="IMPLEMENTATION" /></el-select>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
         <el-form-item label="版本标签" prop="versionLabel"><el-input v-model="model.versionLabel" :disabled="readOnly" /></el-form-item>
       </el-col>
       <el-col :span="12">

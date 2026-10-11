@@ -21,8 +21,11 @@ public class AcceptanceReportVersionDO extends TenantBaseDO {
     private Integer reportVersionNo;
     private String reportStatus;
     private LocalDateTime acceptanceTime;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String conclusionCode;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String conclusionText;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String acceptorName;
     private Long previousVersionId;
     private LocalDateTime effectiveFrom;

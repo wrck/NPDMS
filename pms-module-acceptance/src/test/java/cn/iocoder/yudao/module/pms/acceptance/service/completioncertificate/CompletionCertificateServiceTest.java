@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 /** 完工证明设备明细级联：创建/更新整存整取、删除随证明清理、非草稿禁改。 */
 @ExtendWith(MockitoExtension.class)
 class CompletionCertificateServiceTest {
+    @org.mockito.Mock private cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.CompletionSatisfactionBundleMapper jointBundles;
 
     @Mock
     private CompletionCertificateMapper completionCertificateMapper;
@@ -66,6 +67,33 @@ class CompletionCertificateServiceTest {
         reqVO.setStatus(status);
         reqVO.setDevices(devices.length == 0 ? List.of() : List.of(devices));
         return reqVO;
+    }
+
+    @Test
+    void rejectingPairedPendingCertificateRevokesCustomerLinksAfterTheStateChange() {
+        var certificate = new CompletionCertificateDO(); certificate.setId(8L); certificate.setVersion(2L); certificate.setProjectId(9L); certificate.setStatus(1);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
+        when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
+        var bundle = new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.CompletionSatisfactionBundleDO(); bundle.setId(40L);
+        when(jointBundles.selectByCertificate(any())).thenReturn(bundle);
+        try (var security = org.mockito.Mockito.mockStatic(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.class)) {
+            security.when(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils::getLoginUserId).thenReturn(1L);
+            service.rejectCompletionCertificate(8L);
+        }
+        var order = org.mockito.Mockito.inOrder(completionCertificateMapper, jointBundles);
+        order.verify(completionCertificateMapper).selectDeliveryOwnerForUpdate(any());
+        order.verify(completionCertificateMapper).updateById(any(CompletionCertificateDO.class));
+        order.verify(jointBundles).selectByCertificate(any());
+        order.verify(jointBundles).revokeActiveGrants(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionGrantRevocation(7L, 40L, "1"));
+    }
+
+    @Test
+    void rejectedStateConflictDoesNotRevokeAnOtherwiseValidCustomerLink() {
+        var certificate = new CompletionCertificateDO(); certificate.setId(8L); certificate.setVersion(2L); certificate.setProjectId(9L); certificate.setStatus(1);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
+        when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenReturn(0);
+        assertThrows(Exception.class, () -> service.rejectCompletionCertificate(8L));
+        verify(jointBundles, never()).revokeActiveGrants(any());
     }
 
     @Test

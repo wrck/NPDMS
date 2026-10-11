@@ -33,6 +33,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SatisfactionResponseSubmissionService {
     @jakarta.annotation.Resource private IndependentSatisfactionService independent;
+    private final CompletionSatisfactionBundleService completionBundles;
     private final SatisfactionAccessGrantMapper grantMapper;
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
@@ -48,6 +49,8 @@ public class SatisfactionResponseSubmissionService {
         SatisfactionAccessGrantDO grant = grantMapper.selectByDigestForUpdate(
                 new SatisfactionGrantDigestQuery(command.tenantId(), digest(command.token())));
         if (grant == null) throw new IllegalStateException("SATISFACTION_GRANT_UNAVAILABLE");
+        if (grant.getCompletionBundleId() != null && !Boolean.TRUE.equals(command.confirmCompletionCertificate()))
+            throw new IllegalArgumentException("COMPLETION_SATISFACTION_CONFIRMATION_REQUIRED");
 
         SatisfactionQuestionnaireDO initial = questionnaireMapper.selectById(grant.getQuestionnaireId());
         if (initial == null || !command.tenantId().equals(initial.getTenantId())) {
@@ -63,6 +66,8 @@ public class SatisfactionResponseSubmissionService {
         if (task == null || questionnaire == null || !task.getId().equals(questionnaire.getCollectionTaskId())) {
             throw new IllegalStateException("SATISFACTION_TASK_IDENTITY_CONFLICT");
         }
+        if (grant.getCompletionBundleId() == null && task.getCollectionKey() != null)
+            completionBundles.requireStandaloneAllowed(command.tenantId(), task.getCollectionKey());
 
         SatisfactionResponseDO existing = responseMapper.selectByIdentityForUpdate(
                 new SatisfactionResponseIdentityQuery(command.tenantId(), questionnaire.getId(), command.requestId()));
@@ -107,6 +112,9 @@ public class SatisfactionResponseSubmissionService {
         response.setCreator(actorRef);
         if (responseMapper.insert(response) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_CREATE_FAILED");
         for (FileFact fact : canonicalFiles) insertFile(command, responseId, fact, actorRef);
+        if (grant.getCompletionBundleId() != null) completionBundles.confirm(command.tenantId(), grant, task,
+                responseId, command.confirmCompletionCertificate(), canonicalFiles.stream()
+                        .filter(file -> "SIGNATURE".equals(file.role())).findFirst().orElseThrow(),command.signatureImageDataUrl());
         if (grantMapper.consumeIfActive(new SatisfactionGrantConsumeUpdate(command.tenantId(), grant.getId(),
                 grant.getVersion(), now, actorRef)) != 1
                 || taskMapper.moveToPendingDecision(new SatisfactionTaskDecisionUpdate(command.tenantId(),
@@ -139,6 +147,7 @@ public class SatisfactionResponseSubmissionService {
                 || !"ACTIVE".equals(questionnaire.getQuestionnaireStatus())) {
             throw new IllegalStateException("SATISFACTION_ASSISTED_RESPONSE_NOT_ALLOWED");
         }
+        if (task.getCollectionKey() != null) completionBundles.requireStandaloneAllowed(command.tenantId(), task.getCollectionKey());
         SatisfactionResponseDO existing = responseMapper.selectByIdentityForUpdate(new SatisfactionResponseIdentityQuery(
                 command.tenantId(), questionnaire.getId(), command.requestId()));
         if (existing != null) {
@@ -342,12 +351,23 @@ public class SatisfactionResponseSubmissionService {
     public record Command(Long tenantId, String token, String requestId, Long reservedResponseId,
                           String submitChannel,
                           String customerContactRef, Long assistedByUserId, String answerSnapshot,
-                          List<FileFact> files, String actorRef) {
+                          List<FileFact> files, String actorRef, Boolean confirmCompletionCertificate, String signatureImageDataUrl) {
+        public Command(Long tenantId, String token, String requestId, Long reservedResponseId, String submitChannel,
+                       String customerContactRef, Long assistedByUserId, String answerSnapshot,
+                       List<FileFact> files, String actorRef, Boolean confirmed) {
+            this(tenantId,token,requestId,reservedResponseId,submitChannel,customerContactRef,assistedByUserId,answerSnapshot,files,actorRef,confirmed,null);
+        }
+        public Command(Long tenantId, String token, String requestId, Long reservedResponseId, String submitChannel,
+                       String customerContactRef, Long assistedByUserId, String answerSnapshot,
+                       List<FileFact> files, String actorRef) {
+            this(tenantId, token, requestId, reservedResponseId, submitChannel, customerContactRef,
+                    assistedByUserId, answerSnapshot, files, actorRef, null, null);
+        }
         public Command(Long tenantId, String token, String requestId, String submitChannel,
                        String customerContactRef, Long assistedByUserId, String answerSnapshot,
                        List<FileFact> files, String actorRef) {
             this(tenantId, token, requestId, null, submitChannel, customerContactRef,
-                    assistedByUserId, answerSnapshot, files, actorRef);
+                    assistedByUserId, answerSnapshot, files, actorRef, null, null);
         }
     }
     public record FileFact(String role, String fileSlotKey, Integer sequence, Long artifactId, Integer versionNo,

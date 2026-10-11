@@ -73,7 +73,6 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
       { key: 'training', label: '现场培训', icon: 'ep:reading', code: '6.1' },
       { key: 'satisfaction', label: '满意度调查', icon: 'ep:chat-dot-round', code: '6.2', permission: ['pms:acceptance:satisfaction:query'] },
       { key: 'acceptance-reports', label: '初验&终验', icon: 'ep:document-checked', code: '6.3', permission: ['pms:acceptance:report:query'] },
-      { key: 'acceptance', label: '验收记录', icon: 'ep:circle-check', code: '6.3' },
       { key: 'completion-certificate', label: '完工证明', icon: 'ep:medal', code: '6.4' },
       { key: 'deliverable-summary', label: '交付件汇总', icon: 'ep:folder-opened', code: '6.5' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked', code: '6.6' },

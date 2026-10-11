@@ -38,14 +38,6 @@
           >
           <el-button
             link
-            type="success"
-            v-if="!readonly && row.status === 0"
-            @click="handleAction(row, 'sign')"
-            v-hasPermi="['pms:imp-arrival:update']"
-            >签收</el-button
-          >
-          <el-button
-            link
             type="warning"
             v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
@@ -81,7 +73,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="上传交付件" prop="attachmentUrl"
-            ><span v-if="readOnly && !form.attachmentUrl">未上传</span><UploadFile v-else v-model="form.attachmentUrl!" @update:model-value="handleAttachmentUpload" :file-type="['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'txt']" :disabled="readOnly" /></el-form-item>
+            ><span v-if="readOnly && !form.attachmentUrl">未上传</span><UploadFile v-else v-model="form.attachmentUrl!" @upload-success="handleAttachmentUpload" :file-type="['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'txt']" :disabled="readOnly" /></el-form-item>
         </el-col>
       </el-row>
     </el-form>
@@ -174,9 +166,9 @@ const openForm = (row?: ArrivalVO) => {
   resolveReceiverName(form.value.receiverUserId)
   formVisible.value = true
 }
-// 上传完成即视为签收动作完成：交付件上传成功的时刻自动填入完成时间（绑定值由 v-model 更新）
-const handleAttachmentUpload = (value: string) => {
-  if (value && !readOnly.value) form.value.arrivalTime = Date.now()
+// 只在成功上传时更新时间；删除附件不改变末次上传时间，保存后由签收命令完成。
+const handleAttachmentUpload = () => {
+  if (!readOnly.value) form.value.arrivalTime = Math.floor(Date.now() / 1000) * 1000
 }
 const save = async () => {
   if (readOnly.value) return
@@ -201,10 +193,9 @@ const remove = async (row: ArrivalVO) => {
   message.success('删除成功')
   await load()
 }
-const handleAction = async (row: ArrivalVO, action: 'sign' | 'markAbnormal') => {
-  const actionText = { sign: '签收', markAbnormal: '标记异常' }[action]
+const handleAction = async (row: ArrivalVO, action: 'markAbnormal') => {
+  const actionText = { markAbnormal: '标记异常' }[action]
   await message.confirm(`确认${actionText}该签收记录？`)
-  if (action === 'sign') await ArrivalApi.signArrival(row.id!)
   if (action === 'markAbnormal') await ArrivalApi.markAbnormalArrival(row.id!)
   message.success(`${actionText}成功`)
   await load()

@@ -5,6 +5,7 @@ import { customerConfirmationBaseUrl } from '@/api/pms/customerConfirmation'
 export interface QuestionnaireOption {
   code: string
   label: string
+  score?: number | string
 }
 
 export interface QuestionnaireQuestion {
@@ -88,10 +89,36 @@ export interface ResultView {
 }
 
 export interface PublicQuestionnaire {
+  submitted?: boolean
+  answerSnapshot?: string
+  signatureImageDataUrl?: string
+  signedAt?: string
   questionnaireId: number
   version: number
   frozenQuestions: string
   expiresAt: string
+  completionCertificate?: CompletionCertificateSnapshot
+}
+
+export interface CompletionCertificateSnapshot {
+  id: number
+  version: number
+  projectId: number
+  code?: string
+  name?: string
+  certificateNo?: string
+  customerUnit?: string
+  contractNo?: string
+  serviceType?: string
+  engineerName?: string
+  engineerContact?: string
+  itemArrival?: string
+  itemInstall?: string
+  itemCutover?: string
+  itemTraining?: string
+  itemDocs?: string
+  completionDate?: string
+  devices?: Array<{ deviceType?: string; deviceModel?: string; quantity: number }>
 }
 
 export interface GrantFileFact {
@@ -221,11 +248,14 @@ export const assignTask = (task: TaskView, assignedToUserId: number) =>
     headers: { 'Idempotency-Key': generateUUID() }
   })
 
-export const createGrant = (taskId: number, expiresAt: number) =>
+export const createGrant = (taskId: number, expiresAt: number, completionCertificateId: number) =>
   request.post<{ grantId: number; grantVersion: number; token: string; expiresAt: string }>({
     url: `/api/v1/pms/satisfaction-tasks/${taskId}/access-grants`,
-    data: { expiresAt }
+    data: { expiresAt, completionCertificateId }
   })
+
+export const getPairedCompletionCertificate = (taskId: number) =>
+  request.get<CompletionCertificateSnapshot | null>({ url: `/api/v1/pms/satisfaction-tasks/${taskId}/completion-certificate` })
 
 export const recollect = (taskId: number, data: Record<string, unknown>) =>
   request.post({ url: `/api/v1/pms/satisfaction-tasks/${taskId}/actions/recollect`, data })

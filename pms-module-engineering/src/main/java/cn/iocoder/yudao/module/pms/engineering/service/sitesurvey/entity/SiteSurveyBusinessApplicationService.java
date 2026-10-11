@@ -57,7 +57,7 @@ public class SiteSurveyBusinessApplicationService extends DefaultBusinessApplica
         return List.of(op("create","创建草稿",BusinessOperationDescriptor.StandardOperationKind.CREATE),
                 op("save","保存草稿",BusinessOperationDescriptor.StandardOperationKind.UPDATE),
                 op("delete","删除草稿",BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND),
-                op("confirm","确认工勘",BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND),
+                op("confirm","确认并归档工勘",BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND),
                 op("reject","驳回工勘",BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND),
                 op("archive","归档工勘",BusinessOperationDescriptor.StandardOperationKind.DOMAIN_COMMAND));
     }

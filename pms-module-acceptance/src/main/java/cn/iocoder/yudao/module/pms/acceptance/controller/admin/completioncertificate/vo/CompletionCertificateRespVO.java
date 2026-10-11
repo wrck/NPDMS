@@ -110,4 +110,12 @@ public class CompletionCertificateRespVO {
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime createTime;
 
+
+    private Long satisfactionTemplateId;
+    private Long completionPrintTemplateId;
+    private Long completionPrintRevisionId;
+    private String completionPrintSnapshot;
+    private Long satisfactionPrintTemplateId;
+    private Long satisfactionPrintRevisionId;
+    private String satisfactionPrintSnapshot;
 }

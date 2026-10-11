@@ -134,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -285,7 +286,7 @@ const submit = async (requirement: DeliveryRequirementVO) => {
     const outcome = await submitDelivery({
       requirementId: requirement.id,
       materialIds,
-      requestKey: crypto.randomUUID()
+      requestKey: generateUUID()
     })
     ElMessage.success(
       `提交${outcome.replay ? '重放' : '成功'}：提交 #${outcome.submissionId}，数量 ${outcome.count}/${requirement.minimumQuantity}`

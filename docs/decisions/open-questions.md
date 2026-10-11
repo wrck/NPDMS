@@ -1331,3 +1331,43 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Resolution: 使用本项目当前有效服务经理进行单节点人工审批。审批人由服务端项目成员事实解析，不由发起人任选或按全局服务经理角色随机分配；沿用现有成员 API 对缺失或不唯一主责服务经理的拒绝处理。普通流程表单支持任务内发起，审批通过才满足原任务审批依据。
 - Implementation boundary: 创建并部署该流程，更新目标模板草稿的精确定义引用；不发布模板、不回刷历史项目或发布快照。业务规则已确认，运行部署和验收结果见 [割接审批创建与验收](../generated/template-default-adaptation-20261009/cutover-approval.md)。
 - Decision owner: 需求方；2026-10-09 当前会话裁决。
+
+## Q-FEEDBACK-ACCEPTANCE-20261009-024 — 只上传报告与验收通过的边界
+
+- Status: RESOLVED
+- Area: FB-24 初验/终验简化，仅限制依赖该问题的验收完成规则修改。
+- Question: 用户已确认“只上传、自动时间/操作人；保存即完成验收”。上传报告不再人工填写结论后，任何报告保存均完成验收，还是不通过报告仍不能完成？验收完成是否继续等同通过并参与后续闭环？
+- Evidence: `IndependentAcceptancePolicy.SNAPSHOT`冻结`EFFECTIVE_REPORT_PASS`及`passingConclusion=PASS`；`reportPublished`仅PASS使活动COMPLETED，其余PENDING。`AcceptanceReportCommandService.requireCompleteContent`要求验收时间、结论及验收人。不能默认把未判定报告标PASS，也不能覆盖历史活动的规则快照。
+- Decision owner: 需求方
+- Current action: 已取得当前会话明确裁决；按新独立报告规则实施，保留不可变报告和历史规则快照。
+- Tracking evidence: `.run/test-feedback-20261009/项目管理新系统测试反馈跟踪清单.md`，R2原失败保留，R3仅依据实际浏览器结果更新状态。
+
+- Resolution: 需求方在当前会话确认“上传保存即完成，验收完成不再代表结论通过”。新独立报告采用上传完成规则，不默认PASS；既有不可变报告及冻结历史保留。`F-ACC-001`记录该批准差量，本问题不再阻断实施；运行部署和浏览器验收仍须实际完成。
+
+## Q-ACC-COMPLETION-SATISFACTION-20261010 — 完工证明与满意度调查成套推送
+
+- Status: RESOLVED
+- Confirmed scope: 需求方明确一次完工对应一份满意度调查，完工证明和满意度调查两个页面一起推送给客户。不能仅按项目寻找任意证明或仅推送问卷。
+- Question: 同一客户入口中，两个页面分别签字提交，还是一次签字统一确认完工证明并提交满意度？
+- Recommendation: 同一受控入口呈现两个页面，分别保留完工确认与满意度答卷的签字、提交事实；送达不代表任一业务完成。一次签字统一提交须由需求方明确其适用对象与事务边界。
+- Evidence: 当前满意度 `SatisfactionAccessGrantService.inspect` 仅返回冻结问卷与到期时间；旧完工证明具有独立客户确认状态机。既有 F-ACC-002 计划明确旧完工证明独立保留，故本次关系和成套入口须显式补充契约，不直接改写旧历史。
+- Decision owner: 需求方
+
+- Resolution（2026-10-10，Q-ACC-COMPLETION-SATISFACTION-20261010）: 需求方明确“一次签字统一提交两份表单”。同一受控入口展示本次完工证明及冻结满意度调查，签字共同适用于两份表单；答卷保存、签字事实关联和完工证明客户确认同事务成功或回滚。结果评分/生成沿用既有提交后判定及可重试机制，不把推送或低分等同未提交。
+
+## Q-ACC-COMPLETION-ORIGINAL-SURVEY-20261010 — 自动生成的原表与评分规则
+
+- Status: RESOLVED
+- Confirmed scope: 完工证明界面保留原样；满意度填写使用需求方前面给定的DemoV2原表，自动推送不得随机选择已有示例问卷。
+- Question: 本地已有两份已发布示例，均非原表；原表还未确定总分算法和达标阈值。
+- Resolution: 需求方在当前会话先选择“使用原表，并补充评分规则”，随后明确“10项取平均分，满分100，80分及以上达标”。原表的10项评分等权平均，购买意愿与两项意见不计分。新增独立发布原表模板用于默认外发；不修改已有示例或任何冻结历史。
+- Evidence: 当前会话两次明确回答；V430前向种子与原生问卷解析/评分验证；真实浏览器验收记录见 `docs/generated/2026-10-10-satisfaction-style/`。
+- Decision owner: 需求方
+
+## Q-ACC-COMPLETION-EQUIPMENT-20261010 — 保留原设备清单与新建证明数量
+
+- Status: RESOLVED
+- Question: 项目 `992203060198` 原设备清单有7类产品，但当前订单范围仅有主机4件、光模块16件；其余5类在完工证明中应按原清单设备数量回填，还是等待其他订单或配置清单来源？
+- Resolution: 需求方明确“按原清单设备数量回填全部7类”。保留原完整产品集合，证明类型、型号和数量与原清单的设备数量一致；不再仅筛选当前有订单范围的产品。需求方同时指出订单号、项目数量、发货数量和未发货数量缺失，保留这四列及实际可读的订单数据。
+- Evidence: 当前会话明确答复；原生项目设备API返回7类共40条记录，当前交付范围及订单行均为2行、20件。其余5类缺少订单数量来源，展示未知值；不将设备数量写回或推导成订单分配/发货数量。真实页面与保存重开证据见 `docs/generated/2026-10-10-completion-equipment-restore/`。
+- Decision owner: 需求方

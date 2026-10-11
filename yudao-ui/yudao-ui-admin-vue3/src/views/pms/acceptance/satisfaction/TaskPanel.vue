@@ -77,10 +77,14 @@
     >
   </el-dialog>
 
-  <el-dialog v-model="grantVisible" title="受控问卷链接" width="min(640px, 94vw)" destroy-on-close @closed="closeGrant">
+  <el-dialog v-model="grantVisible" title="完工证明与满意度调查客户链接" width="min(640px, 94vw)" destroy-on-close @closed="closeGrant">
     <template v-if="!grantUrl">
       <el-form label-position="top" :disabled="!canWrite"
-        ><el-form-item label="有效期"
+        ><el-form-item label="本次完工证明" required>
+          <el-input v-if="pairedCertificate" :model-value="`${pairedCertificate.code || ''} ${pairedCertificate.name || ''}`" readonly />
+          <PmsEntitySelect v-else v-model="completionCertificateId" :key="selected?.id" :api="getCompletionCertificatePage" :label-field="['code', 'name']" value-field="id" query-field="name" :extra-params="{ projectId: selected?.projectId, status: 1 }" :disabled="pairingLoading" placeholder="选择本项目待客户确认的完工证明" />
+          <span>完工证明与本次满意度调查一起交付，客户一次签字统一提交。</span>
+        </el-form-item><el-form-item label="有效期"
           ><el-date-picker
             v-model="grantExpiresAt"
             type="datetime"
@@ -95,7 +99,7 @@
     </template>
     <div v-else class="grant-result">
       <Qrcode v-if="customerGrantUrl" :key="customerGrantUrl" :text="customerGrantUrl" :width="200" @done="url => grantQrImage = url" />
-      <p>客户扫码后可直接填写满意度问卷并手写签字。</p>
+      <p>客户扫码后可查看完工证明、填写满意度调查，一次签字统一提交两份表单。</p>
       <a v-if="grantQrImage && customerGrantUrl" :href="grantQrImage" download="满意度调查二维码.png">保存二维码</a>
       <el-form label-position="top" class="grant-address">
         <el-form-item label="客户可访问的系统地址">
@@ -109,11 +113,11 @@
       <el-input :model-value="customerGrantUrl" readonly
         ><template #append><el-button @click="copyLink">复制</el-button></template></el-input
       >
-      <el-link v-if="customerGrantUrl" :href="customerGrantUrl" target="_blank" rel="noopener noreferrer" type="primary">打开客户问卷</el-link>
+      <el-link v-if="customerGrantUrl" :href="customerGrantUrl" target="_blank" rel="noopener noreferrer" type="primary">打开客户确认页面</el-link>
     </div>
     <template #footer
       ><el-button @click="closeGrant">关闭</el-button
-      ><el-button v-if="!grantUrl" type="primary" :loading="grantCreating" :disabled="!canWrite" @click="createGrant"
+      ><el-button v-if="!grantUrl" type="primary" :loading="grantCreating" :disabled="!canWrite || pairingLoading || !completionCertificateId" @click="createGrant"
         >创建链接</el-button
       ></template
     >
@@ -204,6 +208,7 @@ import { satisfactionProjectContext, type SatisfactionViewProps } from './projec
 import { getUserPage } from '@/api/system/user'
 import QuestionnaireFields from './QuestionnaireFields.vue'
 import ManualStartDialog from './ManualStartDialog.vue'
+import { getCompletionCertificatePage } from '@/api/pms/acceptance/completion-certificate'
 const questionnaireRef = ref<InstanceType<typeof QuestionnaireFields>>()
 const statusLabel = (status?: string) => ({ PENDING_ASSIGNMENT: '待指派', PENDING_COLLECTION: '待采集', ASSIGNED: '已指派', PENDING_DECISION: '待判定', PENDING_ARCHIVE: '待归档', FAILED: '未达标', ACTIVE: '可填写', SUBMITTED: '已提交', ARCHIVED: '已归档', INVALIDATED: '已失效' }[status || ''] || status || '—')
 
@@ -237,6 +242,9 @@ const selected = ref<TaskView>()
 const assignVisible = ref(false)
 const assignedUserId = ref<number>()
 const grantVisible = ref(false)
+const completionCertificateId = ref<number>()
+const pairedCertificate = ref<Api.CompletionCertificateSnapshot | null>(null)
+const pairingLoading = ref(false)
 const grantExpiresAt = ref('')
 const grantUrl = ref('')
 const grantCreating = ref(false)
@@ -378,15 +386,30 @@ const assign = async () => {
   assignVisible.value = false
   await load()
 }
-const openGrant = (task: TaskView) => {
+const openGrant = async (task: TaskView) => {
   if (!writableTask(task)) return
   selected.value = task
   grantUrl.value = ''
   grantExpiresAt.value = formatDate(new Date(Date.now() + 24 * 3600_000), 'YYYY-MM-DDTHH:mm:ss')
   grantVisible.value = true
+  completionCertificateId.value = undefined
+  pairedCertificate.value = null
+  const version = contextVersion
+  pairingLoading.value = true
+  try {
+    const certificate = await Api.getPairedCompletionCertificate(task.id)
+    if (version !== contextVersion || !grantVisible.value || selected.value?.id !== task.id) return
+    pairedCertificate.value = certificate
+    completionCertificateId.value = certificate?.id
+  } catch {
+    if (version === contextVersion && selected.value?.id === task.id) {
+      grantVisible.value = false
+      message.warning('完工证明关联读取失败，请重新打开客户链接窗口')
+    }
+  } finally { if (version === contextVersion && selected.value?.id === task.id) pairingLoading.value = false }
 }
 const createGrant = async () => {
-  if (grantCreating.value || !selected.value || !writableTask(selected.value) || !grantExpiresAt.value) return
+  if (grantCreating.value || pairingLoading.value || !completionCertificateId.value || !selected.value || !writableTask(selected.value) || !grantExpiresAt.value) return
   if (!(new Date(grantExpiresAt.value).getTime() > Date.now())) {
     message.warning('请选择未来的链接有效期')
     return
@@ -394,7 +417,7 @@ const createGrant = async () => {
   const version = contextVersion
   grantCreating.value = true
   try {
-  const grant = await Api.createGrant(selected.value.id, new Date(grantExpiresAt.value).getTime())
+  const grant = await Api.createGrant(selected.value.id, new Date(grantExpiresAt.value).getTime(), completionCertificateId.value)
   if (version !== contextVersion || !canWrite.value || !grantVisible.value) return
   const tenantId = getTenantId() ?? 0
   grantUrl.value = `${window.location.origin}/satisfaction-questionnaires/${encodeURIComponent(grant.token)}?tenantId=${tenantId}`
@@ -409,6 +432,7 @@ const copyLink = async () => {
 }
 const closeGrant = () => {
   grantVisible.value = false
+  pairingLoading.value = false
   grantUrl.value = ''
 }
 const openAssisted = (task: TaskView) => {

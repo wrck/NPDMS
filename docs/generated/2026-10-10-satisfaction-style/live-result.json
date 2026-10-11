@@ -1,0 +1,17 @@
+{
+  "projectId": 992203060005,
+  "taskId": "2108625703966486530",
+  "certificateId": 30025,
+  "submission": {
+    "responseId": "2108625720160694273",
+    "resultId": "2108625720160694273",
+    "score": 80.0,
+    "threshold": 80.0,
+    "passed": true,
+    "responseReplayed": false,
+    "resultReplayed": false
+  },
+  "pageErrors": [],
+  "certificateStatus": 2,
+  "customerSignDate": "2026-10-10"
+}

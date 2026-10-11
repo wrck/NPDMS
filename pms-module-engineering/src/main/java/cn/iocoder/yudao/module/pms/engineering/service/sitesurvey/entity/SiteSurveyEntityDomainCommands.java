@@ -135,6 +135,7 @@ public class SiteSurveyEntityDomainCommands {
         validateStatus(survey, 0); // 草稿 → 已确认
         validateForm(survey, false);
         updateStatus(survey, 1);
+        archiveConfirmedSurvey(survey);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -149,6 +150,10 @@ public class SiteSurveyEntityDomainCommands {
     public void archiveSiteSurveyEntity(Long id, ProjectBusinessExecutionSelection execution) {
         SiteSurveyEntityDO survey = validateSiteSurveyEntityExists(id);
         writeAccess.lock(survey.getProjectId(), "pms:sol-site-survey:update", execution, "SOL.SITE_SURVEY.ARCHIVE", survey.getId());
+        archiveConfirmedSurvey(survey);
+    }
+
+    private void archiveConfirmedSurvey(SiteSurveyEntityDO survey) {
         validateStatus(survey, 1); // 已确认 → 已归档
         updateStatus(survey, 3);
     }

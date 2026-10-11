@@ -1,0 +1,16 @@
+{
+  "projectId": 992203060005,
+  "projectName": "交付全流程审计-20260919",
+  "customerUnit": "本地完工布局验收-20261010-120206",
+  "listDisplaysProjectAndCustomerWithoutNumber": true,
+  "projectCustomerAndDateEachHaveTheirOwnRow": true,
+  "completionDateBeforeSignature": true,
+  "newDefaultDate": "2026-10-10",
+  "certificateId": 30030,
+  "defaultDateSaved": true,
+  "existingDatePreservedAfterReopen": true,
+  "customerSheetMatchesSavedLayoutAndDate": true,
+  "previewValidationLinkRevoked": true,
+  "pageErrors": [],
+  "existingSignedHistoryUnchanged": true
+}

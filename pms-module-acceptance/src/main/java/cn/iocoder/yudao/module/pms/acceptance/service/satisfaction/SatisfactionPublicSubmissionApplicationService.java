@@ -48,7 +48,7 @@ public class SatisfactionPublicSubmissionApplicationService {
         SatisfactionResponseSubmissionService.SubmissionResult response = responseService.submit(
                 new SatisfactionResponseSubmissionService.Command(command.tenantId(), command.token(),
                         command.requestId(), command.responseId(), "PUBLIC_LINK", command.customerContactRef(), null,
-                        command.answerSnapshot(), command.files(), "public-link"));
+                        command.answerSnapshot(), command.files(), "public-link", command.confirmCompletionCertificate(), command.signatureImageDataUrl()));
         SatisfactionResultDecisionService.DecisionResult result = resultService.decide(
                 new SatisfactionResultDecisionService.Command(command.tenantId(), response.taskId(),
                         response.questionnaireId(), response.responseId(), "sat-result:" + response.responseId()));
@@ -57,7 +57,16 @@ public class SatisfactionPublicSubmissionApplicationService {
     }
 
     public record Command(Long tenantId, String token, String requestId, Long responseId, String customerContactRef,
-                          String answerSnapshot, List<SatisfactionResponseSubmissionService.FileFact> files) {
+                          String answerSnapshot, List<SatisfactionResponseSubmissionService.FileFact> files,
+                          Boolean confirmCompletionCertificate, String signatureImageDataUrl) {
+        public Command(Long tenantId, String token, String requestId, Long responseId, String customerContactRef,
+                       String answerSnapshot, List<SatisfactionResponseSubmissionService.FileFact> files, Boolean confirmed) {
+            this(tenantId,token,requestId,responseId,customerContactRef,answerSnapshot,files,confirmed,null);
+        }
+        public Command(Long tenantId, String token, String requestId, Long responseId, String customerContactRef,
+                       String answerSnapshot, List<SatisfactionResponseSubmissionService.FileFact> files) {
+            this(tenantId, token, requestId, responseId, customerContactRef, answerSnapshot, files, null, null);
+        }
     }
 
     public record InitializeFileCommand(Long tenantId, String token, String requestId, String policyKey,

@@ -1,0 +1,12 @@
+{
+  "projectId": 992203060005,
+  "customerUnit": "本地完工设备表格验收-20261010-122724",
+  "certificateId": 30032,
+  "serverVersionConflictKeepsInputAndProtectsFirstSave": true,
+  "managerDeviceTableMatchesSavedRows": true,
+  "customerDeviceTableMatchesFrozenRowsWithoutPageOverflow": true,
+  "validationLinkRevoked": true,
+  "pageErrors": [],
+  "stableDeviceTableFullyVisibleAfterReopen": true,
+  "existingSignedHistoryUnchanged": true
+}

@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.Satisf
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionAccessGrantMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionCollectionTaskMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionQuestionnaireMapper;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionResponseMapper;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.CompletionSatisfactionSigningMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionGrantDigestQuery;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
@@ -30,14 +32,27 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SatisfactionAccessGrantService {
     @jakarta.annotation.Resource private IndependentSatisfactionService independent;
+    private final CompletionSatisfactionBundleService completionBundles;
     private static final SecureRandom RANDOM = new SecureRandom();
     private final SatisfactionCollectionTaskMapper taskMapper;
     private final SatisfactionQuestionnaireMapper questionnaireMapper;
     private final SatisfactionAccessGrantMapper grantMapper;
     private final ProjectScopeApi projectScopeApi;
+    private final SatisfactionResponseMapper submittedResponses;
+    private final CompletionSatisfactionSigningMapper submittedSignings;
 
     @Transactional(rollbackFor = Exception.class)
     public CreatedGrant create(Long tenantId, Long actorUserId, Long taskId, LocalDateTime expiresAt) {
+        return createInternal(tenantId, actorUserId, taskId, expiresAt, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public CreatedGrant create(Long tenantId, Long actorUserId, Long taskId, LocalDateTime expiresAt, Long certificateId) {
+        if (certificateId == null) throw new IllegalArgumentException("COMPLETION_SATISFACTION_CERTIFICATE_REQUIRED");
+        return createInternal(tenantId, actorUserId, taskId, expiresAt, certificateId);
+    }
+
+    private CreatedGrant createInternal(Long tenantId, Long actorUserId, Long taskId, LocalDateTime expiresAt, Long certificateId) {
         SatisfactionCollectionTaskDO task = taskMapper.selectById(taskId);
         if (IndependentSatisfactionService.direct(task)) independent.lockIfDirect(tenantId, actorUserId, task);
         if (task == null || !tenantId.equals(task.getTenantId()) || task.getQuestionnaireId() == null
@@ -64,6 +79,7 @@ public class SatisfactionAccessGrantService {
         row.setId(IdWorker.getId());
         row.setTenantId(tenantId);
         row.setQuestionnaireId(questionnaire.getId());
+        if (certificateId != null) row.setCompletionBundleId(completionBundles.bind(tenantId, actorUserId, task, certificateId));
         row.setGrantVersion(grantMapper.selectNextVersion(tenantId, questionnaire.getId()));
         row.setTokenDigest(digest(token));
         row.setEffectiveFrom(now);
@@ -81,8 +97,9 @@ public class SatisfactionAccessGrantService {
         SatisfactionAccessGrantDO grant = grantMapper.selectByDigest(new SatisfactionGrantDigestQuery(
                 tenantId, digest(token)));
         LocalDateTime now = LocalDateTime.now();
-        if (grant == null || !"ACTIVE".equals(grant.getGrantStatus())
-                || now.isBefore(grant.getEffectiveFrom()) || !now.isBefore(grant.getExpiresAt())) {
+        boolean submitted=grant!=null && grant.getCompletionBundleId()!=null && "CONSUMED".equals(grant.getGrantStatus());
+        if (grant == null || !("ACTIVE".equals(grant.getGrantStatus()) || submitted)
+                || now.isBefore(grant.getEffectiveFrom()) || !submitted && !now.isBefore(grant.getExpiresAt())) {
             throw new IllegalStateException("SATISFACTION_GRANT_UNAVAILABLE");
         }
         SatisfactionQuestionnaireDO questionnaire = questionnaireMapper.selectById(grant.getQuestionnaireId());
@@ -90,8 +107,20 @@ public class SatisfactionAccessGrantService {
                 || !"ACTIVE".equals(questionnaire.getQuestionnaireStatus())) {
             throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_UNAVAILABLE");
         }
+        if (grant.getCompletionBundleId() == null) {
+            var task = taskMapper.selectById(questionnaire.getCollectionTaskId());
+            if (task == null || !tenantId.equals(task.getTenantId())) throw new IllegalStateException("SATISFACTION_TASK_NOT_FOUND");
+            completionBundles.requireStandaloneAllowed(tenantId, task.getCollectionKey());
+        }
+        var signed=submitted?submittedSignings.selectByQuestionnaire(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionSigningQuestionnaireQuery(
+                tenantId,grant.getCompletionBundleId(),questionnaire.getId())):null;
+        if(submitted && (signed==null || !grant.getId().equals(signed.getGrantId())))throw new IllegalStateException("SATISFACTION_GRANT_UNAVAILABLE");
+        var response=signed==null?null:submittedResponses.selectById(signed.getResponseId());
+        if(submitted && (response==null || !tenantId.equals(response.getTenantId())))throw new IllegalStateException("SATISFACTION_GRANT_UNAVAILABLE");
         return new PublicQuestionnaire(questionnaire.getId(), questionnaire.getVersion(),
-                publicQuestionnaireJson(questionnaire.getFrozenQuestionJson()), grant.getExpiresAt());
+                publicQuestionnaireJson(questionnaire.getFrozenQuestionJson()), grant.getExpiresAt(),
+                grant.getCompletionBundleId() == null ? null : completionBundles.inspect(tenantId, grant),
+                submitted,response==null?null:response.getAnswerSnapshot(),signed==null?null:signed.getSignatureImageDataUrl(),signed==null?null:signed.getSignedAt());
     }
 
     private String publicQuestionnaireJson(String frozenJson) {
@@ -116,6 +145,7 @@ public class SatisfactionAccessGrantService {
                     Map<String, Object> projectedOption = new LinkedHashMap<>();
                     projectedOption.put("code", value.get("code"));
                     projectedOption.put("label", value.get("label"));
+                    if (value.containsKey("score")) projectedOption.put("score", value.get("score"));
                     return projectedOption;
                 }).toList());
             }
@@ -139,5 +169,6 @@ public class SatisfactionAccessGrantService {
 
     public record CreatedGrant(Long grantId, Integer grantVersion, String token, LocalDateTime expiresAt) {}
     public record PublicQuestionnaire(Long questionnaireId, Long version, String frozenQuestions,
-                                      LocalDateTime expiresAt) {}
+                                      LocalDateTime expiresAt, CompletionSatisfactionBundleService.CertificateSnapshot completionCertificate,
+                                      boolean submitted,String answerSnapshot,String signatureImageDataUrl,LocalDateTime signedAt) {}
 }

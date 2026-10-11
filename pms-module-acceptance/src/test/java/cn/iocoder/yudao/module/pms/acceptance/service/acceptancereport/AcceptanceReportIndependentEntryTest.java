@@ -105,6 +105,7 @@ class AcceptanceReportIndependentEntryTest {
         activity.setProjectTaskId(null); activity.setExecutionContractId(null); activity.setDeliverableId(null);
         activity.setAcceptanceType(type); activity.setRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
         report.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        report.setUploaderUserId(19L);
         var context = new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(80L, 80L, 4L, 3L, "ACTIVE");
         when(nativeProjects.inspect(any())).thenReturn(context);
         when(nativeProjects.lock(any(), eq(4L), eq(3L))).thenReturn(context);
@@ -135,8 +136,10 @@ class AcceptanceReportIndependentEntryTest {
         assertTrue(facts.isEmpty());
     }
 
-    @Test void failedReportNeverCompletesIndependentAcceptanceAndMissingFilesCannotPublish() {
+    @Test void failedLegacyReportNeverCompletesIndependentAcceptanceAndMissingFilesCannotPublish() {
         direct("PRELIMINARY"); report.setConclusionCode("FAIL");
+        activity.setRuleSnapshot(IndependentAcceptancePolicy.LEGACY_SNAPSHOT);
+        report.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.LEGACY_SNAPSHOT);
         owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "failed-publish", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
         assertEquals("PENDING", activity.getActivityStatus());
@@ -146,6 +149,37 @@ class AcceptanceReportIndependentEntryTest {
                 new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "no-file", "digest"),
                 new AcceptanceReportCommands.Actor(7L, 19L, "native-entry")));
         assertEquals("DRAFT", report.getReportStatus());
+    }
+
+    @Test void uploadedReportCompletesWithoutInventingAPassingConclusion() {
+        direct("FINAL"); report.setConclusionCode(null); report.setAcceptorName(null);
+        owner.publish(new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "upload-only", "digest"),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
+        assertEquals("COMPLETED", activity.getActivityStatus());
+        assertNull(report.getConclusionCode()); assertNull(report.getAcceptorName());
+    }
+
+    @Test void draftSaveRecordsActualOperatorAndTimeWithoutChangingHistoricalActivityPolicy() {
+        direct("PRELIMINARY");
+        activity.setRuleSnapshot(IndependentAcceptancePolicy.LEGACY_SNAPSHOT);
+        report.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.LEGACY_SNAPSHOT);
+        var before = LocalDateTime.now();
+        owner.updateDraft(new AcceptanceReportCommands.UpdateDraftCommand(100L, 300L, 2L, 1,
+                new AcceptanceReportCommands.DraftContent(LocalDateTime.of(2000,1,1,0,0), "PASS", "spoof", "spoof")),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry"));
+        assertTrue(IndependentAcceptancePolicy.uploadOnly(report.getAcceptanceRuleSnapshot()));
+        assertEquals(19L, report.getUploaderUserId());
+        assertFalse(report.getAcceptanceTime().isBefore(before));
+        assertNull(report.getConclusionCode()); assertNull(report.getConclusionText()); assertNull(report.getAcceptorName());
+        assertEquals(IndependentAcceptancePolicy.LEGACY_SNAPSHOT, activity.getRuleSnapshot());
+    }
+
+    @Test void uploadOnlyReportWithoutOperatorCannotPublish() {
+        direct("FINAL"); report.setUploaderUserId(null);
+        assertThrows(RuntimeException.class, () -> owner.publish(
+                new AcceptanceReportCommands.PublishCommand(100L, 300L, 2L, 1, null, "missing-operator", "digest"),
+                new AcceptanceReportCommands.Actor(7L, 19L, "native-entry")));
+        assertEquals("PENDING", activity.getActivityStatus()); assertEquals("DRAFT", report.getReportStatus());
     }
 
     @Test void completedIndependentAcceptanceCanRevokeCurrentReportWithoutRestoringHistory() {

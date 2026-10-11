@@ -9,13 +9,20 @@ import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.AC
 /** Approved project report policy. PROJ separately evaluates the frozen template conditions. */
 public final class IndependentAcceptancePolicy {
     private IndependentAcceptancePolicy() { }
-    public static final String SNAPSHOT = """
+    public static final String LEGACY_SNAPSHOT = """
             {"schemaVersion":1,"policyCode":"EFFECTIVE_REPORT_PASS","passingConclusion":"PASS",
              "requiredFields":["acceptanceTime","conclusionCode","acceptorName"],"minimumAttachments":1}
+            """;
+    public static final String SNAPSHOT = """
+            {"schemaVersion":2,"policyCode":"EFFECTIVE_REPORT_UPLOAD",
+             "requiredFields":["acceptanceTime","uploaderUserId"],"minimumAttachments":1}
             """;
 
     public static boolean direct(AcceptanceActivityDO activity) { return "DIRECT".equals(activity.getOriginKind()); }
     public static boolean validSnapshot(String snapshot) {
+        return uploadOnly(snapshot) || snapshot != null && JsonUtils.parseTree(LEGACY_SNAPSHOT).equals(JsonUtils.parseTree(snapshot));
+    }
+    public static boolean uploadOnly(String snapshot) {
         return snapshot != null && JsonUtils.parseTree(SNAPSHOT).equals(JsonUtils.parseTree(snapshot));
     }
     public static void requireMutable(AcceptanceActivityDO activity) {
@@ -25,9 +32,10 @@ public final class IndependentAcceptancePolicy {
                 || !Set.of("PENDING", "COMPLETED").contains(String.valueOf(activity.getActivityStatus())))
             throw exception(ACC_REPORT_STATE_INVALID);
     }
-    public static void reportPublished(AcceptanceActivityDO activity, String conclusion) {
+    public static void reportPublished(AcceptanceActivityDO activity, String conclusion, String reportSnapshot) {
         requireMutable(activity);
-        activity.setActivityStatus("PASS".equals(conclusion) ? "COMPLETED" : "PENDING");
+        if (!validSnapshot(reportSnapshot)) throw exception(ACC_REPORT_STATE_INVALID);
+        activity.setActivityStatus(uploadOnly(reportSnapshot) || "PASS".equals(conclusion) ? "COMPLETED" : "PENDING");
     }
     public static void reportRevoked(AcceptanceActivityDO activity) {
         requireMutable(activity);
