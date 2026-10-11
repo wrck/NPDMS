@@ -157,6 +157,16 @@ public class ProjectRulePublicationValidator {
             RuleProgram program = programs.get(keys[i]);
             if (program == null) continue; // Missing/invalid rules are reported by reference and compilation validation.
             for (RuleProgram.Leaf leaf : program.leaves()) {
+                if ("PROJECT_CONTACT_EXISTS".equals(leaf.predicate())) {
+                    if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
+                            || !"PAGE".equals(binding.getType()) || binding.getParameters() == null
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition.ROUTE
+                                    .equals(binding.getParameters().path("routePath").asText(null))
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition.automatic(program))
+                        issues.add(new Issue(path + "." + slots[i], "RULE_CONTACT_COMPLETION_BINDING_REQUIRED",
+                                "项目联系人自动完成条件只能独立用于联系人PAGE任务的完成规则"));
+                    continue;
+                }
                 if ("WAIT_ELAPSED".equals(leaf.predicate())) {
                     String source = leaf.parameters().path("sourceNodeKey").asText();
                     if ((i == 0 && source.isBlank()) || nodeKey.equals(source))

@@ -30,6 +30,7 @@ public class ProjectCustomerContactService {
     private final PlatformCommandExecutionApi commands;
     private final cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService customerQuery;
     private final cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService customerScopes;
+    private final ProjectContactRuleWakeup ruleWakeup;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
@@ -240,5 +241,6 @@ public class ProjectCustomerContactService {
         entry.setCustomerContactId(sourceId); entry.setProjectId(projectId); entry.setProjectRelationId(relationId); entry.setActionCode(action);
         entry.setBeforeValues(before == null ? null : JsonUtils.toJsonString(before)); entry.setAfterValues(after == null ? null : JsonUtils.toJsonString(after));
         entry.setOccurredAt(LocalDateTime.now()); history.insert(entry);
+        if (projectId != null) ruleWakeup.changed(actor.tenantId(), projectId, actor.userId());
     }
 }

@@ -598,7 +598,7 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL"})
+    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL", "IN_PROGRESS,PAGE"})
     @SuppressWarnings("unchecked")
     void submittedOrBusinessResultCompletesThroughFrozenStateMachineOnceWithoutUserActions(String status, String bindingType) {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
@@ -606,6 +606,9 @@ class ProjectTaskLifecycleServiceTest {
             var task = automaticTask(status);
             contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
                     .setWorkBindingTypeCode(bindingType);
+            if ("IN_PROGRESS".equals(status) && "PAGE".equals(bindingType))
+                contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
+                        .setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
             var transition = new TaskStateTransitionDO(); transition.setToStatusCode("DONE");
             when(stateMachineMapper.requireTransition(any())).thenAnswer(call -> {
                 var query = (cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery) call.getArgument(0);

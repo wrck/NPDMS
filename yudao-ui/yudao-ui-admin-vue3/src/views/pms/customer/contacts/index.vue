@@ -20,7 +20,7 @@
         </div>
       </div>
       <el-form :model="query" inline class="contact-filter -mb-15px">
-        <el-form-item v-if="showCustomerFilter" label="客户" prop="customerId">
+        <el-form-item v-if="showCustomerFilter || (projectId && context && !customerId)" label="客户" prop="customerId">
           <PmsEntitySelect
             v-if="!projectId || !customerId"
             v-model="query.customerId"

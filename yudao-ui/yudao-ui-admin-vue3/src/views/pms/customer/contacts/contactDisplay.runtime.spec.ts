@@ -3,7 +3,7 @@ import { computed, defineComponent, h, inject, nextTick, provide } from 'vue'
 import Contacts from './index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import * as CustomerApi from '@/api/pms/customer'
-import { mount, passthrough, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/api/pms/customer/contacts', () => ({ getMasterPage: vi.fn(), getProjectContext: vi.fn(), getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/customer', () => ({ __v_isRef: false, getCustomer: vi.fn(), getCustomerPage: vi.fn() }))
@@ -34,6 +34,8 @@ const page = { list: [
   { id: 1, customerId: 1001, customerName: '验收客户', name: '联系人甲', title: 'TEST_TITLE', status: 0 },
   { id: 2, customerId: 1001, customerName: '验收客户', name: '联系人乙', title: '历史职务', status: 0 }
 ], total: 2 }
+const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
+  predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
 
 describe('contact customer identity and title display', () => {
   beforeEach(() => {
@@ -71,6 +73,17 @@ describe('contact customer identity and title display', () => {
       await flush()
       expect(textOf(mounted.root)).toContain('职务TEST_TITLE历史职务')
       expect(textOf(mounted.root)).not.toContain('客户联系人角色')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('offers customer selection for an unassociated project even when the overview hides the customer filter', async () => {
+    vi.mocked(ContactsApi.getProjectContext).mockResolvedValue({ project: { projectId: 7, canManage: true } } as any)
+    const mounted = mount(Contacts, { projectId: 7, showCustomerFilter: false, showSectionHeader: true }, components)
+    try {
+      await flush()
+      expect(find(mounted.root, node => node.props?.placeholder === '请选择客户' && !node.props?.disabled)).toBeDefined()
+      expect(textOf(mounted.root)).toContain('关联项目客户')
+      expect(ContactsApi.getProjectPage).not.toHaveBeenCalled()
     } finally { mounted.app.unmount() }
   })
 })

@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ProjectCustomerContactMapper extends BaseMapperX<ProjectCustomerContactDO> {
+    java.util.List<ProjectCustomerContactDO> selectCompletionForUpdate(@Param("query") ProjectContactCompletionQuery query);
     default PageResult<ProjectCustomerContactDO> selectPage(ProjectContactPageQuery query) {
         return selectPage(query.page(), new LambdaQueryWrapperX<ProjectCustomerContactDO>()
                 .eq(ProjectCustomerContactDO::getTenantId, query.tenantId())
