@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper">
+    <sql id="stageCurrentlyOverdue">
+        EXISTS (SELECT 1 FROM proj_project_stage n
+          WHERE n.tenant_id = #{query.tenantId} AND n.project_id = p.id AND n.deleted = b'0'
+            AND n.status NOT IN ('DONE','CLOSED','TERMINATED','CANCELLED')
+            AND (n.plan_end_time &lt; DATE(#{query.effectiveAt}) OR n.acceptance_time &lt; DATE(#{query.effectiveAt})))
+    </sql>
+    <sql id="taskCurrentlyOverdue">
+        EXISTS (SELECT 1 FROM proj_project_task n
+          WHERE n.tenant_id = #{query.tenantId} AND n.project_id = p.id AND n.deleted = b'0'
+            AND n.status NOT IN ('DONE','CLOSED','TERMINATED','CANCELLED')
+            AND (n.plan_end_time &lt; DATE(#{query.effectiveAt}) OR n.acceptance_time &lt; DATE(#{query.effectiveAt})))
+    </sql>
+    <sql id="authorizedProjects">
+        <choose>
+            <when test="query.projectIds != null and !query.projectIds.isEmpty()">
+                project_id IN
+                <foreach collection="query.projectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>1 = 0</otherwise>
+        </choose>
+    </sql>
+    <select id="selectStatusFacts" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectOverdueNodeFact">
+        SELECT project_id, 'STAGE' AS node_kind, id AS node_id, name AS node_name,
+               plan_end_time, acceptance_time, NULL AS completed_at,
+               IFNULL(plan_end_time &lt; DATE(#{query.effectiveAt}), 0) AS work_overdue,
+               IFNULL(acceptance_time &lt; DATE(#{query.effectiveAt}), 0) AS acceptance_overdue
+        FROM proj_project_stage WHERE tenant_id = #{query.tenantId} AND deleted = b'0'
+          AND status NOT IN ('DONE','CLOSED','TERMINATED','CANCELLED')
+          AND (plan_end_time &lt; DATE(#{query.effectiveAt}) OR acceptance_time &lt; DATE(#{query.effectiveAt}))
+          AND <include refid="authorizedProjects"/>
+        UNION ALL
+        SELECT project_id, 'TASK', id, name, plan_end_time, acceptance_time, NULL,
+               IFNULL(plan_end_time &lt; DATE(#{query.effectiveAt}), 0),
+               IFNULL(acceptance_time &lt; DATE(#{query.effectiveAt}), 0)
+        FROM proj_project_task WHERE tenant_id = #{query.tenantId} AND deleted = b'0'
+          AND status NOT IN ('DONE','CLOSED','TERMINATED','CANCELLED')
+          AND (plan_end_time &lt; DATE(#{query.effectiveAt}) OR acceptance_time &lt; DATE(#{query.effectiveAt}))
+          AND <include refid="authorizedProjects"/>
+        UNION ALL
+        SELECT project_id, node_kind, node_id, node_name, plan_end_time, acceptance_time, completed_at,
+               work_overdue, acceptance_overdue
+        FROM proj_node_overdue_completion WHERE tenant_id = #{query.tenantId}
+          AND (work_overdue = b'1' OR acceptance_overdue = b'1')
+          AND <include refid="authorizedProjects"/>
+        ORDER BY project_id, completed_at, node_kind, node_id
+    </select>
+</mapper>

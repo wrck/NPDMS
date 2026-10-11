@@ -8,7 +8,8 @@
         class="status-card"
         :class="[
           `status-card--${card.tone}`,
-          { 'status-card--active': activeStatus === card.value }
+          { 'status-card--active': card.key === 'overdue' ? query.overdueOnly === true :
+            activeStatus === card.value && (card.key !== 'total' || query.overdueOnly == null) }
         ]"
         @click="toggleStatusFilter(card.value)"
       >
@@ -40,6 +41,23 @@
             class="!w-200px"
             @keyup.enter="handleSearch"
           />
+        </el-form-item>
+        <el-form-item label="客户" prop="customerCode">
+          <PmsEntitySelect v-model="query.customerCode" :api="getCustomerPage"
+            :label-field="['code', 'name']" value-field="code" query-field="name"
+            placeholder="按客户名称选择" class="!w-200px" />
+        </el-form-item>
+        <el-form-item label="超期项目" prop="overdueOnly">
+          <el-select v-model="query.overdueOnly" placeholder="全部" clearable class="!w-140px" @change="handleOverdueFilterChange">
+            <el-option label="是" :value="true" />
+            <el-option label="否" :value="false" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="发货状态" prop="hasShippedDevices">
+          <el-select v-model="query.hasShippedDevices" placeholder="全部" clearable class="!w-140px" @change="handleShipmentFilterChange">
+            <el-option label="是" :value="true" />
+            <el-option label="否" :value="false" />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="query.status" placeholder="全部" clearable class="!w-140px">
@@ -342,6 +360,9 @@
           <template #default="{ row }">
             <ProjectStatusTag :project="row" />
           </template>
+        </el-table-column>
+        <el-table-column label="超期情况" min-width="180">
+          <template #default="{ row }"><ProjectOverdueTags :project="row" /></template>
         </el-table-column>
         <el-table-column label="模板绑定" width="170">
           <template #default="{ row }">
@@ -1174,6 +1195,8 @@ import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
 import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
 import { getSelectableCustomers, type SelectedCustomer } from '../inheritance/projects/customerSelection'
+import { getCustomerPage } from '@/api/pms/customer'
+import ProjectOverdueTags from './ProjectOverdueTags.vue'
 import { getSelectableContracts, type SelectedContract } from './contractSelection'
 import { getContractCreationSource, type ContractCreationSourceRespVO } from '@/api/pms/commerce'
 import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
@@ -1195,6 +1218,9 @@ const query = reactive({
   pageSize: 10,
   projectCode: '',
   projectName: '',
+  customerCode: undefined as string | undefined,
+  overdueOnly: undefined as boolean | undefined,
+  hasShippedDevices: undefined as boolean | undefined,
   status: '',
   managerId: undefined as number | undefined,
   createTimeRange: null as string[] | null,
@@ -1271,7 +1297,7 @@ const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: stri
   ...closedProjectStatuses
 ]
 
-const stats = reactive<Record<string, number>>({ total: 0 })
+const stats = reactive<Record<string, number>>({ total: 0, overdue: 0 })
 for (const stage of LIFECYCLE_STAGES) stats[stage.value] = 0
 
 /** 当前选中的状态卡（'' = 全部） */
@@ -1286,6 +1312,14 @@ const statusCards = computed(() => [
     tone: 'blue',
     icon: 'ep:folder-opened'
   },
+  {
+    key: 'overdue',
+    label: '超期项目',
+    value: 'OVERDUE',
+    count: stats.overdue,
+    tone: 'yellow',
+    icon: 'ep:warning'
+  },
   ...LIFECYCLE_STAGES.map((stage) => ({
     key: stage.value,
     label: stage.label,
@@ -1299,8 +1333,12 @@ const statusCards = computed(() => [
 /** 状态卡计数：总数 pageSize=1 取 total，各阶段按 status 精确筛选取 total */
 const loadStats = async () => {
   try {
-    const totalRes = await ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1 })
+    const [totalRes, overdueRes] = await Promise.all([
+      ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1 }),
+      ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1, overdueOnly: true })
+    ])
     stats.total = totalRes.total
+    stats.overdue = overdueRes.total
     const stageRes = await Promise.all(
       LIFECYCLE_STAGES.map((stage) => {
         const params = { pageNo: 1, pageSize: 1, status: stage.value }
@@ -1317,8 +1355,26 @@ const loadStats = async () => {
 
 /** 点击状态卡：选中/取消该阶段筛选；再次点击同一卡回到全部 */
 const toggleStatusFilter = (value: string) => {
-  activeStatus.value = activeStatus.value === value ? '' : value
-  query.status = activeStatus.value
+  if (value === 'OVERDUE') {
+    query.overdueOnly = query.overdueOnly === true ? undefined : true
+    activeStatus.value = query.overdueOnly ? 'OVERDUE' : ''
+    query.status = ''
+  } else {
+    activeStatus.value = activeStatus.value === value ? '' : value
+    query.status = activeStatus.value
+    query.overdueOnly = undefined
+  }
+  handleSearch()
+}
+
+const handleOverdueFilterChange = () => {
+  if (query.overdueOnly !== true && query.overdueOnly !== false) query.overdueOnly = undefined
+  activeStatus.value = query.overdueOnly ? 'OVERDUE' : query.status
+  handleSearch()
+}
+
+const handleShipmentFilterChange = () => {
+  if (query.hasShippedDevices !== true && query.hasShippedDevices !== false) query.hasShippedDevices = undefined
   handleSearch()
 }
 
@@ -1353,6 +1409,9 @@ const handleSearch = () => {
 const handleReset = () => {
   query.projectCode = ''
   query.projectName = ''
+  query.customerCode = undefined
+  query.overdueOnly = undefined
+  query.hasShippedDevices = undefined
   query.status = ''
   query.managerId = undefined
   query.createTimeRange = null

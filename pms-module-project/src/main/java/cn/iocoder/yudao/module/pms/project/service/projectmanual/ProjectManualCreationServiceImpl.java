@@ -139,6 +139,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceQueryApi;
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi projectDeviceShipments;
+    @Resource
     private ProjectCompanyDepartmentRelationMapper companyDepartmentRelationMapper;
     @Resource
     private ProjectTemplateService projectTemplateService;
@@ -440,6 +442,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 pageReqVO.getSalesId(),
                 cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SALES_CODES,
                 effectiveAt);
+        visibleProjectIds = filterShipmentProjects(visibleProjectIds, actor.tenantId(), pageReqVO.getHasShippedDevices());
         visibleProjectIds = intersectDeviceProjects(visibleProjectIds, actor.tenantId(), pageReqVO);
         return projectMasterMapper.selectPage(VisibleProjectPageQuery.builder()
                 .tenantId(actor.tenantId())
@@ -447,6 +450,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 .pageParam(pageReqVO)
                 .projectNameKeyword(pageReqVO.getProjectName())
                 .projectCodePrefix(pageReqVO.getProjectCode())
+                .customerCode(blankToNull(pageReqVO.getCustomerCode()))
+                .overdueOnly(pageReqVO.getOverdueOnly())
                 .status(pageReqVO.getStatus())
                 .signingMethod(pageReqVO.getSigningMethod())
                 .projectCategory(pageReqVO.getProjectCategory())
@@ -483,6 +488,16 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         Set<Long> scoped = new HashSet<>(visibleProjectIds);
         scoped.retainAll(memberProjectIds);
         return scoped;
+    }
+
+    private Set<Long> filterShipmentProjects(Set<Long> visibleProjectIds, Long tenantId, Boolean hasShippedDevices) {
+        if (hasShippedDevices == null || visibleProjectIds.isEmpty()) return visibleProjectIds;
+        Set<Long> shipped = projectDeviceShipments.resolveShippedProjectIds(
+                new cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi.Query(tenantId, visibleProjectIds));
+        Set<Long> filtered = new HashSet<>(visibleProjectIds);
+        if (hasShippedDevices) filtered.retainAll(shipped);
+        else filtered.removeAll(shipped);
+        return filtered;
     }
 
     /** 设备类筛选解析：仅存在任一设备条件时经 AST Business API 解析归属项目并取交集；无命中交集为空。 */

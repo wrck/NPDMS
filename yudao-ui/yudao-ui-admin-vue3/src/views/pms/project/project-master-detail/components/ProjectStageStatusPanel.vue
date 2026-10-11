@@ -4,6 +4,7 @@
       <div>
         <h3>阶段状态</h3>
         <p>阶段按各自准入条件激活，可以同时进行；刷新只读取状态。</p>
+        <ProjectOverdueTags :project="project" />
       </div>
       <div>
         <el-button v-hasPermi="['pms:project-plan:manage']" @click="planVisible = true"
@@ -28,6 +29,17 @@
           <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">
             {{ statusLabel(row.status) }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="计划结束日期">
+        <template #default="{ row }">{{ deadlineDate(row.planEndTime) }}</template>
+      </el-table-column>
+      <el-table-column label="计划验收日期">
+        <template #default="{ row }">{{ deadlineDate(row.acceptanceTime) }}</template>
+      </el-table-column>
+      <el-table-column label="超期情况" min-width="180">
+        <template #default="{ row }">
+          <ProjectOverdueTags :project="stageOverdue(row.id)" />
         </template>
       </el-table-column>
       <el-table-column label="本轮办理">
@@ -103,9 +115,18 @@ import ProjectPlanEditor from './ProjectPlanEditor.vue'
 import ProjectReworkPanel from './ProjectReworkPanel.vue'
 import ProjectNodeWorkbenchDrawer from './ProjectNodeWorkbenchDrawer.vue'
 import type { ProjectFlowSelection } from './project-flow'
+import ProjectOverdueTags from '../../projects/ProjectOverdueTags.vue'
+import { formatDate } from '@/utils/formatTime'
 
-const props = defineProps<{ projectId: number; project: ProjectMasterVO }>()
+const props = defineProps<{ projectId: number; project: ProjectMasterVO; refreshToken?: number }>()
 const emit = defineEmits<{ changed: [] }>()
+const deadlineDate = (value?: string) => value ? formatDate(new Date(value), 'YYYY-MM-DD') : '—'
+const stageOverdue = (id?: number | string): ProjectMasterVO => ({
+  overdueNodes: (props.project.overdueNodes || []).filter(node =>
+    node.nodeKind === 'STAGE' && id != null && String(node.nodeId) === String(id)),
+  completedOverdueNodes: (props.project.completedOverdueNodes || []).filter(node =>
+    node.nodeKind === 'STAGE' && id != null && String(node.nodeId) === String(id))
+})
 const stages = ref<ProjectInstancesVO['stages']>([])
 const loading = ref(false)
 const error = ref('')
@@ -203,7 +224,7 @@ const refresh = async () => {
   await load()
   if (!error.value) emit('changed')
 }
-watch([() => props.projectId, () => props.project.version], load, { immediate: true })
+watch([() => props.projectId, () => props.project.version, () => props.refreshToken], load, { immediate: true })
 </script>
 
 <style scoped>
