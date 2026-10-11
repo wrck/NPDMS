@@ -9,4 +9,22 @@
         WHERE project_id = #{projectId}
           AND code IS NOT NULL
     </select>
+    <select id="selectProjectAddressRecordsForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO">
+        SELECT * FROM imp_eng_installation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0 AND effective_to IS NULL
+        ORDER BY id DESC FOR UPDATE
+    </select>
+    <select id="selectCurrentAddresses" resultType="cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.projection.InstallationCurrentAddressProjection">
+        SELECT equipment_id, install_location FROM imp_eng_installation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0
+          AND status = 2 AND effective_from IS NOT NULL AND effective_to IS NULL
+        <choose>
+          <when test="query.equipmentIds != null and !query.equipmentIds.isEmpty()">
+            AND equipment_id IN
+            <foreach collection="query.equipmentIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+          </when>
+          <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY effective_from DESC, id DESC
+    </select>
 </mapper>

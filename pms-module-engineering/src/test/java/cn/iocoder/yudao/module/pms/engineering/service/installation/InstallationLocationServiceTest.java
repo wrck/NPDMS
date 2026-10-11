@@ -39,6 +39,7 @@ class InstallationLocationServiceTest {
         service = new InstallationServiceImpl();
         ReflectionTestUtils.setField(service, "deviceSelectionApi", org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.class));
         ReflectionTestUtils.setField(service, "installationMapper", mapper);
+        ReflectionTestUtils.setField(service, "completionEvents", org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "locationFactService", locationFactService);
         ReflectionTestUtils.setField(service, "assetLocationApi", assetLocationApi);
         lenient().doReturn("PROJ-AZ-001").when(recordCodeGenerator).next(any(), anyString(), any());

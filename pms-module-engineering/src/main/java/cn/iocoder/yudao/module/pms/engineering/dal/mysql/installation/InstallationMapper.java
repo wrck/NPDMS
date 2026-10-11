@@ -13,6 +13,12 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface InstallationMapper extends ProjectScopedCodeMapper<InstallationDO> {
 
+    java.util.List<InstallationDO> selectProjectAddressRecordsForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.ProjectInstallationAddressQuery query);
+
+    java.util.List<cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.projection.InstallationCurrentAddressProjection> selectCurrentAddresses(
+            @org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationCurrentAddressesQuery query);
+
     default PageResult<InstallationDO> selectPage(InstallationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<InstallationDO>()
                 .eqIfPresent(InstallationDO::getProjectId, reqVO.getProjectId())
