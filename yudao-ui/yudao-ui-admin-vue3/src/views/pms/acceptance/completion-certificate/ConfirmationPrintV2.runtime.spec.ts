@@ -51,7 +51,7 @@ describe('Word V2.0 completion print data', () => {
     const host = render(CompletionPrint, printValues(detail()).completionPrintData)
     const rows = nodes(withClass(host, 'word-device-table')[0]).filter(node => node.type === 'tr' && node.children.some(child => child.type === 'td')).slice(0, 2)
     expect(rows.map(row => row.children.filter(child => child.type === 'td').map(text))).toEqual([
-      ['防火墙', 'FW-01', '2'], ['交换机', 'SW-02', '3']
+      ['防火墙', '2'], ['交换机', '3']
     ])
     const checked = withClass(host, 'service-choices').map(cell => withClass(cell, 'checked').map(box => text(box.parent!)))
     expect(checked).toEqual([['√是'], ['√否'], ['√不涉及'], ['√是'], ['√是']])

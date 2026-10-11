@@ -105,22 +105,17 @@
             >
           </tr>
           <tr>
-            <th scope="row">设备类型和数量</th>
+            <th scope="row">设备名称和数量</th>
             <td colspan="3">
               <div class="device-table">
                 <div class="device-row device-header"
-                  ><span>设备类型</span><span>设备型号</span><span>数量</span><span></span
+                  ><span>设备名称</span><span>数量</span><span></span
                 ></div>
                 <div v-for="(device, index) in devices" :key="index" class="device-row">
                   <el-input
                     v-model="device.deviceType"
-                    :aria-label="`第${index + 1}行设备类型`"
-                    placeholder="设备类型"
-                  />
-                  <el-input
-                    v-model="device.deviceModel"
-                    :aria-label="`第${index + 1}行设备型号`"
-                    placeholder="设备型号"
+                    :aria-label="`第${index + 1}行设备名称`"
+                    placeholder="设备名称"
                   />
                   <el-input-number
                     v-model="device.quantity"
@@ -136,7 +131,7 @@
                 <el-button link type="primary" @click="emit('add-device')"
                   ><Icon icon="ep:plus" />添加一行</el-button
                 >
-                <p class="template-hint">按项目设备清单的类型、型号和设备数量带入，可调整。</p>
+                <p class="template-hint">按项目设备清单的产品名称和设备数量带入，可调整。</p>
               </div>
             </td>
           </tr>
@@ -342,7 +337,7 @@ defineExpose({ validate: () => formRef.value.validate() })
 }
 .device-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 100px 48px;
+  grid-template-columns: minmax(0, 1fr) 100px 48px;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;

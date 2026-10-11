@@ -1,24 +1,26 @@
 <template>
-  <div class="survey-sheet">
+  <div class="survey-sheet" :style="{ '--rating-column-count': columns.length }">
     <p class="survey-introduction">尊敬的客户：<br />非常感谢您对本次工程实施的大力支持！为进一步提升我们的服务水平，请您对本次工程实施情况给予评价，谢谢。</p>
+    <p v-if="ratingRows.length" class="mobile-rating-progress" aria-live="polite">已评价 {{ answeredRatingCount }} / {{ ratingRows.length }} 项，点击选项即可评分。</p>
     <div class="survey-scroll" tabindex="0" aria-label="满意度调查表，可横向滚动">
       <table class="survey-table">
         <caption class="sr-only">满意度调查表</caption>
         <colgroup><col class="category-column" /><col class="question-column" /><col v-for="column in columns" :key="column.key" /><col class="remark-column" /></colgroup>
         <thead><tr><th scope="col">评价类别</th><th scope="col">调查项目</th><th v-for="column in columns" :key="column.key" scope="col">{{ column.label }}</th><th scope="col">备注</th></tr></thead>
         <tbody>
-          <tr v-for="row in ratingRows" :key="row.question.code">
+          <tr v-for="(row, index) in ratingRows" :key="row.question.code" class="rating-row">
             <th v-if="row.span" scope="rowgroup" :rowspan="row.span" class="category-cell">{{ row.category }}</th>
-            <th scope="row" class="question-cell">{{ row.question.title }}<span v-if="row.question.required" class="required"> *</span></th>
+            <th scope="row" class="question-cell"><span class="mobile-question-number">{{ index + 1 }}. </span>{{ row.question.title }}<span v-if="row.question.required" class="required"> *</span></th>
             <td v-for="column in columns" :key="column.key">
               <label v-if="findOption(row.question, column.key)" class="rating-choice">
                 <input type="radio" :name="`${instanceId}-${row.question.code}`" :value="findOption(row.question, column.key)!.code" :checked="answers[row.question.code] === findOption(row.question, column.key)!.code" :disabled="disabled" :aria-label="`${row.question.title}：${column.label}`" @change="answers[row.question.code] = findOption(row.question, column.key)!.code" />
+                <span class="mobile-rating-option"><span>{{ findOption(row.question, column.key)!.label }}</span><strong>{{ scoreLabel(findOption(row.question, column.key)!) }}</strong></span>
               </label>
               <span v-else aria-label="此题无该选项">—</span>
             </td>
             <td class="remark-cell">—</td>
           </tr>
-          <tr v-for="question in otherQuestions" :key="question.code">
+          <tr v-for="question in otherQuestions" :key="question.code" class="other-question">
             <th colspan="2" scope="row">{{ question.title }}<span v-if="question.required" class="required"> *</span></th>
             <td :colspan="columns.length + 1" class="answer-cell">
               <div v-if="isRepurchase(question)" class="repurchase-answer">
@@ -76,6 +78,7 @@ const ratingRows = computed(() => {
   return rows
 })
 const otherQuestions = computed(() => props.definition.questions.filter(q => q.type !== 'RATING'))
+const answeredRatingCount = computed(() => ratingRows.value.filter(row => row.question.options?.some(option => option.code === props.answers[row.question.code])).length)
 const findOption = (question: QuestionnaireQuestion, key: string) => question.options?.find(option => optionKey(option) === key)
 const single = (code: string) => typeof props.answers[code] === 'string' ? props.answers[code] as string : ''
 const isRepurchase = (question: QuestionnaireQuestion) => question.type === 'TEXT' && question.code === 'repurchase' && question.title === '是否有意愿再次购买我司设备'
@@ -123,6 +126,36 @@ defineExpose({ validate })
 .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0 20px; }
 .signature-box { border-top: 1px solid var(--el-text-color-regular); min-height: 50px; }
 .signature-box p { text-align: center; font-size: 13px; }
-@media (width <= 600px) { .signature-row { grid-template-columns: 1fr; gap: 20px; } }
+.mobile-rating-progress, .mobile-question-number, .mobile-rating-option { display: none; }
+@media (width <= 900px) {
+  .survey-introduction { font-size: 14px; }
+  .mobile-rating-progress { display: block; margin: 0 0 12px; font-size: 14px; color: var(--el-text-color-regular); }
+  .survey-scroll { overflow: visible; border: 0; border-radius: 0; }
+  .survey-table { display: block; min-width: 0; font-size: 14px; }
+  .survey-table colgroup, .survey-table thead, .remark-cell { display: none; }
+  .survey-table tbody { display: block; }
+  .survey-table .rating-row { display: grid; grid-template-columns: repeat(var(--rating-column-count), minmax(0, 1fr)); gap: 4px; margin-bottom: 12px; padding: 8px; border: 1px solid var(--el-border-color-lighter); border-radius: 5px; background: var(--el-bg-color); }
+  .survey-table .rating-row > th, .survey-table .rating-row > td { height: auto; min-width: 0; padding: 0; border: 0; }
+  .survey-table .category-cell { grid-column: 1 / -1; padding: 4px 0 8px !important; font-weight: 600; color: var(--el-color-primary); text-align: left; }
+  .survey-table .question-cell { grid-column: 1 / -1; padding: 4px 0 10px !important; text-align: left; line-height: 1.6; }
+  .mobile-question-number { display: inline; }
+  .rating-choice { position: relative; min-height: 64px; }
+  .rating-choice input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .mobile-rating-option { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; width: 100%; min-height: 64px; padding: 6px 2px; border: 1px solid var(--el-border-color); border-radius: 4px; font-size: 12px; line-height: 1.4; background: var(--el-bg-color); color: var(--el-text-color-regular); }
+  .mobile-rating-option strong { font-size: 16px; }
+  .rating-choice input:checked + .mobile-rating-option { border-color: var(--el-color-primary); color: var(--el-color-primary); background: var(--el-color-primary-light-9); font-weight: 600; }
+  .rating-choice input:focus-visible + .mobile-rating-option { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+  .rating-choice input:disabled + .mobile-rating-option { cursor: default; }
+  .survey-table .other-question { display: block; margin: 20px 0; background: var(--el-bg-color); }
+  .survey-table .other-question > th, .survey-table .other-question > td { display: block; width: 100%; height: auto; padding: 0; border: 0; text-align: left; }
+  .survey-table .other-question > th { margin-bottom: 8px; font-weight: 500; line-height: 1.6; }
+  .answer-cell :deep(.el-radio-group), .answer-cell :deep(.el-checkbox-group) { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .answer-cell :deep(.el-radio), .answer-cell :deep(.el-checkbox) { min-height: 44px; height: auto; margin-right: 0; }
+  .answer-cell :deep(.el-input__inner), .answer-cell :deep(.el-textarea__inner) { font-size: 16px; }
+  .answer-cell :deep(.el-textarea__inner) { min-height: 100px; }
+  .repurchase-answer { align-items: stretch; flex-direction: column; gap: 8px; }
+  .repurchase-answer :deep(.el-input) { max-width: none; }
+  .signature-row { grid-template-columns: 1fr; gap: 20px; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style>
