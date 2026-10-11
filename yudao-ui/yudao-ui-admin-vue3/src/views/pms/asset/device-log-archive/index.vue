@@ -37,9 +37,10 @@
       </el-form-item>
     </el-form>
     <p class="text-sm text-[var(--el-text-color-secondary)] mt-0">
-      支持包含多台设备的 UTF-8 日志文本，最大 20
-      MiB。按内容中的设备序列号拆分并关联当前项目设备，历史文件全部保留。
+      自动识别 UTF-8、GB18030 / GBK 及带 BOM 的 UTF-16 日志，统一转换为 UTF-8，最大 20 MiB。
+      按内容中的设备序列号拆分并关联当前项目设备，历史文件全部保留。
     </p>
+    <el-alert v-if="uploadError" :title="uploadError" type="error" :closable="false" class="mb-4" />
     <el-alert
       v-if="result"
       class="mb-4"
@@ -68,6 +69,17 @@
     >
       <el-table-column prop="serialNumber" label="设备序列号" min-width="180" />
       <el-table-column prop="deviceName" label="设备名称" min-width="160" />
+      <el-table-column label="解析与在网版本" min-width="260"
+        ><template #default="{ row }">
+          <template v-if="row.latest && parseStates[String(row.latest.id)]">
+            <div>{{ parseStates[String(row.latest.id)].conpVersion || '尚未识别软件版本' }}</div>
+            <div class="text-sm">{{
+              parseStates[String(row.latest.id)].message || parseStates[String(row.latest.id)].state
+            }}</div>
+          </template>
+          <span v-else>—</span>
+        </template></el-table-column
+      >
       <el-table-column label="最新版本" width="110"
         ><template #default="{ row }">{{
           row.latest ? `v${row.latest.deviceVersion}` : '尚无日志'
@@ -83,8 +95,13 @@
           formatTime(row.latest?.archivedAt)
         }}</template></el-table-column
       >
-      <el-table-column label="操作" width="160"
+      <el-table-column label="操作" width="250" fixed="right"
         ><template #default="{ row }">
+          <el-button
+            v-if="checkPermi(['pms:device-log-archive:query'])"
+            link type="primary" :disabled="!row.latest" @click="viewParsed(row.latest)"
+            >查看解析结果</el-button
+          >
           <el-button link type="primary" :disabled="!row.latest" @click="openHistory(row)"
             >文件历史</el-button
           >
@@ -113,8 +130,13 @@
       <el-table-column label="归档时间" min-width="175"
         ><template #default="{ row }">{{ formatTime(row.archivedAt) }}</template></el-table-column
       >
-      <el-table-column label="操作" width="180"
+      <el-table-column label="操作" width="270" fixed="right"
         ><template #default="{ row }">
+          <el-button
+            v-if="checkPermi(['pms:device-log-archive:query'])"
+            link type="primary" :disabled="!row.available" @click="viewParsed(row)"
+            >查看解析结果</el-button
+          >
           <el-button
             v-if="checkPermi(['pms:file:download'])"
             v-hasPermi="['pms:device-log-archive:download']"
@@ -136,9 +158,17 @@
       >
     </el-table>
   </el-dialog>
+  <el-dialog v-model="parsedVisible" :title="`${parsedName} · 解析结果`" width="90%">
+    <div v-loading="parsedLoading">
+      <el-alert v-if="parsedError" :title="parsedError" type="error" :closable="false" />
+      <LogParseResult v-if="parsedResult?.result" :result="parsedResult.result" />
+      <el-empty v-else-if="!parsedLoading && !parsedError" :description="parsedResult?.message || '暂无解析结果'" />
+    </div>
+  </el-dialog>
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { generateUUID } from '@/utils'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions, UploadInstance } from 'element-plus'
@@ -147,6 +177,8 @@ import * as ProjectApi from '@/api/pms/project/projects'
 import * as Api from '@/api/pms/asset/device-log-archive'
 import { formatDate } from '@/utils/formatTime'
 import { checkPermi } from '@/utils/permission'
+import { decodeLogText } from '@/components/DeviceCollection/decodeLogText'
+import LogParseResult from '@/components/DeviceCollection/LogParseResult.vue'
 defineOptions({ name: 'DeviceLogArchive' })
 const props = defineProps<{ projectId?: Api.Identifier; readonly?: boolean }>()
 const route = useRoute()
@@ -165,17 +197,74 @@ const rows = ref<Api.DeviceLog[]>([])
 const loading = ref(false)
 const loadFailed = ref(false)
 const uploading = ref(false)
+const uploadError = ref('')
 const result = ref<Api.ImportResult>()
 const uploadRef = ref<UploadInstance>()
 const historyVisible = ref(false)
 const historyLoading = ref(false)
 const historyRows = ref<Api.LogFile[]>([])
 const selectedSerial = ref('')
+const parsedVisible = ref(false)
+const parsedLoading = ref(false)
+const parsedName = ref('')
+const parsedError = ref('')
+const parsedResult = ref<Api.ParseResult>()
+let parsedSequence = 0
+const viewParsed = async (file: Api.LogFile) => {
+  const sequence = ++parsedSequence
+  parsedName.value = file.fileName
+  parsedResult.value = undefined
+  parsedError.value = ''
+  parsedVisible.value = true
+  parsedLoading.value = true
+  try {
+    const data = await Api.parseResult(file.id)
+    if (sequence === parsedSequence) parsedResult.value = data
+  } catch {
+    if (sequence === parsedSequence) parsedError.value = '解析结果加载失败，请稍后重试。'
+  } finally {
+    if (sequence === parsedSequence) parsedLoading.value = false
+  }
+}
+const parseStates = ref<Record<string, Api.ParseState>>({})
+let parseTimer: ReturnType<typeof setTimeout> | undefined
+let parseAttempts = 0
+const refreshParses = async (currentRows: Api.DeviceLog[], sequence: number) => {
+  const files = currentRows.flatMap((row) => (row.latest?.available ? [row.latest] : []))
+  await Promise.all(
+    files.map(async (file) => {
+      try {
+        const state = await Api.parseState(file.id)
+        if (sequence === loadSequence) parseStates.value[String(file.id)] = state
+      } catch {
+        if (sequence === loadSequence)
+          parseStates.value[String(file.id)] = {
+            state: 'QUERY_FAILED',
+            message: '解析状态加载失败，请刷新重试'
+          }
+      }
+    })
+  )
+  if (sequence !== loadSequence) return
+  const pending = Object.values(parseStates.value).some((v) =>
+    ['SUBMITTING', 'QUEUED', 'RUNNING'].includes(v.state)
+  )
+  if (pending && ++parseAttempts < 60)
+    parseTimer = setTimeout(() => refreshParses(currentRows, sequence), 2000)
+}
+onBeforeUnmount(() => {
+  ++loadSequence
+  ++parsedSequence
+  if (parseTimer) clearTimeout(parseTimer)
+})
 let loadSequence = 0
 let historySequence = 0
 const load = async () => {
   const current = projectId.value
   const sequence = ++loadSequence
+  if (parseTimer) clearTimeout(parseTimer)
+  parseAttempts = 0
+  parseStates.value = {}
   rows.value = []
   loadFailed.value = false
   if (!current) {
@@ -185,7 +274,10 @@ const load = async () => {
   loading.value = true
   try {
     const data = await Api.latest(current)
-    if (sequence === loadSequence) rows.value = data
+    if (sequence === loadSequence) {
+      rows.value = data
+      await refreshParses(data, sequence)
+    }
   } catch {
     if (sequence === loadSequence) loadFailed.value = true
   } finally {
@@ -196,6 +288,10 @@ watch(
   projectId,
   () => {
     result.value = undefined
+    ++parsedSequence
+    parsedVisible.value = false
+    parsedResult.value = undefined
+    uploadError.value = ''
     historyVisible.value = false
     historySequence++
     void load()
@@ -213,8 +309,23 @@ const uploadFile = async (options: UploadRequestOptions) => {
   if (!projectId.value || uploading.value || props.readonly) return
   uploading.value = true
   result.value = undefined
+  uploadError.value = ''
   try {
-    result.value = await Api.upload(projectId.value, crypto.randomUUID(), options.file)
+    let file: File
+    try {
+      const text = decodeLogText(new Uint8Array(await options.file.arrayBuffer()))
+      if (!text.trim() || text.includes('\0')) throw new Error('INVALID_LOG_TEXT')
+      file = new File([text], options.file.name, { type: 'text/plain;charset=utf-8' })
+      if (file.size > 20 * 1024 * 1024) {
+        uploadError.value = '转换后的 UTF-8 日志超过 20 MiB，请拆分后上传。'
+        return
+      }
+    } catch {
+      uploadError.value = '无法识别日志编码或内容不是有效文本，请核对文件后重新上传。'
+      ElMessage.error(uploadError.value)
+      return
+    }
+    result.value = await Api.upload(projectId.value, generateUUID(), file)
     if (result.value.outcome === 'ARCHIVED') {
       ElMessage.success('设备日志已归档')
       await load()

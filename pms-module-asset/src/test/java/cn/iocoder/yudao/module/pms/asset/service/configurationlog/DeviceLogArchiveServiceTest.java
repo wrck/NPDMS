@@ -41,7 +41,7 @@ class DeviceLogArchiveServiceTest {
         var user = new LoginUser(); user.setId(7L); user.setTenantId(1L);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, null));
         service = new DeviceLogArchiveService(imports, files, versions, deviceQueries, devices, permissions,
-                provider(scopes), provider(dac), provider(storage), provider(evidence), provider(mock(NativeGeneratedFileApi.class)));
+                provider(scopes), provider(dac), provider(storage), provider(evidence), provider(mock(NativeGeneratedFileApi.class)), provider(null));
         when(permissions.hasAnyPermissions(anyLong(), any(String[].class))).thenReturn(true);
         var scope = new ProjectScopeResult(10L, 1L, Set.of(10L), Set.of());
         when(scopes.lockAndRevalidate(any())).thenReturn(scope); when(scopes.resolveCurrent(any())).thenReturn(scope);
@@ -56,9 +56,18 @@ class DeviceLogArchiveServiceTest {
         when(storage.store(any())).thenReturn(new NativeGeneratedFileApi.RegisteredFile(300L,400L,500L,1,"safe-sha","log.txt"));
         when(dac.split(any())).thenReturn(split("SN001"));
         when(deviceQueries.matchSerials(any())).thenReturn(List.of(device(20L,"SN001")));
-        when(devices.selectByTenantAndIdForUpdate(1L,20L)).thenReturn(device(20L,"SN001"));
+        when(devices.selectLogDeviceForUpdate(new cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery(1L,20L))).thenReturn(device(20L,"SN001"));
     }
     @AfterEach void teardown() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+    @Test void scopeVersionIsRequiredAndChangesRejectBeforeSplitting() {
+        when(scopes.lockAndRevalidate(any())).thenAnswer(inv -> {
+            var q=inv.getArgument(0,cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery.class);
+            assertEquals(1L,q.expectedScopeVersion());
+            return new ProjectScopeResult(10L,2L,Set.of(10L),Set.of());
+        });
+        assertThrows(RuntimeException.class,() -> upload("input"));
+        verifyNoInteractions(dac,storage);assertTrue(insertedFiles.isEmpty());
+    }
     @Test void unassociatedSerialRejectsWholeBatchBeforeWritingAnyFile() {
         when(dac.split(any())).thenReturn(split("SN001","SN002"));
         var result = upload("input");
@@ -129,7 +138,20 @@ class DeviceLogArchiveServiceTest {
         when(evidence.inspectDocument(1L,2L)).thenReturn(document(2L,false));
         when(evidence.inspectDocument(1L,1L)).thenReturn(document(1L,true));
         var latest = service.latest(10L);
-        assertEquals(5L,latest.getFirst().latest().deviceVersion()); assertNull(latest.get(1).latest());
+        assertEquals(1, latest.size()); assertEquals(5L,latest.getFirst().latest().deviceVersion());
+    }
+    @Test void latestExcludesDevicesWithoutUploadsButRetainsUnavailableArchiveHistory() {
+        var archived = file(2L, 6L);
+        when(files.projectFiles(any())).thenReturn(List.of(archived));
+        when(deviceQueries.projectDevices(any())).thenReturn(List.of(device(20L, "SN001"), device(21L, "NO-LOG")));
+        when(evidence.inspectDocument(1L, 2L)).thenReturn(document(2L, false));
+        var result = service.latest(10L);
+        assertEquals(1, result.size());
+        assertEquals("SN001", result.getFirst().serialNumber());
+        assertEquals(6L, result.getFirst().latest().deviceVersion());
+        assertFalse(result.getFirst().latest().available());
+        when(files.projectFiles(any())).thenReturn(List.of());
+        assertTrue(service.latest(10L).isEmpty());
     }
     private DeviceLogArchiveService.ImportView upload(String content) { return service.upload(10L,operation,"big.log",content.getBytes(StandardCharsets.UTF_8)); }
     private DeviceOpsLogSplitApi.Result split(String... serials) { return new DeviceOpsLogSplitApi.Result("safe source",0,

@@ -14,6 +14,17 @@ import java.util.List;
 @Mapper
 public interface DeviceAssemblyMapper extends BaseMapperX<DeviceAssemblyDO> {
 
+    int ensureGraphLock(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceAssemblyTenantLockQuery query);
+    Long lockGraph(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceAssemblyTenantLockQuery query);
+    default void acquireGraph(cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceAssemblyTenantLockQuery query) {
+        if (query.tenantId()==null) throw new IllegalArgumentException("装配图租户缺失");
+        ensureGraphLock(query);
+        if (!query.tenantId().equals(lockGraph(query))) throw new IllegalStateException("装配图锁定失败");
+    }
+
+    List<DeviceAssemblyDO> lockLogConflicts(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceLogAssemblyConflictQuery query);
+
     boolean existsBySource(@Param("query") DeviceAssemblySourceQuery query);
 
     boolean existsPath(@Param("query") DeviceAssemblyPathQuery query);

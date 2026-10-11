@@ -5,7 +5,7 @@ import lombok.*;
 
 @TableName("ast_device_log_import") @Data @EqualsAndHashCode(callSuper=true)
 public class DeviceLogImportDO extends TenantBaseDO {
-    @TableId private Long id;
+    @TableId(type = com.baomidou.mybatisplus.annotation.IdType.ASSIGN_ID) private Long id;
     private Long projectId;
     private String sourceKey;
     private String sourceType;

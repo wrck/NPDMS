@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.asset.controller.admin.device;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
 import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceLogArchiveService;
+import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceArchivedLogParsingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +16,17 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RequestMapping("/api/v1/pms/device-configuration-log-archives")
 public class DeviceLogArchiveController {
     private final DeviceLogArchiveService service;
+    private final DeviceArchivedLogParsingService parsing;
+    @GetMapping("/{fileId}/parse") @PreAuthorize("@ss.hasPermission('pms:device-log-archive:query')")
+    @ApiAccessLog(responseEnable=false)
+    public CommonResult<DeviceArchivedLogParsingService.View> parse(@PathVariable Long fileId) {
+        return success(parsing.get(fileId));
+    }
+    @GetMapping("/{fileId}/parse-result") @PreAuthorize("@ss.hasPermission('pms:device-log-archive:query')")
+    @ApiAccessLog(responseEnable=false)
+    public CommonResult<DeviceArchivedLogParsingService.ResultView> parseResult(@PathVariable Long fileId) {
+        return success(parsing.getResult(fileId));
+    }
     @PostMapping(value="/imports", consumes="application/octet-stream")
     @PreAuthorize("@ss.hasPermission('pms:device-log-archive:import')")
     @ApiAccessLog(requestEnable=false, responseEnable=false, operateModule="设备配置日志", operateName="导入日志")
