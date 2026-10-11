@@ -38,7 +38,8 @@
           <span v-else-if="col.type === 'time'">{{ formatDate(row[col.prop]) }}</span>
           <span v-else-if="col.type === 'enum'">{{ enumLabel(col, row[col.prop]) }}</span>
           <span v-else-if="col.type === 'html'">{{ stripHtml(row[col.prop]) }}</span>
-          <span v-else>{{ row[col.prop] ?? '-' }}</span>
+          <span v-else-if="col.prop === 'locationSnapshot'">{{ locationSnapshotText(row[col.prop]) || '-' }}</span>
+                <span v-else>{{ row[col.prop] ?? '-' }}</span>
         </template>
       </el-table-column>
       <el-table-column v-if="hasActions" label="操作" :width="actionColumnWidth" fixed="right">
@@ -81,7 +82,8 @@
           <span v-else-if="col.type === 'time'">{{ formatDate(detailRow[col.prop]) }}</span>
           <span v-else-if="col.type === 'enum'">{{ enumLabel(col, detailRow[col.prop]) }}</span>
           <span v-else-if="col.type === 'html'">{{ stripHtml(detailRow[col.prop]) }}</span>
-          <span v-else>{{ detailRow[col.prop] ?? '-' }}</span>
+          <span v-else-if="col.prop === 'locationSnapshot'">{{ locationSnapshotText(detailRow[col.prop]) || '-' }}</span>
+            <span v-else>{{ detailRow[col.prop] ?? '-' }}</span>
         </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -127,6 +129,7 @@
 </template>
 
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'

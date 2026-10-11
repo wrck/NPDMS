@@ -51,7 +51,7 @@ vi.mock('../../project-master-detail/components/ProjectDeliverableDialog.vue', (
 }) }))
 // 页面嵌入的真实工作台整页组件会拉入store/axios链（node环境无window），与本用例无关，统一浅mock
 vi.mock('./ProjectArrivalReceiptPanel.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '到货回执') }) }))
-vi.mock('@/views/pms/engineering/installation/index.vue', () => ({ default: defineComponent({
+vi.mock('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue', () => ({ default: defineComponent({
   props: { readonly: Boolean },
   setup: (props) => () => h('div', { 'data-embed-readonly': String(props.readonly) }, '实施部署')
 }) }))

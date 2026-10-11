@@ -354,6 +354,7 @@
                   {{ getModuleStatusLabel(row, col.prop || moduleStatusField) }}
                 </span>
                 <span v-else-if="col.type === 'time'">{{ formatDate(row[col.prop]) }}</span>
+                <span v-else-if="col.prop === 'locationSnapshot'">{{ locationSnapshotText(row[col.prop]) || '-' }}</span>
                 <span v-else>{{ row[col.prop] ?? '-' }}</span>
               </template>
             </el-table-column>
@@ -559,6 +560,7 @@
               {{ getModuleStatusLabel(detailRow, col.prop || moduleStatusField) }}
             </span>
             <span v-else-if="col.type === 'time'">{{ formatDate(detailRow[col.prop]) }}</span>
+            <span v-else-if="col.prop === 'locationSnapshot'">{{ locationSnapshotText(detailRow[col.prop]) || '-' }}</span>
             <span v-else>{{ detailRow[col.prop] ?? '-' }}</span>
           </el-descriptions-item>
         </template>
@@ -792,6 +794,7 @@
 </template>
 
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
