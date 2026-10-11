@@ -26,6 +26,15 @@ public class ProjectPageReqVO extends PageParam {
     @Schema(description = "项目编码前缀", example = "PJT2026")
     private String projectCode;
 
+    @Schema(description = "客户编码（精确匹配）")
+    private String customerCode;
+
+    @Schema(description = "超期筛选：不填为全部，true为当前超期，false为当前不超期")
+    private Boolean overdueOnly;
+
+    @Schema(description = "是否有已发货序列号：不填为全部，true为有，false为无")
+    private Boolean hasShippedDevices;
+
     @Schema(description = "项目状态", example = "S0")
     private String status;
 

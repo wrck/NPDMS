@@ -44,6 +44,8 @@ public class ProjectInstancesRespVO {
 
     @Data
     public static class StageItem {
+        @Schema(description = "阶段实例ID")
+        private Long id;
         @Schema(description = "模板自定义阶段码，与标准生命周期绑定独立")
         private String stageCode;
         @Schema(description = "阶段名称（快照）")
@@ -66,6 +68,9 @@ public class ProjectInstancesRespVO {
         @JsonSerialize(using = LocalDateTimeSerializer.class)
         @JsonDeserialize(using = LocalDateTimeDeserializer.class)
         private java.time.LocalDateTime planEndTime;
+        @JsonSerialize(using = LocalDateTimeSerializer.class)
+        @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+        private java.time.LocalDateTime acceptanceTime;
         private String deviationReason;
         @JsonSerialize(using = LocalDateTimeSerializer.class)
         @JsonDeserialize(using = LocalDateTimeDeserializer.class)

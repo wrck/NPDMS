@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange.M
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialexchange.MaterialExchangeMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.materialexchange.MaterialExchangeSerialMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -38,6 +39,10 @@ class MaterialExchangeSerialServiceTest {
     private final AssetProductOfficialApi products = mock(AssetProductOfficialApi.class);
     private final MaterialExchangeServiceImpl service = new MaterialExchangeServiceImpl();
     @BeforeEach void setup() {
+        var user = new cn.iocoder.yudao.framework.security.core.LoginUser();
+        user.setId(7L); user.setTenantId(0L);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user, null, List.of()));
         ReflectionTestUtils.setField(service, "materialExchangeMapper", mapper);
         ReflectionTestUtils.setField(service, "serialMapper", serialMapper);
         ReflectionTestUtils.setField(service, "deviceSelectionApi", devices);
@@ -53,6 +58,47 @@ class MaterialExchangeSerialServiceTest {
         existing.setCode("EX-1"); existing.setStatus(0); existing.setVersion(3L);
         when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(existing);
         when(mapper.updateById(any(MaterialExchangeDO.class))).thenReturn(1);
+    }
+
+    @AfterEach void clearAuthentication() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
+    @Test void creationRecordsAuthenticatedApplicantAndServerTime() {
+        var request = request(); request.setApplicantUserId(999L);
+        request.setApplyTime(java.time.LocalDateTime.of(2000, 1, 1, 0, 0));
+        request.setExchangeType("INCOMPATIBLE");
+        var before = java.time.LocalDateTime.now();
+        service.createMaterialExchange(request);
+        var capture = ArgumentCaptor.forClass(MaterialExchangeDO.class);
+        verify(mapper).insert(capture.capture());
+        assertEquals(7L, capture.getValue().getApplicantUserId());
+        assertFalse(capture.getValue().getApplyTime().isBefore(before));
+        assertFalse(capture.getValue().getApplyTime().isAfter(java.time.LocalDateTime.now()));
+        assertEquals("INCOMPATIBLE", capture.getValue().getExchangeType());
+        assertEquals(0, capture.getValue().getStatus());
+    }
+
+    @Test void anonymousCreationDoesNotReadOrWriteBusinessData() {
+        clearAuthentication();
+        var error = assertThrows(ServiceException.class, () -> service.createMaterialExchange(request()));
+        assertEquals(401, error.getCode());
+        verifyNoInteractions(mapper, serialMapper, devices, scopeLines, products);
+    }
+
+    @Test void editingCannotReplaceOriginalApplicantOrApplicationTime() {
+        var existing = mapper.selectAttachmentOwnerForUpdate(
+                new cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery(7L, 100L));
+        existing.setApplicantUserId(6L);
+        var originalTime = java.time.LocalDateTime.of(2026, 9, 1, 9, 0);
+        existing.setApplyTime(originalTime);
+        var request = request(); request.setId(100L); request.setVersion(3);
+        request.setApplicantUserId(999L); request.setApplyTime(java.time.LocalDateTime.now());
+        service.updateMaterialExchange(request);
+        var capture = ArgumentCaptor.forClass(MaterialExchangeDO.class);
+        verify(mapper).updateById(capture.capture());
+        assertEquals(6L, capture.getValue().getApplicantUserId());
+        assertEquals(originalTime, capture.getValue().getApplyTime());
     }
 
     @Test void savesEverySelectedSerialUsingServerSnapshot() {

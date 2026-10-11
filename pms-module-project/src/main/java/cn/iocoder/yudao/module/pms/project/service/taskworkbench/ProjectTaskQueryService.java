@@ -55,6 +55,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 public class ProjectTaskQueryService {
     @jakarta.annotation.Resource
     private ProjectTaskApprovalService taskApprovals;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmission;
 
     private static final List<String> OVERVIEW_TABS = List.of(
             "BASIC_INFO", "PROJECT_TREE", "TEAM_MEMBERS", "PROJECT_TASKS", "DEVICES", "IMPLEMENTATION_SCOPE");
@@ -181,6 +183,17 @@ public class ProjectTaskQueryService {
             }
         }
         if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
+            if (response.getAllowedActions().contains("START")) {
+                var admission = stageAdmission.previewTaskAdmission(value.access().project(), value.task(), contract);
+                response.setStartAdmission(value.access().fullProjectAccess() ? admission
+                        : new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                                admission.outcome(), List.of()));
+                if (admission.outcome() != cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED) {
+                    var allowed = new HashSet<>(response.getAllowedActions());
+                    allowed.remove("START");
+                    response.setAllowedActions(Set.copyOf(allowed));
+                }
+            }
             try { response.setApproval(taskApprovals.view(actor.tenantId(), value.task().getProjectId(), taskId, contract)); }
             catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }
         }

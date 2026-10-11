@@ -11,10 +11,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DeviceOrganizationProjectionServiceTest {
+    @Test void contractOnlyRefreshUsesTheDedicatedCursorWhileMixedScopeKeepsItsUnion() {
+        var mapper = mock(DeviceOrganizationMapper.class);
+        var source = mock(DeviceOrganizationService.class);
+        var contracts = mock(DeviceOrganizationContractRefreshService.class);
+        var service = new DeviceOrganizationProjectionService(mapper, source, contracts);
+        var contractOnly = new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(1L, Set.of(), Set.of(), Set.of("A"));
+        service.refresh(contractOnly);
+        verify(contracts).refresh(contractOnly); verifyNoInteractions(mapper, source);
+        when(mapper.selectBatchForUpdate(any())).thenReturn(List.of());
+        service.refresh(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(1L, Set.of(8L), Set.of(), Set.of("A")));
+        verify(mapper).selectBatchForUpdate(any()); verifyNoMoreInteractions(contracts);
+    }
     @Test void unresolvedSourceClearsPreviousGrantAndRepeatedRebuildDoesNotWrite() {
         var mapper=mock(DeviceOrganizationMapper.class);
         var source=mock(DeviceOrganizationService.class);
-        var service=new DeviceOrganizationProjectionService(mapper,source);
+        var service=new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class));
         var device=new DeviceDO();device.setId(8L);device.setCompanyId(1L);device.setDepartmentId(2L);
         device.setOrganizationSource("CONTRACT");device.setOrganizationUpdatedAt(LocalDateTime.now());
         var device9=new DeviceDO();device9.setId(9L);device9.setCompanyId(1L);device9.setDepartmentId(2L);
@@ -38,7 +50,7 @@ class DeviceOrganizationProjectionServiceTest {
         var device=new DeviceDO();device.setId(8L);
         when(mapper.selectBatchForUpdate(any())).thenReturn(List.of(device));
         when(source.resolveSource(eq(1L),any())).thenThrow(new IllegalStateException("Owner unavailable"));
-        assertThrows(IllegalStateException.class,()->new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0));
+        assertThrows(IllegalStateException.class,()->new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class)).rebuildPage(1L,0));
         verify(mapper,never()).updateOrganizationBatch(any(),any());
     }
 

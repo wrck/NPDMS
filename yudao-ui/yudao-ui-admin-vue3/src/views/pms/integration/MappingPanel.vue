@@ -31,13 +31,17 @@
           label="目标 ID"
           min-width="190"
         />
-        <el-table-column label="所属公司目标 ID" min-width="190">
+        <el-table-column v-if="genericTask" label="目标表" min-width="200">
+          <template #default="{ row }">{{ targetTable(row) }}</template>
+        </el-table-column>
+        <el-table-column v-if="genericTask" prop="lastRunId" label="最近同步批次" min-width="200" />
+        <el-table-column v-if="!genericTask" label="所属公司目标 ID" min-width="190">
           <template #default="{ row }">{{ field(row, '_companyTargetId') }}</template>
         </el-table-column>
-        <el-table-column label="名称" min-width="170"
+        <el-table-column v-if="!genericTask" label="名称" min-width="170"
           ><template #default="{ row }">{{ field(row, 'name') }}</template></el-table-column
         >
-        <el-table-column label="公司源键 / 父部门源键" min-width="200"
+        <el-table-column v-if="!genericTask" label="公司源键 / 父部门源键" min-width="200"
           ><template #default="{ row }"
             >{{ field(row, 'companyKey') }} / {{ field(row, 'parentKey') }}</template
           ></el-table-column
@@ -65,6 +69,16 @@ const tasks = ref<api.Task[]>([]),
   loading = ref(false),
   error = ref('')
 const page = reactive({ pageNo: 1, pageSize: 20 })
+const selectedTask = computed(() => tasks.value.find((task) => task.id === taskId.value))
+const genericTask = computed(() => selectedTask.value?.definition.adapter === 'TABLE_MAPPING')
+const targetTable = (row: api.Binding) => {
+  const source = selectedTask.value?.definition.sources.find(
+    (item) => item.object === row.objectKey
+  )
+  const primary =
+    source?.targets?.find((step) => step.name === source.primaryTarget) || source?.targets?.at(-1)
+  return primary?.table || '—'
+}
 const field = (row: api.Binding, key: string) => {
   try {
     return JSON.parse(row.fieldsJson)[key] ?? '—'

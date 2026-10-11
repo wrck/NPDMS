@@ -16,6 +16,12 @@ public interface ConfigurationMapper extends ProjectScopedCodeMapper<Configurati
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.attachment.query.NativeAttachmentOwnerLockQuery query);
 
 
+    ConfigurationDO selectByImportedLogForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.query.ConfigurationImportedLogQuery query);
+
+    ConfigurationDO selectCodeIncludingDeletedForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.configuration.query.ConfigurationCodeQuery query);
+
     default PageResult<ConfigurationDO> selectPage(ConfigurationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ConfigurationDO>()
                 .eqIfPresent(ConfigurationDO::getProjectId, reqVO.getProjectId())

@@ -1,6 +1,5 @@
 <template>
   <ContentWrap>
-    <el-alert v-if="embedded" :title="executionClient ? '当前报告操作由项目执行中心校验；附件仍使用原业务文件权限。' : '报告发布/附件办理尚未接入当前任务上下文，请从原业务入口处理'" type="info" :closable="false" show-icon />
     <el-form :model="query" inline class="-mb-15px query-form" @submit.prevent>
       <el-form-item label="项目">
         <el-input v-if="scoped" :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" />
@@ -8,15 +7,16 @@
       </el-form-item>
       <el-form-item><el-button :loading="loading" :disabled="!validProject" @click="load"><Icon icon="ep:search" />查询报告活动</el-button></el-form-item>
       <el-form-item v-if="!embedded && !readonly && validProject && checkPermi(['pms:acceptance:report:write'])">
-        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('PRELIMINARY')">创建初验</el-button>
-        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('FINAL')">创建终验</el-button>
+        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('PRELIMINARY')">上传初验交付件</el-button>
+        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('FINAL')">上传终验交付件</el-button>
       </el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-skeleton v-if="loading" :rows="4" animated aria-label="正在加载验收报告活动" />
-    <el-table v-else :data="activities" data-testid="acceptance-activities" aria-label="验收报告活动列表"
+    <el-table
+      v-else :data="activities" data-testid="acceptance-activities" aria-label="验收报告活动列表"
       :empty-text="errorText ? '验收活动未加载成功' : validProject ? '当前可见范围暂无验收活动，不自动创建或判定完成' : '请选择有权限的项目'">
       <el-table-column prop="id" label="活动编号" min-width="180" />
       <el-table-column label="验收类型" width="110"><template #default="{ row }">{{ typeLabel(row.acceptanceType) }}</template></el-table-column>
@@ -24,7 +24,7 @@
       <el-table-column label="创建来源" min-width="170"><template #default="{ row }">{{ row.originKind === 'DIRECT' ? '项目独立验收' : `任务 #${row.projectTaskId}` }}</template></el-table-column>
       <el-table-column prop="version" label="活动版本" width="100" />
       <el-table-column label="当前报告" width="110"><template #default="{ row }">{{ row.currentReportVersionId ? '已生效' : '未生效' }}</template></el-table-column>
-      <el-table-column label="操作" width="160" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row.id)">进入报告工作台</el-button></template></el-table-column>
+      <el-table-column label="操作" width="200" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row.id)">查看</el-button><el-button v-if="!readonly && checkPermi(['pms:acceptance:report:write']) && (row.originKind === 'DIRECT' || row.activityStatus === 'PENDING')" link type="primary" @click="openDetail(row.id, true)">{{ row.currentReportVersionId ? '替换交付件' : '上传交付件' }}</el-button></template></el-table-column>
     </el-table>
   </ContentWrap>
   <AcceptanceReportDetail ref="detailRef" :readonly="readonly || contextBlocked" :allowed-actions="allowedActions" @changed="changed" @dirty-change="emit('dirty-change', $event)" />
@@ -38,12 +38,10 @@ import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewI
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
 import type { AcceptanceActivityVO } from '@/api/pms/acceptance/acceptance-report'
 import AcceptanceReportDetail from './detail.vue'
-import { useOperationClient } from '@/components/BusinessView/operationHost'
 
 defineOptions({ name: 'PmsAcceptanceReport' })
 const props = defineProps<{ projectId?: number | string; projectName?: string; objectId?: number | string; readonly?: boolean; allowedActions?: string[] }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
-const executionClient = useOperationClient()
 const route = useRoute()
 const loading = ref(false)
 const creating = ref(false)
@@ -65,9 +63,9 @@ const discardChanges = () => {
   if (detailRef.value?.discardChanges() === false) return false
   listSequence++; emit('dirty-change', false); return true
 }
-const openDetail = async (id: BusinessViewId) => {
+const openDetail = async (id: BusinessViewId, upload = false) => {
   if (contextBlocked.value || !canQuery() || !isBusinessViewId(activeProject)) return false
-  return await detailRef.value?.open(id, activeProject)
+  return await detailRef.value?.open(id, activeProject, upload)
 }
 const load = async () => {
   const token = ++listSequence, project = activeProject
@@ -97,7 +95,7 @@ const createActivity = async (acceptanceType: ReportApi.AcceptanceType) => {
     }
     const result = await ReportApi.createIndependent(pendingCreate.request, pendingCreate.key)
     pendingCreate = undefined
-    if (sameBusinessViewId(activeProject, project)) { await load(); await openDetail(result.acceptanceId) }
+    if (sameBusinessViewId(activeProject, project)) { await load(); await openDetail(result.acceptanceId, true) }
     emit('changed')
   } catch { errorText.value = '验收创建未完成，请检查项目权限或重试。' }
   finally { creating.value = false; emit('dirty-change', false) }

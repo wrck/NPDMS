@@ -43,7 +43,7 @@ Object.entries(businessComponents).forEach(([name, component]) =>
   formCreateEngine.component(`Entity${name}`, component)
 )
 
-const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean; schema?: SiteSurveyFormSchemaVO }>()
+const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean; schema?: SiteSurveyFormSchemaVO; applicationRevision?: number }>()
 const emit = defineEmits<{
   'update:modelValue': [value: SiteSurveyVO]
   action: [kind: string, sn?: string]
@@ -72,6 +72,7 @@ const load = async () => {
     const initialValues = extractSurveyValues(model)
     if (!props.readonly) emit('update:modelValue', model)
     let integratedOutsource = false
+    const inBranches = decoded.rule.some((rule: any) => rule?.type === 'SurveyPreparationBranches')
     const visit = (items: any[]) =>
       items.forEach((rule) => {
         if (!rule || typeof rule !== 'object') return
@@ -92,8 +93,10 @@ const load = async () => {
           rule.type = `Entity${rule.type}`
           rule.props = {
             ...rule.props,
-            getSurvey: () => props.modelValue,
+            getSurvey: () => mergeSurveyValues(props.modelValue, values.value),
             readonly: props.readonly,
+            inBranches,
+            getApplicationRevision: () => props.applicationRevision ?? 0,
             updateProjectVersion: (version: number, needsInitialSync: boolean) => {
               if (!props.readonly)
                 emit('update:modelValue', {

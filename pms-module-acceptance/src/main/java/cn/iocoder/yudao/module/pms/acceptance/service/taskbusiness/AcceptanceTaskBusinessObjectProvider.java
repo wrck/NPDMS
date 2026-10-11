@@ -207,7 +207,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 // Q-TPL-FLOW-20260922-008 ruling: the embedded task view may upload report attachments;
                 // the file operation itself stays under PLT's separate upload authorization (pms:file:upload).
                 actions.add("FILE_WRITE");
-                if (direct) actions.add("PUBLISH");
+                actions.add("PUBLISH");
                 if (report != null && "EFFECTIVE".equals(report.getReportStatus()) && report.getEffectiveTo() == null) {
                     actions.add("REVOKE");
                 }

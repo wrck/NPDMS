@@ -4,7 +4,7 @@
     <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
     <template v-else-if="activity">
       <div class="detail-heading">
-        <div><h2>{{ typeLabel(activity.acceptanceType) }}活动</h2><p>活动与报告版本独立；报告状态不会触发或反推验收范围绑定。</p></div>
+        <div><h2>{{ typeLabel(activity.acceptanceType) }}交付件</h2></div>
         <el-tag :type="activity.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(activity.activityStatus) }}</el-tag>
       </div>
       <el-descriptions :column="narrow ? 1 : 2" border class="facts">
@@ -14,18 +14,17 @@
         <el-descriptions-item label="当前报告">{{ current ? `V${current.reportVersionNo}` : '尚无有效版本' }}</el-descriptions-item>
       </el-descriptions>
       <el-alert v-if="current?.archiveStatus === 'PENDING_COMPENSATION'" title="报告已生效，交付件归档待补偿；历史下载保持可用" type="warning" show-icon :closable="false" />
-      <el-empty v-else-if="!current" :description="activity.originKind === 'DIRECT' ? '当前尚无有效报告；上传报告并保存后完成验收' : '当前尚无有效报告；可先保存不完整草稿，活动完成前再补齐四项与附件'" />
+      <el-empty v-else-if="!current" description="尚未上传交付件" />
       <section v-else class="current-report" aria-labelledby="current-report-title">
         <div class="section-title"><h3 id="current-report-title">当前有效报告 V{{ current.reportVersionNo }}</h3><el-tag type="success">EFFECTIVE</el-tag></div>
-        <p v-if="current.conclusionCode">结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }} · {{ current.conclusionText || '未填写结论说明' }}</p>
+        <p v-if="current.conclusionCode">结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }}<span v-if="current.conclusionText"> · {{ current.conclusionText }}</span></p>
         <div class="current-meta"><span>{{ current.conclusionCode ? `验收人：${current.acceptorName}` : `操作人：${current.uploaderUserId}` }}</span><span>验收时间：{{ current.acceptanceTime == null ? '未填写' : formatDate(new Date(current.acceptanceTime)) }}</span><span>附件：{{ current.attachments.length }}</span></div>
       </section>
       <div class="detail-actions">
-        <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ activity.originKind === 'DIRECT' ? current ? '上传替换报告' : '上传验收报告' : draft ? '继续编辑草稿' : current ? '创建替换版本' : '创建报告草稿' }}</el-button>
+        <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ current ? '替换交付件' : '上传交付件' }}</el-button>
         <el-button v-if="versions.length" v-hasPermi="['pms:acceptance:report:query']" @click="openHistory">查看版本历史</el-button>
         <el-button v-if="current && canWrite('REVOKE')" type="danger" plain v-hasPermi="['pms:acceptance:report:write']" @click="revoke">撤销当前版本</el-button>
       </div>
-      <p class="completion-note">{{ activity.originKind === 'DIRECT' ? '报告保存后完成验收，完成状态不代表验收结论通过。' : '项目任务按模板条件判定完成，初验与终验分别校验报告已生效、结论通过及附件有效。' }}</p>
     </template>
   </el-drawer>
   <ReportDraftEditor ref="editorRef" :readonly="readonly || !activityAllowsReportWrite(activity)" :allowed-actions="allowedActions" @changed="reload" @dirty-change="emit('dirty-change', $event)" />
@@ -78,14 +77,16 @@ const discardChanges = () => {
   return true
 }
 const beforeClose = async (done: () => void) => { if (await requestLeave()) { if (discardChanges()) done() } }
-const open = async (id: BusinessViewId, projectId?: BusinessViewId) => {
+const open = async (id: BusinessViewId, projectId?: BusinessViewId, upload = false) => {
   const opening = ++openSequence
   if (!isBusinessViewId(id) || (projectId !== undefined && !isBusinessViewId(projectId)) || !canQuery()) return false
   if (visible.value && sameBusinessViewId(activity.value?.id, id) && (projectId === undefined || sameBusinessViewId(activity.value?.projectId, projectId))) return true
   if (!(await requestLeave()) || opening !== openSequence || !discardChanges()) return false
   expectedProject = projectId
   openedClient = executionClient.value
-  return await load(id, true)
+  const loaded = await load(id, !upload)
+  if (loaded && upload && activity.value && canWrite('UPDATE')) return await editorRef.value?.open(activity.value, draft.value)
+  return loaded
 }
 const load = async (id: BusinessViewId, show = false) => {
   const token = ++sequence, project = expectedProject
@@ -133,8 +134,7 @@ defineExpose({ open, requestLeave, discardChanges, isDirty })
 .detail-heading { align-items: flex-start; justify-content: space-between; }
 .detail-heading h2, .section-title h3 { margin: 0; color: var(--el-text-color-primary); }
 .detail-heading h2 { font-size: 20px; }.section-title h3 { font-size: 16px; }
-.detail-heading p, .completion-note { color: var(--el-text-color-secondary); }
-.facts, .current-report, .detail-actions, .completion-note { margin-top: 16px; }
+.facts, .current-report, .detail-actions { margin-top: 16px; }
 .current-report { padding: 16px; border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-border-radius-base); }
 .current-meta { flex-wrap: wrap; font-size: 13px; color: var(--el-text-color-secondary); }
 .detail-actions { flex-wrap: wrap; }

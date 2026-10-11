@@ -19,6 +19,9 @@ import java.util.List;
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
 
+    List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> selectProjectInstallationDevicesForUpdate(
+            @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
+
     java.util.Set<String> selectContractCandidates(@Param("query")
             cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery query);
 
@@ -132,4 +135,5 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     long selectVisibleDeviceCount(@Param("query") VisibleDevicePageQuery query);
 
     boolean existsVisibleDevice(@Param("query") DeviceVisibilityQuery query);
+    DeviceDO selectLogDeviceForUpdate(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery query);
 }

@@ -29,12 +29,18 @@
           type="primary"
           @click="openForm()"
           v-hasPermi="['pms:imp-configuration:create']"
-          ><Icon icon="ep:plus" />新增配置</el-button
+          ><Icon icon="ep:plus" />新增配置调试</el-button
+        >
+        <el-button
+          :disabled="!query.projectId"
+          @click="projectLogsVisible = true"
+          v-hasPermi="['pms:device-log-archive:query']"
+          >上传日志 / 文件历史</el-button
         >
       </el-form-item>
     </el-form>
     <el-alert
-      title="设备日志按序列号拆分归档，手工上传与采集回传共用设备版本历史。调试完成仍由业务动作确认。"
+      title="支持手工日志上传与设备命令采集；采集日志自动回传到配置记录，调试完成仍由原业务动作确认。"
       type="info"
       :closable="false"
     />
@@ -48,16 +54,23 @@
       <el-table-column prop="debugResult" label="调试结果" min-width="180" show-overflow-tooltip
         ><template #default="{ row }"
           ><div
+            v-if="row.debugResult"
             v-dompurify-html="row.debugResult"
             class="max-h-60px overflow-hidden"
-          ></div></template
+          ></div><span v-else>—</span></template
       ></el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_ENG_STATUS" :value="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="550" fixed="right">
+      <el-table-column label="配置日志" width="120">
+        <template #default="{ row }">
+          <el-button v-if="row.importedLogFileId && checkPermi(['pms:file:download'])" link type="primary"
+            v-hasPermi="['pms:device-log-archive:download']" @click="downloadImported(row)">下载日志</el-button>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="450" fixed="right">
         <template #default="{ row }">
           <el-button
             link
@@ -65,13 +78,6 @@
             @click="collectionRef?.open(row.id)"
             v-hasPermi="['pms:imp-configuration:query']"
             >手工命令 / 日志</el-button
-          >
-          <el-button
-            link
-            type="primary"
-            @click="openDeviceLogs(row.projectId, !!props.readonly || !editableRecord(row))"
-            v-hasPermi="['pms:device-log-archive:query']"
-            >设备日志</el-button
           >
           <el-button
             link
@@ -105,7 +111,7 @@
             >标记异常</el-button
           >
           <el-button
-            v-if="!readonly && row.status !== 2"
+            v-if="!readonly && !row.importedLogFileId && row.status !== 2"
             link
             type="danger"
             @click="remove(row)"
@@ -123,7 +129,12 @@
     />
   </ContentWrap>
 
-  <ManualCollectionDialog ref="collectionRef" />
+  <ManualCollectionDialog ref="collectionRef" entry="configuration" :readonly="props.readonly" />
+  <ProjectDeviceLogArchiveDialog
+    v-model="projectLogsVisible"
+    :project-id="query.projectId"
+    :readonly="props.readonly"
+  />
 
   <Dialog
     v-model="formVisible"
@@ -167,9 +178,12 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="配置日志"
-            ><el-text>日志按设备独立归档，可查看当前版本与全部文件历史</el-text></el-form-item
-          >
+          <el-form-item label="配置日志" prop="configLogUrl"
+            ><UploadFile
+              v-model="form.configLogUrl!"
+              :disabled="readOnly"
+              :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']"
+          /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="调试结果" prop="debugResult">
@@ -183,12 +197,6 @@
         </el-col>
       </el-row>
     </el-form>
-    <el-button
-      v-hasPermi="['pms:device-log-archive:query']"
-      :disabled="!form.projectId"
-      @click="openDeviceLogs(form.projectId, readOnly)"
-      >查看 / 上传设备日志</el-button
-    >
     <BusinessCollectionLogs
       v-if="formVisible && form.id"
       entry="configuration"
@@ -199,31 +207,19 @@
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
-  <Dialog v-model="deviceLogsVisible" title="设备配置日志" width="min(1100px, 96vw)">
-    <DeviceLogArchive
-      v-if="deviceLogsVisible && logsProjectId"
-      :project-id="logsProjectId"
-      :readonly="logsReadonly"
-    />
-  </Dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import DeviceLogArchive from '@/views/pms/asset/device-log-archive/index.vue'
-import type { Identifier } from '@/api/pms/asset/device-log-archive'
-const deviceLogsVisible = ref(false)
-const logsProjectId = ref<Identifier>()
-const logsReadonly = ref(false)
-const openDeviceLogs = (projectId: Identifier, readonly = false) => {
-  logsProjectId.value = projectId
-  logsReadonly.value = readonly
-  deviceLogsVisible.value = true
-}
-import ManualCollectionDialog from './ManualCollectionDialog.vue'
+import ManualCollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
+import ProjectDeviceLogArchiveDialog from '@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue'
 import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
 const collectionRef = ref<InstanceType<typeof ManualCollectionDialog>>()
+const projectLogsVisible = ref(false)
 import { useMessage } from '@/hooks/web/useMessage'
+import { download as downloadArchivedLog } from '@/api/pms/asset/device-log-archive'
+import request from '@/config/axios'
+import download from '@/utils/download'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
@@ -242,6 +238,12 @@ const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<ConfigurationVO[]>([])
+const downloadImported = async (row: ConfigurationVO) => {
+  if (!row.importedLogFileId) return
+  const url = await downloadArchivedLog(row.importedLogFileId)
+  const content = await request.download<Blob>({ url })
+  download.file(content, `配置日志-${row.code || row.id}.txt`)
+}
 const total = ref(0)
 const query = reactive({
   pageNo: 1,
@@ -253,8 +255,8 @@ const formVisible = ref(false)
 const formRef = ref()
 type ConfigurationForm = Omit<ConfigurationVO, 'debugTime'> & { debugTime?: string | number | null }
 const form = ref<ConfigurationForm>({ projectId: 0, status: 0 })
-const editableRecord = (row: Pick<ConfigurationVO, 'status'>) =>
-  [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
+const editableRecord = (row: Pick<ConfigurationVO, 'status' | 'importedLogFileId'>) =>
+  !row.importedLogFileId && [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
 const readOnly = computed(
   () =>
     !!props.readonly ||
@@ -293,7 +295,7 @@ const openForm = (row?: ConfigurationVO) => {
     version: undefined,
     status: 0,
     ...row,
-    // Preserve the existing URL when editing a historical configuration record.
+    // Keep UploadFile on the existing string API contract for NULL legacy logs.
     configLogUrl: row?.configLogUrl ?? ''
   }
   formVisible.value = true

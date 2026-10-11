@@ -34,6 +34,9 @@ public class ConfigurationDO extends BaseBusinessEntity {
      * 配置 Log 文件
      */
     private String configLogUrl;
+    /** Immutable AST archive references for the manual log import path. */
+    private Long importedLogFileId;
+    private Long importedLogBatchId;
     /**
      * 调试结果
      */

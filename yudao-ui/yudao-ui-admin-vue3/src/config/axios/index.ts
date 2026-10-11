@@ -1,3 +1,4 @@
+import { getPagedResult } from './pageRequest'
 import { service } from './service'
 
 import { config } from './config'
@@ -16,8 +17,10 @@ const request = (option: any) => {
 }
 export default {
   get: async <T = any>(option: any) => {
-    const res = await request({ method: 'GET', ...option })
-    return res.data as unknown as T
+    return getPagedResult(option, async query => {
+      const res = await request({ method: 'GET', ...query })
+      return res.data
+    }) as Promise<T>
   },
   post: async <T = any>(option: any) => {
     const res = await request({ method: 'POST', ...option })

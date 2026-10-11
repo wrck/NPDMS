@@ -489,10 +489,13 @@
       </div>
     </div>
   </div>
+  <ProjectApprovalDrawer ref="approvalDrawerRef" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
+import ProjectApprovalDrawer from '@/views/pms/project/project-master-detail/components/ProjectApprovalDrawer.vue'
+import { projectApprovalDetailKey } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import { useMediaQuery } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
@@ -546,6 +549,8 @@ defineOptions({ name: 'PmsProjectInheritanceDetail' })
 const route = useRoute()
 const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 const router = useRouter()
+const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
+provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 const mobile = useMediaQuery('(max-width: 767px)')
 const descriptionColumns = computed(() => (mobile.value ? 1 : 2))
 
@@ -578,7 +583,6 @@ const TAB_KEYS = [
   'customer',
   'tree',
   'members',
-  'tasks',
   'equipment',
   'sn-result',
   'config-log',
@@ -614,7 +618,6 @@ const overviewSteps: { key: string; label: string; icon: string; permission?: st
   { key: 'customer', label: '客户与联系人', icon: 'ep:office-building' },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
-  { key: 'tasks', label: '项目任务', icon: 'ep:list' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:commerce:scope:query'] },
   // Demo 1.1.1 / 1.1.1.1（设备序列号域，消费 ast_device 真实数据）
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },

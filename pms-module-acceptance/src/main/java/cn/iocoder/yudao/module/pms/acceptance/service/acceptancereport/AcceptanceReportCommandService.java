@@ -82,7 +82,7 @@ public class AcceptanceReportCommandService {
         row.setAcceptanceId(activity.getId());
         row.setReportVersionNo(versionNo);
         row.setReportStatus("DRAFT");
-        if (IndependentAcceptancePolicy.direct(activity)) row.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        row.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
         applyContent(row, command.content(), actor);
         row.setUploaderUserId(actor.userId());
         row.setUploadTime(LocalDateTime.now());
@@ -102,7 +102,7 @@ public class AcceptanceReportCommandService {
                 || !Objects.equals(row.getReportVersionNo(), command.expectedReportVersionNo())) {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
         }
-        if (IndependentAcceptancePolicy.direct(activity)) row.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
+        row.setAcceptanceRuleSnapshot(IndependentAcceptancePolicy.SNAPSHOT);
         applyContent(row, command.content(), actor);
         row.setUpdater(String.valueOf(actor.userId()));
         if (reportMapper.updateById(row) != 1) throw exception(ACC_REPORT_VERSION_CONFLICT);
@@ -298,6 +298,10 @@ public class AcceptanceReportCommandService {
     private void requireCompleteContent(AcceptanceReportVersionDO row) {
         if (IndependentAcceptancePolicy.uploadOnly(row.getAcceptanceRuleSnapshot())) {
             if (row.getAcceptanceTime() == null || row.getUploaderUserId() == null) throw exception(ACC_REPORT_INCOMPLETE);
+            if (IndependentAcceptancePolicy.uploadPass(row.getAcceptanceRuleSnapshot())
+                    && (!"PASS".equals(row.getConclusionCode()) || blank(row.getAcceptorName()))) {
+                throw exception(ACC_REPORT_INCOMPLETE);
+            }
             return;
         }
         if (row.getAcceptanceTime() == null || blank(row.getConclusionCode()) || blank(row.getAcceptorName())) {
@@ -311,9 +315,9 @@ public class AcceptanceReportCommandService {
             row.setAcceptanceTime(LocalDateTime.now());
             row.setUploaderUserId(actor.userId());
             row.setUploadTime(row.getAcceptanceTime());
-            row.setConclusionCode(null);
+            row.setConclusionCode(IndependentAcceptancePolicy.uploadPass(row.getAcceptanceRuleSnapshot()) ? "PASS" : null);
             row.setConclusionText(null);
-            row.setAcceptorName(null);
+            row.setAcceptorName(IndependentAcceptancePolicy.uploadPass(row.getAcceptanceRuleSnapshot()) ? String.valueOf(actor.userId()) : null);
             return;
         }
         row.setAcceptanceTime(content.acceptanceTime());

@@ -26,9 +26,13 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ProjectTaskPlanCompletionService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi projectContacts;
+    @jakarta.annotation.Resource
     private ProjectTaskApprovalService approvals;
     @jakarta.annotation.Resource
     private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard> resultEvidence;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi installationAddresses;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
     private final ProjectRuntimeGraphMapper graph;
@@ -117,9 +121,28 @@ public class ProjectTaskPlanCompletionService {
         boolean resultOnly = "RESULT_SUBSCRIPTION".equals(binding.getWorkBindingTypeCode());
         if (resultOnly && !cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.matches(binding,node))
             return unknown(reference,"RESULT_SUBSCRIPTION_TASK_CONTRACT_INVALID");
-        if (nativeWork && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
+        boolean contactCompletion = ProjectContactCompletionCondition.contactPage(binding.getWorkBindingTypeCode(), binding.getBindingParameterSnapshot())
+                && ProjectContactCompletionCondition.automatic(completion);
+        if (nativeWork && !contactCompletion && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
         List<TaskBusinessLinkFact> links = List.of();
         Map<String,Object> evidence = new LinkedHashMap<>();
+        cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Fact contactFact = null;
+        if (contactCompletion) {
+            contactFact = projectContacts.lockAndInspect(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Query(
+                    tenantId, project.getId(), project.getCustomerId(), project.getCustomerCode()));
+            evidence.put("projectContacts", contactFact);
+        }
+        if ("PAGE".equals(binding.getWorkBindingTypeCode()) && binding.getBindingParameterSnapshot() != null
+                && "/pms/engineering/execution/imp-installation".equals(JsonUtils.parseTree(binding.getBindingParameterSnapshot()).path("routePath").asText(null))) {
+            var installation = installationAddresses.lockAndInspect(
+                    new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Query(tenantId, project.getId()));
+            evidence.put("installationAddresses", installation);
+            if (!installation.completed()) {
+                var waiting = new RuleEvaluation(reference, RuleEvaluation.Outcome.NOT_MATCHED,
+                        "PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING", List.of(), List.of(), List.of());
+                return new Result(waiting, waiting, Collections.unmodifiableMap(evidence));
+            }
+        }
         if (approvalWork) {
             var approval = approvals.inspect(tenantId, project.getId(), task.getId(), binding, round.getId(), round.getStartedAt());
             if (approval.outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN)
@@ -155,9 +178,12 @@ public class ProjectTaskPlanCompletionService {
                 : references.selectOrderedForUpdate(new ProjectGateReferenceForUpdateQuery(tenantId,gates.stream().map(ProjectGateInstanceDO::getId).toList()));
         var context = new ProjectRuntimeRuleEvaluator.Facts(project,parents.getFirst(),graph.selectTasksForUpdate(query),gates,refs,false);
         var ownerLinks = links;
+        var currentContactFact = contactFact;
         List<Map<String,Object>> criteria = new ArrayList<>();
         List<String> invalid = new ArrayList<>();
         RuleFact.Resolver resolver = leaf -> switch (leaf.predicate()) {
+            case "PROJECT_CONTACT_EXISTS" -> currentContactFact == null ? RuleFact.unknown("PROJECT_CONTACT_FACT_UNAVAILABLE")
+                    : RuleFact.known(currentContactFact.completed());
             case "WAIT_ELAPSED" -> facts.resolveRelativeTime(leaf, context, round.getId());
             case "TASK_NATIVE_STATUS" -> nativeWork ? RuleFact.known(round.getSubmittedAt()!=null) : RuleFact.unknown("NATIVE_COMPLETION_NOT_APPLICABLE");
             case "BUSINESS_FACT" -> leaf.parameters().has("sourceNodeKey") ? facts.resolveFact(leaf, context)

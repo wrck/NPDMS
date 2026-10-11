@@ -60,7 +60,7 @@ class DeviceVisibilitySqlTest {
     private int number(Connection connection, Configuration config, String statement, Object query) throws Exception {
         var parameters = Map.of("query",query);
         var sql = config.getMappedStatement("cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper."+statement).getBoundSql(parameters);
-        String text=sql.getSql().replace(" AS BINARY)"," AS VARBINARY(255))").replace("b'0'", "FALSE");
+        String text=sql.getSql().replace("FORCE INDEX (idx_ast_device_visibility_cover)", "").replace(" AS BINARY)"," AS VARBINARY(255))").replace("b'0'", "FALSE");
         if (statement.equals("selectContractCandidates")) text="SELECT COUNT(*) FROM ("+text+") candidates";
         try (PreparedStatement prepared = connection.prepareStatement(text)) {
             int index=1;

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0.0",
+  "collectionId": "slot-device-serial-table",
+  "contextSnapshot": {
+    "deviceVendor": "snapshot-vendor",
+    "deviceModel": "FW1000-TM-C"
+  },
+  "commandBlocks": [
+    {
+      "commandIndex": 1,
+      "commandText": "show version",
+      "status": "SUCCEEDED",
+      "stdout": "Software Release SOFT-TEST\nFW1000-TM-C uptime is 1 day, 0 hours, 0 minutes\nSerial Number: SN-GENERIC-TEST\nPCB Version: B\nCPLD Version: 4.00\nBASIC CONBOOT Version: 15.02.03\nEXTEND CONBOOT Version: 99.99.99\n",
+      "stderr": "",
+      "receivedBytes": 205,
+      "pageCount": 0,
+      "truncated": false,
+      "exitCode": 0,
+      "outcome": "sanitized-real-session-fixture",
+      "parsedFacts": {},
+      "parseWarnings": [
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator"
+      ],
+      "legacy": false
+    },
+    {
+      "commandIndex": 2,
+      "commandText": "show device version",
+      "status": "SUCCEEDED",
+      "stdout": "SlotId BoardName Type PcbVer CpldVer CpuStatus FpgaStatus BoardStatus SerialNumber\n4 FW1000-Blade-17E FW A 1.00 OK OK active SN-CHILD-4\n5 FW1000-Blade-17E FW B 3.00 OK - active SN-CHILD-5\n",
+      "stderr": "",
+      "pageCount": 0,
+      "truncated": false,
+      "exitCode": 0,
+      "outcome": "complete",
+      "parsedFacts": {},
+      "parseWarnings": [],
+      "legacy": false
+    }
+  ]
+}

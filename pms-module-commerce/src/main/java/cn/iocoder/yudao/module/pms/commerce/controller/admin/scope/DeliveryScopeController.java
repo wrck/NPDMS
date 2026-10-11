@@ -120,7 +120,7 @@ public class DeliveryScopeController {
                 scope.getProductDesc(), scope.getAllocatedQty(), scope.getScopeStatus(), scope.getAllocationVersion(),
                 scope.getAllocationSource(), scope.getChangeReason(), scope.getDepartmentId(),
                 scope.getDepartmentCode(), scope.getDepartmentName(), scope.getDepartmentVersion(),
-                scope.getEffectiveFrom(), scope.getEffectiveTo(), scope.getVersion(), details);
+                scope.getEffectiveFrom(), scope.getEffectiveTo(), scope.getVersion(), details, view.contractNo());
     }
 
     private Long parseVersion(String value) {

@@ -6,6 +6,8 @@ export interface ConfigurationVO {
   code?: string
   equipmentId?: number | string
   configLogUrl?: string
+  importedLogFileId?: number | string
+  importedLogBatchId?: number | string
   debugResult?: string
   debuggerUserId?: number
   debugTime?: number
@@ -34,3 +36,12 @@ export const completeConfiguration = (id: number) =>
   request.put({ url: `${baseUrl}/complete`, params: { id } })
 export const markAbnormalConfiguration = (id: number) =>
   request.put({ url: `${baseUrl}/mark-abnormal`, params: { id } })
+
+export const importConfigurationLog = (projectId: number, operationId: string, file: File) =>
+  request.post<{ importId: number | string; configurationIds: (number | string)[] }>({
+    url: '/api/v1/pms/configuration-log-imports',
+    params: { projectId, operationId, fileName: file.name },
+    data: file,
+    headersType: 'application/octet-stream',
+    timeout: 60000
+  })

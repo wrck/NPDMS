@@ -188,8 +188,16 @@
           ></template
         ></el-table-column
       >
-      <el-table-column label="操作" width="285"
+      <el-table-column label="操作" width="365"
         ><template #default="{ row }">
+          <el-button
+            v-if="row.task.fileVersionId"
+            link
+            type="primary"
+            v-hasPermi="['pms:file:download']"
+            @click="logParsing?.open(props.entry, objectId, row.id)"
+            >结构化解析</el-button
+          >
           <el-button
             v-if="row.task.fileVersionId"
             link
@@ -321,6 +329,7 @@
     </div>
     <template #footer><el-button @click="visible = false">关闭</el-button></template>
   </Dialog>
+  <LogParsingDialog ref="logParsing" />
   <Dialog v-model="logVisible" title="设备执行日志" width="min(1080px, 96vw)" @closed="clearLog">
     <el-alert
       v-if="logRejected"
@@ -334,6 +343,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import LogParsingDialog from './LogParsingDialog.vue'
 import { computed, reactive, ref, watch, onBeforeUnmount, nextTick } from 'vue'
 import { isAxiosError } from 'axios'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -343,6 +353,7 @@ import { generateUUID } from '@/utils'
 import * as Api from '@/api/pms/platform/deviceCollection'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 const props = defineProps<{ entry: Api.Entry }>()
+const logParsing = ref<InstanceType<typeof LogParsingDialog>>()
 const emit = defineEmits<{ closed: [] }>()
 const message = useMessage()
 const visible = ref(false)

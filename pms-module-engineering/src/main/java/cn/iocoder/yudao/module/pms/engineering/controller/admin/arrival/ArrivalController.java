@@ -32,6 +32,8 @@ public class ArrivalController {
 
     @Resource
     private ArrivalService arrivalService;
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.arrival.ArrivalDeliveryRegistration deliveryRegistration;
 
     @PostMapping("/create")
     @Operation(summary = "创建到货签收")
@@ -63,7 +65,16 @@ public class ArrivalController {
     @PreAuthorize("@ss.hasPermission('pms:imp-arrival:query')")
     public CommonResult<ArrivalRespVO> getArrival(@RequestParam("id") Long id) {
         ArrivalDO arrival = arrivalService.getArrival(id);
-        return success(BeanUtils.toBean(arrival, ArrivalRespVO.class));
+        ArrivalRespVO result = BeanUtils.toBean(arrival, ArrivalRespVO.class);
+        if (arrival != null) {
+            var file = deliveryRegistration.currentSignDocument(arrival);
+            if (file != null) {
+                result.setSignDocumentArtifactId(file.artifactId());
+                result.setSignDocumentVersionNo(file.versionNo());
+                result.setSignDocumentReferenceVersion(file.fileFactVersion().referenceVersion().longValue());
+            }
+        }
+        return success(result);
     }
 
     @GetMapping("/page")

@@ -213,7 +213,8 @@ public class DeviceController {
                 item.shipmentTime(), item.packageNo(), item.contractNo(), item.shipmentRecordId(),
                 item.projectId(), item.customerId(), item.warrantyStartDate(), item.warrantyEndDate(),
                 item.warrantyStatus(), item.conpVersion(), item.conpType(), item.conpSeries(),
-                item.conpMark(), item.syncStatus(), item.locationSnapshot(), item.locationResolutionStatus(), organization);
+                item.conpMark(), item.syncStatus(), item.locationSnapshot(), item.locationResolutionStatus(), organization,
+                item.bootVersion(), item.cpldVersion(), item.warrantyMonths(), item.extendedCount());
     }
 
     private Long currentTenantId() {

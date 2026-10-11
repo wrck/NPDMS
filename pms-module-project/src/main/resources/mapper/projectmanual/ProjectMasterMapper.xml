@@ -117,6 +117,15 @@
           <if test="query.projectCodePrefix != null and query.projectCodePrefix != ''">
               AND p.project_code LIKE CONCAT(#{query.projectCodePrefix}, '%')
           </if>
+          <if test="query.customerCode != null and query.customerCode != ''">
+              AND p.customer_code = #{query.customerCode}
+          </if>
+          <if test="query.overdueOnly != null">
+              AND <if test="query.overdueOnly == false">NOT</if>
+              (COALESCE(p.lifecycle_status, '') = 'ACTIVE'
+                AND (<include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.stageCurrentlyOverdue"/>
+                  OR <include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.taskCurrentlyOverdue"/>))
+          </if>
           <choose>
               <when test="query.status != null and query.status != '' and query.status.matches('S[0-6]')">
                   AND p.current_stage = #{query.status}

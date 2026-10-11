@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "baseRuleSets": ["rules/base.json"],
+  "genericProfile": {
+    "profileId": "generic",
+    "ruleSets": []
+  },
+  "profiles": [
+    {
+      "profileId": "vpn1000-ga-family",
+      "match": {
+        "exact": [],
+        "prefixes": ["VPN1000-GA-"]
+      },
+      "ruleSets": ["rules/model-vpn1000-ga.json"]
+    }
+  ]
+}

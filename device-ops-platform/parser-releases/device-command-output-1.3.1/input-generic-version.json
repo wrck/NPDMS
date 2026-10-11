@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0.0",
+  "collectionId": "generic-all-four-versions",
+  "contextSnapshot": {
+    "deviceVendor": "snapshot-vendor",
+    "deviceModel": "FW1000-TM-C"
+  },
+  "commandBlocks": [
+    {
+      "commandIndex": 1,
+      "commandText": "show version",
+      "status": "SUCCEEDED",
+      "stdout": "Software Release SOFT-TEST\nFW1000-TM-C uptime is 1 day, 0 hours, 0 minutes\nSerial Number: SN-GENERIC-TEST\nPCB Version: B\nCPLD Version: 4.00\nBASIC CONBOOT Version: 15.02.03\nEXTEND CONBOOT Version: 99.99.99\n",
+      "stderr": "",
+      "receivedBytes": 205,
+      "pageCount": 0,
+      "truncated": false,
+      "exitCode": 0,
+      "outcome": "sanitized-real-session-fixture",
+      "parsedFacts": {},
+      "parseWarnings": [
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator",
+        "ignored line without separator"
+      ],
+      "legacy": false
+    }
+  ]
+}

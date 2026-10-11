@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper">
+  <!-- 小 LIMIT 会误选全库主键顺序扫描；使用 V389 的任务索引保持租户、任务和软删除范围。 -->
+  <select id="selectListTaskPage" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT /*+ INDEX(b idx_int_binding_task_page) */ b.* FROM int_sync_binding b
+    WHERE b.tenant_id=#{query.tenantId} AND b.task_id=#{query.taskId} AND b.deleted=FALSE
+    ORDER BY b.id LIMIT #{query.offset},#{query.limit}
+  </select>
+  <select id="selectCountTaskPage" resultType="long">
+    SELECT /*+ INDEX(b idx_int_binding_task_page) */ COUNT(*) FROM int_sync_binding b
+    WHERE b.tenant_id=#{query.tenantId} AND b.task_id=#{query.taskId} AND b.deleted=FALSE
+  </select>
+  <select id="selectCompactionForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT /*+ INDEX(b idx_int_binding_task_page) */ b.id,b.tenant_id,b.object_key,b.source_key,b.target_id,b.fields_json,b.last_run_id
+    FROM int_sync_binding b
+    WHERE b.tenant_id=#{query.tenantId} AND b.task_id=#{query.taskId} AND b.id &gt; #{query.afterId} AND b.deleted=FALSE
+      AND b.fields_json LIKE '%"_targets"%'
+    ORDER BY b.id LIMIT #{query.limit} FOR UPDATE
+  </select>
   <update id="updateLastRun">
     UPDATE int_sync_binding SET last_run_id=#{runId},updater='data_sync',update_time=#{updatedAt}
     WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE

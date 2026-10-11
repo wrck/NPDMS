@@ -1,33 +1,21 @@
 <template>
-  <Dialog :model-value="visible" :title="uploadOnly ? '上传验收报告' : draftId ? '编辑报告草稿' : '新建报告草稿'" width="720px" :before-close="beforeClose" @update:model-value="onVisibilityChange">
-    <el-alert
-      v-if="activity"
-      :title="`${typeLabel(activity.acceptanceType)} · 活动版本 ${activity.version}`"
-      type="info"
-      :closable="false"
-      class="editor-alert"
-    />
-    <el-alert v-if="uploadOnly" title="上传报告后保存即完成验收，时间和操作人自动记录。" type="info" :closable="false" />
-    <el-form v-else :model="form" :disabled="!canUpdate || busy" label-position="top">
+  <Dialog :model-value="visible" :title="`上传${typeLabel(activity?.acceptanceType)}交付件`" width="720px" :before-close="beforeClose" @update:model-value="onVisibilityChange">
+    <el-form label-position="top">
       <el-row :gutter="16">
-        <el-col :xs="24" :sm="12">
-          <el-form-item label="验收时间"><el-date-picker v-model="form.acceptanceTime" type="datetime" value-format="x" class="!w-full" /></el-form-item>
-        </el-col>
-        <el-col :xs="24" :sm="12">
-          <el-form-item label="验收结论"><el-select v-model="form.conclusionCode" clearable class="!w-full"><el-option label="通过" value="PASS" /><el-option label="不通过" value="FAIL" /><el-option label="有条件通过" value="CONDITIONAL_PASS" /></el-select></el-form-item>
-        </el-col>
+        <el-col :xs="24" :sm="12"><el-form-item label="验收人"><span>{{ operatorName }}</span></el-form-item></el-col>
+        <el-col :xs="24" :sm="12"><el-form-item label="完成时间"><span>保存后自动记录</span></el-form-item></el-col>
       </el-row>
-      <el-form-item label="验收人"><el-input v-model="form.acceptorName" maxlength="128" /></el-form-item>
-      <el-form-item label="结论说明"><el-input v-model="form.conclusionText" type="textarea" :rows="4" maxlength="2000" show-word-limit /></el-form-item>
     </el-form>
 
     <section v-if="draftId" class="attachment-section" aria-labelledby="attachment-title">
       <div class="section-heading">
-        <div><h3 id="attachment-title">报告附件</h3><p>可连续上传多个附件；发布时由服务端冻结完整有序集合。</p></div>
+        <div><h3 id="attachment-title">上传交付件</h3></div>
         <el-tag type="info">本次已上传 {{ uploadedCount }} 个</el-tag>
       </div>
       <PmsFileUploader
         ref="uploaderRef"
+        hide-submit
+        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
         :key="uploadSession"
         :disabled="!canUpload || saving || publishing"
         owner-context="ACC"
@@ -42,15 +30,14 @@
 
     <template #footer>
       <el-button @click="close">取消</el-button>
-      <el-button v-if="uploadOnly && canUpdate && canPublish" type="primary" :disabled="busy" :loading="saving || publishing" @click="saveAndComplete">保存并完成验收</el-button>
-      <el-button v-if="!uploadOnly && canUpdate" :disabled="busy" :loading="saving" @click="saveDraft">{{ draftId ? '保存草稿' : '创建草稿' }}</el-button>
-      <el-button v-if="!uploadOnly && draftId && canPublish" type="primary" :disabled="busy" :loading="publishing" @click="publish">发布当前草稿</el-button>
+      <el-button v-if="canUpdate && canPublish" type="primary" :disabled="busy" :loading="saving || publishing" @click="saveAndComplete">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
+import { useUserStore } from '@/store/modules/user'
 import { activityAllowsReportWrite } from './reportState'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -65,6 +52,7 @@ const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const executionClient = useOperationClient()
 let openedClient: OperationClient | undefined
 const message = useMessage()
+const userStore = useUserStore()
 const visible = ref(false)
 const saving = ref(false)
 const publishing = ref(false)
@@ -75,8 +63,8 @@ const uploadedCount = ref(0)
 const referenceKey = ref(generateUUID())
 const publishKey = ref(generateUUID())
 const form = reactive<ReportApi.DraftContent>({})
-const uploadOnly = computed(() => activity.value?.originKind === 'DIRECT')
-const uploaderRef = ref<{ isBusy: () => boolean; hasPendingFile: () => boolean }>()
+const operatorName = computed(() => userStore.getUser.nickname || String(userStore.getUser.id))
+const uploaderRef = ref<{ isBusy: () => boolean; hasPendingFile: () => boolean; submit: () => Promise<void> }>()
 const uploadSession = ref(0)
 const baseline = ref('')
 let generation = 0
@@ -135,7 +123,7 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   })
   baseline.value = snapshot()
   visible.value = true
-  if (uploadOnly.value && !draftId.value && canUpdate.value) await saveDraft()
+  if (!draftId.value && canUpdate.value) await saveDraft()
   return true
 }
 
@@ -156,7 +144,6 @@ const saveDraft = async () => {
     if (result.activityVersion != null) activity.value = { ...activity.value, version: result.activityVersion }
     publishKey.value = generateUUID()
     baseline.value = savedSnapshot
-    if (!uploadOnly.value) message.success('草稿已保存')
     emit('changed')
     return true
   } finally {
@@ -179,7 +166,7 @@ const publish = async () => {
   try {
     await ReportApi.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value, openedClient)
     if (token !== generation) return false
-    message.success(uploadOnly.value ? '验收已完成' : activity.value.currentReportVersionId ? '新版本已替换生效' : '报告版本已生效')
+    message.success(`${typeLabel(activity.value.acceptanceType)}已通过`)
     visible.value = false
     emit('changed')
     return true
@@ -188,7 +175,12 @@ const publish = async () => {
   }
 }
 const saveAndComplete = async () => {
-  if (!uploadOnly.value || !canUpdate.value || !canPublish.value || busy.value) return false
+  if (!canUpdate.value || !canPublish.value || busy.value) return false
+  if (uploaderRef.value?.hasPendingFile()) {
+    if (!canUpload.value) return false
+    await uploaderRef.value.submit()
+    if (uploaderRef.value.hasPendingFile()) return false
+  }
   if (!uploadedCount.value) { message.warning('请先上传验收报告'); return false }
   if (!(await saveDraft())) return false
   return publish()
@@ -200,7 +192,6 @@ defineExpose({ open, requestLeave, discardChanges, isDirty: () => dirty.value ||
 </script>
 
 <style scoped lang="scss">
-.editor-alert { margin-bottom: 16px; }
 .attachment-section { padding-top: 16px; border-top: 1px solid var(--el-border-color-lighter); }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .section-heading h3 { margin: 0; font-size: 16px; color: var(--el-text-color-primary); }

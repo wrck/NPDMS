@@ -10,6 +10,16 @@ import cn.iocoder.yudao.module.pms.platform.api.file.*;import cn.iocoder.yudao.m
 import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import org.junit.jupiter.api.*;import java.util.*;import static org.mockito.Mockito.*;import static org.mockito.ArgumentMatchers.*;import static org.junit.jupiter.api.Assertions.*;
 class ArrivalDeliveryRegistrationTest {
+ @Test void currentSignDocumentReadsTheActualNativeSlotWithoutRegisteringOrChangingHistory(){
+  var file=new FileArtifactVersionFact(31L,2,"arrival-sign-document","ARRIVAL_SIGN_DOCUMENT","signed.txt",3L,"text/plain","sha","AVAILABLE","ACTIVE",new FileFactVersion(2,4,1),3L);
+  var key=new FileReferenceSetKey("IMP","ARRIVAL","9","ARRIVAL_SIGN_DOCUMENT");
+  when(files.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key),FileActionCodes.READ))).thenReturn(List.of(new FileReferenceSetFact(key,3L,List.of(file))));
+  assertSame(file,service.currentSignDocument(row));verifyNoInteractions(materials);verify(files,never()).lockAndRevalidateReferenceSets(any());
+ }
+ @Test void currentSignDocumentDoesNotTurnLegacyUrlsIntoNativeFileFacts(){
+  row.setAttachmentUrl("/historical/receipt.pdf");when(files.inspectReferenceSets(any())).thenReturn(List.of());
+  assertNull(service.currentSignDocument(row));verifyNoInteractions(materials);
+ }
  PermissionApi permissions=mock(PermissionApi.class);ProjectScopeApi scopes=mock(ProjectScopeApi.class);FileArtifactApi files=mock(FileArtifactApi.class);PlatformDeliveryMaterialApi materials=mock(PlatformDeliveryMaterialApi.class);ArrivalDeliveryRegistration service=new ArrivalDeliveryRegistration(permissions,scopes,files,materials);ArrivalDO row;
  @BeforeEach void setup(){TenantContextHolder.setTenantId(7L);SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(17L).setTenantId(7L),new org.springframework.mock.web.MockHttpServletRequest());row=new ArrivalDO();row.setTenantId(7L);row.setId(9L);row.setProjectId(20L);row.setCode("ARR-9");}
  @AfterEach void clear(){TenantContextHolder.clear();org.springframework.security.core.context.SecurityContextHolder.clearContext();}

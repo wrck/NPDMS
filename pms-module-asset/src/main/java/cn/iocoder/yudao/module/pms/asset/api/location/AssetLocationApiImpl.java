@@ -162,6 +162,9 @@ public class AssetLocationApiImpl implements AssetLocationApi {
 
     private AddressDO maintainAddress(AddressInput input) {
         if (input.id() == null) {
+            if (!hasText(input.detailAddress()) || !hasText(input.fullAddress())) {
+                throw exception(AST_LOCATION_REFERENCE_INVALID);
+            }
             AddressDO entity = copyAddress(input);
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
             entity.setVersion(0L);

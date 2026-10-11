@@ -4,6 +4,8 @@
 
     <sql id="deviceVisibility">
         AND (
+          <!-- 先判定设备上的组织投影，避免已获组织授权的设备逐台查询项目关系。 -->
+          <include refid="deviceOrganizationVisibility"/> OR
           <if test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
             (
             d.project_id IN
@@ -29,7 +31,6 @@
             CAST(d.contract_no AS BINARY) IN
             <foreach collection="query.visibleContractNumbers" item="contractNo" open="(" separator="," close=")">CAST(#{contractNo} AS BINARY)</foreach> OR
           </if>
-          <include refid="deviceOrganizationVisibility"/> OR
           1 = 0
         )
     </sql>
@@ -57,9 +58,17 @@
         <include refid="deviceSearchFilters"/>
     </sql>
 
+    <!-- 无业务筛选时只读取权限覆盖索引；精确筛选保留优化器选择专用索引。 -->
+    <sql id="unfilteredVisibilityIndex">
+        <if test="(query.sn == null or query.sn == '') and (query.name == null or query.name == '') and (query.status == null or query.status == '') and (query.productCode == null or query.productCode == '') and query.projectId == null and query.customerId == null">
+            FORCE INDEX (idx_ast_device_visibility_cover)
+        </if>
+    </sql>
+
     <select id="selectContractCandidates" resultType="java.lang.String">
         SELECT DISTINCT CAST(d.contract_no AS BINARY)
         FROM ast_device d
+        <if test="query.deviceId == null"><include refid="unfilteredVisibilityIndex"/></if>
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
           AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
           AND NOT COALESCE((<include refid="deviceOrganizationVisibility"/>), FALSE)
@@ -190,15 +199,32 @@
                d.conp_mark,
                d.sync_status,
                d.location_snapshot,
-               d.location_resolution_status
-        <include refid="visibleDeviceConditions"/>
+               d.location_resolution_status,
+               nv.boot_version,
+               nv.cpld_version,
+               w.warranty_months,
+               (SELECT COUNT(*) FROM ast_device_warranty_record wr
+                WHERE wr.tenant_id = d.tenant_id AND wr.device_sn = d.sn
+                  AND wr.deleted = b'0' AND wr.extended = b'1') AS extended_count
+        FROM ast_device d
+        LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
+          AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
+          AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
+        LEFT JOIN ast_device_warranty w ON w.tenant_id = d.tenant_id AND w.device_sn = d.sn AND w.deleted = b'0'
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+        <include refid="deviceVisibility"/>
+        <include refid="deviceSearchFilters"/>
         ORDER BY d.id DESC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
 
     <select id="selectVisibleDeviceCount" resultType="long">
         SELECT COUNT(*)
-        <include refid="visibleDeviceConditions"/>
+        FROM ast_device d
+        <include refid="unfilteredVisibilityIndex"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+        <include refid="deviceVisibility"/>
+        <include refid="deviceSearchFilters"/>
     </select>
 
     <select id="existsVisibleDevice" resultType="boolean">
@@ -230,4 +256,9 @@
         ORDER BY d.id
     </select>
 
+    <select id="selectProjectInstallationDevicesForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact">
+        SELECT id AS device_id, sn, location_snapshot FROM ast_device
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0
+        ORDER BY id FOR UPDATE
+    </select>
 </mapper>

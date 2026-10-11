@@ -214,7 +214,7 @@
         </div>
         <!-- 序列号详情（DemoV2 1.1.1 十八列明细：设备列表 + 档案位置关联 + 在网版本/维保逐台补齐） -->
         <div v-if="detail?.id && visitedTabs.has('sn-result')" v-show="activeTab === 'sn-result'" class="min-w-0" data-testid="project-pane-sn-result">
-          <ProjectSerialPanel :project-id="detail.id" @open-config-log="openConfigLogForDeviceId" />
+          <ProjectSerialPanel :project-id="detail.id" :active="activeTab === 'sn-result'" @open-config-log="openConfigLogForDeviceId" />
         </div>
 
         <!-- ============ 全流程业务模块面板（配置驱动，行操作/新增/编辑/删除同通用模块面板） ============ -->
@@ -242,7 +242,7 @@
               :is="comp"
               :key="`embed-${embedKey}-${detail.id}`"
               :project-id="detail.id"
-              :initial-device-id="embedKey === 'config-log' ? configLogDeviceId : undefined"
+              v-bind="embedKey === 'config-log' ? { active: activeTab === embedKey } : {}"
             />
           </div>
         </template>
@@ -364,6 +364,7 @@
           <ProjectStageStatusPanel
             :project-id="detail.id"
             :project="detail"
+            :refresh-token="stageTreeToken"
             :key="detail.id"
             @changed="loadAll"
           />
@@ -521,12 +522,16 @@
     </div>
   </div>
   <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="loadInstances" />
+  <ProjectApprovalDrawer ref="approvalDrawerRef" />
+  <ProjectDeviceConfigLogDrawer v-if="detail?.id" ref="configLogDrawerRef" :project-id="detail.id" />
 </template>
 
 <script setup lang="ts">
 import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
-import { computed, onMounted, ref, type Component } from 'vue'
+import { computed, onMounted, provide, ref, type Component } from 'vue'
+import ProjectApprovalDrawer from './components/ProjectApprovalDrawer.vue'
+import { projectApprovalDetailKey } from './components/projectApprovalDetail'
 import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
@@ -550,6 +555,7 @@ import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectStageStatusPanel from './components/ProjectStageStatusPanel.vue'
 import ProjectSchedulePanel from './components/ProjectSchedulePanel.vue'
 import ProjectSerialPanel from './components/ProjectSerialPanel.vue'
+import ProjectDeviceConfigLogDrawer from './components/ProjectDeviceConfigLogDrawer.vue'
 import StageProgressRail from './components/StageProgressRail.vue'
 import ProjectFlowPanel from './components/ProjectFlowPanel.vue'
 import ProjectDeliverableDialog from './components/ProjectDeliverableDialog.vue'
@@ -564,13 +570,13 @@ import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/in
 import DeliverableSummaryPanel from '@/views/pms/engineering/deliverable/summary/index.vue'
 import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
 import ArrivalAcceptanceWorkbench from './components/ProjectArrivalReceiptPanel.vue'
-import InstallationWorkbench from '@/views/pms/engineering/installation/index.vue'
-import ConfigurationWorkbench from '@/views/pms/engineering/configuration/index.vue'
-import JointTestWorkbench from '@/views/pms/engineering/joint-test/index.vue'
+import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
+import ConfigurationWorkbench from '@/views/pms/engineering/configuration/with-device-logs.vue'
+import JointTestWorkbench from '@/views/pms/engineering/joint-test/with-device-logs.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
 import MaterialExchWorkbench from '@/views/pms/engineering/material-exch/index.vue'
 import CutoverTaskWorkbench from '@/views/pms/cutover/cutover-task/index.vue'
-import ConfigLogWorkbench from '@/views/pms/asset/device/config-log/index.vue'
+import ProjectDeviceLogsPanel from './components/ProjectDeviceLogsPanel.vue'
 import CompletionCertificateWorkbench from '@/views/pms/acceptance/completion-certificate/index.vue'
 import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
@@ -584,6 +590,8 @@ defineOptions({ name: 'PmsProjectMasterDetail' })
 
 const route = useRoute()
 const router = useRouter()
+const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
+provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
@@ -606,7 +614,7 @@ const flowModuleItems = businessNavItems.filter(
 )
 // 内嵌工作台组件（Demo 操作界面；均复用既有页面并锁定项目上下文）
 const flowEmbedComponents: Record<string, Component> = {
-  'config-log': ConfigLogWorkbench,
+  'config-log': ProjectDeviceLogsPanel,
   'material-exch': MaterialExchWorkbench,
   solution: SolutionWorkbench,
   arrival: ArrivalAcceptanceWorkbench,
@@ -629,7 +637,6 @@ const requestedTab = (
     } as Record<string, string>
   )[String(route.query.tab)] ||
   ([
-    'tasks',
     'stage-status',
     'stage',
     'customer',
@@ -658,7 +665,6 @@ const overviewSteps: { key: string; label: string; icon: string; pending?: boole
   { key: 'customer', label: '客户信息', icon: 'ep:office-building' },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
-  { key: 'tasks', label: '项目任务', icon: 'ep:list' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' },
@@ -703,11 +709,10 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
   }
 }
 
-// 序列号详情行 → 配置Log（1.1.1.1）：携带设备ID切换页签，由 ConfigLogWorkbench 预置过滤
-const configLogDeviceId = ref<number>()
-const openConfigLogForDeviceId = async (deviceId: number) => {
-  configLogDeviceId.value = deviceId
-  await switchTab('config-log')
+// 序列号行在当前工作台打开设备日志抽屉。
+const configLogDrawerRef = ref<InstanceType<typeof ProjectDeviceConfigLogDrawer>>()
+const openConfigLogForDeviceId = (deviceId: number, serialNumber: string) => {
+  configLogDrawerRef.value?.open(deviceId, serialNumber)
 }
 
 const requirementRef = ref<InstanceType<typeof ProjectRequirementAnalysisPanel>>()
@@ -859,6 +864,7 @@ const handleMembersUpdated = async () => {
 }
 const handleScheduleChanged = async () => {
   await Promise.all([loadDetail(), loadInstances()])
+  stageTreeToken.value++
 }
 const loadInstances = async () => {
   const id = Number(route.query.projectId)

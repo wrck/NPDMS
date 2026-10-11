@@ -5,7 +5,7 @@ import lombok.*;
 
 @TableName("ast_device_log_file") @Data @EqualsAndHashCode(callSuper=true)
 public class DeviceLogFileDO extends TenantBaseDO {
-    @TableId private Long id;
+    @TableId(type = com.baomidou.mybatisplus.annotation.IdType.ASSIGN_ID) private Long id;
     private Long importId;
     private Long projectId;
     private Long deviceId;

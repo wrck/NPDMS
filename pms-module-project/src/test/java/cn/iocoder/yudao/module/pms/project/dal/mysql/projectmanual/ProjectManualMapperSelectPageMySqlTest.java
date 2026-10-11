@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = ProjectManualMySqlTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@org.springframework.transaction.annotation.Transactional
 class ProjectManualMapperSelectPageMySqlTest {
 
     private static final long TENANT = 0L;
@@ -37,6 +38,14 @@ class ProjectManualMapperSelectPageMySqlTest {
     private ProjectMasterMapper projectMasterMapper;
     @Resource
     private JdbcTemplate jdbcTemplate;
+    @Resource
+    private ProjectOverdueMapper overdueMapper;
+    @Resource
+    private ProjectStageInstanceMapper stageMapper;
+    @Resource
+    private org.springframework.transaction.PlatformTransactionManager transactions;
+    @Resource
+    private org.mybatis.spring.SqlSessionTemplate sqlSession;
 
     private final Set<Long> fixtureProjectIds = new HashSet<>();
 
@@ -58,10 +67,7 @@ class ProjectManualMapperSelectPageMySqlTest {
 
     @AfterEach
     void cleanupFixture() {
-        for (Long id : fixtureProjectIds) {
-            jdbcTemplate.update("DELETE FROM proj_project_party WHERE tenant_id=? AND project_id=?", TENANT, id);
-            jdbcTemplate.update("DELETE FROM proj_project WHERE tenant_id=? AND id=?", TENANT, id);
-        }
+        // Spring rolls back the fixture and its trigger facts together; self-referencing task FKs remain enabled.
         fixtureProjectIds.clear();
     }
 
@@ -137,6 +143,29 @@ class ProjectManualMapperSelectPageMySqlTest {
     }
 
     @Test
+    void customerFilterIsExactAndIntersectsNameAndVisibleScope() {
+        long matching = insertProject("S0", "ACTIVE", "CUSTOMER-A");
+        long sameCustomer = insertProject("S0", "ACTIVE", "CUSTOMER-B");
+        long otherCustomer = insertProject("S0", "ACTIVE", "CUSTOMER-C");
+        jdbcTemplate.update("UPDATE proj_project SET customer_code=? WHERE tenant_id=? AND id IN (?,?)",
+                "IT-CRM-001", TENANT, matching, sameCustomer);
+        jdbcTemplate.update("UPDATE proj_project SET customer_code=? WHERE tenant_id=? AND id=?",
+                "IT-CRM-001-OTHER", TENANT, otherCustomer);
+
+        assertEquals(Set.of(matching, sameCustomer), new HashSet<>(
+                selectPageIds(builder().customerCode("IT-CRM-001").build())));
+        assertEquals(List.of(matching), selectPageIds(builder().customerCode("IT-CRM-001")
+                .projectNameKeyword("CUSTOMER-A").build()));
+        assertEquals(List.of(sameCustomer), selectPageIds(builder().customerCode("IT-CRM-001")
+                .visibleProjectIds(Set.of(sameCustomer, otherCustomer)).build()));
+        assertTrue(selectPageIds(builder().customerCode("IT-CRM").build()).isEmpty());
+        assertTrue(selectPageIds(builder().customerCode("IT-CRM-001")
+                .visibleProjectIds(Set.of()).build()).isEmpty());
+        assertEquals(3, selectPageIds(builder().customerCode("").build()).size());
+        assertTrue(selectPageIds(builder().customerCode("IT-CRM-001").tenantId(TENANT + 1).build()).isEmpty());
+    }
+
+    @Test
     void agentServiceProviderKeywordMatchesCurrentPartyOnly() {
         long project = insertProject("S0", "ACTIVE", "PARTY");
         jdbcTemplate.update("INSERT INTO proj_project_party "
@@ -179,7 +208,151 @@ class ProjectManualMapperSelectPageMySqlTest {
                 .effectiveAt(EFFECTIVE_AT);
     }
 
+    @Test
+    void overdueDatesUseNodePlansAndDoNotCountDeadlineDay() {
+        long stageProject = insertProject("S1", "ACTIVE", "OVERDUE-STAGE");
+        long taskProject = insertProject("S4", "ACTIVE", "OVERDUE-TASK");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay();
+        long stage = insertStage(stageProject, day.minusDays(1), day.plusDays(1));
+        long task = insertTask(taskProject, day.plusDays(1), day.minusDays(1));
+        assertEquals(Set.of(stageProject, taskProject), new HashSet<>(selectPageIds(builder().overdueOnly(true).build())));
+        var facts = overdueMapper.selectStatusFacts(statusQuery());
+        assertEquals(2, facts.size());
+        var stageFact = facts.stream().filter(row -> row.getNodeId().equals(stage)).findFirst().orElseThrow();
+        assertTrue(stageFact.getWorkOverdue()); assertFalse(stageFact.getAcceptanceOverdue());
+        var taskFact = facts.stream().filter(row -> row.getNodeId().equals(task)).findFirst().orElseThrow();
+        assertFalse(taskFact.getWorkOverdue()); assertTrue(taskFact.getAcceptanceOverdue());
+
+        jdbcTemplate.update("UPDATE proj_project_stage SET plan_end_time=?,acceptance_time=? WHERE tenant_id=? AND id=?", day, day, TENANT, stage);
+        jdbcTemplate.update("UPDATE proj_project_task SET plan_end_time=?,acceptance_time=? WHERE tenant_id=? AND id=?", day, day, TENANT, task);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+        assertTrue(overdueMapper.selectStatusFacts(statusQuery()).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project_task SET plan_end_time=?,acceptance_time=? WHERE tenant_id=? AND id=?", day.minusDays(1), day.minusDays(1), TENANT, task);
+        taskFact = overdueMapper.selectStatusFacts(statusQuery()).getFirst();
+        assertTrue(taskFact.getWorkOverdue()); assertTrue(taskFact.getAcceptanceOverdue());
+    }
+
+    @Test
+    void overdueYesAndNoPartitionAllVisibleProjects() {
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay();
+        long stageLate = insertProject("S1", "ACTIVE", "FILTER-STAGE-LATE");
+        long taskLate = insertProject("S4", "ACTIVE", "FILTER-TASK-LATE");
+        long today = insertProject("S1", "ACTIVE", "FILTER-TODAY");
+        long noDates = insertProject("S0", "ACTIVE", "FILTER-NO-DATES");
+        long completed = insertProject("S1", "ACTIVE", "FILTER-COMPLETED");
+        long closed = insertProject("S1", "NORMAL_CLOSED", "FILTER-CLOSED");
+        insertStage(stageLate, day.minusDays(1), null);
+        insertTask(taskLate, null, day.minusDays(1));
+        insertStage(today, day, day);
+        insertTask(noDates, null, null);
+        long completedStage = insertStage(completed, day.minusDays(1), day.minusDays(1));
+        stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, completed, completedStage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT));
+        insertStage(closed, day.minusDays(1), day.minusDays(1));
+
+        Set<Long> yes = new HashSet<>(selectPageIds(builder().overdueOnly(true).build()));
+        Set<Long> no = new HashSet<>(selectPageIds(builder().overdueOnly(false).build()));
+        assertEquals(Set.of(stageLate, taskLate), yes);
+        assertEquals(Set.of(today, noDates, completed, closed), no);
+        assertTrue(java.util.Collections.disjoint(yes, no));
+        yes.addAll(no);
+        assertEquals(new HashSet<>(selectPageIds(builder().build())), yes);
+    }
+
+    @Test
+    void notOverdueFilterKeepsCustomerStageTenantAndPermissionIntersection() {
+        long visible = insertProject("S1", "ACTIVE", "NO-SCOPE-VISIBLE");
+        long wrongCustomer = insertProject("S1", "ACTIVE", "NO-SCOPE-CUSTOMER");
+        long wrongStage = insertProject("S2", "ACTIVE", "NO-SCOPE-STAGE");
+        long wrongTenant = insertProject("S1", "ACTIVE", "NO-SCOPE-TENANT");
+        long hidden = insertProject("S1", "ACTIVE", "NO-SCOPE-HIDDEN");
+        for (long id : List.of(visible, wrongStage, wrongTenant, hidden)) {
+            jdbcTemplate.update("UPDATE proj_project SET customer_code='IT-OVERDUE-FILTER' WHERE id=? AND tenant_id=?", id, TENANT);
+        }
+        jdbcTemplate.update("UPDATE proj_project SET tenant_id=? WHERE id=? AND tenant_id=?", TENANT + 1, wrongTenant, TENANT);
+        Set<Long> scope = Set.of(visible, wrongCustomer, wrongStage, wrongTenant);
+        assertEquals(List.of(visible), selectPageIds(builder().overdueOnly(false)
+                .customerCode("IT-OVERDUE-FILTER").status("S1").visibleProjectIds(scope).build()));
+        assertTrue(selectPageIds(builder().overdueOnly(false).visibleProjectIds(Set.of()).build()).isEmpty());
+    }
+
+    @Test
+    void completionStopsBothFlagsAndPreservesCompletionSnapshotWhenPlansChange() {
+        long project = insertProject("S4", "ACTIVE", "OVERDUE-COMPLETE");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay();
+        long stage = insertStage(project, day.minusDays(1), day.minusDays(2));
+        long task = insertTask(project, null, day.minusDays(1));
+        assertEquals(1, stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT)));
+        assertEquals(0, stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT)));
+        var saved = overdueMapper.selectStatusFacts(statusQuery()).stream().filter(row -> row.getCompletedAt() != null).findFirst().orElseThrow();
+        assertTrue(saved.getWorkOverdue()); assertTrue(saved.getAcceptanceOverdue());
+        assertEquals(day.minusDays(1), saved.getPlanEndTime());
+        assertEquals(List.of(project), selectPageIds(builder().overdueOnly(true).build()));
+        jdbcTemplate.update("UPDATE proj_project_stage SET plan_end_time=?,acceptance_time=?,version=version+1 WHERE tenant_id=? AND id=?", day.plusDays(5), day.plusDays(5), TENANT, stage);
+        var retained = overdueMapper.selectStatusFacts(statusQuery()).stream().filter(row -> row.getCompletedAt() != null).findFirst().orElseThrow();
+        assertEquals(saved, retained);
+        // This statement operates only on the explicit IT fixture, never an application task.
+        jdbcTemplate.update("UPDATE proj_project_task SET status='DONE',actual_end_time=?,version=version+1 WHERE tenant_id=? AND id=?", EFFECTIVE_AT, TENANT, task);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+        var completed = overdueMapper.selectStatusFacts(statusQuery());
+        assertEquals(2, completed.size()); assertTrue(completed.stream().allMatch(row -> row.getCompletedAt() != null));
+        assertEquals(2, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM proj_node_overdue_completion WHERE tenant_id=? AND project_id=?", Integer.class, TENANT, project));
+    }
+
+    @Test
+    void overdueScopeExcludesDeletedClosedAndCancelledNodesAndEmptyPermissions() {
+        long project = insertProject("S1", "ACTIVE", "OVERDUE-SCOPE");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay().minusDays(1);
+        long stage = insertStage(project, day, day);
+        var empty = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(TENANT, Set.of(), EFFECTIVE_AT);
+        assertTrue(overdueMapper.selectStatusFacts(empty).isEmpty());
+        assertTrue(overdueMapper.selectStatusFacts(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(TENANT + 1, Set.of(project), EFFECTIVE_AT)).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project SET lifecycle_status='NORMAL_CLOSED' WHERE tenant_id=? AND id=?", TENANT, project);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project SET lifecycle_status='ACTIVE' WHERE tenant_id=? AND id=?", TENANT, project);
+        jdbcTemplate.update("UPDATE proj_project_stage SET deleted=b'1' WHERE tenant_id=? AND id=?", TENANT, stage);
+        assertTrue(overdueMapper.selectStatusFacts(statusQuery()).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project_stage SET deleted=b'0',status='TERMINATED' WHERE tenant_id=? AND id=?", TENANT, stage);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+    }
+
+    @Test
+    void failedStageTransactionRollsBackCompletionAndItsSnapshot() {
+        long project = insertProject("S1", "ACTIVE", "OVERDUE-ROLLBACK");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay().minusDays(1);
+        long stage = insertStage(project, day, day);
+        var nested = new org.springframework.transaction.support.TransactionTemplate(transactions);
+        nested.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_NESTED);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+                nested.execute(status -> {
+                    assertEquals(1, stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                            TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT)));
+                    throw new IllegalStateException("fixture failure after stage completion");
+                }));
+        assertEquals("ACTIVE", jdbcTemplate.queryForObject("SELECT status FROM proj_project_stage WHERE tenant_id=? AND id=?", String.class, TENANT, stage));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM proj_node_overdue_completion WHERE tenant_id=? AND project_id=?", Integer.class, TENANT, project));
+    }
+
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery statusQuery() {
+        // Fixture changes use JdbcTemplate rather than a MyBatis write, so invalidate only this test session cache.
+        sqlSession.clearCache();
+        return new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(TENANT, Set.copyOf(fixtureProjectIds), EFFECTIVE_AT);
+    }
+    private long insertStage(long project, LocalDateTime end, LocalDateTime acceptance) {
+        long id = project + 10;
+        jdbcTemplate.update("INSERT INTO proj_project_stage (id,project_id,stage_code,name,status,plan_end_time,acceptance_time,tenant_id,creator) VALUES (?,?,'IT-OVERDUE','IT overdue stage','ACTIVE',?,?,?,'it-feedback-overdue')", id, project, end, acceptance, TENANT);
+        return id;
+    }
+    private long insertTask(long project, LocalDateTime end, LocalDateTime acceptance) {
+        long id = project + 20;
+        jdbcTemplate.update("INSERT INTO proj_project_task (id,project_id,task_code,name,root_task_id,state_machine_revision_id,stage_code,status,plan_end_time,acceptance_time,tenant_id,creator) VALUES (?,?,'IT-OVERDUE','IT overdue task',?,1,'IT-OVERDUE','IN_PROGRESS',?,?,?,'it-feedback-overdue')", id, project, id, end, acceptance, TENANT);
+        return id;
+    }
+
     private List<Long> selectPageIds(VisibleProjectPageQuery query) {
+        sqlSession.clearCache();
         return projectMasterMapper.selectPage(query).getList()
                 .stream().map(ProjectMasterDO::getId).toList();
     }

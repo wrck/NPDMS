@@ -79,6 +79,20 @@ class SyncRunTransactionTest {
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding",Integer.class));
         assertNull(context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
     }
+    @Test void bindingPagesPreserveTenantTaskDeletionAndStableOrdering() {
+        for(var row:List.of(new Object[]{42L,1L,taskId,"A",99L,false},new Object[]{43L,1L,taskId,"B",100L,false},
+                new Object[]{44L,1L,taskId+1,"C",101L,false},new Object[]{45L,2L,taskId,"D",102L,false},
+                new Object[]{46L,1L,taskId,"E",103L,true}))
+            jdbc.update("INSERT INTO int_sync_binding(id,tenant_id,task_id,object_key,source_object,source_key,target_id,fields_json,last_run_id,deleted) VALUES(?,?,?,'COMPANY','ehr_company',?,?,'{}',99,?)",row);
+        var query=new SyncQueries.Page();query.setTaskId(taskId);query.setTenantId(2L);query.setPageNo(2);query.setPageSize(1);
+        var page=runner.mappings(query);
+        assertEquals(2,page.getTotal());assertEquals(List.of(43L),page.getList().stream().map(SyncBindingDO::getId).toList());
+        query.setPageNo(3);assertTrue(runner.mappings(query).getList().isEmpty());
+        assertEquals(2,runner.mappings(query).getTotal());
+        TenantContextHolder.setTenantId(2L);assertThrows(IllegalArgumentException.class,()->runner.mappings(query));
+        TenantContextHolder.setTenantId(1L);query.setTaskId(null);
+        assertThrows(IllegalArgumentException.class,()->runner.mappings(query));
+    }
     void configurePaging() throws Exception {
         jdbc.execute("CREATE TABLE test_paged_item(id BIGINT PRIMARY KEY,object_key VARCHAR(20),title VARCHAR(100))");
         List<SyncDefinition.Source> sources=new ArrayList<>();
@@ -243,6 +257,97 @@ class SyncRunTransactionTest {
         assertEquals("{\"UNCHANGED\":1}",runner.required(run(false)).getSummaryJson());
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM test_sync_item",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_company",Integer.class));
+    }
+    DataSyncAdapter configureCompactMapping(boolean streaming) {
+        jdbc.execute("CREATE TABLE test_sync_item(id BIGINT PRIMARY KEY,title VARCHAR(100))");
+        var adapter=spy(context.getBean("testItemAdapter",DataSyncAdapter.class));
+        doReturn(false).when(adapter).requiresAllBindings();
+        doReturn(true).when(adapter).supportsStreaming();
+        doAnswer(i->{DataSyncAdapter.Change change=i.getArgument(0);return Map.of("_sourceUpdatedAt",change.after().get("_sourceUpdatedAt"));})
+                .when(adapter).bindingFields(any());
+        when(context.getBean(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class).bind(any())).thenReturn(adapter);
+        var source=SyncDefinition.Source.builder().object("ITEM").sourceObject("legacy_item").readMode("TABLE")
+                .table("legacy_item").sourceKey("item_id").updatedAt("updated_at")
+                .columns(List.of("item_id","title","updated_at","payload")).filters(List.of()).mappings(List.of()).build();
+        var definition=EhrSyncTemplate.create(1L).toBuilder().adapter("TABLE_MAPPING").taskKey("compact_mapping")
+                .sourceSystem("COMPACT").mode("ONCE").missingPolicy("RETAIN").sources(List.of(source))
+                .readStrategy(streaming?"STREAMING_CURSOR":"SNAPSHOT").restartPolicy("CHECKPOINT_KEY").retryCount(0).build();
+        taskId=context.getBean(SyncTaskService.class).save(new SyncTaskService.Save(null,null,"精简绑定同步",definition));
+        when(context.getBean(SyncEvidenceService.class).stage(any(),any(),any(),anyString(),anyString())).thenReturn(List.of());
+        return adapter;
+    }
+    Map<String,Object> compactSource(long key,String title,LocalDateTime time) {
+        return Map.of("item_id",key,"title",title,"updated_at",time.toString(),"payload","x".repeat(2000));
+    }
+    @Test void compactBindingWorksAcrossPreviewReplayAndOlderSourceWithoutReplayingMissingFields()throws Exception {
+        var adapter=configureCompactMapping(false);
+        var reader=context.getBean(MysqlSyncReader.class);
+        when(reader.read(any(),any(),anyBoolean())).thenReturn(new MysqlSyncReader.Snapshot(upper,
+                List.of(new MysqlSyncReader.SourceRows("ITEM","legacy_item",List.of(compactSource(42,"accepted",upper)))),2100));
+        assertEquals("PREVIEW_READY",runner.required(run(true)).getStatus());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        run(false);
+        var binding=context.getBean(SyncBindingMapper.class).selectTask(new SyncQueries.Task(1L,taskId)).getFirst();
+        assertEquals(Map.of("_sourceUpdatedAt",upper.toString()),cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseMap(binding.getFieldsJson()));
+        assertEquals(500001L,binding.getTargetId());assertEquals("42",binding.getSourceKey());
+        long acceptedRun=binding.getLastRunId();
+        String legacySnapshot=cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(Map.of(
+                "_sourceUpdatedAt",upper.toString(),"_targets",List.of(Map.of("id",500001L)),"payload","x".repeat(2000)));
+        jdbc.update("UPDATE int_sync_binding SET fields_json=? WHERE id=?",legacySnapshot,binding.getId());
+        jdbc.update("INSERT INTO int_sync_binding(id,tenant_id,task_id,object_key,source_object,source_key,target_id,fields_json,last_run_id) VALUES(900001,2,?,'ITEM','legacy_item','42',500001,?,?)",taskId,legacySnapshot,acceptedRun);
+        when(reader.read(any(),any(),anyBoolean())).thenReturn(new MysqlSyncReader.Snapshot(upper,
+                List.of(new MysqlSyncReader.SourceRows("ITEM","legacy_item",List.of(compactSource(42,"older",upper.minusDays(1))))),2100));
+        doAnswer(i->{DataSyncAdapter.Batch batch=i.getArgument(0);assertTrue(batch.rows().isEmpty(),"Older source must not enter the business adapter");return List.of();})
+                .when(adapter).apply(any());
+        assertEquals("{\"SKIPPED\":1}",runner.required(run(true)).getSummaryJson());
+        assertEquals("{\"SKIPPED\":1}",runner.required(run(false)).getSummaryJson());
+        assertEquals("accepted",jdbc.queryForObject("SELECT title FROM test_sync_item",String.class));
+        assertEquals(acceptedRun,context.getBean(SyncBindingMapper.class).selectTask(new SyncQueries.Task(1L,taskId)).getFirst().getLastRunId());
+        assertEquals(Map.of("_sourceUpdatedAt",upper.toString()),cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseMap(
+                jdbc.queryForObject("SELECT fields_json FROM int_sync_binding WHERE tenant_id=1 AND task_id=?",String.class,taskId)));
+        assertEquals(legacySnapshot,jdbc.queryForObject("SELECT fields_json FROM int_sync_binding WHERE tenant_id=2",String.class));
+    }
+    @Test void compactStreamingRollsBackTheFailedChunkAndRetriesFromTheCommittedIdentity()throws Exception {
+        var adapter=configureCompactMapping(true);
+        doAnswer(i->{
+            DataSyncAdapter.Batch batch=i.getArgument(0);List<DataSyncAdapter.Change> changes=new ArrayList<>();
+            for(var row:batch.rows()) {
+                long id=500000+Long.parseLong(row.sourceKey());
+                jdbc.update("INSERT INTO test_sync_item(id,title) VALUES(?,?)",id,row.fields().get("title"));
+                changes.add(new DataSyncAdapter.Change(row.object(),row.sourceKey(),id,"CREATED",Map.of(),row.fields(),null));
+            }
+            return changes;
+        }).when(adapter).apply(any());
+        var streaming=context.getBean(SpringJdbcStreamingReader.class);
+        doAnswer(i->{
+            java.util.function.Consumer<SpringJdbcStreamingReader.StreamChunk> consumer=i.getArgument(4);
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",List.of(compactSource(42,"first",upper)),42L,2100,false,1));
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",List.of(compactSource(43,"second",upper)),43L,2100,false,2));
+            return new SpringJdbcStreamingReader.StreamResult(upper,2,2);
+        }).when(streaming).stream(any(),any(),anyBoolean(),any(),any());
+        var completion=new java.util.concurrent.atomic.AtomicInteger();
+        SyncEvidenceService evidence=org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(SyncEvidenceService.class));
+        doAnswer(i->{if(completion.incrementAndGet()==2)throw new IllegalStateException("second chunk evidence failure");return null;})
+                .when(evidence).complete(any(),any(),any(),any(),any(),anyBoolean());
+        Long failed=runner.start(new SyncRunService.Start(taskId,0,UUID.randomUUID().toString(),false,true,false,null,false));
+        assertThrows(IllegalStateException.class,()->runner.execute(failed));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM test_sync_item",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        var progress=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(runner.required(failed).getPagingJson(),SyncStreamingState.class);
+        assertEquals(1,progress.committedRows());assertEquals(42L,((Number)progress.lastKey()).longValue());
+        doNothing().when(evidence).complete(any(),any(),any(),any(),any(),anyBoolean());
+        doAnswer(i->{
+            SyncStreamingState resume=i.getArgument(3);assertEquals(42L,((Number)resume.lastKey()).longValue());
+            java.util.function.Consumer<SpringJdbcStreamingReader.StreamChunk> consumer=i.getArgument(4);
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",List.of(compactSource(43,"second",upper)),43L,2100,false,2));
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",List.of(),43L,0,true,2));
+            return new SpringJdbcStreamingReader.StreamResult(upper,1,1);
+        }).when(streaming).stream(any(),any(),anyBoolean(),any(),any());
+        Long retry=runner.start(new SyncRunService.Start(taskId,0,UUID.randomUUID().toString(),false,true,false,failed,false));
+        runner.execute(retry);assertEquals("SUCCESS",runner.required(retry).getStatus());
+        assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM test_sync_item",Integer.class));
+        assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        assertEquals(2,cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(runner.required(retry).getPagingJson(),SyncStreamingState.class).committedRows());
     }
     @Test void equivalentLegacyRowsShareTargetAndKeepEverySourceBindingAcrossPages()throws Exception {
         jdbc.execute("CREATE TABLE test_sync_item(id BIGINT PRIMARY KEY,title VARCHAR(100))");
@@ -440,6 +545,8 @@ class SyncRunTransactionTest {
     @Import({SyncRunService.class,SyncTaskService.class,SyncDefinitionValidator.class,SyncFieldMapper.class,EhrOrganizationAdapter.class,ManagedOrganizationApiImpl.class})
     @MapperScan(basePackageClasses={SyncTaskMapper.class,CompanyMapper.class,DeptMapper.class,ManagedOrganizationMapper.class})
     static class Config {
+        @Bean GenericSyncJdbcStore jdbcStore(DataSource source){return new GenericSyncJdbcStore(source);}
+        @Bean SpringJdbcStreamingReader streamingReader(){return mock(SpringJdbcStreamingReader.class);}
         @Bean cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine genericEngine() {return mock(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class);}
         @Bean cn.hutool.extra.spring.SpringUtil springUtil(){return new cn.hutool.extra.spring.SpringUtil();}
         @Bean DataSource dataSource(){return new DriverManagerDataSource("jdbc:h2:mem:sync_"+UUID.randomUUID()+";MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1","sa","");}

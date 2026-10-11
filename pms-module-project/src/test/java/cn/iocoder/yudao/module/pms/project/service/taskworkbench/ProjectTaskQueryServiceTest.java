@@ -389,6 +389,39 @@ class ProjectTaskQueryServiceTest {
         assertTrue(service.getWorkbench(11L, actor()).getAllowedActions().isEmpty());
     }
 
+    @Test void firstApprovalStartIsFilteredByAdmissionWhileOtherActionsAndRetryRemain() {
+        stubProjectScope(true);
+        var task = task(11L, null, 0); when(taskMapper.selectTask(any())).thenReturn(task);
+        var binding = new ProjectTaskExecutionContractDO(); binding.setId(91L); binding.setTenantId(0L);
+        binding.setProjectTaskId(11L); binding.setContractVersion(1); binding.setWorkBindingTypeCode("APPROVAL");
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(binding);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(new TaskBindingInspection("APPROVAL", Set.of("START", "CANCEL"), "v1", null));
+        var admission = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmission", admission);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "taskApprovals", org.mockito.Mockito.mock(ProjectTaskApprovalService.class));
+        for (var outcome : cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.values()) {
+            when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(
+                    new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(outcome, List.of()));
+            var response = service.getWorkbench(11L, actor());
+            assertEquals(outcome, response.getStartAdmission().outcome());
+            assertEquals(outcome == cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED,
+                    response.getAllowedActions().contains("START"));
+            assertTrue(response.getAllowedActions().contains("CANCEL"));
+        }
+        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(taskMapper.selectFullTaskIds(any())).thenReturn(List.of(11L));
+        when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                        cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.NOT_MATCHED,
+                        List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionCondition(
+                                "不可见的前置任务", cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.NOT_MATCHED))));
+        assertTrue(service.getWorkbench(11L, actor()).getStartAdmission().conditions().isEmpty());
+        org.mockito.Mockito.clearInvocations(admission);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(new TaskBindingInspection("APPROVAL", Set.of("APPROVAL"), "v1", null));
+        assertEquals(Set.of("APPROVAL"), service.getWorkbench(11L, actor()).getAllowedActions());
+        verifyNoInteractions(admission);
+    }
+
     private void stubProjectRecord() {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);

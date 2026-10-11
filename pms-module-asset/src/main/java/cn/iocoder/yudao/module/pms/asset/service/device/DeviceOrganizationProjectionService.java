@@ -17,11 +17,18 @@ import java.util.Objects;
 public class DeviceOrganizationProjectionService implements DeviceOrganizationProjectionApi {
     private final DeviceOrganizationMapper mapper;
     private final DeviceOrganizationService organizations;
+    private final DeviceOrganizationContractRefreshService contractRefresh;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void refresh(Refresh command) {
         if (command.tenantId() == null) throw new IllegalArgumentException("tenantId required");
+        if ((command.deviceIds() == null || command.deviceIds().isEmpty())
+                && (command.projectIds() == null || command.projectIds().isEmpty())
+                && command.contractNumbers() != null && !command.contractNumbers().isEmpty()) {
+            contractRefresh.refresh(command);
+            return;
+        }
         long cursor = 0;
         while (true) {
             var result = rebuild(new DeviceOrganizationBatchQuery(command.tenantId(), cursor, 500, false,

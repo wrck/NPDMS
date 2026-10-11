@@ -2,14 +2,14 @@
   <section class="completion-sheet" aria-labelledby="completion-sheet-title">
     <h2 id="completion-sheet-title">完工证明</h2>
     <div class="completion-scroll" tabindex="0" aria-label="完工证明及设备明细，可横向滚动">
-      <table>
+      <table class="completion-facts">
         <tbody>
           <tr><th>项目名称</th><td colspan="3">{{ certificate.name || '—' }}</td></tr>
           <tr><th>客户单位</th><td colspan="3">{{ certificate.customerUnit || '—' }}</td></tr>
           <tr><th>合同号</th><td>{{ certificate.contractNo || '—' }}</td><th>工程服务类型</th><td>{{ certificate.serviceType || '—' }}</td></tr>
           <tr><th>迪普工程师</th><td>{{ certificate.engineerName || '—' }}</td><th>联系方式</th><td>{{ certificate.engineerContact || '—' }}</td></tr>
-          <tr v-for="(item, index) in serviceItems" :key="item.label"><th v-if="index === 0" :rowspan="serviceItems.length">工程服务内容</th><td colspan="2">{{ item.label }}</td><td>{{ item.value || '—' }}</td></tr>
-          <tr><th>设备类型和数量</th><td colspan="3"><table class="completion-devices"><caption class="sr-only">完工设备明细</caption><thead><tr><th scope="col">设备类型</th><th scope="col">设备型号</th><th scope="col">数量</th></tr></thead><tbody><tr v-for="(device, index) in certificate.devices" :key="index"><td>{{ device.deviceType || '—' }}</td><td>{{ device.deviceModel || '—' }}</td><td>{{ device.quantity }}</td></tr><tr v-if="!certificate.devices?.length"><td colspan="3" class="empty-devices">未填写设备明细</td></tr></tbody></table></td></tr>
+          <tr v-for="(item, index) in serviceItems" :key="item.label" class="service-row"><th v-if="index === 0" :rowspan="serviceItems.length" class="service-heading">工程服务内容</th><td colspan="2">{{ item.label }}</td><td>{{ item.value || '—' }}</td></tr>
+          <tr class="devices-row"><th>设备名称和数量</th><td colspan="3"><table class="completion-devices"><caption class="sr-only">完工设备明细</caption><thead><tr><th scope="col">设备名称</th><th scope="col">数量</th></tr></thead><tbody><tr v-for="(device, index) in certificate.devices" :key="index"><td>{{ device.deviceType || '—' }}</td><td>{{ device.quantity }}</td></tr><tr v-if="!certificate.devices?.length"><td colspan="2" class="empty-devices">未填写设备明细</td></tr></tbody></table></td></tr>
           <tr><th>完工时间</th><td colspan="3">{{ certificate.completionDate || '—' }}</td></tr>
         </tbody>
       </table>
@@ -46,4 +46,22 @@ tr:last-child > * { border-bottom: 0; }
 .completion-devices td { overflow-wrap: anywhere; }
 .completion-devices .empty-devices { color: var(--el-text-color-secondary); }
 .completion-hint { color: var(--el-text-color-secondary); font-size: 13px; line-height: 1.6; }
+@media (max-width: 900px) {
+  .completion-facts, .completion-facts > tbody { display: block; min-width: 0; }
+  .completion-facts > tbody > tr { display: grid; grid-template-columns: 88px minmax(0, 1fr); }
+  .completion-facts > tbody > tr > th { width: auto; text-align: left; }
+  .completion-facts > tbody > tr > * { min-width: 0; padding: 12px 10px; font-size: 14px; line-height: 1.6; }
+  .completion-facts > tbody > tr > td { border-right: 0; }
+  .completion-facts > tbody > .service-row { grid-template-columns: minmax(0, 1fr) 64px; }
+  .service-heading { grid-column: 1 / -1; border-right: 0; font-weight: 600; }
+  .service-row > td:first-of-type { border-right: 1px solid var(--el-border-color-lighter); }
+  .service-row > td:last-child { display: flex; align-items: center; justify-content: center; padding-inline: 4px; }
+  .completion-facts > tbody > .devices-row { display: block; }
+  .devices-row > th, .devices-row > td { display: block; border-right: 0; }
+  .devices-row > th { font-weight: 600; }
+  .completion-devices { font-size: 14px; }
+  .completion-devices th, .completion-devices td { padding: 10px 8px; line-height: 1.6; }
+  .completion-devices th:last-child, .completion-devices td:last-child { width: 48px; }
+  .completion-scroll td { overflow-wrap: anywhere; }
+}
 </style>

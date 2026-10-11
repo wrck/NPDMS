@@ -10,7 +10,7 @@ import static org.mockito.Mockito.*;
 
 class DeviceLogArchiveControllerTest {
     final DeviceLogArchiveService service=mock(DeviceLogArchiveService.class);
-    final DeviceLogArchiveController controller=new DeviceLogArchiveController(service);
+    final DeviceLogArchiveController controller=new DeviceLogArchiveController(service,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceArchivedLogParsingService.class));
     @Test void rawLogBodyIsNotReadByExistingAccessLogBodyExtractor() throws Exception {
         byte[] bytes="SN: SN001\npassword transient-value\n".getBytes(StandardCharsets.UTF_8);
         var request=new MockHttpServletRequest();request.setContentType("application/octet-stream");request.setContent(bytes);

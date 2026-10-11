@@ -1,3 +1,4 @@
+vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 1, nickname: '管理员' } }) }))
 vi.mock('@/components/BusinessView/operationHost', async () => { const { shallowRef } = await import('vue'); return { useOperationClient: () => shallowRef() } })
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref, type Component } from 'vue'
@@ -19,9 +20,10 @@ vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('vue-router', () => ({ useRoute: () => route, onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/components/PmsFileArtifact', async () => {
   const { defineComponent, ref } = await import('vue')
-  return { PmsFileUploader: defineComponent({ setup(_, { expose }) {
+  return { PmsFileUploader: defineComponent({ setup(_, { expose, emit }) {
     const uploading = ref(false), selected = ref(false)
-    expose({ isBusy: () => uploading.value, hasPendingFile: () => selected.value, uploading, selected })
+    const submit = vi.fn(async () => { selected.value = false; emit('completed', {}) })
+    expose({ submit, isBusy: () => uploading.value, hasPendingFile: () => selected.value, uploading, selected })
     return () => null
   } }) }
 })
@@ -67,7 +69,28 @@ describe('ACC-03 / PM-03 existing report embedding', () => {
     expect(api.updateDraft).toHaveBeenCalledOnce()
     expect(api.publishVersion).toHaveBeenCalledOnce()
     expect(api.updateDraft.mock.invocationCallOrder[0]).toBeLessThan(api.publishVersion.mock.invocationCallOrder[0])
-    expect(message.success).toHaveBeenLastCalledWith('验收已完成')
+    expect(message.success).toHaveBeenLastCalledWith('终验已通过')
+  })
+  it.each(['PRELIMINARY', 'FINAL'] as const)('uploads the selected %s deliverable before recording a passing report in the task entry', async acceptanceType => {
+    const { state, root } = render(Editor, { allowedActions: ['QUERY', 'UPDATE', 'FILE_WRITE', 'PUBLISH'] })
+    await state.open({ ...activity(), acceptanceType })
+    expect(api.createDraft).toHaveBeenCalledOnce()
+    expect(textOf(root)).not.toContain('验收结论')
+    state.uploaderRef.selected = true
+    expect(await state.saveAndComplete()).toBe(true)
+    expect(state.uploaderRef.submit).toHaveBeenCalledOnce()
+    expect(api.publishVersion).toHaveBeenCalledOnce()
+    expect(state.uploaderRef.submit.mock.invocationCallOrder[0]).toBeLessThan(api.updateDraft.mock.invocationCallOrder[0])
+  })
+  it('retains selected evidence and never saves or publishes after upload failure', async () => {
+    const { state } = render(Editor)
+    await state.open(activity(), draft())
+    state.uploaderRef.selected = true
+    state.uploaderRef.submit.mockRejectedValueOnce(new Error('upload failed'))
+    await expect(state.saveAndComplete()).rejects.toThrow('upload failed')
+    expect(state.uploaderRef.hasPendingFile()).toBe(true)
+    expect(api.updateDraft).not.toHaveBeenCalled()
+    expect(api.publishVersion).not.toHaveBeenCalled()
   })
   it('does not complete uploaded direct reports without publish authority', async () => {
     const { state } = render(Editor, { allowedActions: ['QUERY', 'UPDATE', 'FILE_WRITE'] })
@@ -88,7 +111,7 @@ describe('ACC-03 / PM-03 existing report embedding', () => {
     state.query.projectId = 99
     await state.load()
     expect(api.getActivities).toHaveBeenLastCalledWith('7')
-    expect(textOf(root)).toContain('报告发布/附件办理尚未接入当前任务上下文')
+    expect(textOf(root)).not.toContain('报告发布/附件办理尚未接入当前任务上下文')
   })
   it('rejects foreign object before fetching its versions and invalid canonical IDs before API', async () => {
     api.getActivity.mockResolvedValue(activity(8))

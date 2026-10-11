@@ -87,7 +87,16 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
                     .anyMatch(grant -> Objects.equals(grant.resourceId(), query.projectId())
                             || "PROJECT_AND_DESCENDANTS".equals(grant.scopeCode()));
         }
-        return new Context(project.getId(), project.getCustomerId(), project.getVersion(), project.getLifecycleStatus(),
+        Long customerId = project.getCustomerId();
+        if (customerId == null && project.getCustomerCode() != null && !project.getCustomerCode().isBlank()) {
+            var customer = customers.getCustomerByCode(new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery(
+                    project.getCustomerCode(), query.actorUserId()));
+            if (customer == null || !Objects.equals(customer.tenantId(), query.tenantId())) {
+                throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE);
+            }
+            customerId = customer.id();
+        }
+        return new Context(project.getId(), customerId, project.getVersion(), project.getLifecycleStatus(),
                 manager, manager);
     }
 

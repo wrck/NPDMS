@@ -13,4 +13,15 @@
         SELECT * FROM imp_eng_configuration
         WHERE tenant_id = #{query.tenantId} AND id = #{query.id} AND deleted = 0 FOR UPDATE
     </select>
+
+    <select id="selectByImportedLogForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO">
+        SELECT * FROM imp_eng_configuration
+        WHERE tenant_id = #{query.tenantId} AND imported_log_file_id = #{query.fileId}
+          AND deleted = b'0' FOR UPDATE
+    </select>
+    <select id="selectCodeIncludingDeletedForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.configuration.ConfigurationDO">
+        SELECT * FROM imp_eng_configuration
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND code = #{query.code}
+        FOR UPDATE
+    </select>
 </mapper>

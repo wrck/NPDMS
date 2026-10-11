@@ -14,7 +14,8 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave } from 'vue-router'
+import { useProjectApprovalDetail } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import { checkPermi } from '@/utils/permission'
 import { startStageApproval, type StageBusinessContext } from '@/api/pms/project/stage-business'
 import type { TaskApprovalSubmission } from '@/api/pms/project/task-workbench'
@@ -22,7 +23,7 @@ import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/s
 import TaskApprovalForm from './TaskApprovalForm.vue'
 const props = defineProps<{ workbench: StageBusinessContext; disabled?: boolean }>()
 const emit = defineEmits<{ changed: [] }>()
-const router = useRouter()
+const openApprovalDetail = useProjectApprovalDetail()
 const formRef = ref<InstanceType<typeof TaskApprovalForm>>()
 const busy = ref(false), editing = ref(false)
 const intent = createSubmissionIdempotencyState()
@@ -54,7 +55,7 @@ const submit = async (approval: TaskApprovalSubmission) => {
 }
 const openDetail = async () => {
   const id = props.workbench.approval?.current.processInstanceId
-  if (id && !isBusy()) await router.push({ name: 'BpmProcessInstanceDetail', query: { id } })
+  if (id && !isBusy()) await openApprovalDetail(id)
 }
 onBeforeRouteLeave(requestLeave)
 defineExpose({ requestLeave, isBusy })

@@ -22,8 +22,9 @@ class ProjectCustomerContactServiceTest {
     private final ProjectCustomerContactMapper contacts = mock(ProjectCustomerContactMapper.class);
     private final ContactHistoryMapper history = mock(ContactHistoryMapper.class);
     private final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
+    private final ProjectContactRuleWakeup wakeup = mock(ProjectContactRuleWakeup.class);
     private final ProjectCustomerContactService service = new ProjectCustomerContactService(projects, sources, contacts,
-            history, commands, mock(CustomerQueryService.class), mock(CustomerScopeContextService.class));
+            history, commands, mock(CustomerQueryService.class), mock(CustomerScopeContextService.class), wakeup);
     private final CustomerContactMasterService.Actor actor = new CustomerContactMasterService.Actor(1L, 3L);
 
     @BeforeEach void context() {
@@ -52,6 +53,7 @@ class ProjectCustomerContactServiceTest {
         verify(sources, never()).updateById(any(CustomerContactMasterDO.class));
         verify(sources, never()).insert(any(CustomerContactMasterDO.class));
         verify(history).insert(argThat((ContactHistoryDO value) -> value.getProjectId().equals(7L) && value.getProjectRelationId().equals(10L)));
+        verify(wakeup).changed(1L, 7L, 3L);
     }
 
     private ProjectCustomerContactDO projectPrimary() {

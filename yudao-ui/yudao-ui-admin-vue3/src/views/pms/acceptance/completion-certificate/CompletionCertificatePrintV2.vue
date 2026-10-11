@@ -24,13 +24,13 @@
           </td>
         </tr>
         <tr class="devices-group">
-          <th scope="row">设备类型<br />和数量</th>
+          <th scope="row">设备名称<br />和数量</th>
           <td colspan="3" class="devices-cell">
             <table class="word-device-table">
-              <caption class="sr-only">设备类型和数量</caption>
-              <colgroup><col style="width: 32%" /><col style="width: 46%" /><col style="width: 22%" /></colgroup>
-              <thead><tr><th scope="col">设备类型</th><th scope="col">设备型号</th><th scope="col">数量</th></tr></thead>
-              <tbody><tr v-for="(device, index) in devices" :key="index"><td>{{ device?.deviceType }}</td><td>{{ device?.deviceModel }}</td><td class="quantity">{{ device?.quantity }}</td></tr></tbody>
+              <caption class="sr-only">设备名称和数量</caption>
+              <colgroup><col style="width: 78%" /><col style="width: 22%" /></colgroup>
+              <thead><tr><th scope="col">设备名称</th><th scope="col">数量</th></tr></thead>
+              <tbody><tr v-for="(device, index) in devices" :key="index"><td>{{ device?.deviceType }}</td><td class="quantity">{{ device?.quantity }}</td></tr></tbody>
             </table>
           </td>
         </tr>

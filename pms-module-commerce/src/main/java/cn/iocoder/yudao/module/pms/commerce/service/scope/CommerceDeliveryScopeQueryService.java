@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailM
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeDetailIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderContractQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderContractRow;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
@@ -59,9 +61,13 @@ public class CommerceDeliveryScopeQueryService {
         Map<Long, List<DeliveryScopeDetailDO>> detailsByScope = detailMapper.selectByScopeIds(
                         new DeliveryScopeDetailIdsQuery(tenantId, scopeIds)).stream()
                 .collect(Collectors.groupingBy(DeliveryScopeDetailDO::getDeliveryScopeId));
+        Map<Long, DeliveryScopeOrderContractRow> contractsByScope = scopeMapper.selectOrderContracts(
+                        new DeliveryScopeOrderContractQuery(tenantId, scopeIds)).stream()
+                .collect(Collectors.toMap(DeliveryScopeOrderContractRow::scopeId, java.util.function.Function.identity()));
         List<DeliveryScopeView> views = scopes.stream()
                 .map(scope -> new DeliveryScopeView(scope,
-                        List.copyOf(detailsByScope.getOrDefault(scope.getId(), List.of()))))
+                        List.copyOf(detailsByScope.getOrDefault(scope.getId(), List.of())),
+                        contractsByScope.containsKey(scope.getId()) ? contractsByScope.get(scope.getId()).contractNo() : null))
                 .toList();
         return new PageResult<>(views, total);
     }

@@ -22,9 +22,11 @@ import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 @EnableJdbcJobRepository(tablePrefix="int_batch_")
 public class SyncBatchConfiguration {
     @Bean
-    public ThreadPoolTaskExecutor syncBatchExecutor() {
+    public ThreadPoolTaskExecutor syncBatchExecutor(
+            @org.springframework.beans.factory.annotation.Value("${pms.integration.sync.concurrent-runs:4}") int concurrency) {
+        if(concurrency<1||concurrency>16)throw new IllegalArgumentException("同步并发任务数须为 1 至 16");
         var executor=new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);executor.setMaxPoolSize(2);executor.setQueueCapacity(100);
+        executor.setCorePoolSize(concurrency);executor.setMaxPoolSize(concurrency);executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("data-sync-");executor.setWaitForTasksToCompleteOnShutdown(true);
         return executor;
     }

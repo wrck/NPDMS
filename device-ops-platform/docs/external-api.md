@@ -27,6 +27,28 @@ OpenAPI JSON：`/v3/api-docs/external-parser`。Swagger：`/swagger-ui/index.htm
 
 ## 2. 准备解析发布
 
+### 直接上传文本或选择已采集日志
+
+通用接口 `POST /api/v1/log-parses` 支持直接解析设备日志，不要求调用方构造命令块，也不连接设备。接口路径和请求模型不绑定任何消费系统。
+
+```json
+{
+  "namespace": "client-a",
+  "projectKey": "project-001",
+  "requestId": "log-request-20261006-0001",
+  "inputText": "switch#show version\nSoftware Release EXAMPLE-1.0\n",
+  "commandHint": "show version"
+}
+```
+
+`inputText` 与 `sourceCollectionId` 二选一：解析已保存日志时只传后者，值是 DAC 返回的原始 `collectionId`，不是外部业务任务号；当前支持终态单设备采集。上传可为原始文本或已有 `schemaVersion=1.0.0` 的命令块 JSON 字符串。`commandHint` 是可选的单行命令提示（最多 256 字符），仅用于上传；日志自带 `show` / `display` 命令提示符时自动拆块。未知命令保留文本及可识别的通用结构。
+
+`requestId` 限 16–64 位字母、数字和连字符，同 namespace 下相同请求幂等，不同输入拒绝；`namespace` 和 `projectKey` 必须被 JWT 的 namespace/project claims 授权。提交要求 `parser:task:create` 或 `device-ops:collections:execute`；已采集日志额外要求 `device-ops:collections:read`。查询 `GET /api/v1/log-parses/{requestId}?namespace=client-a` 要求 `parser:task:read` 或 `device-ops:collections:read`，并重验项目范围。
+
+接口返回 `requestId/namespace/projectKey/sourceCollectionId/taskId/state/releaseVersion/waitReason/warnings/result`。202 仅表示受理；`SUCCEEDED` 时读取 `result.semanticResult`。提交固定活动发布版本，查询不会重新提交；原始采集日志、执行状态和业务状态不改变。上传日志不证明原设备命令执行成功，返回 `UPLOADED_LOG_EXECUTION_NOT_VERIFIED`。密码、私钥及令牌等已识别秘密在解析输入持久化前脱敏。原文与规范化输入均受默认 8 MiB 上限约束。
+
+此接口与下述低层 `parse-tasks` 接口共用已发布解析引擎和不可变结果存储；无需新增发布包。OpenAPI `external-parser` 分组包含两种入口。
+
 提交任务前，管理员必须创建日志类型，导入、验证、发布解析版本；省略 `releaseId` 时还必须激活该日志类型的版本。**仅把 `parser-releases` 文件夹放在磁盘上不会自动注册或激活。**
 
 仓库示例发布目录：`parser-releases/device-command-output-1.3.0`。它的日志类型为 `device-command-output`，输入适配器为 `command-output-block/v1`，输出 schema 为 `1.1.0`。发布/验证/激活由已有解析器管理功能或 `/api/v1/parser-log-types`、`/api/v1/parser-releases` 管理 API 完成，要求独立管理员权限。`releaseId` 是注册发布时返回的 ID，不保证等于目录名称或版本号。

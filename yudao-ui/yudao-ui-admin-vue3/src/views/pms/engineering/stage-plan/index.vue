@@ -172,9 +172,6 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-form v-if="editable" label-position="top" class="mt-10px">
-        <el-form-item label="调整原因" required><el-input v-model="detailBatch.remark" type="textarea" placeholder="说明阶段和任务日期的调整依据" /></el-form-item>
-      </el-form>
       <div v-if="editable" class="mt-10px flex gap-10px">
         <el-button @click="handleAutoEstimate" :loading="acting">
           <Icon icon="ep:magic-stick" />自动推算
@@ -246,6 +243,9 @@
           placeholder="请选择服务经理审批人"
           class="!w-300px"
         />
+      </el-form-item>
+      <el-form-item v-if="submitForm.adjustmentReasonRequired" label="调整理由" required>
+        <el-input v-model="submitForm.adjustmentReason" type="textarea" placeholder="说明本次阶段和任务日期的调整理由" :disabled="acting" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -365,7 +365,6 @@ const handleAutoEstimate = async () => {
 
 const handleSaveItems = async () => {
   if (!detailBatch.value?.id) return
-  if (!detailBatch.value.remark?.trim()) return message.warning('请填写调整原因')
   const items = (detailBatch.value.items ?? []).map((item) => ({
     id: item.id!,
     planStart: item.planStart!,
@@ -402,17 +401,21 @@ const openOverdue = async () => {
 }
 
 const submitVisible = ref(false)
-const submitForm = reactive<{ batchId?: number; approverUserId?: number }>({})
-const openSubmit = (row: StagePlanApi.StagePlanBatchVO) => {
+const submitForm = reactive<{ batchId?: number; approverUserId?: number; adjustmentReason?: string; adjustmentReasonRequired?: boolean }>({})
+const openSubmit = async (row: StagePlanApi.StagePlanBatchVO) => {
+  const detail = await StagePlanApi.getStagePlanBatch(row.id!)
   submitForm.batchId = row.id
   submitForm.approverUserId = undefined
+  submitForm.adjustmentReason = ''
+  submitForm.adjustmentReasonRequired = detail.adjustmentReasonRequired
   submitVisible.value = true
 }
 const handleSubmit = async () => {
   if (!submitForm.batchId || !submitForm.approverUserId) return
+  if (submitForm.adjustmentReasonRequired && !submitForm.adjustmentReason?.trim()) return message.warning('请填写调整理由')
   acting.value = true
   try {
-    await StagePlanApi.submitStagePlanBatch(submitForm.batchId, submitForm.approverUserId)
+    await StagePlanApi.submitStagePlanBatch(submitForm.batchId, submitForm.approverUserId, submitForm.adjustmentReasonRequired ? submitForm.adjustmentReason?.trim() : undefined)
     message.success('已发起审批')
     submitVisible.value = false
     detailVisible.value = false

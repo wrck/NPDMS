@@ -163,7 +163,8 @@ class DeviceLogArchiveMySqlTest {
         @Bean DeviceLogArchiveService service(DeviceLogImportMapper imports,DeviceLogFileMapper files,DeviceLogVersionMapper versions,DeviceLogDeviceMapper queries,DeviceMapper devices,
                 PermissionApi permissions,ObjectProvider<ProjectScopeApi> scopes,ObjectProvider<DeviceOpsLogSplitApi> dac,ObjectProvider<DeviceLogFileApi> storage,
                 ObjectProvider<FileEvidenceApi> evidence,ObjectProvider<NativeGeneratedFileApi> downloads) {
-            return new DeviceLogArchiveService(imports,files,versions,queries,devices,permissions,scopes,dac,storage,evidence,downloads);
+            return new DeviceLogArchiveService(imports,files,versions,queries,devices,permissions,scopes,dac,storage,evidence,downloads,
+                    new org.springframework.beans.factory.support.StaticListableBeanFactory().getBeanProvider(cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceArchivedLogParsingService.class));
         }
     }
 }

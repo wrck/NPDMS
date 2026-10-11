@@ -124,4 +124,27 @@
         LIMIT #{query.offset}, #{query.limit}
     </select>
 
+    <resultMap id="orderContractResult" type="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderContractRow">
+        <constructor>
+            <arg column="scope_id" javaType="java.lang.Long"/>
+            <arg column="contract_no" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <select id="selectOrderContracts" resultMap="orderContractResult">
+        SELECT s.id AS scope_id, o.contract_no
+        FROM com_delivery_scope s
+        JOIN com_sales_order_line l ON l.id = s.order_line_id
+            AND l.tenant_id = s.tenant_id AND l.deleted = b'0'
+        JOIN com_sales_order o ON o.id = l.order_id
+            AND o.tenant_id = l.tenant_id AND o.deleted = b'0'
+        WHERE s.tenant_id = #{query.tenantId} AND s.deleted = b'0'
+        <choose>
+            <when test="query.scopeIds != null and !query.scopeIds.isEmpty()">
+                AND s.id IN
+                <foreach collection="query.scopeIds" item="scopeId" open="(" separator="," close=")">#{scopeId}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY s.id
+    </select>
 </mapper>

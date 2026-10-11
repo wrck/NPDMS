@@ -23,6 +23,8 @@ vi.mock('@/api/pms/engineering/solution', () => ({
   generateDraft: vi.fn()
 }))
 vi.mock('@/api/pms/engineering/solution-review', () => ({ policy: policyMock }))
+vi.mock('./saveCustomerSolutionDocuments', () => ({ saveCustomerSolutionDocuments: vi.fn() }))
+vi.mock('./CustomerSolutionDocumentPicker.vue', () => ({ default: defineComponent({ setup: () => () => h('div') }) }))
 // 模板里 `import * as ProjectApi` 被编译为 unref 访问，mock 命名空间需放行 __v_isRef 探测
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn(), getProjectMembers: vi.fn(), getProject }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
@@ -166,6 +168,7 @@ describe('实施方案页面结构', () => {
     expect(findByTestId(root, 'solution-review-result')).toBeFalsy()
     expect(findByTestId(root, 'solution-workbench-toolbar')).toBeTruthy()
     // 唯一提交入口：普通方案提交同样弹出审批发起框，流程内网关按冻结级别分支
+    getSolution.mockResolvedValue(draftRow({ version: 2 }))
     const submit = findByTestId(root, 'stub-submit')
     ;(submit!.props!.onClick as Function)()
     await vi.waitFor(() => expect(tieredOpen).toHaveBeenCalled())
@@ -191,16 +194,16 @@ describe('实施方案页面结构', () => {
     expect(getSolution).toHaveBeenCalledWith(11)
   })
 
-  it('项目工作台：审批中的方案头部仅提供审批进度，正文只读', async () => {
-    getSolutionPage.mockResolvedValue({ list: [draftRow({ id: 12, status: 2 })], total: 1 })
-    getSolution.mockResolvedValue(draftRow({ id: 12, status: 2 }))
+  it.each([2, 3, 4, 5, 6])('项目工作台：非草稿方案状态 %s 可查看审批记录，正文只读', async status => {
+    getSolutionPage.mockResolvedValue({ list: [draftRow({ id: 12, status })], total: 1 })
+    getSolution.mockResolvedValue(draftRow({ id: 12, status }))
 
     const root = await mountWorkbench({ projectId: 123 })
     await vi.waitFor(() => expect(textOf(root)).toContain('CHAPTER readOnly=true'))
     expect(getSolution).toHaveBeenCalledWith(12)
     const labels = buttonLabels(root)
 
-    expect(labels).toEqual(expect.arrayContaining(['审批进度']))
+    expect(labels).toEqual(expect.arrayContaining(['审批记录']))
     expect(labels).not.toContain('通过')
     expect(labels).not.toContain('驳回')
     expect(labels).not.toContain('撤回')
@@ -226,6 +229,7 @@ describe('实施方案页面结构', () => {
     expect(labels).not.toContain('开始审核')
     expect(renderedText(root)).not.toContain('审核级别')
     expect(textOf(root)).toContain('CHAPTER readOnly=false')
+    getSolution.mockResolvedValue(draftRow({ id: 13, reviewLevel: 1, version: 2 }))
     const submit = findByTestId(root, 'stub-submit')
     ;(submit!.props!.onClick as Function)()
     await vi.waitFor(() => expect(tieredOpen).toHaveBeenCalled())

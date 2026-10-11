@@ -29,11 +29,11 @@
           ></template
         >
       </el-result>
-      <section v-else-if="questionnaire" class="questionnaire-form">
-        <el-tabs v-if="questionnaire.completionCertificate" v-model="activePage">
+      <section v-else-if="questionnaire" ref="questionnaireFormElement" class="questionnaire-form">
+        <el-tabs v-if="questionnaire.completionCertificate" v-model="activePage" @tab-change="scrollToForm">
           <el-tab-pane label="一、完工证明" name="completion">
             <CompletionCertificateSheet :certificate="questionnaire.completionCertificate" />
-            <el-button @click="activePage = 'survey'">继续填写满意度调查</el-button>
+            <el-button class="continue-button" @click="activePage = 'survey'">继续填写满意度调查</el-button>
           </el-tab-pane>
           <el-tab-pane label="二、满意度调查表" name="survey">
             <QuestionnaireTable ref="questionFormApi" :definition="definition" :answers="answers" :disabled="submissionLocked" :show-signature="false" />
@@ -63,16 +63,18 @@
         </section>
         <el-alert v-if="questionnaire.submitted" type="success" :closable="false" :title="`两份表单已统一提交 · ${formatDate(questionnaire.signedAt)}`" />
         <el-checkbox v-else-if="questionnaire.completionCertificate" v-model="confirmCompletionCertificate" :disabled="submissionLocked" class="joint-confirmation">我已阅读并确认本次完工证明及满意度调查表，以上签字同时适用于两份表单。</el-checkbox>
-        <p v-if="!questionnaire.submitted">请确认由客户本人填写并签字。提交后答卷不可修改。</p>
-        <el-button
-          v-if="!questionnaire.submitted"
-          type="primary"
-          size="large"
-          class="submit-button"
-          :loading="submitting"
-          @click="submit"
-          >{{ questionnaire.completionCertificate ? '签字并提交两份表单' : '提交答卷' }}</el-button
-        >
+        <footer v-if="!questionnaire.submitted" class="submission-actions" :class="{ 'completion-active': questionnaire.completionCertificate && activePage === 'completion' }">
+          <p>请确认由客户本人填写并签字。提交后答卷不可修改。</p>
+          <el-button v-if="questionnaire.completionCertificate && activePage === 'completion'" type="primary" size="large" class="mobile-continue-button" @click="activePage = 'survey'">继续填写满意度调查</el-button>
+          <el-button
+            type="primary"
+            size="large"
+            class="submit-button"
+            :loading="submitting"
+            @click="submit"
+            >{{ questionnaire.completionCertificate ? '签字并提交两份表单' : '提交答卷' }}</el-button
+          >
+        </footer>
       </section>
     </section>
   </main>
@@ -107,6 +109,11 @@ const submissionLocked = computed(() => submitting.value || !!preparedSubmission
 const errorMessage = ref('')
 const questionnaire = ref<PublicQuestionnaire>()
 const activePage = ref('completion')
+const questionnaireFormElement = ref<HTMLElement>()
+const scrollToForm = async () => {
+  await nextTick()
+  questionnaireFormElement.value?.scrollIntoView({ block: 'start' })
+}
 const confirmCompletionCertificate = ref(false)
 const definition = ref<QuestionnaireDefinition>({ schemaVersion: 1, questions: [] })
 const answers = ref<Record<string, string | string[]>>({})
@@ -116,14 +123,15 @@ const questionFormOption = computed(() => ({
   form: { ...customerFormOption.form, disabled: submissionLocked.value }
 }))
 const signatureValues = ref({ signatureImageDataUrl: '' })
-const signatureRules = [
+const signatureRules = computed(() => [
   {
     type: 'signaturePad',
     field: 'signatureImageDataUrl',
     title: '客户手写签字',
+    props: { mobilePortrait: true, disabled: submissionLocked.value },
     validate: [{ required: true, message: '请手写签字' }]
   }
-]
+])
 const attachmentFiles = ref<File[]>([])
 const outcome = ref<SubmissionOutcome>()
 const requestId = generateUUID()
@@ -347,16 +355,35 @@ header p {
 }
 .joint-confirmation { margin-top: 16px; height: auto; white-space: normal; }
 .joint-confirmation :deep(.el-checkbox__label) { white-space: normal; line-height: 1.6; }
-@media (width <= 600px) {
+.mobile-continue-button { display: none; }
+@media (width <= 900px) {
   .public-page {
     padding: 0;
   }
   .questionnaire-shell {
-    min-height: 100vh;
-    padding: 24px 18px;
+    min-height: 100svh;
+    padding: 20px 16px calc(124px + env(safe-area-inset-bottom));
   }
   header h1 {
     font-size: 23px;
+    line-height: 1.4;
   }
+  .questionnaire-form { margin-top: 20px; }
+  .questionnaire-form :deep(.el-tabs__item) { min-height: 48px; padding-inline: 12px; font-size: 14px; }
+  .continue-button { width: 100%; min-height: 48px; margin-bottom: 20px; }
+  .file-section h2 { font-size: 16px; line-height: 1.5; }
+  .customer-confirmation-form :deep(._fc-signature-btn) { min-height: 100px; line-height: 100px; font-size: 16px; color: var(--el-color-primary); }
+  .customer-confirmation-form :deep(._fc-signature-preview) { height: 144px; line-height: 144px; }
+  .customer-confirmation-form :deep(._fc-signature-preview img) { height: 144px; max-width: 100%; object-fit: contain; }
+  .attachment-field :deep(.el-button) { min-height: 44px; }
+  .joint-confirmation { align-items: flex-start; width: 100%; box-sizing: border-box; padding: 14px 12px; border: 1px solid var(--el-border-color); border-radius: 4px; background: var(--el-fill-color-light); }
+  .joint-confirmation :deep(.el-checkbox__input) { margin-top: 3px; }
+  .joint-confirmation :deep(.el-checkbox__inner) { width: 20px; height: 20px; }
+  .joint-confirmation :deep(.el-checkbox__inner::after) { top: 3px; left: 7px; }
+  .submission-actions { position: fixed; z-index: 10; right: 0; bottom: 0; left: 0; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--el-border-color-lighter); background: var(--el-bg-color); }
+  .submission-actions p { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: var(--el-text-color-secondary); }
+  .submission-actions .submit-button, .mobile-continue-button { margin: 0; width: 100%; min-height: 48px; }
+  .completion-active .submit-button { display: none; }
+  .mobile-continue-button { display: inline-flex; }
 }
 </style>

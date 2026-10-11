@@ -34,7 +34,9 @@
         class="mt-12px !w-full"
         placeholder="可选：选择机房、楼层、机柜等任意层级位置"
         @change="selectLocation"
-      />
+      >
+        <template #label>{{ selectedLocationPath }}</template>
+      </el-tree-select>
     </template>
 
     <template v-else-if="mode === 'new'">
@@ -151,6 +153,7 @@ import type {
 const props = defineProps<{
   modelValue?: LocationMaintainRequest
   projectId?: number
+  projectCustomerSitesOnly?: boolean
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainRequest): void }>()
 
@@ -244,11 +247,15 @@ const findLocationPath = (
     if (child) return child
   }
 }
+const selectedLocationPath = computed(() =>
+  (findLocationPath(locationTree.value, selectedLocationId.value) || []).map(node => node.name).join(' / ')
+)
 const existingPathPreview = computed(() => {
   const site = sites.value.find((item) => item.id === selectedSiteId.value)
   const path = findLocationPath(locationTree.value, selectedLocationId.value) || []
   return [
-    site ? siteLabel(site) : '',
+    site ? addresses.value.find(address => address.id === site.addressId)?.fullAddress : '',
+    site?.name,
     ...path.map((node) => node.name),
     ...(draft.extraSiteLocations || []).map((extra) => extra.name)
   ]
@@ -272,6 +279,24 @@ const chainPreviewVisible = computed(() =>
 )
 
 const loadSites = async () => {
+  if (props.projectCustomerSitesOnly) {
+    sites.value = []
+    const scopeCustomerId = customerId.value
+    if (!scopeCustomerId) return
+    const scopedSites: SiteVO[] = []
+    for (let pageNo = 1; ; pageNo++) {
+      const page = await LocationApi.getSitePage({ pageNo, pageSize: 100, customerId: scopeCustomerId, status: 0 })
+      scopedSites.push(...page.list)
+      if (scopedSites.length >= page.total || !page.list.length) break
+    }
+    const addressIds = [...new Set(scopedSites.map(site => site.addressId).filter((id): id is number => id != null))]
+    const scopedAddresses = await Promise.all(addressIds.map(id => LocationApi.getAddress(id)))
+    if (customerId.value === scopeCustomerId) {
+      addresses.value = scopedAddresses
+      sites.value = scopedSites
+    }
+    return
+  }
   const [sitePage, addressPage] = await Promise.all([
     LocationApi.getSitePage({ pageNo: 1, pageSize: 100 }),
     LocationApi.getAddressPage({ pageNo: 1, pageSize: 100 })
@@ -295,13 +320,10 @@ let customerSequence = 0
 const loadCustomerContext = async (projectId?: number) => {
   const current = ++customerSequence
   customerId.value = undefined
+  if (props.projectCustomerSitesOnly) sites.value = []
   customerName.value = ''
   customerAddresses.value = []
   selectedCustomerAddressId.value = undefined
-  if (draft.address?.id) {
-    draft.address = { countryCode: 'CN', countryName: '中国' }
-    draft.addressText = undefined
-  }
   stampSiteCustomer()
   if (!projectId) return
   try {
@@ -310,6 +332,8 @@ const loadCustomerContext = async (projectId?: number) => {
     const detail = await CustomerApi.getCustomerByCode(project.customerCode)
     if (current !== customerSequence) return
     customerId.value = detail.id
+    if (props.projectCustomerSitesOnly) await loadSites()
+    if (current !== customerSequence) return
     customerName.value = detail.name ?? ''
     const references = (detail.locations || []).filter(
       (item: { locationType: string }) => item.locationType === 'ADDRESS'
@@ -376,6 +400,10 @@ watch(
   () => props.projectId,
   (projectId) => {
     draft.projectId = projectId
+    if (draft.address?.id) {
+      draft.address = { countryCode: 'CN', countryName: '中国' }
+      draft.addressText = undefined
+    }
     loadCustomerContext(projectId)
   }
 )
@@ -440,6 +468,9 @@ watch(
   },
   { deep: true }
 )
+watch(existingPathPreview, (path) => {
+  if (mode.value === 'existing') draft.fallbackLocation = path || undefined
+})
 watch(mode, ensureStructure)
 const changeMode = (value: 'existing' | 'new' | 'fallback') => {
   Object.assign(draft, emptyDraft())
@@ -456,7 +487,7 @@ const changeMode = (value: 'existing' | 'new' | 'fallback') => {
 }
 
 onMounted(() => {
-  loadSites()
+  if (!props.projectCustomerSitesOnly) loadSites()
   loadCustomerContext(props.projectId)
 })
 </script>

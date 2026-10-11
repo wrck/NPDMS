@@ -35,4 +35,34 @@ class DeviceLogSplitterTest {
         assertTrue(result.devices().getFirst().content().contains("interface GE1"));
         assertTrue(result.redactedValueCount() > 0);
     }
+    @Test void splitsSameHostnameByCompleteCommandOutputSerialAndKeepsRepeatedOutputs() {
+        var result = splitter.split("<SAME-HOST>show ver\n<SAME-HOST>show version\nSerial Number: SN001\nfirst-version\n"
+                + "<SAME-HOST>show tech\n<SAME-HOST>show tech-support\nSerial Number: SN001\nfirst-tech\n"
+                + "<SAME-HOST>\n<SAME-HOST>show version\nSerial Number: SN002\nsecond-version\n"
+                + "<SAME-HOST>show tech-support\nSerial Number: SN002\nsecond-tech\n");
+        assertEquals(2, result.devices().size());
+        var first = result.devices().getFirst();
+        var second = result.devices().getLast();
+        assertEquals("SN001", first.serialNumber());
+        assertEquals("SN002", second.serialNumber());
+        assertTrue(first.content().contains("first-version"));
+        assertTrue(first.content().contains("first-tech"));
+        assertFalse(first.content().contains("second-version"));
+        assertTrue(second.content().contains("second-version"));
+        assertTrue(second.content().contains("second-tech"));
+        assertFalse(second.content().contains("first-tech"));
+    }
+    @Test void rejectsMultipleSerialsInsideOneCommandAndUnknownOutputBetweenDifferentDevices() {
+        assertEquals("DEVICE_SERIAL_AMBIGUOUS", assertThrows(DeviceLogSplitter.SplitException.class,
+                () -> splitter.split("<SAME>show tech\nSN: ONE1\nSN: TWO2\n")).code());
+        assertEquals("DEVICE_SERIAL_AMBIGUOUS", assertThrows(DeviceLogSplitter.SplitException.class,
+                () -> splitter.split("<SAME>show version\nSN: ONE1\n<SAME>show run\nunknown-output\n"
+                        + "<SAME>show version\nSN: TWO2\n")).code());
+    }
+    @Test void retainsUnidentifiedCommandOnlyWhenSurroundingSerialsAgree() {
+        var result = splitter.split("<SAME>show version\nSN: ONE1\n<SAME>show run\nfirst-config\n"
+                + "<SAME>show tech\nSN: ONE1\n<SAME>show tech\nSN: TWO2\nsecond-config\n");
+        assertTrue(result.devices().getFirst().content().contains("first-config"));
+        assertFalse(result.devices().getLast().content().contains("first-config"));
+    }
 }

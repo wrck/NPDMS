@@ -113,7 +113,7 @@
             type="warning"
             :closable="false"
           />
-          <el-form-item label="加载方式">
+          <el-form-item v-if="draft.definition.adapter !== 'TABLE_MAPPING'" label="加载方式">
             <el-select v-model="draft.definition.loadingMode" aria-label="加载方式">
               <el-option
                 v-for="mode in selectedAdapter?.loadingModes"
@@ -128,7 +128,10 @@
             type="info"
             :closable="false"
           />
-          <p class="integration-note"
+          <p v-if="draft.definition.adapter === 'TABLE_MAPPING'" class="integration-note"
+            >按各目标步骤的写入方式执行：更新覆盖仅更新所选字段，存在则跳过保留已有记录；空值按该步骤的空值策略处理。</p
+          >
+          <p v-else class="integration-note"
             >追加遇到已存在记录会整批失败；跳过保留已存在记录；更新只覆盖适配器声明的同步字段。所有方式均保留租户、归属和关联校验。</p
           >
           <p class="integration-note"

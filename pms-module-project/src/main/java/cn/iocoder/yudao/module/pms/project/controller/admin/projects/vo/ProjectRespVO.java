@@ -189,5 +189,12 @@ public class ProjectRespVO {
     private String businessLevelName;
 
     private java.util.List<Party> parties;
+    @Schema(description = "当前超期阶段/任务及两类超期标识，计划截止当日不算超期")
+    private java.util.List<OverdueNode> overdueNodes;
+    @Schema(description = "节点完成时冻结的历史超期事实；历史记录不回填")
+    private java.util.List<OverdueNode> completedOverdueNodes;
+    public record OverdueNode(String nodeKind, Long nodeId, String nodeName, LocalDateTime planEndTime,
+                              LocalDateTime acceptanceTime, LocalDateTime completedAt,
+                              Boolean workOverdue, Boolean acceptanceOverdue) {}
     public record Party(String role, String code, String name) {}
 }

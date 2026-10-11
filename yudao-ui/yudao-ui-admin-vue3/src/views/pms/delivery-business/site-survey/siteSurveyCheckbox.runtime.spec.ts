@@ -10,6 +10,9 @@ vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getFormSchema: vi.f
 vi.mock('@/views/pms/platform/dynamic-form/components/dynamicFormCodec', () => ({ decodeDynamicForm: (option: any, rule: any) => ({ option, rule }) }))
 vi.mock('./SurveyMaterialSelector.vue', () => ({ default: defineComponent(() => () => null) }))
 vi.mock('./SurveyProjectEndDate.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyProcurementLinks.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyOutsourceShortcut.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyPreparationBranches.vue', () => ({ default: defineComponent(() => () => null) }))
 const flush = async () => { for (let i = 0; i < 15; i++) { await nextTick(); await Promise.resolve() } }
 afterEach(() => vi.unstubAllGlobals())
 

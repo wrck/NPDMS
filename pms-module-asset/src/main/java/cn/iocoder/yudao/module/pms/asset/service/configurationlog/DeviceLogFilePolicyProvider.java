@@ -41,7 +41,13 @@ public class DeviceLogFilePolicyProvider implements FileBusinessObjectPolicyProv
     @Override @Transactional(rollbackFor=Exception.class)
     public FileBusinessObjectPolicyFact lockAndRevalidateNativeGeneratedFile(NativeGeneratedFilePolicyQuery query) {
         if (!Objects.equals(query.expectedOwnerVersion(), 1L)) return denied();
-        return read(query.tenantId(), query.actorUserId(), String.valueOf(query.objectId()), query.purposeCode(), "UPLOAD", true, query.expectedScopeVersion());
+        Long expectedScope=query.expectedScopeVersion();
+        if (expectedScope==null) {
+            var initial=read(query.tenantId(),query.actorUserId(),String.valueOf(query.objectId()),query.purposeCode(),"UPLOAD",false,null);
+            if (!initial.allowed() || initial.scopeVersion()==null) return denied();
+            expectedScope=initial.scopeVersion();
+        }
+        return read(query.tenantId(), query.actorUserId(), String.valueOf(query.objectId()), query.purposeCode(), "UPLOAD", true, expectedScope);
     }
     private FileBusinessObjectPolicyFact read(Long tenant, Long actor, String id, String purpose, String action, boolean lock, Long expectedScope) {
         if (!Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || actor == null || !PURPOSE.equals(purpose)) return denied();
@@ -58,6 +64,7 @@ public class DeviceLogFilePolicyProvider implements FileBusinessObjectPolicyProv
         var scope = lock ? scopes.getObject().lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, row.getProjectId(), scopeAction, expectedScope))
                 : scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, row.getProjectId(), scopeAction));
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(row.getProjectId())) return denied();
+        if (lock && !Objects.equals(expectedScope,scope.treeVersion())) return denied();
         if (lock) row = files.lockFile(new DeviceLogFileLockQuery(tenant, key));
         if (row == null || (write && row.getFileReferenceId() != null)) return denied();
         return new FileBusinessObjectPolicyFact(true, scope.treeVersion(), "IMMUTABLE", "SINGLE", Set.of(PURPOSE),

@@ -35,6 +35,42 @@ import static org.mockito.Mockito.*;
  * 阶段施工计划（PLN-01/04）定向测试：占比推算、重叠校验、审批生效回写与驳回重提。
  */
 class StagePlanBatchServiceTest {
+    @Test
+    void firstSubmissionDoesNotRequireAnAdjustmentReason() {
+        batch.setRemark(null);
+        frozenInputs();
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
+        properties.setProcessDefinitionKey("pms_stage_plan_approve");
+        when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class))).thenReturn("PI-FIRST");
+        assertDoesNotThrow(() -> service.submit(100L, 99L, null));
+    }
+
+    @Test
+    void anEffectivePlanRequiresANewReasonAtSubmissionEvenIfTheDraftHasAnOldRemark() {
+        var effective = new StagePlanBatchDO(); effective.setId(99L); effective.setStatus(StagePlanBatchDO.STATUS_EFFECTIVE);
+        when(batchMapper.selectListByProject(7L)).thenReturn(List.of(effective, batch));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, "  "));
+        verify(processInstanceApi, never()).createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class));
+        verify(batchMapper, never()).updateById(any(StagePlanBatchDO.class));
+    }
+
+    @Test
+    void adjustmentReasonIsSavedWithTheSubmissionWithoutChangingTheEffectiveVersion() {
+        var effective = new StagePlanBatchDO(); effective.setId(99L); effective.setStatus(StagePlanBatchDO.STATUS_EFFECTIVE); effective.setRemark("原理由");
+        when(batchMapper.selectListByProject(7L)).thenReturn(List.of(effective, batch));
+        frozenInputs();
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
+        properties.setProcessDefinitionKey("pms_stage_plan_approve");
+        when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class))).thenReturn("PI-ADJUSTED");
+        var result = service.submit(100L, 99L, "  现场实施窗口调整  ");
+        var update = ArgumentCaptor.forClass(StagePlanBatchDO.class);
+        verify(batchMapper).updateById(update.capture());
+        assertEquals("现场实施窗口调整", update.getValue().getRemark());
+        assertEquals(100L, update.getValue().getId());
+        assertTrue(result.getAdjustmentReasonRequired());
+        assertEquals("原理由", effective.getRemark());
+    }
 
     private final StagePlanBatchMapper batchMapper = mock(StagePlanBatchMapper.class);
     private final StagePlanItemMapper itemMapper = mock(StagePlanItemMapper.class);
@@ -90,7 +126,7 @@ class StagePlanBatchServiceTest {
         when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
         when(stagePlanApi.calculateSchedule(any(), any(), any(), any())).thenReturn(new ProjectStagePlanApi.ScheduleCalculation(
                 1L, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 11), List.of(), "changed-acceptance"));
-        assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         verifyNoInteractions(processInstanceApi);
     }
 
@@ -101,7 +137,7 @@ class StagePlanBatchServiceTest {
         batch.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(List.of(
                 new ProjectStagePlanApi.TaskPlan(21L, null, "S1", "设备安装", 1,
                         LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 4)))));
-        var failure = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        var failure = assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         assertEquals("阶段计划日期无效：任务 设备安装 须安排在所属阶段内且不晚于计划验收时间", failure.getMessage());
         verifyNoInteractions(processInstanceApi);
     }
@@ -110,7 +146,7 @@ class StagePlanBatchServiceTest {
     void approverMustBeAnEffectiveProjectServiceManager() {
         when(participants.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
                 7L, 99L, java.util.Set.of("PROJECT_MANAGER"), "DIRECT", "ACTIVE", "S2", 1L, 1L));
-        assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         verifyNoInteractions(processInstanceApi);
     }
 
@@ -147,7 +183,7 @@ class StagePlanBatchServiceTest {
     void incompleteDatesCannotEnterApproval() {
         when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
                 item(1L, "未排期阶段", 1, null, null, null, null)));
-        assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         verifyNoInteractions(processInstanceApi);
     }
 
@@ -268,7 +304,7 @@ class StagePlanBatchServiceTest {
         when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
                 item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
                 item(2L, "硬件实施", 2, null, null, LocalDate.of(2026, 1, 4), LocalDate.of(2026, 1, 10))));
-        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         // 逐字钉住提交校验文案（错误码前缀 + 明细）：前端安排检查/提交预检按明细同文提示（schedulePresentation.spec 镜像断言）
         assertEquals("阶段计划日期无效：硬件实施 计划开始不得早于前一阶段【到货签收】计划结束", ex.getMessage());
         verifyNoInteractions(processInstanceApi);
@@ -280,12 +316,12 @@ class StagePlanBatchServiceTest {
         batch.setCalculatedEnd(LocalDate.of(2026, 1, 11));
         when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
                 item(1L, "到货签收", 1, null, null, LocalDate.of(2025, 12, 30), LocalDate.of(2026, 1, 5))));
-        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         assertEquals("阶段计划日期无效：到货签收 计划时间超出工期基线窗口（2026-01-01 ~ 2026-01-11）", ex.getMessage());
         verifyNoInteractions(processInstanceApi);
         when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
                 item(1L, "到货签收", 1, null, null, LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 1))));
-        ServiceException inverted = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        ServiceException inverted = assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         assertEquals("阶段计划日期无效：到货签收 计划结束时间早于计划开始时间", inverted.getMessage());
     }
 
@@ -295,7 +331,7 @@ class StagePlanBatchServiceTest {
         batch.setInputSnapshot("{\"stages\":[{\"stageId\":1,\"stageCode\":\"S1\",\"acceptanceTime\":\"2026-01-10T00:00:00\"}]}");
         when(itemMapper.selectListByBatchId(100L)).thenReturn(List.of(
                 item(1L, "验收交维", 1, null, null, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 15))));
-        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         assertEquals("阶段计划日期无效：验收交维 计划结束不得晚于计划验收时间", ex.getMessage());
         verifyNoInteractions(processInstanceApi);
     }
@@ -314,7 +350,7 @@ class StagePlanBatchServiceTest {
         properties.setProcessDefinitionKey("pms_stage_plan_approve");
         when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class)))
                 .thenReturn("PI-1");
-        assertDoesNotThrow(() -> service.submit(100L, 99L));
+        assertDoesNotThrow(() -> service.submit(100L, 99L, null));
     }
 
     @Test
@@ -327,13 +363,13 @@ class StagePlanBatchServiceTest {
         properties.setProcessDefinitionKey("pms_stage_plan_approve");
         when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class)))
                 .thenReturn("PI-1");
-        assertDoesNotThrow(() -> service.submit(100L, 99L));
+        assertDoesNotThrow(() -> service.submit(100L, 99L, null));
     }
 
     @Test
     void submitRequiresAdjustmentRemark() {
         batch.setRemark(" ");
-        assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         verifyNoInteractions(processInstanceApi);
     }
 
@@ -351,7 +387,7 @@ class StagePlanBatchServiceTest {
         when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class)))
                 .thenReturn("PI-1");
 
-        service.submit(100L, 99L);
+        service.submit(100L, 99L, null);
 
         ArgumentCaptor<StagePlanBatchDO> batchCaptor = ArgumentCaptor.forClass(StagePlanBatchDO.class);
         verify(batchMapper).updateById(batchCaptor.capture());
@@ -367,13 +403,13 @@ class StagePlanBatchServiceTest {
         // 审批驳回后可重提（驳回重提）
         clearInvocations(processInstanceApi, batchMapper);
         batch.setStatus(StagePlanBatchDO.STATUS_REJECTED);
-        assertDoesNotThrow(() -> service.submit(100L, 99L));
+        assertDoesNotThrow(() -> service.submit(100L, 99L, null));
 
         // 未配置流程定义时提交失败，不伪造审批
         clearInvocations(processInstanceApi);
         batch.setStatus(StagePlanBatchDO.STATUS_DRAFT);
         properties.setProcessDefinitionKey(null);
-        assertThrows(ServiceException.class, () -> service.submit(100L, 99L));
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
         verify(processInstanceApi, never()).createProcessInstance(any(), any());
     }
 
@@ -396,7 +432,7 @@ class StagePlanBatchServiceTest {
                                 ? "{}" : "changed-duration"));
         when(processInstanceApi.createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class))).thenReturn("PI-1");
 
-        assertDoesNotThrow(() -> service.submit(100L, 99L));
+        assertDoesNotThrow(() -> service.submit(100L, 99L, null));
         assertEquals(durationStart, cachedRevision.getStartDate());
         assertEquals(durationEnd, cachedRevision.getEndDate());
         verify(stagePlanApi).calculateSchedule(1L, 7L, durationStart, durationEnd);

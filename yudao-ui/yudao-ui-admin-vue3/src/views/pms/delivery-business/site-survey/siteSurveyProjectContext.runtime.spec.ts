@@ -17,6 +17,7 @@ const navigation = vi.hoisted(() => ({ leave: vi.fn(), update: vi.fn() }))
 // Registry renders other business views too; all network calls remain test doubles during module loading.
 vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } }, isRelogin: { show: false } }))
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
+vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 8, getTenantId: () => 1, getVisitTenantId: () => undefined }))
 vi.mock('@/api/pms/engineering/site-survey/entity', async original => ({ ...(await original<typeof import('@/api/pms/engineering/site-survey/entity')>()), ...api }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, ...projects }))
 vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: async (query: { projectId: unknown; nodeKind: string; nodeId: unknown }) => ({ node: { projectId: query.projectId, kind: query.nodeKind, id: query.nodeId, status: 'RUNNING' }, reason: 'LEGACY_BINDING', actions: [] }) }))
@@ -32,6 +33,8 @@ vi.mock('vue-router', () => ({ onBeforeRouteLeave: navigation.leave, onBeforeRou
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue', () => ({ default: { render: () => null } }))
 vi.mock('./SiteSurveyDynamicForm.vue', () => ({ default: { render: () => null } }))
+vi.mock('./SurveyApplicationDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('./SurveyMaterialExchangeDialog.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { render: () => null } }))
 
 // Keep the real registry and Host, while unrelated business pages have no module side effects.
@@ -61,6 +64,9 @@ const makeReceipt = (row: any, state = '0', deleted = false) => ({ outcome: ['1'
   references: [{ kind: 'COMMAND', ownerModule: 'SOL', value: JSON.stringify({ id: String(row.id), projectId: String(row.projectId), version: row.version, state, deleted }) }] })
 beforeEach(() => {
   vi.resetAllMocks()
+  const stored = new Map<string, string>()
+  vi.stubGlobal('sessionStorage', { getItem: (key: string) => stored.get(key) ?? null,
+    setItem: (key: string, value: string) => stored.set(key, value), removeItem: (key: string) => stored.delete(key) })
   api.getSiteSurveyPage.mockResolvedValue({ list: [], total: 0 })
   records.clear()
   api.getSiteSurvey.mockImplementation(async (id: unknown) => records.get(String(id)) || record())
@@ -79,7 +85,7 @@ beforeEach(() => {
   projects.getProject.mockResolvedValue({ id: 7, projectCode: 'P-7', projectName: '宿主项目' })
   message.confirm.mockResolvedValue(undefined)
 })
-afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.unstubAllGlobals() })
 
 describe('SOL site-survey shared project and standalone context', () => {
   it('freezes the opened task execution and preserves unsaved content when a new round arrives', async () => {

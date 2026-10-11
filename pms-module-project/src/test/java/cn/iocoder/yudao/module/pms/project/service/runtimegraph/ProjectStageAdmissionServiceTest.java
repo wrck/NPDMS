@@ -282,6 +282,36 @@ class ProjectStageAdmissionServiceTest {
         verify(timers).scheduleFromNode(9L, "STAGE", 1L); verify(timers).scheduleFromNode(9L, "STAGE", 2L);
     }
 
+    @Test void taskAdmissionPreviewUsesFrozenRuleAndPreservesCommandDecisionWithoutWriting() {
+        add("S4", null); rows.getFirst().setStatus("ACTIVE");
+        var current = new TemplateExecutionSnapshot.TaskContract(); current.setNodeKey("task:cutover");
+        current.setCode("cutover"); current.setStageCode("S4"); current.setAdmissionRuleKey("enter");
+        var predecessor = new TemplateExecutionSnapshot.TaskContract(); predecessor.setCode("joint"); predecessor.setName("业务联调");
+        effective.getTasks().add(current); effective.getTasks().add(predecessor);
+        var program = compiler.compile(JsonUtils.parseTree("{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"joint\"}}"));
+        effective.getRulePrograms().put("enter", program);
+        var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO();
+        task.setId(21L); task.setProjectId(9L); task.setCode("cutover"); task.setStageCode("S4");
+        var binding = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
+        binding.setSourceNodeKey("task:cutover");
+        var evaluation = mock(ProjectRuntimeRuleEvaluator.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "evaluator", evaluation);
+        for (var outcome : RuleEvaluation.Outcome.values()) {
+            when(evaluation.evaluate(anyString(), any(), any())).thenReturn(new RuleEvaluation("plan:51", outcome, null,
+                    List.of(new RuleEvaluation.Condition(program.leaves().getFirst().key(), "rule", "TASK", outcome, null)), List.of(), List.of()));
+            var view = service.taskAdmissionView(project, task, binding);
+            assertEquals(outcome, view.outcome());
+            assertEquals(outcome == RuleEvaluation.Outcome.MATCHED, service.taskMayStart(project, task, binding));
+            if (outcome != RuleEvaluation.Outcome.MATCHED) assertEquals("业务联调", view.conditions().getFirst().label());
+        }
+        clearInvocations(projects, graph);
+        service.previewTaskAdmission(project, task, binding);
+        var order = inOrder(projects, graph);
+        order.verify(projects).selectProjectForCommandForUpdate(any());
+        order.verify(graph).selectStagesForUpdate(any());
+        verifyNoInteractions(stages, audit, executions);
+    }
+
     private void add(String code, String expression) {
         long id = rows.size() + 1L;
         var stage = new ProjectStageInstanceDO().setId(id).setProjectId(9L).setCode(code).setStatus("PENDING").setVersion(0).setGraphVersion(1L);

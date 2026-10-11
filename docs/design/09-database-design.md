@@ -837,3 +837,21 @@ V343 新增 SOL 自有 `sol_solution_review_policy`，按租户与方案唯一�
 2026-09-22 来源更正：V344 停用 V342 独立确认模板，保留 `proj_preparation_confirmation` 及原 PLT 发布修订；服务不再新增独立确认。工前输入复用既有 SOL 工勘实体与表单绑定，新增工勘表单修订仅追加条件展示配置，无新增输入字段或业务表。
 
 同日后续裁决：需求方要求从代码中剔除历史工前确认模块；对应 DO / Mapper / XML 已移除。此变更不删除数据库历史记录，也不修改已执行的 V342 / V344。
+
+2026-10-09 FB-02批准差量：复用PROJ阶段/任务的`plan_end_time`与`acceptance_time`，按日期计算当前两类超期；节点完成即停止两类。V422新增PROJ拥有的追加事实表`proj_node_overdue_completion`，唯一键为`(tenant_id,node_kind,node_id,node_version)`。既有状态更新成功进入DONE且有实际完成时间时，同事务追加当时的两个计划时间、实际完成时间与两个超期标识，不直接写任何生命周期状态。回滚同时撤销新事实；后续修改计划不重写已追加事实。历史节点不回填，不覆盖原快照、批准版本或审计。当前项目状态查询复用已授权项目集合，只读返回当前超期节点和已完成历史超期节点。
+
+2026-10-09 FB-18批准差量：IMP配置记录增加可空`imported_log_file_id`和`imported_log_batch_id`，只存AST不可变文件和批次引用；唯一键`(tenant_id,imported_log_file_id)`防止同一文件重复生成配置记录。V423仅加列与索引，不回填或修改旧配置记录和AST历史。初始化不臆造设备SN或业务来源。
+
+
+### 2026-10-10 完工证明与满意度成套签字存储
+
+新增ACC Owner `acc_completion_satisfaction_bundle`：冻结certificateId/certificateVersion/projectId/collectionKey及裁剪证明快照；tenant+certificateId、tenant+collectionKey分别唯一。`acc_completion_satisfaction_signing`只追加每轮bundleId/questionnaireId/responseId/grantId/完整SIGNATURE公共文件事实/signedAt，tenant+responseId唯一。access_grant加completion_bundle_id，可空仅保留既有单问卷授权；不回填历史、不存原始token或下载URL。首次证明确认严格按tenant/id/expectedVersion/status=1 CAS转2，与Response及成套签字同事务。整改只追加签字，不更新旧配对快照或首次确认。前向迁移V427。
+
+
+### 2026-10-10 完工及满意度完整工作台持久化
+
+V428仅向 `acc_completion_certificate`增补可空的满意度问卷模板选择，以及两份独立打印模板ID、修订ID、不可变版式快照；向 `acc_completion_satisfaction_signing`增补与PLT签字文件摘要一致的PNG回显数据。历史记录不回填、不推断调查或签字。新证明首次推送复用V427的租户/证明唯一关联与原调查冻结链；重新外发不增加调查，撤销旧链接。状态仍为原0/1/2/3/4，新工作台0/1作废使用4，历史4仍保留驳回含义。
+
+V429仅幂等初始化COMPLETION_PRINT与SATISFACTION_PRINT两个独立动态表单打印模板及各自已发布修订，使用高段ID与seed_completion_confirmation来源标识；不替换既有模板、问卷题目或评分。满意度标准打印控件读取该轮冻结问卷和答案，按Demo矩阵展示，签字来自关联的规范文件事实。所有新交付文件通过PLT正式API登记，ACC不读取或写入PLT业务表。
+
+V430按需求方明确裁决，新增 `COMPLETION_SATISFACTION_STANDARD` 原表模板及发布修订，沿用高段ID和 `seed_completion_confirmation` 来源标识。13题中10项RATING采用相同权重的既有平均计分器，满分100、阈值80；购买意愿及两项意见为不计分TEXT。专用 `COMPLETION_CONFIRMATION` 时点与固定模板编码供原证明首次外发显式解析，不加入既有MANUAL/验收活动的模板匹配场景。只初始化新记录，不更新已有模板、发布修订、冻结问卷、答卷或Result。首次推送保存选择并冻结修订，重推/历史查看使用该轮原快照。

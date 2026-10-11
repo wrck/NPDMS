@@ -53,6 +53,8 @@ export interface ProjectMasterVO {
   serviceManagerAssigned?: boolean
   projectManagerAssigned?: boolean
   activeStageNames?: string[]
+  overdueNodes?: ProjectOverdueNode[]
+  completedOverdueNodes?: ProjectOverdueNode[]
   version?: number
   progress?: number
   aggregationWeight?: number
@@ -77,6 +79,17 @@ export interface ProjectMasterVO {
   closedAt?: Date
   projectEndDate?: string
   createTime?: Date
+}
+
+export interface ProjectOverdueNode {
+  nodeKind: 'STAGE' | 'TASK'
+  nodeId: number | string
+  nodeName?: string
+  planEndTime?: number
+  acceptanceTime?: number
+  completedAt?: number
+  workOverdue: boolean
+  acceptanceOverdue: boolean
 }
 
 /** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目；contractId 非空时服务端按合同链取CRM权威值并绑定） */
@@ -237,6 +250,7 @@ export interface ProjectInstancesVO {
   lifecycleTemplateId?: number
   lifecycleTemplateRevisionNo?: number
   stages: {
+    id?: number | string
     stageCode: string
     name: string
     sortOrder: number
@@ -245,6 +259,7 @@ export interface ProjectInstancesVO {
     suggestedEndTime?: string
     planStartTime?: string
     planEndTime?: string
+    acceptanceTime?: string
     actualStartTime?: string
     actualEndTime?: string
     deviationReason?: string
@@ -584,6 +599,9 @@ export const matchTemplates = (params: ProjectMatchTemplatesReqVO) =>
 export type ProjectPageParams = PageParam & {
   projectCode?: string
   projectName?: string
+  customerCode?: string
+  overdueOnly?: boolean
+  hasShippedDevices?: boolean
   status?: string
   signingMethod?: string
   projectCategory?: string

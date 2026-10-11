@@ -34,3 +34,12 @@ it('intersects all shared consumers including admission, closure and matching', 
   expect(nativeOptions(document, 'missing')).toEqual([])
   expect(nativeOptions(document)).toEqual([])
 })
+
+it('allows automatic contacts only at the contact page completion slot', () => {
+  const document = emptyDesignerDocument(); const node = task(); node.exitRuleKey = undefined; node.completionRuleKey = 'ready'
+  node.workBinding = { type: 'PAGE', parameters: { routePath: '/customer-asset/customer-contact' } }; document.tasks.push(node)
+  expect(nativeOptions(document, 'ready')).toContain('PROJECT_CONTACT_EXISTS')
+  node.exitRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_CONTACT_EXISTS')
+  node.exitRuleKey = undefined; node.workBinding.parameters = { routePath: '/other' }
+  expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_CONTACT_EXISTS')
+})

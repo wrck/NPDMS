@@ -9,6 +9,7 @@ import java.util.List;
 
 @Mapper
 public interface DeviceOrganizationMapper {
+    List<DeviceDO> selectContractBatchForUpdate(@Param("query") DeviceContractOrganizationBatchQuery query);
     List<DeviceDO> selectBatchForUpdate(@Param("query") DeviceOrganizationBatchQuery query);
     List<DeviceDO> selectStoredOrganizations(@Param("query") DeviceOrganizationBatchQuery query);
     int updateOrganizationBatch(@Param("query") DeviceOrganizationUpdate query, @Param("deviceIds") Collection<Long> deviceIds);

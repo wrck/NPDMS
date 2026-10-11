@@ -37,6 +37,7 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
     private final ObjectProvider<DeviceLogFileApi> fileStorage;
     private final ObjectProvider<FileEvidenceApi> evidence;
     private final ObjectProvider<NativeGeneratedFileApi> downloads;
+    private final ObjectProvider<DeviceArchivedLogParsingService> parsing;
 
     @Transactional(rollbackFor=Exception.class)
     public ImportView upload(Long projectId, String operationId, String fileName, byte[] bytes) {
@@ -103,7 +104,7 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
             return reject(batch, "采集内容序列号与任务设备不一致，未归档日志");
         // Lock every device in a stable order before storing any file, so a bad association cannot partially import a batch.
         for (var located : matched.stream().sorted(Comparator.comparing(DeviceDO::getId)).toList()) {
-            var locked = devices.selectByTenantAndIdForUpdate(tenant, located.getId());
+            var locked = devices.selectLogDeviceForUpdate(new cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery(tenant, located.getId()));
             if (locked == null || !Objects.equals(projectId, locked.getProjectId()) || !Objects.equals(locked.getSn(), located.getSn()))
                 throw problem("设备归属或序列号已变化，请重新导入");
         }
@@ -133,6 +134,10 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
         row.setMaterialId(file.materialId()); row.setFileReferenceId(file.referenceId()); row.setArtifactId(file.artifactId());
         row.setArtifactVersion(file.versionNo()); row.setSha256(file.sha256());
         if (files.updateById(row)!=1) throw problem("设备日志文件登记失败");
+        if (device!=null) {
+            var parser=parsing.getIfAvailable();
+            if (parser!=null) parser.register(row,text);
+        }
     }
     private ImportView reject(DeviceLogImportDO batch, String reason) {
         batch.setOutcome("REJECTED"); batch.setRejectionReason(reason);
@@ -165,28 +170,36 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
                 importedFiles.stream().map(this::fileView).toList());
     }
 
+    @Transactional(rollbackFor=Exception.class)
     public List<DeviceView> latest(Long projectId) {
         Long tenant = TenantContextHolder.getRequiredTenantId();
         authorize(tenant, SecurityFrameworkUtils.getLoginUserId(), projectId, false);
         var latest = new HashMap<Long, FileView>();
         for (var row : files.projectFiles(new DeviceLogProjectQuery(tenant, projectId))) {
-            if (!latest.containsKey(row.getDeviceId()) && available(row)) latest.put(row.getDeviceId(), fileView(row));
+            var current = latest.get(row.getDeviceId());
+            if (current == null || !current.available() && available(row)) {
+                latest.put(row.getDeviceId(), fileView(row));
+            }
         }
         return deviceQueries.projectDevices(new DeviceLogProjectQuery(tenant, projectId)).stream()
+                .filter(d -> latest.containsKey(d.getId()))
                 .map(d -> new DeviceView(d.getId(), d.getSn(), d.getName(), latest.get(d.getId()))).toList();
     }
+    @Transactional(rollbackFor=Exception.class)
     public List<FileView> history(Long projectId, Long deviceId) {
         Long tenant = TenantContextHolder.getRequiredTenantId(); authorize(tenant, SecurityFrameworkUtils.getLoginUserId(), projectId, false);
         var device = devices.selectByTenantAndId(tenant, deviceId);
         if (device==null || !Objects.equals(projectId, device.getProjectId())) throw problem("设备不属于当前项目");
         return files.history(new DeviceLogHistoryQuery(tenant, projectId, deviceId)).stream().map(this::fileView).toList();
     }
+    @Transactional(rollbackFor=Exception.class)
     public ImportView getImport(Long id) {
         var row = imports.selectById(id);
         if (row==null || !Objects.equals(row.getTenantId(), TenantContextHolder.getRequiredTenantId())) throw problem("日志导入记录不存在");
         authorize(row.getTenantId(), SecurityFrameworkUtils.getLoginUserId(), row.getProjectId(), false);
         return view(row);
     }
+    @Transactional(rollbackFor=Exception.class)
     public String download(Long fileId) {
         var row = files.selectById(fileId);
         if (row==null || !Objects.equals(row.getTenantId(), TenantContextHolder.getRequiredTenantId()) || row.getMaterialId()==null)
@@ -214,8 +227,12 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
         if (write && !collection && !permissions.hasAnyPermissions(actor,"pms:file:upload"))
             throw problem("设备日志上传权限不足");
         String action = write ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_VIEW;
-        var scope = write ? scopes.getObject().lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, projectId, action, null))
-                : scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, projectId, action));
+        var current = scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, projectId, action));
+        if (current==null || current.treeVersion()==null || current.fullProjectIds()==null
+                || !current.fullProjectIds().contains(projectId)) throw problem("项目不在当前数据范围");
+        var scope = write ? scopes.getObject().lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, projectId, action, current.treeVersion())) : current;
+        if (write && (scope==null || !Objects.equals(scope.treeVersion(),current.treeVersion())))
+            throw problem("项目范围已变化，请刷新后重试");
         if (scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(projectId)) throw problem("项目不在当前数据范围");
     }
     private BusinessContractException problem(String message) { return new BusinessContractException("DEVICE_LOG_ARCHIVE_REJECTED", message); }

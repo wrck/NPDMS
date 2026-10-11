@@ -42,6 +42,15 @@ public class ArrivalRespVO {
     @Schema(description = "签收单附件")
     private String attachmentUrl;
 
+    @Schema(description = "当前统一签收单文件编号")
+    private Long signDocumentArtifactId;
+
+    @Schema(description = "当前统一签收单文件版本")
+    private Integer signDocumentVersionNo;
+
+    @Schema(description = "当前签收单引用版本")
+    private Long signDocumentReferenceVersion;
+
     @Schema(description = "状态：0 待签收 1 已签收 2 异常", example = "0")
     private Integer status;
 
